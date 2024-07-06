@@ -105,7 +105,19 @@ export class ZModelFormatter extends AbstractFormatter {
     }
 
     private getFieldTypeLength(field: ast.DataModelField) {
-        let length = (field.type.type || field.type.reference?.$refText)!.length;
+        let length: number;
+
+        if (field.type.type) {
+            length = field.type.type.length;
+        } else if (field.type.reference) {
+            length = field.type.reference.$refText.length;
+        } else if (field.type.unsupported) {
+            const name = `Unsupported("${field.type.unsupported.value.value}")`;
+            length = name.length;
+        } else {
+            // we shouldn't get here
+            length = 1;
+        }
 
         if (field.type.optional) {
             length += 1;
