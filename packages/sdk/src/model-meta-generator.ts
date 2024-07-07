@@ -24,16 +24,16 @@ import {
     getAttributeArgs,
     getAuthModel,
     getDataModels,
+    getInheritedFromDelegate,
     getLiteral,
+    getRelationField,
     hasAttribute,
-    isDelegateModel,
     isAuthInvocation,
     isEnumFieldReference,
     isForeignKeyField,
     isIdField,
     resolved,
     TypeScriptExpressionTransformer,
-    getRelationField,
 } from '.';
 
 /**
@@ -267,9 +267,10 @@ function writeFields(
                 defaultValueProvider: ${defaultValueProvider},`);
             }
 
-            if (f.$inheritedFrom && isDelegateModel(f.$inheritedFrom) && !isIdField(f)) {
+            const inheritedFromDelegate = getInheritedFromDelegate(f);
+            if (inheritedFromDelegate && !isIdField(f)) {
                 writer.write(`
-        inheritedFrom: ${JSON.stringify(f.$inheritedFrom.name)},`);
+        inheritedFrom: ${JSON.stringify(inheritedFromDelegate.name)},`);
             }
 
             if (isAutoIncrement(f)) {
