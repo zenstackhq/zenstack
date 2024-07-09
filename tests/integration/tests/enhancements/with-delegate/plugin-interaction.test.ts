@@ -23,6 +23,22 @@ describe('Polymorphic Plugin Interaction Test', () => {
         });
     });
 
+    it('swr', async () => {
+        const schema = `
+        ${POLYMORPHIC_SCHEMA}
+
+        plugin hooks {
+            provider = '@zenstackhq/swr'
+            output = '$projectRoot/hooks'
+        }
+        `;
+
+        await loadSchema(schema, {
+            compile: true,
+            extraDependencies: ['swr'],
+        });
+    });
+
     it('trpc', async () => {
         const schema = `
         ${POLYMORPHIC_SCHEMA}
@@ -30,12 +46,13 @@ describe('Polymorphic Plugin Interaction Test', () => {
         plugin trpc {
             provider = '@zenstackhq/trpc'
             output = '$projectRoot/routers'
+            generateClientHelpers = 'react'
         }
         `;
 
         await loadSchema(schema, {
             compile: true,
-            extraDependencies: ['@trpc/client', '@trpc/server'],
+            extraDependencies: ['@trpc/client', '@trpc/server', '@trpc/react-query'],
         });
     });
 });
