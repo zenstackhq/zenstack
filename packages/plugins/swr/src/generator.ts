@@ -5,6 +5,7 @@ import {
     ensureEmptyDir,
     generateModelMeta,
     getDataModels,
+    isDelegateModel,
     requireOption,
     resolvePath,
     saveProject,
@@ -77,15 +78,17 @@ function generateModelHooks(
 
     const mutationFuncs: string[] = [];
 
+    // Note: delegate models don't support create and upsert operations
+
     // create is somehow named "createOne" in the DMMF
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (mapping.create || (mapping as any).createOne) {
+    if (!isDelegateModel(model) && (mapping.create || (mapping as any).createOne)) {
         const argsType = `Prisma.${model.name}CreateArgs`;
         mutationFuncs.push(generateMutation(sf, model, 'POST', 'create', argsType, false));
     }
 
     // createMany
-    if (mapping.createMany && supportCreateMany(model.$container)) {
+    if (!isDelegateModel(model) && mapping.createMany && supportCreateMany(model.$container)) {
         const argsType = `Prisma.${model.name}CreateManyArgs`;
         mutationFuncs.push(generateMutation(sf, model, 'POST', 'createMany', argsType, true));
     }
@@ -138,7 +141,7 @@ function generateModelHooks(
     // upsert
     // upsert is somehow named "upsertOne" in the DMMF
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (mapping.upsert || (mapping as any).upsertOne) {
+    if (!isDelegateModel(model) && (mapping.upsert || (mapping as any).upsertOne)) {
         const argsType = `Prisma.${model.name}UpsertArgs`;
         mutationFuncs.push(generateMutation(sf, model, 'POST', 'upsert', argsType, false));
     }

@@ -6,6 +6,7 @@ import {
     ensureEmptyDir,
     generateModelMeta,
     getDataModels,
+    isDelegateModel,
     requireOption,
     resolvePath,
     saveProject,
@@ -341,14 +342,16 @@ function generateModelHooks(
     });
     sf.addStatements(makeBaseImports(target, version));
 
+    // Note: delegate models don't support create and upsert operations
+
     // create is somehow named "createOne" in the DMMF
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (mapping.create || (mapping as any).createOne) {
+    if (!isDelegateModel(model) && (mapping.create || (mapping as any).createOne)) {
         generateMutationHook(target, sf, model.name, 'create', 'post', true);
     }
 
     // createMany
-    if (mapping.createMany && supportCreateMany(model.$container)) {
+    if (!isDelegateModel(model) && mapping.createMany && supportCreateMany(model.$container)) {
         generateMutationHook(target, sf, model.name, 'createMany', 'post', false, 'Prisma.BatchPayload');
     }
 
@@ -422,7 +425,7 @@ function generateModelHooks(
     // upsert
     // upsert is somehow named "upsertOne" in the DMMF
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (mapping.upsert || (mapping as any).upsertOne) {
+    if (!isDelegateModel(model) && (mapping.upsert || (mapping as any).upsertOne)) {
         generateMutationHook(target, sf, model.name, 'upsert', 'post', true);
     }
 
