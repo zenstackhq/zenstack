@@ -53,7 +53,7 @@
         "fastify-plugin": "^4.5.0",
         "h3": "^1.8.2",
         "isomorphic-fetch": "^3.0.0",
-        "next": "13.4.7",
+        "next": "14.2.4",
         "nuxt": "^3.7.4",
         "reflect-metadata": "^0.2.2",
         "supertest": "^6.3.3"
