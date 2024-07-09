@@ -1,15 +1,16 @@
 import {
     CrudFailureReason,
-    PluginError,
-    RUNTIME_PACKAGE,
     ensureEmptyDir,
+    isDelegateModel,
     parseOptionAsStrings,
+    PluginError,
     requireOption,
     resolvePath,
+    RUNTIME_PACKAGE,
     saveProject,
     type PluginOptions,
 } from '@zenstackhq/sdk';
-import { Model } from '@zenstackhq/sdk/ast';
+import { DataModel, isDataModel, Model } from '@zenstackhq/sdk/ast';
 import { getPrismaClientImportSpec, supportCreateMany, type DMMF } from '@zenstackhq/sdk/prisma';
 import fs from 'fs';
 import { lowerCaseFirst } from 'lower-case-first';
@@ -287,10 +288,20 @@ function generateModelCreateRouter(
         };
     }
 
+    const dataModel = zmodel.declarations.find((d): d is DataModel => isDataModel(d) && d.name === model);
+    if (!dataModel) {
+        throw new Error(`Data model "${model}" not found`);
+    }
+
     createRouterFunc.setBodyText((funcWriter) => {
         funcWriter.write('return router(');
         funcWriter.block(() => {
             for (const [opType, opNameWithModel] of Object.entries(operations)) {
+                if (isDelegateModel(dataModel) && (opType.startsWith('create') || opType.startsWith('upsert'))) {
+                    // delete models don't support create or upsert operations
+                    continue;
+                }
+
                 const baseOpType = opType.replace('OrThrow', '');
                 const inputType = getInputSchemaByOpName(baseOpType, model);
                 const generateOpName = opType.replace(/One$/, '');

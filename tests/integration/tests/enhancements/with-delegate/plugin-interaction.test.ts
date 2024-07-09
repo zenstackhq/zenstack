@@ -22,4 +22,20 @@ describe('Polymorphic Plugin Interaction Test', () => {
             extraDependencies: ['@tanstack/react-query'],
         });
     });
+
+    it('trpc', async () => {
+        const schema = `
+        ${POLYMORPHIC_SCHEMA}
+
+        plugin trpc {
+            provider = '@zenstackhq/trpc'
+            output = '$projectRoot/routers'
+        }
+        `;
+
+        await loadSchema(schema, {
+            compile: true,
+            extraDependencies: ['@trpc/client', '@trpc/server'],
+        });
+    });
 });
