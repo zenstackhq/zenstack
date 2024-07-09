@@ -624,7 +624,7 @@ function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
             return [
                 `import type { UseMutationOptions, UseQueryOptions, UseInfiniteQueryOptions, InfiniteData } from '@tanstack/vue-query';`,
                 `import { getHooksContext } from '${runtimeImportBase}/${target}';`,
-                `import type { MaybeRefOrGetter, ComputedRef } from 'vue';`,
+                `import type { MaybeRefOrGetter, ComputedRef, UnwrapRef } from 'vue';`,
                 ...shared,
             ];
         }
@@ -674,7 +674,9 @@ function makeQueryOptions(
         .with('vue', () => {
             const baseOption = infinite
                 ? `Omit<UseInfiniteQueryOptions<${returnType}, TError, InfiniteData<${dataType}>>, 'queryKey' | 'initialPageParam'>`
-                : `Omit<UseQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`;
+                : version === 'v4'
+                ? `Omit<UseQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`
+                : `Omit<UnwrapRef<UseQueryOptions<${returnType}, TError, ${dataType}>>, 'queryKey'>`;
             return `MaybeRefOrGetter<${baseOption}> | ComputedRef<${baseOption}>`;
         })
         .with('svelte', () =>
