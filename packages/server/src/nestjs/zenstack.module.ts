@@ -12,7 +12,7 @@ export interface ZenStackModuleOptions {
     /**
      * A callback for getting an enhanced `PrismaClient`.
      */
-    getEnhancedPrisma: () => unknown;
+    getEnhancedPrisma: (model?: string | symbol ) => unknown;
 }
 
 /**
@@ -79,7 +79,7 @@ export class ZenStackModule {
                             {
                                 get(_target, prop) {
                                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                    const enhancedPrisma: any = getEnhancedPrisma();
+                                    const enhancedPrisma: any = getEnhancedPrisma(prop);
                                     if (!enhancedPrisma) {
                                         throw new Error('`getEnhancedPrisma` must return a valid Prisma client');
                                     }
