@@ -147,18 +147,18 @@ export function enhance<DbClient extends object>(prisma: DbClient, context?: Enh
 
     private createLogicalPrismaImports(prismaImport: string, logicalPrismaClientDir: string) {
         return `import { Prisma as _Prisma, PrismaClient as _PrismaClient } from '${prismaImport}';
-import type {
-    InternalArgs,
-    TypeMapDef,
-    TypeMapCbDef,
-    DynamicClientExtensionThis,
-} from '${prismaImport}/runtime/library';
+import type { InternalArgs, DynamicClientExtensionThis } from '${prismaImport}/runtime/library';
 import type * as _P from '${logicalPrismaClientDir}/index-fixed';
 import type { Prisma, PrismaClient } from '${logicalPrismaClientDir}/index-fixed';
 `;
     }
 
     private createLogicalPrismaEnhanceFunction(authTypeParam: string) {
+        const prismaVersion = getPrismaVersion();
+
+        // Prisma 5.16.0 introduced a new generic parameter to `DynamicClientExtensionThis`
+        const hasClientOptions = prismaVersion && semver.gte(prismaVersion, '5.16.0');
+
         return `
 // overload for plain PrismaClient
 export function enhance<ExtArgs extends Record<string, any> & InternalArgs>(
@@ -168,11 +168,13 @@ export function enhance<ExtArgs extends Record<string, any> & InternalArgs>(
         };
     
 // overload for extended PrismaClient
-export function enhance<TypeMap extends TypeMapDef, TypeMapCb extends TypeMapCbDef, ExtArgs extends Record<string, any> & InternalArgs>(
-    prisma: DynamicClientExtensionThis<TypeMap, TypeMapCb, ExtArgs>,
-    context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions): DynamicClientExtensionThis<Prisma.TypeMap, Prisma.TypeMapCb, ExtArgs>${
-            this.generatePermissionChecker ? ' & ModelCheckers' : ''
-        };
+export function enhance<ExtArgs extends Record<string, any> & InternalArgs${hasClientOptions ? ', ClientOptions' : ''}>(
+    prisma: DynamicClientExtensionThis<_Prisma.TypeMap<ExtArgs>, _Prisma.TypeMapCb, ExtArgs${
+        hasClientOptions ? ', ClientOptions' : ''
+    }>,
+    context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions): DynamicClientExtensionThis<Prisma.TypeMap<ExtArgs>, Prisma.TypeMapCb, ExtArgs${
+            hasClientOptions ? ', ClientOptions' : ''
+        }>${this.generatePermissionChecker ? ' & ModelCheckers' : ''};
 
 export function enhance(prisma: any, context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions): any {
     return createEnhancement(prisma, {

@@ -2,7 +2,6 @@ import { isDataSource, isPlugin, Model } from '@zenstackhq/language/ast';
 import { getDataModels, getLiteral, hasAttribute } from '@zenstackhq/sdk';
 import colors from 'colors';
 import fs from 'fs';
-import getLatestVersion from 'get-latest-version';
 import { getDocument, LangiumDocument, LangiumDocuments, linkContentToContainer } from 'langium';
 import { NodeFileSystem } from 'langium/node';
 import path from 'path';
@@ -19,6 +18,8 @@ import { CliError } from './cli-error';
 
 // required minimal version of Prisma
 export const requiredPrismaVersion = '4.8.0';
+
+const CHECK_VERSION_TIMEOUT = 1000;
 
 /**
  * Loads a zmodel document from a file.
@@ -267,10 +268,35 @@ export function checkRequiredPackage(packageName: string, minVersion?: string) {
 
 export async function checkNewVersion() {
     const currVersion = getVersion();
-    const latestVersion = await getLatestVersion('zenstack');
+    let latestVersion: string;
+    try {
+        latestVersion = await getLatestVersion();
+    } catch {
+        // noop
+        return;
+    }
+
     if (latestVersion && semver.gt(latestVersion, currVersion)) {
         console.log(`A newer version ${colors.cyan(latestVersion)} is available.`);
     }
+}
+
+export async function getLatestVersion() {
+    const fetchResult = await fetch('https://registry.npmjs.org/zenstack', {
+        headers: { accept: 'application/vnd.npm.install-v1+json; q=1.0, application/json; q=0.8, */*' },
+        signal: AbortSignal.timeout(CHECK_VERSION_TIMEOUT),
+    });
+
+    if (fetchResult.ok) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const data: any = await fetchResult.json();
+        const latestVersion = data?.['dist-tags']?.latest;
+        if (typeof latestVersion === 'string' && semver.valid(latestVersion)) {
+            return latestVersion;
+        }
+    }
+
+    throw new Error('invalid npm registry response');
 }
 
 export async function formatDocument(fileName: string, isPrismaStyle = true) {

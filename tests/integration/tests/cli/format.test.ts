@@ -22,7 +22,7 @@ describe('CLI format test', () => {
         const model = `
         datasource db {provider="sqlite" url="file:./dev.db"}
         generator client {provider = "prisma-client-js"}
-        model Post {id Int @id() @default(autoincrement())users User[]}`;
+        model Post {id Int @id() @default(autoincrement())users User[]foo Unsupported("foo")}`;
 
         const formattedModel = `
 datasource db {
@@ -35,6 +35,7 @@ generator client {
 model Post {
     id Int @id() @default(autoincrement())
     users User[]
+    foo Unsupported("foo")
 }`;
         // set up schema
         fs.writeFileSync('schema.zmodel', model, 'utf-8');
@@ -48,7 +49,7 @@ model Post {
         const model = `
         datasource db {provider="sqlite" url="file:./dev.db"}
         generator client {provider = "prisma-client-js"}
-        model Post {id Int @id() @default(autoincrement())users User[]}`;
+        model Post {id Int @id() @default(autoincrement())users User[]foo Unsupported("foo")}`;
 
         const formattedModel = `
 datasource db {
@@ -59,8 +60,9 @@ generator client {
     provider = "prisma-client-js"
 }
 model Post {
-    id    Int    @id() @default(autoincrement())
+    id    Int                @id() @default(autoincrement())
     users User[]
+    foo   Unsupported("foo")
 }`;
         // set up schema
         fs.writeFileSync('schema.zmodel', model, 'utf-8');

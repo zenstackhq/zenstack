@@ -39,6 +39,7 @@ import {
     getAttribute,
     getAttributeArg,
     getAttributeArgLiteral,
+    getInheritedFromDelegate,
     getLiteral,
     getRelationKeyPairs,
     isDelegateModel,
@@ -261,9 +262,10 @@ export class PrismaSchemaGenerator {
         const model = decl.isView ? prisma.addView(decl.name) : prisma.addModel(decl.name);
         for (const field of decl.fields) {
             if (field.$inheritedFrom) {
+                const inheritedFromDelegate = getInheritedFromDelegate(field);
                 if (
-                    // abstract inheritance is always kept
-                    field.$inheritedFrom.isAbstract ||
+                    // fields inherited from delegate are excluded from physical schema
+                    !inheritedFromDelegate ||
                     // logical schema keeps all inherited fields
                     this.mode === 'logical' ||
                     // id fields are always kept
@@ -410,6 +412,7 @@ export class PrismaSchemaGenerator {
                 const relAttr = getAttribute(field, '@relation');
                 if (relAttr) {
                     const fieldsArg = getAttributeArg(relAttr, 'fields');
+                    const nameArg = getAttributeArg(relAttr, 'name') as LiteralExpr;
                     if (fieldsArg) {
                         // for reach foreign key field pointing to the delegate model, we need to create an aux foreign key
                         // to point to the concrete model
@@ -439,7 +442,7 @@ export class PrismaSchemaGenerator {
 
                         const addedRel = new PrismaFieldAttribute('@relation', [
                             // use field name as relation name for disambiguation
-                            new PrismaAttributeArg(undefined, new AttributeArgValue('String', auxRelationField.name)),
+                            new PrismaAttributeArg(undefined, new AttributeArgValue('String', nameArg?.value || auxRelationField.name)),
                             new PrismaAttributeArg('fields', fieldsArg),
                             new PrismaAttributeArg('references', referencesArg),
                         ]);

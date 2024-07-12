@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { v4 as uuid } from 'uuid';
-import deepcopy from 'deepcopy';
 import {
     ModelDataVisitor,
     NestedWriteVisitor,
@@ -10,6 +9,7 @@ import {
     type ModelMeta,
     type PrismaWriteActionType,
 } from '.';
+import { clone } from './clone';
 
 /**
  * Tries to apply a mutation to a query result.
@@ -200,7 +200,7 @@ function updateMutate(
         });
     }
 
-    return updated ? deepcopy(currentData) /* ensures new object identity */ : undefined;
+    return updated ? clone(currentData) /* ensures new object identity */ : undefined;
 }
 
 function deleteMutate(

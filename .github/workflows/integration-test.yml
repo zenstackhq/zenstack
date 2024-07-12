@@ -46,7 +46,7 @@ jobs:
             - name: Install pnpm
               uses: pnpm/action-setup@v2
               with:
-                  version: ^7.15.0
+                  version: 9.4.0
 
             - name: Use Node.js ${{ matrix.node-version }}
               uses: buildjet/setup-node@v3

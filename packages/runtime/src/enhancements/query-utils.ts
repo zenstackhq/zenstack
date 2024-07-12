@@ -7,10 +7,11 @@ import {
     type FieldInfo,
     type NestedWriteVisitorContext,
 } from '../cross';
+import { clone } from '../cross';
 import type { CrudContract, DbClientContract } from '../types';
 import { getVersion } from '../version';
 import { InternalEnhancementOptions } from './create-enhancement';
-import { clone, prismaClientUnknownRequestError, prismaClientValidationError } from './utils';
+import { prismaClientUnknownRequestError, prismaClientValidationError } from './utils';
 
 export class QueryUtils {
     constructor(private readonly prisma: DbClientContract, protected readonly options: InternalEnhancementOptions) {}
@@ -148,7 +149,7 @@ export class QueryUtils {
             return fieldData;
         }
 
-        const result: any = clone(fieldData);
+        const result: any = this.safeClone(fieldData);
         for (const [name, constraint] of Object.entries(uniqueConstraints)) {
             if (constraint.fields.length > 1 && constraint.fields.every((f) => fieldData[f] !== undefined)) {
                 // multi-field unique constraint, compose it
@@ -205,5 +206,12 @@ export class QueryUtils {
      */
     getModelField(model: string, field: string) {
         return resolveField(this.options.modelMeta, model, field);
+    }
+
+    /**
+     * Clones an object and makes sure it's not empty.
+     */
+    safeClone(value: unknown): any {
+        return value ? clone(value) : value === undefined || value === null ? {} : value;
     }
 }

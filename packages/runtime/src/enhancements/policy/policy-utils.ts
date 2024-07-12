@@ -1,13 +1,21 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import deepcopy from 'deepcopy';
 import deepmerge from 'deepmerge';
 import { lowerCaseFirst } from 'lower-case-first';
 import { upperCaseFirst } from 'upper-case-first';
-import { ZodError } from 'zod';
+import { z, type ZodError, type ZodObject, type ZodSchema } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { CrudFailureReason, PrismaErrorCode } from '../../constants';
-import { enumerate, getFields, getModelFields, resolveField, zip, type FieldInfo, type ModelMeta } from '../../cross';
+import {
+    clone,
+    enumerate,
+    getFields,
+    getModelFields,
+    resolveField,
+    zip,
+    type FieldInfo,
+    type ModelMeta,
+} from '../../cross';
 import {
     AuthUser,
     CrudContract,
@@ -550,7 +558,7 @@ export class PolicyUtil extends QueryUtils {
         } else {
             const mergedGuard = this.injectReadGuardForRelationFields(db, fieldInfo.type, payload, guard);
             // turn direct conditions into: { is: { AND: [ originalConditions, guard ] } }
-            const combined = this.and(deepcopy(payload), mergedGuard);
+            const combined = this.and(clone(payload), mergedGuard);
             Object.keys(payload).forEach((key) => delete payload[key]);
             payload.is = combined;
         }
@@ -806,7 +814,7 @@ export class PolicyUtil extends QueryUtils {
             select = { ...select, ...entityChecker.selector };
         }
 
-        let where = this.clone(uniqueFilter);
+        let where = this.safeClone(uniqueFilter);
         // query args may have be of combined-id form, need to flatten it to call findFirst
         this.flattenGeneratedUniqueField(model, where);
 
@@ -843,20 +851,15 @@ export class PolicyUtil extends QueryUtils {
 
         if (schema) {
             // TODO: push down schema check to the database
-            const parseResult = schema.safeParse(result);
-            if (!parseResult.success) {
-                const error = fromZodError(parseResult.error);
-                if (this.logger.enabled('info')) {
-                    this.logger.info(`entity ${model} failed validation for operation ${operation}: ${error}`);
-                }
+            this.validateZodSchema(model, undefined, result, true, (err) => {
                 throw this.deniedByPolicy(
                     model,
                     operation,
-                    `entities ${formatObject(uniqueFilter, false)} failed validation: [${error}]`,
+                    `entity ${formatObject(uniqueFilter, false)} failed validation: [${fromZodError(err)}]`,
                     CrudFailureReason.DATA_VALIDATION_VIOLATION,
-                    parseResult.error
+                    err
                 );
-            }
+            });
         }
     }
 
@@ -1001,7 +1004,7 @@ export class PolicyUtil extends QueryUtils {
      * Checks if a model exists given a unique filter.
      */
     async checkExistence(db: CrudContract, model: string, uniqueFilter: any, throwIfNotFound = false): Promise<any> {
-        uniqueFilter = this.clone(uniqueFilter);
+        uniqueFilter = this.safeClone(uniqueFilter);
         this.flattenGeneratedUniqueField(model, uniqueFilter);
 
         if (this.shouldLogQuery) {
@@ -1027,13 +1030,13 @@ export class PolicyUtil extends QueryUtils {
         selectInclude: { select?: any; include?: any },
         uniqueFilter: any
     ): Promise<{ result: unknown; error?: Error }> {
-        uniqueFilter = this.clone(uniqueFilter);
+        uniqueFilter = this.safeClone(uniqueFilter);
         this.flattenGeneratedUniqueField(model, uniqueFilter);
 
         // make sure only select and include are picked
         const selectIncludeClean = this.pick(selectInclude, 'select', 'include');
         const readArgs = {
-            ...this.clone(selectIncludeClean),
+            ...this.safeClone(selectIncludeClean),
             where: uniqueFilter,
         };
 
@@ -1262,14 +1265,75 @@ export class PolicyUtil extends QueryUtils {
     /**
      * Gets Zod schema for the given model and access kind.
      *
-     * @param kind If undefined, returns the full schema.
+     * @param kind kind of Zod schema to get for. If undefined, returns the full schema.
      */
-    getZodSchema(model: string, kind: 'create' | 'update' | undefined = undefined) {
+    getZodSchema(
+        model: string,
+        excludePasswordFields: boolean = true,
+        kind: 'create' | 'update' | undefined = undefined
+    ) {
         if (!this.hasFieldValidation(model)) {
             return undefined;
         }
         const schemaKey = `${upperCaseFirst(model)}${kind ? 'Prisma' + upperCaseFirst(kind) : ''}Schema`;
-        return this.zodSchemas?.models?.[schemaKey];
+        let result = this.zodSchemas?.models?.[schemaKey] as ZodObject<any> | undefined;
+
+        if (result && excludePasswordFields) {
+            // fields with `@password` attribute changes at runtime, so we cannot directly use the generated
+            // zod schema to validate it, instead, the validation happens when checking the input of "create"
+            // and "update" operations
+            const modelFields = this.modelMeta.models[lowerCaseFirst(model)]?.fields;
+            if (modelFields) {
+                for (const [key, field] of Object.entries(modelFields)) {
+                    if (field.attributes?.some((attr) => attr.name === '@password')) {
+                        // override `@password` field schema with a string schema
+                        let pwFieldSchema: ZodSchema = z.string();
+                        if (field.isOptional) {
+                            pwFieldSchema = pwFieldSchema.nullish();
+                        }
+                        result = result?.merge(z.object({ [key]: pwFieldSchema }));
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Validates the given data against the Zod schema for the given model and kind.
+     *
+     * @param model model
+     * @param kind validation kind. Pass undefined to validate against the full schema.
+     * @param data input data
+     * @param excludePasswordFields whether exclude schema validation for `@password` fields
+     * @param onError error callback
+     * @returns Zod-validated data
+     */
+    validateZodSchema(
+        model: string,
+        kind: 'create' | 'update' | undefined,
+        data: object,
+        excludePasswordFields: boolean,
+        onError: (error: ZodError) => void
+    ) {
+        const schema = this.getZodSchema(model, excludePasswordFields, kind);
+        if (!schema) {
+            return data;
+        }
+
+        const parseResult = schema.safeParse(data);
+        if (!parseResult.success) {
+            if (this.logger.enabled('info')) {
+                this.logger.info(
+                    `entity ${model} failed validation for operation ${kind}: ${fromZodError(parseResult.error)}`
+                );
+            }
+            onError(parseResult.error);
+            return undefined;
+        }
+
+        return parseResult.data;
     }
 
     /**
@@ -1278,7 +1342,7 @@ export class PolicyUtil extends QueryUtils {
     postProcessForRead(data: any, model: string, queryArgs: any) {
         // preserve the original data as it may be needed for checking field-level readability,
         // while the "data" will be manipulated during traversal (deleting unreadable fields)
-        const origData = this.clone(data);
+        const origData = this.safeClone(data);
         return this.doPostProcessForRead(data, model, origData, queryArgs, this.hasFieldLevelPolicy(model));
     }
 
@@ -1402,13 +1466,6 @@ export class PolicyUtil extends QueryUtils {
         }
 
         return filteredData;
-    }
-
-    /**
-     * Clones an object and makes sure it's not empty.
-     */
-    clone(value: unknown): any {
-        return value ? deepcopy(value) : {};
     }
 
     /**

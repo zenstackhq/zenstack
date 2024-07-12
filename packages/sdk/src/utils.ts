@@ -554,3 +554,18 @@ export function getDataSourceProvider(model: Model) {
     }
     return getLiteral<string>(provider.value);
 }
+
+/**
+ * Finds the original delegate base model that defines the given field.
+ */
+export function getInheritedFromDelegate(field: DataModelField) {
+    if (!field.$inheritedFrom) {
+        return undefined;
+    }
+
+    // find the original base delegate model that defines this field,
+    // use `findLast` to start from the uppermost base
+    const bases = getRecursiveBases(field.$container as DataModel, true);
+    const foundBase = bases.findLast((base) => base.fields.some((f) => f.name === field.name) && isDelegateModel(base));
+    return foundBase;
+}
