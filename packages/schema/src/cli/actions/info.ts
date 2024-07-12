@@ -1,8 +1,7 @@
 import colors from 'colors';
-import getLatestVersion from 'get-latest-version';
 import ora from 'ora';
 import semver from 'semver';
-import { getZenStackPackages } from '../cli-util';
+import { getLatestVersion, getZenStackPackages } from '../cli-util';
 
 /**
  * CLI action for getting information about installed ZenStack packages
@@ -25,20 +24,25 @@ export async function info(projectPath: string) {
         console.warn(colors.yellow('WARNING: Multiple versions of Zenstack packages detected. This may cause issues.'));
     } else if (versions.size > 0) {
         const spinner = ora('Checking npm registry').start();
-        const latest = await getLatestVersion('zenstack');
 
-        if (!latest) {
-            spinner.fail('unable to check for latest version');
+        let latest: string;
+
+        try {
+            latest = await getLatestVersion();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (err: any) {
+            spinner.fail(`Failed to get latest version: ${err.message}`);
+            return;
+        }
+
+        spinner.succeed();
+        const version = [...versions][0];
+        if (semver.gt(latest, version)) {
+            console.log(`A newer version of Zenstack is available: ${latest}.`);
+        } else if (semver.gt(version, latest)) {
+            console.log('You are using a pre-release version of Zenstack.');
         } else {
-            spinner.succeed();
-            const version = [...versions][0];
-            if (semver.gt(latest, version)) {
-                console.log(`A newer version of Zenstack is available: ${latest}.`);
-            } else if (semver.gt(version, latest)) {
-                console.log('You are using a pre-release version of Zenstack.');
-            } else {
-                console.log('You are using the latest version of Zenstack.');
-            }
+            console.log('You are using the latest version of Zenstack.');
         }
     }
 }

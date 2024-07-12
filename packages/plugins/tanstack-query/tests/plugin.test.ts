@@ -54,7 +54,7 @@ model Foo {
         import { useFindFirstpost_Item, useInfiniteFindManypost_Item, useCreatepost_Item } from './hooks';
 
         function query() {
-            const { data } = useFindFirstpost_Item({include: { author: true }});
+            const { data } = useFindFirstpost_Item({include: { author: true }}, { enabled: true, optimisticUpdate: false });
             console.log(data?.viewCount);
             console.log(data?.author?.email);
         }
@@ -62,7 +62,7 @@ model Foo {
         function infiniteQuery() {
             const { data, fetchNextPage, hasNextPage } = useInfiniteFindManypost_Item();
             useInfiniteFindManypost_Item({ where: { published: true } });
-            useInfiniteFindManypost_Item(undefined, { getNextPageParam: () => null });
+            useInfiniteFindManypost_Item(undefined, { enabled: true, getNextPageParam: () => null });
             console.log(data?.pages[0][0].published);
             console.log(data?.pageParams[0]);
         }
@@ -143,14 +143,14 @@ ${sharedModel}
         import { useFindFirstpost_Item, useInfiniteFindManypost_Item, useCreatepost_Item } from './hooks';
 
         function query() {
-            const { data } = useFindFirstpost_Item({include: { author: true }});
+            const { data } = useFindFirstpost_Item({include: { author: true }}, { enabled: true, optimisticUpdate: false });
             console.log(data.value?.viewCount);
             console.log(data.value?.author?.email);
         }
 
         function infiniteQuery() {
             const { data, fetchNextPage, hasNextPage } = useInfiniteFindManypost_Item();
-            useInfiniteFindManypost_Item({ where: { published: true } });
+            useInfiniteFindManypost_Item({ where: { published: true } }, { enabled: true, getNextPageParam: () => null });
             useInfiniteFindManypost_Item(undefined, { getNextPageParam: () => null });
             console.log(data.value?.pages[0][0].published);
             console.log(data.value?.pageParams[0]);
@@ -217,7 +217,7 @@ ${sharedModel}
         import { useFindFirstpost_Item, useInfiniteFindManypost_Item, useCreatepost_Item } from './hooks';
 
         function query() {
-            const { data } = get(useFindFirstpost_Item({include: { author: true }}));
+            const { data } = get(useFindFirstpost_Item({include: { author: true }}, { enabled: true, optimisticUpdate: false }));
             console.log(data?.viewCount);
             console.log(data?.author?.email);
         }
@@ -225,7 +225,7 @@ ${sharedModel}
         function infiniteQuery() {
             const { data, fetchNextPage, hasNextPage } = get(useInfiniteFindManypost_Item());
             useInfiniteFindManypost_Item({ where: { published: true } });
-            useInfiniteFindManypost_Item(undefined, { getNextPageParam: () => null });
+            useInfiniteFindManypost_Item(undefined, { enabled: true, getNextPageParam: () => null });
             console.log(data?.pages[0][0].published);
             console.log(data?.pageParams[0]);
         }

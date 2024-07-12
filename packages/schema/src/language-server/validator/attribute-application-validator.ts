@@ -21,7 +21,7 @@ import pluralize from 'pluralize';
 import { AstValidator } from '../types';
 import { getStringLiteral, mapBuiltinTypeToExpressionType, typeAssignable } from './utils';
 
-// a registry of function handlers marked with @func
+// a registry of function handlers marked with @check
 const attributeCheckers = new Map<string, PropertyDescriptor>();
 
 // function handler decorator

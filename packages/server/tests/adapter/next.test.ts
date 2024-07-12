@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { loadSchema } from '@zenstackhq/testtools';
 import { createServer, RequestListener } from 'http';
-import { apiResolver } from 'next/dist/server/api-utils/node';
+import { apiResolver } from 'next/dist/server/api-utils/node/api-resolver';
 import path from 'path';
 import request from 'supertest';
 import Rest from '../../src/api/rest';

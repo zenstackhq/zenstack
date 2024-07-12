@@ -19,15 +19,17 @@ import {
     StringLiteral,
     UnaryExpr,
 } from '@zenstackhq/language/ast';
-import { DELEGATE_AUX_RELATION_PREFIX } from '@zenstackhq/runtime';
+import { DELEGATE_AUX_RELATION_PREFIX, PolicyOperationKind } from '@zenstackhq/runtime';
 import {
     ExpressionContext,
     getFunctionExpressionContext,
     getIdFields,
     getLiteral,
+    getQueryGuardFunctionName,
     isAuthInvocation,
     isDataModelFieldReference,
     isDelegateModel,
+    isFromStdlib,
     isFutureExpr,
     PluginError,
     TypeScriptExpressionTransformer,
@@ -37,6 +39,7 @@ import { lowerCaseFirst } from 'lower-case-first';
 import invariant from 'tiny-invariant';
 import { CodeBlockWriter } from 'ts-morph';
 import { name } from '..';
+import { isCheckInvocation } from '../../../utils/ast-utils';
 
 type ComparisonOperator = '==' | '!=' | '>' | '>=' | '<' | '<=';
 
@@ -60,6 +63,11 @@ type FilterOperators =
 export const TRUE = '{ AND: [] }';
 export const FALSE = '{ OR: [] }';
 
+export type ExpressionWriterOptions = {
+    isPostGuard?: boolean;
+    operationContext: PolicyOperationKind;
+};
+
 /**
  * Utility for writing ZModel expression as Prisma query argument objects into a ts-morph writer
  */
@@ -68,15 +76,14 @@ export class ExpressionWriter {
 
     /**
      * Constructs a new ExpressionWriter
-     *
-     * @param isPostGuard indicates if we're writing for post-update conditions
      */
-    constructor(private readonly writer: CodeBlockWriter, private readonly isPostGuard = false) {
+    constructor(private readonly writer: CodeBlockWriter, private readonly options: ExpressionWriterOptions) {
         this.plainExprBuilder = new TypeScriptExpressionTransformer({
             context: ExpressionContext.AccessPolicy,
-            isPostGuard: this.isPostGuard,
+            isPostGuard: this.options.isPostGuard,
             // in post-guard context, `this` references pre-update value
-            thisExprContext: this.isPostGuard ? 'context.preValue' : undefined,
+            thisExprContext: this.options.isPostGuard ? 'context.preValue' : undefined,
+            operationContext: this.options.operationContext,
         });
     }
 
@@ -269,9 +276,9 @@ export class ExpressionWriter {
             // expression rooted to `auth()` is always compiled to plain expression
             !this.isAuthOrAuthMemberAccess(expr.left) &&
             // `future()` in post-update context
-            ((this.isPostGuard && this.isFutureMemberAccess(expr.left)) ||
+            ((this.options.isPostGuard && this.isFutureMemberAccess(expr.left)) ||
                 // non-`future()` in pre-update context
-                (!this.isPostGuard && !this.isFutureMemberAccess(expr.left)));
+                (!this.options.isPostGuard && !this.isFutureMemberAccess(expr.left)));
 
         if (compileToRelationQuery) {
             this.block(() => {
@@ -279,7 +286,10 @@ export class ExpressionWriter {
                     expr.left,
                     () => {
                         // inner scope of collection expression is always compiled as non-post-guard
-                        const innerWriter = new ExpressionWriter(this.writer, false);
+                        const innerWriter = new ExpressionWriter(this.writer, {
+                            isPostGuard: false,
+                            operationContext: this.options.operationContext,
+                        });
                         innerWriter.write(expr.right);
                     },
                     operator === '?' ? 'some' : operator === '!' ? 'every' : 'none'
@@ -297,14 +307,14 @@ export class ExpressionWriter {
         }
 
         if (isMemberAccessExpr(expr)) {
-            if (isFutureExpr(expr.operand) && this.isPostGuard) {
+            if (isFutureExpr(expr.operand) && this.options.isPostGuard) {
                 // when writing for post-update, future().field.x is a field access
                 return true;
             } else {
                 return this.isFieldAccess(expr.operand);
             }
         }
-        if (isDataModelFieldReference(expr) && !this.isPostGuard) {
+        if (isDataModelFieldReference(expr) && !this.options.isPostGuard) {
             return true;
         }
         return false;
@@ -437,7 +447,7 @@ export class ExpressionWriter {
                                 this.writer.write(operator === '!=' ? TRUE : FALSE);
                             } else {
                                 this.writeOperator(operator, fieldAccess, () => {
-                                    if (isDataModelFieldReference(operand) && !this.isPostGuard) {
+                                    if (isDataModelFieldReference(operand) && !this.options.isPostGuard) {
                                         // if operand is a field reference and we're not generating for post-update guard,
                                         // we should generate a field reference (comparing fields in the same model)
                                         this.writeFieldReference(operand);
@@ -735,6 +745,11 @@ export class ExpressionWriter {
             functionAllowedContext.includes(ExpressionContext.AccessPolicy) ||
             functionAllowedContext.includes(ExpressionContext.ValidationRule)
         ) {
+            if (isCheckInvocation(expr)) {
+                this.writeRelationCheck(expr);
+                return;
+            }
+
             if (!expr.args.some((arg) => this.isFieldAccess(arg.value))) {
                 // filter functions without referencing fields
                 this.guard(() => this.plain(expr));
@@ -744,13 +759,13 @@ export class ExpressionWriter {
             let valueArg = expr.args[1]?.value;
 
             // isEmpty function is zero arity, it's mapped to a boolean literal
-            if (funcDecl.name === 'isEmpty') {
+            if (isFromStdlib(funcDecl) && funcDecl.name === 'isEmpty') {
                 valueArg = { $type: BooleanLiteral, value: true } as LiteralExpr;
             }
 
             // contains function has a 3rd argument that indicates whether the comparison should be case-insensitive
             let extraArgs: Record<string, Expression> | undefined = undefined;
-            if (funcDecl.name === 'contains') {
+            if (isFromStdlib(funcDecl) && funcDecl.name === 'contains') {
                 if (getLiteral<boolean>(expr.args[2]?.value) === true) {
                     extraArgs = { mode: { $type: StringLiteral, value: 'insensitive' } as LiteralExpr };
                 }
@@ -769,5 +784,39 @@ export class ExpressionWriter {
         } else {
             throw new PluginError(name, `Unsupported function ${funcDecl.name}`);
         }
+    }
+
+    private writeRelationCheck(expr: InvocationExpr) {
+        if (!isDataModelFieldReference(expr.args[0].value)) {
+            throw new PluginError(name, `First argument of check() must be a field`);
+        }
+        if (!isDataModel(expr.args[0].value.$resolvedType?.decl)) {
+            throw new PluginError(name, `First argument of check() must be a relation field`);
+        }
+
+        const fieldRef = expr.args[0].value;
+        const targetModel = fieldRef.$resolvedType?.decl as DataModel;
+
+        let operation: string;
+        if (expr.args[1]) {
+            const literal = getLiteral<string>(expr.args[1].value);
+            if (!literal) {
+                throw new TypeScriptExpressionTransformerError(`Second argument of check() must be a string literal`);
+            }
+            if (!['read', 'create', 'update', 'delete'].includes(literal)) {
+                throw new TypeScriptExpressionTransformerError(`Invalid check() operation "${literal}"`);
+            }
+            operation = literal;
+        } else {
+            if (!this.options.operationContext) {
+                throw new TypeScriptExpressionTransformerError('Unable to determine CRUD operation from context');
+            }
+            operation = this.options.operationContext;
+        }
+
+        this.block(() => {
+            const targetGuardFunc = getQueryGuardFunctionName(targetModel, undefined, false, operation);
+            this.writer.write(`${fieldRef.target.$refText}: ${targetGuardFunc}(context, db)`);
+        });
     }
 }

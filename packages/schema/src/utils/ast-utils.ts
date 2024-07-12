@@ -151,6 +151,10 @@ export function isFutureInvocation(node: AstNode) {
     return isInvocationExpr(node) && node.function.ref?.name === 'future' && isFromStdlib(node.function.ref);
 }
 
+export function isCheckInvocation(node: AstNode) {
+    return isInvocationExpr(node) && node.function.ref?.name === 'check' && isFromStdlib(node.function.ref);
+}
+
 export function getDataModelFieldReference(expr: Expression): DataModelField | undefined {
     if (isReferenceExpr(expr) && isDataModelField(expr.target.ref)) {
         return expr.target.ref;

@@ -24,16 +24,16 @@ import {
     getAttributeArgs,
     getAuthModel,
     getDataModels,
+    getInheritedFromDelegate,
     getLiteral,
+    getRelationField,
     hasAttribute,
-    isDelegateModel,
     isAuthInvocation,
     isEnumFieldReference,
     isForeignKeyField,
     isIdField,
     resolved,
     TypeScriptExpressionTransformer,
-    getRelationField,
 } from '.';
 
 /**
@@ -267,9 +267,10 @@ function writeFields(
                 defaultValueProvider: ${defaultValueProvider},`);
             }
 
-            if (f.$inheritedFrom && isDelegateModel(f.$inheritedFrom) && !isIdField(f)) {
+            const inheritedFromDelegate = getInheritedFromDelegate(f);
+            if (inheritedFromDelegate && !isIdField(f)) {
                 writer.write(`
-        inheritedFrom: ${JSON.stringify(f.$inheritedFrom.name)},`);
+        inheritedFrom: ${JSON.stringify(inheritedFromDelegate.name)},`);
             }
 
             if (isAutoIncrement(f)) {
@@ -295,6 +296,10 @@ function getBackLink(field: DataModelField) {
     const targetModel = field.type.reference.ref as DataModel;
 
     for (const otherField of targetModel.fields) {
+        if (otherField === field) {
+            // backlink field is never self
+            continue;
+        }
         if (otherField.type.reference?.ref === sourceModel) {
             if (relName) {
                 const otherRelName = getRelationName(otherField);

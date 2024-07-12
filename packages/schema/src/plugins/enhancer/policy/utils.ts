@@ -8,8 +8,10 @@ import {
     getAttributeArg,
     getAuthModel,
     getDataModels,
+    getEntityCheckerFunctionName,
     getIdFields,
     getLiteral,
+    getQueryGuardFunctionName,
     isAuthInvocation,
     isDataModelFieldReference,
     isEnumFieldReference,
@@ -19,7 +21,9 @@ import {
 } from '@zenstackhq/sdk';
 import {
     Enum,
+    InvocationExpr,
     Model,
+    ReferenceExpr,
     isBinaryExpr,
     isDataModel,
     isDataModelField,
@@ -32,10 +36,11 @@ import {
     type DataModelField,
     type Expression,
 } from '@zenstackhq/sdk/ast';
+import deepmerge from 'deepmerge';
 import { getContainerOfType, streamAllContents, streamAst, streamContents } from 'langium';
 import { SourceFile, WriterFunction } from 'ts-morph';
 import { name } from '..';
-import { isCollectionPredicate, isFutureInvocation } from '../../../utils/ast-utils';
+import { isCheckInvocation, isCollectionPredicate, isFutureInvocation } from '../../../utils/ast-utils';
 import { ExpressionWriter, FALSE, TRUE } from './expression-writer';
 
 /**
@@ -115,8 +120,13 @@ function processUpdatePolicies(expressions: Expression[], postUpdate: boolean) {
  * Generates a "select" object that contains (recursively) fields referenced by the
  * given policy rules
  */
-export function generateSelectForRules(rules: Expression[], forAuthContext = false, ignoreFutureReference = true) {
-    const result: any = {};
+export function generateSelectForRules(
+    rules: Expression[],
+    forOperation: PolicyOperationKind | undefined,
+    forAuthContext = false,
+    ignoreFutureReference = true
+) {
+    let result: any = {};
     const addPath = (path: string[]) => {
         const thisIndex = path.lastIndexOf('$this');
         if (thisIndex >= 0) {
@@ -224,9 +234,60 @@ export function generateSelectForRules(rules: Expression[], forAuthContext = fal
     for (const rule of rules) {
         const paths = collectReferencePaths(rule);
         paths.forEach((p) => addPath(p));
+
+        // merge selectors from models referenced by `check()` calls
+        streamAst(rule).forEach((node) => {
+            if (isCheckInvocation(node)) {
+                const expr = node as InvocationExpr;
+                const fieldRef = expr.args[0].value as ReferenceExpr;
+                const targetModel = fieldRef.$resolvedType?.decl as DataModel;
+                const targetOperation = getLiteral<string>(expr.args[1]?.value) ?? forOperation;
+                const targetSelector = generateSelectForRules(
+                    [
+                        ...getPolicyExpressions(targetModel, 'allow', targetOperation as PolicyOperationKind),
+                        ...getPolicyExpressions(targetModel, 'deny', targetOperation as PolicyOperationKind),
+                    ],
+                    targetOperation as PolicyOperationKind,
+                    forAuthContext,
+                    ignoreFutureReference
+                );
+                if (targetSelector) {
+                    result = deepmerge(result, { [fieldRef.target.$refText]: { select: targetSelector } });
+                }
+            }
+        });
     }
 
     return Object.keys(result).length === 0 ? undefined : result;
+}
+
+/**
+ * Generates a constant query guard function
+ */
+export function generateConstantQueryGuardFunction(
+    sourceFile: SourceFile,
+    model: DataModel,
+    kind: PolicyOperationKind,
+    value: boolean
+) {
+    const func = sourceFile.addFunction({
+        name: getQueryGuardFunctionName(model, undefined, false, kind),
+        returnType: 'any',
+        parameters: [
+            {
+                name: 'context',
+                type: 'QueryContext',
+            },
+            {
+                // for generating field references used by field comparison in the same model
+                name: 'db',
+                type: 'CrudContract',
+            },
+        ],
+        statements: [`return ${value ? TRUE : FALSE};`],
+    });
+
+    return func;
 }
 
 /**
@@ -267,6 +328,7 @@ export function generateQueryGuardFunction(
             const transformer = new TypeScriptExpressionTransformer({
                 context: ExpressionContext.AccessPolicy,
                 isPostGuard: kind === 'postUpdate',
+                operationContext: kind,
             });
             try {
                 denyRules.forEach((rule) => {
@@ -309,7 +371,10 @@ export function generateQueryGuardFunction(
     } else {
         statements.push((writer) => {
             writer.write('return ');
-            const exprWriter = new ExpressionWriter(writer, kind === 'postUpdate');
+            const exprWriter = new ExpressionWriter(writer, {
+                isPostGuard: kind === 'postUpdate',
+                operationContext: kind,
+            });
             const writeDenies = () => {
                 writer.conditionalWrite(denyRules.length > 1, '{ AND: [');
                 denyRules.forEach((expr, i) => {
@@ -353,7 +418,7 @@ export function generateQueryGuardFunction(
     }
 
     const func = sourceFile.addFunction({
-        name: `${model.name}${forField ? '$' + forField.name : ''}${fieldOverride ? '$override' : ''}_${kind}`,
+        name: getQueryGuardFunctionName(model, forField, fieldOverride, kind),
         returnType: 'any',
         parameters: [
             {
@@ -391,6 +456,7 @@ export function generateEntityCheckerFunction(
         fieldReferenceContext: 'input',
         isPostGuard: kind === 'postUpdate',
         futureRefContext: 'input',
+        operationContext: kind,
     });
 
     denies.forEach((rule) => {
@@ -422,7 +488,7 @@ export function generateEntityCheckerFunction(
     }
 
     const func = sourceFile.addFunction({
-        name: `$check_${model.name}${forField ? '$' + forField.name : ''}${fieldOverride ? '$override' : ''}_${kind}`,
+        name: getEntityCheckerFunctionName(model, forField, fieldOverride, kind),
         returnType: 'any',
         parameters: [
             {

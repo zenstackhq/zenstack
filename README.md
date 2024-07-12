@@ -26,7 +26,7 @@
 
 ## What it is
 
-ZenStack is a Node.js/TypeScript toolkit that simplifies the development of a web app's backend. It supercharges [Prisma ORM](https://prisma.io) with a powerful access control layer and unleashes its full potential for full-stack development.
+ZenStack is a Node.js/TypeScript toolkit that simplifies the development of a web app's backend. It enhances [Prisma ORM](https://prisma.io) with a flexible Authorization layer and auto-generated, type-safe APIs/hooks, unlocking its full potential for full-stack development.
 
 Our goal is to let you save time writing boilerplate code and focus on building real features!
 
@@ -234,6 +234,7 @@ Thank you for your support!
 
 <table>
   <tr>
+   <td align="center"><a href="https://github.com/umussetu"><img src="https://avatars.githubusercontent.com/u/152648499?v=4" width="100" style="border-radius:50%" alt="Ulric"/><br />Ulric</a></td>
    <td align="center"><a href="https://github.com/Mermaid-Chart"><img src="https://avatars.githubusercontent.com/u/117662492?s=200&v=4" width="100" style="border-radius:50%" alt="Mermaid Chart"/><br />Mermaid Chart</a></td>
    <td align="center"><a href="https://github.com/coderabbitai"><img src="https://avatars.githubusercontent.com/u/132028505?v=4" width="100" style="border-radius:50%" alt="CodeRabbit"/><br />CodeRabbit</a></td>
    <td align="center"><a href="https://github.com/j0hannr"><img src="https://avatars.githubusercontent.com/u/52762073?v=4" width="100" style="border-radius:50%" alt="Johann Rohn"/><br />Johann Rohn</a></td>

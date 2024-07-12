@@ -1,3 +1,4 @@
+export * from './clone';
 export * from './model-data-visitor';
 export * from './model-meta';
 export * from './mutator';

@@ -22,6 +22,7 @@ import {
 } from '@zenstackhq/language/ast';
 import { P, match } from 'ts-pattern';
 import { ExpressionContext } from './constants';
+import { getEntityCheckerFunctionName } from './names';
 import { getIdFields, getLiteral, isDataModelFieldReference, isFromStdlib, isFutureExpr } from './utils';
 
 export class TypeScriptExpressionTransformerError extends Error {
@@ -36,6 +37,7 @@ type Options = {
     thisExprContext?: string;
     futureRefContext?: string;
     context: ExpressionContext;
+    operationContext?: 'read' | 'create' | 'update' | 'postUpdate' | 'delete';
 };
 
 // a registry of function handlers marked with @func
@@ -274,6 +276,39 @@ export class TypeScriptExpressionTransformer {
         return `(!${field} || ${field}?.length === 0)`;
     }
 
+    @func('check')
+    private _check(args: Expression[]) {
+        if (!isDataModelFieldReference(args[0])) {
+            throw new TypeScriptExpressionTransformerError(`First argument of check() must be a field`);
+        }
+        if (!isDataModel(args[0].$resolvedType?.decl)) {
+            throw new TypeScriptExpressionTransformerError(`First argument of check() must be a relation field`);
+        }
+
+        const fieldRef = args[0] as ReferenceExpr;
+        const targetModel = fieldRef.$resolvedType?.decl as DataModel;
+
+        let operation: string;
+        if (args[1]) {
+            const literal = getLiteral<string>(args[1]);
+            if (!literal) {
+                throw new TypeScriptExpressionTransformerError(`Second argument of check() must be a string literal`);
+            }
+            if (!['read', 'create', 'update', 'delete'].includes(literal)) {
+                throw new TypeScriptExpressionTransformerError(`Invalid check() operation "${literal}"`);
+            }
+            operation = literal;
+        } else {
+            if (!this.options.operationContext) {
+                throw new TypeScriptExpressionTransformerError('Unable to determine CRUD operation from context');
+            }
+            operation = this.options.operationContext;
+        }
+
+        const entityCheckerFunc = getEntityCheckerFunctionName(targetModel, undefined, false, operation);
+        return `${entityCheckerFunc}(input.${fieldRef.target.$refText}, context)`;
+    }
+
     private ensureBoolean(expr: string) {
         if (this.options.context === ExpressionContext.ValidationRule) {
             // all fields are optional in a validation context, so we treat undefined
@@ -452,6 +487,7 @@ export class TypeScriptExpressionTransformer {
             ...this.options,
             isPostGuard: false,
             fieldReferenceContext: '_item',
+            operationContext: this.options.operationContext,
         });
         const predicate = innerTransformer.transform(expr.right, normalizeUndefined);
 

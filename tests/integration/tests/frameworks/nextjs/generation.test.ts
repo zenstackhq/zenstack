@@ -14,16 +14,6 @@ describe('SWR Hooks Generation Tests', () => {
         process.chdir(origDir);
     });
 
-    // deps
-    const ver = require('../../../../../package.json').version;
-    const depPkgs = [
-        `${path.join(__dirname, '../../../../../.build/zenstackhq-language-' + ver + '.tgz')}`,
-        `${path.join(__dirname, '../../../../../.build/zenstackhq-sdk-' + ver + '.tgz')}`,
-        `${path.join(__dirname, '../../../../../.build/zenstackhq-runtime-' + ver + '.tgz')}`,
-        `${path.join(__dirname, '../../../../../.build/zenstackhq-swr-' + ver + '.tgz')}`,
-    ];
-    const deps = depPkgs.join(' ');
-
     it('sqlite', async () => {
         const testDir = path.join(__dirname, './test-run/sqlite');
         if (fs.existsSync(testDir)) {
@@ -35,7 +25,6 @@ describe('SWR Hooks Generation Tests', () => {
         process.chdir(testDir);
         const nodePath = path.join(testDir, 'node_modules');
         run('npm install');
-        run('npm install ' + deps);
         run('npx zenstack generate --schema ./sqlite.zmodel', { NODE_PATH: nodePath });
         run('npm run build', { NODE_PATH: nodePath });
     });
@@ -51,7 +40,6 @@ describe('SWR Hooks Generation Tests', () => {
         process.chdir(testDir);
         const nodePath = path.join(testDir, 'node_modules');
         run('npm install');
-        run('npm install ' + deps);
         run('npx zenstack generate --schema ./postgres.zmodel', { NODE_PATH: nodePath });
         run('npm run build', { NODE_PATH: nodePath });
     });

@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import deepcopy from 'deepcopy';
 import { PRISMA_PROXY_ENHANCER } from '../constants';
 import type { ModelMeta } from '../cross';
+import { clone } from '../cross';
 import type { DbClientContract } from '../types';
 import type { InternalEnhancementOptions } from './create-enhancement';
 import { createDeferredPromise, createFluentPromise } from './promise';
@@ -74,7 +74,7 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
     ) {}
 
     protected withFluentCall(method: keyof PrismaProxyHandler, args: any, postProcess = true): Promise<unknown> {
-        args = args ? deepcopy(args) : {};
+        args = args ? clone(args) : {};
         const promise = createFluentPromise(
             async () => {
                 args = await this.preprocessArgs(method, args);

@@ -343,6 +343,11 @@ export class PluginRunner {
     }
 
     private getPluginModulePath(provider: string, schemaPath: string) {
+        if (process.env.ZENSTACK_TEST === '1' && provider.startsWith('@zenstackhq/')) {
+            // test code runs with its own sandbox of node_modules, make sure we don't
+            // accidentally resolve to the external ones
+            return path.resolve(`node_modules/${provider}`);
+        }
         let pluginModulePath = provider;
         if (provider.startsWith('@core/')) {
             pluginModulePath = provider.replace(/^@core/, path.join(__dirname, '../plugins'));

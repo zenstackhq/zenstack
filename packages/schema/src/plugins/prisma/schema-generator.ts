@@ -39,6 +39,7 @@ import {
     getAttribute,
     getAttributeArg,
     getAttributeArgLiteral,
+    getInheritedFromDelegate,
     getLiteral,
     getRelationKeyPairs,
     isDelegateModel,
@@ -261,9 +262,10 @@ export class PrismaSchemaGenerator {
         const model = decl.isView ? prisma.addView(decl.name) : prisma.addModel(decl.name);
         for (const field of decl.fields) {
             if (field.$inheritedFrom) {
+                const inheritedFromDelegate = getInheritedFromDelegate(field);
                 if (
-                    // abstract inheritance is always kept
-                    field.$inheritedFrom.isAbstract ||
+                    // fields inherited from delegate are excluded from physical schema
+                    !inheritedFromDelegate ||
                     // logical schema keeps all inherited fields
                     this.mode === 'logical' ||
                     // id fields are always kept

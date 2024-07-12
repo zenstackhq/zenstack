@@ -53,7 +53,9 @@ describe('With Policy: with postgres', () => {
 
         // create user1
         // create should succeed but result can be read back anonymously
-        await expect(anonDb.user.create({ data: user1 })).toBeRejectedByPolicy();
+        await expect(anonDb.user.create({ data: user1 })).toBeRejectedByPolicy([
+            'result is not allowed to be read back',
+        ]);
         await expect(user1Db.user.findUnique({ where: { id: user1.id } })).toResolveTruthy();
         await expect(user2Db.user.findUnique({ where: { id: user1.id } })).toResolveNull();
 
