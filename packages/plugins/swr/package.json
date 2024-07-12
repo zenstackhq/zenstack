@@ -49,6 +49,9 @@
         "ts-pattern": "^4.3.0",
         "upper-case-first": "^2.0.2"
     },
+    "peerDependencies": {
+        "swr": "2.2.5 - 2"
+    },
     "devDependencies": {
         "@tanstack/react-query": "^4.28.0",
         "@testing-library/react": "^14.0.0",
@@ -57,7 +60,6 @@
         "@types/tmp": "^0.2.3",
         "@zenstackhq/testtools": "workspace:*",
         "nock": "^13.3.6",
-        "react": "18.2.0",
-        "swr": "^2.2.4"
+        "react": "18.2.0"
     }
 }

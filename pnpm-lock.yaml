@@ -211,6 +211,9 @@ importers:
       semver:
         specifier: ^7.5.2
         version: 7.6.2
+      swr:
+        specifier: 2.2.5 - 2
+        version: 2.2.5(react@18.2.0)
       ts-morph:
         specifier: ^16.0.0
         version: 16.0.0
@@ -245,9 +248,6 @@ importers:
       react:
         specifier: 18.2.0
         version: 18.2.0
-      swr:
-        specifier: ^2.2.4
-        version: 2.2.5(react@18.2.0)
     publishDirectory: dist
 
   packages/plugins/tanstack-query:
