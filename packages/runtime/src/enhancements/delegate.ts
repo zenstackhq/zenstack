@@ -367,9 +367,46 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                     return this.doCreate(tx, this.model, { data: item });
                 })
             );
+            return { count: r.length };
+        });
+    }
 
-            // filter out undefined value (due to skipping duplicates)
-            return { count: r.filter((item) => !!item).length };
+    override createManyAndReturn(args: { data: any; select?: any; skipDuplicates?: boolean }): Promise<unknown[]> {
+        if (!args) {
+            throw prismaClientValidationError(this.prisma, this.options.prismaModule, 'query argument is required');
+        }
+        if (!args.data) {
+            throw prismaClientValidationError(
+                this.prisma,
+                this.options.prismaModule,
+                'data field is required in query argument'
+            );
+        }
+
+        if (!this.involvesDelegateModel(this.model)) {
+            return super.createManyAndReturn(args);
+        }
+
+        if (this.isDelegateOrDescendantOfDelegate(this.model) && args.skipDuplicates) {
+            throw prismaClientValidationError(
+                this.prisma,
+                this.options.prismaModule,
+                '`createManyAndReturn` with `skipDuplicates` set to true is not supported for delegated models'
+            );
+        }
+
+        // `createManyAndReturn` doesn't support nested create, which is needed for creating entities
+        // inheriting a delegate base, so we need to convert it to a regular `create` here.
+        // Note that the main difference is `create` doesn't support `skipDuplicates` as
+        // `createManyAndReturn` does.
+
+        return this.queryUtils.transaction(this.prisma, async (tx) => {
+            const r = await Promise.all(
+                enumerate(args.data).map(async (item) => {
+                    return this.doCreate(tx, this.model, { data: item, select: args.select });
+                })
+            );
+            return r;
         });
     }
 

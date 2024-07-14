@@ -130,13 +130,43 @@ describe('Polymorphism Test', () => {
         ).resolves.toMatchObject({ count: 1 });
 
         await expect(
+            db.ratedVideo.createManyAndReturn({ data: { viewCount: 1, duration: 100, url: 'xyz', rating: 100 } })
+        ).resolves.toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    assetType: 'Video',
+                    videoType: 'RatedVideo',
+                    viewCount: 1,
+                    duration: 100,
+                    url: 'xyz',
+                    rating: 100,
+                }),
+            ])
+        );
+
+        await expect(
             db.ratedVideo.createMany({
                 data: [
                     { viewCount: 2, duration: 200, url: 'xyz', rating: 100 },
-                    { viewCount: 3, duration: 300, url: 'xyz', rating: 100 },
+                    { viewCount: 3, duration: 300, url: 'xyz', rating: 200 },
                 ],
             })
         ).resolves.toMatchObject({ count: 2 });
+
+        await expect(
+            db.ratedVideo.createManyAndReturn({
+                data: [
+                    { viewCount: 2, duration: 200, url: 'xyz', rating: 100 },
+                    { viewCount: 3, duration: 300, url: 'xyz', rating: 200 },
+                ],
+                select: { videoType: true, viewCount: true, rating: true },
+            })
+        ).resolves.toEqual(
+            expect.arrayContaining([
+                { videoType: 'RatedVideo', viewCount: 2, rating: 100 },
+                { videoType: 'RatedVideo', viewCount: 3, rating: 200 },
+            ])
+        );
     });
 
     it('create many polymorphic relation', async () => {
