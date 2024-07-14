@@ -809,4 +809,30 @@ describe('auth() compile-time test', () => {
             }
         );
     });
+
+    it('optional field stays optional', async () => {
+        await loadSchema(
+            `
+        model User {
+            id Int @id
+            age Int?
+
+            @@allow('all', auth().age > 0)
+        }
+        `,
+            {
+                compile: true,
+                extraSourceFiles: [
+                    {
+                        name: 'main.ts',
+                        content: `
+                import { enhance } from ".zenstack/enhance";
+                import { PrismaClient } from '@prisma/client';
+                enhance(new PrismaClient(), { user: { id: 1 } });
+                `,
+                    },
+                ],
+            }
+        );
+    });
 });
