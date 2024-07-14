@@ -184,7 +184,7 @@ describe('Polymorphism Test', () => {
             data: { viewCount: 1, duration: 100, url: 'xyz', rating: 100 },
         });
         await expect(
-            db.user.createMany({ data: [{ id: 3, assets: { connect: { id: video2.id } } }, { id: 3 }] })
+            db.user.createMany({ data: [{ id: 2, assets: { connect: { id: video2.id } } }, { id: 3 }] })
         ).resolves.toMatchObject({ count: 2 });
     });
 
