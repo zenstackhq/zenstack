@@ -284,6 +284,70 @@ describe('Polymorphism Test', () => {
         });
     });
 
+    it('read with compound filter', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model Base {
+                id Int @id @default(autoincrement())
+                type String
+                viewCount Int
+                @@delegate(type)
+            }
+
+            model Foo extends Base {
+                name String
+            }
+            `,
+            { enhancements: ['delegate'] }
+        );
+
+        const db = enhance();
+        await db.foo.create({ data: { name: 'foo1', viewCount: 0 } });
+        await db.foo.create({ data: { name: 'foo2', viewCount: 1 } });
+
+        await expect(db.foo.findMany({ where: { viewCount: { gt: 0 } } })).resolves.toHaveLength(1);
+        await expect(db.foo.findMany({ where: { AND: { viewCount: { gt: 0 } } } })).resolves.toHaveLength(1);
+        await expect(db.foo.findMany({ where: { AND: [{ viewCount: { gt: 0 } }] } })).resolves.toHaveLength(1);
+        await expect(db.foo.findMany({ where: { OR: [{ viewCount: { gt: 0 } }] } })).resolves.toHaveLength(1);
+        await expect(db.foo.findMany({ where: { NOT: { viewCount: { lte: 0 } } } })).resolves.toHaveLength(1);
+    });
+
+    it('read with nested filter', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model Base {
+                id Int @id @default(autoincrement())
+                type String
+                viewCount Int
+                @@delegate(type)
+            }
+
+            model Foo extends Base {
+                name String
+                bar Bar?
+            }
+
+            model Bar extends Base {
+                foo Foo @relation(fields: [fooId], references: [id])
+                fooId Int @unique
+            }
+            `,
+            { enhancements: ['delegate'] }
+        );
+
+        const db = enhance();
+
+        await db.bar.create({
+            data: { foo: { create: { name: 'foo', viewCount: 2 } }, viewCount: 1 },
+        });
+
+        await expect(
+            db.bar.findMany({
+                where: { viewCount: { gt: 0 }, foo: { viewCount: { gt: 1 } } },
+            })
+        ).resolves.toHaveLength(1);
+    });
+
     it('order by base fields', async () => {
         const { db, user } = await setup();
 
@@ -1010,6 +1074,18 @@ describe('Polymorphism Test', () => {
         count = await db.ratedVideo.count({
             select: { _all: true, rating: true },
             where: { viewCount: { gt: 0 }, rating: { gt: 10 } },
+        });
+        expect(count).toMatchObject({ _all: 1, rating: 1 });
+
+        count = await db.ratedVideo.count({
+            select: { _all: true, rating: true },
+            where: { AND: { viewCount: { gt: 0 }, rating: { gt: 10 } } },
+        });
+        expect(count).toMatchObject({ _all: 1, rating: 1 });
+
+        count = await db.ratedVideo.count({
+            select: { _all: true, rating: true },
+            where: { AND: [{ viewCount: { gt: 0 }, rating: { gt: 10 } }] },
         });
         expect(count).toMatchObject({ _all: 1, rating: 1 });
 
