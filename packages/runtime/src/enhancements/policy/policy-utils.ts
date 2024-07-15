@@ -720,7 +720,13 @@ export class PolicyUtil extends QueryUtils {
                 }
             } else {
                 // hoist non-nullable to-one filter to the parent level
-                hoisted = this.getAuthGuard(db, fieldInfo.type, 'read');
+                let injected = this.safeClone(injectTarget[field]);
+                if (typeof injected !== 'object') {
+                    injected = {};
+                }
+                this.injectAuthGuardAsWhere(db, injected, fieldInfo.type, 'read');
+                hoisted = injected.where;
+
                 // recurse
                 const subHoisted = this.injectNestedReadConditions(db, fieldInfo.type, injectTarget[field]);
                 if (subHoisted.length > 0) {
