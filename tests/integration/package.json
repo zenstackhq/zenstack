@@ -36,6 +36,6 @@
         "decimal.js": "^10.4.2",
         "pg": "^8.11.1",
         "sleep-promise": "^9.1.0",
-        "superjson": "^1.11.0"
+        "superjson": "^1.13.0"
     }
 }
