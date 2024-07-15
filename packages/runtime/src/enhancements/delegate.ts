@@ -108,6 +108,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
 
             const fieldInfo = resolveField(this.options.modelMeta, model, field);
             if (!fieldInfo?.inheritedFrom) {
+                // not an inherited field, inject and continue
                 if (fieldInfo?.isDataModel) {
                     this.injectWhereHierarchy(fieldInfo.type, value);
                 }

@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/server",
-    "version": "2.3.1",
+    "version": "2.3.2",
     "displayName": "ZenStack Server-side Adapters",
     "description": "ZenStack server-side adapters",
     "homepage": "https://zenstack.dev",
@@ -29,7 +29,7 @@
         "@zenstackhq/runtime": "workspace:*",
         "change-case": "^4.1.2",
         "lower-case-first": "^2.0.2",
-        "superjson": "^1.11.0",
+        "superjson": "^1.13.0",
         "tiny-invariant": "^1.3.1",
         "ts-japi": "^1.10.1",
         "upper-case-first": "^2.0.2",
