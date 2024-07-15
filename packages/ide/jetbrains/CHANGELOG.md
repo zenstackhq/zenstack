@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 ### Added
+- New `check()` policy rule function.
+
+### Fixed
+- Fixed the issue with formatting schemas containing `Unsupported` type. 
+
+## 2.2.0
+### Added
 - Support comparing fields from different models in mutation policy rules ("create", "update", and "delete).
 
 ## 2.1.0

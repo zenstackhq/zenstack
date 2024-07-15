@@ -130,13 +130,43 @@ describe('Polymorphism Test', () => {
         ).resolves.toMatchObject({ count: 1 });
 
         await expect(
+            db.ratedVideo.createManyAndReturn({ data: { viewCount: 1, duration: 100, url: 'xyz', rating: 100 } })
+        ).resolves.toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    assetType: 'Video',
+                    videoType: 'RatedVideo',
+                    viewCount: 1,
+                    duration: 100,
+                    url: 'xyz',
+                    rating: 100,
+                }),
+            ])
+        );
+
+        await expect(
             db.ratedVideo.createMany({
                 data: [
                     { viewCount: 2, duration: 200, url: 'xyz', rating: 100 },
-                    { viewCount: 3, duration: 300, url: 'xyz', rating: 100 },
+                    { viewCount: 3, duration: 300, url: 'xyz', rating: 200 },
                 ],
             })
         ).resolves.toMatchObject({ count: 2 });
+
+        await expect(
+            db.ratedVideo.createManyAndReturn({
+                data: [
+                    { viewCount: 2, duration: 200, url: 'xyz', rating: 100 },
+                    { viewCount: 3, duration: 300, url: 'xyz', rating: 200 },
+                ],
+                select: { videoType: true, viewCount: true, rating: true },
+            })
+        ).resolves.toEqual(
+            expect.arrayContaining([
+                { videoType: 'RatedVideo', viewCount: 2, rating: 100 },
+                { videoType: 'RatedVideo', viewCount: 3, rating: 200 },
+            ])
+        );
     });
 
     it('create many polymorphic relation', async () => {
@@ -282,6 +312,70 @@ describe('Polymorphism Test', () => {
             format: 'png',
             owner: expect.objectContaining(user),
         });
+    });
+
+    it('read with compound filter', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model Base {
+                id Int @id @default(autoincrement())
+                type String
+                viewCount Int
+                @@delegate(type)
+            }
+
+            model Foo extends Base {
+                name String
+            }
+            `,
+            { enhancements: ['delegate'] }
+        );
+
+        const db = enhance();
+        await db.foo.create({ data: { name: 'foo1', viewCount: 0 } });
+        await db.foo.create({ data: { name: 'foo2', viewCount: 1 } });
+
+        await expect(db.foo.findMany({ where: { viewCount: { gt: 0 } } })).resolves.toHaveLength(1);
+        await expect(db.foo.findMany({ where: { AND: { viewCount: { gt: 0 } } } })).resolves.toHaveLength(1);
+        await expect(db.foo.findMany({ where: { AND: [{ viewCount: { gt: 0 } }] } })).resolves.toHaveLength(1);
+        await expect(db.foo.findMany({ where: { OR: [{ viewCount: { gt: 0 } }] } })).resolves.toHaveLength(1);
+        await expect(db.foo.findMany({ where: { NOT: { viewCount: { lte: 0 } } } })).resolves.toHaveLength(1);
+    });
+
+    it('read with nested filter', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model Base {
+                id Int @id @default(autoincrement())
+                type String
+                viewCount Int
+                @@delegate(type)
+            }
+
+            model Foo extends Base {
+                name String
+                bar Bar?
+            }
+
+            model Bar extends Base {
+                foo Foo @relation(fields: [fooId], references: [id])
+                fooId Int @unique
+            }
+            `,
+            { enhancements: ['delegate'] }
+        );
+
+        const db = enhance();
+
+        await db.bar.create({
+            data: { foo: { create: { name: 'foo', viewCount: 2 } }, viewCount: 1 },
+        });
+
+        await expect(
+            db.bar.findMany({
+                where: { viewCount: { gt: 0 }, foo: { viewCount: { gt: 1 } } },
+            })
+        ).resolves.toHaveLength(1);
     });
 
     it('order by base fields', async () => {
@@ -1010,6 +1104,18 @@ describe('Polymorphism Test', () => {
         count = await db.ratedVideo.count({
             select: { _all: true, rating: true },
             where: { viewCount: { gt: 0 }, rating: { gt: 10 } },
+        });
+        expect(count).toMatchObject({ _all: 1, rating: 1 });
+
+        count = await db.ratedVideo.count({
+            select: { _all: true, rating: true },
+            where: { AND: { viewCount: { gt: 0 }, rating: { gt: 10 } } },
+        });
+        expect(count).toMatchObject({ _all: 1, rating: 1 });
+
+        count = await db.ratedVideo.count({
+            select: { _all: true, rating: true },
+            where: { AND: [{ viewCount: { gt: 0 }, rating: { gt: 10 } }] },
         });
         expect(count).toMatchObject({ _all: 1, rating: 1 });
 

@@ -7,13 +7,13 @@ import {
     FieldInfo,
     ModelInfo,
     NestedWriteVisitor,
+    clone,
     enumerate,
     getIdFields,
     getModelInfo,
     isDelegateModel,
     resolveField,
 } from '../cross';
-import { clone } from '../cross';
 import type { CrudContract, DbClientContract } from '../types';
 import type { InternalEnhancementOptions } from './create-enhancement';
 import { Logger } from './logger';
@@ -79,7 +79,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
 
         if (args.orderBy) {
             // `orderBy` may contain fields from base types
-            args.orderBy = this.buildWhereHierarchy(this.model, args.orderBy);
+            this.injectWhereHierarchy(this.model, args.orderBy);
         }
 
         if (this.options.logPrismaQuery) {
@@ -95,7 +95,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     }
 
     private injectWhereHierarchy(model: string, where: any) {
-        if (!where || typeof where !== 'object') {
+        if (!where || !isPlainObject(where)) {
             return;
         }
 
@@ -108,6 +108,9 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
 
             const fieldInfo = resolveField(this.options.modelMeta, model, field);
             if (!fieldInfo?.inheritedFrom) {
+                if (fieldInfo?.isDataModel) {
+                    this.injectWhereHierarchy(fieldInfo.type, value);
+                }
                 return;
             }
 
@@ -126,6 +129,9 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                 }
 
                 if (base.name === fieldInfo.inheritedFrom) {
+                    if (fieldInfo.isDataModel) {
+                        this.injectWhereHierarchy(base.name, value);
+                    }
                     thisLayer[field] = value;
                     delete where[field];
                     break;
@@ -135,46 +141,6 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                 }
             }
         });
-    }
-
-    private buildWhereHierarchy(model: string, where: any) {
-        if (!where) {
-            return undefined;
-        }
-
-        where = clone(where);
-        Object.entries(where).forEach(([field, value]) => {
-            const fieldInfo = resolveField(this.options.modelMeta, model, field);
-            if (!fieldInfo?.inheritedFrom) {
-                return;
-            }
-
-            let base = this.getBaseModel(model);
-            let target = where;
-
-            while (base) {
-                const baseRelationName = this.makeAuxRelationName(base);
-
-                // prepare base layer where
-                let thisLayer: any;
-                if (target[baseRelationName]) {
-                    thisLayer = target[baseRelationName];
-                } else {
-                    thisLayer = target[baseRelationName] = {};
-                }
-
-                if (base.name === fieldInfo.inheritedFrom) {
-                    thisLayer[field] = value;
-                    delete where[field];
-                    break;
-                } else {
-                    target = thisLayer;
-                    base = this.getBaseModel(base.name);
-                }
-            }
-        });
-
-        return where;
     }
 
     private injectSelectIncludeHierarchy(model: string, args: any) {
@@ -189,7 +155,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                     if (fieldInfo && value !== undefined) {
                         if (value?.orderBy) {
                             // `orderBy` may contain fields from base types
-                            value.orderBy = this.buildWhereHierarchy(fieldInfo.type, value.orderBy);
+                            this.injectWhereHierarchy(fieldInfo.type, value.orderBy);
                         }
 
                         if (this.injectBaseFieldSelect(model, field, value, args, kind)) {
@@ -401,9 +367,46 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                     return this.doCreate(tx, this.model, { data: item });
                 })
             );
+            return { count: r.length };
+        });
+    }
 
-            // filter out undefined value (due to skipping duplicates)
-            return { count: r.filter((item) => !!item).length };
+    override createManyAndReturn(args: { data: any; select?: any; skipDuplicates?: boolean }): Promise<unknown[]> {
+        if (!args) {
+            throw prismaClientValidationError(this.prisma, this.options.prismaModule, 'query argument is required');
+        }
+        if (!args.data) {
+            throw prismaClientValidationError(
+                this.prisma,
+                this.options.prismaModule,
+                'data field is required in query argument'
+            );
+        }
+
+        if (!this.involvesDelegateModel(this.model)) {
+            return super.createManyAndReturn(args);
+        }
+
+        if (this.isDelegateOrDescendantOfDelegate(this.model) && args.skipDuplicates) {
+            throw prismaClientValidationError(
+                this.prisma,
+                this.options.prismaModule,
+                '`createManyAndReturn` with `skipDuplicates` set to true is not supported for delegated models'
+            );
+        }
+
+        // `createManyAndReturn` doesn't support nested create, which is needed for creating entities
+        // inheriting a delegate base, so we need to convert it to a regular `create` here.
+        // Note that the main difference is `create` doesn't support `skipDuplicates` as
+        // `createManyAndReturn` does.
+
+        return this.queryUtils.transaction(this.prisma, async (tx) => {
+            const r = await Promise.all(
+                enumerate(args.data).map(async (item) => {
+                    return this.doCreate(tx, this.model, { data: item, select: args.select });
+                })
+            );
+            return r;
         });
     }
 
@@ -921,15 +924,15 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         args = clone(args);
 
         if (args.cursor) {
-            args.cursor = this.buildWhereHierarchy(this.model, args.cursor);
+            this.injectWhereHierarchy(this.model, args.cursor);
         }
 
         if (args.orderBy) {
-            args.orderBy = this.buildWhereHierarchy(this.model, args.orderBy);
+            this.injectWhereHierarchy(this.model, args.orderBy);
         }
 
         if (args.where) {
-            args.where = this.buildWhereHierarchy(this.model, args.where);
+            this.injectWhereHierarchy(this.model, args.where);
         }
 
         if (this.options.logPrismaQuery) {
@@ -949,11 +952,11 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         args = clone(args);
 
         if (args?.cursor) {
-            args.cursor = this.buildWhereHierarchy(this.model, args.cursor);
+            this.injectWhereHierarchy(this.model, args.cursor);
         }
 
         if (args?.where) {
-            args.where = this.buildWhereHierarchy(this.model, args.where);
+            this.injectWhereHierarchy(this.model, args.where);
         }
 
         if (this.options.logPrismaQuery) {
@@ -989,7 +992,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         args = clone(args);
 
         if (args.where) {
-            args.where = this.buildWhereHierarchy(this.model, args.where);
+            this.injectWhereHierarchy(this.model, args.where);
         }
 
         if (this.options.logPrismaQuery) {

@@ -1,4 +1,4 @@
-import { getIdFields, hasAttribute, isAuthInvocation, isDataModelFieldReference } from '@zenstackhq/sdk';
+import { getIdFields, isAuthInvocation, isDataModelFieldReference } from '@zenstackhq/sdk';
 import {
     DataModel,
     DataModelField,
@@ -18,41 +18,27 @@ export function generateAuthType(model: Model, authModel: DataModel) {
     const types = new Map<
         string,
         {
-            // scalar fields to directly pick from Prisma-generated type
-            pickFields: string[];
-
-            // relation fields to include
-            addFields: { name: string; type: string }[];
+            // relation fields to require
+            requiredRelations: { name: string; type: string }[];
         }
     >();
 
-    types.set(authModel.name, { pickFields: getIdFields(authModel).map((f) => f.name), addFields: [] });
+    types.set(authModel.name, { requiredRelations: [] });
 
     const ensureType = (model: string) => {
         if (!types.has(model)) {
-            types.set(model, { pickFields: [], addFields: [] });
-        }
-    };
-
-    const addPickField = (model: string, field: string) => {
-        let fields = types.get(model);
-        if (!fields) {
-            fields = { pickFields: [], addFields: [] };
-            types.set(model, fields);
-        }
-        if (!fields.pickFields.includes(field)) {
-            fields.pickFields.push(field);
+            types.set(model, { requiredRelations: [] });
         }
     };
 
     const addAddField = (model: string, name: string, type: string, array: boolean) => {
         let fields = types.get(model);
         if (!fields) {
-            fields = { pickFields: [], addFields: [] };
+            fields = { requiredRelations: [] };
             types.set(model, fields);
         }
-        if (!fields.addFields.find((f) => f.name === name)) {
-            fields.addFields.push({ name, type: array ? `${type}[]` : type });
+        if (!fields.requiredRelations.find((f) => f.name === name)) {
+            fields.requiredRelations.push({ name, type: array ? `${type}[]` : type });
         }
     };
 
@@ -71,11 +57,6 @@ export function generateAuthType(model: Model, authModel: DataModel) {
                         const fieldType = memberDecl.type.reference.ref.name;
                         ensureType(fieldType);
                         addAddField(exprType.name, memberDecl.name, fieldType, memberDecl.type.array);
-                    } else {
-                        // member is a scalar
-                        if (!isIgnoredField(node.member.ref)) {
-                            addPickField(exprType.name, node.member.$refText);
-                        }
                     }
                 }
             }
@@ -88,11 +69,6 @@ export function generateAuthType(model: Model, authModel: DataModel) {
                     // field is a relation
                     ensureType(fieldType.name);
                     addAddField(fieldDecl.$container.name, node.target.$refText, fieldType.name, fieldDecl.type.array);
-                } else {
-                    if (!isIgnoredField(fieldDecl)) {
-                        // field is a scalar
-                        addPickField(fieldDecl.$container.name, node.target.$refText);
-                    }
                 }
             }
         });
@@ -112,15 +88,20 @@ ${Array.from(types.entries())
     .map(([model, fields]) => {
         let result = `Partial<_P.${model}>`;
 
-        if (fields.pickFields.length > 0) {
-            result = `WithRequired<${result}, ${fields.pickFields
-                .map((f) => `'${f}'`)
-                .join('|')}> & Record<string, unknown>`;
+        if (model === authModel.name) {
+            // auth model's id fields are always required
+            const idFields = getIdFields(authModel).map((f) => f.name);
+            if (idFields.length > 0) {
+                result = `WithRequired<${result}, ${idFields.map((f) => `'${f}'`).join('|')}>`;
+            }
         }
 
-        if (fields.addFields.length > 0) {
-            result = `${result} & { ${fields.addFields.map(({ name, type }) => `${name}: ${type}`).join('; ')} }`;
+        if (fields.requiredRelations.length > 0) {
+            // merge required relation fields
+            result = `${result} & { ${fields.requiredRelations.map((f) => `${f.name}: ${f.type}`).join('; ')} }`;
         }
+
+        result = `${result} & Record<string, unknown>`;
 
         return `    export type ${model} = ${result};`;
     })
@@ -144,8 +125,4 @@ function isAuthAccess(node: AstNode): node is Expression {
     }
 
     return false;
-}
-
-function isIgnoredField(field: DataModelField | undefined) {
-    return !!(field && hasAttribute(field, '@ignore'));
 }

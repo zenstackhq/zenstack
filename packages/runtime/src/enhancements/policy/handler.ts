@@ -461,7 +461,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         });
     }
 
-    createManyAndReturn(args: { select: any; include: any; data: any; skipDuplicates?: boolean }) {
+    createManyAndReturn(args: { data: any; select?: any; skipDuplicates?: boolean }) {
         if (!args) {
             throw prismaClientValidationError(this.prisma, this.prismaModule, 'query argument is required');
         }
