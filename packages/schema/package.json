@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "Build scalable web apps with minimum code by defining authorization and validation rules inside the data schema that closer to the database",
-    "version": "2.3.2",
+    "version": "2.3.3",
     "author": {
         "name": "ZenStack Team"
     },
@@ -121,10 +121,10 @@
         "zod-validation-error": "^1.5.0"
     },
     "peerDependencies": {
-        "prisma": "5.0.0 - 5.16.x"
+        "prisma": "5.0.0 - 5.17.x"
     },
     "devDependencies": {
-        "@prisma/client": "5.16.x",
+        "@prisma/client": "5.17.x",
         "@types/async-exit-hook": "^2.0.0",
         "@types/pluralize": "^0.0.29",
         "@types/semver": "^7.3.13",
@@ -136,7 +136,6 @@
         "@zenstackhq/runtime": "workspace:*",
         "dotenv": "^16.0.3",
         "esbuild": "^0.15.12",
-        "prisma": "5.16.x",
         "renamer": "^4.0.0",
         "tmp": "^0.2.1",
         "tsc-alias": "^1.7.0",
