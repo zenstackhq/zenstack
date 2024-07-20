@@ -1,5 +1,7 @@
-import { CompilerOptions, DiagnosticCategory, ModuleKind, Project, ScriptTarget } from 'ts-morph';
-import { PluginError } from './types';
+import { transformFile } from '@swc/core';
+import fs from 'fs';
+import path from 'path';
+import { CompilerOptions, ModuleKind, Project, ScriptTarget } from 'ts-morph';
 
 /**
  * Creates a TS code generation project
@@ -31,21 +33,27 @@ export async function saveProject(project: Project) {
  * Emit a TS project to JS files.
  */
 export async function emitProject(project: Project) {
-    const errors = project.getPreEmitDiagnostics().filter((d) => d.getCategory() === DiagnosticCategory.Error);
-    if (errors.length > 0) {
-        console.error('Error compiling generated code:');
-        console.error(project.formatDiagnosticsWithColorAndContext(errors.slice(0, 10)));
-        await project.save();
-        throw new PluginError('', `Error compiling generated code`);
-    }
+    await project.save();
 
-    const result = await project.emit();
-
-    const emitErrors = result.getDiagnostics().filter((d) => d.getCategory() === DiagnosticCategory.Error);
-    if (emitErrors.length > 0) {
-        console.error('Some generated code is not emitted:');
-        console.error(project.formatDiagnosticsWithColorAndContext(emitErrors.slice(0, 10)));
-        await project.save();
-        throw new PluginError('', `Error emitting generated code`);
-    }
+    await Promise.all(
+        project
+            .getSourceFiles()
+            .map((sf) => sf.getFilePath())
+            .filter((file) => !file.endsWith('.d.ts'))
+            .map(async (file) => {
+                const output = await transformFile(file, {
+                    jsc: {
+                        parser: {
+                            syntax: 'typescript',
+                            tsx: false,
+                        },
+                        target: 'es2020',
+                    },
+                    module: {
+                        type: 'commonjs',
+                    },
+                });
+                fs.writeFileSync(path.join(path.dirname(file), path.basename(file, '.ts') + '.js'), output.code);
+            })
+    );
 }

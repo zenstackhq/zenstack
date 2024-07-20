@@ -294,7 +294,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         tsconfig.include = ['**/*.ts'];
         tsconfig.exclude = ['node_modules'];
         fs.writeFileSync(path.join(projectDir, './tsconfig.json'), JSON.stringify(tsconfig, null, 2));
-        run('npx tsc --project tsconfig.json');
+        run('npx tsc --project tsconfig.json --noEmit');
     }
 
     if (options?.getPrismaOnly) {
