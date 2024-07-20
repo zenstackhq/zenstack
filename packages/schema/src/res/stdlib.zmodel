@@ -402,10 +402,10 @@ enum MSSQLServerTypes {
 attribute @db.String(_ x: Int?) @@@targetField([StringField]) @@@prisma
 attribute @db.Text() @@@targetField([StringField]) @@@prisma
 attribute @db.NText() @@@targetField([StringField]) @@@prisma
-attribute @db.Char(_ x: Int) @@@targetField([StringField]) @@@prisma
-attribute @db.NChar(_ x: Int) @@@targetField([StringField]) @@@prisma
-attribute @db.VarChar(_ x: Any) @@@targetField([StringField]) @@@prisma
-attribute @db.NVarChar(_ x: Any) @@@targetField([StringField]) @@@prisma
+attribute @db.Char(_ x: Int?) @@@targetField([StringField]) @@@prisma
+attribute @db.NChar(_ x: Int?) @@@targetField([StringField]) @@@prisma
+attribute @db.VarChar(_ x: Any?) @@@targetField([StringField]) @@@prisma
+attribute @db.NVarChar(_ x: Any?) @@@targetField([StringField]) @@@prisma
 attribute @db.CatalogSingleChar() @@@targetField([StringField]) @@@prisma
 attribute @db.TinyText() @@@targetField([StringField]) @@@prisma
 attribute @db.MediumText() @@@targetField([StringField]) @@@prisma
