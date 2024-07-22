@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { indentString, type PluginOptions } from '@zenstackhq/sdk';
-import type { Model } from '@zenstackhq/sdk/ast';
+import { indentString, isDiscriminatorField, type PluginOptions } from '@zenstackhq/sdk';
+import { DataModel, isDataModel, type Model } from '@zenstackhq/sdk/ast';
 import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
 import { supportCreateMany, type DMMF as PrismaDMMF } from '@zenstackhq/sdk/prisma';
 import path from 'path';
@@ -90,8 +90,31 @@ export default class Transformer {
         return `${this.name}.schema`;
     }
 
+    private delegateCreateUpdateInputRegex = /(\S+)(Unchecked)?(Create|Update).*Input/;
+
     generateObjectSchemaFields(generateUnchecked: boolean) {
-        const zodObjectSchemaFields = this.fields
+        let fields = this.fields;
+
+        // exclude discriminator fields from create/update input schemas
+        const createUpdateMatch = this.delegateCreateUpdateInputRegex.exec(this.name);
+        if (createUpdateMatch) {
+            const modelName = createUpdateMatch[1];
+            const dataModel = this.zmodel.declarations.find(
+                (d): d is DataModel => isDataModel(d) && d.name === modelName
+            );
+            if (dataModel) {
+                const discriminatorFields = dataModel.fields.filter(isDiscriminatorField);
+                if (discriminatorFields.length > 0) {
+                    fields = fields.filter((field) => {
+                        return !discriminatorFields.some(
+                            (discriminatorField) => discriminatorField.name === field.name
+                        );
+                    });
+                }
+            }
+        }
+
+        const zodObjectSchemaFields = fields
             .map((field) => this.generateObjectSchemaField(field, generateUnchecked))
             .flatMap((item) => item)
             .map((item) => {
