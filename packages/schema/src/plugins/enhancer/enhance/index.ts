@@ -7,6 +7,7 @@ import {
     getDataModels,
     getLiteral,
     isDelegateModel,
+    isDiscriminatorField,
     type PluginOptions,
 } from '@zenstackhq/sdk';
 import {
@@ -495,33 +496,34 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         return source;
     }
 
+    private readonly ModelCreateUpdateInputRegex = /(\S+)(Unchecked)?(Create|Update).*Input/;
+
     private removeDiscriminatorFromConcreteInput(
         typeAlias: TypeAliasDeclaration,
-        delegateInfo: DelegateInfo,
+        _delegateInfo: DelegateInfo,
         source: string
     ) {
-        // remove discriminator field from the create/update input of concrete models because
-        // discriminator cannot be set directly
+        // remove discriminator field from the create/update input because discriminator cannot be set directly
         const typeName = typeAlias.getName();
-        const concreteModelNames = delegateInfo.map(([, concretes]) => concretes.map((c) => c.name)).flatMap((c) => c);
-        const concreteCreateUpdateInputRegex = new RegExp(
-            `(${concreteModelNames.join('|')})(Unchecked)?(Create|Update).*Input`
-        );
 
-        const match = typeName.match(concreteCreateUpdateInputRegex);
+        const match = typeName.match(this.ModelCreateUpdateInputRegex);
         if (match) {
             const modelName = match[1];
-            const record = delegateInfo.find(([, concretes]) => concretes.some((c) => c.name === modelName));
-            if (record) {
-                // remove all discriminator fields recursively
-                const delegateOfConcrete = record[0];
-                const discriminators = this.getDiscriminatorFieldsRecursively(delegateOfConcrete);
-                discriminators.forEach((discriminatorDecl) => {
-                    const discriminatorNode = this.findNamedProperty(typeAlias, discriminatorDecl.name);
-                    if (discriminatorNode) {
-                        source = source.replace(discriminatorNode.getText(), '');
+            const dataModel = this.model.declarations.find(
+                (d): d is DataModel => isDataModel(d) && d.name === modelName
+            );
+
+            if (!dataModel) {
+                return source;
+            }
+
+            for (const field of dataModel.fields) {
+                if (isDiscriminatorField(field)) {
+                    const fieldDef = this.findNamedProperty(typeAlias, field.name);
+                    if (fieldDef) {
+                        source = source.replace(fieldDef.getText(), '');
                     }
-                });
+                }
             }
         }
         return source;
@@ -616,22 +618,6 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         }
         const arg = delegateAttr.args[0]?.value;
         return isReferenceExpr(arg) ? (arg.target.ref as DataModelField) : undefined;
-    }
-
-    private getDiscriminatorFieldsRecursively(delegate: DataModel, result: DataModelField[] = []) {
-        if (isDelegateModel(delegate)) {
-            const discriminator = this.getDiscriminatorField(delegate);
-            if (discriminator) {
-                result.push(discriminator);
-            }
-
-            for (const superType of delegate.superTypes) {
-                if (superType.ref) {
-                    result.push(...this.getDiscriminatorFieldsRecursively(superType.ref, result));
-                }
-            }
-        }
-        return result;
     }
 
     private async saveSourceFile(sf: SourceFile) {

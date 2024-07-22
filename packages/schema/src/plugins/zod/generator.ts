@@ -5,6 +5,7 @@ import {
     ensureEmptyDir,
     getDataModels,
     hasAttribute,
+    isDiscriminatorField,
     isEnumFieldReference,
     isForeignKeyField,
     isFromStdlib,
@@ -368,6 +369,13 @@ export function ${refineFuncName}<T, D extends z.ZodTypeDef>(schema: z.ZodType<T
                 );
             }
 
+            // delegate discriminator fields are to be excluded from mutation schemas
+            const delegateFields = model.fields.filter((field) => isDiscriminatorField(field));
+            const omitDiscriminators =
+                delegateFields.length > 0
+                    ? `.omit({ ${delegateFields.map((f) => `${f.name}: true`).join(', ')} })`
+                    : '';
+
             ////////////////////////////////////////////////
             // 1. Model schema
             ////////////////////////////////////////////////
@@ -429,7 +437,7 @@ export const ${upperCaseFirst(model.name)}Schema = ${modelSchema};
             ////////////////////////////////////////////////
 
             // schema for validating prisma create input (all fields optional)
-            let prismaCreateSchema = this.makePassthrough(this.makePartial('baseSchema'));
+            let prismaCreateSchema = this.makePassthrough(this.makePartial(`baseSchema${omitDiscriminators}`));
             if (refineFuncName) {
                 prismaCreateSchema = `${refineFuncName}(${prismaCreateSchema})`;
             }
@@ -445,6 +453,7 @@ export const ${upperCaseFirst(model.name)}PrismaCreateSchema = ${prismaCreateSch
             // note numeric fields can be simple update or atomic operations
             let prismaUpdateSchema = `z.object({
                 ${scalarFields
+                    .filter((f) => !isDiscriminatorField(f))
                     .map((field) => {
                         let fieldSchema = makeFieldSchema(field);
                         if (field.type.type === 'Int' || field.type.type === 'Float') {
@@ -472,7 +481,7 @@ export const ${upperCaseFirst(model.name)}PrismaUpdateSchema = ${prismaUpdateSch
             // 3. Create schema
             ////////////////////////////////////////////////
 
-            let createSchema = 'baseSchema';
+            let createSchema = `baseSchema${omitDiscriminators}`;
             const fieldsWithDefault = scalarFields.filter(
                 (field) => hasAttribute(field, '@default') || hasAttribute(field, '@updatedAt') || field.type.array
             );
@@ -524,7 +533,7 @@ export const ${upperCaseFirst(model.name)}CreateSchema = ${createSchema};
             ////////////////////////////////////////////////
 
             // for update all fields are optional
-            let updateSchema = this.makePartial('baseSchema');
+            let updateSchema = this.makePartial(`baseSchema${omitDiscriminators}`);
 
             // export schema with only scalar fields: `[Model]UpdateScalarSchema`
             const updateScalarSchema = `${upperCaseFirst(model.name)}UpdateScalarSchema`;
