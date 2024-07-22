@@ -90,7 +90,7 @@ export default class Transformer {
         return `${this.name}.schema`;
     }
 
-    private delegateCreateUpdateInputRegex = new RegExp(`(\\S+)(Unchecked)?(Create|Update).*Input`);
+    private delegateCreateUpdateInputRegex = /(\S+)(Unchecked)?(Create|Update).*Input/;
 
     generateObjectSchemaFields(generateUnchecked: boolean) {
         let fields = this.fields;
