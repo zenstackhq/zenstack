@@ -95,7 +95,8 @@ export class EnhancerGenerator {
 
         const enhanceTs = this.project.createSourceFile(
             path.join(this.outDir, 'enhance.ts'),
-            `import { type EnhancementContext, type EnhancementOptions, type ZodSchemas, type AuthUser } from '@zenstackhq/runtime';
+            `/* eslint-disable */
+import { type EnhancementContext, type EnhancementOptions, type ZodSchemas, type AuthUser } from '@zenstackhq/runtime';
 import { createEnhancement } from '@zenstackhq/runtime/enhancements';
 import modelMeta from './model-meta';
 import policy from './policy';
