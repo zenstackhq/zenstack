@@ -1,9 +1,10 @@
-import { getPaths, updateTomlConfig } from '@redwoodjs/cli-helpers';
+import { getInstalledRedwoodVersion, getPaths, updateTomlConfig } from '@redwoodjs/cli-helpers';
 import colors from 'colors';
 import execa from 'execa';
 import fs from 'fs';
 import { Listr, ListrTask } from 'listr2';
 import path from 'path';
+import semver from 'semver';
 import terminalLink from 'terminal-link';
 import { Project, SyntaxKind, type PropertyAssignment } from 'ts-morph';
 import type { CommandModule } from 'yargs';
@@ -144,11 +145,17 @@ function installGraphQLPlugin() {
             if (graphQlSourcePath.endsWith('.ts')) {
                 const typeDefPath = path.join(getPaths().api.src, 'zenstack.d.ts');
                 if (!fs.existsSync(typeDefPath)) {
+                    const rwVersion: string = getInstalledRedwoodVersion();
+                    const contextModule =
+                        rwVersion && semver.lt(rwVersion, '7.0.0')
+                            ? '@redwoodjs/graphql-server' // pre v7
+                            : '@redwoodjs/context'; // v7+
+
                     const typeDefSourceFile = project.createSourceFile(
                         typeDefPath,
-                        `import type { PrismaClient } from '@prisma/client'
+                        `import type { PrismaClient } from '@zenstackhq/runtime'
 
-declare module '@redwoodjs/graphql-server' {
+declare module '${contextModule}' {
   interface GlobalContext {
     db: PrismaClient
   }

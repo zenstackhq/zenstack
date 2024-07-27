@@ -127,8 +127,9 @@ ${
     }
 
     private createSimplePrismaImports(prismaImport: string) {
-        return `import { Prisma } from '${prismaImport}';
+        return `import { Prisma, type PrismaClient } from '${prismaImport}';
 import type * as _P from '${prismaImport}';
+export type { PrismaClient };
         `;
     }
 
@@ -152,6 +153,7 @@ export function enhance<DbClient extends object>(prisma: DbClient, context?: Enh
 import type { InternalArgs, DynamicClientExtensionThis } from '${prismaImport}/runtime/library';
 import type * as _P from '${logicalPrismaClientDir}/index-fixed';
 import type { Prisma, PrismaClient } from '${logicalPrismaClientDir}/index-fixed';
+export type { PrismaClient };
 `;
     }
 
