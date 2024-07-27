@@ -48,14 +48,19 @@ function bootstrapSchema() {
                 const pkg = JSON.parse(content);
                 if (!pkg.zenstack) {
                     pkg.zenstack = {
-                        schema: path.relative(apiPaths.base, zmodel),
-                        prisma: path.relative(apiPaths.base, apiPaths.dbSchema),
+                        schema: normalizePath(path.relative(apiPaths.base, zmodel)),
+                        prisma: normalizePath(path.relative(apiPaths.base, apiPaths.dbSchema)),
                     };
                     fs.writeFileSync(pkgJson, JSON.stringify(pkg, null, 4));
                 }
             }
         },
     };
+}
+
+// ensures posix path separators are used in package.json
+function normalizePath(_path: string) {
+    return _path.replaceAll(path.sep, path.posix.sep);
 }
 
 // install ZenStack GraphQLYoga plugin
