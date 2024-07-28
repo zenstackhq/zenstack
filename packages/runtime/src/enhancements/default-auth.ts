@@ -1,12 +1,19 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { FieldInfo, NestedWriteVisitor, PrismaWriteActionType, enumerate, getFields, requireField } from '../cross';
-import { clone } from '../cross';
+import {
+    FieldInfo,
+    NestedWriteVisitor,
+    PrismaWriteActionType,
+    clone,
+    enumerate,
+    getFields,
+    requireField,
+} from '../cross';
 import { DbClientContract } from '../types';
 import { EnhancementContext, InternalEnhancementOptions } from './create-enhancement';
 import { DefaultPrismaProxyHandler, PrismaProxyActions, makeProxy } from './proxy';
-import { isUnsafeMutate } from './utils';
+import { isUnsafeMutate, prismaClientValidationError } from './utils';
 
 /**
  * Gets an enhanced Prisma client that supports `@default(auth())` attribute.
@@ -143,7 +150,11 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
 
     private getDefaultValueFromAuth(fieldInfo: FieldInfo) {
         if (!this.userContext) {
-            throw new Error(`Evaluating default value of field \`${fieldInfo.name}\` requires a user context`);
+            throw prismaClientValidationError(
+                this.prisma,
+                this.options.prismaModule,
+                `Evaluating default value of field \`${fieldInfo.name}\` requires a user context`
+            );
         }
         return fieldInfo.defaultValueProvider?.(this.userContext);
     }
