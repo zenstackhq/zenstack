@@ -486,12 +486,12 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         const typeName = typeAlias.getName();
         const delegateModelNames = delegateModels.map(([delegate]) => delegate.name);
         const delegateCreateUpdateInputRegex = new RegExp(
-            `\\${delegateModelNames.join('|')}(Unchecked)?(Create|Update).*Input`
+            `^(${delegateModelNames.join('|')})(Unchecked)?(Create|Update).*Input$`
         );
         if (delegateCreateUpdateInputRegex.test(typeName)) {
             const toRemove = typeAlias
                 .getDescendantsOfKind(SyntaxKind.PropertySignature)
-                .filter((p) => ['create', 'connectOrCreate', 'upsert'].includes(p.getName()));
+                .filter((p) => ['create', 'createMany', 'connectOrCreate', 'upsert'].includes(p.getName()));
             toRemove.forEach((r) => {
                 source = source.replace(r.getText(), '');
             });
@@ -543,6 +543,10 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         return source;
     }
 
+    private readonly CreateUpdateWithoutDelegateRelationRegex = new RegExp(
+        `(.+)(Create|Update)Without${upperCaseFirst(DELEGATE_AUX_RELATION_PREFIX)}_(.+)Input`
+    );
+
     private removeDelegateFieldsFromNestedMutationInput(
         typeAlias: TypeAliasDeclaration,
         _delegateInfo: DelegateInfo,
@@ -553,8 +557,7 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         // remove delegate model fields (and corresponding fk fields) from
         // create/update input types nested inside concrete models
 
-        const regex = new RegExp(`(.+)(Create|Update)Without${upperCaseFirst(DELEGATE_AUX_RELATION_PREFIX)}_(.+)Input`);
-        const match = name.match(regex);
+        const match = name.match(this.CreateUpdateWithoutDelegateRelationRegex);
         if (!match) {
             return source;
         }
