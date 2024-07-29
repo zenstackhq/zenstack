@@ -38,6 +38,7 @@ type Options = {
     futureRefContext?: string;
     context: ExpressionContext;
     operationContext?: 'read' | 'create' | 'update' | 'postUpdate' | 'delete';
+    treatUndefinedAsNull?: boolean;
 };
 
 // a registry of function handlers marked with @func
@@ -405,13 +406,21 @@ export class TypeScriptExpressionTransformer {
         if (this.options.context === ExpressionContext.ValidationRule) {
             const nullComparison = this.extractNullComparison(expr);
             if (nullComparison) {
-                // null comparison covers both null and undefined
-                const { fieldRef } = nullComparison;
-                const field = this.transform(fieldRef, normalizeUndefined);
-                if (expr.operator === '==') {
-                    _default = `(${field} === null || ${field} === undefined)`;
-                } else if (expr.operator === '!=') {
-                    _default = `(${field} !== null && ${field} !== undefined)`;
+                const field = this.transform(nullComparison.fieldRef, normalizeUndefined);
+                if (this.options.treatUndefinedAsNull) {
+                    // null comparison covers both null and undefined
+                    if (expr.operator === '==') {
+                        _default = `(${field} === null || ${field} === undefined)`;
+                    } else if (expr.operator === '!=') {
+                        _default = `(${field} !== null && ${field} !== undefined)`;
+                    }
+                } else {
+                    // just check against null (need to use === for strict comparison)
+                    if (expr.operator === '==') {
+                        _default = `(${field} === null)`;
+                    } else if (expr.operator === '!=') {
+                        _default = `(${field} !== null)`;
+                    }
                 }
             } else {
                 // for other comparisons, in a validation context,

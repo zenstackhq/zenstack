@@ -351,21 +351,39 @@ export class ZodSchemaGenerator {
                 writer.writeLine(');');
             }
 
-            // compile "@@validate" to ".refine"
-            const refinements = makeValidationRefinements(model);
+            // compile "@@validate" to ".refine" (strict version, `undefined` values are treated as `null`)
+            const refinements = makeValidationRefinements(model, true);
             let refineFuncName: string | undefined;
             if (refinements.length > 0) {
                 refineFuncName = `refine${upperCaseFirst(model.name)}`;
                 writer.writeLine(
                     `
 /**
- * Schema refinement function for applying \`@@validate\` rules.
+ * Schema refinement function for applying \`@@validate\` rules (strict version, \`undefined\` values are treated as \`null\`).
  */
 export function ${refineFuncName}<T, D extends z.ZodTypeDef>(schema: z.ZodType<T, D, T>) { return schema${refinements.join(
                         '\n'
                     )};
 }
 `
+                );
+            }
+
+            // compile "@@validate" to ".refineLax" (strict version)
+            const laxRefinements = makeValidationRefinements(model, false);
+            let laxRefineFuncName: string | undefined;
+            if (refinements.length > 0) {
+                laxRefineFuncName = `refine${upperCaseFirst(model.name)}Lax`;
+                writer.writeLine(
+                    `
+            /**
+             * Schema refinement function for applying \`@@validate\` rules (lax version).
+             */
+            export function ${laxRefineFuncName}<T, D extends z.ZodTypeDef>(schema: z.ZodType<T, D, T>) { return schema${laxRefinements.join(
+                        '\n'
+                    )};
+            }
+            `
                 );
             }
 
@@ -464,8 +482,8 @@ export const ${upperCaseFirst(model.name)}PrismaCreateSchema = ${prismaCreateSch
                     .join(',\n')}
     })`;
             prismaUpdateSchema = this.makePartial(prismaUpdateSchema);
-            if (refineFuncName) {
-                prismaUpdateSchema = `${refineFuncName}(${prismaUpdateSchema})`;
+            if (laxRefineFuncName) {
+                prismaUpdateSchema = `${laxRefineFuncName}(${prismaUpdateSchema})`;
             }
             writer.writeLine(
                 `
@@ -551,7 +569,7 @@ export const ${updateScalarSchema} = ${updateSchema};
                 updateSchema = this.makeMerge(updateSchema, this.makePartial(fkSchema));
             }
 
-            if (refineFuncName) {
+            if (laxRefineFuncName) {
                 // export a schema without refinement for extensibility: `[Model]UpdateWithoutRefineSchema`
                 const noRefineSchema = `${upperCaseFirst(model.name)}UpdateWithoutRefineSchema`;
                 writer.writeLine(`
@@ -560,7 +578,7 @@ export const ${updateScalarSchema} = ${updateSchema};
  */
 export const ${noRefineSchema} = ${updateSchema};
 `);
-                updateSchema = `${refineFuncName}(${noRefineSchema})`;
+                updateSchema = `${laxRefineFuncName}(${noRefineSchema})`;
             }
 
             // export the final update schema: `[Model]UpdateSchema`

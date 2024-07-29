@@ -211,7 +211,7 @@ function makeZodSchema(field: DataModelField) {
     return schema;
 }
 
-export function makeValidationRefinements(model: DataModel) {
+export function makeValidationRefinements(model: DataModel, treatUndefinedAsNull: boolean) {
     const attrs = model.attributes.filter((attr) => attr.decl.ref?.name === '@@validate');
     const refinements = attrs
         .map((attr) => {
@@ -227,6 +227,7 @@ export function makeValidationRefinements(model: DataModel) {
                 let expr = new TypeScriptExpressionTransformer({
                     context: ExpressionContext.ValidationRule,
                     fieldReferenceContext: 'value',
+                    treatUndefinedAsNull,
                 }).transform(valueArg);
 
                 if (isDataModelFieldReference(valueArg)) {
