@@ -2,8 +2,8 @@
     "name": "zenstack",
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
-    "description": "FullStack enhancement for Prisma ORM: seamless integration from database to UI",
-    "version": "2.3.3",
+    "description": "Build scalable web apps with minimum code by defining authorization and validation rules inside the data schema that closer to the database",
+    "version": "2.4.0",
     "author": {
         "name": "ZenStack Team"
     },
