@@ -464,9 +464,6 @@ export const ${upperCaseFirst(model.name)}PrismaCreateSchema = ${prismaCreateSch
                     .join(',\n')}
     })`;
             prismaUpdateSchema = this.makePartial(prismaUpdateSchema);
-            if (refineFuncName) {
-                prismaUpdateSchema = `${refineFuncName}(${prismaUpdateSchema})`;
-            }
             writer.writeLine(
                 `
 /**
