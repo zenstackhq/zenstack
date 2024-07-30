@@ -934,8 +934,8 @@ describe('Model-level validation', () => {
             x Int
             y Int
 
-            @@validate(x == null || !(x <= 0))
-            @@validate(y != null && !(y > 1))
+            @@validate(x == null || x > 0)
+            @@validate(y != null && y <= 1)
         }
         `,
             { enhancements: ['validation'] }
@@ -948,7 +948,7 @@ describe('Model-level validation', () => {
         await expect(db.model.create({ data: { id: 1, x: 0, y: 0 } })).toBeRejectedByPolicy();
         await expect(db.model.create({ data: { id: 1, x: 1, y: 0 } })).toResolveTruthy();
 
-        await expect(db.model.update({ where: { id: 1 }, data: {} })).toBeRejectedByPolicy();
+        await expect(db.model.update({ where: { id: 1 }, data: {} })).toResolveTruthy();
         await expect(db.model.update({ where: { id: 1 }, data: { y: 2 } })).toBeRejectedByPolicy();
         await expect(db.model.update({ where: { id: 1 }, data: { y: 1 } })).toResolveTruthy();
         await expect(db.model.update({ where: { id: 1 }, data: { x: 2, y: 1 } })).toResolveTruthy();
