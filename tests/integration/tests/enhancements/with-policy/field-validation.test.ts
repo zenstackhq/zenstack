@@ -646,8 +646,9 @@ describe('Model-level validation', () => {
 
         const db = enhance();
 
-        await expect(db.model.create({ data: { x: 2, y: 1 } })).toResolveTruthy();
-        await expect(db.model.create({ data: { x: 1, y: 2 } })).toBeRejectedByPolicy();
+        await expect(db.model.create({ data: { id: 1, x: 2, y: 1 } })).toResolveTruthy();
+        await expect(db.model.update({ where: { id: 1 }, data: { y: 3 } })).toBeRejectedByPolicy();
+        await expect(db.model.update({ where: { id: 1 }, data: { x: 3 } })).toResolveTruthy();
     });
 
     it('int optionality', async () => {
