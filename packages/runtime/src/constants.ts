@@ -67,3 +67,7 @@ export const PRISMA_MINIMUM_VERSION = '5.0.0';
  * Prefix for auxiliary relation field generated for delegated models
  */
 export const DELEGATE_AUX_RELATION_PREFIX = 'delegate_aux';
+
+// Some database providers like postgres and mysql have default limit to the length of identifiers
+// Here we use a conservative value that should work for most cases, and truncate names if needed
+export const IDENTIFIER_NAME_MAX_LENGTH = 50 - DELEGATE_AUX_RELATION_PREFIX.length;

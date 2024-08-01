@@ -1196,6 +1196,28 @@ describe('Polymorphism Test', () => {
         );
     });
 
+    it('handles very long property names', async () => {
+        const { db } = await setup();
+
+        await db.videoWithVeryLongProperty.create({
+            data: {
+                duration: 62,
+                url: 'https://whatever.com/example.mp4',
+                averyveryveryveryveryveryveryveryveryveryveryverylongProperty: 'whatever',
+            },
+        });
+
+        const foundRecords = await db.asset.findMany({});
+
+        expect(foundRecords).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    averyveryveryveryveryveryveryveryveryveryveryverylongProperty: 'whatever',
+                })
+            ])
+        );
+    });
+
     it('typescript compilation plain prisma', async () => {
         const src = `
         import { PrismaClient } from '@prisma/client';

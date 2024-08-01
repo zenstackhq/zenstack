@@ -44,6 +44,10 @@ model Gallery {
     id Int @id @default(autoincrement())
     images Image[]
 }
+
+model VideoWithVeryLongProperty extends Video {
+   averyveryveryveryveryveryveryveryveryveryveryverylongProperty String
+}
 `;
 
 export const POLYMORPHIC_MANY_TO_MANY_SCHEMA = `

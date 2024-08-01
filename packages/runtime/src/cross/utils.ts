@@ -1,5 +1,6 @@
 import { lowerCaseFirst } from 'lower-case-first';
 import { requireField, type ModelInfo, type ModelMeta } from '.';
+import { IDENTIFIER_NAME_MAX_LENGTH } from '../constants';
 
 /**
  * Gets field names in a data model entity, filtering out internal fields.
@@ -74,4 +75,27 @@ export function getModelInfo<Throw extends boolean = false>(
 
 export function isDelegateModel(modelMeta: ModelMeta, model: string) {
     return !!getModelInfo(modelMeta, model)?.attributes?.some((attr) => attr.name === '@@delegate');
+}
+
+const shortNameMap = new Map<string, string[]>();
+export function truncate(name: string) {
+    if (name.length <= IDENTIFIER_NAME_MAX_LENGTH) {
+        return name;
+    }
+
+    const shortName = name.slice(0, IDENTIFIER_NAME_MAX_LENGTH);
+    const entry = shortNameMap.get(shortName);
+    if (!entry) {
+        shortNameMap.set(shortName, [name]);
+        return `${shortName}_0`;
+    } else {
+        const index = entry.findIndex((n) => n === name);
+        if (index >= 0) {
+            return `${shortName}_${index}`;
+        } else {
+            const newIndex = entry.length;
+            entry.push(name);
+            return `${shortName}_${newIndex}`;
+        }
+    }
 }
