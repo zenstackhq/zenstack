@@ -183,12 +183,15 @@ export class PluginRunner {
         // 2. @core/enhancer
         const existingEnhancer = plugins.find((p) => p.provider === CorePlugins.Enhancer);
         if (existingEnhancer) {
+            // enhancer should load zod schemas if there're validation rules
+            existingEnhancer.options.withZodSchemas = hasValidation;
             corePlugins.push(existingEnhancer);
             plugins.splice(plugins.indexOf(existingEnhancer), 1);
         } else {
             if (options.defaultPlugins) {
                 corePlugins.push(
                     this.makeCorePlugin(CorePlugins.Enhancer, options.schemaPath, {
+                        // enhancer should load zod schemas if there're validation rules
                         withZodSchemas: hasValidation,
                     })
                 );
