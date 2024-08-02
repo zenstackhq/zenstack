@@ -1196,25 +1196,34 @@ describe('Polymorphism Test', () => {
         );
     });
 
-    it('handles very long property names', async () => {
-        const { db } = await setup();
+    it('handles very long concrete model name', async () => {
+        const { db, user } = await setup();
 
-        await db.videoWithVeryLongProperty.create({
+        await db.veryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongModelName.create({
             data: {
+                owner: { connect: { id: user.id } },
                 duration: 62,
                 url: 'https://whatever.com/example.mp4',
-                averyveryveryveryveryveryveryveryveryveryveryverylongProperty: 'whatever',
+                veryLongModelNameOwnProperty: 'whatever',
             },
         });
 
-        const foundRecords = await db.asset.findMany({});
+        const foundUser = await db.user.findFirst({
+            where: { id: user.id },
+            include: {
+                assets: true,
+            },
+        });
 
-        expect(foundRecords).toEqual(
-            expect.arrayContaining([
-                expect.objectContaining({
-                    averyveryveryveryveryveryveryveryveryveryveryverylongProperty: 'whatever',
-                })
-            ])
+        expect(foundUser).toEqual(
+            expect.objectContaining({
+                assets: expect.arrayContaining([
+                    expect.objectContaining({
+                        videoType: 'VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongModelName',
+                        veryLongModelNameOwnProperty: 'whatever',
+                    }),
+                ]),
+            }),
         );
     });
 

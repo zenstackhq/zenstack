@@ -45,8 +45,8 @@ model Gallery {
     images Image[]
 }
 
-model VideoWithVeryLongProperty extends Video {
-   averyveryveryveryveryveryveryveryveryveryveryverylongProperty String
+model VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongModelName extends Video {
+   veryLongModelNameOwnProperty String
 }
 `;
 
