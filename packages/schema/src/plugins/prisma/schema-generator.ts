@@ -442,7 +442,10 @@ export class PrismaSchemaGenerator {
 
                         const addedRel = new PrismaFieldAttribute('@relation', [
                             // use field name as relation name for disambiguation
-                            new PrismaAttributeArg(undefined, new AttributeArgValue('String', nameArg?.value || auxRelationField.name)),
+                            new PrismaAttributeArg(
+                                undefined,
+                                new AttributeArgValue('String', nameArg?.value || auxRelationField.name)
+                            ),
                             new PrismaAttributeArg('fields', fieldsArg),
                             new PrismaAttributeArg('references', referencesArg),
                         ]);
@@ -484,6 +487,9 @@ export class PrismaSchemaGenerator {
 
         // generate a fk field based on the original fk field
         const addedFkField = this.generateModelField(model, origForeignKey);
+
+        // `@map` attribute should not be inherited
+        addedFkField.attributes = addedFkField.attributes.filter((attr) => !('name' in attr && attr.name === '@map'));
 
         // fix its name
         const addedFkFieldName = `${dataModel.name}_${origForeignKey.name}_${concreteModel.name}`;
