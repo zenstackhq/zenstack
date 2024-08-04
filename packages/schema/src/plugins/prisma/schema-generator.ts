@@ -84,7 +84,7 @@ const PROVIDERS_SUPPORTING_NAMED_CONSTRAINTS = ['postgresql', 'mysql', 'cockroac
 
 // Some database providers like postgres and mysql have default limit to the length of identifiers
 // Here we use a conservative value that should work for most cases, and truncate names if needed
-export const IDENTIFIER_NAME_MAX_LENGTH = 50 - DELEGATE_AUX_RELATION_PREFIX.length;
+const IDENTIFIER_NAME_MAX_LENGTH = 50 - DELEGATE_AUX_RELATION_PREFIX.length;
 
 /**
  * Generates Prisma schema file
@@ -556,7 +556,7 @@ export class PrismaSchemaGenerator {
         if (name.length <= IDENTIFIER_NAME_MAX_LENGTH) {
             return name;
         }
-    
+
         const shortName = name.slice(0, IDENTIFIER_NAME_MAX_LENGTH);
         const entry = this.shortNameMap.get(shortName);
         if (!entry) {
@@ -573,7 +573,7 @@ export class PrismaSchemaGenerator {
             }
         }
     }
-    
+
     private nameRelationsInheritedFromDelegate(model: PrismaDataModel, decl: DataModel) {
         if (this.mode !== 'logical') {
             return;
