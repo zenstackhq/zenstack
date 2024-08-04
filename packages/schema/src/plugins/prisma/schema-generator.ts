@@ -34,7 +34,7 @@ import { getPrismaVersion } from '@zenstackhq/sdk/prisma';
 import { match, P } from 'ts-pattern';
 import { getIdFields } from '../../utils/ast-utils';
 
-import { DELEGATE_AUX_RELATION_PREFIX, PRISMA_MINIMUM_VERSION, truncate } from '@zenstackhq/runtime';
+import { DELEGATE_AUX_RELATION_PREFIX, PRISMA_MINIMUM_VERSION } from '@zenstackhq/runtime';
 import {
     getAttribute,
     getAttributeArg,
@@ -81,6 +81,10 @@ import {
 const MODEL_PASSTHROUGH_ATTR = '@@prisma.passthrough';
 const FIELD_PASSTHROUGH_ATTR = '@prisma.passthrough';
 const PROVIDERS_SUPPORTING_NAMED_CONSTRAINTS = ['postgresql', 'mysql', 'cockroachdb'];
+
+// Some database providers like postgres and mysql have default limit to the length of identifiers
+// Here we use a conservative value that should work for most cases, and truncate names if needed
+export const IDENTIFIER_NAME_MAX_LENGTH = 50 - DELEGATE_AUX_RELATION_PREFIX.length;
 
 /**
  * Generates Prisma schema file
@@ -314,7 +318,7 @@ export class PrismaSchemaGenerator {
 
         // generate an optional relation field in delegate base model to each concrete model
         concreteModels.forEach((concrete) => {
-            const auxName = `${DELEGATE_AUX_RELATION_PREFIX}_${truncate(lowerCaseFirst(concrete.name))}`;
+            const auxName = `${DELEGATE_AUX_RELATION_PREFIX}_${(lowerCaseFirst(concrete.name))}`;
             model.addField(auxName, new ModelFieldType(concrete.name, false, true));
         });
     }
@@ -335,7 +339,7 @@ export class PrismaSchemaGenerator {
             const idFields = getIdFields(base);
 
             // add relation fields
-            const relationField = `${DELEGATE_AUX_RELATION_PREFIX}_${truncate(lowerCaseFirst(base.name))}`;
+            const relationField = `${DELEGATE_AUX_RELATION_PREFIX}_${(lowerCaseFirst(base.name))}`;
             model.addField(relationField, base.name, [
                 new PrismaFieldAttribute('@relation', [
                     new PrismaAttributeArg(
@@ -401,7 +405,7 @@ export class PrismaSchemaGenerator {
                 // e.g., delegate_aux_User_myAsset_Video
                 const auxRelationName = `${dataModel.name}_${field.name}_${concrete.name}`;
                 const auxRelationField = model.addField(
-                    `${DELEGATE_AUX_RELATION_PREFIX}_${truncate(auxRelationName)}`,
+                    `${DELEGATE_AUX_RELATION_PREFIX}_${this.truncate(auxRelationName)}`,
                     new ModelFieldType(concrete.name, field.type.array, field.type.optional)
                 );
 
@@ -483,7 +487,7 @@ export class PrismaSchemaGenerator {
 
         // fix its name
         const addedFkFieldName = `${dataModel.name}_${origForeignKey.name}_${concreteModel.name}`;
-        addedFkField.name = `${DELEGATE_AUX_RELATION_PREFIX}_${truncate(addedFkFieldName)}`;
+        addedFkField.name = `${DELEGATE_AUX_RELATION_PREFIX}_${(addedFkFieldName)}`;
 
         // we also need to make sure `@unique` constraint's `map` parameter is fixed to avoid conflict
         const uniqueAttr = addedFkField.attributes.find(
@@ -491,7 +495,7 @@ export class PrismaSchemaGenerator {
         ) as PrismaFieldAttribute;
         if (uniqueAttr) {
             const mapArg = uniqueAttr.args.find((arg) => arg.name === 'map');
-            const constraintName = `${addedFkField.name}_unique`;
+            const constraintName = `${this.truncate(addedFkField.name)}_unique`;
             if (mapArg) {
                 mapArg.value = new AttributeArgValue('String', constraintName);
             } else {
@@ -548,6 +552,28 @@ export class PrismaSchemaGenerator {
         }
     }
 
+    private truncate(name: string) {
+        if (name.length <= IDENTIFIER_NAME_MAX_LENGTH) {
+            return name;
+        }
+    
+        const shortName = name.slice(0, IDENTIFIER_NAME_MAX_LENGTH);
+        const entry = this.shortNameMap.get(shortName);
+        if (!entry) {
+            this.shortNameMap.set(shortName, [name]);
+            return `${shortName}_0`;
+        } else {
+            const index = entry.findIndex((n) => n === name);
+            if (index >= 0) {
+                return `${shortName}_${index}`;
+            } else {
+                const newIndex = entry.length;
+                entry.push(name);
+                return `${shortName}_${newIndex}`;
+            }
+        }
+    }
+    
     private nameRelationsInheritedFromDelegate(model: PrismaDataModel, decl: DataModel) {
         if (this.mode !== 'logical') {
             return;
@@ -594,7 +620,7 @@ export class PrismaSchemaGenerator {
             // relation name format: delegate_aux_[relationType]_[oppositeRelationField]_[concrete]
             const relAttr = getAttribute(f, '@relation');
             const name = `${fieldType.name}_${oppositeRelationField.name}_${decl.name}`;
-            const relName = `${DELEGATE_AUX_RELATION_PREFIX}_${truncate(name)}`;
+            const relName = `${DELEGATE_AUX_RELATION_PREFIX}_${this.truncate(name)}`;
 
             if (relAttr) {
                 const nameArg = getAttributeArg(relAttr, 'name');

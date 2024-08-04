@@ -13,7 +13,6 @@ import {
     getModelInfo,
     isDelegateModel,
     resolveField,
-    truncate,
 } from '../cross';
 import type { CrudContract, DbClientContract } from '../types';
 import type { InternalEnhancementOptions } from './create-enhancement';
@@ -1041,7 +1040,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     }
 
     private makeAuxRelationName(model: ModelInfo) {
-        return `${DELEGATE_AUX_RELATION_PREFIX}_${truncate(lowerCaseFirst(model.name))}`;
+        return `${DELEGATE_AUX_RELATION_PREFIX}_${(lowerCaseFirst(model.name))}`;
     }
 
     private getModelName(model: string) {
