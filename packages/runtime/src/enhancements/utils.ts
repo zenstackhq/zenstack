@@ -1,5 +1,5 @@
 import safeJsonStringify from 'safe-json-stringify';
-import { type FieldInfo, type ModelMeta, resolveField } from '../cross/model-meta';
+import { resolveField, type FieldInfo, type ModelMeta } from '..';
 import type { DbClientContract } from '../types';
 
 /**

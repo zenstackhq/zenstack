@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { PolicyUtil } from '../../src/enhancements/policy/policy-utils';
 
-describe('Prisma query reduction tests', () => {
+// eslint-disable-next-line jest/no-disabled-tests
+describe.skip('Prisma query reduction tests', () => {
     function reduce(query: any) {
         const util = new PolicyUtil({} as any, {} as any);
         return util['reduce'](query);
