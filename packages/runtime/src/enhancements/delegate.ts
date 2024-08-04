@@ -1040,7 +1040,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     }
 
     private makeAuxRelationName(model: ModelInfo) {
-        return `${DELEGATE_AUX_RELATION_PREFIX}_${(lowerCaseFirst(model.name))}`;
+        return `${DELEGATE_AUX_RELATION_PREFIX}_${lowerCaseFirst(model.name)}`;
     }
 
     private getModelName(model: string) {
