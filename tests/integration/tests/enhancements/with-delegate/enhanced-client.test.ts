@@ -1199,12 +1199,21 @@ describe('Polymorphism Test', () => {
     it('handles very long concrete model name', async () => {
         const { db, user } = await setup();
 
-        await db.veryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongModelName.create({
+        await db.veryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongModelNameA.create({
             data: {
                 owner: { connect: { id: user.id } },
                 duration: 62,
                 url: 'https://whatever.com/example.mp4',
-                veryLongModelNameOwnProperty: 'whatever',
+                propA: 'propA',
+            },
+        });
+
+        await db.veryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongModelNameB.create({
+            data: {
+                owner: { connect: { id: user.id } },
+                duration: 62,
+                url: 'https://whatever.com/example.mp4',
+                propB: 'propB',
             },
         });
 
@@ -1219,11 +1228,15 @@ describe('Polymorphism Test', () => {
             expect.objectContaining({
                 assets: expect.arrayContaining([
                     expect.objectContaining({
-                        videoType: 'VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongModelName',
-                        veryLongModelNameOwnProperty: 'whatever',
+                        videoType: 'VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongModelNameA',
+                        propA: 'propA',
+                    }),
+                    expect.objectContaining({
+                        videoType: 'VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongModelNameB',
+                        propB: 'propB',
                     }),
                 ]),
-            }),
+            })
         );
     });
 
