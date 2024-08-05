@@ -368,6 +368,16 @@ describe('REST server tests', () => {
                     expect(r.body.data).toHaveLength(1);
                     expect(r.body.data[0]).toMatchObject({ id: 'user2' });
 
+                    // multi-id filter
+                    r = await handler({
+                        method: 'get',
+                        path: '/user',
+                        query: { ['filter[id]']: 'user1,user2' },
+                        prisma,
+                    });
+                    expect(r.status).toBe(200);
+                    expect(r.body.data).toHaveLength(2);
+
                     // String filter
                     r = await handler({
                         method: 'get',

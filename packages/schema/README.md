@@ -1,6 +1,6 @@
 # ZenStack VS Code Extension
 
-[ZenStack](https://zenstack.dev) is a toolkit that simplifies the development of a web app's backend. It supercharges [Prisma ORM](https://prisma.io) with a powerful access control layer and unleashes its full potential for web development.
+[ZenStack](https://zenstack.dev) is a toolkit that simplifies the development of a web app's backend. It enhances [Prisma ORM](https://prisma.io) with flexible Authorization and auto-generated, type-safe APIs/hooks, simplifying full-stack development.
 
 This VS Code extension provides code editing helpers for authoring ZenStack's schema files (.zmodel files).
 

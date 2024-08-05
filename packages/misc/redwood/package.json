@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/redwood",
     "displayName": "ZenStack RedwoodJS Integration",
-    "version": "2.3.3",
+    "version": "2.4.0",
     "description": "CLI and runtime for integrating ZenStack with RedwoodJS projects.",
     "repository": {
         "type": "git",
@@ -39,17 +39,18 @@
     "homepage": "https://zenstack.dev",
     "license": "MIT",
     "dependencies": {
+        "@redwoodjs/cli-helpers": "^7.7.3",
         "@zenstackhq/runtime": "workspace:*",
         "colors": "1.4.0",
-        "ts-morph": "^16.0.0",
-        "@redwoodjs/cli-helpers": "^6.6.0",
         "execa": "^5.0.0",
         "listr2": "^6.0.0",
+        "semver": "^7.5.2",
         "terminal-link": "^2.0.0",
+        "ts-morph": "^16.0.0",
         "yargs": "^17.7.2"
     },
     "devDependencies": {
-        "@redwoodjs/graphql-server": "^6.6.0",
+        "@redwoodjs/graphql-server": "^7.7.3",
         "@types/yargs": "^17.0.32",
         "graphql-yoga": "^5.0.2"
     }

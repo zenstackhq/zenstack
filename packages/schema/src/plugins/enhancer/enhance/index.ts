@@ -7,6 +7,7 @@ import {
     getDataModels,
     getLiteral,
     isDelegateModel,
+    isDiscriminatorField,
     type PluginOptions,
 } from '@zenstackhq/sdk';
 import {
@@ -94,7 +95,8 @@ export class EnhancerGenerator {
 
         const enhanceTs = this.project.createSourceFile(
             path.join(this.outDir, 'enhance.ts'),
-            `import { type EnhancementContext, type EnhancementOptions, type ZodSchemas, type AuthUser } from '@zenstackhq/runtime';
+            `/* eslint-disable */
+import { type EnhancementContext, type EnhancementOptions, type ZodSchemas, type AuthUser } from '@zenstackhq/runtime';
 import { createEnhancement } from '@zenstackhq/runtime/enhancements';
 import modelMeta from './model-meta';
 import policy from './policy';
@@ -125,8 +127,9 @@ ${
     }
 
     private createSimplePrismaImports(prismaImport: string) {
-        return `import { Prisma } from '${prismaImport}';
+        return `import { Prisma, type PrismaClient } from '${prismaImport}';
 import type * as _P from '${prismaImport}';
+export type { PrismaClient };
         `;
     }
 
@@ -150,6 +153,7 @@ export function enhance<DbClient extends object>(prisma: DbClient, context?: Enh
 import type { InternalArgs, DynamicClientExtensionThis } from '${prismaImport}/runtime/library';
 import type * as _P from '${logicalPrismaClientDir}/index-fixed';
 import type { Prisma, PrismaClient } from '${logicalPrismaClientDir}/index-fixed';
+export type { PrismaClient };
 `;
     }
 
@@ -482,12 +486,12 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         const typeName = typeAlias.getName();
         const delegateModelNames = delegateModels.map(([delegate]) => delegate.name);
         const delegateCreateUpdateInputRegex = new RegExp(
-            `\\${delegateModelNames.join('|')}(Unchecked)?(Create|Update).*Input`
+            `^(${delegateModelNames.join('|')})(Unchecked)?(Create|Update).*Input$`
         );
         if (delegateCreateUpdateInputRegex.test(typeName)) {
             const toRemove = typeAlias
                 .getDescendantsOfKind(SyntaxKind.PropertySignature)
-                .filter((p) => ['create', 'connectOrCreate', 'upsert'].includes(p.getName()));
+                .filter((p) => ['create', 'createMany', 'connectOrCreate', 'upsert'].includes(p.getName()));
             toRemove.forEach((r) => {
                 source = source.replace(r.getText(), '');
             });
@@ -495,33 +499,34 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         return source;
     }
 
+    private readonly ModelCreateUpdateInputRegex = /(\S+)(Unchecked)?(Create|Update).*Input/;
+
     private removeDiscriminatorFromConcreteInput(
         typeAlias: TypeAliasDeclaration,
-        delegateInfo: DelegateInfo,
+        _delegateInfo: DelegateInfo,
         source: string
     ) {
-        // remove discriminator field from the create/update input of concrete models because
-        // discriminator cannot be set directly
+        // remove discriminator field from the create/update input because discriminator cannot be set directly
         const typeName = typeAlias.getName();
-        const concreteModelNames = delegateInfo.map(([, concretes]) => concretes.map((c) => c.name)).flatMap((c) => c);
-        const concreteCreateUpdateInputRegex = new RegExp(
-            `(${concreteModelNames.join('|')})(Unchecked)?(Create|Update).*Input`
-        );
 
-        const match = typeName.match(concreteCreateUpdateInputRegex);
+        const match = typeName.match(this.ModelCreateUpdateInputRegex);
         if (match) {
             const modelName = match[1];
-            const record = delegateInfo.find(([, concretes]) => concretes.some((c) => c.name === modelName));
-            if (record) {
-                // remove all discriminator fields recursively
-                const delegateOfConcrete = record[0];
-                const discriminators = this.getDiscriminatorFieldsRecursively(delegateOfConcrete);
-                discriminators.forEach((discriminatorDecl) => {
-                    const discriminatorNode = this.findNamedProperty(typeAlias, discriminatorDecl.name);
-                    if (discriminatorNode) {
-                        source = source.replace(discriminatorNode.getText(), '');
+            const dataModel = this.model.declarations.find(
+                (d): d is DataModel => isDataModel(d) && d.name === modelName
+            );
+
+            if (!dataModel) {
+                return source;
+            }
+
+            for (const field of dataModel.fields) {
+                if (isDiscriminatorField(field)) {
+                    const fieldDef = this.findNamedProperty(typeAlias, field.name);
+                    if (fieldDef) {
+                        source = source.replace(fieldDef.getText(), '');
                     }
-                });
+                }
             }
         }
         return source;
@@ -538,6 +543,10 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         return source;
     }
 
+    private readonly CreateUpdateWithoutDelegateRelationRegex = new RegExp(
+        `(.+)(Create|Update)Without${upperCaseFirst(DELEGATE_AUX_RELATION_PREFIX)}_(.+)Input`
+    );
+
     private removeDelegateFieldsFromNestedMutationInput(
         typeAlias: TypeAliasDeclaration,
         _delegateInfo: DelegateInfo,
@@ -548,8 +557,7 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         // remove delegate model fields (and corresponding fk fields) from
         // create/update input types nested inside concrete models
 
-        const regex = new RegExp(`(.+)(Create|Update)Without${upperCaseFirst(DELEGATE_AUX_RELATION_PREFIX)}_(.+)Input`);
-        const match = name.match(regex);
+        const match = name.match(this.CreateUpdateWithoutDelegateRelationRegex);
         if (!match) {
             return source;
         }
@@ -616,22 +624,6 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         }
         const arg = delegateAttr.args[0]?.value;
         return isReferenceExpr(arg) ? (arg.target.ref as DataModelField) : undefined;
-    }
-
-    private getDiscriminatorFieldsRecursively(delegate: DataModel, result: DataModelField[] = []) {
-        if (isDelegateModel(delegate)) {
-            const discriminator = this.getDiscriminatorField(delegate);
-            if (discriminator) {
-                result.push(discriminator);
-            }
-
-            for (const superType of delegate.superTypes) {
-                if (superType.ref) {
-                    result.push(...this.getDiscriminatorFieldsRecursively(superType.ref, result));
-                }
-            }
-        }
-        return result;
     }
 
     private async saveSourceFile(sf: SourceFile) {

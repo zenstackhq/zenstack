@@ -89,8 +89,8 @@ importers:
   packages/misc/redwood:
     dependencies:
       '@redwoodjs/cli-helpers':
-        specifier: ^6.6.0
-        version: 6.6.4(enquirer@2.4.1)
+        specifier: ^7.7.3
+        version: 7.7.3(enquirer@2.4.1)
       '@zenstackhq/runtime':
         specifier: workspace:*
         version: link:../../runtime/dist
@@ -103,6 +103,9 @@ importers:
       listr2:
         specifier: ^6.0.0
         version: 6.6.1(enquirer@2.4.1)
+      semver:
+        specifier: ^7.5.2
+        version: 7.6.2
       terminal-link:
         specifier: ^2.0.0
         version: 2.1.1
@@ -114,8 +117,8 @@ importers:
         version: 17.7.2
     devDependencies:
       '@redwoodjs/graphql-server':
-        specifier: ^6.6.0
-        version: 6.6.4(@escape.tech/graphql-armor-types@0.5.0)(prisma@5.16.1)
+        specifier: ^7.7.3
+        version: 7.7.3(@escape.tech/graphql-armor-types@0.5.0)(prisma@5.16.1)
       '@types/yargs':
         specifier: ^17.0.32
         version: 17.0.32
@@ -1158,8 +1161,8 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
 
-  '@babel/runtime-corejs3@7.23.6':
-    resolution: {integrity: sha512-Djs/ZTAnpyj0nyg7p1J6oiE/tZ9G2stqAFlLGZynrW+F3k2w2jGK2mLOBxzYIOcZYA89+c3d3wXKpYLcpwcU6w==}
+  '@babel/runtime-corejs3@7.24.5':
+    resolution: {integrity: sha512-GWO0mgzNMLWaSYM4z4NVIuY0Cd1fl8cPnuetuddu5w/qGuvt5Y7oUi/kvvQGK9xgOkFJDQX2heIvTRn/OQ1XTg==}
     engines: {node: '>=6.9.0'}
 
   '@babel/runtime@7.24.7':
@@ -1268,32 +1271,32 @@ packages:
     resolution: {integrity: sha512-wxA8EyE1fPnlbP0nC/SFI7uU8wSNf4YjxZhAPu0P63QbgIvqHtHsH4L3/u+rsTruzhk3OvNRgQyLsMfaR9uzAQ==}
     engines: {node: '>=18.0.0'}
 
-  '@envelop/depth-limit@3.0.3':
-    resolution: {integrity: sha512-fDyLQDVlSG3DPJmzwb6pdnpK67rNy9KLkN8LTthZOmEXGz0WuVP1EOOnjYY7PE566BySbNXl5z1lTeOPHR1KUw==}
-    engines: {node: '>=16.0.0'}
+  '@envelop/depth-limit@4.0.0':
+    resolution: {integrity: sha512-5lr6x3sx4+CqtrLjnK0UxWrtq0EkAyNHCR25du2hrlvszcq4IA/GjyQEpAy/3J6JYKgRJ4cZ+w5V6ppo2q6LLA==}
+    engines: {node: '>=18.0.0'}
     peerDependencies:
-      '@envelop/core': ^4.0.3
+      '@envelop/core': ^5.0.0
       graphql: ^14.0.0 || ^15.0.0 || ^16.0.0
 
-  '@envelop/disable-introspection@5.0.3':
-    resolution: {integrity: sha512-PoKbaeCVGdgkgQUGl46L33SBB/bYKVOe1QHEW8++n9lnTTTLJTyo8EbtJb++UcuQCaaKn277fkUyc9sR9fOh5w==}
-    engines: {node: '>=16.0.0'}
+  '@envelop/disable-introspection@6.0.0':
+    resolution: {integrity: sha512-+DxCvKdzsHat/aWr6dqDsebbGk6ZGiM7VZlnpwKS8g4+PDHg7AfMBnDP8CtUODgifU+kgZME4TFzU288MNpNDg==}
+    engines: {node: '>=18.0.0'}
     peerDependencies:
-      '@envelop/core': ^4.0.3
+      '@envelop/core': ^5.0.0
       graphql: ^14.0.0 || ^15.0.0 || ^16.0.0
 
-  '@envelop/filter-operation-type@5.0.3':
-    resolution: {integrity: sha512-z6gYb+y4O6lsOH+KMwrfYzN7b0ybGAZWSk/++z913nOSxtPm42sYdCQ56upw+tN/WHNxwKejCO54TjhrSdUX9Q==}
-    engines: {node: '>=16.0.0'}
+  '@envelop/filter-operation-type@6.0.0':
+    resolution: {integrity: sha512-eL4FWCNkQ/XUJX2pyHd3xfu9erqj08fVUWDpid8giuYHu5fx+CrVLUjwekkFOAYIIXdxYLdePrfLCrouX2XeWQ==}
+    engines: {node: '>=18.0.0'}
     peerDependencies:
-      '@envelop/core': ^4.0.3
+      '@envelop/core': ^5.0.0
       graphql: ^14.0.0 || ^15.0.0 || ^16.0.0
 
-  '@envelop/on-resolve@3.0.3':
-    resolution: {integrity: sha512-Mo2w3CHmyLCScFuIO2VS2Co44vlPSc4zwujz0x+/zyaJ+eCwBQMRuE9u+9ORjvKImNxrbXI9FQVNlbF0iDk4iQ==}
-    engines: {node: '>=16.0.0'}
+  '@envelop/on-resolve@4.1.0':
+    resolution: {integrity: sha512-2AXxf8jbBIepBUiY0KQtyCO6gnT7LKBEYdaARZBJ7ujy1+iQHQPORKvAwl51kIdD6v5x38eldZnm7A19jFimOg==}
+    engines: {node: '>=18.0.0'}
     peerDependencies:
-      '@envelop/core': ^4.0.3
+      '@envelop/core': ^5.0.0
       graphql: ^14.0.0 || ^15.0.0 || ^16.0.0
 
   '@envelop/types@4.0.1':
@@ -1806,20 +1809,14 @@ packages:
     peerDependencies:
       graphql: ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0
 
-  '@graphql-tools/merge@9.0.1':
-    resolution: {integrity: sha512-hIEExWO9fjA6vzsVjJ3s0cCQ+Q/BEeMVJZtMXd7nbaVefVy0YDyYlEkeoYYNV3NVVvu1G9lr6DM1Qd0DGo9Caw==}
-    engines: {node: '>=16.0.0'}
-    peerDependencies:
-      graphql: ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0
-
   '@graphql-tools/merge@9.0.4':
     resolution: {integrity: sha512-MivbDLUQ+4Q8G/Hp/9V72hbn810IJDEZQ57F01sHnlrrijyadibfVhaQfW/pNH+9T/l8ySZpaR/DpL5i+ruZ+g==}
     engines: {node: '>=16.0.0'}
     peerDependencies:
       graphql: ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0
 
-  '@graphql-tools/schema@10.0.2':
-    resolution: {integrity: sha512-TbPsIZnWyDCLhgPGnDjt4hosiNU2mF/rNtSk5BVaXWnZqvKJ6gzJV4fcHcvhRIwtscDMW2/YTnK6dLVnk8pc4w==}
+  '@graphql-tools/schema@10.0.3':
+    resolution: {integrity: sha512-p28Oh9EcOna6i0yLaCFOnkcBDQECVf3SCexT6ktb86QNj9idnkhI+tCxnwZDh58Qvjd2nURdkbevvoZkvxzCog==}
     engines: {node: '>=16.0.0'}
     peerDependencies:
       graphql: ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0
@@ -1830,8 +1827,8 @@ packages:
     peerDependencies:
       graphql: ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0
 
-  '@graphql-tools/utils@10.0.11':
-    resolution: {integrity: sha512-vVjXgKn6zjXIlYBd7yJxCVMYGb5j18gE3hx3Qw3mNsSEsYQXbJbPdlwb7Fc9FogsJei5AaqiQerqH4kAosp1nQ==}
+  '@graphql-tools/utils@10.2.0':
+    resolution: {integrity: sha512-HYV7dO6pNA2nGKawygaBpk8y+vXOUjjzzO43W/Kb7EPRmXUEQKjHxPYRvQbiF72u1N3XxwGK5jnnFk9WVhUwYw==}
     engines: {node: '>=16.0.0'}
     peerDependencies:
       graphql: ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0
@@ -1847,25 +1844,21 @@ packages:
     peerDependencies:
       graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0
 
-  '@graphql-yoga/logger@1.0.0':
-    resolution: {integrity: sha512-JYoxwnPggH2BfO+dWlWZkDeFhyFZqaTRGLvFhy+Pjp2UxitEW6nDrw+pEDw/K9tJwMjIFMmTT9VfTqrnESmBHg==}
-    engines: {node: '>=16.0.0'}
-
   '@graphql-yoga/logger@2.0.0':
     resolution: {integrity: sha512-Mg8psdkAp+YTG1OGmvU+xa6xpsAmSir0hhr3yFYPyLNwzUj95DdIwsMpKadDj9xDpYgJcH3Hp/4JMal9DhQimA==}
     engines: {node: '>=18.0.0'}
 
-  '@graphql-yoga/subscription@4.0.0':
-    resolution: {integrity: sha512-0qsN/BPPZNMoC2CZ8i+P6PgiJyHh1H35aKDt37qARBDaIOKDQuvEOq7+4txUKElcmXi7DYFo109FkhSQoEajrg==}
-    engines: {node: '>=16.0.0'}
+  '@graphql-yoga/plugin-persisted-operations@3.3.1':
+    resolution: {integrity: sha512-2FteUIepgAZL5q2JSPbTFozba4T6v34skb6I7FiqZp7XwNnp8Da9Jf5BpcwUb4buP51FzbO5WJW1UMyNptxuOA==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      '@graphql-tools/utils': ^10.0.0
+      graphql: ^15.2.0 || ^16.0.0
+      graphql-yoga: ^5.3.1
 
   '@graphql-yoga/subscription@5.0.1':
     resolution: {integrity: sha512-1wCB1DfAnaLzS+IdoOzELGGnx1ODEg9nzQXFh4u2j02vAnne6d+v4A7HIH9EqzVdPLoAaMKXCZUUdKs+j3z1fg==}
     engines: {node: '>=18.0.0'}
-
-  '@graphql-yoga/typed-event-target@2.0.0':
-    resolution: {integrity: sha512-oA/VGxGmaSDym1glOHrltw43qZsFwLLjBwvh57B79UKX/vo3+UQcRgOyE44c5RP7DCYjkrC2tuArZmb6jCzysw==}
-    engines: {node: '>=16.0.0'}
 
   '@graphql-yoga/typed-event-target@3.0.0':
     resolution: {integrity: sha512-w+liuBySifrstuHbFrHoHAEyVnDFVib+073q8AeAJ/qqJfvFvAwUPLLtNohR/WDVRgSasfXtl3dcNuVJWN+rjg==}
@@ -1896,9 +1889,6 @@ packages:
   '@humanwhocodes/object-schema@2.0.3':
     resolution: {integrity: sha512-93zYdMES/c1D69yZiKDBj0V24vqNzB/koF26KPaagAfd3P/4gUlh3Dys5ogAK+Exi9QyzlD8x/08Zt7wIKcDcA==}
     deprecated: Use @eslint/object-schema instead
-
-  '@iarna/toml@2.2.5':
-    resolution: {integrity: sha512-trnsAYxU3xnS1gPHPyU961coFyLkh4gAD/0zQ5mymY4yOZ+CYvsPqUbOFSw0aDM4y0tV7tiFxL/1XfXPNC6IPg==}
 
   '@ioredis/commands@1.2.0':
     resolution: {integrity: sha512-Sx1pU8EM64o2BrqNpEO1CNLtKQwyhuXuqyfH7oGKCk+1a33d2r5saW8zNwm3j6BTExtjrv2BxTgzzkMwts6vGg==}
@@ -2225,8 +2215,8 @@ packages:
     resolution: {integrity: sha512-qnSqB2DQ9TPP96dl8cDubDvrUyWc0/sK81xHTK8eSUspzDM3bsewX903qclQFvVhgStjRWdC5bLb3kQqMkfV5A==}
     engines: {node: '>=14'}
 
-  '@opentelemetry/api@1.7.0':
-    resolution: {integrity: sha512-AdY5wvN0P2vXBi3b29hxZgSFvdhdxPB9+f0B6s//P9Q8nibRWeA3cHm8UmLpio9ABigkVHJ5NMPk+Mz8VCCyrw==}
+  '@opentelemetry/api@1.8.0':
+    resolution: {integrity: sha512-I/s6F7yKUDdtMsoBWXJe8Qz40Tui5vsuKCWJEWVL+5q9sSWRzzx6v2KeNsOBEwd94j0eWkpWCH4yB6rZg9Mf0w==}
     engines: {node: '>=8.0.0'}
 
   '@opentelemetry/api@1.9.0':
@@ -2437,6 +2427,15 @@ packages:
   '@polka/url@1.0.0-next.25':
     resolution: {integrity: sha512-j7P6Rgr3mmtdkeDGTe0E/aYyWEWVtc5yFXtHCRHs28/jptDEWfaVOc5T7cblqy1XKPPfCxJc/8DwQ5YgLOZOVQ==}
 
+  '@prisma/client@5.14.0':
+    resolution: {integrity: sha512-akMSuyvLKeoU4LeyBAUdThP/uhVP3GuLygFE3MlYzaCb3/J8SfsYBE5PkaFuLuVpLyA6sFoW+16z/aPhNAESqg==}
+    engines: {node: '>=16.13'}
+    peerDependencies:
+      prisma: '*'
+    peerDependenciesMeta:
+      prisma:
+        optional: true
+
   '@prisma/client@5.17.0':
     resolution: {integrity: sha512-N2tnyKayT0Zf7mHjwEyE8iG7FwTmXDHFZ1GnNhQp0pJUObsuel4ZZ1XwfuAYkq5mRIiC/Kot0kt0tGCfLJ70Jw==}
     engines: {node: '>=16.13'}
@@ -2446,14 +2445,8 @@ packages:
       prisma:
         optional: true
 
-  '@prisma/client@5.7.0':
-    resolution: {integrity: sha512-cZmglCrfNbYpzUtz7HscVHl38e9CrUs31nrVoGUK1nIPXGgt8hT4jj2s657UXcNdQ/jBUxDgGmHyu2Nyrq1txg==}
-    engines: {node: '>=16.13'}
-    peerDependencies:
-      prisma: '*'
-    peerDependenciesMeta:
-      prisma:
-        optional: true
+  '@prisma/debug@5.14.0':
+    resolution: {integrity: sha512-iq56qBZuFfX3fCxoxT8gBX33lQzomBU0qIUaEj1RebsKVz1ob/BVH1XSBwwwvRVtZEV1b7Fxx2eVu34Ge/mg3w==}
 
   '@prisma/debug@5.16.1':
     resolution: {integrity: sha512-JsNgZAg6BD9RInLSrg7ZYzo11N7cVvYArq3fHGSD89HSgtN0VDdjV6bib7YddbcO6snzjchTiLfjeTqBjtArVQ==}
@@ -2461,8 +2454,8 @@ packages:
   '@prisma/debug@5.17.0':
     resolution: {integrity: sha512-l7+AteR3P8FXiYyo496zkuoiJ5r9jLQEdUuxIxNCN1ud8rdbH3GTxm+f+dCyaSv9l9WY+29L9czaVRXz9mULfg==}
 
-  '@prisma/debug@5.7.0':
-    resolution: {integrity: sha512-tZ+MOjWlVvz1kOEhNYMa4QUGURY+kgOUBqLHYIV8jmCsMuvA1tWcn7qtIMLzYWCbDcQT4ZS8xDgK0R2gl6/0wA==}
+  '@prisma/engines-version@5.14.0-25.e9771e62de70f79a5e1c604a2d7c8e2a0a874b48':
+    resolution: {integrity: sha512-ip6pNkRo1UxWv+6toxNcYvItNYaqQjXdFNGJ+Nuk2eYtRoEdoF13wxo7/jsClJFFenMPVNVqXQDV0oveXnR1cA==}
 
   '@prisma/engines-version@5.16.0-24.34ace0eb2704183d2c05b60b52fba5c43c13f303':
     resolution: {integrity: sha512-HkT2WbfmFZ9WUPyuJHhkiADxazHg8Y4gByrTSVeb3OikP6tjQ7txtSUGu9OBOBH0C13dPKN2qqH12xKtHu/Hiw==}
@@ -2470,8 +2463,8 @@ packages:
   '@prisma/engines-version@5.17.0-31.393aa359c9ad4a4bb28630fb5613f9c281cde053':
     resolution: {integrity: sha512-tUuxZZysZDcrk5oaNOdrBnnkoTtmNQPkzINFDjz7eG6vcs9AVDmA/F6K5Plsb2aQc/l5M2EnFqn3htng9FA4hg==}
 
-  '@prisma/engines-version@5.7.0-41.79fb5193cf0a8fdbef536e4b4a159cad677ab1b9':
-    resolution: {integrity: sha512-V6tgRVi62jRwTm0Hglky3Scwjr/AKFBFtS+MdbsBr7UOuiu1TKLPc6xfPiyEN1+bYqjEtjxwGsHgahcJsd1rNg==}
+  '@prisma/engines@5.14.0':
+    resolution: {integrity: sha512-lgxkKZ6IEygVcw6IZZUlPIfLQ9hjSYAtHjZ5r64sCLDgVzsPFCi2XBBJgzPMkOQ5RHzUD4E/dVdpn9+ez8tk1A==}
 
   '@prisma/engines@5.16.1':
     resolution: {integrity: sha512-KkyF3eIUtBIyp5A/rJHCtwQO18OjpGgx18PzjyGcJDY/+vNgaVyuVd+TgwBgeq6NLdd1XMwRCI+58vinHsAdfA==}
@@ -2479,8 +2472,8 @@ packages:
   '@prisma/engines@5.17.0':
     resolution: {integrity: sha512-+r+Nf+JP210Jur+/X8SIPLtz+uW9YA4QO5IXA+KcSOBe/shT47bCcRMTYCbOESw3FFYFTwe7vU6KTWHKPiwvtg==}
 
-  '@prisma/engines@5.7.0':
-    resolution: {integrity: sha512-TkOMgMm60n5YgEKPn9erIvFX2/QuWnl3GBo6yTRyZKk5O5KQertXiNnrYgSLy0SpsKmhovEPQb+D4l0SzyE7XA==}
+  '@prisma/fetch-engine@5.14.0':
+    resolution: {integrity: sha512-VrheA9y9DMURK5vu8OJoOgQpxOhas3qF0IBHJ8G/0X44k82kc8E0w98HCn2nhnbOOMwbWsJWXfLC2/F8n5u0gQ==}
 
   '@prisma/fetch-engine@5.16.1':
     resolution: {integrity: sha512-oOkjaPU1lhcA/Rvr4GVfd1NLJBwExgNBE36Ueq7dr71kTMwy++a3U3oLd2ZwrV9dj9xoP6LjCcky799D9nEt4w==}
@@ -2488,14 +2481,14 @@ packages:
   '@prisma/fetch-engine@5.17.0':
     resolution: {integrity: sha512-ESxiOaHuC488ilLPnrv/tM2KrPhQB5TRris/IeIV4ZvUuKeaicCl4Xj/JCQeG9IlxqOgf1cCg5h5vAzlewN91Q==}
 
-  '@prisma/fetch-engine@5.7.0':
-    resolution: {integrity: sha512-zIn/qmO+N/3FYe7/L9o+yZseIU8ivh4NdPKSkQRIHfg2QVTVMnbhGoTcecbxfVubeTp+DjcbjS0H9fCuM4W04w==}
+  '@prisma/generator-helper@5.14.0':
+    resolution: {integrity: sha512-xVc71cmTnPZ0lnSs4FAY6Ta72vFJ3webrQwKMQ2ujr6hDG1VPIEf820T1TOS3ZZQd/OKigNKXnq3co8biz9/qw==}
 
   '@prisma/generator-helper@5.17.0':
     resolution: {integrity: sha512-UcYpNjjQNVHAjIxgjfXnF4fcKU7B2vuzG1L27xIV81xQoGSbxg7v670URBhd0/ZoE8v2Itj2bbuyezY1ViHVaA==}
 
-  '@prisma/generator-helper@5.7.0':
-    resolution: {integrity: sha512-Fn4hJHKGJ49+E8sxpfslRauB3Goa3RAENJ/W25NMR754B9KxvmbCJyE3MT/lIZxML2nGgIdXYUtoDHZHnRaKDw==}
+  '@prisma/get-platform@5.14.0':
+    resolution: {integrity: sha512-/yAyBvcEjRv41ynZrhdrPtHgk47xLRRq/o5eWGcUpBJ1YrUZTYB8EoPiopnP7iQrMATK8stXQdPOoVlrzuTQZw==}
 
   '@prisma/get-platform@5.16.1':
     resolution: {integrity: sha512-R4IKnWnMkR2nUAbU5gjrPehdQYUUd7RENFD2/D+xXTNhcqczp0N+WEGQ3ViyI3+6mtVcjjNIMdnUTNyu3GxIgA==}
@@ -2503,20 +2496,23 @@ packages:
   '@prisma/get-platform@5.17.0':
     resolution: {integrity: sha512-UlDgbRozCP1rfJ5Tlkf3Cnftb6srGrEQ4Nm3og+1Se2gWmCZ0hmPIi+tQikGDUVLlvOWx3Gyi9LzgRP+HTXV9w==}
 
-  '@prisma/get-platform@5.7.0':
-    resolution: {integrity: sha512-ZeV/Op4bZsWXuw5Tg05WwRI8BlKiRFhsixPcAM+5BKYSiUZiMKIi713tfT3drBq8+T0E1arNZgYSA9QYcglWNA==}
+  '@prisma/internals@5.14.0':
+    resolution: {integrity: sha512-s0JRNDmR2bvcyy0toz89jy7SbbjANAs4e9KCReNvSm5czctIaZzDf68tcOXdtH0G7m9mKhVhNPdS9lMky0DhWA==}
 
   '@prisma/internals@5.17.0':
     resolution: {integrity: sha512-lWRniOVLgGckRlBI6U/zqfnuAXo3FbOl4WcU+nPxJWe9nFeJj9TN4vjaerufB9suZLQ+8b2FMeKz3KTdX/CGow==}
 
-  '@prisma/internals@5.7.0':
-    resolution: {integrity: sha512-O9x47W1DECAyvNjYUx6oZHmTX10emKuBgsFHZemUbkIcJdCsp3X8Cy2JMJ5z3hqkRX6a6omMamFsWjuTARoaSw==}
+  '@prisma/prisma-schema-wasm@5.14.0-17.56ca112d5a19c9925b53af75c3c6b7ada97f9f85':
+    resolution: {integrity: sha512-SX9vE9dGYBap6xsfJuDE5b2eoA6w1vKsx8QpLUHZR+kIV6GQVUYUboEfkvYYoBVen3s9LqxJ1+LjHL/1MqBZag==}
+
+  '@prisma/prisma-schema-wasm@5.14.0-25.e9771e62de70f79a5e1c604a2d7c8e2a0a874b48':
+    resolution: {integrity: sha512-WeTmJ0mK8ALoKJUQFO+465k9lm1JWS4ODUg7akJq1wjgyDU1RTAzDFli8ESmNJlMVgJgoAd6jXmzcnoA0HT9Lg==}
 
   '@prisma/prisma-schema-wasm@5.17.0-31.393aa359c9ad4a4bb28630fb5613f9c281cde053':
     resolution: {integrity: sha512-mlmuu0/IPSjMlMKsqdaVVAbGTJwp5sDMFd3ZFQxl4/K8FvH7tb2uy/lTHF0KyAJbveTiV+1yW9MBWspltXZZtg==}
 
-  '@prisma/prisma-schema-wasm@5.7.0-41.79fb5193cf0a8fdbef536e4b4a159cad677ab1b9':
-    resolution: {integrity: sha512-w+HdQtux0dJDEn6BG3fgNn+fXErXiekj9n//uHRAgrmZghockJkhnikOmG8aSXjTb1Tu5DrGasBX+rYX6rHT1w==}
+  '@prisma/schema-files-loader@5.14.0':
+    resolution: {integrity: sha512-n1QHR2C63dARKPZe0WPn7biybcBHzXe+BEmiHC5Drq9KPWnpmQtIfGpqm1ZKdvCZfcA5FF3wgpSMPK4LnB0obQ==}
 
   '@prisma/schema-files-loader@5.17.0':
     resolution: {integrity: sha512-rmbJZEvY9nOlLduVQww4fGmYM3aU7BYAw/st0K9QNq9dQoLONgQP7t8dhcOVZbBLyNNQu2k2gJdVXSHSY96b4A==}
@@ -2570,32 +2566,35 @@ packages:
     resolution: {integrity: sha512-9FC/6ho8uFa8fV50+FPy/ngWN53jaUu4GRXlAjcxIRrzhltJnpKkBG2Tp0IDraFJeWrOpk84RJ9EMEEYzaI1Bw==}
     engines: {node: '>=18'}
 
-  '@redwoodjs/api@6.6.4':
-    resolution: {integrity: sha512-YE+9IKWtMnQBhnhG4h8KD81xDJEISEcOipVlZyPlJi1+d5uMXClO8N7VLaIfx8HwT433mCIeruhDStquxwuTgQ==}
+  '@redwoodjs/api@7.7.3':
+    resolution: {integrity: sha512-rHS+wbevjL36eB3az0McfgDXfEp3gwNUb2gVilHmvrgCmCVvOj5q9O6226rq/NurbMLsHu99oUzpimbIMEIGCw==}
     hasBin: true
     peerDependencies:
-      memjs: 1.3.1
-      redis: 4.6.7
+      memjs: 1.3.2
+      redis: 4.6.14
     peerDependenciesMeta:
       memjs:
         optional: true
       redis:
         optional: true
 
-  '@redwoodjs/cli-helpers@6.6.4':
-    resolution: {integrity: sha512-TYCBeZSpsAl/ccayOup9vv3CaBdQikcWqSNNb6+jeDT6uit1e1BG8YrS98tQEZyiO7hxnS6sBtaCWhnQfLQZ4Q==}
+  '@redwoodjs/cli-helpers@7.7.3':
+    resolution: {integrity: sha512-LXWMy0R4aI8YGUvJ5rJbrKXbEbZOD6uRgqyUFA7UV+pnRWrdIMyQ0PBBIl8Fmey3Wk5BAY1eIa44YPbYXlHxwg==}
 
-  '@redwoodjs/graphql-server@6.6.4':
-    resolution: {integrity: sha512-I9NQq6esMd3k7uUngoKWZo/X3xRPzmm1OII5kb7iinRGCW1vRM10KydI/t5k6r24kI+lKqf5+Kd/AaCf7VR7gg==}
+  '@redwoodjs/context@7.7.3':
+    resolution: {integrity: sha512-9cee4A21/6l9dPnd3zy5ascGgTH+hDtZgeuOACOpqjz5O51gNhtUGEVXKGPRKbMXSDD1RhvaUiknjzAUzHpO2Q==}
 
-  '@redwoodjs/project-config@6.6.4':
-    resolution: {integrity: sha512-n7BIaV2i20Qff+jfySLNhC9BbkjR11gFLKDmO8L1Sl33msrZw/zWrwTkhtxQwUkoa6XVjpgwI9wxVZyr8CoAYg==}
+  '@redwoodjs/graphql-server@7.7.3':
+    resolution: {integrity: sha512-YB/SEGPDD2Qias5/O1p+Qg9P9Te/qTWAD1hDJ8iTGuKylomNjjYxWaptJ863o2oU2xTT6unFeF1W9usCqsoR6w==}
 
-  '@redwoodjs/structure@6.6.4':
-    resolution: {integrity: sha512-Tus10ViA8/JfiD7UQ+5DxNaWrjtv2Z6dNY+f6k3Vo/4FQS0xfeyEzyXqjPDsOPaZr/swFmGBVrThlBuiDyZzgA==}
+  '@redwoodjs/project-config@7.7.3':
+    resolution: {integrity: sha512-o0vEppJSg/yZ8Koi4CH17fe6wAzr6yxPJnCAlhfg1dmyj4cAHL23CjYv9Z/VE99GfotZGWoNhycv/ZIba59ZkQ==}
 
-  '@redwoodjs/telemetry@6.6.4':
-    resolution: {integrity: sha512-SMH/G2h7LcMMYW6cIc6A3+pPlRa9GZy0htzfhoqXFEGOU4GNcOKGTjouFD2TqKuG2t4GzjNHcwixQc/UNADpGA==}
+  '@redwoodjs/structure@7.7.3':
+    resolution: {integrity: sha512-q12TkBWH/xQELinTfhSdG6/s5AFsOwQQrIG+8GqvFHFAtETw2z5U4gTQZwG3fXqHfcfaV+u7d7ysBTYUGGl9yQ==}
+
+  '@redwoodjs/telemetry@7.7.3':
+    resolution: {integrity: sha512-2xP6QvBCTog54MVjcqXvYba45A/WpP6wWW9IhnkKANhiroHu3Van7AYAtr03hx2JHVhuSAvV7kEDk8Q4LLa2BQ==}
 
   '@repeaterjs/repeater@3.0.6':
     resolution: {integrity: sha512-Javneu5lsuhwNCryN+pXH93VPQ8g0dBX7wItHFgYiwQmzE1sVdg5tWHiOgHywzL2W21XQopa7IwIEnNbmeUJYA==}
@@ -2997,8 +2996,8 @@ packages:
   '@types/jsonfile@6.1.4':
     resolution: {integrity: sha512-D5qGUYwjvnNNextdU59/+fI+spnwtTFmyQP0h+PfIOSkNfpU6AOICUOkm4i0OnSk+NyjdPJrxCDro0sJsWlRpQ==}
 
-  '@types/line-column@1.0.0':
-    resolution: {integrity: sha512-wbw+IDRw/xY/RGy+BL6f4Eey4jsUgHQrMuA4Qj0CSG3x/7C2Oc57pmRoM2z3M4DkylWRz+G1pfX06sCXQm0J+w==}
+  '@types/line-column@1.0.2':
+    resolution: {integrity: sha512-099oFQmp/Tlf20xW5XI5R4F69N6lF/zQ09XDzc3R5BOLFlqIotgKoNIyj0HD4fQLWcGDreDJv8k/BkLJscrDrw==}
 
   '@types/methods@1.1.4':
     resolution: {integrity: sha512-ymXWVrDiCxTBE3+RIrrP533E70eA+9qu7zdWoHuOmGujkYtzf4HQF96b8nwHLqhuf4ykX61IGRIB38CC6/sImQ==}
@@ -3322,8 +3321,8 @@ packages:
     resolution: {integrity: sha512-AyQEn5hIPV7Ze+xFoXVU3QTHXVbWPrzaOkxtENMPMuNL6VVHrp4hHfDt9nrQpjO7BgvuM95dMtkycX5M/DZR3w==}
     engines: {node: '>=16.0.0'}
 
-  '@whatwg-node/fetch@0.9.14':
-    resolution: {integrity: sha512-wurZC82zzZwXRDSW0OS9l141DynaJQh7Yt0FD1xZ8niX7/Et/7RoiLiltbVU1fSF1RR9z6ndEaTUQBAmddTm1w==}
+  '@whatwg-node/fetch@0.9.17':
+    resolution: {integrity: sha512-TDYP3CpCrxwxpiNY0UMNf096H5Ihf67BK1iKGegQl5u9SlpEDYrvnV71gWBGJm+Xm31qOy8ATgma9rm8Pe7/5Q==}
     engines: {node: '>=16.0.0'}
 
   '@whatwg-node/fetch@0.9.18':
@@ -4037,8 +4036,8 @@ packages:
   core-js-pure@3.37.1:
     resolution: {integrity: sha512-J/r5JTHSmzTxbiYYrzXg9w1VpqrYt+gexenBE9pugeyhwPZTAEJddyiReJWsLO6uNQ8xJZFbod6XC7KKwatCiA==}
 
-  core-js@3.34.0:
-    resolution: {integrity: sha512-aDdvlDder8QmY91H88GzNi9EtQi2TjvQhpCX6B1v/dAZHU1AuLgHvRh54RiOerpEhEW46Tkf+vgAViB/CWC0ag==}
+  core-js@3.37.1:
+    resolution: {integrity: sha512-Xn6qmxrQZyB0FFY8E3bgRXei3lWDJHhvI+u0q9TKIYM49G8pAr0FgnnrFRAmsbptZL1yxRADVXn+x5AGsbBfyw==}
 
   core-util-is@1.0.3:
     resolution: {integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==}
@@ -4376,10 +4375,6 @@ packages:
     resolution: {integrity: sha512-vwEppIphpFdvaMCaHfCEv9IgwcxMljMw2TnAQBB4VWPvzXQLTb82jwmdOKzlEVUL3gNFT4l4TPKO+Bn+sqcrVQ==}
     engines: {node: '>=12'}
 
-  dotenv@16.3.1:
-    resolution: {integrity: sha512-IPzF4w4/Rd94bA9imS68tZBaYyBWSCE47V1RGuMrB94iyTOIEwRmVL2x/4An+6mETpLrKJ5hQkB8W4kFAadeIQ==}
-    engines: {node: '>=12'}
-
   dotenv@16.4.5:
     resolution: {integrity: sha512-ZmdL2rui+eB2YwhsWzjInR8LldtZHGDoQ1ugH85ppHKwpUHL7j7rN0Ti9NCnGiQbhaZ11FpR+7ao1dNsmduNUg==}
     engines: {node: '>=12'}
@@ -4441,8 +4436,8 @@ packages:
     resolution: {integrity: sha512-V0hjH4dGPh9Ao5p0MoRY6BVqtwCjhz6vI5LT8AJ55H+4g9/4vbHx1I54fS0XuclLhDHArPQCiMjDxjaL8fPxhw==}
     engines: {node: '>=0.12'}
 
-  envinfo@7.11.0:
-    resolution: {integrity: sha512-G9/6xF1FPbIw0TtalAMaVPpiq2aDEuKLXM314jPVAO9r2fo2a4BLqMNkmRS7O/xPPZ+COAhGIz3ETvHEV3eUcg==}
+  envinfo@7.13.0:
+    resolution: {integrity: sha512-cvcaMr7KqXVh4nyzGTVqTum+gAiL265x5jUWQIDLq//zOGbW+gSW/C+OWLleY/rs9Qole6AZLMXPbtIFQbqu+Q==}
     engines: {node: '>=4'}
     hasBin: true
 
@@ -5044,8 +5039,8 @@ packages:
     peerDependencies:
       graphql: '*'
 
-  graphql-scalars@1.22.4:
-    resolution: {integrity: sha512-ILnv7jq5VKHLUyoaTFX7lgYrjCd6vTee9i8/B+D4zJKJT5TguOl0KkpPEbXHjmeor8AZYrVsrYUHdqRBMX1pjA==}
+  graphql-scalars@1.23.0:
+    resolution: {integrity: sha512-YTRNcwitkn8CqYcleKOx9IvedA8JIERn8BRq21nlKgOr4NEcTaWEG0sT+H92eF3ALTFbPgsqfft4cw+MGgv0Gg==}
     engines: {node: '>=10'}
     peerDependencies:
       graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
@@ -5056,9 +5051,9 @@ packages:
     peerDependencies:
       graphql: ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
 
-  graphql-yoga@4.0.4:
-    resolution: {integrity: sha512-MvCLhFecYNIKuxAZisPjpIL9lxRYbpgPSNKENDO/8CV3oiFlsLJHZb5dp2sVAeLafXHeZ9TgkijLthUBc1+Jag==}
-    engines: {node: '>=16.0.0'}
+  graphql-yoga@5.3.1:
+    resolution: {integrity: sha512-n918QV6TF7xTjb9ASnozgsr4ydMc08c+x4eRAWKxxWVwSnzdP2xeN2zw1ljIzRD0ccSCNoBajGDKwcZkJDitPA==}
+    engines: {node: '>=18.0.0'}
     peerDependencies:
       graphql: ^15.2.0 || ^16.0.0
 
@@ -5963,6 +5958,10 @@ packages:
   lowlight@1.17.0:
     resolution: {integrity: sha512-vmtBgYKD+QVNy7tIa7ulz5d//Il9R4MooOVh4nkOf9R9Cb/Dk5TXMSTieg/vDulkBkIWj59/BIlyFQxT9X1oAQ==}
 
+  lru-cache@10.2.2:
+    resolution: {integrity: sha512-9hp3Vp2/hFQUiIwKo8XCeFVnrg8Pk3TYNPIR7tJADKi5YfcF7vEaK7avFHTlSy3kOKYaJQaalfEo6YuXdceBOQ==}
+    engines: {node: 14 || >=16.14}
+
   lru-cache@10.3.0:
     resolution: {integrity: sha512-CQl19J/g+Hbjbv4Y3mFNNXFEL/5t/KCg8POCuUqd4rMKjGG+j1ybER83hxV58zL+dFI1PTkt3GNFSHRt+d8qEQ==}
     engines: {node: 14 || >=16.14}
@@ -5976,10 +5975,6 @@ packages:
   lru-cache@6.0.0:
     resolution: {integrity: sha512-Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA==}
     engines: {node: '>=10'}
-
-  lru-cache@7.18.3:
-    resolution: {integrity: sha512-jumlc0BIUrS3qJGgIkWZsyfAM7NCWiBcCDhnd+3NNM5KbBmLTgHVfWBcg6W+rLUsIpzpERPsvwUP7CckAQSOoA==}
-    engines: {node: '>=12'}
 
   lz-string@1.5.0:
     resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
@@ -6626,9 +6621,6 @@ packages:
     resolution: {integrity: sha512-uB80kBFb/tfd68bVleG9T5GGsGPjJrLAUpR5PZIrhBnIaRTQRjqdJSsIKkOP6OAIFbj7GOrcudc5pNjZ+geV2g==}
     engines: {node: '>=6'}
 
-  pino-abstract-transport@1.1.0:
-    resolution: {integrity: sha512-lsleG3/2a/JIWUtf9Q5gUNErBqwIu1tUKTT3dUzaf5DySw9ra1wcqKjJjLX1VTY64Wk1eEOYsVGSaGfCK85ekA==}
-
   pino-abstract-transport@1.2.0:
     resolution: {integrity: sha512-Guhh8EZfPCfH+PMXAb6rKOjGQEoy0xlAIn+irODG5kgfYV+BQ0rGYYWTIel3P5mmyXqkYkPmdIkywsn6QKUR1Q==}
 
@@ -6638,8 +6630,8 @@ packages:
   pino-std-serializers@7.0.0:
     resolution: {integrity: sha512-e906FRY0+tV27iq4juKzSYPbUj2do2X2JX4EzSca1631EB2QJQUqGbDuERal7LCtOpxl6x3+nvo9NPZcmjkiFA==}
 
-  pino@8.16.2:
-    resolution: {integrity: sha512-2advCDGVEvkKu9TTVSa/kWW7Z3htI/sBKEZpqiHk6ive0i/7f5b1rsU8jn0aimxqfnSz5bj/nOYkwhBUn5xxvg==}
+  pino@8.21.0:
+    resolution: {integrity: sha512-ip4qdzjkAyDDZklUaZkcRFb2iA118H9SgRh8yzTkSQK8HilsOJF7rSY8HoW5+I0M46AZgX/pxbprf2vvzQCE0Q==}
     hasBin: true
 
   pino@9.2.0:
@@ -6947,9 +6939,6 @@ packages:
 
   process-nextick-args@2.0.1:
     resolution: {integrity: sha512-3ouUOpQhtgrbOa17J7+uxOTpITYWaGP7/AhoR3+A+/1e9skrzelGi/dXzEYyvbxubEF6Wn2ypscTKiKJFFn1ag==}
-
-  process-warning@2.3.2:
-    resolution: {integrity: sha512-n9wh8tvBe5sFmsqlg+XQhaQLumwpqoAUruLwjCopgTmUBjJ/fjtBsJzKleCaIGBOMXYEhp1YfKl4d7rJ5ZKJGA==}
 
   process-warning@3.0.0:
     resolution: {integrity: sha512-mqn0kFRl0EoqhnL0GQ0veqFHyIN1yig9RHh/InzORTUiZHFRAur+aMtRkELNwGs9aNwKS6tg/An4NYBPGwvtzQ==}
@@ -7411,6 +7400,10 @@ packages:
   smob@1.5.0:
     resolution: {integrity: sha512-g6T+p7QO8npa+/hNx9ohv1E5pVCmWrVCUzUXJyLdMmftX6ER0oiWY/w9knEonLpnOp6b6FenKnMfR8gqwWdwig==}
 
+  smol-toml@1.2.1:
+    resolution: {integrity: sha512-OtZKrVrGIT+m++lxyF0z5n68nkwdgZotPhy89bfA4T7nSWe0xeQtfbjM1z5VLTilJdWXH46g8i0oAcpQNkzZTg==}
+    engines: {node: '>= 18', pnpm: '>= 9'}
+
   snake-case@3.0.4:
     resolution: {integrity: sha512-LAOh4z89bGQvl9pFfNF8V146i7o7/CqFPbqzYgP+yYzDIDeS9HaNFtXABamRW+AQzEVODcvE79ljJ+8a9YSdMg==}
 
@@ -7671,8 +7664,8 @@ packages:
     resolution: {integrity: sha512-ulAk51I9UVUyJgxlv9M6lFot2WP3e7t8Kz9+IS6D4rVba1tR9kON+Ey69f+1R4Q8cd45Lod6a4IcJIxnzGc/zA==}
     engines: {node: '>=18'}
 
-  systeminformation@5.21.20:
-    resolution: {integrity: sha512-AyS1fNc+MDoAJtFknFbbo587H8h6yejJwM+H9rVusnOToIEkiMehMyD5JM7o3j55Cto20MawIZrcgNMgd4BfOQ==}
+  systeminformation@5.22.11:
+    resolution: {integrity: sha512-aLws5yi4KCHTb0BVvbodQY5bY8eW4asMRDTxTW46hqw9lGjACX6TlLdJrkdoHYRB0qs+MekqEq1zG7WDnWE8Ug==}
     engines: {node: '>=8.0.0'}
     os: [darwin, linux, win32, freebsd, openbsd, netbsd, sunos, android]
     hasBin: true
@@ -8134,9 +8127,6 @@ packages:
   urlpattern-polyfill@8.0.2:
     resolution: {integrity: sha512-Qp95D4TPJl1kC9SKigDcqgyM2VDVO4RiJc2d4qe5GrYm+zbIQCWWKAFaJNQ4BhdFeDGwBmAxqJBwWSJDb9T3BQ==}
 
-  urlpattern-polyfill@9.0.0:
-    resolution: {integrity: sha512-WHN8KDQblxd32odxeIgo83rdVDE2bvdkb86it7bMhYZwWKJz0+O0RK/eZiHYnM+zgt/U7hAHOlCQGfjjvSkw2g==}
-
   use-sync-external-store@1.2.2:
     resolution: {integrity: sha512-PElTlVMwpblvbNqQ82d2n6RjStvdSoNe9FG28kNfz3WiXilJm4DdNkEzRhCZuIDwY8U08WVihhGR5iRqAwfDiw==}
     peerDependencies:
@@ -8374,9 +8364,6 @@ packages:
 
   vscode-languageserver-textdocument@1.0.11:
     resolution: {integrity: sha512-X+8T3GoiwTVlJbicx/sIAF+yuJAqz8VvwJyoMVhwEMoEKE/fkDmrqUgDMyBECcM2A2frVZIUj5HI/ErRXCfOeA==}
-
-  vscode-languageserver-textdocument@1.0.8:
-    resolution: {integrity: sha512-1bonkGqQs5/fxGT5UchTgjGVnfysL0O8v1AYMBjqTbWQTFn721zaPGDYFkOKtfDgFiSgXM3KwaG3FMGfW4Ed9Q==}
 
   vscode-languageserver-types@3.16.0:
     resolution: {integrity: sha512-k8luDIWJWyenLc5ToFQQMaSrqCHiLwyKPHKPQZ5zz21vM+vIVUSvsRpcbiECH4WR88K2XZqc4ScRcZ7nk/jbeA==}
@@ -9000,7 +8987,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@babel/runtime-corejs3@7.23.6':
+  '@babel/runtime-corejs3@7.24.5':
     dependencies:
       core-js-pure: 3.37.1
       regenerator-runtime: 0.14.1
@@ -9223,39 +9210,41 @@ snapshots:
     dependencies:
       '@envelop/types': 4.0.1
       tslib: 2.6.3
+    optional: true
 
   '@envelop/core@5.0.1':
     dependencies:
       '@envelop/types': 5.0.0
       tslib: 2.6.3
 
-  '@envelop/depth-limit@3.0.3(@envelop/core@4.0.3)(graphql@16.8.1)':
+  '@envelop/depth-limit@4.0.0(@envelop/core@5.0.1)(graphql@16.8.1)':
     dependencies:
-      '@envelop/core': 4.0.3
+      '@envelop/core': 5.0.1
       graphql: 16.8.1
       graphql-depth-limit: 1.1.0(graphql@16.8.1)
       tslib: 2.6.3
 
-  '@envelop/disable-introspection@5.0.3(@envelop/core@4.0.3)(graphql@16.8.1)':
+  '@envelop/disable-introspection@6.0.0(@envelop/core@5.0.1)(graphql@16.8.1)':
     dependencies:
-      '@envelop/core': 4.0.3
+      '@envelop/core': 5.0.1
       graphql: 16.8.1
       tslib: 2.6.3
 
-  '@envelop/filter-operation-type@5.0.3(@envelop/core@4.0.3)(graphql@16.8.1)':
+  '@envelop/filter-operation-type@6.0.0(@envelop/core@5.0.1)(graphql@16.8.1)':
     dependencies:
-      '@envelop/core': 4.0.3
+      '@envelop/core': 5.0.1
       graphql: 16.8.1
       tslib: 2.6.3
 
-  '@envelop/on-resolve@3.0.3(@envelop/core@4.0.3)(graphql@16.8.1)':
+  '@envelop/on-resolve@4.1.0(@envelop/core@5.0.1)(graphql@16.8.1)':
     dependencies:
-      '@envelop/core': 4.0.3
+      '@envelop/core': 5.0.1
       graphql: 16.8.1
 
   '@envelop/types@4.0.1':
     dependencies:
       tslib: 2.6.3
+    optional: true
 
   '@envelop/types@5.0.0':
     dependencies:
@@ -9517,7 +9506,7 @@ snapshots:
       graphql: 16.8.1
     optional: true
 
-  '@escape.tech/graphql-armor@2.3.1(@envelop/core@4.0.3)(@escape.tech/graphql-armor-types@0.5.0)':
+  '@escape.tech/graphql-armor@2.3.1(@envelop/core@5.0.1)(@escape.tech/graphql-armor-types@0.5.0)':
     dependencies:
       '@escape.tech/graphql-armor-block-field-suggestions': 2.1.0
       '@escape.tech/graphql-armor-cost-limit': 2.1.0
@@ -9527,7 +9516,7 @@ snapshots:
       '@escape.tech/graphql-armor-max-tokens': 2.2.0
       graphql: 16.8.1
     optionalDependencies:
-      '@envelop/core': 4.0.3
+      '@envelop/core': 5.0.1
       '@escape.tech/graphql-armor-types': 0.5.0
 
   '@eslint-community/eslint-utils@4.4.0(eslint@8.57.0)':
@@ -9580,22 +9569,16 @@ snapshots:
       tslib: 2.6.3
       value-or-promise: 1.0.12
 
-  '@graphql-tools/merge@9.0.1(graphql@16.8.1)':
-    dependencies:
-      '@graphql-tools/utils': 10.0.11(graphql@16.8.1)
-      graphql: 16.8.1
-      tslib: 2.6.3
-
   '@graphql-tools/merge@9.0.4(graphql@16.8.1)':
     dependencies:
       '@graphql-tools/utils': 10.2.2(graphql@16.8.1)
       graphql: 16.8.1
       tslib: 2.6.3
 
-  '@graphql-tools/schema@10.0.2(graphql@16.8.1)':
+  '@graphql-tools/schema@10.0.3(graphql@16.8.1)':
     dependencies:
-      '@graphql-tools/merge': 9.0.1(graphql@16.8.1)
-      '@graphql-tools/utils': 10.0.11(graphql@16.8.1)
+      '@graphql-tools/merge': 9.0.4(graphql@16.8.1)
+      '@graphql-tools/utils': 10.2.2(graphql@16.8.1)
       graphql: 16.8.1
       tslib: 2.6.3
       value-or-promise: 1.0.12
@@ -9608,7 +9591,7 @@ snapshots:
       tslib: 2.6.3
       value-or-promise: 1.0.12
 
-  '@graphql-tools/utils@10.0.11(graphql@16.8.1)':
+  '@graphql-tools/utils@10.2.0(graphql@16.8.1)':
     dependencies:
       '@graphql-typed-document-node/core': 3.2.0(graphql@16.8.1)
       cross-inspect: 1.0.0
@@ -9628,31 +9611,21 @@ snapshots:
     dependencies:
       graphql: 16.8.1
 
-  '@graphql-yoga/logger@1.0.0':
-    dependencies:
-      tslib: 2.6.3
-
   '@graphql-yoga/logger@2.0.0':
     dependencies:
       tslib: 2.6.3
 
-  '@graphql-yoga/subscription@4.0.0':
+  '@graphql-yoga/plugin-persisted-operations@3.3.1(@graphql-tools/utils@10.2.0(graphql@16.8.1))(graphql-yoga@5.3.1(graphql@16.8.1))(graphql@16.8.1)':
     dependencies:
-      '@graphql-yoga/typed-event-target': 2.0.0
-      '@repeaterjs/repeater': 3.0.6
-      '@whatwg-node/events': 0.1.1
-      tslib: 2.6.3
+      '@graphql-tools/utils': 10.2.0(graphql@16.8.1)
+      graphql: 16.8.1
+      graphql-yoga: 5.3.1(graphql@16.8.1)
 
   '@graphql-yoga/subscription@5.0.1':
     dependencies:
       '@graphql-yoga/typed-event-target': 3.0.0
       '@repeaterjs/repeater': 3.0.6
       '@whatwg-node/events': 0.1.1
-      tslib: 2.6.3
-
-  '@graphql-yoga/typed-event-target@2.0.0':
-    dependencies:
-      '@repeaterjs/repeater': 3.0.6
       tslib: 2.6.3
 
   '@graphql-yoga/typed-event-target@3.0.0':
@@ -9685,8 +9658,6 @@ snapshots:
   '@humanwhocodes/momoa@2.0.4': {}
 
   '@humanwhocodes/object-schema@2.0.3': {}
-
-  '@iarna/toml@2.2.5': {}
 
   '@ioredis/commands@1.2.0': {}
 
@@ -10281,7 +10252,7 @@ snapshots:
     dependencies:
       '@opentelemetry/api': 1.9.0
 
-  '@opentelemetry/api@1.7.0': {}
+  '@opentelemetry/api@1.8.0': {}
 
   '@opentelemetry/api@1.9.0': {}
 
@@ -10505,25 +10476,32 @@ snapshots:
 
   '@polka/url@1.0.0-next.25': {}
 
+  '@prisma/client@5.14.0(prisma@5.16.1)':
+    optionalDependencies:
+      prisma: 5.16.1
+
   '@prisma/client@5.17.0(prisma@5.16.1)':
     optionalDependencies:
       prisma: 5.16.1
 
-  '@prisma/client@5.7.0(prisma@5.16.1)':
-    optionalDependencies:
-      prisma: 5.16.1
+  '@prisma/debug@5.14.0': {}
 
   '@prisma/debug@5.16.1': {}
 
   '@prisma/debug@5.17.0': {}
 
-  '@prisma/debug@5.7.0': {}
+  '@prisma/engines-version@5.14.0-25.e9771e62de70f79a5e1c604a2d7c8e2a0a874b48': {}
 
   '@prisma/engines-version@5.16.0-24.34ace0eb2704183d2c05b60b52fba5c43c13f303': {}
 
   '@prisma/engines-version@5.17.0-31.393aa359c9ad4a4bb28630fb5613f9c281cde053': {}
 
-  '@prisma/engines-version@5.7.0-41.79fb5193cf0a8fdbef536e4b4a159cad677ab1b9': {}
+  '@prisma/engines@5.14.0':
+    dependencies:
+      '@prisma/debug': 5.14.0
+      '@prisma/engines-version': 5.14.0-25.e9771e62de70f79a5e1c604a2d7c8e2a0a874b48
+      '@prisma/fetch-engine': 5.14.0
+      '@prisma/get-platform': 5.14.0
 
   '@prisma/engines@5.16.1':
     dependencies:
@@ -10539,12 +10517,11 @@ snapshots:
       '@prisma/fetch-engine': 5.17.0
       '@prisma/get-platform': 5.17.0
 
-  '@prisma/engines@5.7.0':
+  '@prisma/fetch-engine@5.14.0':
     dependencies:
-      '@prisma/debug': 5.7.0
-      '@prisma/engines-version': 5.7.0-41.79fb5193cf0a8fdbef536e4b4a159cad677ab1b9
-      '@prisma/fetch-engine': 5.7.0
-      '@prisma/get-platform': 5.7.0
+      '@prisma/debug': 5.14.0
+      '@prisma/engines-version': 5.14.0-25.e9771e62de70f79a5e1c604a2d7c8e2a0a874b48
+      '@prisma/get-platform': 5.14.0
 
   '@prisma/fetch-engine@5.16.1':
     dependencies:
@@ -10558,19 +10535,17 @@ snapshots:
       '@prisma/engines-version': 5.17.0-31.393aa359c9ad4a4bb28630fb5613f9c281cde053
       '@prisma/get-platform': 5.17.0
 
-  '@prisma/fetch-engine@5.7.0':
+  '@prisma/generator-helper@5.14.0':
     dependencies:
-      '@prisma/debug': 5.7.0
-      '@prisma/engines-version': 5.7.0-41.79fb5193cf0a8fdbef536e4b4a159cad677ab1b9
-      '@prisma/get-platform': 5.7.0
+      '@prisma/debug': 5.14.0
 
   '@prisma/generator-helper@5.17.0':
     dependencies:
       '@prisma/debug': 5.17.0
 
-  '@prisma/generator-helper@5.7.0':
+  '@prisma/get-platform@5.14.0':
     dependencies:
-      '@prisma/debug': 5.7.0
+      '@prisma/debug': 5.14.0
 
   '@prisma/get-platform@5.16.1':
     dependencies:
@@ -10580,9 +10555,17 @@ snapshots:
     dependencies:
       '@prisma/debug': 5.17.0
 
-  '@prisma/get-platform@5.7.0':
+  '@prisma/internals@5.14.0':
     dependencies:
-      '@prisma/debug': 5.7.0
+      '@prisma/debug': 5.14.0
+      '@prisma/engines': 5.14.0
+      '@prisma/fetch-engine': 5.14.0
+      '@prisma/generator-helper': 5.14.0
+      '@prisma/get-platform': 5.14.0
+      '@prisma/prisma-schema-wasm': 5.14.0-25.e9771e62de70f79a5e1c604a2d7c8e2a0a874b48
+      '@prisma/schema-files-loader': 5.14.0
+      arg: 5.0.2
+      prompts: 2.4.2
 
   '@prisma/internals@5.17.0':
     dependencies:
@@ -10596,20 +10579,16 @@ snapshots:
       arg: 5.0.2
       prompts: 2.4.2
 
-  '@prisma/internals@5.7.0':
-    dependencies:
-      '@prisma/debug': 5.7.0
-      '@prisma/engines': 5.7.0
-      '@prisma/fetch-engine': 5.7.0
-      '@prisma/generator-helper': 5.7.0
-      '@prisma/get-platform': 5.7.0
-      '@prisma/prisma-schema-wasm': 5.7.0-41.79fb5193cf0a8fdbef536e4b4a159cad677ab1b9
-      arg: 5.0.2
-      prompts: 2.4.2
+  '@prisma/prisma-schema-wasm@5.14.0-17.56ca112d5a19c9925b53af75c3c6b7ada97f9f85': {}
+
+  '@prisma/prisma-schema-wasm@5.14.0-25.e9771e62de70f79a5e1c604a2d7c8e2a0a874b48': {}
 
   '@prisma/prisma-schema-wasm@5.17.0-31.393aa359c9ad4a4bb28630fb5613f9c281cde053': {}
 
-  '@prisma/prisma-schema-wasm@5.7.0-41.79fb5193cf0a8fdbef536e4b4a159cad677ab1b9': {}
+  '@prisma/schema-files-loader@5.14.0':
+    dependencies:
+      '@prisma/prisma-schema-wasm': 5.14.0-17.56ca112d5a19c9925b53af75c3c6b7ada97f9f85
+      fs-extra: 11.1.1
 
   '@prisma/schema-files-loader@5.17.0':
     dependencies:
@@ -10671,61 +10650,63 @@ snapshots:
 
   '@readme/openapi-schemas@3.1.0': {}
 
-  '@redwoodjs/api@6.6.4(prisma@5.16.1)':
+  '@redwoodjs/api@7.7.3(prisma@5.16.1)':
     dependencies:
-      '@babel/runtime-corejs3': 7.23.6
-      '@prisma/client': 5.7.0(prisma@5.16.1)
-      '@whatwg-node/fetch': 0.9.14
-      core-js: 3.34.0
+      '@babel/runtime-corejs3': 7.24.5
+      '@prisma/client': 5.14.0(prisma@5.16.1)
+      '@whatwg-node/fetch': 0.9.17
+      core-js: 3.37.1
       humanize-string: 2.1.0
       jsonwebtoken: 9.0.2
       pascalcase: 1.0.0
-      pino: 8.16.2
+      pino: 8.21.0
       title-case: 3.0.3
     transitivePeerDependencies:
       - prisma
 
-  '@redwoodjs/cli-helpers@6.6.4(enquirer@2.4.1)':
+  '@redwoodjs/cli-helpers@7.7.3(enquirer@2.4.1)':
     dependencies:
       '@babel/core': 7.24.7
-      '@babel/runtime-corejs3': 7.23.6
-      '@iarna/toml': 2.2.5
-      '@opentelemetry/api': 1.7.0
-      '@redwoodjs/project-config': 6.6.4
-      '@redwoodjs/telemetry': 6.6.4
+      '@opentelemetry/api': 1.8.0
+      '@redwoodjs/project-config': 7.7.3
+      '@redwoodjs/telemetry': 7.7.3
       chalk: 4.1.2
-      core-js: 3.34.0
-      dotenv: 16.3.1
+      dotenv: 16.4.5
       execa: 5.1.1
       listr2: 6.6.1(enquirer@2.4.1)
       lodash: 4.17.21
       pascalcase: 1.0.0
       prettier: 2.8.8
       prompts: 2.4.2
+      smol-toml: 1.2.1
       terminal-link: 2.1.1
     transitivePeerDependencies:
       - enquirer
       - supports-color
 
-  '@redwoodjs/graphql-server@6.6.4(@escape.tech/graphql-armor-types@0.5.0)(prisma@5.16.1)':
+  '@redwoodjs/context@7.7.3': {}
+
+  '@redwoodjs/graphql-server@7.7.3(@escape.tech/graphql-armor-types@0.5.0)(prisma@5.16.1)':
     dependencies:
-      '@babel/runtime-corejs3': 7.23.6
-      '@envelop/core': 4.0.3
-      '@envelop/depth-limit': 3.0.3(@envelop/core@4.0.3)(graphql@16.8.1)
-      '@envelop/disable-introspection': 5.0.3(@envelop/core@4.0.3)(graphql@16.8.1)
-      '@envelop/filter-operation-type': 5.0.3(@envelop/core@4.0.3)(graphql@16.8.1)
-      '@envelop/on-resolve': 3.0.3(@envelop/core@4.0.3)(graphql@16.8.1)
-      '@escape.tech/graphql-armor': 2.3.1(@envelop/core@4.0.3)(@escape.tech/graphql-armor-types@0.5.0)
-      '@graphql-tools/merge': 9.0.1(graphql@16.8.1)
-      '@graphql-tools/schema': 10.0.2(graphql@16.8.1)
-      '@graphql-tools/utils': 10.0.11(graphql@16.8.1)
-      '@opentelemetry/api': 1.7.0
-      '@redwoodjs/api': 6.6.4(prisma@5.16.1)
-      core-js: 3.34.0
+      '@babel/runtime-corejs3': 7.24.5
+      '@envelop/core': 5.0.1
+      '@envelop/depth-limit': 4.0.0(@envelop/core@5.0.1)(graphql@16.8.1)
+      '@envelop/disable-introspection': 6.0.0(@envelop/core@5.0.1)(graphql@16.8.1)
+      '@envelop/filter-operation-type': 6.0.0(@envelop/core@5.0.1)(graphql@16.8.1)
+      '@envelop/on-resolve': 4.1.0(@envelop/core@5.0.1)(graphql@16.8.1)
+      '@escape.tech/graphql-armor': 2.3.1(@envelop/core@5.0.1)(@escape.tech/graphql-armor-types@0.5.0)
+      '@graphql-tools/merge': 9.0.4(graphql@16.8.1)
+      '@graphql-tools/schema': 10.0.3(graphql@16.8.1)
+      '@graphql-tools/utils': 10.2.0(graphql@16.8.1)
+      '@graphql-yoga/plugin-persisted-operations': 3.3.1(@graphql-tools/utils@10.2.0(graphql@16.8.1))(graphql-yoga@5.3.1(graphql@16.8.1))(graphql@16.8.1)
+      '@opentelemetry/api': 1.8.0
+      '@redwoodjs/api': 7.7.3(prisma@5.16.1)
+      '@redwoodjs/context': 7.7.3
+      core-js: 3.37.1
       graphql: 16.8.1
-      graphql-scalars: 1.22.4(graphql@16.8.1)
+      graphql-scalars: 1.23.0(graphql@16.8.1)
       graphql-tag: 2.12.6(graphql@16.8.1)
-      graphql-yoga: 4.0.4(graphql@16.8.1)
+      graphql-yoga: 5.3.1(graphql@16.8.1)
       lodash: 4.17.21
       uuid: 9.0.1
     transitivePeerDependencies:
@@ -10735,49 +10716,48 @@ snapshots:
       - prisma
       - redis
 
-  '@redwoodjs/project-config@6.6.4':
+  '@redwoodjs/project-config@7.7.3':
     dependencies:
-      '@iarna/toml': 2.2.5
       deepmerge: 4.3.1
       fast-glob: 3.3.2
+      smol-toml: 1.2.1
       string-env-interpolation: 1.0.1
 
-  '@redwoodjs/structure@6.6.4':
+  '@redwoodjs/structure@7.7.3':
     dependencies:
-      '@babel/runtime-corejs3': 7.23.6
-      '@iarna/toml': 2.2.5
-      '@prisma/internals': 5.7.0
-      '@redwoodjs/project-config': 6.6.4
-      '@types/line-column': 1.0.0
+      '@babel/runtime-corejs3': 7.24.5
+      '@prisma/internals': 5.14.0
+      '@redwoodjs/project-config': 7.7.3
+      '@types/line-column': 1.0.2
       camelcase: 6.3.0
-      core-js: 3.34.0
+      core-js: 3.37.1
       deepmerge: 4.3.1
       dotenv-defaults: 5.0.2
       enquirer: 2.4.1
       fast-glob: 3.3.2
+      fs-extra: 11.2.0
       graphql: 16.8.1
       lazy-get-decorator: 2.2.1
       line-column: 1.0.2
       lodash: 4.17.21
       lodash-decorators: 6.0.1(lodash@4.17.21)
-      lru-cache: 7.18.3
+      lru-cache: 10.2.2
       proxyquire: 2.1.3
+      smol-toml: 1.2.1
       ts-morph: 15.1.0
       vscode-languageserver: 6.1.1
-      vscode-languageserver-textdocument: 1.0.8
-      vscode-languageserver-types: 3.17.3
+      vscode-languageserver-textdocument: 1.0.11
+      vscode-languageserver-types: 3.17.5
       yargs-parser: 21.1.1
 
-  '@redwoodjs/telemetry@6.6.4':
+  '@redwoodjs/telemetry@7.7.3':
     dependencies:
-      '@babel/runtime-corejs3': 7.23.6
-      '@redwoodjs/project-config': 6.6.4
-      '@redwoodjs/structure': 6.6.4
-      '@whatwg-node/fetch': 0.9.14
+      '@redwoodjs/project-config': 7.7.3
+      '@redwoodjs/structure': 7.7.3
+      '@whatwg-node/fetch': 0.9.17
       ci-info: 4.0.0
-      core-js: 3.34.0
-      envinfo: 7.11.0
-      systeminformation: 5.21.20
+      envinfo: 7.13.0
+      systeminformation: 5.22.11
       uuid: 9.0.1
       yargs: 17.7.2
 
@@ -11182,7 +11162,7 @@ snapshots:
     dependencies:
       '@types/node': 20.14.9
 
-  '@types/line-column@1.0.0': {}
+  '@types/line-column@1.0.2': {}
 
   '@types/methods@1.1.4': {}
 
@@ -11634,10 +11614,10 @@ snapshots:
 
   '@whatwg-node/events@0.1.1': {}
 
-  '@whatwg-node/fetch@0.9.14':
+  '@whatwg-node/fetch@0.9.17':
     dependencies:
       '@whatwg-node/node-fetch': 0.5.11
-      urlpattern-polyfill: 9.0.0
+      urlpattern-polyfill: 10.0.0
 
   '@whatwg-node/fetch@0.9.18':
     dependencies:
@@ -12428,7 +12408,7 @@ snapshots:
 
   core-js-pure@3.37.1: {}
 
-  core-js@3.34.0: {}
+  core-js@3.37.1: {}
 
   core-util-is@1.0.3: {}
 
@@ -12758,8 +12738,6 @@ snapshots:
 
   dotenv@14.3.2: {}
 
-  dotenv@16.3.1: {}
-
   dotenv@16.4.5: {}
 
   dset@3.1.3: {}
@@ -12814,7 +12792,7 @@ snapshots:
 
   entities@4.5.0: {}
 
-  envinfo@7.11.0: {}
+  envinfo@7.13.0: {}
 
   err-code@2.0.3: {}
 
@@ -13583,7 +13561,7 @@ snapshots:
       arrify: 1.0.1
       graphql: 16.8.1
 
-  graphql-scalars@1.22.4(graphql@16.8.1):
+  graphql-scalars@1.23.0(graphql@16.8.1):
     dependencies:
       graphql: 16.8.1
       tslib: 2.6.3
@@ -13593,14 +13571,14 @@ snapshots:
       graphql: 16.8.1
       tslib: 2.6.3
 
-  graphql-yoga@4.0.4(graphql@16.8.1):
+  graphql-yoga@5.3.1(graphql@16.8.1):
     dependencies:
-      '@envelop/core': 4.0.3
+      '@envelop/core': 5.0.1
       '@graphql-tools/executor': 1.2.7(graphql@16.8.1)
-      '@graphql-tools/schema': 10.0.2(graphql@16.8.1)
-      '@graphql-tools/utils': 10.0.11(graphql@16.8.1)
-      '@graphql-yoga/logger': 1.0.0
-      '@graphql-yoga/subscription': 4.0.0
+      '@graphql-tools/schema': 10.0.4(graphql@16.8.1)
+      '@graphql-tools/utils': 10.2.2(graphql@16.8.1)
+      '@graphql-yoga/logger': 2.0.0
+      '@graphql-yoga/subscription': 5.0.1
       '@whatwg-node/fetch': 0.9.18
       '@whatwg-node/server': 0.9.36
       dset: 3.1.3
@@ -14745,6 +14723,8 @@ snapshots:
       fault: 1.0.4
       highlight.js: 10.4.1
 
+  lru-cache@10.2.2: {}
+
   lru-cache@10.3.0: {}
 
   lru-cache@4.1.5:
@@ -14759,8 +14739,6 @@ snapshots:
   lru-cache@6.0.0:
     dependencies:
       yallist: 4.0.0
-
-  lru-cache@7.18.3: {}
 
   lz-string@1.5.0: {}
 
@@ -15584,11 +15562,6 @@ snapshots:
 
   pify@4.0.1: {}
 
-  pino-abstract-transport@1.1.0:
-    dependencies:
-      readable-stream: 4.5.2
-      split2: 4.2.0
-
   pino-abstract-transport@1.2.0:
     dependencies:
       readable-stream: 4.5.2
@@ -15598,14 +15571,14 @@ snapshots:
 
   pino-std-serializers@7.0.0: {}
 
-  pino@8.16.2:
+  pino@8.21.0:
     dependencies:
       atomic-sleep: 1.0.0
       fast-redact: 3.5.0
       on-exit-leak-free: 2.1.2
-      pino-abstract-transport: 1.1.0
+      pino-abstract-transport: 1.2.0
       pino-std-serializers: 6.2.2
-      process-warning: 2.3.2
+      process-warning: 3.0.0
       quick-format-unescaped: 4.0.4
       real-require: 0.2.0
       safe-stable-stringify: 2.4.3
@@ -15905,8 +15878,6 @@ snapshots:
   proc-log@4.2.0: {}
 
   process-nextick-args@2.0.1: {}
-
-  process-warning@2.3.2: {}
 
   process-warning@3.0.0: {}
 
@@ -16413,6 +16384,8 @@ snapshots:
 
   smob@1.5.0: {}
 
+  smol-toml@1.2.1: {}
+
   snake-case@3.0.4:
     dependencies:
       dot-case: 3.0.4
@@ -16685,7 +16658,7 @@ snapshots:
 
   system-architecture@0.1.0: {}
 
-  systeminformation@5.21.20: {}
+  systeminformation@5.22.11: {}
 
   table-layout@1.0.2:
     dependencies:
@@ -17160,8 +17133,6 @@ snapshots:
 
   urlpattern-polyfill@8.0.2: {}
 
-  urlpattern-polyfill@9.0.0: {}
-
   use-sync-external-store@1.2.2(react@18.2.0):
     dependencies:
       react: 18.2.0
@@ -17387,8 +17358,6 @@ snapshots:
       vscode-languageserver-types: 3.17.5
 
   vscode-languageserver-textdocument@1.0.11: {}
-
-  vscode-languageserver-textdocument@1.0.8: {}
 
   vscode-languageserver-types@3.16.0: {}
 

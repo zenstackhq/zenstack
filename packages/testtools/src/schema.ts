@@ -237,7 +237,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     }
 
     if (opt.pushDb) {
-        run('npx prisma db push');
+        run('npx prisma db push --skip-generate');
     }
 
     if (opt.pulseApiKey) {
@@ -336,9 +336,6 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
                 prisma,
                 { user },
                 {
-                    policy,
-                    modelMeta,
-                    zodSchemas,
                     logPrismaQuery: opt.logPrismaQuery,
                     transactionTimeout: 1000000,
                     kinds: opt.enhancements,

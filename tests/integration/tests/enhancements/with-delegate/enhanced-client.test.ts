@@ -1196,6 +1196,50 @@ describe('Polymorphism Test', () => {
         );
     });
 
+    it('handles very long concrete model name', async () => {
+        const { db, user } = await setup();
+
+        await db.veryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongModelNameA.create({
+            data: {
+                owner: { connect: { id: user.id } },
+                duration: 62,
+                url: 'https://whatever.com/example.mp4',
+                propA: 'propA',
+            },
+        });
+
+        await db.veryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongModelNameB.create({
+            data: {
+                owner: { connect: { id: user.id } },
+                duration: 62,
+                url: 'https://whatever.com/example.mp4',
+                propB: 'propB',
+            },
+        });
+
+        const foundUser = await db.user.findFirst({
+            where: { id: user.id },
+            include: {
+                assets: true,
+            },
+        });
+
+        expect(foundUser).toEqual(
+            expect.objectContaining({
+                assets: expect.arrayContaining([
+                    expect.objectContaining({
+                        videoType: 'VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongModelNameA',
+                        propA: 'propA',
+                    }),
+                    expect.objectContaining({
+                        videoType: 'VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongModelNameB',
+                        propB: 'propB',
+                    }),
+                ]),
+            })
+        );
+    });
+
     it('typescript compilation plain prisma', async () => {
         const src = `
         import { PrismaClient } from '@prisma/client';

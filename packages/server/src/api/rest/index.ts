@@ -1534,7 +1534,16 @@ class RequestHandler extends APIHandlerBase {
                     }
                     return { isEmpty: value === 'true' ? true : false };
                 default:
-                    return op ? { [op]: coerced } : { equals: coerced };
+                    if (op === undefined) {
+                        // regular filter, split value by comma
+                        const values = value
+                            .split(',')
+                            .filter((i) => i)
+                            .map((v) => this.coerce(fieldInfo.type, v));
+                        return values.length > 1 ? { in: values } : { equals: values[0] };
+                    } else {
+                        return { [op]: coerced };
+                    }
             }
         }
     }

@@ -8,24 +8,24 @@ describe('issue 1466', () => {
         try {
             const r = await loadSchema(
                 `
-                model UserLongLongLongLongName {
+                model UserLongLongLongLongLongLongLongLongName {
                     id Int @id @default(autoincrement())
                     level Int @default(0)
-                    asset AssetLongLongLongLongName @relation(fields: [assetId], references: [id])
+                    asset AssetLongLongLongLongLongLongLongLongName @relation(fields: [assetId], references: [id])
                     assetId Int @unique
                 }
                 
-                model AssetLongLongLongLongName {
+                model AssetLongLongLongLongLongLongLongLongName {
                     id Int @id @default(autoincrement())
                     createdAt DateTime @default(now())
                     viewCount Int @default(0)
-                    owner UserLongLongLongLongName?
+                    owner UserLongLongLongLongLongLongLongLongName?
                     assetType String
                     
                     @@delegate(assetType)
                 }
                 
-                model VideoLongLongLongLongName extends AssetLongLongLongLongName {
+                model VideoLongLongLongLongLongLongLongLongName extends AssetLongLongLongLongLongLongLongLongName {
                     duration Int
                 }        
                 `,
@@ -39,22 +39,22 @@ describe('issue 1466', () => {
             prisma = r.prisma;
             const db = r.enhance();
 
-            const video = await db.VideoLongLongLongLongName.create({
+            const video = await db.VideoLongLongLongLongLongLongLongLongName.create({
                 data: { duration: 100 },
             });
 
-            const user = await db.UserLongLongLongLongName.create({
+            const user = await db.UserLongLongLongLongLongLongLongLongName.create({
                 data: {
                     asset: { connect: { id: video.id } },
                 },
             });
 
-            const userWithAsset = await db.UserLongLongLongLongName.findFirst({
+            const userWithAsset = await db.UserLongLongLongLongLongLongLongLongName.findFirst({
                 include: { asset: true },
             });
 
             expect(userWithAsset).toMatchObject({
-                asset: { assetType: 'VideoLongLongLongLongName', duration: 100 },
+                asset: { assetType: 'VideoLongLongLongLongLongLongLongLongName', duration: 100 },
             });
         } finally {
             if (prisma) {

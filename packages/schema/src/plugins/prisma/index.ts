@@ -1,6 +1,7 @@
-import { PluginError, PluginFunction, getLiteral, resolvePath } from '@zenstackhq/sdk';
+import { PluginError, type PluginFunction, type PluginOptions, getLiteral, resolvePath } from '@zenstackhq/sdk';
 import { GeneratorDecl, isGeneratorDecl } from '@zenstackhq/sdk/ast';
 import { getDMMF } from '@zenstackhq/sdk/prisma';
+import colors from 'colors';
 import fs from 'fs';
 import path from 'path';
 import stripColor from 'strip-color';
@@ -8,7 +9,6 @@ import telemetry from '../../telemetry';
 import { execPackage } from '../../utils/exec-utils';
 import { findUp } from '../../utils/pkg-utils';
 import { PrismaSchemaGenerator } from './schema-generator';
-import colors from 'colors';
 
 export const name = 'Prisma';
 export const description = 'Generating Prisma schema';
@@ -19,7 +19,8 @@ const run: PluginFunction = async (model, options, _dmmf, _globalOptions) => {
         ? resolvePath(options.output as string, options)
         : getDefaultPrismaOutputFile(options.schemaPath);
 
-    const warnings = await new PrismaSchemaGenerator(model).generate({ ...options, output });
+    const mergedOptions = { ...options, output } as unknown as PluginOptions;
+    const { warnings, shortNameMap } = await new PrismaSchemaGenerator(model).generate(mergedOptions);
     let prismaClientPath = '@prisma/client';
 
     if (options.generateClient !== false) {
@@ -74,7 +75,7 @@ const run: PluginFunction = async (model, options, _dmmf, _globalOptions) => {
         datamodel: fs.readFileSync(output, 'utf-8'),
     });
 
-    return { warnings, dmmf, prismaClientPath };
+    return { warnings, dmmf, prismaClientPath, shortNameMap };
 };
 
 function getDefaultPrismaOutputFile(schemaPath: string) {

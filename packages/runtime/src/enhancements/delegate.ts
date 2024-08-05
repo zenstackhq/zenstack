@@ -1040,7 +1040,10 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     }
 
     private makeAuxRelationName(model: ModelInfo) {
-        return `${DELEGATE_AUX_RELATION_PREFIX}_${lowerCaseFirst(model.name)}`;
+        const name = `${DELEGATE_AUX_RELATION_PREFIX}_${lowerCaseFirst(model.name)}`;
+        // make sure we look up into short name map to see if it's truncated
+        const shortName = this.options.modelMeta.shortNameMap?.[name];
+        return shortName ?? name;
     }
 
     private getModelName(model: string) {

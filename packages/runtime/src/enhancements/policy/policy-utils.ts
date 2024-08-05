@@ -30,6 +30,7 @@ import { Logger } from '../logger';
 import { QueryUtils } from '../query-utils';
 import type { EntityChecker, ModelPolicyDef, PermissionCheckerFunc, PolicyDef, PolicyFunc, ZodSchemas } from '../types';
 import { formatObject, prismaClientKnownRequestError } from '../utils';
+import { isPlainObject } from 'is-plain-object';
 
 /**
  * Access policy enforcement utilities
@@ -107,23 +108,63 @@ export class PolicyUtil extends QueryUtils {
     // Static True/False conditions
     // https://www.prisma.io/docs/concepts/components/prisma-client/null-and-undefined#the-effect-of-null-and-undefined-on-conditionals
 
-    public isTrue(condition: object) {
-        if (condition === null || condition === undefined) {
+    private singleKey(obj: object | null | undefined, key: string): obj is { [key: string]: unknown } {
+        if (!obj) {
             return false;
         } else {
-            return (
-                (typeof condition === 'object' && Object.keys(condition).length === 0) ||
-                ('AND' in condition && Array.isArray(condition.AND) && condition.AND.length === 0)
-            );
+            return Object.keys(obj).length === 1 && Object.keys(obj)[0] === key;
         }
     }
 
-    public isFalse(condition: object) {
-        if (condition === null || condition === undefined) {
+    public isTrue(condition: object | null | undefined) {
+        if (condition === null || condition === undefined || !isPlainObject(condition)) {
             return false;
-        } else {
-            return 'OR' in condition && Array.isArray(condition.OR) && condition.OR.length === 0;
         }
+
+        // {} is true
+        if (Object.keys(condition).length === 0) {
+            return true;
+        }
+
+        // { OR: TRUE } is true
+        if (this.singleKey(condition, 'OR') && typeof condition.OR === 'object' && this.isTrue(condition.OR)) {
+            return true;
+        }
+
+        // { NOT: FALSE } is true
+        if (this.singleKey(condition, 'NOT') && typeof condition.NOT === 'object' && this.isFalse(condition.NOT)) {
+            return true;
+        }
+
+        // { AND: [] } is true
+        if (this.singleKey(condition, 'AND') && Array.isArray(condition.AND) && condition.AND.length === 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public isFalse(condition: object | null | undefined) {
+        if (condition === null || condition === undefined || !isPlainObject(condition)) {
+            return false;
+        }
+
+        // { AND: FALSE } is false
+        if (this.singleKey(condition, 'AND') && typeof condition.AND === 'object' && this.isFalse(condition.AND)) {
+            return true;
+        }
+
+        // { NOT: TRUE } is false
+        if (this.singleKey(condition, 'NOT') && typeof condition.NOT === 'object' && this.isTrue(condition.NOT)) {
+            return true;
+        }
+
+        // { OR: [] } is false
+        if (this.singleKey(condition, 'OR') && Array.isArray(condition.OR) && condition.OR.length === 0) {
+            return true;
+        }
+
+        return false;
     }
 
     private makeTrue() {
@@ -149,11 +190,6 @@ export class PolicyUtil extends QueryUtils {
 
         const result: any = {};
         for (const [key, value] of Object.entries<any>(condition)) {
-            if (this.isFalse(result)) {
-                // already false, no need to continue
-                break;
-            }
-
             if (value === null || value === undefined) {
                 result[key] = value;
                 continue;
@@ -165,14 +201,13 @@ export class PolicyUtil extends QueryUtils {
                         .map((c: any) => this.reduce(c))
                         .filter((c) => c !== undefined && !this.isTrue(c));
                     if (children.length === 0) {
-                        result[key] = []; // true
+                        // { ..., AND: [] }
+                        result[key] = [];
                     } else if (children.some((c) => this.isFalse(c))) {
-                        result['OR'] = []; // false
+                        // { ..., AND: { OR: [] } }
+                        result[key] = this.makeFalse();
                     } else {
-                        if (!this.isTrue({ AND: result[key] })) {
-                            // use AND only if it's not already true
-                            result[key] = !Array.isArray(value) && children.length === 1 ? children[0] : children;
-                        }
+                        result[key] = !Array.isArray(value) && children.length === 1 ? children[0] : children;
                     }
                     break;
                 }
@@ -182,54 +217,43 @@ export class PolicyUtil extends QueryUtils {
                         .map((c: any) => this.reduce(c))
                         .filter((c) => c !== undefined && !this.isFalse(c));
                     if (children.length === 0) {
-                        result[key] = []; // false
+                        // { ..., OR: [] }
+                        result[key] = [];
                     } else if (children.some((c) => this.isTrue(c))) {
-                        result['AND'] = []; // true
-                    } else {
-                        if (!this.isFalse({ OR: result[key] })) {
-                            // use OR only if it's not already false
-                            result[key] = !Array.isArray(value) && children.length === 1 ? children[0] : children;
-                        }
-                    }
-                    break;
-                }
-
-                case 'NOT': {
-                    const children = enumerate(value)
-                        .map((c: any) => this.reduce(c))
-                        .filter((c) => c !== undefined && !this.isFalse(c));
-                    if (children.length === 0) {
-                        // all clauses are false, result is a constant true,
-                        // thus eliminated (not adding into result)
-                    } else if (children.some((c) => this.isTrue(c))) {
-                        // some clauses are true, result is a constant false,
-                        // eliminate all other keys and set entire condition to false
-                        Object.keys(result).forEach((k) => delete result[k]);
-                        result['OR'] = []; // this will cause the outer loop to exit too
+                        // { ..., OR: { AND: [] } }
+                        result[key] = this.makeTrue();
                     } else {
                         result[key] = !Array.isArray(value) && children.length === 1 ? children[0] : children;
                     }
                     break;
                 }
 
+                case 'NOT': {
+                    const children = enumerate(value).map((c: any) => this.reduce(c));
+                    result[key] = !Array.isArray(value) && children.length === 1 ? children[0] : children;
+                    break;
+                }
+
                 default: {
-                    const booleanKeys = ['AND', 'OR', 'NOT', 'is', 'isNot', 'none', 'every', 'some'];
-                    if (
-                        typeof value === 'object' &&
-                        value &&
-                        // recurse only if the value has at least one boolean key
-                        Object.keys(value).some((k) => booleanKeys.includes(k))
-                    ) {
-                        result[key] = this.reduce(value);
-                    } else {
+                    if (!isPlainObject(value)) {
+                        // don't visit into non-plain object values - could be Date, array, etc.
                         result[key] = value;
+                    } else {
+                        result[key] = this.reduce(value);
                     }
                     break;
                 }
             }
         }
 
-        return result;
+        // finally normalize constant true/false conditions
+        if (this.isTrue(result)) {
+            return this.makeTrue();
+        } else if (this.isFalse(result)) {
+            return this.makeFalse();
+        } else {
+            return result;
+        }
     }
 
     //#endregion

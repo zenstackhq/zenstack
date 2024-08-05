@@ -1332,7 +1332,9 @@ async function check(schema: string, getExpr: (model: DataModel) => Expression, 
     const model = await loadModel(schema);
     const expr = getExpr(model.declarations.find((d) => isDataModel(d) && d.name === 'Test') as DataModel);
 
-    const project = new Project();
+    const project = new Project({
+        compilerOptions: { skipLibCheck: true },
+    });
 
     const { name: sourcePath } = tmp.fileSync({ postfix: '.ts' });
     const sf = project.createSourceFile(sourcePath, undefined, {

@@ -30,6 +30,12 @@ export type PluginOptions = {
      * PrismaClient import path, either relative to `schemaPath` or absolute
      */
     prismaClientPath?: string;
+
+    /**
+     * An optional map of full names to shortened names
+     * @private
+     */
+    shortNameMap?: Map<string, string>;
 } & PluginDeclaredOptions;
 
 /**
@@ -73,6 +79,12 @@ export type PluginResult = {
      * @private
      */
     dmmf?: DMMF.Document;
+
+    /**
+     * An optional map of full names to shortened names
+     * @private
+     */
+    shortNameMap?: Map<string, string>;
 };
 
 /**

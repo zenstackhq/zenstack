@@ -44,6 +44,14 @@ model Gallery {
     id Int @id @default(autoincrement())
     images Image[]
 }
+
+model VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongModelNameA extends Video {
+   propA String
+}
+
+model VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongModelNameB extends Video {
+   propB String
+}
 `;
 
 export const POLYMORPHIC_MANY_TO_MANY_SCHEMA = `
