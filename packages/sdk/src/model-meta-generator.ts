@@ -131,8 +131,8 @@ function writeAuthModel(writer: CodeBlockWriter, dataModels: DataModel[]) {
     const authModel = getAuthModel(dataModels);
     if (authModel) {
         writer.writeLine(`authModel: '${authModel.name}'`);
+        writer.writeLine(',');
     }
-    writer.writeLine(',');
 }
 
 function writeDeleteCascade(writer: CodeBlockWriter, dataModels: DataModel[]) {
@@ -538,7 +538,7 @@ function isAutoIncrement(field: DataModelField) {
 }
 
 function writeShortNameMap(options: ModelMetaGeneratorOptions, writer: CodeBlockWriter) {
-    if (options.shortNameMap) {
+    if (options.shortNameMap && options.shortNameMap.size > 0) {
         writer.write('shortNameMap:');
         writer.block(() => {
             for (const [key, value] of options.shortNameMap!) {
