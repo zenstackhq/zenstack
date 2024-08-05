@@ -14,6 +14,7 @@ import {
     type OptionValue,
     type PluginDeclaredOptions,
     type PluginFunction,
+    type PluginOptions,
     type PluginResult,
 } from '@zenstackhq/sdk';
 import { type DMMF } from '@zenstackhq/sdk/prisma';
@@ -131,16 +132,22 @@ export class PluginRunner {
 
         // run core plugins first
         let dmmf: DMMF.Document | undefined = undefined;
+        let shortNameMap: Map<string, string> | undefined;
         let prismaClientPath = '@prisma/client';
         const project = createProject();
         for (const { name, description, run, options: pluginOptions } of corePlugins) {
             const options = { ...pluginOptions, prismaClientPath };
-            const r = await this.runPlugin(name, description, run, runnerOptions, options, dmmf, project);
+            const r = await this.runPlugin(name, description, run, runnerOptions, options, dmmf, shortNameMap, project);
             warnings.push(...(r?.warnings ?? [])); // the null-check is for backward compatibility
 
             if (r.dmmf) {
                 // use the DMMF returned by the plugin
                 dmmf = r.dmmf;
+            }
+
+            if (r.shortNameMap) {
+                // use the model short name map returned by the plugin
+                shortNameMap = r.shortNameMap;
             }
 
             if (r.prismaClientPath) {
@@ -155,7 +162,7 @@ export class PluginRunner {
         // run user plugins
         for (const { name, description, run, options: pluginOptions } of userPlugins) {
             const options = { ...pluginOptions, prismaClientPath };
-            const r = await this.runPlugin(name, description, run, runnerOptions, options, dmmf, project);
+            const r = await this.runPlugin(name, description, run, runnerOptions, options, dmmf, shortNameMap, project);
             warnings.push(...(r?.warnings ?? [])); // the null-check is for backward compatibility
         }
 
@@ -311,6 +318,7 @@ export class PluginRunner {
         runnerOptions: PluginRunnerOptions,
         options: PluginDeclaredOptions,
         dmmf: DMMF.Document | undefined,
+        shortNameMap: Map<string, string> | undefined,
         project: Project
     ) {
         const title = description ?? `Running plugin ${colors.cyan(name)}`;
@@ -325,7 +333,12 @@ export class PluginRunner {
                     options,
                 },
                 async () => {
-                    return await run(runnerOptions.schema, { ...options, schemaPath: runnerOptions.schemaPath }, dmmf, {
+                    const finalOptions = {
+                        ...options,
+                        schemaPath: runnerOptions.schemaPath,
+                        shortNameMap,
+                    } as PluginOptions;
+                    return await run(runnerOptions.schema, finalOptions, dmmf, {
                         output: runnerOptions.output,
                         compile: runnerOptions.compile,
                         tsProject: project,

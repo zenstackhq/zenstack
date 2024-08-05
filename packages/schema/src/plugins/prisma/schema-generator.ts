@@ -101,8 +101,8 @@ export class PrismaSchemaGenerator {
 
     private mode: 'logical' | 'physical' = 'physical';
 
-    // a mapping from shortened names to their original full names
-    private shortNameMap = new Map<string, string[]>();
+    // a mapping from full names to shortened names
+    private shortNameMap = new Map<string, string>();
 
     constructor(private readonly zmodel: Model) {}
 
@@ -160,7 +160,7 @@ export class PrismaSchemaGenerator {
             }
         }
 
-        return warnings;
+        return { warnings, shortNameMap: this.shortNameMap };
     }
 
     private generateDataSource(prisma: PrismaModel, dataSource: DataSource) {
@@ -318,7 +318,7 @@ export class PrismaSchemaGenerator {
 
         // generate an optional relation field in delegate base model to each concrete model
         concreteModels.forEach((concrete) => {
-            const auxName = `${DELEGATE_AUX_RELATION_PREFIX}_${this.truncate(lowerCaseFirst(concrete.name))}`;
+            const auxName = this.truncate(`${DELEGATE_AUX_RELATION_PREFIX}_${lowerCaseFirst(concrete.name)}`);
             model.addField(auxName, new ModelFieldType(concrete.name, false, true));
         });
     }
@@ -339,7 +339,7 @@ export class PrismaSchemaGenerator {
             const idFields = getIdFields(base);
 
             // add relation fields
-            const relationField = `${DELEGATE_AUX_RELATION_PREFIX}_${this.truncate(lowerCaseFirst(base.name))}`;
+            const relationField = this.truncate(`${DELEGATE_AUX_RELATION_PREFIX}_${lowerCaseFirst(base.name)}`);
             model.addField(relationField, base.name, [
                 new PrismaFieldAttribute('@relation', [
                     new PrismaAttributeArg(
@@ -403,9 +403,11 @@ export class PrismaSchemaGenerator {
             concreteModels.forEach((concrete) => {
                 // aux relation name format: delegate_aux_[model]_[relationField]_[concrete]
                 // e.g., delegate_aux_User_myAsset_Video
-                const auxRelationName = `${dataModel.name}_${field.name}_${concrete.name}`;
+                const auxRelationName = this.truncate(
+                    `${DELEGATE_AUX_RELATION_PREFIX}_${dataModel.name}_${field.name}_${concrete.name}`
+                );
                 const auxRelationField = model.addField(
-                    `${DELEGATE_AUX_RELATION_PREFIX}_${this.truncate(auxRelationName)}`,
+                    auxRelationName,
                     new ModelFieldType(concrete.name, field.type.array, field.type.optional)
                 );
 
@@ -493,7 +495,7 @@ export class PrismaSchemaGenerator {
 
         // fix its name
         const addedFkFieldName = `${dataModel.name}_${origForeignKey.name}_${concreteModel.name}`;
-        addedFkField.name = `${DELEGATE_AUX_RELATION_PREFIX}_${this.truncate(addedFkFieldName)}`;
+        addedFkField.name = this.truncate(`${DELEGATE_AUX_RELATION_PREFIX}_${addedFkFieldName}`);
 
         // we also need to make sure `@unique` constraint's `map` parameter is fixed to avoid conflict
         const uniqueAttr = addedFkField.attributes.find(
@@ -501,7 +503,7 @@ export class PrismaSchemaGenerator {
         ) as PrismaFieldAttribute;
         if (uniqueAttr) {
             const mapArg = uniqueAttr.args.find((arg) => arg.name === 'map');
-            const constraintName = `${addedFkField.name}_unique`;
+            const constraintName = this.truncate(`${addedFkField.name}_unique`);
             if (mapArg) {
                 mapArg.value = new AttributeArgValue('String', constraintName);
             } else {
@@ -563,21 +565,29 @@ export class PrismaSchemaGenerator {
             return name;
         }
 
-        const shortName = name.slice(0, IDENTIFIER_NAME_MAX_LENGTH);
-        const entry = this.shortNameMap.get(shortName);
-        if (!entry) {
-            this.shortNameMap.set(shortName, [name]);
-            return `${shortName}_0`;
-        } else {
-            const index = entry.findIndex((n) => n === name);
-            if (index >= 0) {
-                return `${shortName}_${index}`;
-            } else {
-                const newIndex = entry.length;
-                entry.push(name);
-                return `${shortName}_${newIndex}`;
-            }
+        const existing = this.shortNameMap.get(name);
+        if (existing) {
+            return existing;
         }
+
+        const baseName = name.slice(0, IDENTIFIER_NAME_MAX_LENGTH);
+        let index = 0;
+        let shortName = `${baseName}_${index}`;
+
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+            const conflict = Array.from(this.shortNameMap.values()).find((v) => v === shortName);
+            if (!conflict) {
+                this.shortNameMap.set(name, shortName);
+                break;
+            }
+
+            // try next index
+            index++;
+            shortName = `${baseName}_${index}`;
+        }
+
+        return shortName;
     }
 
     private nameRelationsInheritedFromDelegate(model: PrismaDataModel, decl: DataModel) {
@@ -626,7 +636,7 @@ export class PrismaSchemaGenerator {
             // relation name format: delegate_aux_[relationType]_[oppositeRelationField]_[concrete]
             const relAttr = getAttribute(f, '@relation');
             const name = `${fieldType.name}_${oppositeRelationField.name}_${decl.name}`;
-            const relName = `${DELEGATE_AUX_RELATION_PREFIX}_${this.truncate(name)}`;
+            const relName = this.truncate(`${DELEGATE_AUX_RELATION_PREFIX}_${name}`);
 
             if (relAttr) {
                 const nameArg = getAttributeArg(relAttr, 'name');

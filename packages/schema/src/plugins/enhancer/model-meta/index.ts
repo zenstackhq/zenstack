@@ -13,5 +13,6 @@ export async function generate(model: Model, options: PluginOptions, project: Pr
         output: outFile,
         generateAttributes: true,
         preserveTsFiles,
+        shortNameMap: options.shortNameMap,
     });
 }
