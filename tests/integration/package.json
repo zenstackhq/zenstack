@@ -25,7 +25,7 @@
         "jest-fetch-mock": "^3.0.3",
         "next": "14.2.4",
         "tmp": "^0.2.1",
-        "uuid": "^9.0.0",
+        "uuid": "^10.0.0",
         "zenstack": "workspace: *"
     },
     "dependencies": {

@@ -87,7 +87,7 @@ function now(): DateTime {
 /**
  * Generates a globally unique identifier based on the UUID specs.
  */
-function uuid(): String {
+function uuid(version: Int?): String {
 } @@@expressionContext([DefaultValue])
 
 /**
