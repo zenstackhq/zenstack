@@ -88,8 +88,8 @@ function generateModelMetadata(
     writer.block(() => {
         writeModels(sourceFile, writer, dataModels, options);
         writeDeleteCascade(writer, dataModels);
-        writeAuthModel(writer, dataModels);
         writeShortNameMap(options, writer);
+        writeAuthModel(writer, dataModels);
     });
 }
 
@@ -131,7 +131,6 @@ function writeAuthModel(writer: CodeBlockWriter, dataModels: DataModel[]) {
     const authModel = getAuthModel(dataModels);
     if (authModel) {
         writer.writeLine(`authModel: '${authModel.name}'`);
-        writer.writeLine(',');
     }
 }
 
