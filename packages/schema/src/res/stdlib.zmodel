@@ -633,7 +633,7 @@ attribute @lte(_ value: Int, _ message: String?) @@@targetField([IntField, Float
 /**
  * Validates the entity with a complex condition.
  */
-attribute @@validate(_ value: Boolean, _ message: String?) @@@validation
+attribute @@validate(_ value: Boolean, _ message: String?, _ path: String[]?) @@@validation
 
 /**
  * Validates length of a string field.
