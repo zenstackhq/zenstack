@@ -6,6 +6,7 @@ import {
     getAttributeArg,
     getAttributeArgLiteral,
     getLiteral,
+    getLiteralArray,
     isDataModelFieldReference,
     isFromStdlib,
 } from '@zenstackhq/sdk';
@@ -14,6 +15,7 @@ import {
     DataModelField,
     DataModelFieldAttribute,
     isDataModel,
+    isArrayExpr,
     isEnum,
     isInvocationExpr,
     isNumberLiteral,
@@ -221,7 +223,12 @@ export function makeValidationRefinements(model: DataModel) {
             }
 
             const messageArg = getAttributeArgLiteral<string>(attr, 'message');
-            const message = messageArg ? `, { message: ${JSON.stringify(messageArg)} }` : '';
+            const message = messageArg ? `message: ${JSON.stringify(messageArg)},` : '';
+
+            const pathArg = getAttributeArg(attr, 'path');
+            const path = pathArg && isArrayExpr(pathArg) ? `path: ['${getLiteralArray<string>(pathArg)?.join(`', '`)}'],` : '';
+
+            const options = `, { ${message} ${path} }`;
 
             try {
                 let expr = new TypeScriptExpressionTransformer({
@@ -235,7 +242,7 @@ export function makeValidationRefinements(model: DataModel) {
                     expr = `${expr} ?? true`;
                 }
 
-                return `.refine((value: any) => ${expr}${message})`;
+                return `.refine((value: any) => ${expr}${options})`;
             } catch (err) {
                 if (err instanceof TypeScriptExpressionTransformerError) {
                     throw new PluginError(name, err.message);
