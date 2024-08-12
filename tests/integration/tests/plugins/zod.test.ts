@@ -458,6 +458,47 @@ describe('Zod plugin tests', () => {
         expect(schema.safeParse({ arr: [1, 2, 3] }).success).toBeTruthy();
     });
 
+    it('refinement with path', async () => {
+        const model = `
+        datasource db {
+            provider = 'postgresql'
+            url = env('DATABASE_URL')
+        }
+        
+        generator js {
+            provider = 'prisma-client-js'
+        }
+
+        plugin zod {
+            provider = "@core/zod"
+        }
+
+        model M {
+            id Int @id @default(autoincrement())
+            arr Int[]
+
+            @@validate(!isEmpty(arr), 'condition1', ['array'])
+            @@validate(has(arr, 1), 'condition2', ['arr'])
+            @@validate(hasEvery(arr, [1, 2]), 'condition3', ['arr', 'every'])
+            @@validate(hasSome(arr, [1, 2]), 'condition4', ['arr', 'some'])
+        }
+        `;
+
+        const { zodSchemas } = await loadSchema(model, { addPrelude: false, pushDb: false });
+
+        const schema = zodSchemas.models.MCreateSchema;
+        expect(schema.safeParse({}).error.issues[0].path).toEqual(['array']);
+        expect(schema.safeParse({ arr: [] }).error.issues[0].path).toEqual(['array']);
+        expect(schema.safeParse({ arr: [3] }).error.issues[0].path).toEqual(['arr']);
+        expect(schema.safeParse({ arr: [3] }).error.issues[1].path).toEqual(['arr', 'every']);
+        expect(schema.safeParse({ arr: [3] }).error.issues[2].path).toEqual(['arr', 'some']);
+        expect(schema.safeParse({ arr: [1] }).error.issues[0].path).toEqual(['arr', 'every']);
+        expect(schema.safeParse({ arr: [4] }).error.issues[0].path).toEqual(['arr']);
+        expect(schema.safeParse({ arr: [4] }).error.issues[1].path).toEqual(['arr', 'every']);
+        expect(schema.safeParse({ arr: [4] }).error.issues[2].path).toEqual(['arr', 'some']);
+        expect(schema.safeParse({ arr: [1, 2, 3] }).success).toBeTruthy();
+    })
+
     it('full-text search', async () => {
         const model = `
         datasource db {
