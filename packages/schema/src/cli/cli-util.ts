@@ -27,7 +27,7 @@ const CHECK_VERSION_TIMEOUT = 1000;
  * @param services Language services
  * @returns Parsed and validated AST
  */
-export async function loadDocument(fileName: string): Promise<Model> {
+export async function loadDocument(fileName: string, validateOnly = false): Promise<Model> {
     const services = createZModelServices(NodeFileSystem).ZModel;
     const extensions = services.LanguageMetaData.fileExtensions;
     if (!extensions.includes(path.extname(fileName))) {
@@ -92,6 +92,10 @@ export async function loadDocument(fileName: string): Promise<Model> {
     }
 
     const model = document.parseResult.value as Model;
+
+    if (validateOnly) {
+        return model;
+    }
 
     // merge all declarations into the main document
     const imported = mergeImportsDeclarations(langiumDocuments, model);
