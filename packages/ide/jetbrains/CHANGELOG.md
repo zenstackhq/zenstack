@@ -1,6 +1,11 @@
 # Changelog
 
+
 ## [Unreleased]
+### Added
+- The `uuid()` function is updated to support the new UUID version feature from Prisma.
+
+## 2.3.0 
 ### Added
 - New `check()` policy rule function.
 
