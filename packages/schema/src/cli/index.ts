@@ -60,6 +60,16 @@ export const formatAction = async (options: Parameters<typeof actions.format>[1]
     );
 };
 
+export const checkAction = async (options: Parameters<typeof actions.check>[1]): Promise<void> => {
+    await telemetry.trackSpan(
+        'cli:command:start',
+        'cli:command:complete',
+        'cli:command:error',
+        { command: 'check' },
+        () => actions.check(process.cwd(), options)
+    );
+};
+
 export function createProgram() {
     const program = new Command('zenstack');
 
@@ -130,6 +140,12 @@ export function createProgram() {
         .addOption(schemaOption)
         .option('--no-prisma-style', 'do not use prisma style')
         .action(formatAction);
+
+    program
+        .command('check')
+        .description('Check a ZenStack schema file for syntax or semantic errors.')
+        .addOption(schemaOption)
+        .action(checkAction);
 
     // make sure config is loaded before actions run
     program.hook('preAction', async (_, actionCommand) => {
