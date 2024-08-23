@@ -197,49 +197,49 @@ export function generateRouterTyping(
 
     writer.block(() => {
         if (procType === 'query') {
-            const queryOptions =
-                version === 'v10'
-                    ? `UseTRPCQueryOptions<string, T, ${resultType}, TData, Error>`
-                    : `UseTRPCQueryOptions<T, ${resultType}, TData, Error>`;
-
-            const infiniteQueryOptions =
-                version === 'v10'
-                    ? `UseTRPCInfiniteQueryOptions<string, T, ${resultType}, Error>`
-                    : `UseTRPCInfiniteQueryOptions<T, ${resultType}, Error>`;
-
-            const infiniteQueryResult =
-                version === 'v10'
-                    ? `UseTRPCInfiniteQueryResult<${resultType}, ${errorType}>`
-                    : `UseTRPCInfiniteQueryResult<${resultType}, ${errorType}, T>`;
-
-            writer.writeLine(`
+            if (version === 'v10') {
+                writer.writeLine(`
                 useQuery: <T extends ${genericBase}, TData = ${resultType}>(
                     input: ${argsType},
-                    opts?: ${queryOptions}
+                    opts?: UseTRPCQueryOptions<string, T, ${resultType}, TData, Error>
                     ) => UseTRPCQueryResult<
                         TData,
                         ${errorType}
                     >;
                 useInfiniteQuery: <T extends ${genericBase}>(
                     input: Omit<${argsType}, 'cursor'>,
-                    opts?: ${infiniteQueryOptions}
-                    ) => ${infiniteQueryResult};`);
-
-            if (version !== 'v10') {
-                // v11 uses tanstack-query v5 and supports suspense queries
+                    opts?: UseTRPCInfiniteQueryOptions<string, T, ${resultType}, Error>
+                    ) => UseTRPCInfiniteQueryResult<
+                        ${resultType},
+                        ${errorType}
+                    >;
+                `);
+            } else {
                 writer.writeLine(`
-                useSuspenseQuery: <T extends ${genericBase}, TData = ${resultType}>(
+                useQuery: <T extends ${genericBase}, TData = ${resultType}>(
                     input: ${argsType},
-                    opts?: UseTRPCSuspenseQueryOptions<${resultType}, TData, Error>
-                    ) => UseTRPCSuspenseQueryResult<
+                    opts?: UseTRPCQueryOptions<${resultType}, TData, Error>
+                    ) => UseTRPCQueryResult<
                         TData,
                         ${errorType}
                     >;
+                useInfiniteQuery: <T extends ${genericBase}>(
+                    input: Omit<${argsType}, 'cursor'>,
+                    opts?: UseTRPCInfiniteQueryOptions<T, ${resultType}, Error>
+                    ) => UseTRPCInfiniteQueryResult<
+                        ${resultType},
+                        ${errorType},
+                        T
+                    >;
+                useSuspenseQuery: <T extends ${genericBase}, TData = ${resultType}>(
+                    input: ${argsType},
+                    opts?: UseTRPCSuspenseQueryOptions<${resultType}, TData, Error>
+                    ) => UseTRPCSuspenseQueryResult<TData, ${errorType}>;
                 useSuspenseInfiniteQuery: <T extends ${genericBase}>(
                     input: Omit<${argsType}, 'cursor'>,
                     opts?: UseTRPCSuspenseInfiniteQueryOptions<T, ${resultType}, Error>
                     ) => UseTRPCSuspenseInfiniteQueryResult<${resultType}, ${errorType}, T>;
-                    `);
+                `);
             }
         } else if (procType === 'mutation') {
             writer.writeLine(`

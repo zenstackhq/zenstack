@@ -178,7 +178,6 @@ function createAppRouter(
     }
 
     appRouter.addStatements(`
-
         export function db(ctx: any) {
             if (!ctx.prisma) {
                 throw new Error('Missing "prisma" field in trpc context');
@@ -195,14 +194,14 @@ function createAppRouter(
             parameters:
                 version === 'v10'
                     ? [
-                          { name: 'createTRPCRouter', type: 'RouterFactory<Config>' },
+                          { name: 'router', type: 'RouterFactory<Config>' },
                           { name: 'procedure', type: 'ProcBuilder<Config>' },
                       ]
                     : [],
             isExported: true,
         })
         .setBodyText((writer) => {
-            writer.write('return createTRPCRouter(');
+            writer.write(`return ${version === 'v10' ? 'router' : 'createTRPCRouter'}(`);
             writer.block(() => {
                 for (const modelOperation of filteredModelOperations) {
                     const { model, ...operations } = modelOperation;
@@ -229,9 +228,7 @@ function createAppRouter(
                     });
 
                     if (version === 'v10') {
-                        writer.writeLine(
-                            `${lowerCaseFirst(model)}: create${model}Router(createTRPCRouter, procedure),`
-                        );
+                        writer.writeLine(`${lowerCaseFirst(model)}: create${model}Router(router, procedure),`);
                     } else {
                         writer.writeLine(`${lowerCaseFirst(model)}: create${model}Router(),`);
                     }
@@ -352,7 +349,7 @@ function generateModelCreateRouter(
             ? modelRouter.addFunction({
                   name: 'createRouter<Config extends BaseConfig>',
                   parameters: [
-                      { name: 'createTRPCRouter', type: 'RouterFactory<Config>' },
+                      { name: 'router', type: 'RouterFactory<Config>' },
                       { name: 'procedure', type: 'ProcBuilder<Config>' },
                   ],
                   isExported: true,
@@ -383,7 +380,7 @@ function generateModelCreateRouter(
     }
 
     createRouterFunc.setBodyText((funcWriter) => {
-        funcWriter.write('return createTRPCRouter(');
+        funcWriter.write(`return ${version === 'v10' ? 'router' : 'createTRPCRouter'}(`);
         funcWriter.block(() => {
             for (const [opType, opNameWithModel] of Object.entries(operations)) {
                 if (isDelegateModel(dataModel) && (opType.startsWith('create') || opType.startsWith('upsert'))) {
