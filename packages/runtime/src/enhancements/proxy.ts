@@ -54,6 +54,8 @@ export interface PrismaProxyHandler {
     count(args: any): Promise<unknown | number>;
 
     subscribe(args: any): Promise<unknown>;
+
+    stream(args: any): Promise<unknown>;
 }
 
 /**
@@ -79,7 +81,7 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
             async () => {
                 args = await this.preprocessArgs(method, args);
                 const r = await this.prisma[this.model][method](args);
-                return postProcess ? this.processResultEntity(r) : r;
+                return postProcess ? this.processResultEntity(method, r) : r;
             },
             args,
             this.options.modelMeta,
@@ -92,7 +94,7 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
         return createDeferredPromise<TResult>(async () => {
             args = await this.preprocessArgs(method, args);
             const r = await this.prisma[this.model][method](args);
-            return postProcess ? this.processResultEntity(r) : r;
+            return postProcess ? this.processResultEntity(method, r) : r;
         });
     }
 
@@ -161,20 +163,44 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
     }
 
     subscribe(args: any) {
-        return this.deferred('subscribe', args, false);
+        return this.doSubscribeStream('subscribe', args);
+    }
+
+    stream(args: any) {
+        return this.doSubscribeStream('stream', args);
+    }
+
+    private async doSubscribeStream(method: 'subscribe' | 'stream', args: any) {
+        // Prisma's `subscribe` and `stream` methods return an async iterable
+        // which we need to wrap to process the iteration results
+        const iterable = await this.prisma[this.model][method](args);
+        return {
+            [Symbol.asyncIterator]: () => {
+                const iter = iterable[Symbol.asyncIterator].bind(iterable)();
+                return {
+                    next: async () => {
+                        const { done, value } = await iter.next();
+                        const processedValue = value ? await this.processResultEntity(method, value) : value;
+                        return { done, value: processedValue };
+                    },
+                    return: () => iter.return?.(),
+                    throw: () => iter.throw?.(),
+                };
+            },
+        };
     }
 
     /**
      * Processes result entities before they're returned
      */
-    protected async processResultEntity<T>(data: T): Promise<T> {
+    protected async processResultEntity<T>(_method: PrismaProxyActions, data: T): Promise<T> {
         return data;
     }
 
     /**
      * Processes query args before they're passed to Prisma.
      */
-    protected async preprocessArgs(method: PrismaProxyActions, args: any) {
+    protected async preprocessArgs(_method: PrismaProxyActions, args: any) {
         return args;
     }
 }
