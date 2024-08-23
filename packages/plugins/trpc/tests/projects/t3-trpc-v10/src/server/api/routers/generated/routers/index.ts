@@ -20,6 +20,7 @@ export type ProcBuilder<Config extends BaseConfig> = ProcedureBuilder<
     ProcedureParams<Config, any, any, any, UnsetMarker, UnsetMarker, any>
 >;
 
+
 export function db(ctx: any) {
     if (!ctx.prisma) {
         throw new Error('Missing "prisma" field in trpc context');
@@ -27,10 +28,10 @@ export function db(ctx: any) {
     return ctx.prisma as PrismaClient;
 }
 
-export function createRouter<Config extends BaseConfig>(router: RouterFactory<Config>, procedure: ProcBuilder<Config>) {
-    return router({
-        user: createUserRouter(router, procedure),
-        post: createPostRouter(router, procedure),
+export function createRouter<Config extends BaseConfig>(createTRPCRouter: RouterFactory<Config>, procedure: ProcBuilder<Config>) {
+    return createTRPCRouter({
+        user: createUserRouter(createTRPCRouter, procedure),
+        post: createPostRouter(createTRPCRouter, procedure),
     }
     );
 }

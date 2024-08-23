@@ -27,4 +27,17 @@ describe('tRPC plugin tests with create-t3-app', () => {
         run('npx zenstack generate');
         run('npm run build');
     });
+
+    it('project test trpc v11', () => {
+        const ver = require(path.join(__dirname, '../package.json')).version;
+        process.chdir(path.join(__dirname, './projects/t3-trpc-v11'));
+
+        const deps = ['zenstackhq-language', 'zenstackhq-runtime', 'zenstackhq-sdk', 'zenstack'];
+        for (const dep of deps) {
+            run(`npm install ${path.join(__dirname, '../../../../.build/') + dep + '-' + ver + '.tgz'}`);
+        }
+
+        run('npx zenstack generate');
+        run('npm run build');
+    });
 });

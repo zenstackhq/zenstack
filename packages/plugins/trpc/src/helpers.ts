@@ -184,29 +184,63 @@ function getPrismaOperationTypes(model: string, operation: string) {
 /**
  * Generate precise Prisma-like typing for router procedures.
  */
-export function generateRouterTyping(writer: CodeBlockWriter, opType: string, modelName: string, baseOpType: string) {
+export function generateRouterTyping(
+    writer: CodeBlockWriter,
+    opType: string,
+    modelName: string,
+    baseOpType: string,
+    version: string
+) {
     const procType = getProcedureTypeByOpName(baseOpType);
     const { genericBase, argsType, resultType } = getPrismaOperationTypes(modelName, opType);
     const errorType = `TRPCClientErrorLike<AppRouter>`;
 
     writer.block(() => {
         if (procType === 'query') {
+            const queryOptions =
+                version === 'v10'
+                    ? `UseTRPCQueryOptions<string, T, ${resultType}, TData, Error>`
+                    : `UseTRPCQueryOptions<T, ${resultType}, TData, Error>`;
+
+            const infiniteQueryOptions =
+                version === 'v10'
+                    ? `UseTRPCInfiniteQueryOptions<string, T, ${resultType}, Error>`
+                    : `UseTRPCInfiniteQueryOptions<T, ${resultType}, Error>`;
+
+            const infiniteQueryResult =
+                version === 'v10'
+                    ? `UseTRPCInfiniteQueryResult<${resultType}, ${errorType}>`
+                    : `UseTRPCInfiniteQueryResult<${resultType}, ${errorType}, T>`;
+
             writer.writeLine(`
                 useQuery: <T extends ${genericBase}, TData = ${resultType}>(
                     input: ${argsType},
-                    opts?: UseTRPCQueryOptions<string, T, ${resultType}, TData, Error>
+                    opts?: ${queryOptions}
                     ) => UseTRPCQueryResult<
                         TData,
                         ${errorType}
                     >;
                 useInfiniteQuery: <T extends ${genericBase}>(
                     input: Omit<${argsType}, 'cursor'>,
-                    opts?: UseTRPCInfiniteQueryOptions<string, T, ${resultType}, Error>
-                    ) => UseTRPCInfiniteQueryResult<
-                        ${resultType},
+                    opts?: ${infiniteQueryOptions}
+                    ) => ${infiniteQueryResult};`);
+
+            if (version !== 'v10') {
+                // v11 uses tanstack-query v5 and supports suspense queries
+                writer.writeLine(`
+                useSuspenseQuery: <T extends ${genericBase}, TData = ${resultType}>(
+                    input: ${argsType},
+                    opts?: UseTRPCSuspenseQueryOptions<${resultType}, TData, Error>
+                    ) => UseTRPCSuspenseQueryResult<
+                        TData,
                         ${errorType}
                     >;
+                useSuspenseInfiniteQuery: <T extends ${genericBase}>(
+                    input: Omit<${argsType}, 'cursor'>,
+                    opts?: UseTRPCSuspenseInfiniteQueryOptions<T, ${resultType}, Error>
+                    ) => UseTRPCSuspenseInfiniteQueryResult<${resultType}, ${errorType}, T>;
                     `);
+            }
         } else if (procType === 'mutation') {
             writer.writeLine(`
                 useMutation: <T extends ${genericBase}>(opts?: UseTRPCMutationOptions<
@@ -224,15 +258,22 @@ export function generateRouterTyping(writer: CodeBlockWriter, opType: string, mo
     });
 }
 
-export function generateRouterTypingImports(sourceFile: SourceFile, options: PluginOptions) {
+export function generateRouterTypingImports(sourceFile: SourceFile, options: PluginOptions, version: string) {
     const importingDir = sourceFile.getDirectoryPath();
     const prismaImport = getPrismaClientImportSpec(importingDir, options);
     sourceFile.addStatements([
         `import type { Prisma } from '${prismaImport}';`,
         `import type { UseTRPCMutationOptions, UseTRPCMutationResult, UseTRPCQueryOptions, UseTRPCQueryResult, UseTRPCInfiniteQueryOptions, UseTRPCInfiniteQueryResult } from '@trpc/react-query/shared';`,
         `import type { TRPCClientErrorLike } from '@trpc/client';`,
-        `import type { AnyRouter } from '@trpc/server';`,
     ]);
+    if (version === 'v10') {
+        sourceFile.addStatements([`import type { AnyRouter } from '@trpc/server';`]);
+    } else {
+        sourceFile.addStatements([
+            `import type { AnyTRPCRouter as AnyRouter } from '@trpc/server';`,
+            `import type { UseTRPCSuspenseQueryOptions, UseTRPCSuspenseQueryResult, UseTRPCSuspenseInfiniteQueryOptions, UseTRPCSuspenseInfiniteQueryResult } from '@trpc/react-query/shared';`,
+        ]);
+    }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

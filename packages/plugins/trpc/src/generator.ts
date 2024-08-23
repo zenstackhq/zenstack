@@ -50,6 +50,24 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     outDir = resolvePath(outDir, options);
     ensureEmptyDir(outDir);
 
+    const version = typeof options.version === 'string' ? options.version : 'v10';
+    if (!['v10', 'v11'].includes(version)) {
+        throw new PluginError(name, `Unsupported tRPC version "${version}". Use "v10" (default) or "v11".`);
+    }
+
+    if (version === 'v11') {
+        // v11 require options for importing `createTRPCRouter` and `procedure`
+        const importCreateRouter = options.importCreateRouter as string;
+        if (!importCreateRouter) {
+            throw new PluginError(name, `Option "importCreateRouter" is required for tRPC v11`);
+        }
+
+        const importProcedure = options.importProcedure as string;
+        if (!importProcedure) {
+            throw new PluginError(name, `Option "importProcedure" is required for tRPC v11`);
+        }
+    }
+
     const prismaClientDmmf = dmmf;
 
     let modelOperations = prismaClientDmmf.mappings.modelOperations;
@@ -71,8 +89,10 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
         generateClientHelpers,
         model,
         zodSchemasImport,
-        options
+        options,
+        version
     );
+
     createHelper(outDir);
 
     await saveProject(project);
@@ -86,7 +106,8 @@ function createAppRouter(
     generateClientHelpers: string[] | undefined,
     zmodel: Model,
     zodSchemasImport: string,
-    options: PluginOptions
+    options: PluginOptions,
+    version: string
 ) {
     const indexFile = path.resolve(outDir, 'routers', `index.ts`);
     const appRouter = project.createSourceFile(indexFile, undefined, {
@@ -96,22 +117,36 @@ function createAppRouter(
     appRouter.addStatements('/* eslint-disable */');
 
     const prismaImport = getPrismaClientImportSpec(path.dirname(indexFile), options);
+
+    if (version === 'v10') {
+        appRouter.addImportDeclarations([
+            {
+                namedImports: [
+                    'unsetMarker',
+                    'AnyRouter',
+                    'AnyRootConfig',
+                    'CreateRouterInner',
+                    'Procedure',
+                    'ProcedureBuilder',
+                    'ProcedureParams',
+                    'ProcedureRouterRecord',
+                    'ProcedureType',
+                ],
+                isTypeOnly: true,
+                moduleSpecifier: '@trpc/server',
+            },
+        ]);
+    } else {
+        appRouter.addImportDeclarations([
+            {
+                namedImports: ['AnyTRPCRouter as AnyRouter'],
+                isTypeOnly: true,
+                moduleSpecifier: '@trpc/server',
+            },
+        ]);
+    }
+
     appRouter.addImportDeclarations([
-        {
-            namedImports: [
-                'unsetMarker',
-                'AnyRouter',
-                'AnyRootConfig',
-                'CreateRouterInner',
-                'Procedure',
-                'ProcedureBuilder',
-                'ProcedureParams',
-                'ProcedureRouterRecord',
-                'ProcedureType',
-            ],
-            isTypeOnly: true,
-            moduleSpecifier: '@trpc/server',
-        },
         {
             namedImports: ['PrismaClient'],
             isTypeOnly: true,
@@ -119,8 +154,8 @@ function createAppRouter(
         },
     ]);
 
-    appRouter.addStatements(`
-
+    if (version === 'v10') {
+        appRouter.addStatements(`
         export type BaseConfig = AnyRootConfig;
 
         export type RouterFactory<Config extends BaseConfig> = <
@@ -133,7 +168,16 @@ function createAppRouter(
 
         export type ProcBuilder<Config extends BaseConfig> = ProcedureBuilder<
             ProcedureParams<Config, any, any, any, UnsetMarker, UnsetMarker, any>
-        >;
+        >;            
+        `);
+    } else {
+        appRouter.addImportDeclaration({
+            namedImports: ['createTRPCRouter'],
+            moduleSpecifier: options.importCreateRouter as string,
+        });
+    }
+
+    appRouter.addStatements(`
 
         export function db(ctx: any) {
             if (!ctx.prisma) {
@@ -141,22 +185,24 @@ function createAppRouter(
             }
             return ctx.prisma as PrismaClient;
         }
-        
     `);
 
     const filteredModelOperations = modelOperations.filter((mo) => !hiddenModels.includes(mo.model));
 
     appRouter
         .addFunction({
-            name: 'createRouter<Config extends BaseConfig>',
-            parameters: [
-                { name: 'router', type: 'RouterFactory<Config>' },
-                { name: 'procedure', type: 'ProcBuilder<Config>' },
-            ],
+            name: version === 'v10' ? 'createRouter<Config extends BaseConfig>' : 'createRouter',
+            parameters:
+                version === 'v10'
+                    ? [
+                          { name: 'createTRPCRouter', type: 'RouterFactory<Config>' },
+                          { name: 'procedure', type: 'ProcBuilder<Config>' },
+                      ]
+                    : [],
             isExported: true,
         })
         .setBodyText((writer) => {
-            writer.write('return router(');
+            writer.write('return createTRPCRouter(');
             writer.block(() => {
                 for (const modelOperation of filteredModelOperations) {
                     const { model, ...operations } = modelOperation;
@@ -173,7 +219,8 @@ function createAppRouter(
                         generateClientHelpers,
                         zodSchemasImport,
                         options,
-                        zmodel
+                        zmodel,
+                        version
                     );
 
                     appRouter.addImportDeclaration({
@@ -181,7 +228,13 @@ function createAppRouter(
                         moduleSpecifier: `./${model}.router`,
                     });
 
-                    writer.writeLine(`${lowerCaseFirst(model)}: create${model}Router(router, procedure),`);
+                    if (version === 'v10') {
+                        writer.writeLine(
+                            `${lowerCaseFirst(model)}: create${model}Router(createTRPCRouter, procedure),`
+                        );
+                    } else {
+                        writer.writeLine(`${lowerCaseFirst(model)}: create${model}Router(),`);
+                    }
                 }
             });
             writer.write(');');
@@ -204,22 +257,22 @@ function createAppRouter(
             }),
         });
 
-        createClientHelpers(outDir, generateClientHelpers);
+        createClientHelpers(outDir, generateClientHelpers, version);
     }
 
     appRouter.formatText();
 }
 
-function createClientHelpers(outputDir: string, generateClientHelpers: string[]) {
+function createClientHelpers(outputDir: string, generateClientHelpers: string[], version: string) {
     const utils = project.createSourceFile(path.resolve(outputDir, 'client', `utils.ts`), undefined, {
         overwrite: true,
     });
-    utils.replaceWithText(fs.readFileSync(path.join(__dirname, './res/client/utils.ts'), 'utf-8'));
+    utils.replaceWithText(fs.readFileSync(path.join(__dirname, `./res/client/${version}/utils.ts`), 'utf-8'));
 
     for (const client of generateClientHelpers) {
         switch (client) {
             case 'react': {
-                const content = fs.readFileSync(path.join(__dirname, './res/client/react.ts'), 'utf-8');
+                const content = fs.readFileSync(path.join(__dirname, `./res/client/${version}/react.ts`), 'utf-8');
                 project.createSourceFile(path.resolve(outputDir, 'client', 'react.ts'), content, {
                     overwrite: true,
                 });
@@ -227,7 +280,7 @@ function createClientHelpers(outputDir: string, generateClientHelpers: string[])
             }
 
             case 'next': {
-                const content = fs.readFileSync(path.join(__dirname, './res/client/next.ts'), 'utf-8');
+                const content = fs.readFileSync(path.join(__dirname, `./res/client/${version}/next.ts`), 'utf-8');
                 project.createSourceFile(path.resolve(outputDir, 'client', 'next.ts'), content, { overwrite: true });
                 break;
             }
@@ -244,7 +297,8 @@ function generateModelCreateRouter(
     generateClientHelpers: string[] | undefined,
     zodSchemasImport: string,
     options: PluginOptions,
-    zmodel: Model
+    zmodel: Model,
+    version: string
 ) {
     const modelRouter = project.createSourceFile(path.resolve(outputDir, 'routers', `${model}.router.ts`), undefined, {
         overwrite: true,
@@ -252,28 +306,63 @@ function generateModelCreateRouter(
 
     modelRouter.addStatements('/* eslint-disable */');
 
-    modelRouter.addImportDeclarations([
-        {
-            namedImports: ['type RouterFactory', 'type ProcBuilder', 'type BaseConfig', 'db'],
-            moduleSpecifier: '.',
-        },
-    ]);
+    if (version === 'v10') {
+        modelRouter.addImportDeclarations([
+            {
+                namedImports: ['type RouterFactory', 'type ProcBuilder', 'type BaseConfig', 'db'],
+                moduleSpecifier: '.',
+            },
+        ]);
+    } else {
+        modelRouter.addImportDeclarations([
+            {
+                namedImports: ['db'],
+                moduleSpecifier: '.',
+            },
+        ]);
 
-    generateRouterSchemaImport(modelRouter, zodSchemasImport);
-    generateHelperImport(modelRouter);
-    if (generateClientHelpers) {
-        generateRouterTypingImports(modelRouter, options);
+        modelRouter.addImportDeclarations([
+            {
+                namedImports: ['createTRPCRouter'],
+                moduleSpecifier: options.importCreateRouter as string,
+            },
+        ]);
+
+        modelRouter.addImportDeclarations([
+            {
+                namedImports: ['procedure'],
+                moduleSpecifier: options.importProcedure as string,
+            },
+        ]);
     }
 
-    const createRouterFunc = modelRouter.addFunction({
-        name: 'createRouter<Config extends BaseConfig>',
-        parameters: [
-            { name: 'router', type: 'RouterFactory<Config>' },
-            { name: 'procedure', type: 'ProcBuilder<Config>' },
-        ],
-        isExported: true,
-        isDefaultExport: true,
-    });
+    // zod schema import
+    generateRouterSchemaImport(modelRouter, zodSchemasImport);
+
+    // runtime helpers
+    generateHelperImport(modelRouter);
+
+    // client helper imports
+    if (generateClientHelpers) {
+        generateRouterTypingImports(modelRouter, options, version);
+    }
+
+    const createRouterFunc =
+        version === 'v10'
+            ? modelRouter.addFunction({
+                  name: 'createRouter<Config extends BaseConfig>',
+                  parameters: [
+                      { name: 'createTRPCRouter', type: 'RouterFactory<Config>' },
+                      { name: 'procedure', type: 'ProcBuilder<Config>' },
+                  ],
+                  isExported: true,
+                  isDefaultExport: true,
+              })
+            : modelRouter.addFunction({
+                  name: 'createRouter',
+                  isExported: true,
+                  isDefaultExport: true,
+              });
 
     let routerTypingStructure: InterfaceDeclarationStructure | undefined = undefined;
     if (generateClientHelpers) {
@@ -294,7 +383,7 @@ function generateModelCreateRouter(
     }
 
     createRouterFunc.setBodyText((funcWriter) => {
-        funcWriter.write('return router(');
+        funcWriter.write('return createTRPCRouter(');
         funcWriter.block(() => {
             for (const [opType, opNameWithModel] of Object.entries(operations)) {
                 if (isDelegateModel(dataModel) && (opType.startsWith('create') || opType.startsWith('upsert'))) {
@@ -322,7 +411,7 @@ function generateModelCreateRouter(
                             kind: StructureKind.PropertySignature,
                             name: generateOpName,
                             type: (writer) => {
-                                generateRouterTyping(writer, generateOpName, model, baseOpType);
+                                generateRouterTyping(writer, generateOpName, model, baseOpType, version);
                             },
                         });
                     }
