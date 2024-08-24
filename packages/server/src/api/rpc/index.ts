@@ -18,7 +18,7 @@ import { logError, registerCustomSerializers } from '../utils';
 registerCustomSerializers();
 
 const ERROR_STATUS_MAPPING: Record<string, number> = {
-    [PrismaErrorCode.CONSTRAINED_FAILED]: 403,
+    [PrismaErrorCode.CONSTRAINT_FAILED]: 403,
     [PrismaErrorCode.REQUIRED_CONNECTED_RECORD_NOT_FOUND]: 404,
     [PrismaErrorCode.DEPEND_ON_RECORD_NOT_FOUND]: 404,
 };
