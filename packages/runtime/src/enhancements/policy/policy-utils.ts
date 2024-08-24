@@ -1215,7 +1215,7 @@ export class PolicyUtil extends QueryUtils {
         reason?: CrudFailureReason,
         zodErrors?: ZodError
     ) {
-        const args: any = { clientVersion: getVersion(), code: PrismaErrorCode.CONSTRAINED_FAILED, meta: {} };
+        const args: any = { clientVersion: getVersion(), code: PrismaErrorCode.CONSTRAINT_FAILED, meta: {} };
         if (reason) {
             args.meta.reason = reason;
         }
