@@ -237,7 +237,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     }
 
     if (opt.pushDb) {
-        run('npx prisma db push --skip-generate');
+        run('npx prisma db push --skip-generate --accept-data-loss');
     }
 
     if (opt.pulseApiKey) {
@@ -264,10 +264,10 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     // https://github.com/prisma/prisma/issues/18292
     prisma[Symbol.for('nodejs.util.inspect.custom')] = 'PrismaClient';
 
-    const prismaModule = require(path.join(projectDir, 'node_modules/@prisma/client')).Prisma;
+    const prismaModule = loadModule('@prisma/client', projectDir).Prisma;
 
     if (opt.pulseApiKey) {
-        const withPulse = require(path.join(projectDir, 'node_modules/@prisma/extension-pulse/dist/cjs')).withPulse;
+        const withPulse = loadModule('@prisma/extension-pulse/node', projectDir).withPulse;
         prisma = prisma.$extends(withPulse({ apiKey: opt.pulseApiKey }));
     }
 
@@ -387,4 +387,9 @@ export async function loadZModelAndDmmf(
 
     const dmmf = await getDMMF({ datamodel: prismaContent });
     return { model, dmmf, modelFile };
+}
+
+function loadModule(module: string, basePath: string): any {
+    const modulePath = require.resolve(module, { paths: [basePath] });
+    return require(modulePath);
 }

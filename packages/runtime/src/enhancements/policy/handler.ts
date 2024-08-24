@@ -1537,53 +1537,102 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
     //#endregion
 
-    //#region Subscribe (Prisma Pulse)
+    //#region Prisma Pulse
 
     subscribe(args: any) {
-        return createDeferredPromise(() => {
-            const readGuard = this.policyUtils.getAuthGuard(this.prisma, this.model, 'read');
-            if (this.policyUtils.isTrue(readGuard)) {
-                // no need to inject
-                if (this.shouldLogQuery) {
-                    this.logger.info(`[policy] \`subscribe\` ${this.model}:\n${formatObject(args)}`);
-                }
-                return this.modelClient.subscribe(args);
-            }
+        return this.handleSubscribeStream('subscribe', args);
+    }
 
-            if (!args) {
-                // include all
-                args = { create: {}, update: {}, delete: {} };
+    stream(args: any) {
+        return this.handleSubscribeStream('stream', args);
+    }
+
+    private async handleSubscribeStream(action: 'subscribe' | 'stream', args: any) {
+        if (!args) {
+            // include all
+            args = { create: {}, update: {}, delete: {} };
+        } else {
+            if (typeof args !== 'object') {
+                throw prismaClientValidationError(this.prisma, this.prismaModule, 'argument must be an object');
+            }
+            args = this.policyUtils.safeClone(args);
+        }
+
+        // inject read guard as subscription filter
+        for (const key of ['create', 'update', 'delete']) {
+            if (args[key] === undefined) {
+                continue;
+            }
+            // "update" has an extra layer of "after"
+            const payload = key === 'update' ? args[key].after : args[key];
+            const toInject = { where: payload };
+            this.policyUtils.injectForRead(this.prisma, this.model, toInject);
+            if (key === 'update') {
+                // "update" has an extra layer of "after"
+                args[key].after = toInject.where;
             } else {
-                if (typeof args !== 'object') {
-                    throw prismaClientValidationError(this.prisma, this.prismaModule, 'argument must be an object');
-                }
-                if (Object.keys(args).length === 0) {
-                    // include all
-                    args = { create: {}, update: {}, delete: {} };
-                } else {
-                    args = this.policyUtils.safeClone(args);
-                }
+                args[key] = toInject.where;
             }
+        }
 
-            // inject into subscribe conditions
+        if (this.shouldLogQuery) {
+            this.logger.info(`[policy] \`${action}\` ${this.model}:\n${formatObject(args)}`);
+        }
 
-            if (args.create) {
-                args.create.after = this.policyUtils.and(args.create.after, readGuard);
-            }
+        // Prisma Pulse returns an async iterable, which we need to wrap
+        // and post-process the iteration results
+        const iterable = await this.modelClient[action](args);
+        return {
+            [Symbol.asyncIterator]: () => {
+                const iter = iterable[Symbol.asyncIterator].bind(iterable)();
+                return {
+                    next: async () => {
+                        const { done, value } = await iter.next();
+                        let processedValue = value;
+                        if (value && 'action' in value) {
+                            switch (value.action) {
+                                case 'create':
+                                    if ('created' in value) {
+                                        processedValue = {
+                                            ...value,
+                                            created: this.policyUtils.postProcessForRead(value.created, this.model, {}),
+                                        };
+                                    }
+                                    break;
 
-            if (args.update) {
-                args.update.after = this.policyUtils.and(args.update.after, readGuard);
-            }
+                                case 'update':
+                                    if ('before' in value) {
+                                        processedValue = {
+                                            ...value,
+                                            before: this.policyUtils.postProcessForRead(value.before, this.model, {}),
+                                        };
+                                    }
+                                    if ('after' in value) {
+                                        processedValue = {
+                                            ...value,
+                                            after: this.policyUtils.postProcessForRead(value.after, this.model, {}),
+                                        };
+                                    }
+                                    break;
 
-            if (args.delete) {
-                args.delete.before = this.policyUtils.and(args.delete.before, readGuard);
-            }
+                                case 'delete':
+                                    if ('deleted' in value) {
+                                        processedValue = {
+                                            ...value,
+                                            deleted: this.policyUtils.postProcessForRead(value.deleted, this.model, {}),
+                                        };
+                                    }
+                                    break;
+                            }
+                        }
 
-            if (this.shouldLogQuery) {
-                this.logger.info(`[policy] \`subscribe\` ${this.model}:\n${formatObject(args)}`);
-            }
-            return this.modelClient.subscribe(args);
-        });
+                        return { done, value: processedValue };
+                    },
+                    return: () => iter.return?.(),
+                    throw: () => iter.throw?.(),
+                };
+            },
+        };
     }
 
     //#endregion

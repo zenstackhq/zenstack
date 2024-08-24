@@ -595,6 +595,7 @@ export class PolicyUtil extends QueryUtils {
         // make select and include visible to the injection
         const injected: any = { select: args.select, include: args.include };
         if (!this.injectAuthGuardAsWhere(db, injected, model, 'read')) {
+            args.where = this.makeFalse();
             return false;
         }
 

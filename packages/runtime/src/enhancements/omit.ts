@@ -26,8 +26,39 @@ class OmitHandler extends DefaultPrismaProxyHandler {
     }
 
     // base override
-    protected async processResultEntity<T>(data: T): Promise<T> {
-        if (data) {
+    protected async processResultEntity<T>(method: string, data: T): Promise<T> {
+        if (!data || typeof data !== 'object') {
+            return data;
+        }
+
+        if (method === 'subscribe' || method === 'stream') {
+            if (!('action' in data)) {
+                return data;
+            }
+
+            // Prisma Pulse result
+            switch (data.action) {
+                case 'create':
+                    if ('created' in data) {
+                        await this.doPostProcess(data.created, this.model);
+                    }
+                    break;
+                case 'update':
+                    if ('before' in data) {
+                        await this.doPostProcess(data.before, this.model);
+                    }
+                    if ('after' in data) {
+                        await this.doPostProcess(data.after, this.model);
+                    }
+                    break;
+                case 'delete':
+                    if ('deleted' in data) {
+                        await this.doPostProcess(data.deleted, this.model);
+                    }
+                    break;
+            }
+        } else {
+            // regular prisma client result
             for (const value of enumerate(data)) {
                 await this.doPostProcess(value, this.model);
             }
