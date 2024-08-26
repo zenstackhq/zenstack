@@ -473,10 +473,11 @@ export class PolicyUtil extends QueryUtils {
 
         let mergedGuard = guard;
         if (args.where) {
-            // inject into relation fields:
+            // inject into fields:
             //   to-many: some/none/every
             //   to-one: direct-conditions/is/isNot
-            mergedGuard = this.injectReadGuardForRelationFields(db, model, args.where, guard);
+            //   regular fields
+            mergedGuard = this.buildReadGuardForFields(db, model, args.where, guard);
         }
 
         args.where = this.and(args.where, mergedGuard);
@@ -485,7 +486,7 @@ export class PolicyUtil extends QueryUtils {
 
     // Injects guard for relation fields nested in `payload`. The `modelGuard` parameter represents the model-level guard for `model`.
     // The function returns a modified copy of `modelGuard` with field-level policies combined.
-    private injectReadGuardForRelationFields(db: CrudContract, model: string, payload: any, modelGuard: any) {
+    private buildReadGuardForFields(db: CrudContract, model: string, payload: any, modelGuard: any) {
         if (!payload || typeof payload !== 'object' || Object.keys(payload).length === 0) {
             return modelGuard;
         }
@@ -530,12 +531,12 @@ export class PolicyUtil extends QueryUtils {
     ) {
         const guard = this.getAuthGuard(db, fieldInfo.type, 'read');
         if (payload.some) {
-            const mergedGuard = this.injectReadGuardForRelationFields(db, fieldInfo.type, payload.some, guard);
+            const mergedGuard = this.buildReadGuardForFields(db, fieldInfo.type, payload.some, guard);
             // turn "some" into: { some: { AND: [guard, payload.some] } }
             payload.some = this.and(payload.some, mergedGuard);
         }
         if (payload.none) {
-            const mergedGuard = this.injectReadGuardForRelationFields(db, fieldInfo.type, payload.none, guard);
+            const mergedGuard = this.buildReadGuardForFields(db, fieldInfo.type, payload.none, guard);
             // turn none into: { none: { AND: [guard, payload.none] } }
             payload.none = this.and(payload.none, mergedGuard);
         }
@@ -545,7 +546,7 @@ export class PolicyUtil extends QueryUtils {
             // ignore empty every clause
             Object.keys(payload.every).length > 0
         ) {
-            const mergedGuard = this.injectReadGuardForRelationFields(db, fieldInfo.type, payload.every, guard);
+            const mergedGuard = this.buildReadGuardForFields(db, fieldInfo.type, payload.every, guard);
 
             // turn "every" into: { none: { AND: [guard, { NOT: payload.every }] } }
             if (!payload.none) {
@@ -569,18 +570,18 @@ export class PolicyUtil extends QueryUtils {
 
         if (payload.is !== undefined || payload.isNot !== undefined) {
             if (payload.is) {
-                const mergedGuard = this.injectReadGuardForRelationFields(db, fieldInfo.type, payload.is, guard);
+                const mergedGuard = this.buildReadGuardForFields(db, fieldInfo.type, payload.is, guard);
                 // merge guard with existing "is": { is: { AND: [originalIs, guard] } }
                 payload.is = this.and(payload.is, mergedGuard);
             }
 
             if (payload.isNot) {
-                const mergedGuard = this.injectReadGuardForRelationFields(db, fieldInfo.type, payload.isNot, guard);
+                const mergedGuard = this.buildReadGuardForFields(db, fieldInfo.type, payload.isNot, guard);
                 // merge guard with existing "isNot":  { isNot: { AND: [originalIsNot, guard] } }
                 payload.isNot = this.and(payload.isNot, mergedGuard);
             }
         } else {
-            const mergedGuard = this.injectReadGuardForRelationFields(db, fieldInfo.type, payload, guard);
+            const mergedGuard = this.buildReadGuardForFields(db, fieldInfo.type, payload, guard);
             // turn direct conditions into: { is: { AND: [ originalConditions, guard ] } }
             const combined = this.and(clone(payload), mergedGuard);
             Object.keys(payload).forEach((key) => delete payload[key]);
@@ -600,18 +601,22 @@ export class PolicyUtil extends QueryUtils {
         }
 
         if (args.where) {
-            // inject into relation fields:
+            // inject into fields:
             //   to-many: some/none/every
             //   to-one: direct-conditions/is/isNot
-            this.injectReadGuardForRelationFields(db, model, args.where, {});
+            //   regular fields
+            const mergedGuard = this.buildReadGuardForFields(db, model, args.where, {});
+            this.mergeWhereClause(args.where, mergedGuard);
         }
 
-        if (injected.where && Object.keys(injected.where).length > 0 && !this.isTrue(injected.where)) {
-            if (!args.where) {
-                args.where = injected.where;
-            } else {
+        if (args.where) {
+            if (injected.where && Object.keys(injected.where).length > 0) {
+                // merge injected guard with the user-provided where clause
                 this.mergeWhereClause(args.where, injected.where);
             }
+        } else if (injected.where) {
+            // no user-provided where clause, use the injected one
+            args.where = injected.where;
         }
 
         // recursively inject read guard conditions into nested select, include, and _count
