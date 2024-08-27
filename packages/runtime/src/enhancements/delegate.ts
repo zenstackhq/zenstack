@@ -153,7 +153,22 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             if (args[kind] && typeof args[kind] === 'object') {
                 for (const [field, value] of Object.entries<any>(args[kind])) {
                     const fieldInfo = resolveField(this.options.modelMeta, model, field);
-                    if (fieldInfo && value !== undefined) {
+                    if (!fieldInfo) {
+                        continue;
+                    }
+
+                    if (this.isDelegateOrDescendantOfDelegate(fieldInfo?.type) && value) {
+                        // delegate model, recursively inject hierarchy
+                        if (args[kind][field]) {
+                            if (args[kind][field] === true) {
+                                // make sure the payload is an object
+                                args[kind][field] = {};
+                            }
+                            this.injectSelectIncludeHierarchy(fieldInfo.type, args[kind][field]);
+                        }
+                    }
+
+                    if (value !== undefined) {
                         if (value?.orderBy) {
                             // `orderBy` may contain fields from base types
                             this.injectWhereHierarchy(fieldInfo.type, value.orderBy);
@@ -1127,7 +1142,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             return destination;
         };
 
-        const result = deepmerge(upMerged, downMerged, {
+        const result: any = deepmerge(upMerged, downMerged, {
             arrayMerge: combineMerge,
             isMergeableObject: (v) => isPlainObject(v) || Array.isArray(v), // avoid messing with Decimal, Date, etc.
         });
