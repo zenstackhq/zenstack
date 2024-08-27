@@ -815,8 +815,15 @@ export class ExpressionWriter {
         }
 
         this.block(() => {
-            const targetGuardFunc = getQueryGuardFunctionName(targetModel, undefined, false, operation);
-            this.writer.write(`${fieldRef.target.$refText}: ${targetGuardFunc}(context, db)`);
+            if (operation === 'postUpdate') {
+                // 'postUpdate' policies are not delegated to relations, just use constant `false` here
+                // e.g.:
+                //   @@allow('all', check(author)) should not delegate "postUpdate" to author
+                this.writer.write(`${fieldRef.target.$refText}: ${FALSE}`);
+            } else {
+                const targetGuardFunc = getQueryGuardFunctionName(targetModel, undefined, false, operation);
+                this.writer.write(`${fieldRef.target.$refText}: ${targetGuardFunc}(context, db)`);
+            }
         });
     }
 }
