@@ -12,7 +12,6 @@ import {
     getIdFields,
     getModelInfo,
     isDelegateModel,
-    requireField,
     resolveField,
 } from '../cross';
 import type { CrudContract, DbClientContract } from '../types';
@@ -153,7 +152,10 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         for (const kind of ['select', 'include'] as const) {
             if (args[kind] && typeof args[kind] === 'object') {
                 for (const [field, value] of Object.entries<any>(args[kind])) {
-                    const fieldInfo = requireField(this.options.modelMeta, model, field);
+                    const fieldInfo = resolveField(this.options.modelMeta, model, field);
+                    if (!fieldInfo) {
+                        continue;
+                    }
 
                     if (this.isDelegateOrDescendantOfDelegate(fieldInfo?.type) && value) {
                         // delegate model, recursively inject hierarchy
