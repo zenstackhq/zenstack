@@ -637,18 +637,13 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
 
         schemas['_Meta'] = {
             type: 'object',
+            description: 'Meta information about the request or response',
             properties: {
-                meta: {
-                    type: 'object',
-                    description: 'Meta information about the request or response',
-                    properties: {
-                        serialization: {
-                            description: 'Serialization metadata',
-                        },
-                    },
-                    additionalProperties: true,
+                serialization: {
+                    description: 'Serialization metadata',
                 },
             },
+            additionalProperties: true,
         };
 
         schemas['_Error'] = {
