@@ -298,7 +298,8 @@ function getBackLink(field: DataModelField) {
 
     const relName = getRelationName(field);
 
-    const sourceModel = field.$container as DataModel;
+    // in case of polymorphism, the source model is the base delegate model
+    const sourceModel = field.$inheritedFrom ?? (field.$container as DataModel);
     const targetModel = field.type.reference.ref as DataModel;
 
     for (const otherField of targetModel.fields) {
