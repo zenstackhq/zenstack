@@ -40,6 +40,8 @@ export type PluginRunnerOptions = {
     schema: Model;
     schemaPath: string;
     output?: string;
+    withPlugins?: string[];
+    withoutPlugins?: string[];
     defaultPlugins: boolean;
     compile: boolean;
 };
@@ -137,7 +139,17 @@ export class PluginRunner {
         const project = createProject();
         for (const { name, description, run, options: pluginOptions } of corePlugins) {
             const options = { ...pluginOptions, prismaClientPath };
-            const r = await this.runPlugin(name, description, run, runnerOptions, options, dmmf, shortNameMap, project);
+            const r = await this.runPlugin(
+                name,
+                description,
+                run,
+                runnerOptions,
+                options,
+                dmmf,
+                shortNameMap,
+                project,
+                true
+            );
             warnings.push(...(r?.warnings ?? [])); // the null-check is for backward compatibility
 
             if (r.dmmf) {
@@ -162,7 +174,17 @@ export class PluginRunner {
         // run user plugins
         for (const { name, description, run, options: pluginOptions } of userPlugins) {
             const options = { ...pluginOptions, prismaClientPath };
-            const r = await this.runPlugin(name, description, run, runnerOptions, options, dmmf, shortNameMap, project);
+            const r = await this.runPlugin(
+                name,
+                description,
+                run,
+                runnerOptions,
+                options,
+                dmmf,
+                shortNameMap,
+                project,
+                false
+            );
             warnings.push(...(r?.warnings ?? [])); // the null-check is for backward compatibility
         }
 
@@ -180,7 +202,7 @@ export class PluginRunner {
         if (existingPrisma) {
             corePlugins.push(existingPrisma);
             plugins.splice(plugins.indexOf(existingPrisma), 1);
-        } else if (options.defaultPlugins || plugins.some((p) => p.provider !== CorePlugins.Prisma)) {
+        } else if (options.defaultPlugins && plugins.some((p) => p.provider !== CorePlugins.Prisma)) {
             // "@core/prisma" is enabled as default or if any other plugin is configured
             corePlugins.push(this.makeCorePlugin(CorePlugins.Prisma, options.schemaPath, {}));
         }
@@ -215,7 +237,8 @@ export class PluginRunner {
 
         if (
             !corePlugins.some((p) => p.provider === CorePlugins.Zod) &&
-            (options.defaultPlugins || corePlugins.some((p) => p.provider === CorePlugins.Enhancer)) &&
+            options.defaultPlugins &&
+            corePlugins.some((p) => p.provider === CorePlugins.Enhancer) &&
             hasValidation
         ) {
             // ensure "@core/zod" is enabled if "@core/enhancer" is enabled and there're validation rules
@@ -319,10 +342,17 @@ export class PluginRunner {
         options: PluginDeclaredOptions,
         dmmf: DMMF.Document | undefined,
         shortNameMap: Map<string, string> | undefined,
-        project: Project
+        project: Project,
+        isCorePlugin: boolean
     ) {
+        if (!isCorePlugin && !this.isPluginEnabled(name, runnerOptions)) {
+            ora(`Plugin "${name}" is skipped`).start().warn();
+            return { warnings: [] };
+        }
+
         const title = description ?? `Running plugin ${colors.cyan(name)}`;
         const spinner = ora(title).start();
+
         try {
             const r = await telemetry.trackSpan<PluginResult | void>(
                 'cli:plugin:start',
@@ -356,6 +386,18 @@ export class PluginRunner {
             spinner.fail();
             throw err;
         }
+    }
+
+    private isPluginEnabled(name: string, runnerOptions: PluginRunnerOptions) {
+        if (runnerOptions.withPlugins && !runnerOptions.withPlugins.includes(name)) {
+            return false;
+        }
+
+        if (runnerOptions.withoutPlugins && runnerOptions.withoutPlugins.includes(name)) {
+            return false;
+        }
+
+        return true;
     }
 
     private getPluginModulePath(provider: string, schemaPath: string) {
