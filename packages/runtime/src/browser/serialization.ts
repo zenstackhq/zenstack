@@ -1,11 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Buffer } from 'buffer';
-import Decimal from 'decimal.js';
+import Decimal from 'decimal.js-light';
 import SuperJSON from 'superjson';
 
 SuperJSON.registerCustom<Decimal, string>(
     {
-        isApplicable: (v): v is Decimal => Decimal.isDecimal(v),
+        isApplicable: (v): v is Decimal =>
+            v instanceof Decimal ||
+            // interop with decimal.js
+            v.toStringTag === '[object Decimal]',
         serialize: (v) => v.toJSON(),
         deserialize: (v) => new Decimal(v),
     },

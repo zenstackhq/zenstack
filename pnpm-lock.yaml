@@ -205,9 +205,6 @@ importers:
       cross-fetch:
         specifier: ^4.0.0
         version: 4.0.0(encoding@0.1.13)
-      decimal.js:
-        specifier: ^10.4.2
-        version: 10.4.3
       lower-case-first:
         specifier: ^2.0.2
         version: 2.0.2
@@ -267,9 +264,6 @@ importers:
       cross-fetch:
         specifier: ^4.0.0
         version: 4.0.0(encoding@0.1.13)
-      decimal.js:
-        specifier: ^10.4.2
-        version: 10.4.3
       lower-case-first:
         specifier: ^2.0.2
         version: 2.0.2
@@ -409,9 +403,9 @@ importers:
       change-case:
         specifier: ^4.1.2
         version: 4.1.2
-      decimal.js:
-        specifier: ^10.4.2
-        version: 10.4.3
+      decimal.js-light:
+        specifier: ^2.5.1
+        version: 2.5.1
       deepmerge:
         specifier: ^4.3.1
         version: 4.3.1
@@ -4203,6 +4197,9 @@ packages:
   decamelize@2.0.0:
     resolution: {integrity: sha512-Ikpp5scV3MSYxY39ymh45ZLEecsTdv/Xj2CaQfI8RLMuwi7XvjX9H/fhraiSuU+C5w5NTDu4ZU72xNiZnurBPg==}
     engines: {node: '>=4'}
+
+  decimal.js-light@2.5.1:
+    resolution: {integrity: sha512-qIMFpTMZmny+MMIitAB6D7iVPEorVw6YQRWkvarTkT4tBeSLLiHzcwj6q0MmYSFCiVpiqPJTJEYIrpcPzVEIvg==}
 
   decimal.js@10.4.3:
     resolution: {integrity: sha512-VBBaLc1MgL5XpzgIP7ny5Z6Nx3UrRkIViUkPUdtl9aya5amy3De1gsUUSB1g3+3sExYNjCAsAznmukyxCb1GRA==}
@@ -12588,6 +12585,8 @@ snapshots:
   decamelize@2.0.0:
     dependencies:
       xregexp: 4.0.0
+
+  decimal.js-light@2.5.1: {}
 
   decimal.js@10.4.3: {}
 
