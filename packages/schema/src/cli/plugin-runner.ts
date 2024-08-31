@@ -202,8 +202,7 @@ export class PluginRunner {
         if (existingPrisma) {
             corePlugins.push(existingPrisma);
             plugins.splice(plugins.indexOf(existingPrisma), 1);
-        } else if (options.defaultPlugins && plugins.some((p) => p.provider !== CorePlugins.Prisma)) {
-            // "@core/prisma" is enabled as default or if any other plugin is configured
+        } else if (options.defaultPlugins) {
             corePlugins.push(this.makeCorePlugin(CorePlugins.Prisma, options.schemaPath, {}));
         }
 
