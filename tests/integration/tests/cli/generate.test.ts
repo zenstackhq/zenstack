@@ -112,10 +112,18 @@ model Post {
         expect(fs.existsSync('./prisma/schema.prisma')).toBeTruthy();
     });
 
-    it('generate no default plugins with access-policy with zod', async () => {
+    it('generate no default plugins with enhancer and zod', async () => {
         fs.appendFileSync(
             'schema.zmodel',
             `
+        plugin prisma {
+            provider = '@core/prisma'
+        }
+
+        plugin zod {
+            provider = '@core/zod'
+        }
+
         plugin enhancer {
             provider = '@core/enhancer'
         }
@@ -126,28 +134,6 @@ model Post {
         expect(fs.existsSync('./node_modules/.zenstack/policy.js')).toBeTruthy();
         expect(fs.existsSync('./node_modules/.zenstack/model-meta.js')).toBeTruthy();
         expect(fs.existsSync('./prisma/schema.prisma')).toBeTruthy();
-    });
-
-    it('generate no default plugins with access-policy without zod', async () => {
-        fs.appendFileSync(
-            'schema.zmodel',
-            `
-        plugin enhancer {
-            provider = '@core/enhancer'
-        }
-        `
-        );
-        let content = fs.readFileSync('schema.zmodel', 'utf-8');
-        content = content.replace('@email', '');
-        fs.writeFileSync('schema.zmodel', content, 'utf-8');
-
-        const program = createProgram();
-        await program.parseAsync(['generate', '--no-dependency-check', '--no-default-plugins'], { from: 'user' });
-        expect(fs.existsSync('./node_modules/.zenstack/policy.js')).toBeTruthy();
-        expect(fs.existsSync('./node_modules/.zenstack/model-meta.js')).toBeTruthy();
-        expect(fs.existsSync('./prisma/schema.prisma')).toBeTruthy();
-        const z = require(path.join(process.cwd(), './node_modules/.zenstack/zod/models'));
-        expect(z).toEqual({});
     });
 
     it('generate no compile', async () => {
