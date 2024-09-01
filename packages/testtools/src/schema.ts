@@ -135,6 +135,7 @@ export type SchemaLoadOptions = {
     generatePermissionChecker?: boolean;
     previewFeatures?: string[];
     prismaClientOptions?: object;
+    generateNoCompile?: boolean;
 };
 
 const defaultOptions: SchemaLoadOptions = {
@@ -146,6 +147,7 @@ const defaultOptions: SchemaLoadOptions = {
     logPrismaQuery: false,
     provider: 'sqlite',
     preserveTsFiles: false,
+    generateNoCompile: false,
 };
 
 export async function loadSchemaFromFile(schemaFile: string, options?: SchemaLoadOptions) {
@@ -225,13 +227,20 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     }
 
     const outputArg = opt.output ? ` --output ${opt.output}` : '';
+    let otherArgs = '';
+    if (opt.generateNoCompile) {
+        otherArgs = ' --no-compile';
+    }
 
     if (opt.customSchemaFilePath) {
-        run(`npx zenstack generate --no-version-check --schema ${zmodelPath} --no-dependency-check${outputArg}`, {
-            NODE_PATH: './node_modules',
-        });
+        run(
+            `npx zenstack generate --no-version-check --schema ${zmodelPath} --no-dependency-check${outputArg}${otherArgs}`,
+            {
+                NODE_PATH: './node_modules',
+            }
+        );
     } else {
-        run(`npx zenstack generate --no-version-check --no-dependency-check${outputArg}`, {
+        run(`npx zenstack generate --no-version-check --no-dependency-check${outputArg}${otherArgs}`, {
             NODE_PATH: './node_modules',
         });
     }
