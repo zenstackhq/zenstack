@@ -57,4 +57,30 @@ describe('issue 1667', () => {
             { addPrelude: false, getPrismaOnly: true, generateNoCompile: true, compile: true }
         );
     });
+
+    it('standard enhance custom zod output', async () => {
+        await loadSchema(
+            `
+            generator client {
+                provider = "prisma-client-js"
+            }
+
+            datasource db {
+                provider = "sqlite"
+                url      = "file:./dev.db"
+            }            
+
+            plugin zod {
+                provider = '@core/zod'
+                output = './myzod'
+            }
+
+            model User {
+                id Int @id
+                email String @unique @email
+            }
+            `,
+            { addPrelude: false, getPrismaOnly: true, compile: true }
+        );
+    });
 });
