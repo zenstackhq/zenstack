@@ -144,12 +144,18 @@ ${
             return '@zenstackhq/runtime/zod';
         }
 
+        if (!this.options.output) {
+            // I don't have a custom output, but zod has, CLI will still generate
+            // a copy into the default output, so we can still import from there
+            return './zod';
+        }
+
         // both zod and me have custom output, resolve to relative path and import
         const schemaDir = path.dirname(this.options.schemaPath);
         const zodAbsPath = path.isAbsolute(zodCustomOutput)
             ? zodCustomOutput
             : path.resolve(schemaDir, zodCustomOutput);
-        return path.relative(this.outDir, zodAbsPath);
+        return path.relative(this.outDir, zodAbsPath) || '.';
     }
 
     private createSimplePrismaImports(prismaImport: string) {
