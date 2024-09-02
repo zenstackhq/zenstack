@@ -497,7 +497,7 @@ describe('Zod plugin tests', () => {
         expect(schema.safeParse({ arr: [4] }).error.issues[1].path).toEqual(['arr', 'every']);
         expect(schema.safeParse({ arr: [4] }).error.issues[2].path).toEqual(['arr', 'some']);
         expect(schema.safeParse({ arr: [1, 2, 3] }).success).toBeTruthy();
-    })
+    });
 
     it('full-text search', async () => {
         const model = `
@@ -788,6 +788,11 @@ describe('Zod plugin tests', () => {
             provider = 'prisma-client-js'
         }
     
+        plugin enhancer {
+            provider = '@core/enhancer'
+            output = "$projectRoot/enhance"
+        }
+    
         plugin zod {
             provider = "@core/zod"
             output = "$projectRoot/zod"
@@ -801,7 +806,7 @@ describe('Zod plugin tests', () => {
             password String @omit
         }
         `,
-            { addPrelude: false, pushDb: false, projectDir }
+            { addPrelude: false, pushDb: false, projectDir, getPrismaOnly: true, generateNoCompile: true }
         );
 
         expect(fs.existsSync(path.join(projectDir, 'zod', 'test.txt'))).toBeFalsy();
@@ -822,6 +827,11 @@ describe('Zod plugin tests', () => {
         generator js {
             provider = 'prisma-client-js'
         }
+
+        plugin enhancer {
+            provider = '@core/enhancer'
+            output = "$projectRoot/enhance"
+        }
     
         plugin zod {
             provider = "@core/zod"
@@ -836,7 +846,7 @@ describe('Zod plugin tests', () => {
             password String @omit
         }
         `,
-                { addPrelude: false, pushDb: false, projectDir }
+                { addPrelude: false, pushDb: false, projectDir, generateNoCompile: true }
             )
         ).rejects.toThrow('already exists and is not a directory');
     });

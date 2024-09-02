@@ -38,6 +38,7 @@ import {
 import { upperCaseFirst } from 'upper-case-first';
 import { name } from '..';
 import { execPackage } from '../../../utils/exec-utils';
+import { CorePlugins, getPluginCustomOutputFolder } from '../../plugin-utils';
 import { trackPrismaSchemaError } from '../../prisma';
 import { PrismaSchemaGenerator } from '../../prisma/schema-generator';
 import { isDefaultWithAuth } from '../enhancer-utils';
@@ -100,7 +101,11 @@ import { type EnhancementContext, type EnhancementOptions, type ZodSchemas, type
 import { createEnhancement } from '@zenstackhq/runtime/enhancements';
 import modelMeta from './model-meta';
 import policy from './policy';
-${this.options.withZodSchemas ? "import * as zodSchemas from './zod';" : 'const zodSchemas = undefined;'}
+${
+    this.options.withZodSchemas
+        ? `import * as zodSchemas from '${this.getZodImport()}';`
+        : 'const zodSchemas = undefined;'
+}
 
 ${
     logicalPrismaClientDir
@@ -124,6 +129,27 @@ ${
         await this.saveSourceFile(enhanceTs);
 
         return { dmmf };
+    }
+
+    private getZodImport() {
+        const zodCustomOutput = getPluginCustomOutputFolder(this.model, CorePlugins.Zod);
+
+        if (!this.options.output && !zodCustomOutput) {
+            // neither zod or me (enhancer) have custom output, use the default
+            return './zod';
+        }
+
+        if (!zodCustomOutput) {
+            // I have a custom output, but zod doesn't, import from runtime
+            return '@zenstackhq/runtime/zod';
+        }
+
+        // both zod and me have custom output, resolve to relative path and import
+        const schemaDir = path.dirname(this.options.schemaPath);
+        const zodAbsPath = path.isAbsolute(zodCustomOutput)
+            ? zodCustomOutput
+            : path.resolve(schemaDir, zodCustomOutput);
+        return path.relative(this.outDir, zodAbsPath);
     }
 
     private createSimplePrismaImports(prismaImport: string) {
