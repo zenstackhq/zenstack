@@ -97,7 +97,8 @@ export function createProgram() {
         'pnpm',
     ]);
     const noVersionCheckOption = new Option('--no-version-check', 'do not check for new version');
-    const noDependencyCheck = new Option('--no-dependency-check', 'do not check if dependencies are installed');
+    const noDependencyCheckOption = new Option('--no-dependency-check', 'do not check if dependencies are installed');
+    const offlineOption = new Option('--offline', 'run in offline mode');
 
     program
         .command('info')
@@ -125,7 +126,8 @@ export function createProgram() {
         .addOption(new Option('--no-default-plugins', 'do not run default plugins'))
         .addOption(new Option('--no-compile', 'do not compile the output of core plugins'))
         .addOption(noVersionCheckOption)
-        .addOption(noDependencyCheck)
+        .addOption(noDependencyCheckOption)
+        .addOption(offlineOption)
         .action(generateAction);
 
     program

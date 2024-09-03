@@ -10,6 +10,7 @@ import {
     getZenStackPackages,
     loadDocument,
     requiredPrismaVersion,
+    showNotification,
 } from '../cli-util';
 import { PluginRunner, PluginRunnerOptions } from '../plugin-runner';
 
@@ -22,6 +23,7 @@ type Options = {
     withPlugins?: string[];
     withoutPlugins?: string[];
     defaultPlugins: boolean;
+    offline?: boolean;
 };
 
 /**
@@ -48,11 +50,19 @@ export async function generate(projectPath: string, options: Options) {
 
     await runPlugins(options);
 
-    if (options.versionCheck) {
-        // note that we can't run plugins and do version check concurrently because
-        // plugins are CPU-bound and can cause version check to false timeout
-        await checkNewVersion();
+    // note that we can't run online jobs concurrently with plugins because
+    // plugins are CPU-bound and can cause false timeout
+    const postJobs: Promise<void>[] = [];
+
+    if (options.versionCheck && !options.offline) {
+        postJobs.push(checkNewVersion());
     }
+
+    if (!options.offline) {
+        postJobs.push(showNotification());
+    }
+
+    await Promise.all(postJobs);
 }
 
 async function runPlugins(options: Options) {
