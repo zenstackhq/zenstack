@@ -6,8 +6,10 @@ import { getDocument, LangiumDocument, LangiumDocuments, linkContentToContainer 
 import { NodeFileSystem } from 'langium/node';
 import path from 'path';
 import semver from 'semver';
+import terminalLink from 'terminal-link';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { URI } from 'vscode-uri';
+import { z } from 'zod';
 import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME } from '../language-server/constants';
 import { ZModelFormatter } from '../language-server/zmodel-formatter';
 import { createZModelServices, ZModelServices } from '../language-server/zmodel-module';
@@ -20,6 +22,8 @@ import { CliError } from './cli-error';
 export const requiredPrismaVersion = '4.8.0';
 
 const CHECK_VERSION_TIMEOUT = 1000;
+const FETCH_CLI_CONFIG_TIMEOUT = 500;
+const CLI_CONFIG_ENDPOINT = 'https://zenstack.dev/config/cli.json';
 
 /**
  * Loads a zmodel document from a file.
@@ -363,4 +367,34 @@ async function relinkAll(model: Model, services: ZModelServices) {
     await services.shared.workspace.DocumentBuilder.build([newDoc], { validationChecks: 'all' });
 
     return newDoc.parseResult.value as Model;
+}
+
+export async function showNotification() {
+    try {
+        const fetchResult = await fetch(CLI_CONFIG_ENDPOINT, {
+            headers: { accept: 'application/json' },
+            signal: AbortSignal.timeout(FETCH_CLI_CONFIG_TIMEOUT),
+        });
+
+        if (!fetchResult.ok) {
+            return;
+        }
+
+        const data = await fetchResult.json();
+        const schema = z.object({
+            notifications: z.array(z.object({ title: z.string(), url: z.string().url(), active: z.boolean() })),
+        });
+        const parseResult = schema.safeParse(data);
+
+        if (parseResult.success) {
+            const activeItems = parseResult.data.notifications.filter((item) => item.active);
+            // return a random active item
+            if (activeItems.length > 0) {
+                const item = activeItems[Math.floor(Math.random() * activeItems.length)];
+                console.log(terminalLink(item.title, item.url));
+            }
+        }
+    } catch {
+        // noop
+    }
 }
