@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
+    clone,
     getIdFields,
     getModelInfo,
     getUniqueConstraints,
     resolveField,
     type FieldInfo,
     type NestedWriteVisitorContext,
-} from '../cross';
-import { clone } from '../cross';
-import type { CrudContract, DbClientContract } from '../types';
-import { getVersion } from '../version';
+} from '../../cross';
+import type { CrudContract, DbClientContract } from '../../types';
+import { getVersion } from '../../version';
 import { InternalEnhancementOptions } from './create-enhancement';
 import { prismaClientUnknownRequestError, prismaClientValidationError } from './utils';
 

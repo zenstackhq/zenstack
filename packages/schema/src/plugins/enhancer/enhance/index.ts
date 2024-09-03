@@ -94,11 +94,16 @@ export class EnhancerGenerator {
 
         const checkerTypes = this.generatePermissionChecker ? generateCheckerType(this.model) : '';
 
+        const targetRuntime = (this.options.runtime as string) ?? 'node';
+        if (!['node', 'edge'].includes(targetRuntime)) {
+            throw new PluginError(name, `Unsupported runtime: ${targetRuntime}. Must be "node" (default) or "edge".`);
+        }
+
         const enhanceTs = this.project.createSourceFile(
             path.join(this.outDir, 'enhance.ts'),
             `/* eslint-disable */
 import { type EnhancementContext, type EnhancementOptions, type ZodSchemas, type AuthUser } from '@zenstackhq/runtime';
-import { createEnhancement } from '@zenstackhq/runtime/enhancements';
+import { createEnhancement } from '@zenstackhq/runtime/enhancements/${targetRuntime}';
 import modelMeta from './model-meta';
 import policy from './policy';
 ${

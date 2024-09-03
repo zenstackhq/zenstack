@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import deepmerge from 'deepmerge';
+import { isPlainObject } from 'is-plain-object';
 import { lowerCaseFirst } from 'lower-case-first';
 import { upperCaseFirst } from 'upper-case-first';
 import { z, type ZodError, type ZodObject, type ZodSchema } from 'zod';
 import { fromZodError } from 'zod-validation-error';
-import { CrudFailureReason, PrismaErrorCode } from '../../constants';
+import { CrudFailureReason, PrismaErrorCode } from '../../../constants';
 import {
     clone,
     enumerate,
@@ -15,22 +16,23 @@ import {
     zip,
     type FieldInfo,
     type ModelMeta,
-} from '../../cross';
+} from '../../../cross';
 import {
     AuthUser,
     CrudContract,
     DbClientContract,
+    EnhancementContext,
     PolicyCrudKind,
     PolicyOperationKind,
     QueryContext,
-} from '../../types';
-import { getVersion } from '../../version';
-import type { EnhancementContext, InternalEnhancementOptions } from '../create-enhancement';
+    ZodSchemas,
+} from '../../../types';
+import { getVersion } from '../../../version';
+import type { InternalEnhancementOptions } from '../create-enhancement';
 import { Logger } from '../logger';
 import { QueryUtils } from '../query-utils';
-import type { EntityChecker, ModelPolicyDef, PermissionCheckerFunc, PolicyDef, PolicyFunc, ZodSchemas } from '../types';
+import type { EntityChecker, ModelPolicyDef, PermissionCheckerFunc, PolicyDef, PolicyFunc } from '../types';
 import { formatObject, prismaClientKnownRequestError } from '../utils';
-import { isPlainObject } from 'is-plain-object';
 
 /**
  * Access policy enforcement utilities

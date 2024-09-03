@@ -25,9 +25,13 @@
             "types": "./edge.d.ts",
             "default": "./edge.js"
         },
-        "./enhancements": {
-            "types": "./enhancements/index.d.ts",
-            "default": "./enhancements/index.js"
+        "./enhancements/node": {
+            "types": "./enhancements/node/index.d.ts",
+            "default": "./enhancements/node/index.js"
+        },
+        "./enhancements/edge": {
+            "types": "./enhancements/edge/index.d.ts",
+            "default": "./enhancements/edge/index.js"
         },
         "./constraint-solver": {
             "types": "./constraint-solver.d.ts",

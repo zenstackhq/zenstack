@@ -9,9 +9,9 @@ import {
     enumerate,
     getFields,
     requireField,
-} from '../cross';
-import { DbClientContract } from '../types';
-import { EnhancementContext, InternalEnhancementOptions } from './create-enhancement';
+} from '../../cross';
+import { DbClientContract, EnhancementContext } from '../../types';
+import { InternalEnhancementOptions } from './create-enhancement';
 import { DefaultPrismaProxyHandler, PrismaProxyActions, makeProxy } from './proxy';
 import { isUnsafeMutate, prismaClientValidationError } from './utils';
 

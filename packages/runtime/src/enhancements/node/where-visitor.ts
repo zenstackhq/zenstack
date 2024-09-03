@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { enumerate, resolveField, type FieldInfo, type ModelMeta } from '../cross';
+import { enumerate, resolveField, type FieldInfo, type ModelMeta } from '../../cross';
 
 /**
  * Context for visiting

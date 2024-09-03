@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { getIdFields } from '../../cross';
-import { DbClientContract } from '../../types';
-import { hasAllFields } from '../../validation';
-import type { EnhancementContext, InternalEnhancementOptions } from '../create-enhancement';
+import { getIdFields } from '../../../cross';
+import { DbClientContract, EnhancementContext } from '../../../types';
+import { hasAllFields } from '../../../validation';
+import type { InternalEnhancementOptions } from '../create-enhancement';
 import { Logger } from '../logger';
 import { makeProxy } from '../proxy';
 import { PolicyProxyHandler } from './handler';

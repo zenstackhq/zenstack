@@ -1,6 +1,6 @@
 import safeJsonStringify from 'safe-json-stringify';
-import { resolveField, type FieldInfo, type ModelMeta } from '..';
-import type { DbClientContract } from '../types';
+import { resolveField, type FieldInfo, type ModelMeta } from '../../cross';
+import type { DbClientContract } from '../../types';
 
 /**
  * Formats an object for pretty printing.

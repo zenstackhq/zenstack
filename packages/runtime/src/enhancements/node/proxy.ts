@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { PRISMA_PROXY_ENHANCER } from '../constants';
-import type { ModelMeta } from '../cross';
-import { clone } from '../cross';
-import type { DbClientContract } from '../types';
+import { PRISMA_PROXY_ENHANCER } from '../../constants';
+import { type ModelMeta, clone } from '../../cross';
+import type { DbClientContract, ErrorTransformer } from '../../types';
 import type { InternalEnhancementOptions } from './create-enhancement';
 import { createDeferredPromise, createFluentPromise } from './promise';
 
@@ -11,11 +10,6 @@ import { createDeferredPromise, createFluentPromise } from './promise';
  * Prisma batch write operation result
  */
 export type BatchResult = { count: number };
-
-/**
- * Function for transforming errors.
- */
-export type ErrorTransformer = (error: unknown) => unknown;
 
 /**
  * Interface for proxy that intercepts Prisma operations.
