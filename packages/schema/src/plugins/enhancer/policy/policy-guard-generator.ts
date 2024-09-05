@@ -95,10 +95,14 @@ export class PolicyGenerator {
             namedImports: [
                 { name: 'type QueryContext' },
                 { name: 'type CrudContract' },
-                { name: 'allFieldsEqual' },
                 { name: 'type PermissionCheckerContext' },
             ],
             moduleSpecifier: `${RUNTIME_PACKAGE}`,
+        });
+
+        sf.addImportDeclaration({
+            namedImports: [{ name: 'allFieldsEqual' }],
+            moduleSpecifier: `${RUNTIME_PACKAGE}/validation`,
         });
 
         sf.addImportDeclaration({

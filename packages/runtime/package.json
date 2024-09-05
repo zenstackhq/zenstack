@@ -33,6 +33,10 @@
             "types": "./enhancements/edge/index.d.ts",
             "default": "./enhancements/edge/index.js"
         },
+        "./validation": {
+            "types": "./validation.d.ts",
+            "default": "./validation.js"
+        },
         "./constraint-solver": {
             "types": "./constraint-solver.d.ts",
             "default": "./constraint-solver.js"
