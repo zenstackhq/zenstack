@@ -256,7 +256,9 @@ type FieldUpdateDef = {
     overrideEntityChecker?: EntityChecker;
 };
 
-// input arg type for `check` API
+/**
+ * Permission check API (`check()`) arguments
+ */
 export type PermissionCheckArgs = {
     operation: PolicyCrudKind;
     where?: Record<string, number | string | boolean>;
