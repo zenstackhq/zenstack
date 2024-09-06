@@ -208,4 +208,64 @@ describe('Polymorphic Policy Test', () => {
         await expect(db.asset.findUnique({ where: { id: vid1.id } })).toResolveNull();
         await expect(db.asset.findUnique({ where: { id: vid2.id } })).toResolveTruthy();
     });
+
+    it('interaction with connect', async () => {
+        const schema = `
+        model User {
+            id Int @id @default(autoincrement())
+        }
+
+        model Asset {
+            id Int @id @default(autoincrement())
+            assetType String
+            comments Comment[]
+            
+            @@delegate(assetType)
+            @@allow('all', true)
+        }
+        
+        model Post extends Asset {
+            title String
+            postType String
+            @@delegate(postType)
+        }
+
+        model RatedPost extends Post {
+            rating Int
+        }
+
+        model Comment {
+            id Int @id @default(autoincrement())
+            content String
+            asset Asset? @relation(fields: [assetId], references: [id])
+            assetId Int?
+            @@allow('read,create', true)
+            @@allow('update', auth().id == 1)
+        }
+        `;
+
+        const { enhance } = await loadSchema(schema);
+        const db = enhance();
+
+        const comment1 = await db.comment.create({
+            data: { content: 'Comment1' },
+        });
+
+        await expect(
+            db.ratedPost.create({ data: { title: 'Post1', rating: 5, comments: { connect: { id: comment1.id } } } })
+        ).toBeRejectedByPolicy();
+
+        const post1 = await db.ratedPost.create({ data: { title: 'Post1', rating: 5 } });
+        await expect(
+            db.post.update({ where: { id: post1.id }, data: { comments: { connect: { id: comment1.id } } } })
+        ).toBeRejectedByPolicy();
+        await expect(
+            db.ratedPost.update({ where: { id: post1.id }, data: { comments: { connect: { id: comment1.id } } } })
+        ).toBeRejectedByPolicy();
+
+        const user1Db = enhance({ id: 1 });
+        await expect(
+            user1Db.ratedPost.update({ where: { id: post1.id }, data: { comments: { connect: { id: comment1.id } } } })
+        ).toResolveTruthy();
+    });
 });

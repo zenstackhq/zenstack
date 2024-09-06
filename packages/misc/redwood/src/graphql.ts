@@ -1,9 +1,8 @@
-import { ForbiddenError } from '@redwoodjs/graphql-server';
+import { ForbiddenError, ValidationError } from '@redwoodjs/graphql-server';
 import {
     CrudFailureReason,
     EnhancementOptions,
     PrismaErrorCode,
-    ValidationError,
     enhance,
     isPrismaClientKnownRequestError,
     type AuthUser,
@@ -47,7 +46,7 @@ export function useZenStack<PrismaClient extends object>(
 
 // Transforms ZenStack errors into appropriate RedwoodJS errors
 function transformError(error: unknown) {
-    if (isPrismaClientKnownRequestError(error) && error.code === PrismaErrorCode.CONSTRAINED_FAILED) {
+    if (isPrismaClientKnownRequestError(error) && error.code === PrismaErrorCode.CONSTRAINT_FAILED) {
         if (
             error.meta?.reason === CrudFailureReason.ACCESS_POLICY_VIOLATION ||
             error.meta?.reason === CrudFailureReason.RESULT_NOT_READABLE

@@ -552,4 +552,47 @@ describe('With Policy: post update', () => {
             expect.arrayContaining([expect.objectContaining({ value: 3 }), expect.objectContaining({ value: 4 })])
         );
     });
+
+    it('deep member access', async () => {
+        const { enhance } = await loadSchema(
+            `
+        model M1 {
+            id Int @id @default(autoincrement())
+            m2 M2?
+            v1 Int
+            @@allow('all', true)
+            @@deny('update', future().m2.m3.v3 > 1)
+        }
+
+        model M2 {
+            id Int @id @default(autoincrement())
+            m1 M1 @relation(fields: [m1Id], references:[id])
+            m1Id Int @unique
+            m3 M3?
+            @@allow('all', true)
+        }
+
+        model M3 {
+            id Int @id @default(autoincrement())
+            v3 Int
+            m2 M2 @relation(fields: [m2Id], references:[id])
+            m2Id Int @unique
+            @@allow('all', true)
+        }
+        `
+        );
+
+        const db = enhance();
+
+        await db.m1.create({
+            data: { id: 1, v1: 1, m2: { create: { id: 1, m3: { create: { id: 1, v3: 1 } } } } },
+        });
+
+        await db.m1.create({
+            data: { id: 2, v1: 2, m2: { create: { id: 2, m3: { create: { id: 2, v3: 2 } } } } },
+        });
+
+        await expect(db.m1.update({ where: { id: 1 }, data: { v1: 2 } })).toResolveTruthy();
+        await expect(db.m1.update({ where: { id: 2 }, data: { v1: 3 } })).toBeRejectedByPolicy();
+    });
 });

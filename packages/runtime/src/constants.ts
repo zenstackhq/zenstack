@@ -40,7 +40,7 @@ export enum PrismaErrorCode {
     /**
      * A constraint failed on the database
      */
-    CONSTRAINED_FAILED = 'P2004',
+    CONSTRAINT_FAILED = 'P2004',
 
     /**
      * The required connected records were not found

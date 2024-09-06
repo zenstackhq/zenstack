@@ -1,0 +1,41 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "sqlite"
+    url      = "file:./dev.db"
+}
+
+plugin trpc {
+    provider = "../../../dist"
+    output = "src/server/api/routers/generated"
+    version = "v11"
+    importCreateRouter = "../../generated-router-helper"
+    importProcedure = "../../generated-router-helper"
+    generateClientHelpers = "react"
+}
+
+model User {
+    id    Int    @id @default(autoincrement())
+    email String @unique
+    posts Post[]
+
+    @@allow('all', true)
+}
+
+model Post {
+    id        Int      @id @default(autoincrement())
+    name      String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    published Boolean  @default(false)
+    author    User     @relation(fields: [authorId], references: [id])
+    authorId  Int
+
+    @@index([name])
+    @@allow('all', true)
+}

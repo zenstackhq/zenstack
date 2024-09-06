@@ -2,8 +2,8 @@
     "name": "zenstack",
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
-    "description": "Build scalable web apps with minimum code by defining authorization and validation rules inside the data schema that closer to the database",
-    "version": "2.4.1",
+    "description": "FullStack enhancement for Prisma ORM: seamless integration from database to UI",
+    "version": "2.5.0",
     "author": {
         "name": "ZenStack Team"
     },
@@ -13,7 +13,8 @@
         "fullstack",
         "react",
         "typescript",
-        "data modeling"
+        "data modeling",
+        "prisma"
     ],
     "preview": false,
     "icon": "asset/logo-256-bg.png",
@@ -107,6 +108,7 @@
         "semver": "^7.5.2",
         "sleep-promise": "^9.1.0",
         "strip-color": "^0.1.0",
+        "terminal-link": "^2.0.0",
         "tiny-invariant": "^1.3.1",
         "ts-morph": "^16.0.0",
         "ts-pattern": "^4.3.0",
@@ -121,10 +123,10 @@
         "zod-validation-error": "^1.5.0"
     },
     "peerDependencies": {
-        "prisma": "5.0.0 - 5.18.x"
+        "prisma": "5.0.0 - 5.19.x"
     },
     "devDependencies": {
-        "@prisma/client": "5.18.x",
+        "@prisma/client": "5.19.x",
         "@types/async-exit-hook": "^2.0.0",
         "@types/pluralize": "^0.0.29",
         "@types/semver": "^7.3.13",

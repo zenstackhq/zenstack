@@ -92,14 +92,17 @@ describe('Test API createManyAndReturn', () => {
 
         const db = enhance();
 
-        const r = await db.post.createManyAndReturn({
-            data: [
-                { title: 'post1', published: true },
-                { title: 'post2', published: false },
-            ],
-        });
-        expect(r).toHaveLength(2);
-        expect(r[0].title).toBe('post1');
-        expect(r[1].title).toBeUndefined();
+        // create should succeed but one result can't be read back
+        await expect(
+            db.post.createManyAndReturn({
+                data: [
+                    { title: 'post1', published: true },
+                    { title: 'post2', published: false },
+                ],
+            })
+        ).toBeRejectedByPolicy();
+
+        // check posts are created
+        await expect(prisma.post.findMany()).resolves.toHaveLength(2);
     });
 });

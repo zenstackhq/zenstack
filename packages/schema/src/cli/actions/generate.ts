@@ -1,4 +1,5 @@
 import { PluginError } from '@zenstackhq/sdk';
+import { isPlugin } from '@zenstackhq/sdk/ast';
 import colors from 'colors';
 import path from 'path';
 import { CliError } from '../cli-error';
@@ -9,6 +10,7 @@ import {
     getZenStackPackages,
     loadDocument,
     requiredPrismaVersion,
+    showNotification,
 } from '../cli-util';
 import { PluginRunner, PluginRunnerOptions } from '../plugin-runner';
 
@@ -18,7 +20,10 @@ type Options = {
     dependencyCheck: boolean;
     versionCheck: boolean;
     compile: boolean;
+    withPlugins?: string[];
+    withoutPlugins?: string[];
     defaultPlugins: boolean;
+    offline?: boolean;
 };
 
 /**
@@ -45,11 +50,19 @@ export async function generate(projectPath: string, options: Options) {
 
     await runPlugins(options);
 
-    if (options.versionCheck) {
-        // note that we can't run plugins and do version check concurrently because
-        // plugins are CPU-bound and can cause version check to false timeout
-        await checkNewVersion();
+    // note that we can't run online jobs concurrently with plugins because
+    // plugins are CPU-bound and can cause false timeout
+    const postJobs: Promise<void>[] = [];
+
+    if (options.versionCheck && !options.offline) {
+        postJobs.push(checkNewVersion());
     }
+
+    if (!options.offline) {
+        postJobs.push(showNotification());
+    }
+
+    await Promise.all(postJobs);
 }
 
 async function runPlugins(options: Options) {
@@ -57,9 +70,19 @@ async function runPlugins(options: Options) {
 
     const model = await loadDocument(schema);
 
+    for (const name of [...(options.withPlugins ?? []), ...(options.withoutPlugins ?? [])]) {
+        const pluginDecl = model.declarations.find((d) => isPlugin(d) && d.name === name);
+        if (!pluginDecl) {
+            console.error(colors.red(`Plugin "${name}" not found in schema.`));
+            throw new CliError(`Plugin "${name}" not found in schema.`);
+        }
+    }
+
     const runnerOpts: PluginRunnerOptions = {
         schema: model,
         schemaPath: path.resolve(schema),
+        withPlugins: options.withPlugins,
+        withoutPlugins: options.withoutPlugins,
         defaultPlugins: options.defaultPlugins,
         output: options.output,
         compile: options.compile,

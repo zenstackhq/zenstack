@@ -1589,7 +1589,7 @@ class RequestHandler extends APIHandlerBase {
 
     private handlePrismaError(err: unknown) {
         if (isPrismaClientKnownRequestError(err)) {
-            if (err.code === PrismaErrorCode.CONSTRAINED_FAILED) {
+            if (err.code === PrismaErrorCode.CONSTRAINT_FAILED) {
                 if (err.meta?.reason === CrudFailureReason.DATA_VALIDATION_VIOLATION) {
                     return this.makeError(
                         'validationError',
