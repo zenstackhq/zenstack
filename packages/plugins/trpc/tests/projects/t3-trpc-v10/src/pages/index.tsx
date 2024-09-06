@@ -13,13 +13,14 @@ export default function Home() {
         <>
             <main className={styles.main}>
                 {hello.data && <h1 className={styles.title}>{hello.data.greeting}</h1>}
-                {posts.data &&
-                    posts.data.map((post) => (
-                        <p key={post.id}>
-                            {post.name} by {post.author.email}
-                        </p>
-                    ))}
-                {postsTransformed.data && postsTransformed.data.map((post) => <p key={post.id}>{post.title}</p>)}
+                {posts.data?.map((post) => (
+                    <p key={post.id}>
+                        {post.name} by {post.author.email}
+                    </p>
+                ))}
+                {postsTransformed.data?.map((post) => (
+                    <p key={post.id}>{post.title}</p>
+                ))}
             </main>
         </>
     );
