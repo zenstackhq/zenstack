@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { z } from 'zod';
-import type { CrudContract, PermissionCheckerContext, QueryContext } from '../types';
+import type { CrudContract, PermissionCheckerContext, PolicyCrudKind, QueryContext } from '../../types';
 
 /**
  * Common options for PrismaClient enhancements
@@ -258,16 +257,9 @@ type FieldUpdateDef = {
 };
 
 /**
- * Zod schemas for validation
+ * Permission check API (`check()`) arguments
  */
-export type ZodSchemas = {
-    /**
-     * Zod schema for each model
-     */
-    models: Record<string, z.ZodSchema>;
-
-    /**
-     * Zod schema for Prisma input types for each model
-     */
-    input?: Record<string, Record<string, z.ZodSchema>>;
+export type PermissionCheckArgs = {
+    operation: PolicyCrudKind;
+    where?: Record<string, number | string | boolean>;
 };

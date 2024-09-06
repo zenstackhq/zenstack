@@ -40,6 +40,10 @@ export function ensureDefaultOutputFolder(options: PluginRunnerOptions) {
                         types: './enhance.d.ts',
                         default: './enhance.js',
                     },
+                    './enhance-edge': {
+                        types: './enhance-edge.d.ts',
+                        default: './enhance-edge.js',
+                    },
                     './zod': {
                         types: './zod/index.d.ts',
                         default: './zod/index.js',

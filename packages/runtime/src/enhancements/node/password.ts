@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { DEFAULT_PASSWORD_SALT_LENGTH } from '../constants';
-import { NestedWriteVisitor, type PrismaWriteActionType } from '../cross';
-import { DbClientContract } from '../types';
+import { DEFAULT_PASSWORD_SALT_LENGTH } from '../../constants';
+import { NestedWriteVisitor, type PrismaWriteActionType } from '../../cross';
+import { DbClientContract } from '../../types';
 import { InternalEnhancementOptions } from './create-enhancement';
 import { DefaultPrismaProxyHandler, PrismaProxyActions, makeProxy } from './proxy';
 

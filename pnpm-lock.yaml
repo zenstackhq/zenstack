@@ -664,6 +664,9 @@ importers:
       change-case:
         specifier: ^4.1.2
         version: 4.1.2
+      decimal.js:
+        specifier: ^10.4.2
+        version: 10.4.3
       lower-case-first:
         specifier: ^2.0.2
         version: 2.0.2
@@ -716,9 +719,6 @@ importers:
       body-parser:
         specifier: ^1.20.2
         version: 1.20.2
-      decimal.js:
-        specifier: ^10.4.2
-        version: 10.4.3
       express:
         specifier: ^4.19.2
         version: 4.19.2

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { getModelInfo, type ModelMeta } from '../cross';
+import { getModelInfo, type ModelMeta } from '../../cross';
 
 /**
  * Creates a promise that only executes when it's awaited or .then() is called.

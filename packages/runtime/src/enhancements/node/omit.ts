@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { enumerate, getModelFields, resolveField } from '../cross';
-import { DbClientContract } from '../types';
+import { enumerate, getModelFields, resolveField } from '../../cross';
+import { DbClientContract } from '../../types';
 import { InternalEnhancementOptions } from './create-enhancement';
 import { DefaultPrismaProxyHandler, makeProxy } from './proxy';
 

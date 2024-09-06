@@ -94,11 +94,14 @@ export class EnhancerGenerator {
 
         const checkerTypes = this.generatePermissionChecker ? generateCheckerType(this.model) : '';
 
-        const enhanceTs = this.project.createSourceFile(
-            path.join(this.outDir, 'enhance.ts'),
-            `/* eslint-disable */
+        for (const target of ['node', 'edge']) {
+            // generate separate `enhance()` for node and edge runtime
+            const outFile = target === 'node' ? 'enhance.ts' : 'enhance-edge.ts';
+            const enhanceTs = this.project.createSourceFile(
+                path.join(this.outDir, outFile),
+                `/* eslint-disable */
 import { type EnhancementContext, type EnhancementOptions, type ZodSchemas, type AuthUser } from '@zenstackhq/runtime';
-import { createEnhancement } from '@zenstackhq/runtime/enhancements';
+import { createEnhancement } from '@zenstackhq/runtime/enhancements/${target}';
 import modelMeta from './model-meta';
 import policy from './policy';
 ${
@@ -123,10 +126,11 @@ ${
         : this.createSimplePrismaEnhanceFunction(authTypeParam)
 }
     `,
-            { overwrite: true }
-        );
+                { overwrite: true }
+            );
 
-        await this.saveSourceFile(enhanceTs);
+            await this.saveSourceFile(enhanceTs);
+        }
 
         return { dmmf };
     }

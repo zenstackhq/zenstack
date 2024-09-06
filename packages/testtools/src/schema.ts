@@ -3,12 +3,12 @@
 import type { Model } from '@zenstackhq/language/ast';
 import {
     DEFAULT_RUNTIME_LOAD_PATH,
-    PolicyDef,
     type AuthUser,
     type CrudContract,
     type EnhancementKind,
     type EnhancementOptions,
 } from '@zenstackhq/runtime';
+import type { PolicyDef } from '@zenstackhq/runtime/enhancements/node';
 import { getDMMF, type DMMF } from '@zenstackhq/sdk/prisma';
 import { execSync } from 'child_process';
 import * as fs from 'fs';

@@ -2,7 +2,7 @@
 import deepmerge, { type ArrayMergeOptions } from 'deepmerge';
 import { isPlainObject } from 'is-plain-object';
 import { lowerCaseFirst } from 'lower-case-first';
-import { DELEGATE_AUX_RELATION_PREFIX } from '../constants';
+import { DELEGATE_AUX_RELATION_PREFIX } from '../../constants';
 import {
     FieldInfo,
     ModelInfo,
@@ -13,8 +13,8 @@ import {
     getModelInfo,
     isDelegateModel,
     resolveField,
-} from '../cross';
-import type { CrudContract, DbClientContract } from '../types';
+} from '../../cross';
+import type { CrudContract, DbClientContract } from '../../types';
 import type { InternalEnhancementOptions } from './create-enhancement';
 import { Logger } from './logger';
 import { DefaultPrismaProxyHandler, makeProxy } from './proxy';

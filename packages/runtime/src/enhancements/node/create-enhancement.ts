@@ -1,67 +1,19 @@
 import semver from 'semver';
-import { PRISMA_MINIMUM_VERSION } from '../constants';
-import { isDelegateModel, type ModelMeta } from '../cross';
-import type { AuthUser } from '../types';
+import { PRISMA_MINIMUM_VERSION } from '../../constants';
+import { isDelegateModel, type ModelMeta } from '../../cross';
+import type { EnhancementContext, EnhancementKind, EnhancementOptions, ZodSchemas } from '../../types';
 import { withDefaultAuth } from './default-auth';
 import { withDelegate } from './delegate';
 import { Logger } from './logger';
 import { withOmit } from './omit';
 import { withPassword } from './password';
 import { withPolicy } from './policy';
-import type { ErrorTransformer } from './proxy';
-import type { PolicyDef, ZodSchemas } from './types';
-
-/**
- * Kinds of enhancements to `PrismaClient`
- */
-export type EnhancementKind = 'password' | 'omit' | 'policy' | 'validation' | 'delegate';
+import type { PolicyDef } from './types';
 
 /**
  * All enhancement kinds
  */
 const ALL_ENHANCEMENTS: EnhancementKind[] = ['password', 'omit', 'policy', 'validation', 'delegate'];
-
-/**
- * Transaction isolation levels: https://www.prisma.io/docs/orm/prisma-client/queries/transactions#transaction-isolation-level
- */
-export type TransactionIsolationLevel =
-    | 'ReadUncommitted'
-    | 'ReadCommitted'
-    | 'RepeatableRead'
-    | 'Snapshot'
-    | 'Serializable';
-
-export type EnhancementOptions = {
-    /**
-     * The kinds of enhancements to apply. By default all enhancements are applied.
-     */
-    kinds?: EnhancementKind[];
-
-    /**
-     * Whether to log Prisma query
-     */
-    logPrismaQuery?: boolean;
-
-    /**
-     * Hook for transforming errors before they are thrown to the caller.
-     */
-    errorTransformer?: ErrorTransformer;
-
-    /**
-     * The `maxWait` option passed to `prisma.$transaction()` call for transactions initiated by ZenStack.
-     */
-    transactionMaxWait?: number;
-
-    /**
-     * The `timeout` option passed to `prisma.$transaction()` call for transactions initiated by ZenStack.
-     */
-    transactionTimeout?: number;
-
-    /**
-     * The `isolationLevel` option passed to `prisma.$transaction()` call for transactions initiated by ZenStack.
-     */
-    transactionIsolationLevel?: TransactionIsolationLevel;
-};
 
 /**
  * Options for {@link createEnhancement}
@@ -89,13 +41,6 @@ export type InternalEnhancementOptions = EnhancementOptions & {
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     prismaModule: any;
-};
-
-/**
- * Context for creating enhanced `PrismaClient`
- */
-export type EnhancementContext<User extends AuthUser = AuthUser> = {
-    user?: User;
 };
 
 /**
