@@ -8,7 +8,7 @@ SuperJSON.registerCustom<Decimal, string>(
         isApplicable: (v): v is Decimal =>
             v instanceof Decimal ||
             // interop with decimal.js
-            v.toStringTag === '[object Decimal]',
+            v?.toStringTag === '[object Decimal]',
         serialize: (v) => v.toJSON(),
         deserialize: (v) => new Decimal(v),
     },
