@@ -1,7 +1,10 @@
 # Changelog
 
-
 ## [Unreleased]
+### Added
+- A new `path` parameter to the `@@validate` attribute for providing an optional path to the field that caused the error.
+
+## 2.4.0
 ### Added
 - The `uuid()` function is updated to support the new UUID version feature from Prisma.
 
