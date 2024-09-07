@@ -29,6 +29,7 @@ import {
     getRelationField,
     hasAttribute,
     isAuthInvocation,
+    isDelegateModel,
     isEnumFieldReference,
     isForeignKeyField,
     isIdField,
@@ -298,8 +299,15 @@ function getBackLink(field: DataModelField) {
 
     const relName = getRelationName(field);
 
-    // in case of polymorphism, the source model is the base delegate model
-    const sourceModel = field.$inheritedFrom ?? (field.$container as DataModel);
+    let sourceModel: DataModel;
+    if (field.$inheritedFrom && isDelegateModel(field.$inheritedFrom)) {
+        // field is inherited from a delegate model, use it as the source
+        sourceModel = field.$inheritedFrom;
+    } else {
+        // otherwise use the field's container model as the source
+        sourceModel = field.$container as DataModel;
+    }
+
     const targetModel = field.type.reference.ref as DataModel;
 
     for (const otherField of targetModel.fields) {
