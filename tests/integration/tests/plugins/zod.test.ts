@@ -850,4 +850,106 @@ describe('Zod plugin tests', () => {
             )
         ).rejects.toThrow('already exists and is not a directory');
     });
+
+    it('is strict by default', async () => {
+        const { zodSchemas } = await loadSchema(
+            `
+            datasource db {
+                provider = 'postgresql'
+                url = env('DATABASE_URL')
+            }
+            
+            generator js {
+                provider = 'prisma-client-js'
+            }
+        
+            plugin zod {
+                provider = "@core/zod"
+            }
+        
+            model User {
+                id Int @id @default(autoincrement())
+                email String @unique @email @endsWith('@zenstack.dev')
+                password String
+                @@validate(length(password, 6, 20))
+            }
+            `,
+            { addPrelude: false, pushDb: false }
+        );
+
+        const schemas = zodSchemas.models;
+        expect(
+            schemas.UserSchema.safeParse({ id: 1, email: 'abc@zenstack.dev', password: 'abc123' }).success
+        ).toBeTruthy();
+        expect(
+            schemas.UserSchema.safeParse({ id: 1, email: 'abc@zenstack.dev', password: 'abc123', x: 1 }).success
+        ).toBeFalsy();
+
+        expect(
+            schemas.UserCreateSchema.safeParse({ email: 'abc@zenstack.dev', password: 'abc123' }).success
+        ).toBeTruthy();
+        expect(
+            schemas.UserCreateSchema.safeParse({ email: 'abc@zenstack.dev', password: 'abc123', x: 1 }).success
+        ).toBeFalsy();
+
+        // Prisma create/update schema should always non-strict
+        expect(
+            schemas.UserPrismaCreateSchema.safeParse({ email: 'abc@zenstack.dev', password: 'abc123', x: 1 }).data.x
+        ).toBe(1);
+        expect(schemas.UserPrismaUpdateSchema.safeParse({ x: 1 }).data.x).toBe(1);
+
+        expect(
+            zodSchemas.input.UserInputSchema.create.safeParse({
+                data: { id: 1, email: 'abc@zenstack.dev', password: 'abc123' },
+            }).success
+        ).toBeTruthy();
+        expect(
+            zodSchemas.input.UserInputSchema.create.safeParse({
+                data: { id: 1, email: 'abc@zenstack.dev', password: 'abc123', x: 1 },
+            }).success
+        ).toBeFalsy();
+    });
+
+    it('can work in non-strict mode', async () => {
+        const { zodSchemas } = await loadSchema(
+            `
+            datasource db {
+                provider = 'postgresql'
+                url = env('DATABASE_URL')
+            }
+            
+            generator js {
+                provider = 'prisma-client-js'
+            }
+        
+            plugin zod {
+                provider = "@core/zod"
+                strict = false
+            }
+        
+            model User {
+                id Int @id @default(autoincrement())
+                email String @unique @email @endsWith('@zenstack.dev')
+                password String
+                @@validate(length(password, 6, 20))
+            }
+            `,
+            { addPrelude: false, pushDb: false }
+        );
+
+        const schemas = zodSchemas.models;
+        expect(
+            schemas.UserSchema.safeParse({ id: 1, email: 'abc@zenstack.dev', password: 'abc123', x: 1 }).success
+        ).toBeTruthy();
+
+        expect(
+            schemas.UserCreateSchema.safeParse({ email: 'abc@zenstack.dev', password: 'abc123', x: 1 }).success
+        ).toBeTruthy();
+
+        expect(
+            zodSchemas.input.UserInputSchema.create.safeParse({
+                data: { id: 1, email: 'abc@zenstack.dev', password: 'abc123', x: 1 },
+            }).success
+        ).toBeTruthy();
+    });
 });

@@ -322,7 +322,12 @@ export class ZodSchemaGenerator {
                     writer.writeLine(`${field.name}: ${makeFieldSchema(field)},`);
                 });
             });
-            writer.writeLine(');');
+
+            if (this.options.strict !== false) {
+                writer.writeLine(').strict();');
+            } else {
+                writer.writeLine(');');
+            }
 
             // relation fields
 
@@ -463,7 +468,7 @@ export const ${upperCaseFirst(model.name)}PrismaCreateSchema = ${prismaCreateSch
                     })
                     .join(',\n')}
     })`;
-            prismaUpdateSchema = this.makePartial(prismaUpdateSchema);
+            prismaUpdateSchema = this.makePassthrough(this.makePartial(prismaUpdateSchema));
             writer.writeLine(
                 `
 /**
