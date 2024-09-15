@@ -1,4 +1,5 @@
 import {
+    PluginError,
     PluginGlobalOptions,
     PluginOptions,
     RUNTIME_PACKAGE,
@@ -53,6 +54,17 @@ export class ZodSchemaGenerator {
         output = resolvePath(output, this.options);
         ensureEmptyDir(output);
         Transformer.setOutputPath(output);
+
+        // options validation
+        if (
+            this.options.mode &&
+            (typeof this.options.mode !== 'string' || !['strip', 'strict', 'passthrough'].includes(this.options.mode))
+        ) {
+            throw new PluginError(
+                name,
+                `Invalid mode option: "${this.options.mode}". Must be one of 'strip', 'strict', or 'passthrough'.`
+            );
+        }
 
         // calculate the models to be excluded
         const excludeModels = this.getExcludedModels();
@@ -323,10 +335,17 @@ export class ZodSchemaGenerator {
                 });
             });
 
-            if (this.options.strict !== false) {
-                writer.writeLine(').strict();');
-            } else {
-                writer.writeLine(');');
+            switch (this.options.mode) {
+                case 'strip':
+                    // zod strips by default
+                    writer.writeLine(')');
+                    break;
+                case 'passthrough':
+                    writer.writeLine(').passthrough();');
+                    break;
+                default:
+                    writer.writeLine(').strict();');
+                    break;
             }
 
             // relation fields
