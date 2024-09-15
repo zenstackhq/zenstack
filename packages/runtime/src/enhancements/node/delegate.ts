@@ -168,16 +168,20 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                         }
                     }
 
-                    if (value !== undefined) {
-                        if (value?.orderBy) {
+                    // refetch the field select/include value because it may have been
+                    // updated during injection
+                    const fieldValue = args[kind][field];
+
+                    if (fieldValue !== undefined) {
+                        if (fieldValue.orderBy) {
                             // `orderBy` may contain fields from base types
-                            this.injectWhereHierarchy(fieldInfo.type, value.orderBy);
+                            this.injectWhereHierarchy(fieldInfo.type, fieldValue.orderBy);
                         }
 
-                        if (this.injectBaseFieldSelect(model, field, value, args, kind)) {
+                        if (this.injectBaseFieldSelect(model, field, fieldValue, args, kind)) {
                             delete args[kind][field];
                         } else if (fieldInfo.isDataModel) {
-                            let nextValue = value;
+                            let nextValue = fieldValue;
                             if (nextValue === true) {
                                 // make sure the payload is an object
                                 args[kind][field] = nextValue = {};
@@ -1158,11 +1162,11 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         const base = this.getBaseModel(model);
 
         if (base) {
-            // merge base fields
+            // fully merge base fields
             const baseRelationName = this.makeAuxRelationName(base);
             const baseData = entity[baseRelationName];
             if (baseData && typeof baseData === 'object') {
-                const baseAssembled = this.assembleUp(base.name, baseData);
+                const baseAssembled = this.assembleHierarchy(base.name, baseData);
                 Object.assign(result, baseAssembled);
             }
         }
@@ -1209,14 +1213,14 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         const modelInfo = getModelInfo(this.options.modelMeta, model, true);
 
         if (modelInfo.discriminator) {
-            // model is a delegate, merge sub model fields
+            // model is a delegate, fully merge concrete model fields
             const subModelName = entity[modelInfo.discriminator];
             if (subModelName) {
                 const subModel = getModelInfo(this.options.modelMeta, subModelName, true);
                 const subRelationName = this.makeAuxRelationName(subModel);
                 const subData = entity[subRelationName];
                 if (subData && typeof subData === 'object') {
-                    const subAssembled = this.assembleDown(subModel.name, subData);
+                    const subAssembled = this.assembleHierarchy(subModel.name, subData);
                     Object.assign(result, subAssembled);
                 }
             }
