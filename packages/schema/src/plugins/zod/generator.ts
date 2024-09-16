@@ -370,10 +370,10 @@ export function ${refineFuncName}<T, D extends z.ZodTypeDef>(schema: z.ZodType<T
             }
 
             // delegate discriminator fields are to be excluded from mutation schemas
-            const delegateFields = model.fields.filter((field) => isDiscriminatorField(field));
+            const delegateDiscriminatorFields = model.fields.filter((field) => isDiscriminatorField(field));
             const omitDiscriminators =
-                delegateFields.length > 0
-                    ? `.omit({ ${delegateFields.map((f) => `${f.name}: true`).join(', ')} })`
+                delegateDiscriminatorFields.length > 0
+                    ? `.omit({ ${delegateDiscriminatorFields.map((f) => `${f.name}: true`).join(', ')} })`
                     : '';
 
             ////////////////////////////////////////////////
@@ -485,9 +485,11 @@ export const ${upperCaseFirst(model.name)}PrismaUpdateSchema = ${prismaUpdateSch
 
             // mark fields with default as optional
             if (fieldsWithDefault.length > 0) {
+                // delegate discriminator fields are omitted from the base schema, so we need
+                // to take care not to make them partial otherwise the schema won't compile
                 createSchema = this.makePartial(
                     createSchema,
-                    fieldsWithDefault.map((f) => f.name)
+                    fieldsWithDefault.filter((f) => !delegateDiscriminatorFields.includes(f)).map((f) => f.name)
                 );
             }
 
