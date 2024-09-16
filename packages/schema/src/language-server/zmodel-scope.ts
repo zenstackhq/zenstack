@@ -204,7 +204,7 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
     private createScopeForContainingModel(node: AstNode, globalScope: Scope) {
         const model = getContainerOfType(node, isDataModel);
         if (model) {
-            return this.createScopeForNodes(model.fields, globalScope);
+            return this.createScopeForModel(model, globalScope);
         } else {
             return EMPTY_SCOPE;
         }
