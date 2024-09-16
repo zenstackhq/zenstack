@@ -850,4 +850,179 @@ describe('Zod plugin tests', () => {
             )
         ).rejects.toThrow('already exists and is not a directory');
     });
+
+    it('is strict by default', async () => {
+        const { zodSchemas } = await loadSchema(
+            `
+            datasource db {
+                provider = 'postgresql'
+                url = env('DATABASE_URL')
+            }
+            
+            generator js {
+                provider = 'prisma-client-js'
+            }
+        
+            plugin zod {
+                provider = '@core/zod'
+            }
+        
+            model User {
+                id Int @id @default(autoincrement())
+                email String @unique @email @endsWith('@zenstack.dev')
+                password String
+                @@validate(length(password, 6, 20))
+            }
+            `,
+            { addPrelude: false, pushDb: false }
+        );
+
+        const schemas = zodSchemas.models;
+        expect(
+            schemas.UserSchema.safeParse({ id: 1, email: 'abc@zenstack.dev', password: 'abc123' }).success
+        ).toBeTruthy();
+        expect(
+            schemas.UserSchema.safeParse({ id: 1, email: 'abc@zenstack.dev', password: 'abc123', x: 1 }).success
+        ).toBeFalsy();
+
+        expect(
+            schemas.UserCreateSchema.safeParse({ email: 'abc@zenstack.dev', password: 'abc123' }).success
+        ).toBeTruthy();
+        expect(
+            schemas.UserCreateSchema.safeParse({ email: 'abc@zenstack.dev', password: 'abc123', x: 1 }).success
+        ).toBeFalsy();
+
+        // Prisma create/update schema should always non-strict
+        expect(
+            schemas.UserPrismaCreateSchema.safeParse({ email: 'abc@zenstack.dev', password: 'abc123', x: 1 }).data.x
+        ).toBe(1);
+        expect(schemas.UserPrismaUpdateSchema.safeParse({ x: 1 }).data.x).toBe(1);
+
+        expect(
+            zodSchemas.input.UserInputSchema.create.safeParse({
+                data: { id: 1, email: 'abc@zenstack.dev', password: 'abc123' },
+            }).success
+        ).toBeTruthy();
+        expect(
+            zodSchemas.input.UserInputSchema.create.safeParse({
+                data: { id: 1, email: 'abc@zenstack.dev', password: 'abc123', x: 1 },
+            }).success
+        ).toBeFalsy();
+    });
+
+    it('works in strip mode', async () => {
+        const { zodSchemas } = await loadSchema(
+            `
+            datasource db {
+                provider = 'postgresql'
+                url = env('DATABASE_URL')
+            }
+            
+            generator js {
+                provider = 'prisma-client-js'
+            }
+        
+            plugin zod {
+                provider = '@core/zod'
+                mode = 'strip'
+            }
+        
+            model User {
+                id Int @id @default(autoincrement())
+                email String @unique @email @endsWith('@zenstack.dev')
+                password String
+                @@validate(length(password, 6, 20))
+            }
+            `,
+            { addPrelude: false, pushDb: false }
+        );
+
+        const schemas = zodSchemas.models;
+        let parsed = schemas.UserSchema.safeParse({ id: 1, email: 'abc@zenstack.dev', password: 'abc123', x: 1 });
+        expect(parsed.success).toBeTruthy();
+        expect(parsed.data.x).toBeUndefined();
+
+        parsed = schemas.UserCreateSchema.safeParse({ email: 'abc@zenstack.dev', password: 'abc123', x: 1 });
+        expect(parsed.success).toBeTruthy();
+        expect(parsed.data.x).toBeUndefined();
+
+        parsed = zodSchemas.input.UserInputSchema.create.safeParse({
+            data: { id: 1, email: 'abc@zenstack.dev', password: 'abc123', x: 1 },
+        });
+        expect(parsed.success).toBeTruthy();
+        expect(parsed.data.data.x).toBeUndefined();
+    });
+
+    it('works in passthrough mode', async () => {
+        const { zodSchemas } = await loadSchema(
+            `
+            datasource db {
+                provider = 'postgresql'
+                url = env('DATABASE_URL')
+            }
+            
+            generator js {
+                provider = 'prisma-client-js'
+            }
+        
+            plugin zod {
+                provider = '@core/zod'
+                mode = 'passthrough'
+            }
+        
+            model User {
+                id Int @id @default(autoincrement())
+                email String @unique @email @endsWith('@zenstack.dev')
+                password String
+                @@validate(length(password, 6, 20))
+            }
+            `,
+            { addPrelude: false, pushDb: false }
+        );
+
+        const schemas = zodSchemas.models;
+        let parsed = schemas.UserSchema.safeParse({ id: 1, email: 'abc@zenstack.dev', password: 'abc123', x: 1 });
+        expect(parsed.success).toBeTruthy();
+        expect(parsed.data.x).toBe(1);
+
+        parsed = schemas.UserCreateSchema.safeParse({ email: 'abc@zenstack.dev', password: 'abc123', x: 1 });
+        expect(parsed.success).toBeTruthy();
+        expect(parsed.data.x).toBe(1);
+
+        parsed = zodSchemas.input.UserInputSchema.create.safeParse({
+            data: { id: 1, email: 'abc@zenstack.dev', password: 'abc123', x: 1 },
+        });
+        expect(parsed.success).toBeTruthy();
+        expect(parsed.data.data.x).toBe(1);
+    });
+
+    it('complains about invalid mode', async () => {
+        await expect(
+            loadSchema(
+                `
+            datasource db {
+                provider = 'postgresql'
+                url = env('DATABASE_URL')
+            }
+            
+            generator js {
+                provider = 'prisma-client-js'
+            }
+        
+            plugin zod {
+                provider = '@core/zod'
+                mode = 'xyz'
+            }
+        
+            model User {
+                id Int @id @default(autoincrement())
+                email String @unique @email @endsWith('@zenstack.dev')
+                password String
+                @@validate(length(password, 6, 20))
+            }
+            `,
+                { addPrelude: false, pushDb: false }
+            )
+        ).rejects.toThrow(/Invalid mode/);
+    });
 });
