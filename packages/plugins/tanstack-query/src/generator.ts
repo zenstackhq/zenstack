@@ -84,27 +84,19 @@ function generateQueryHook(
         generateModes.push('Infinite');
     }
 
+    if (supportPrefetching) {
+        generateModes.push('Prefetch');
+
+        if (supportInfinite) {
+            generateModes.push('PrefetchInfinite');
+        }
+    }
+
     if (target === 'react' && version === 'v5') {
         // react-query v5 supports suspense query
         generateModes.push('Suspense');
         if (supportInfinite) {
             generateModes.push('SuspenseInfinite');
-        }
-
-        if (supportPrefetching) {
-            generateModes.push('Prefetch');
-
-            if (supportInfinite) {
-                generateModes.push('PrefetchInfinite');
-            }
-        }
-    }
-
-    if (target === 'svelte' && supportPrefetching) {
-        generateModes.push('Prefetch');
-
-        if (supportInfinite) {
-            generateModes.push('PrefetchInfinite');
         }
     }
 
