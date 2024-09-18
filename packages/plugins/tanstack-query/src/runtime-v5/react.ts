@@ -8,6 +8,8 @@ import {
     useQueryClient,
     useSuspenseInfiniteQuery,
     useSuspenseQuery,
+    usePrefetchQuery,
+    usePrefetchInfiniteQuery,
     type InfiniteData,
     type UseInfiniteQueryOptions,
     type UseMutationOptions,
@@ -79,6 +81,34 @@ export function useModelQuery<TQueryFnData, TData, TError>(
 }
 
 /**
+ * Creates a react-query prefetch query.
+ *
+ * @param model The name of the model under query.
+ * @param url The request URL.
+ * @param args The request args object, URL-encoded and appended as "?q=" parameter
+ * @param options The react-query options object
+ * @param fetch The fetch function to use for sending the HTTP request
+ * @returns usePrefetchQuery hook
+ */
+export function usePrefetchModelQuery<TQueryFnData, TData, TError>(
+    model: string,
+    url: string,
+    args?: unknown,
+    options?: Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions,
+    fetch?: FetchFn
+) {
+    const reqUrl = makeUrl(url, args);
+    return usePrefetchQuery({
+        queryKey: getQueryKey(model, url, args, {
+            infinite: false,
+            optimisticUpdate: options?.optimisticUpdate !== false,
+        }),
+        queryFn: () => fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false),
+        ...options,
+    });
+}
+
+/**
  * Creates a react-query suspense query.
  *
  * @param model The name of the model under query.
@@ -124,6 +154,33 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
     fetch?: FetchFn
 ) {
     return useInfiniteQuery({
+        queryKey: getQueryKey(model, url, args, { infinite: true, optimisticUpdate: false }),
+        queryFn: ({ pageParam }) => {
+            return fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);
+        },
+        initialPageParam: args,
+        ...options,
+    });
+}
+
+/**
+ * Creates a react-query prefetch infinite query.
+ *
+ * @param model The name of the model under query.
+ * @param url The request URL.
+ * @param args The initial request args object, URL-encoded and appended as "?q=" parameter
+ * @param options The react-query infinite query options object
+ * @param fetch The fetch function to use for sending the HTTP request
+ * @returns usePrefetchInfiniteQuery hook
+ */
+export function usePrefetchInfiniteModelQuery<TQueryFnData, TData, TError>(
+    model: string,
+    url: string,
+    args: unknown,
+    options: Omit<UseInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>, 'queryKey' | 'initialPageParam'>,
+    fetch?: FetchFn
+) {
+    return usePrefetchInfiniteQuery({
         queryKey: getQueryKey(model, url, args, { infinite: true, optimisticUpdate: false }),
         queryFn: ({ pageParam }) => {
             return fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);

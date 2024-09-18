@@ -90,6 +90,50 @@ export function useModelQuery<TQueryFnData, TData, TError>(
 }
 
 /**
+ * Creates a vue-query prefetch query.
+ *
+ * @param model The name of the model under query.
+ * @param url The request URL.
+ * @param args The request args object, URL-encoded and appended as "?q=" parameter
+ * @param options The vue-query options object
+ * @param fetch The fetch function to use for sending the HTTP request
+ * @returns useQuery hook
+ */
+export function usePrefetchModelQuery<TQueryFnData, TData, TError>(
+    model: string,
+    url: string,
+    args?: MaybeRefOrGetter<unknown> | ComputedRef<unknown>,
+    options?:
+        | MaybeRefOrGetter<Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions>
+        | ComputedRef<Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions>,
+    fetch?: FetchFn
+) {
+    const queryOptions: any = computed(() => {
+        const optionsValue = toValue<
+            (Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions) | undefined
+        >(options);
+        return {
+            queryKey: getQueryKey(model, url, args, {
+                infinite: false,
+                optimisticUpdate: optionsValue?.optimisticUpdate !== false,
+            }),
+            queryFn: ({ queryKey }: { queryKey: QueryKey }) => {
+                const [_prefix, _model, _op, args] = queryKey;
+                const reqUrl = makeUrl(url, toValue(args));
+                return fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false);
+            },
+            ...optionsValue,
+        };
+    });
+
+    // Todo : When usePrefetchQuery is available in vue-query, use it
+    const queryClient = useQueryClient();
+
+    return queryClient.prefetchQuery(queryOptions);
+    // return usePrefetchQuery<TQueryFnData, TError, TData>(queryOptions);
+}
+
+/**
  * Creates a vue-query infinite query.
  *
  * @param model The name of the model under query.
@@ -128,6 +172,48 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
 }
 
 /**
+ * Creates a vue-query prefetch infinite query.
+ *
+ * @param model The name of the model under query.
+ * @param url The request URL.
+ * @param args The initial request args object, URL-encoded and appended as "?q=" parameter
+ * @param options The vue-query infinite query options object
+ * @param fetch The fetch function to use for sending the HTTP request
+ * @returns usePrefetchInfiniteQuery hook
+ */
+export function usePrefetchInfiniteModelQuery<TQueryFnData, TData, TError>(
+    model: string,
+    url: string,
+    args?: MaybeRefOrGetter<unknown> | ComputedRef<unknown>,
+    options?:
+        | MaybeRefOrGetter<
+        Omit<UseInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>, 'queryKey' | 'initialPageParam'>
+    >
+        | ComputedRef<
+        Omit<UseInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>, 'queryKey' | 'initialPageParam'>
+    >,
+    fetch?: FetchFn
+) {
+    // CHECKME: vue-query's `useInfiniteQuery`'s input typing seems wrong
+    const queryOptions: any = computed(() => ({
+        queryKey: getQueryKey(model, url, args, { infinite: true, optimisticUpdate: false }),
+        queryFn: ({ queryKey, pageParam }: { queryKey: QueryKey; pageParam?: unknown }) => {
+            const [_prefix, _model, _op, args] = queryKey;
+            const reqUrl = makeUrl(url, pageParam ?? toValue(args));
+            return fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false);
+        },
+        initialPageParam: toValue(args),
+        ...toValue(options)
+    }));
+
+    // Todo : When usePrefetchInfiniteQuery is available in vue-query, use it
+    const queryClient = useQueryClient();
+
+    return queryClient.prefetchQuery(queryOptions);
+    // return usePrefetchInfiniteQuery<TQueryFnData, TError, InfiniteData<TData>>(queryOptions);
+}
+
+/**
  * Creates a mutation with vue-query.
  *
  * @param model The name of the model under mutation.
@@ -137,7 +223,7 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
  * @param options The vue-query options.
  * @param fetch The fetch function to use for sending the HTTP request
  * @param checkReadBack Whether to check for read back errors and return undefined if found.
- * @returns useMutation hooks
+ * @returns useMutation hook
  */
 export function useModelMutation<
     TArgs,
