@@ -268,4 +268,45 @@ describe('Polymorphic Policy Test', () => {
             user1Db.ratedPost.update({ where: { id: post1.id }, data: { comments: { connect: { id: comment1.id } } } })
         ).toResolveTruthy();
     });
+
+    it('respects field-level policies', async () => {
+        const { enhance } = await loadSchema(`  
+            model User {
+                id Int @id @default(autoincrement())
+            }          
+
+            model Asset {
+                id Int @id @default(autoincrement())
+                type String
+                foo String @allow('read', auth().id == 1)
+
+                @@delegate(type)
+                @@allow('all', true)
+            }
+            
+            model Post extends Asset {
+                title String
+                bar String @deny('read', auth().id != 1)
+            }
+        `);
+
+        const db = enhance({ id: 1 });
+        const post = await db.post.create({ data: { foo: 'foo', bar: 'bar', title: 'Post1' } });
+        expect(post.foo).toBeTruthy();
+        expect(post.bar).toBeTruthy();
+
+        const foundPost = await db.post.findUnique({ where: { id: post.id } });
+        expect(foundPost.foo).toBeTruthy();
+        expect(foundPost.bar).toBeTruthy();
+
+        const db2 = enhance({ id: 2 });
+        const post2 = await db2.post.create({ data: { foo: 'foo', bar: 'bar', title: 'Post2' } });
+        expect(post2.title).toBeTruthy();
+        expect(post2.foo).toBeUndefined();
+        expect(post2.bar).toBeUndefined();
+
+        const foundPost2 = await db2.post.findUnique({ where: { id: post2.id } });
+        expect(foundPost2.foo).toBeUndefined();
+        expect(foundPost2.bar).toBeUndefined();
+    });
 });

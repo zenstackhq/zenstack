@@ -2,6 +2,7 @@
 import deepmerge, { type ArrayMergeOptions } from 'deepmerge';
 import { isPlainObject } from 'is-plain-object';
 import { lowerCaseFirst } from 'lower-case-first';
+import traverse from 'traverse';
 import { DELEGATE_AUX_RELATION_PREFIX } from '../../constants';
 import {
     FieldInfo,
@@ -77,6 +78,10 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         this.injectWhereHierarchy(model, args?.where);
         this.injectSelectIncludeHierarchy(model, args);
 
+        // discriminator field is needed during post process to determine the
+        // actual concrete model type
+        this.ensureDiscriminatorSelection(model, args);
+
         if (args.orderBy) {
             // `orderBy` may contain fields from base types
             this.injectWhereHierarchy(this.model, args.orderBy);
@@ -91,6 +96,23 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             return entity.map((item) => this.assembleHierarchy(model, item));
         } else {
             return this.assembleHierarchy(model, entity);
+        }
+    }
+
+    private ensureDiscriminatorSelection(model: string, args: any) {
+        const modelInfo = getModelInfo(this.options.modelMeta, model);
+        if (!modelInfo?.discriminator) {
+            return;
+        }
+
+        if (args.select && typeof args.select === 'object') {
+            args.select[modelInfo.discriminator] = true;
+            return;
+        }
+
+        if (args.omit && typeof args.omit === 'object') {
+            args.omit[modelInfo.discriminator] = false;
+            return;
         }
     }
 
@@ -337,6 +359,8 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             );
         }
 
+        this.sanitizeMutationPayload(args.data);
+
         if (isDelegateModel(this.options.modelMeta, this.model)) {
             throw prismaClientValidationError(
                 this.prisma,
@@ -352,6 +376,24 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         return this.doCreate(this.prisma, this.model, args);
     }
 
+    private sanitizeMutationPayload(data: any) {
+        if (!data) {
+            return;
+        }
+
+        const prisma = this.prisma;
+        const prismaModule = this.options.prismaModule;
+        traverse(data).forEach(function () {
+            if (this.key?.startsWith(DELEGATE_AUX_RELATION_PREFIX)) {
+                throw prismaClientValidationError(
+                    prisma,
+                    prismaModule,
+                    `Auxiliary relation field "${this.key}" cannot be set directly`
+                );
+            }
+        });
+    }
+
     override createMany(args: { data: any; skipDuplicates?: boolean }): Promise<{ count: number }> {
         if (!args) {
             throw prismaClientValidationError(this.prisma, this.options.prismaModule, 'query argument is required');
@@ -363,6 +405,8 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                 'data field is required in query argument'
             );
         }
+
+        this.sanitizeMutationPayload(args.data);
 
         if (!this.involvesDelegateModel(this.model)) {
             return super.createMany(args);
@@ -402,6 +446,8 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                 'data field is required in query argument'
             );
         }
+
+        this.sanitizeMutationPayload(args.data);
 
         if (!this.involvesDelegateModel(this.model)) {
             return super.createManyAndReturn(args);
@@ -589,6 +635,8 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             );
         }
 
+        this.sanitizeMutationPayload(args.data);
+
         if (!this.involvesDelegateModel(this.model)) {
             return super.update(args);
         }
@@ -607,6 +655,8 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                 'data field is required in query argument'
             );
         }
+
+        this.sanitizeMutationPayload(args.data);
 
         if (!this.involvesDelegateModel(this.model)) {
             return super.updateMany(args);
@@ -634,6 +684,9 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                 'where field is required in query argument'
             );
         }
+
+        this.sanitizeMutationPayload(args.update);
+        this.sanitizeMutationPayload(args.create);
 
         if (isDelegateModel(this.options.modelMeta, this.model)) {
             throw prismaClientValidationError(
