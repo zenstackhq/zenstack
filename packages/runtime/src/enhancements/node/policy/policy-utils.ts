@@ -1381,7 +1381,10 @@ export class PolicyUtil extends QueryUtils {
         // preserve the original data as it may be needed for checking field-level readability,
         // while the "data" will be manipulated during traversal (deleting unreadable fields)
         const origData = this.safeClone(data);
-        return this.doPostProcessForRead(data, model, origData, queryArgs, this.hasFieldLevelPolicy(model));
+
+        // use the concrete model if the data is a polymorphic entity
+        const realModel = this.getDelegateConcreteModel(model, data);
+        return this.doPostProcessForRead(data, realModel, origData, queryArgs, this.hasFieldLevelPolicy(realModel));
     }
 
     private doPostProcessForRead(
