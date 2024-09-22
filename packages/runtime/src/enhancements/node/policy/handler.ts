@@ -437,7 +437,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             args = this.policyUtils.safeClone(args);
 
             // `createManyAndReturn` may need to be converted to regular `create`s
-            const shouldConvertToCreate = this.shouldConvertCreateManyToCreate(args);
+            const shouldConvertToCreate = this.preprocessCreateManyPayload(args);
 
             if (!shouldConvertToCreate) {
                 // direct `createMany`
@@ -473,7 +473,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             args = this.policyUtils.safeClone(args);
 
             // `createManyAndReturn` may need to be converted to regular `create`s
-            const shouldConvertToCreate = this.shouldConvertCreateManyToCreate(args);
+            const shouldConvertToCreate = this.preprocessCreateManyPayload(args);
 
             let result: { result: unknown; error?: Error }[];
 
@@ -515,7 +515,11 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         });
     }
 
-    private shouldConvertCreateManyToCreate(args: { data: any; select?: any; skipDuplicates?: boolean }) {
+    /**
+     * Preprocess the payload of `createMany` and `createManyAndReturn` and update in place if needed.
+     * @returns `true` if the operation should be converted to regular `create`s; false otherwise.
+     */
+    private preprocessCreateManyPayload(args: { data: any; select?: any; skipDuplicates?: boolean }) {
         if (!args) {
             return false;
         }
