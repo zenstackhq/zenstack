@@ -69,7 +69,7 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
         protected readonly options: InternalEnhancementOptions
     ) {}
 
-    protected withFluentCall(method: keyof PrismaProxyHandler, args: any, postProcess = true): Promise<unknown> {
+    protected withFluentCall(method: PrismaProxyActions, args: any, postProcess = true): Promise<unknown> {
         args = args ? clone(args) : {};
         const promise = createFluentPromise(
             async () => {
@@ -84,7 +84,7 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
         return promise;
     }
 
-    protected deferred<TResult = unknown>(method: keyof PrismaProxyHandler, args: any, postProcess = true) {
+    protected deferred<TResult = unknown>(method: PrismaProxyActions, args: any, postProcess = true) {
         return createDeferredPromise<TResult>(async () => {
             args = await this.preprocessArgs(method, args);
             const r = await this.prisma[this.model][method](args);
@@ -210,7 +210,7 @@ const customInspect = Symbol.for('nodejs.util.inspect.custom');
 export function makeProxy<T extends PrismaProxyHandler>(
     prisma: any,
     modelMeta: ModelMeta,
-    makeHandler: (prisma: object, model: string) => T,
+    makeHandler: (prisma: DbClientContract, model: string) => T,
     name = 'unnamed_enhancer',
     errorTransformer?: ErrorTransformer
 ) {

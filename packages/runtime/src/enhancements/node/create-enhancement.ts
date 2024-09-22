@@ -1,13 +1,19 @@
 import semver from 'semver';
 import { PRISMA_MINIMUM_VERSION } from '../../constants';
 import { isDelegateModel, type ModelMeta } from '../../cross';
-import type { EnhancementContext, EnhancementKind, EnhancementOptions, ZodSchemas } from '../../types';
+import type {
+    DbClientContract,
+    EnhancementContext,
+    EnhancementKind,
+    EnhancementOptions,
+    ZodSchemas,
+} from '../../types';
 import { withDefaultAuth } from './default-auth';
 import { withDelegate } from './delegate';
 import { Logger } from './logger';
 import { withOmit } from './omit';
 import { withPassword } from './password';
-import { withPolicy } from './policy';
+import { policyProcessIncludeRelationPayload, withPolicy } from './policy';
 import type { PolicyDef } from './types';
 
 /**
@@ -41,6 +47,18 @@ export type InternalEnhancementOptions = EnhancementOptions & {
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     prismaModule: any;
+
+    /**
+     * A callback shared among enhancements to process the payload for including a relation
+     * field. e.g.: `{ author: true }`.
+     */
+    processIncludeRelationPayload?: (
+        prisma: DbClientContract,
+        model: string,
+        payload: unknown,
+        options: InternalEnhancementOptions,
+        context: EnhancementContext | undefined
+    ) => Promise<void>;
 };
 
 /**
@@ -53,7 +71,7 @@ export type InternalEnhancementOptions = EnhancementOptions & {
  * @param context Context.
  * @param options Options.
  */
-export function createEnhancement<DbClient extends object>(
+export function createEnhancement<DbClient extends DbClientContract>(
     prisma: DbClient,
     options: InternalEnhancementOptions,
     context?: EnhancementContext
@@ -89,7 +107,7 @@ export function createEnhancement<DbClient extends object>(
                 'Your ZModel contains delegate models but "delegate" enhancement kind is not enabled. This may result in unexpected behavior.'
             );
         } else {
-            result = withDelegate(result, options);
+            result = withDelegate(result, options, context);
         }
     }
 
@@ -103,6 +121,16 @@ export function createEnhancement<DbClient extends object>(
     // 'policy' and 'validation' enhancements are both enabled by `withPolicy`
     if (kinds.includes('policy') || kinds.includes('validation')) {
         result = withPolicy(result, options, context);
+
+        // if any enhancement is to introduce an inclusion of a relation field, the
+        // inclusion payload must be processed by the policy enhancement for injecting
+        // access control rules
+
+        // TODO: this is currently a global callback shared among all enhancements, which
+        // is far from ideal
+
+        options.processIncludeRelationPayload = policyProcessIncludeRelationPayload;
+
         if (kinds.includes('policy') && hasDefaultAuth) {
             // @default(auth()) proxy
             result = withDefaultAuth(result, options, context);
