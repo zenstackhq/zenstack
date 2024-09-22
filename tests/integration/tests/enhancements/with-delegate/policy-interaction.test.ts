@@ -400,7 +400,7 @@ describe('Polymorphic Policy Test', () => {
         const deleteRead = await db.asset.delete({ where: { id: post.id } });
         expect(deleteRead.value).toBe(2);
         // cannot read back sub model
-        expect(updateRead.title).toBeUndefined();
+        expect(deleteRead.title).toBeUndefined();
         // actually deleted
         await expect(prisma.asset.findUnique({ where: { id: post.id } })).toResolveFalsy();
         await expect(prisma.post.findUnique({ where: { id: post.id } })).toResolveFalsy();
@@ -478,7 +478,7 @@ describe('Polymorphic Policy Test', () => {
         const deleteRead = await db.asset.delete({ where: { id: post.id } });
         expect(deleteRead.value).toBe(2);
         // cannot read back sub model
-        expect(updateRead.title).toBeUndefined();
+        expect(deleteRead.title).toBeUndefined();
         // actually deleted
         await expect(prisma.asset.findUnique({ where: { id: post.id } })).toResolveFalsy();
         await expect(prisma.post.findUnique({ where: { id: post.id } })).toResolveFalsy();
