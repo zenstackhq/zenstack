@@ -210,7 +210,7 @@ const customInspect = Symbol.for('nodejs.util.inspect.custom');
 export function makeProxy<T extends PrismaProxyHandler>(
     prisma: any,
     modelMeta: ModelMeta,
-    makeHandler: (prisma: DbClientContract, model: string) => T,
+    makeHandler: (prisma: object, model: string) => T,
     name = 'unnamed_enhancer',
     errorTransformer?: ErrorTransformer
 ) {

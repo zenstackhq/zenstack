@@ -19,7 +19,7 @@ import { PolicyUtil } from './policy-utils';
  *
  * @private
  */
-export function withPolicy<DbClient extends DbClientContract>(
+export function withPolicy<DbClient extends object>(
     prisma: DbClient,
     options: InternalEnhancementOptions,
     context?: EnhancementContext

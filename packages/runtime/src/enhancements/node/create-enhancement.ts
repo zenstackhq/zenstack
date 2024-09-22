@@ -71,7 +71,7 @@ export type InternalEnhancementOptions = EnhancementOptions & {
  * @param context Context.
  * @param options Options.
  */
-export function createEnhancement<DbClient extends DbClientContract>(
+export function createEnhancement<DbClient extends object>(
     prisma: DbClient,
     options: InternalEnhancementOptions,
     context?: EnhancementContext
