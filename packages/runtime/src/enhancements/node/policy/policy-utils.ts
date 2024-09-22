@@ -1098,6 +1098,9 @@ export class PolicyUtil extends QueryUtils {
         }
         const result = await db[model].findFirst(readArgs);
         if (!result) {
+            if (this.shouldLogQuery) {
+                this.logger.info(`[policy] cannot read back ${model}`);
+            }
             return { error, result: undefined };
         }
 

@@ -15,18 +15,22 @@ import {
     isDelegateModel,
     resolveField,
 } from '../../cross';
-import type { CrudContract, DbClientContract } from '../../types';
+import type { CrudContract, DbClientContract, EnhancementContext } from '../../types';
 import type { InternalEnhancementOptions } from './create-enhancement';
 import { Logger } from './logger';
 import { DefaultPrismaProxyHandler, makeProxy } from './proxy';
 import { QueryUtils } from './query-utils';
 import { formatObject, prismaClientValidationError } from './utils';
 
-export function withDelegate<DbClient extends object>(prisma: DbClient, options: InternalEnhancementOptions): DbClient {
+export function withDelegate<DbClient extends object>(
+    prisma: DbClient,
+    options: InternalEnhancementOptions,
+    context: EnhancementContext | undefined
+): DbClient {
     return makeProxy(
         prisma,
         options.modelMeta,
-        (_prisma, model) => new DelegateProxyHandler(_prisma as DbClientContract, model, options),
+        (_prisma, model) => new DelegateProxyHandler(_prisma as DbClientContract, model, options, context),
         'delegate'
     );
 }
@@ -35,7 +39,12 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     private readonly logger: Logger;
     private readonly queryUtils: QueryUtils;
 
-    constructor(prisma: DbClientContract, model: string, options: InternalEnhancementOptions) {
+    constructor(
+        prisma: DbClientContract,
+        model: string,
+        options: InternalEnhancementOptions,
+        private readonly context: EnhancementContext | undefined
+    ) {
         super(prisma, model, options);
         this.logger = new Logger(prisma);
         this.queryUtils = new QueryUtils(prisma, this.options);
@@ -76,7 +85,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         args = args ? clone(args) : {};
 
         this.injectWhereHierarchy(model, args?.where);
-        this.injectSelectIncludeHierarchy(model, args);
+        await this.injectSelectIncludeHierarchy(model, args);
 
         // discriminator field is needed during post process to determine the
         // actual concrete model type
@@ -166,7 +175,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         });
     }
 
-    private injectSelectIncludeHierarchy(model: string, args: any) {
+    private async injectSelectIncludeHierarchy(model: string, args: any) {
         if (!args || typeof args !== 'object') {
             return;
         }
@@ -186,7 +195,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                                 // make sure the payload is an object
                                 args[kind][field] = {};
                             }
-                            this.injectSelectIncludeHierarchy(fieldInfo.type, args[kind][field]);
+                            await this.injectSelectIncludeHierarchy(fieldInfo.type, args[kind][field]);
                         }
                     }
 
@@ -208,7 +217,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                                 // make sure the payload is an object
                                 args[kind][field] = nextValue = {};
                             }
-                            this.injectSelectIncludeHierarchy(fieldInfo.type, nextValue);
+                            await this.injectSelectIncludeHierarchy(fieldInfo.type, nextValue);
                         }
                     }
                 }
@@ -220,11 +229,11 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             this.injectBaseIncludeRecursively(model, args);
 
             // include sub models downwards
-            this.injectConcreteIncludeRecursively(model, args);
+            await this.injectConcreteIncludeRecursively(model, args);
         }
     }
 
-    private buildSelectIncludeHierarchy(model: string, args: any) {
+    private async buildSelectIncludeHierarchy(model: string, args: any) {
         args = clone(args);
         const selectInclude: any = this.extractSelectInclude(args) || {};
 
@@ -248,7 +257,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
 
         if (!selectInclude.select) {
             this.injectBaseIncludeRecursively(model, selectInclude);
-            this.injectConcreteIncludeRecursively(model, selectInclude);
+            await this.injectConcreteIncludeRecursively(model, selectInclude);
         }
         return selectInclude;
     }
@@ -319,7 +328,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         this.injectBaseIncludeRecursively(base.name, selectInclude.include[baseRelationName]);
     }
 
-    private injectConcreteIncludeRecursively(model: string, selectInclude: any) {
+    private async injectConcreteIncludeRecursively(model: string, selectInclude: any) {
         const modelInfo = getModelInfo(this.options.modelMeta, model);
         if (!modelInfo) {
             return;
@@ -333,13 +342,27 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         for (const subModel of subModels) {
             // include sub model relation field
             const subRelationName = this.makeAuxRelationName(subModel);
+            const includePayload: any = {};
+
+            if (this.options.processIncludeRelationPayload) {
+                // use the callback in options to process the include payload, so enhancements
+                // like 'policy' can do extra work (e.g., inject policy rules)
+                await this.options.processIncludeRelationPayload(
+                    this.prisma,
+                    subModel.name,
+                    includePayload,
+                    this.options,
+                    this.context
+                );
+            }
+
             if (selectInclude.select) {
-                selectInclude.include = { [subRelationName]: {}, ...selectInclude.select };
+                selectInclude.include = { [subRelationName]: includePayload, ...selectInclude.select };
                 delete selectInclude.select;
             } else {
-                selectInclude.include = { [subRelationName]: {}, ...selectInclude.include };
+                selectInclude.include = { [subRelationName]: includePayload, ...selectInclude.include };
             }
-            this.injectConcreteIncludeRecursively(subModel.name, selectInclude.include[subRelationName]);
+            await this.injectConcreteIncludeRecursively(subModel.name, selectInclude.include[subRelationName]);
         }
     }
 
@@ -480,7 +503,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         args = clone(args);
 
         await this.injectCreateHierarchy(model, args);
-        this.injectSelectIncludeHierarchy(model, args);
+        await this.injectSelectIncludeHierarchy(model, args);
 
         if (this.options.logPrismaQuery) {
             this.logger.info(`[delegate] \`create\` ${this.getModelName(model)}: ${formatObject(args)}`);
@@ -702,7 +725,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
 
         args = clone(args);
         this.injectWhereHierarchy(this.model, (args as any)?.where);
-        this.injectSelectIncludeHierarchy(this.model, args);
+        await this.injectSelectIncludeHierarchy(this.model, args);
         if (args.create) {
             this.doProcessCreatePayload(this.model, args.create);
         }
@@ -721,7 +744,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         args = clone(args);
 
         await this.injectUpdateHierarchy(db, model, args);
-        this.injectSelectIncludeHierarchy(model, args);
+        await this.injectSelectIncludeHierarchy(model, args);
 
         if (this.options.logPrismaQuery) {
             this.logger.info(`[delegate] \`update\` ${this.getModelName(model)}: ${formatObject(args)}`);
@@ -915,7 +938,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         }
 
         return this.queryUtils.transaction(this.prisma, async (tx) => {
-            const selectInclude = this.buildSelectIncludeHierarchy(this.model, args);
+            const selectInclude = await this.buildSelectIncludeHierarchy(this.model, args);
 
             // make sure id fields are selected
             const idFields = this.getIdFields(this.model);
@@ -967,6 +990,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
 
     private async doDelete(db: CrudContract, model: string, args: any): Promise<unknown> {
         this.injectWhereHierarchy(model, args.where);
+        await this.injectSelectIncludeHierarchy(model, args);
 
         if (this.options.logPrismaQuery) {
             this.logger.info(`[delegate] \`delete\` ${this.getModelName(model)}: ${formatObject(args)}`);

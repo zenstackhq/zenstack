@@ -7,6 +7,7 @@ import type { InternalEnhancementOptions } from '../create-enhancement';
 import { Logger } from '../logger';
 import { makeProxy } from '../proxy';
 import { PolicyProxyHandler } from './handler';
+import { PolicyUtil } from './policy-utils';
 
 /**
  * Gets an enhanced Prisma client with access policy check.
@@ -59,4 +60,21 @@ export function withPolicy<DbClient extends object>(
         'policy',
         options?.errorTransformer
     );
+}
+
+/**
+ * Function for processing a payload for including a relation field in a query.
+ * @param model The relation's model name
+ * @param payload The payload to process
+ */
+export async function policyProcessIncludeRelationPayload(
+    prisma: DbClientContract,
+    model: string,
+    payload: unknown,
+    options: InternalEnhancementOptions,
+    context: EnhancementContext | undefined
+) {
+    const utils = new PolicyUtil(prisma, options, context);
+    await utils.injectForRead(prisma, model, payload);
+    await utils.injectReadCheckSelect(model, payload);
 }
