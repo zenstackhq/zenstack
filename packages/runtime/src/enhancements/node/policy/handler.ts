@@ -12,6 +12,7 @@ import {
     NestedWriteVisitorContext,
     enumerate,
     getIdFields,
+    getModelInfo,
     requireField,
     resolveField,
     type FieldInfo,
@@ -435,17 +436,16 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
             args = this.policyUtils.safeClone(args);
 
-            // go through create items, statically check input to determine if post-create
-            // check is needed, and also validate zod schema
-            const needPostCreateCheck = this.validateCreateInput(args);
+            // `createManyAndReturn` may need to be converted to regular `create`s
+            const shouldConvertToCreate = this.shouldConvertCreateManyToCreate(args);
 
-            if (!needPostCreateCheck) {
-                // direct create
+            if (!shouldConvertToCreate) {
+                // direct `createMany`
                 return this.modelClient.createMany(args);
             } else {
                 // create entities in a transaction with post-create checks
                 return this.queryUtils.transaction(this.prisma, async (tx) => {
-                    const { result, postWriteChecks } = await this.doCreateMany(this.model, args, tx);
+                    const { result, postWriteChecks } = await this.doCreateMany(this.model, args, tx, 'createMany');
                     // post-create check
                     await this.runPostWriteChecks(postWriteChecks, tx);
                     return { count: result.length };
@@ -472,14 +472,13 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             const origArgs = args;
             args = this.policyUtils.safeClone(args);
 
-            // go through create items, statically check input to determine if post-create
-            // check is needed, and also validate zod schema
-            const needPostCreateCheck = this.validateCreateInput(args);
+            // `createManyAndReturn` may need to be converted to regular `create`s
+            const shouldConvertToCreate = this.shouldConvertCreateManyToCreate(args);
 
             let result: { result: unknown; error?: Error }[];
 
-            if (!needPostCreateCheck) {
-                // direct create
+            if (!shouldConvertToCreate) {
+                // direct `createManyAndReturn`
                 const created = await this.modelClient.createManyAndReturn(args);
 
                 // process read-back
@@ -489,7 +488,13 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             } else {
                 // create entities in a transaction with post-create checks
                 result = await this.queryUtils.transaction(this.prisma, async (tx) => {
-                    const { result: created, postWriteChecks } = await this.doCreateMany(this.model, args, tx);
+                    const { result: created, postWriteChecks } = await this.doCreateMany(
+                        this.model,
+                        args,
+                        tx,
+                        'createManyAndReturn'
+                    );
+
                     // post-create check
                     await this.runPostWriteChecks(postWriteChecks, tx);
 
@@ -508,6 +513,42 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 return result.map((r) => r.result);
             }
         });
+    }
+
+    private shouldConvertCreateManyToCreate(args: { data: any; select?: any; skipDuplicates?: boolean }) {
+        if (!args) {
+            return false;
+        }
+
+        // if post-create check is needed
+        const needPostCreateCheck = this.validateCreateInput(args);
+
+        // if the payload has any relation fields. Note that other enhancements (`withDefaultInAuth` for now)
+        // can introduce relation fields into the payload
+        let hasRelationFields = false;
+        if (args.data) {
+            hasRelationFields = this.hasRelationFieldsInPayload(this.model, args.data);
+        }
+
+        return needPostCreateCheck || hasRelationFields;
+    }
+
+    private hasRelationFieldsInPayload(model: string, payload: any) {
+        const modelInfo = getModelInfo(this.modelMeta, model);
+        if (!modelInfo) {
+            return false;
+        }
+
+        for (const item of enumerate(payload)) {
+            for (const field of Object.keys(item)) {
+                const fieldInfo = resolveField(this.modelMeta, model, field);
+                if (fieldInfo?.isDataModel) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private validateCreateInput(args: { data: any; skipDuplicates?: boolean | undefined }) {
@@ -537,7 +578,12 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         return needPostCreateCheck;
     }
 
-    private async doCreateMany(model: string, args: { data: any; skipDuplicates?: boolean }, db: CrudContract) {
+    private async doCreateMany(
+        model: string,
+        args: { data: any; skipDuplicates?: boolean },
+        db: CrudContract,
+        action: 'createMany' | 'createManyAndReturn'
+    ) {
         // We can't call the native "createMany" because we can't get back what was created
         // for post-create checks. Instead, do a "create" for each item and collect the results.
 
@@ -553,7 +599,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 }
 
                 if (this.shouldLogQuery) {
-                    this.logger.info(`[policy] \`create\` for \`createMany\` ${model}: ${formatObject(item)}`);
+                    this.logger.info(`[policy] \`create\` for \`${action}\` ${model}: ${formatObject(item)}`);
                 }
                 return await db[model].create({ select: this.policyUtils.makeIdSelection(model), data: item });
             })
