@@ -233,7 +233,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         }
     }
 
-    private async buildSelectIncludeHierarchy(model: string, args: any) {
+    private async buildSelectIncludeHierarchy(model: string, args: any, includeConcreteFields = true) {
         args = clone(args);
         const selectInclude: any = this.extractSelectInclude(args) || {};
 
@@ -257,7 +257,10 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
 
         if (!selectInclude.select) {
             this.injectBaseIncludeRecursively(model, selectInclude);
-            await this.injectConcreteIncludeRecursively(model, selectInclude);
+
+            if (includeConcreteFields) {
+                await this.injectConcreteIncludeRecursively(model, selectInclude);
+            }
         }
         return selectInclude;
     }
@@ -342,19 +345,9 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         for (const subModel of subModels) {
             // include sub model relation field
             const subRelationName = this.makeAuxRelationName(subModel);
-            const includePayload: any = {};
 
-            if (this.options.processIncludeRelationPayload) {
-                // use the callback in options to process the include payload, so enhancements
-                // like 'policy' can do extra work (e.g., inject policy rules)
-                await this.options.processIncludeRelationPayload(
-                    this.prisma,
-                    subModel.name,
-                    includePayload,
-                    this.options,
-                    this.context
-                );
-            }
+            // create a payload to include the sub model relation
+            const includePayload = await this.createConcreteRelationIncludePayload(subModel.name);
 
             if (selectInclude.select) {
                 selectInclude.include = { [subRelationName]: includePayload, ...selectInclude.select };
@@ -364,6 +357,23 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             }
             await this.injectConcreteIncludeRecursively(subModel.name, selectInclude.include[subRelationName]);
         }
+    }
+
+    private async createConcreteRelationIncludePayload(model: string) {
+        let result: any = {};
+
+        if (this.options.processIncludeRelationPayload) {
+            // use the callback in options to process the include payload, so enhancements
+            // like 'policy' can do extra work (e.g., inject policy rules)
+            await this.options.processIncludeRelationPayload(this.prisma, model, result, this.options, this.context);
+
+            // the callback may directly reference fields from polymorphic bases, we need to fix it
+            // into a proper hierarchy by moving base field references to the base layer relations
+            const properHierarchy = await this.buildSelectIncludeHierarchy(model, result, false);
+            result = { ...result, ...properHierarchy };
+        }
+
+        return result;
     }
 
     // #endregion
