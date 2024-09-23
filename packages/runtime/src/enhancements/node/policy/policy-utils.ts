@@ -608,13 +608,13 @@ export class PolicyUtil extends QueryUtils {
             //   to-one: direct-conditions/is/isNot
             //   regular fields
             const mergedGuard = this.buildReadGuardForFields(db, model, args.where, {});
-            this.mergeWhereClause(args.where, mergedGuard);
+            args.where = this.mergeWhereClause(args.where, mergedGuard);
         }
 
         if (args.where) {
             if (injected.where && Object.keys(injected.where).length > 0) {
                 // merge injected guard with the user-provided where clause
-                this.mergeWhereClause(args.where, injected.where);
+                args.where = this.mergeWhereClause(args.where, injected.where);
             }
         } else if (injected.where) {
             // no user-provided where clause, use the injected one
@@ -630,7 +630,7 @@ export class PolicyUtil extends QueryUtils {
             if (!args.where) {
                 args.where = this.and(...hoistedConditions);
             } else {
-                this.mergeWhereClause(args.where, this.and(...hoistedConditions));
+                args.where = this.mergeWhereClause(args.where, this.and(...hoistedConditions));
             }
         }
 
@@ -1098,6 +1098,9 @@ export class PolicyUtil extends QueryUtils {
         }
         const result = await db[model].findFirst(readArgs);
         if (!result) {
+            if (this.shouldLogQuery) {
+                this.logger.info(`[policy] cannot read back ${model}`);
+            }
             return { error, result: undefined };
         }
 
@@ -1381,7 +1384,10 @@ export class PolicyUtil extends QueryUtils {
         // preserve the original data as it may be needed for checking field-level readability,
         // while the "data" will be manipulated during traversal (deleting unreadable fields)
         const origData = this.safeClone(data);
-        return this.doPostProcessForRead(data, model, origData, queryArgs, this.hasFieldLevelPolicy(model));
+
+        // use the concrete model if the data is a polymorphic entity
+        const realModel = this.getDelegateConcreteModel(model, data);
+        return this.doPostProcessForRead(data, realModel, origData, queryArgs, this.hasFieldLevelPolicy(realModel));
     }
 
     private doPostProcessForRead(
@@ -1546,7 +1552,11 @@ export class PolicyUtil extends QueryUtils {
         }
 
         if (this.isTrue(extra)) {
-            return;
+            return where;
+        }
+
+        if (this.isFalse(extra)) {
+            return this.makeFalse();
         }
 
         // instead of simply wrapping with AND, we preserve the structure
@@ -1559,10 +1569,10 @@ export class PolicyUtil extends QueryUtils {
             const combined: any = this.and(...conditions);
 
             // make sure the merging always goes under AND
-            where.AND = combined.AND ?? combined;
+            return { ...where, AND: combined.AND ?? combined };
         } else {
             // insert an AND clause
-            where.AND = [extra];
+            return { ...where, AND: [extra] };
         }
     }
 

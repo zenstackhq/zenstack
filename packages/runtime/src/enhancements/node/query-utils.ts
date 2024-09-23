@@ -214,4 +214,22 @@ export class QueryUtils {
     safeClone(value: unknown): any {
         return value ? clone(value) : value === undefined || value === null ? {} : value;
     }
+
+    getDelegateConcreteModel(model: string, data: any) {
+        if (!data || typeof data !== 'object') {
+            return model;
+        }
+
+        const modelInfo = getModelInfo(this.options.modelMeta, model);
+        if (modelInfo?.discriminator) {
+            // model has a discriminator so it can be a polymorphic base,
+            // need to find the concrete model
+            const concreteModelName = data[modelInfo.discriminator];
+            if (typeof concreteModelName === 'string' && concreteModelName) {
+                return concreteModelName;
+            }
+        }
+
+        return model;
+    }
 }

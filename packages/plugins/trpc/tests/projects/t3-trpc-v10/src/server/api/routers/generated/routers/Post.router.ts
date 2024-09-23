@@ -13,19 +13,19 @@ export default function createRouter<Config extends BaseConfig>(router: RouterFa
 
         aggregate: procedure.input($Schema.PostInputSchema.aggregate).query(({ ctx, input }) => checkRead(db(ctx).post.aggregate(input as any))),
 
-        createMany: procedure.input($Schema.PostInputSchema.createMany).mutation(async ({ ctx, input }) => checkMutate(db(ctx).post.createMany(input as any))),
+        createMany: procedure.input($Schema.PostInputSchema.createMany.optional()).mutation(async ({ ctx, input }) => checkMutate(db(ctx).post.createMany(input as any))),
 
         create: procedure.input($Schema.PostInputSchema.create).mutation(async ({ ctx, input }) => checkMutate(db(ctx).post.create(input as any))),
 
-        deleteMany: procedure.input($Schema.PostInputSchema.deleteMany).mutation(async ({ ctx, input }) => checkMutate(db(ctx).post.deleteMany(input as any))),
+        deleteMany: procedure.input($Schema.PostInputSchema.deleteMany.optional()).mutation(async ({ ctx, input }) => checkMutate(db(ctx).post.deleteMany(input as any))),
 
         delete: procedure.input($Schema.PostInputSchema.delete).mutation(async ({ ctx, input }) => checkMutate(db(ctx).post.delete(input as any))),
 
-        findFirst: procedure.input($Schema.PostInputSchema.findFirst).query(({ ctx, input }) => checkRead(db(ctx).post.findFirst(input as any))),
+        findFirst: procedure.input($Schema.PostInputSchema.findFirst.optional()).query(({ ctx, input }) => checkRead(db(ctx).post.findFirst(input as any))),
 
-        findFirstOrThrow: procedure.input($Schema.PostInputSchema.findFirst).query(({ ctx, input }) => checkRead(db(ctx).post.findFirstOrThrow(input as any))),
+        findFirstOrThrow: procedure.input($Schema.PostInputSchema.findFirst.optional()).query(({ ctx, input }) => checkRead(db(ctx).post.findFirstOrThrow(input as any))),
 
-        findMany: procedure.input($Schema.PostInputSchema.findMany).query(({ ctx, input }) => checkRead(db(ctx).post.findMany(input as any))),
+        findMany: procedure.input($Schema.PostInputSchema.findMany.optional()).query(({ ctx, input }) => checkRead(db(ctx).post.findMany(input as any))),
 
         findUnique: procedure.input($Schema.PostInputSchema.findUnique).query(({ ctx, input }) => checkRead(db(ctx).post.findUnique(input as any))),
 
@@ -39,7 +39,7 @@ export default function createRouter<Config extends BaseConfig>(router: RouterFa
 
         upsert: procedure.input($Schema.PostInputSchema.upsert).mutation(async ({ ctx, input }) => checkMutate(db(ctx).post.upsert(input as any))),
 
-        count: procedure.input($Schema.PostInputSchema.count).query(({ ctx, input }) => checkRead(db(ctx).post.count(input as any))),
+        count: procedure.input($Schema.PostInputSchema.count.optional()).query(({ ctx, input }) => checkRead(db(ctx).post.count(input as any))),
 
     }
     );
@@ -123,14 +123,14 @@ export interface ClientType<AppRouter extends AnyRouter, Context = AppRouter['_d
     findFirst: {
 
         useQuery: <T extends Prisma.PostFindFirstArgs, TData = Prisma.PostGetPayload<T>>(
-            input: Prisma.SelectSubset<T, Prisma.PostFindFirstArgs>,
+            input?: Prisma.SelectSubset<T, Prisma.PostFindFirstArgs>,
             opts?: UseTRPCQueryOptions<string, T, Prisma.PostGetPayload<T>, TData, Error>
         ) => UseTRPCQueryResult<
             TData,
             TRPCClientErrorLike<AppRouter>
         >;
         useInfiniteQuery: <T extends Prisma.PostFindFirstArgs>(
-            input: Omit<Prisma.SelectSubset<T, Prisma.PostFindFirstArgs>, 'cursor'>,
+            input?: Omit<Prisma.SelectSubset<T, Prisma.PostFindFirstArgs>, 'cursor'>,
             opts?: UseTRPCInfiniteQueryOptions<string, T, Prisma.PostGetPayload<T>, Error>
         ) => UseTRPCInfiniteQueryResult<
             Prisma.PostGetPayload<T>,
@@ -141,14 +141,14 @@ export interface ClientType<AppRouter extends AnyRouter, Context = AppRouter['_d
     findFirstOrThrow: {
 
         useQuery: <T extends Prisma.PostFindFirstOrThrowArgs, TData = Prisma.PostGetPayload<T>>(
-            input: Prisma.SelectSubset<T, Prisma.PostFindFirstOrThrowArgs>,
+            input?: Prisma.SelectSubset<T, Prisma.PostFindFirstOrThrowArgs>,
             opts?: UseTRPCQueryOptions<string, T, Prisma.PostGetPayload<T>, TData, Error>
         ) => UseTRPCQueryResult<
             TData,
             TRPCClientErrorLike<AppRouter>
         >;
         useInfiniteQuery: <T extends Prisma.PostFindFirstOrThrowArgs>(
-            input: Omit<Prisma.SelectSubset<T, Prisma.PostFindFirstOrThrowArgs>, 'cursor'>,
+            input?: Omit<Prisma.SelectSubset<T, Prisma.PostFindFirstOrThrowArgs>, 'cursor'>,
             opts?: UseTRPCInfiniteQueryOptions<string, T, Prisma.PostGetPayload<T>, Error>
         ) => UseTRPCInfiniteQueryResult<
             Prisma.PostGetPayload<T>,
@@ -159,14 +159,14 @@ export interface ClientType<AppRouter extends AnyRouter, Context = AppRouter['_d
     findMany: {
 
         useQuery: <T extends Prisma.PostFindManyArgs, TData = Array<Prisma.PostGetPayload<T>>>(
-            input: Prisma.SelectSubset<T, Prisma.PostFindManyArgs>,
+            input?: Prisma.SelectSubset<T, Prisma.PostFindManyArgs>,
             opts?: UseTRPCQueryOptions<string, T, Array<Prisma.PostGetPayload<T>>, TData, Error>
         ) => UseTRPCQueryResult<
             TData,
             TRPCClientErrorLike<AppRouter>
         >;
         useInfiniteQuery: <T extends Prisma.PostFindManyArgs>(
-            input: Omit<Prisma.SelectSubset<T, Prisma.PostFindManyArgs>, 'cursor'>,
+            input?: Omit<Prisma.SelectSubset<T, Prisma.PostFindManyArgs>, 'cursor'>,
             opts?: UseTRPCInfiniteQueryOptions<string, T, Array<Prisma.PostGetPayload<T>>, Error>
         ) => UseTRPCInfiniteQueryResult<
             Array<Prisma.PostGetPayload<T>>,
@@ -389,7 +389,7 @@ export interface ClientType<AppRouter extends AnyRouter, Context = AppRouter['_d
             ? number
             : Prisma.GetScalarType<T['select'], Prisma.PostCountAggregateOutputType>
             : number>(
-                input: Prisma.Subset<T, Prisma.PostCountArgs>,
+                input?: Prisma.Subset<T, Prisma.PostCountArgs>,
                 opts?: UseTRPCQueryOptions<string, T, 'select' extends keyof T
                     ? T['select'] extends true
                     ? number
@@ -400,7 +400,7 @@ export interface ClientType<AppRouter extends AnyRouter, Context = AppRouter['_d
                 TRPCClientErrorLike<AppRouter>
             >;
         useInfiniteQuery: <T extends Prisma.PostCountArgs>(
-            input: Omit<Prisma.Subset<T, Prisma.PostCountArgs>, 'cursor'>,
+            input?: Omit<Prisma.Subset<T, Prisma.PostCountArgs>, 'cursor'>,
             opts?: UseTRPCInfiniteQueryOptions<string, T, 'select' extends keyof T
                 ? T['select'] extends true
                 ? number

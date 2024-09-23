@@ -5,6 +5,7 @@ import { enumerate, getModelFields, resolveField } from '../../cross';
 import { DbClientContract } from '../../types';
 import { InternalEnhancementOptions } from './create-enhancement';
 import { DefaultPrismaProxyHandler, makeProxy } from './proxy';
+import { QueryUtils } from './query-utils';
 
 /**
  * Gets an enhanced Prisma client that supports `@omit` attribute.
@@ -21,8 +22,11 @@ export function withOmit<DbClient extends object>(prisma: DbClient, options: Int
 }
 
 class OmitHandler extends DefaultPrismaProxyHandler {
+    private queryUtils: QueryUtils;
+
     constructor(prisma: DbClientContract, model: string, options: InternalEnhancementOptions) {
         super(prisma, model, options);
+        this.queryUtils = new QueryUtils(prisma, options);
     }
 
     // base override
@@ -67,8 +71,10 @@ class OmitHandler extends DefaultPrismaProxyHandler {
     }
 
     private async doPostProcess(entityData: any, model: string) {
+        const realModel = this.queryUtils.getDelegateConcreteModel(model, entityData);
+
         for (const field of getModelFields(entityData)) {
-            const fieldInfo = await resolveField(this.options.modelMeta, model, field);
+            const fieldInfo = await resolveField(this.options.modelMeta, realModel, field);
             if (!fieldInfo) {
                 continue;
             }

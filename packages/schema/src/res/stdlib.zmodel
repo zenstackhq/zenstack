@@ -97,7 +97,7 @@ function cuid(): String {
 } @@@expressionContext([DefaultValue])
 
 /**
- * Generates an indentifier based on the nanoid spec.
+ * Generates an identifier based on the nanoid spec.
  */
 function nanoid(length: Int?): String {
 } @@@expressionContext([DefaultValue])

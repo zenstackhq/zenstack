@@ -291,7 +291,7 @@ export default class Transformer {
 
     prepareObjectSchema(zodObjectSchemaFields: string[], options: PluginOptions) {
         const objectSchema = `${this.generateExportObjectSchemaStatement(
-            this.addFinalWrappers({ zodStringFields: zodObjectSchemaFields })
+            this.wrapWithZodObject(zodObjectSchemaFields, options.mode as string)
         )}\n`;
 
         const prismaImportStatement = this.generateImportPrismaStatement(options);
@@ -312,12 +312,6 @@ export default class Transformer {
         const outType = `z.ZodType<Prisma.${origName}>`;
         return `type SchemaType = ${outType};
 export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
-    }
-
-    addFinalWrappers({ zodStringFields }: { zodStringFields: string[] }) {
-        const fields = [...zodStringFields];
-
-        return this.wrapWithZodObject(fields) + '.strict()';
     }
 
     generateImportPrismaStatement(options: PluginOptions) {
@@ -408,7 +402,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
         return wrapped;
     }
 
-    wrapWithZodObject(zodStringFields: string | string[]) {
+    wrapWithZodObject(zodStringFields: string | string[], mode = 'strict') {
         let wrapped = '';
 
         wrapped += 'z.object({';
@@ -416,6 +410,18 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
         wrapped += '  ' + zodStringFields;
         wrapped += '\n';
         wrapped += '})';
+
+        switch (mode) {
+            case 'strip':
+                // zod strips by default
+                break;
+            case 'passthrough':
+                wrapped += '.passthrough()';
+                break;
+            default:
+                wrapped += '.strict()';
+                break;
+        }
         return wrapped;
     }
 
@@ -465,6 +471,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
             ];
             let codeBody = '';
             const operations: [string, string][] = [];
+            const mode = (options.mode as string) ?? 'strict';
 
             // OrderByWithRelationInput's name is different when "fullTextSearch" is enabled
             const orderByWithRelationInput = this.inputObjectTypes
@@ -477,7 +484,8 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                 imports.push(
                     `import { ${modelName}WhereUniqueInputObjectSchema } from '../objects/${modelName}WhereUniqueInput.schema'`
                 );
-                codeBody += `findUnique: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereUniqueInputObjectSchema }),`;
+                const fields = `${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereUniqueInputObjectSchema`;
+                codeBody += `findUnique: ${this.wrapWithZodObject(fields, mode)},`;
                 operations.push(['findUnique', origModelName]);
             }
 
@@ -488,7 +496,8 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     `import { ${modelName}WhereUniqueInputObjectSchema } from '../objects/${modelName}WhereUniqueInput.schema'`,
                     `import { ${modelName}ScalarFieldEnumSchema } from '../enums/${modelName}ScalarFieldEnum.schema'`
                 );
-                codeBody += `findFirst: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${orderByWithRelationInput}ObjectSchema, ${orderByWithRelationInput}ObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${modelName}ScalarFieldEnumSchema).optional() }),`;
+                const fields = `${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${orderByWithRelationInput}ObjectSchema, ${orderByWithRelationInput}ObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${modelName}ScalarFieldEnumSchema).optional()`;
+                codeBody += `findFirst: ${this.wrapWithZodObject(fields, mode)},`;
                 operations.push(['findFirst', origModelName]);
             }
 
@@ -499,7 +508,8 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     `import { ${modelName}WhereUniqueInputObjectSchema } from '../objects/${modelName}WhereUniqueInput.schema'`,
                     `import { ${modelName}ScalarFieldEnumSchema } from '../enums/${modelName}ScalarFieldEnum.schema'`
                 );
-                codeBody += `findMany: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${orderByWithRelationInput}ObjectSchema, ${orderByWithRelationInput}ObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${modelName}ScalarFieldEnumSchema).optional()  }),`;
+                const fields = `${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${orderByWithRelationInput}ObjectSchema, ${orderByWithRelationInput}ObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${modelName}ScalarFieldEnumSchema).optional()`;
+                codeBody += `findMany: ${this.wrapWithZodObject(fields, mode)},`;
                 operations.push(['findMany', origModelName]);
             }
 
@@ -515,7 +525,8 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                 const dataSchema = generateUnchecked
                     ? `z.union([${modelName}CreateInputObjectSchema, ${modelName}UncheckedCreateInputObjectSchema])`
                     : `${modelName}CreateInputObjectSchema`;
-                codeBody += `create: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} data: ${dataSchema} }),`;
+                const fields = `${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} data: ${dataSchema}`;
+                codeBody += `create: ${this.wrapWithZodObject(fields, mode)},`;
                 operations.push(['create', origModelName]);
             }
 
@@ -523,7 +534,8 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                 imports.push(
                     `import { ${modelName}CreateManyInputObjectSchema } from '../objects/${modelName}CreateManyInput.schema'`
                 );
-                codeBody += `createMany: z.object({ data: z.union([${modelName}CreateManyInputObjectSchema, z.array(${modelName}CreateManyInputObjectSchema)]), skipDuplicates: z.boolean().optional() }),`;
+                const fields = `data: z.union([${modelName}CreateManyInputObjectSchema, z.array(${modelName}CreateManyInputObjectSchema)]), skipDuplicates: z.boolean().optional()`;
+                codeBody += `createMany: ${this.wrapWithZodObject(fields, mode)},`;
                 operations.push(['createMany', origModelName]);
             }
 
@@ -531,7 +543,8 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                 imports.push(
                     `import { ${modelName}WhereUniqueInputObjectSchema } from '../objects/${modelName}WhereUniqueInput.schema'`
                 );
-                codeBody += `'delete': z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereUniqueInputObjectSchema  }),`;
+                const fields = `${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereUniqueInputObjectSchema`;
+                codeBody += `'delete': ${this.wrapWithZodObject(fields, mode)},`;
                 operations.push(['delete', origModelName]);
             }
 
@@ -539,7 +552,8 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                 imports.push(
                     `import { ${modelName}WhereInputObjectSchema } from '../objects/${modelName}WhereInput.schema'`
                 );
-                codeBody += `deleteMany: z.object({ where: ${modelName}WhereInputObjectSchema.optional()  }),`;
+                const fields = `where: ${modelName}WhereInputObjectSchema.optional()`;
+                codeBody += `deleteMany: ${this.wrapWithZodObject(fields, mode)},`;
                 operations.push(['deleteMany', origModelName]);
             }
 
@@ -556,7 +570,8 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                 const dataSchema = generateUnchecked
                     ? `z.union([${modelName}UpdateInputObjectSchema, ${modelName}UncheckedUpdateInputObjectSchema])`
                     : `${modelName}UpdateInputObjectSchema`;
-                codeBody += `update: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} data: ${dataSchema}, where: ${modelName}WhereUniqueInputObjectSchema  }),`;
+                const fields = `${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} data: ${dataSchema}, where: ${modelName}WhereUniqueInputObjectSchema`;
+                codeBody += `update: ${this.wrapWithZodObject(fields, mode)},`;
                 operations.push(['update', origModelName]);
             }
 
@@ -573,7 +588,8 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                 const dataSchema = generateUnchecked
                     ? `z.union([${modelName}UpdateManyMutationInputObjectSchema, ${modelName}UncheckedUpdateManyInputObjectSchema])`
                     : `${modelName}UpdateManyMutationInputObjectSchema`;
-                codeBody += `updateMany: z.object({ data: ${dataSchema}, where: ${modelName}WhereInputObjectSchema.optional()  }),`;
+                const fields = `data: ${dataSchema}, where: ${modelName}WhereInputObjectSchema.optional()`;
+                codeBody += `updateMany: ${this.wrapWithZodObject(fields, mode)},`;
                 operations.push(['updateMany', origModelName]);
             }
 
@@ -595,7 +611,8 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                 const updateSchema = generateUnchecked
                     ? `z.union([${modelName}UpdateInputObjectSchema, ${modelName}UncheckedUpdateInputObjectSchema])`
                     : `${modelName}UpdateInputObjectSchema`;
-                codeBody += `upsert: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereUniqueInputObjectSchema, create: ${createSchema}, update: ${updateSchema} }),`;
+                const fields = `${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereUniqueInputObjectSchema, create: ${createSchema}, update: ${updateSchema}`;
+                codeBody += `upsert: ${this.wrapWithZodObject(fields, mode)},`;
                 operations.push(['upsert', origModelName]);
             }
 
@@ -641,9 +658,10 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     `import { ${modelName}WhereUniqueInputObjectSchema } from '../objects/${modelName}WhereUniqueInput.schema'`
                 );
 
-                codeBody += `aggregate: z.object({ where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${orderByWithRelationInput}ObjectSchema, ${orderByWithRelationInput}ObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), ${aggregateOperations.join(
+                const fields = `where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${orderByWithRelationInput}ObjectSchema, ${orderByWithRelationInput}ObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), ${aggregateOperations.join(
                     ', '
-                )} }),`;
+                )}`;
+                codeBody += `aggregate: ${this.wrapWithZodObject(fields, mode)},`;
                 operations.push(['aggregate', modelName]);
             }
 
@@ -654,9 +672,10 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     `import { ${modelName}ScalarWhereWithAggregatesInputObjectSchema } from '../objects/${modelName}ScalarWhereWithAggregatesInput.schema'`,
                     `import { ${modelName}ScalarFieldEnumSchema } from '../enums/${modelName}ScalarFieldEnum.schema'`
                 );
-                codeBody += `groupBy: z.object({ where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithAggregationInputObjectSchema, ${modelName}OrderByWithAggregationInputObjectSchema.array()]).optional(), having: ${modelName}ScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(${modelName}ScalarFieldEnumSchema), ${aggregateOperations.join(
+                const fields = `where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithAggregationInputObjectSchema, ${modelName}OrderByWithAggregationInputObjectSchema.array()]).optional(), having: ${modelName}ScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(${modelName}ScalarFieldEnumSchema), ${aggregateOperations.join(
                     ', '
-                )} }),`;
+                )}`;
+                codeBody += `groupBy: ${this.wrapWithZodObject(fields, mode)},`;
 
                 operations.push(['groupBy', origModelName]);
             }
@@ -671,7 +690,8 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     `import { ${modelName}CountAggregateInputObjectSchema } from '../objects/${modelName}CountAggregateInput.schema'`
                 );
 
-                codeBody += `count: z.object({ where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${orderByWithRelationInput}ObjectSchema, ${orderByWithRelationInput}ObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${modelName}ScalarFieldEnumSchema).optional(), select: z.union([ z.literal(true), ${modelName}CountAggregateInputObjectSchema ]).optional() })`;
+                const fields = `where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${orderByWithRelationInput}ObjectSchema, ${orderByWithRelationInput}ObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${modelName}ScalarFieldEnumSchema).optional(), select: z.union([ z.literal(true), ${modelName}CountAggregateInputObjectSchema ]).optional()`;
+                codeBody += `count: ${this.wrapWithZodObject(fields, mode)},`;
                 operations.push(['count', origModelName]);
             }
 
