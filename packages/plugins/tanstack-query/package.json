@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/tanstack-query",
     "displayName": "ZenStack plugin for generating tanstack-query hooks",
-    "version": "2.6.0",
+    "version": "2.6.1",
     "description": "ZenStack plugin for generating tanstack-query hooks",
     "main": "index.js",
     "exports": {
