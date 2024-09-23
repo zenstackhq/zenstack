@@ -48,6 +48,9 @@ function getPrismaOperationTypes(model: string, operation: string) {
 
     let argsType: string;
     let resultType: string;
+    const argsOptional = ['findMany', 'findFirst', 'findFirstOrThrow', 'createMany', 'deleteMany', 'count'].includes(
+        operation
+    );
 
     switch (operation) {
         case 'findUnique':
@@ -178,7 +181,7 @@ function getPrismaOperationTypes(model: string, operation: string) {
             throw new PluginError(name, `Unsupported operation: "${operation}"`);
     }
 
-    return { genericBase, argsType, resultType };
+    return { genericBase, argsType, resultType, argsOptional };
 }
 
 /**
@@ -192,22 +195,23 @@ export function generateRouterTyping(
     version: string
 ) {
     const procType = getProcedureTypeByOpName(baseOpType);
-    const { genericBase, argsType, resultType } = getPrismaOperationTypes(modelName, opType);
+    const { genericBase, argsType, argsOptional, resultType } = getPrismaOperationTypes(modelName, opType);
     const errorType = `TRPCClientErrorLike<AppRouter>`;
+    const inputOptional = argsOptional ? '?' : '';
 
     writer.block(() => {
         if (procType === 'query') {
             if (version === 'v10') {
                 writer.writeLine(`
                 useQuery: <T extends ${genericBase}, TData = ${resultType}>(
-                    input: ${argsType},
+                    input${inputOptional}: ${argsType},
                     opts?: UseTRPCQueryOptions<string, T, ${resultType}, TData, Error>
                     ) => UseTRPCQueryResult<
                         TData,
                         ${errorType}
                     >;
                 useInfiniteQuery: <T extends ${genericBase}>(
-                    input: Omit<${argsType}, 'cursor'>,
+                    input${inputOptional}: Omit<${argsType}, 'cursor'>,
                     opts?: UseTRPCInfiniteQueryOptions<string, T, ${resultType}, Error>
                     ) => UseTRPCInfiniteQueryResult<
                         ${resultType},
@@ -217,14 +221,14 @@ export function generateRouterTyping(
             } else {
                 writer.writeLine(`
                 useQuery: <T extends ${genericBase}, TData = ${resultType}>(
-                    input: ${argsType},
+                    input${inputOptional}: ${argsType},
                     opts?: UseTRPCQueryOptions<${resultType}, TData, Error>
                     ) => UseTRPCQueryResult<
                         TData,
                         ${errorType}
                     >;
                 useInfiniteQuery: <T extends ${genericBase}>(
-                    input: Omit<${argsType}, 'cursor'>,
+                    input${inputOptional}: Omit<${argsType}, 'cursor'>,
                     opts?: UseTRPCInfiniteQueryOptions<T, ${resultType}, Error>
                     ) => UseTRPCInfiniteQueryResult<
                         ${resultType},
@@ -232,11 +236,11 @@ export function generateRouterTyping(
                         T
                     >;
                 useSuspenseQuery: <T extends ${genericBase}, TData = ${resultType}>(
-                    input: ${argsType},
+                    input${inputOptional}: ${argsType},
                     opts?: UseTRPCSuspenseQueryOptions<${resultType}, TData, Error>
                     ) => UseTRPCSuspenseQueryResult<TData, ${errorType}>;
                 useSuspenseInfiniteQuery: <T extends ${genericBase}>(
-                    input: Omit<${argsType}, 'cursor'>,
+                    input${inputOptional}: Omit<${argsType}, 'cursor'>,
                     opts?: UseTRPCSuspenseInfiniteQueryOptions<T, ${resultType}, Error>
                     ) => UseTRPCSuspenseInfiniteQueryResult<${resultType}, ${errorType}, T>;
                 `);
@@ -298,10 +302,10 @@ export const getInputSchemaByOpName = (opName: string, modelName: string) => {
             inputType = `$Schema.${capModelName}InputSchema.findUnique`;
             break;
         case 'findFirst':
-            inputType = `$Schema.${capModelName}InputSchema.findFirst`;
+            inputType = `$Schema.${capModelName}InputSchema.findFirst.optional()`;
             break;
         case 'findMany':
-            inputType = `$Schema.${capModelName}InputSchema.findMany`;
+            inputType = `$Schema.${capModelName}InputSchema.findMany.optional()`;
             break;
         case 'findRaw':
             inputType = `$Schema.${capModelName}InputSchema.findRawObject`;
@@ -310,7 +314,7 @@ export const getInputSchemaByOpName = (opName: string, modelName: string) => {
             inputType = `$Schema.${capModelName}InputSchema.create`;
             break;
         case 'createMany':
-            inputType = `$Schema.${capModelName}InputSchema.createMany`;
+            inputType = `$Schema.${capModelName}InputSchema.createMany.optional()`;
             break;
         case 'deleteOne':
             inputType = `$Schema.${capModelName}InputSchema.delete`;
@@ -319,7 +323,7 @@ export const getInputSchemaByOpName = (opName: string, modelName: string) => {
             inputType = `$Schema.${capModelName}InputSchema.update`;
             break;
         case 'deleteMany':
-            inputType = `$Schema.${capModelName}InputSchema.deleteMany`;
+            inputType = `$Schema.${capModelName}InputSchema.deleteMany.optional()`;
             break;
         case 'updateMany':
             inputType = `$Schema.${capModelName}InputSchema.updateMany`;
@@ -337,7 +341,7 @@ export const getInputSchemaByOpName = (opName: string, modelName: string) => {
             inputType = `$Schema.${capModelName}InputSchema.groupBy`;
             break;
         case 'count':
-            inputType = `$Schema.${capModelName}InputSchema.count`;
+            inputType = `$Schema.${capModelName}InputSchema.count.optional()`;
             break;
         default:
             break;
