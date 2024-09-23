@@ -49,7 +49,14 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
 
     // base override
     protected async preprocessArgs(action: PrismaProxyActions, args: any) {
-        const actionsOfInterest: PrismaProxyActions[] = ['create', 'createMany', 'update', 'updateMany', 'upsert'];
+        const actionsOfInterest: PrismaProxyActions[] = [
+            'create',
+            'createMany',
+            'createManyAndReturn',
+            'update',
+            'updateMany',
+            'upsert',
+        ];
         if (actionsOfInterest.includes(action)) {
             const newArgs = await this.preprocessWritePayload(this.model, action as PrismaWriteActionType, args);
             return newArgs;
