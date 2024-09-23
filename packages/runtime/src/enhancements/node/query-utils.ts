@@ -225,7 +225,7 @@ export class QueryUtils {
             // model has a discriminator so it can be a polymorphic base,
             // need to find the concrete model
             const concreteModelName = data[modelInfo.discriminator];
-            if (concreteModelName) {
+            if (typeof concreteModelName === 'string' && concreteModelName) {
                 return concreteModelName;
             }
         }
