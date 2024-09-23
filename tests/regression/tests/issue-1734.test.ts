@@ -101,7 +101,7 @@ describe('issue 1734', () => {
                 id: organization.id,
             },
         });
-        // published field not readable
+        // published field readable
         expect(foundOrg1.published).not.toBeUndefined();
     });
 });
