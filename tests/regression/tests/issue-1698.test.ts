@@ -1,5 +1,5 @@
 import { loadSchema } from '@zenstackhq/testtools';
-describe('issue 1968', () => {
+describe('issue 1698', () => {
     it('regression', async () => {
         const { enhance } = await loadSchema(
             `
