@@ -52,6 +52,7 @@
         "fastify": "^4.14.1",
         "fastify-plugin": "^4.5.0",
         "h3": "^1.8.2",
+        "hono": "^4.6.3",
         "isomorphic-fetch": "^3.0.0",
         "next": "14.2.4",
         "nuxt": "^3.7.4",
@@ -71,6 +72,7 @@
         "./sveltekit": "./sveltekit/index.js",
         "./nuxt": "./nuxt/index.js",
         "./nestjs": "./nestjs/index.js",
+        "./hono": "./hono/index.js",
         "./types": "./types.js"
     }
 }
