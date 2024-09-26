@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@prisma/client": "5.19.x",
+    "@prisma/client": "5.20.x",
     "@types/node": "18.11.18",
     "@types/react": "18.0.27",
     "@types/react-dom": "18.0.10",
@@ -26,6 +26,6 @@
     "@zenstackhq/swr": "../../../../../../../packages/plugins/swr/dist"
   },
   "devDependencies": {
-    "prisma": "5.19.x"
+    "prisma": "5.20.x"
   }
 }
