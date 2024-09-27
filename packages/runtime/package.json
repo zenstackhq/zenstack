@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/runtime",
     "displayName": "ZenStack Runtime Library",
-    "version": "2.6.1",
+    "version": "2.6.2",
     "description": "Runtime of ZenStack for both client-side and server-side environments.",
     "repository": {
         "type": "git",
@@ -76,6 +76,10 @@
         "./models": {
             "types": "./models.d.ts"
         },
+        "./zod-utils": {
+            "types": "./zod-utils.d.ts",
+            "default": "./zod-utils.js"
+        },
         "./package.json": {
             "default": "./package.json"
         }
@@ -107,7 +111,7 @@
         "zod-validation-error": "^1.5.0"
     },
     "peerDependencies": {
-        "@prisma/client": "5.0.0 - 5.19.x"
+        "@prisma/client": "5.0.0 - 5.20.x"
     },
     "author": {
         "name": "ZenStack Team"
