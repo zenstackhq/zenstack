@@ -63,6 +63,13 @@ describe('REST server tests', () => {
         post Post @relation(fields: [postId], references: [id])
         postId Int @unique
     }
+
+    model PostLike {
+        postId Int
+        userId String
+        superLike Boolean
+        @@id([postId, userId])
+    }
     `;
 
         beforeAll(async () => {
@@ -1281,6 +1288,33 @@ describe('REST server tests', () => {
                         last: 'http://localhost/api/user/user1/relationships/posts?page%5Boffset%5D=9',
                         prev: 'http://localhost/api/user/user1/relationships/posts?page%5Boffset%5D=5&page%5Blimit%5D=3',
                         next: null,
+                    });
+                });
+
+                it('compound id', async () => {
+                    await prisma.user.create({
+                        data: { myId: 'user1', email: 'user1@abc.com', posts: { create: { title: 'Post1' } } },
+                    });
+                    await prisma.user.create({
+                        data: { myId: 'user2', email: 'user2@abc.com' },
+                    });
+                    await prisma.postLike.create({
+                        data: { userId: 'user2', postId: 1, superLike: false },
+                    });
+
+                    const r = await handler({
+                        method: 'get',
+                        path: '/postLike/user2,1',
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(200);
+                    expect(r.body).toMatchObject({
+                        data: {
+                            type: 'postLike',
+                            id: 'user2,1',
+                            attributes: { userId: 'user2', postId: 1, superLike: false },
+                        },
                     });
                 });
             });
