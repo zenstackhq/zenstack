@@ -76,6 +76,10 @@
         "./models": {
             "types": "./models.d.ts"
         },
+        "./zod-utils": {
+            "types": "./zod-utils.d.ts",
+            "default": "./zod-utils.js"
+        },
         "./package.json": {
             "default": "./package.json"
         }

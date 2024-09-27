@@ -23,11 +23,13 @@ import { upperCaseFirst } from 'upper-case-first';
 import { name } from '.';
 import { getDefaultOutputFolder } from '../plugin-utils';
 import Transformer from './transformer';
+import { ObjectMode } from './types';
 import { makeFieldSchema, makeValidationRefinements } from './utils/schema-gen';
 
 export class ZodSchemaGenerator {
     private readonly sourceFiles: SourceFile[] = [];
     private readonly globalOptions: PluginGlobalOptions;
+    private readonly mode: ObjectMode;
 
     constructor(
         private readonly model: Model,
@@ -39,6 +41,19 @@ export class ZodSchemaGenerator {
             throw new Error('Global options are required');
         }
         this.globalOptions = globalOptions;
+
+        // options validation
+        if (
+            this.options.mode &&
+            (typeof this.options.mode !== 'string' || !['strip', 'strict', 'passthrough'].includes(this.options.mode))
+        ) {
+            throw new PluginError(
+                name,
+                `Invalid mode option: "${this.options.mode}". Must be one of 'strip', 'strict', or 'passthrough'.`
+            );
+        }
+
+        this.mode = (this.options.mode ?? 'strict') as ObjectMode;
     }
 
     async generate() {
@@ -54,17 +69,6 @@ export class ZodSchemaGenerator {
         output = resolvePath(output, this.options);
         ensureEmptyDir(output);
         Transformer.setOutputPath(output);
-
-        // options validation
-        if (
-            this.options.mode &&
-            (typeof this.options.mode !== 'string' || !['strip', 'strict', 'passthrough'].includes(this.options.mode))
-        ) {
-            throw new PluginError(
-                name,
-                `Invalid mode option: "${this.options.mode}". Must be one of 'strip', 'strict', or 'passthrough'.`
-            );
-        }
 
         // calculate the models to be excluded
         const excludeModels = this.getExcludedModels();
@@ -120,6 +124,7 @@ export class ZodSchemaGenerator {
                 project: this.project,
                 inputObjectTypes,
                 zmodel: this.model,
+                mode: this.mode,
             });
             await transformer.generateInputSchemas(this.options, this.model);
             this.sourceFiles.push(...transformer.sourceFiles);
@@ -215,6 +220,7 @@ export class ZodSchemaGenerator {
             project: this.project,
             inputObjectTypes: [],
             zmodel: this.model,
+            mode: this.mode,
         });
         await transformer.generateEnumSchemas();
         this.sourceFiles.push(...transformer.sourceFiles);
@@ -243,6 +249,7 @@ export class ZodSchemaGenerator {
                 project: this.project,
                 inputObjectTypes,
                 zmodel: this.model,
+                mode: this.mode,
             });
             const moduleName = transformer.generateObjectSchema(generateUnchecked, this.options);
             moduleNames.push(moduleName);

@@ -7,7 +7,7 @@ import path from 'path';
 import type { Project, SourceFile } from 'ts-morph';
 import { upperCaseFirst } from 'upper-case-first';
 import { computePrismaClientImport } from './generator';
-import { AggregateOperationSupport, TransformerParams } from './types';
+import { AggregateOperationSupport, ObjectMode, TransformerParams } from './types';
 
 export default class Transformer {
     name: string;
@@ -28,6 +28,7 @@ export default class Transformer {
     private inputObjectTypes: PrismaDMMF.InputType[];
     public sourceFiles: SourceFile[] = [];
     private zmodel: Model;
+    private mode: ObjectMode;
 
     constructor(params: TransformerParams) {
         this.originalName = params.name ?? '';
@@ -40,6 +41,7 @@ export default class Transformer {
         this.project = params.project;
         this.inputObjectTypes = params.inputObjectTypes;
         this.zmodel = params.zmodel;
+        this.mode = params.mode;
     }
 
     static setOutputPath(outPath: string) {
@@ -73,7 +75,12 @@ export default class Transformer {
     }
 
     generateImportZodStatement() {
-        return "import { z } from 'zod';\n";
+        let r = "import { z } from 'zod';\n";
+        if (this.mode === 'strip') {
+            // import the additional `smartUnion` helper
+            r += `import { smartUnion } from '@zenstackhq/runtime/zod-utils';\n`;
+        }
+        return r;
     }
 
     generateExportSchemaStatement(name: string, schema: string) {
@@ -210,8 +217,19 @@ export default class Transformer {
 
         const opt = !field.isRequired ? '.optional()' : '';
 
-        let resString =
-            alternatives.length === 1 ? alternatives.join(',\r\n') : `z.union([${alternatives.join(',\r\n')}])${opt}`;
+        let resString: string;
+
+        if (alternatives.length === 1) {
+            resString = alternatives.join(',\r\n');
+        } else {
+            if (alternatives.some((alt) => alt.includes('Unchecked'))) {
+                // if the union is for combining checked and unchecked input types, use `smartUnion`
+                // to parse with the best candidate at runtime
+                resString = this.wrapWithSmartUnion(...alternatives) + `${opt}`;
+            } else {
+                resString = `z.union([${alternatives.join(',\r\n')}])${opt}`;
+            }
+        }
 
         if (field.isNullable) {
             resString += '.nullable()';
@@ -391,17 +409,6 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
         return `${modelName}InputSchema.${queryName}`;
     }
 
-    wrapWithZodUnion(zodStringFields: string[]) {
-        let wrapped = '';
-
-        wrapped += 'z.union([';
-        wrapped += '\n';
-        wrapped += '  ' + zodStringFields.join(',');
-        wrapped += '\n';
-        wrapped += '])';
-        return wrapped;
-    }
-
     wrapWithZodObject(zodStringFields: string | string[], mode = 'strict') {
         let wrapped = '';
 
@@ -423,6 +430,14 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                 break;
         }
         return wrapped;
+    }
+
+    wrapWithSmartUnion(...schemas: string[]) {
+        if (this.mode === 'strip') {
+            return `smartUnion(z, [${schemas.join(', ')}])`;
+        } else {
+            return `z.union([${schemas.join(', ')}])`;
+        }
     }
 
     async generateInputSchemas(options: PluginOptions, zmodel: Model) {
@@ -464,7 +479,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                 this.resolveSelectIncludeImportAndZodSchemaLine(model);
 
             let imports = [
-                `import { z } from 'zod'`,
+                this.generateImportZodStatement(),
                 this.generateImportPrismaStatement(options),
                 selectImport,
                 includeImport,
@@ -523,7 +538,10 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     );
                 }
                 const dataSchema = generateUnchecked
-                    ? `z.union([${modelName}CreateInputObjectSchema, ${modelName}UncheckedCreateInputObjectSchema])`
+                    ? this.wrapWithSmartUnion(
+                          `${modelName}CreateInputObjectSchema`,
+                          `${modelName}UncheckedCreateInputObjectSchema`
+                      )
                     : `${modelName}CreateInputObjectSchema`;
                 const fields = `${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} data: ${dataSchema}`;
                 codeBody += `create: ${this.wrapWithZodObject(fields, mode)},`;
@@ -568,7 +586,10 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     );
                 }
                 const dataSchema = generateUnchecked
-                    ? `z.union([${modelName}UpdateInputObjectSchema, ${modelName}UncheckedUpdateInputObjectSchema])`
+                    ? this.wrapWithSmartUnion(
+                          `${modelName}UpdateInputObjectSchema`,
+                          `${modelName}UncheckedUpdateInputObjectSchema`
+                      )
                     : `${modelName}UpdateInputObjectSchema`;
                 const fields = `${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} data: ${dataSchema}, where: ${modelName}WhereUniqueInputObjectSchema`;
                 codeBody += `update: ${this.wrapWithZodObject(fields, mode)},`;
@@ -586,7 +607,10 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     );
                 }
                 const dataSchema = generateUnchecked
-                    ? `z.union([${modelName}UpdateManyMutationInputObjectSchema, ${modelName}UncheckedUpdateManyInputObjectSchema])`
+                    ? this.wrapWithSmartUnion(
+                          `${modelName}UpdateManyMutationInputObjectSchema`,
+                          `${modelName}UncheckedUpdateManyInputObjectSchema`
+                      )
                     : `${modelName}UpdateManyMutationInputObjectSchema`;
                 const fields = `data: ${dataSchema}, where: ${modelName}WhereInputObjectSchema.optional()`;
                 codeBody += `updateMany: ${this.wrapWithZodObject(fields, mode)},`;
@@ -606,10 +630,16 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     );
                 }
                 const createSchema = generateUnchecked
-                    ? `z.union([${modelName}CreateInputObjectSchema, ${modelName}UncheckedCreateInputObjectSchema])`
+                    ? this.wrapWithSmartUnion(
+                          `${modelName}CreateInputObjectSchema`,
+                          `${modelName}UncheckedCreateInputObjectSchema`
+                      )
                     : `${modelName}CreateInputObjectSchema`;
                 const updateSchema = generateUnchecked
-                    ? `z.union([${modelName}UpdateInputObjectSchema, ${modelName}UncheckedUpdateInputObjectSchema])`
+                    ? this.wrapWithSmartUnion(
+                          `${modelName}UpdateInputObjectSchema`,
+                          `${modelName}UncheckedUpdateInputObjectSchema`
+                      )
                     : `${modelName}UpdateInputObjectSchema`;
                 const fields = `${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereUniqueInputObjectSchema, create: ${createSchema}, update: ${updateSchema}`;
                 codeBody += `upsert: ${this.wrapWithZodObject(fields, mode)},`;
