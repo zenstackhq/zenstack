@@ -5,7 +5,7 @@ import { CrudFailureReason, type ModelMeta } from '@zenstackhq/runtime';
 import { loadSchema, run } from '@zenstackhq/testtools';
 import { Decimal } from 'decimal.js';
 import SuperJSON from 'superjson';
-import makeHandler from '../../src/api/rest';
+import makeHandler, { idDivider } from '../../src/api/rest';
 
 describe('REST server tests', () => {
     let prisma: any;
@@ -1304,15 +1304,17 @@ describe('REST server tests', () => {
 
                     const r = await handler({
                         method: 'get',
-                        path: '/postLike/user2,1',
+                        path: `/postLike/1${idDivider}user2`, // Order of ids is same as in the model @@id
                         prisma,
                     });
+
+                    console.log(r.body);
 
                     expect(r.status).toBe(200);
                     expect(r.body).toMatchObject({
                         data: {
                             type: 'postLike',
-                            id: 'user2,1',
+                            id: `1${idDivider}user2`,
                             attributes: { userId: 'user2', postId: 1, superLike: false },
                         },
                     });

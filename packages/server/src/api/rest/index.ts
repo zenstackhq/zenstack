@@ -32,6 +32,9 @@ const urlPatterns = {
     relationship: new UrlPattern('/:type/:id/relationships/:relationship'),
 };
 
+export const idDivider = '_';
+export const compoundIdKey = 'compoundId';
+
 /**
  * Request handler options
  */
@@ -59,9 +62,13 @@ type RelationshipInfo = {
     isOptional: boolean;
 };
 
+type IdField = {
+    name: string;
+    type: string;
+};
+
 type ModelInfo = {
-    idField: string;
-    idFieldType: string;
+    idFields: IdField[];
     fields: Record<string, FieldInfo>;
     relationships: Record<string, RelationshipInfo>;
 };
@@ -128,10 +135,6 @@ class RequestHandler extends APIHandlerBase {
         noId: {
             status: 400,
             title: 'Model without an ID field is not supported',
-        },
-        multiId: {
-            status: 400,
-            title: 'Model with multiple ID fields is not supported',
         },
         invalidId: {
             status: 400,
@@ -387,7 +390,7 @@ class RequestHandler extends APIHandlerBase {
             return this.makeUnsupportedModelError(type);
         }
 
-        const args: any = { where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId) };
+        const args: any = { where: this.makeIdFilter(typeInfo.idFields, resourceId) };
 
         // include IDs of relation fields so that they can be serialized
         this.includeRelationshipIds(type, args, 'include');
@@ -405,7 +408,12 @@ class RequestHandler extends APIHandlerBase {
             include = allIncludes;
         }
 
-        const entity = await prisma[type].findUnique(args);
+        let entity = await prisma[type].findUnique(args);
+
+        if (typeInfo.idFields.length > 1) {
+            entity = { ...entity, [compoundIdKey]: resourceId };
+        }
+
         if (entity) {
             return {
                 status: 200,
@@ -451,7 +459,7 @@ class RequestHandler extends APIHandlerBase {
 
         select = select ?? { [relationship]: true };
         const args: any = {
-            where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
+            where: this.makeIdFilter(typeInfo.idFields, resourceId),
             select,
         };
 
@@ -510,7 +518,7 @@ class RequestHandler extends APIHandlerBase {
         }
 
         const args: any = {
-            where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
+            where: this.makeIdFilter(typeInfo.idFields, resourceId),
             select: this.makeIdSelect(type, modelMeta),
         };
 
@@ -801,8 +809,11 @@ class RequestHandler extends APIHandlerBase {
         }
 
         const updateArgs: any = {
-            where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
-            select: { [typeInfo.idField]: true, [relationship]: { select: { [relationInfo.idField]: true } } },
+            where: this.makeIdFilter(typeInfo.idFields, resourceId),
+            select: {
+                ...typeInfo.idFields.reduce((acc, field) => ({ ...acc, [field.name]: true }), {}),
+                [relationship]: { select: { [relationInfo.idField]: true } },
+            },
         };
 
         if (!relationInfo.isCollection) {
@@ -897,7 +908,7 @@ class RequestHandler extends APIHandlerBase {
         }
 
         const updatePayload: any = {
-            where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
+            where: this.makeIdFilter(typeInfo.idFields, resourceId),
             data: { ...attributes },
         };
 
@@ -948,7 +959,7 @@ class RequestHandler extends APIHandlerBase {
         }
 
         await prisma[type].delete({
-            where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
+            where: this.makeIdFilter(typeInfo.idFields, resourceId),
         });
         return {
             status: 204,
@@ -966,14 +977,9 @@ class RequestHandler extends APIHandlerBase {
                 logWarning(logger, `Not including model ${model} in the API because it has no ID field`);
                 continue;
             }
-            if (idFields.length > 1) {
-                logWarning(logger, `Not including model ${model} in the API because it has multiple ID fields`);
-                continue;
-            }
 
             this.typeMap[model] = {
-                idField: idFields[0].name,
-                idFieldType: idFields[0].type,
+                idFields,
                 relationships: {},
                 fields,
             };
@@ -990,18 +996,15 @@ class RequestHandler extends APIHandlerBase {
                     );
                     continue;
                 }
-                if (fieldTypeIdFields.length > 1) {
-                    logWarning(
-                        logger,
-                        `Not including relation ${model}.${field} in the API because it has multiple ID fields`
-                    );
-                    continue;
-                }
+
+                // TODO: Multi id relationship support
+                const idField = fieldTypeIdFields.length > 1 ? 'id' : fieldTypeIdFields[0].name;
+                const idFieldType = fieldTypeIdFields.length > 1 ? 'string' : fieldTypeIdFields[0].type;
 
                 this.typeMap[model].relationships[field] = {
                     type: fieldInfo.type,
-                    idField: fieldTypeIdFields[0].name,
-                    idFieldType: fieldTypeIdFields[0].type,
+                    idField,
+                    idFieldType,
                     isCollection: !!fieldInfo.isArray,
                     isOptional: !!fieldInfo.isOptional,
                 };
@@ -1019,7 +1022,8 @@ class RequestHandler extends APIHandlerBase {
 
         for (const model of Object.keys(modelMeta.models)) {
             const ids = getIdFields(modelMeta, model);
-            if (ids.length !== 1) {
+
+            if (ids.length < 1) {
                 continue;
             }
 
@@ -1042,7 +1046,7 @@ class RequestHandler extends APIHandlerBase {
 
             const serializer = new Serializer(model, {
                 version: '1.1',
-                idKey: ids[0].name,
+                idKey: ids.length > 1 ? compoundIdKey : ids[0].name,
                 linkers: {
                     resource: linker,
                     document: linker,
@@ -1069,7 +1073,7 @@ class RequestHandler extends APIHandlerBase {
                     continue;
                 }
                 const fieldIds = getIdFields(modelMeta, fieldMeta.type);
-                if (fieldIds.length === 1) {
+                if (fieldIds.length > 0) {
                     const relator = new Relator(
                         async (data) => {
                             return (data as any)[field];
@@ -1107,10 +1111,10 @@ class RequestHandler extends APIHandlerBase {
             return undefined;
         }
         const ids = getIdFields(modelMeta, model);
-        if (ids.length === 1) {
-            return data[ids[0].name];
-        } else {
+        if (ids.length === 0) {
             return undefined;
+        } else {
+            return data[ids.map((id) => id.name).join(idDivider)];
         }
     }
 
@@ -1178,18 +1182,31 @@ class RequestHandler extends APIHandlerBase {
         return r.toString();
     }
 
-    private makeIdFilter(idField: string, idFieldType: string, resourceId: string) {
-        return { [idField]: this.coerce(idFieldType, resourceId) };
+    private makeIdFilter(idFields: IdField[], resourceId: string) {
+        if (idFields.length === 1) {
+            return { [idFields[0].name]: this.coerce(idFields[0].type, resourceId) };
+        } else {
+            return {
+                [idFields.map((idf) => idf.name).join('_')]: idFields.reduce(
+                    (acc, curr, idx) => ({
+                        ...acc,
+                        [curr.name]: this.coerce(curr.type, resourceId.split(idDivider)[idx]),
+                    }),
+                    {}
+                ),
+            };
+        }
     }
 
     private makeIdSelect(model: string, modelMeta: ModelMeta) {
         const idFields = getIdFields(modelMeta, model);
         if (idFields.length === 0) {
             throw this.errors.noId;
-        } else if (idFields.length > 1) {
-            throw this.errors.multiId;
+        } else if (idFields.length === 1) {
+            return { [idFields[0].name]: true };
+        } else {
+            return { [idFields.map((idf) => idf.name).join(',')]: true };
         }
-        return { [idFields[0].name]: true };
     }
 
     private includeRelationshipIds(model: string, args: any, mode: 'select' | 'include') {
@@ -1425,7 +1442,10 @@ class RequestHandler extends APIHandlerBase {
                             if (!relationType) {
                                 return { sort: undefined, error: this.makeUnsupportedModelError(fieldInfo.type) };
                             }
-                            curr[fieldInfo.name] = { [relationType.idField]: dir };
+                            curr[fieldInfo.name] = relationType.idFields.reduce((acc: any, idField: IdField) => {
+                                acc[idField.name] = dir;
+                                return acc;
+                            }, {});
                         } else {
                             // regular field
                             curr[fieldInfo.name] = dir;
@@ -1509,11 +1529,11 @@ class RequestHandler extends APIHandlerBase {
                 const values = value.split(',').filter((i) => i);
                 const filterValue =
                     values.length > 1
-                        ? { OR: values.map((v) => this.makeIdFilter(info.idField, info.idFieldType, v)) }
-                        : this.makeIdFilter(info.idField, info.idFieldType, value);
+                        ? { OR: values.map((v) => this.makeIdFilter(info.idFields, v)) }
+                        : this.makeIdFilter(info.idFields, value);
                 return { some: filterValue };
             } else {
-                return { is: this.makeIdFilter(info.idField, info.idFieldType, value) };
+                return { is: this.makeIdFilter(info.idFields, value) };
             }
         } else {
             const coerced = this.coerce(fieldInfo.type, value);
