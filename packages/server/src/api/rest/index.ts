@@ -33,7 +33,6 @@ const urlPatterns = {
 };
 
 export const idDivider = '_';
-export const compoundIdKey = 'compoundId';
 
 /**
  * Request handler options
@@ -406,7 +405,7 @@ class RequestHandler extends APIHandlerBase {
         let entity = await prisma[type].findUnique(args);
 
         if (typeInfo.idFields.length > 1) {
-            entity = { ...entity, [compoundIdKey]: resourceId };
+            entity = { ...entity, [this.makeIdKey(typeInfo.idFields)]: resourceId };
         }
 
         if (entity) {
@@ -1041,7 +1040,7 @@ class RequestHandler extends APIHandlerBase {
 
             const serializer = new Serializer(model, {
                 version: '1.1',
-                idKey: ids.length > 1 ? compoundIdKey : ids[0].name,
+                idKey: this.makeIdKey(ids),
                 linkers: {
                     resource: linker,
                     document: linker,
@@ -1202,6 +1201,10 @@ class RequestHandler extends APIHandlerBase {
         } else {
             return { [idFields.map((idf) => idf.name).join(',')]: true };
         }
+    }
+
+    private makeIdKey(idFields: FieldInfo[]) {
+        return idFields.map((idf) => idf.name).join(idDivider);
     }
 
     private includeRelationshipIds(model: string, args: any, mode: 'select' | 'include') {
