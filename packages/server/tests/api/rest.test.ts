@@ -1291,32 +1291,53 @@ describe('REST server tests', () => {
                     });
                 });
 
-                it('compound id', async () => {
-                    await prisma.user.create({
-                        data: { myId: 'user1', email: 'user1@abc.com', posts: { create: { title: 'Post1' } } },
-                    });
-                    await prisma.user.create({
-                        data: { myId: 'user2', email: 'user2@abc.com' },
-                    });
-                    await prisma.postLike.create({
-                        data: { userId: 'user2', postId: 1, superLike: false },
-                    });
-
-                    const r = await handler({
-                        method: 'get',
-                        path: `/postLike/1${idDivider}user2`, // Order of ids is same as in the model @@id
-                        prisma,
+                describe('compound id', () => {
+                    beforeEach(async () => {
+                        await prisma.user.create({
+                            data: { myId: 'user1', email: 'user1@abc.com', posts: { create: { title: 'Post1' } } },
+                        });
+                        await prisma.user.create({
+                            data: { myId: 'user2', email: 'user2@abc.com' },
+                        });
+                        await prisma.postLike.create({
+                            data: { userId: 'user2', postId: 1, superLike: false },
+                        });
                     });
 
-                    console.log(r.body);
+                    it('get all', async () => {
+                        const r = await handler({
+                            method: 'get',
+                            path: '/postLike',
+                            prisma,
+                        });
 
-                    expect(r.status).toBe(200);
-                    expect(r.body).toMatchObject({
-                        data: {
-                            type: 'postLike',
-                            id: `1${idDivider}user2`,
-                            attributes: { userId: 'user2', postId: 1, superLike: false },
-                        },
+                        expect(r.status).toBe(200);
+                        expect(r.body).toMatchObject({
+                            data: [
+                                {
+                                    type: 'postLike',
+                                    id: `1${idDivider}user2`,
+                                    attributes: { userId: 'user2', postId: 1, superLike: false },
+                                },
+                            ],
+                        });
+                    });
+
+                    it('get single', async () => {
+                        const r = await handler({
+                            method: 'get',
+                            path: `/postLike/1${idDivider}user2`, // Order of ids is same as in the model @@id
+                            prisma,
+                        });
+
+                        expect(r.status).toBe(200);
+                        expect(r.body).toMatchObject({
+                            data: {
+                                type: 'postLike',
+                                id: `1${idDivider}user2`,
+                                attributes: { userId: 'user2', postId: 1, superLike: false },
+                            },
+                        });
                     });
                 });
             });
