@@ -62,13 +62,8 @@ type RelationshipInfo = {
     isOptional: boolean;
 };
 
-type IdField = {
-    name: string;
-    type: string;
-};
-
 type ModelInfo = {
-    idFields: IdField[];
+    idFields: FieldInfo[];
     fields: Record<string, FieldInfo>;
     relationships: Record<string, RelationshipInfo>;
 };
@@ -1182,7 +1177,7 @@ class RequestHandler extends APIHandlerBase {
         return r.toString();
     }
 
-    private makeIdFilter(idFields: IdField[], resourceId: string) {
+    private makeIdFilter(idFields: FieldInfo[], resourceId: string) {
         if (idFields.length === 1) {
             return { [idFields[0].name]: this.coerce(idFields[0].type, resourceId) };
         } else {
@@ -1442,7 +1437,7 @@ class RequestHandler extends APIHandlerBase {
                             if (!relationType) {
                                 return { sort: undefined, error: this.makeUnsupportedModelError(fieldInfo.type) };
                             }
-                            curr[fieldInfo.name] = relationType.idFields.reduce((acc: any, idField: IdField) => {
+                            curr[fieldInfo.name] = relationType.idFields.reduce((acc: any, idField: FieldInfo) => {
                                 acc[idField.name] = dir;
                                 return acc;
                             }, {});
