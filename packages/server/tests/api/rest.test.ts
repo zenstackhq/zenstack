@@ -1768,6 +1768,27 @@ describe('REST server tests', () => {
                     expect(r.body.errors[0].code).toBe('invalid-payload');
                 });
 
+                it('update item with compound id', async () => {
+                    await prisma.user.create({ data: { myId: 'user1', email: 'user1@abc.com' } });
+                    await prisma.post.create({ data: { id: 1, title: 'Post1' } });
+                    await prisma.postLike.create({ data: { userId: 'user1', postId: 1, superLike: false } });
+
+                    const r = await handler({
+                        method: 'put',
+                        path: `/postLike/1${idDivider}user1`,
+                        query: {},
+                        requestBody: {
+                            data: {
+                                type: 'postLike',
+                                attributes: { superLike: true },
+                            },
+                        },
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(200);
+                });
+
                 it('update a single relation', async () => {
                     await prisma.user.create({ data: { myId: 'user1', email: 'user1@abc.com' } });
                     await prisma.post.create({
