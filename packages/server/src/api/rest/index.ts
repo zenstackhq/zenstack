@@ -55,8 +55,7 @@ export type Options = {
 
 type RelationshipInfo = {
     type: string;
-    idField: string;
-    idFieldType: string;
+    idFields: FieldInfo[];
     isCollection: boolean;
     isOptional: boolean;
 };
@@ -773,7 +772,7 @@ class RequestHandler extends APIHandlerBase {
                 if (relationInfo.isCollection) {
                     createPayload.data[key] = {
                         connect: enumerate(data.data).map((item: any) => ({
-                            [relationInfo.idField]: this.coerce(relationInfo.idFieldType, item.id),
+                            [this.makeIdKey(relationInfo.idFields)]: item.id,
                         })),
                     };
                 } else {
@@ -781,14 +780,16 @@ class RequestHandler extends APIHandlerBase {
                         return this.makeError('invalidRelationData');
                     }
                     createPayload.data[key] = {
-                        connect: { [relationInfo.idField]: this.coerce(relationInfo.idFieldType, data.data.id) },
+                        connect: {
+                            [this.makeIdKey(relationInfo.idFields)]: data.data.id,
+                        },
                     };
                 }
 
                 // make sure ID fields are included for result serialization
                 createPayload.include = {
                     ...createPayload.include,
-                    [key]: { select: { [relationInfo.idField]: true } },
+                    [key]: { select: { [this.makeIdKey(relationInfo.idFields)]: true } },
                 };
             }
         }
@@ -829,7 +830,7 @@ class RequestHandler extends APIHandlerBase {
             where: this.makeIdFilter(typeInfo.idFields, resourceId),
             select: {
                 ...typeInfo.idFields.reduce((acc, field) => ({ ...acc, [field.name]: true }), {}),
-                [relationship]: { select: { [relationInfo.idField]: true } },
+                [relationship]: { select: { [this.makeIdKey(relationInfo.idFields)]: true } },
             },
         };
 
@@ -861,7 +862,7 @@ class RequestHandler extends APIHandlerBase {
                 updateArgs.data = {
                     [relationship]: {
                         connect: {
-                            [relationInfo.idField]: this.coerce(relationInfo.idFieldType, parsed.data.data.id),
+                            [this.makeIdKey(relationInfo.idFields)]: parsed.data.data.id,
                         },
                     },
                 };
@@ -885,7 +886,7 @@ class RequestHandler extends APIHandlerBase {
             updateArgs.data = {
                 [relationship]: {
                     [relationVerb]: enumerate(parsed.data.data).map((item: any) => ({
-                        [relationInfo.idField]: this.coerce(relationInfo.idFieldType, item.id),
+                        [this.makeIdKey(relationInfo.idFields)]: item.id,
                     })),
                 },
             };
@@ -945,7 +946,7 @@ class RequestHandler extends APIHandlerBase {
                 if (relationInfo.isCollection) {
                     updatePayload.data[key] = {
                         set: enumerate(data.data).map((item: any) => ({
-                            [relationInfo.idField]: this.coerce(relationInfo.idFieldType, item.id),
+                            [this.makeIdKey(relationInfo.idFields)]: item.id,
                         })),
                     };
                 } else {
@@ -953,12 +954,14 @@ class RequestHandler extends APIHandlerBase {
                         return this.makeError('invalidRelationData');
                     }
                     updatePayload.data[key] = {
-                        set: { [relationInfo.idField]: this.coerce(relationInfo.idFieldType, data.data.id) },
+                        set: {
+                            [this.makeIdKey(relationInfo.idFields)]: data.data.id,
+                        },
                     };
                 }
                 updatePayload.include = {
                     ...updatePayload.include,
-                    [key]: { select: { [relationInfo.idField]: true } },
+                    [key]: { select: { [this.makeIdKey(relationInfo.idFields)]: true } },
                 };
             }
         }
@@ -1015,14 +1018,9 @@ class RequestHandler extends APIHandlerBase {
                     continue;
                 }
 
-                // TODO: Multi id relationship support
-                const idField = fieldTypeIdFields.length > 1 ? 'id' : fieldTypeIdFields[0].name;
-                const idFieldType = fieldTypeIdFields.length > 1 ? 'string' : fieldTypeIdFields[0].type;
-
                 this.typeMap[model].relationships[field] = {
                     type: fieldInfo.type,
-                    idField,
-                    idFieldType,
+                    idFields: fieldTypeIdFields,
                     isCollection: !!fieldInfo.isArray,
                     isOptional: !!fieldInfo.isOptional,
                 };
@@ -1257,7 +1255,7 @@ class RequestHandler extends APIHandlerBase {
             return;
         }
         for (const [relation, relationInfo] of Object.entries(typeInfo.relationships)) {
-            args[mode] = { ...args[mode], [relation]: { select: { [relationInfo.idField]: true } } };
+            args[mode] = { ...args[mode], [relation]: { select: { [this.makeIdKey(relationInfo.idFields)]: true } } };
         }
     }
 
