@@ -6,6 +6,7 @@ import { loadSchema, run } from '@zenstackhq/testtools';
 import { Decimal } from 'decimal.js';
 import SuperJSON from 'superjson';
 import makeHandler, { idDivider } from '../../src/api/rest';
+import e from 'express';
 
 describe('REST server tests', () => {
     let prisma: any;
@@ -1946,6 +1947,21 @@ describe('REST server tests', () => {
                         prisma,
                     });
 
+                    expect(r.status).toBe(204);
+                    expect(r.body).toBeUndefined();
+                });
+
+                it('deletes an item with compound id', async () => {
+                    await prisma.user.create({
+                        data: { myId: 'user1', email: 'user1@abc.com', posts: { create: { id: 1, title: 'Post1' } } },
+                    });
+                    await prisma.postLike.create({ data: { userId: 'user1', postId: 1, superLike: false } });
+
+                    const r = await handler({
+                        method: 'delete',
+                        path: `/postLike/1${idDivider}user1`,
+                        prisma,
+                    });
                     expect(r.status).toBe(204);
                     expect(r.body).toBeUndefined();
                 });
