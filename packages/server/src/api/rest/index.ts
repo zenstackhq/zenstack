@@ -532,12 +532,12 @@ class RequestHandler extends APIHandlerBase {
 
         const args: any = {
             where: this.makeIdFilter(typeInfo.idFields, resourceId),
-            select: this.makeIdSelect(type, modelMeta),
+            select: this.makeIdSelect(typeInfo.idFields),
         };
 
         // include IDs of relation fields so that they can be serialized
         // this.includeRelationshipIds(type, args, 'select');
-        args.select = { ...args.select, [relationship]: { select: this.makeIdSelect(relationInfo.type, modelMeta) } };
+        args.select = { ...args.select, [relationship]: { select: this.makeIdSelect(relationInfo.idFields) } };
 
         let paginator: Paginator<any> | undefined;
 
@@ -1230,15 +1230,11 @@ class RequestHandler extends APIHandlerBase {
         }
     }
 
-    private makeIdSelect(model: string, modelMeta: ModelMeta) {
-        const idFields = getIdFields(modelMeta, model);
+    private makeIdSelect(idFields: FieldInfo[]) {
         if (idFields.length === 0) {
             throw this.errors.noId;
-        } else if (idFields.length === 1) {
-            return { [idFields[0].name]: true };
-        } else {
-            return { [idFields.map((idf) => idf.name).join(',')]: true };
         }
+        return idFields.reduce((acc, curr) => ({ ...acc, [curr.name]: true }), {});
     }
 
     private makeIdKey(idFields: FieldInfo[]) {
@@ -1255,7 +1251,7 @@ class RequestHandler extends APIHandlerBase {
             return;
         }
         for (const [relation, relationInfo] of Object.entries(typeInfo.relationships)) {
-            args[mode] = { ...args[mode], [relation]: { select: { [this.makeIdKey(relationInfo.idFields)]: true } } };
+            args[mode] = { ...args[mode], [relation]: { select: this.makeIdSelect(relationInfo.idFields) } };
         }
     }
 

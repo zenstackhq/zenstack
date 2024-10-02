@@ -27,6 +27,7 @@ describe('REST server tests', () => {
         updatedAt DateTime @updatedAt
         email String @unique @email
         posts Post[]
+        likes PostLike[]
         profile Profile?
     }
     
@@ -48,6 +49,7 @@ describe('REST server tests', () => {
         publishedAt DateTime?
         viewCount Int @default(0)
         comments Comment[]
+        likes PostLike[]
         setting Setting?
     }
     
@@ -69,6 +71,8 @@ describe('REST server tests', () => {
         postId Int
         userId String
         superLike Boolean
+        post Post @relation(fields: [postId], references: [id])
+        user User @relation(fields: [userId], references: [myId])
         @@id([postId, userId])
     }
     `;
@@ -133,6 +137,7 @@ describe('REST server tests', () => {
                         path: '/user',
                         prisma,
                     });
+                    console.log('yufail', JSON.stringify(r));
                     expect(r.status).toBe(200);
                     expect(r.body).toMatchObject({
                         data: [],
@@ -296,6 +301,37 @@ describe('REST server tests', () => {
                                 },
                             },
                         ],
+                    });
+                });
+
+                it('fetches a related resource with a compound ID', async () => {
+                    await prisma.user.create({
+                        data: {
+                            myId: 'user1',
+                            email: 'user1@abc.com',
+                            posts: {
+                                create: { id: 1, title: 'Post1' },
+                            },
+                        },
+                    });
+                    await prisma.postLike.create({
+                        data: { postId: 1, userId: 'user1', superLike: true },
+                    });
+
+                    const r = await handler({
+                        method: 'get',
+                        path: '/post/1/relationships/likes',
+                        prisma,
+                    });
+
+                    console.log('yufail', JSON.stringify(r));
+
+                    expect(r.status).toBe(200);
+                    expect(r.body).toMatchObject({
+                        links: {
+                            self: 'http://localhost/api/post/1/relationships/likes',
+                        },
+                        data: [{ type: 'postLike', id: '1_user1' }],
                     });
                 });
 
