@@ -830,7 +830,7 @@ class RequestHandler extends APIHandlerBase {
             where: this.makeIdFilter(typeInfo.idFields, resourceId),
             select: {
                 ...typeInfo.idFields.reduce((acc, field) => ({ ...acc, [field.name]: true }), {}),
-                [relationship]: { select: { [this.makeIdKey(relationInfo.idFields)]: true } },
+                [relationship]: { select: this.makeIdSelect(relationInfo.idFields) },
             },
         };
 
@@ -885,9 +885,9 @@ class RequestHandler extends APIHandlerBase {
 
             updateArgs.data = {
                 [relationship]: {
-                    [relationVerb]: enumerate(parsed.data.data).map((item: any) => ({
-                        [this.makeIdKey(relationInfo.idFields)]: item.id,
-                    })),
+                    [relationVerb]: enumerate(parsed.data.data).map((item: any) =>
+                        this.makeIdFilter(relationInfo.idFields, item.id)
+                    ),
                 },
             };
         }

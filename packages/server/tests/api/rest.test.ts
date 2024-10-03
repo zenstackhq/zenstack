@@ -6,7 +6,6 @@ import { loadSchema, run } from '@zenstackhq/testtools';
 import { Decimal } from 'decimal.js';
 import SuperJSON from 'superjson';
 import makeHandler, { idDivider } from '../../src/api/rest';
-import e from 'express';
 
 describe('REST server tests', () => {
     let prisma: any;
@@ -137,7 +136,7 @@ describe('REST server tests', () => {
                         path: '/user',
                         prisma,
                     });
-                    console.log('yufail', JSON.stringify(r));
+
                     expect(r.status).toBe(200);
                     expect(r.body).toMatchObject({
                         data: [],
@@ -323,8 +322,6 @@ describe('REST server tests', () => {
                         path: '/post/1/relationships/likes',
                         prisma,
                     });
-
-                    console.log('yufail', JSON.stringify(r));
 
                     expect(r.status).toBe(200);
                     expect(r.body).toMatchObject({
@@ -1641,6 +1638,27 @@ describe('REST server tests', () => {
                     expect(r.status).toBe(404);
                 });
 
+                it('create relation with compound id', async () => {
+                    await prisma.user.create({ data: { myId: 'user1', email: 'user1@abc.com' } });
+                    await prisma.post.create({ data: { id: 1, title: 'Post1' } });
+
+                    const r = await handler({
+                        method: 'post',
+                        path: '/postLike',
+                        query: {},
+                        requestBody: {
+                            data: {
+                                type: 'postLike',
+                                id: `1${idDivider}user1`,
+                                attributes: { userId: 'user1', postId: 1, superLike: false },
+                            },
+                        },
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(201);
+                });
+
                 describe('compound id', () => {
                     beforeEach(async () => {
                         await prisma.user.create({ data: { myId: 'user1', email: 'user1@abc.com' } });
@@ -1907,6 +1925,24 @@ describe('REST server tests', () => {
                         },
                         data: [{ type: 'post', id: 2 }],
                     });
+                });
+
+                it('update a collection of relations with compound id', async () => {
+                    await prisma.user.create({ data: { myId: 'user1', email: 'user1@abc.com' } });
+                    await prisma.post.create({ data: { id: 1, title: 'Post1' } });
+                    await prisma.postLike.create({ data: { userId: 'user1', postId: 1, superLike: false } });
+
+                    const r = await handler({
+                        method: 'patch',
+                        path: '/post/1/relationships/likes',
+                        query: {},
+                        requestBody: {
+                            data: [{ type: 'postLike', id: '1_user1', attributes: { superLike: true } }],
+                        },
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(200);
                 });
 
                 it('update a collection of relations to empty', async () => {
