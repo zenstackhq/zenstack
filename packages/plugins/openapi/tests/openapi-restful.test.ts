@@ -35,6 +35,7 @@ model User {
     role role @default(USER)
     posts post_Item[]
     profile Profile?
+    likes PostLike[]
 }
 
 model Profile {
@@ -55,10 +56,19 @@ model post_Item {
     published Boolean @default(false)
     viewCount Int @default(0)
     notes String?
+    likes PostLike[]
 
     @@openapi.meta({
         tagDescription: 'Post-related operations'
     })
+}
+
+model PostLike {
+    post post_Item @relation(fields: [postId], references: [id])
+    postId String
+    user User @relation(fields: [userId], references: [id])
+    userId String
+    @@id([postId, userId])
 }
 
 model Foo {
