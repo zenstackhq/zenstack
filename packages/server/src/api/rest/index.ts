@@ -247,20 +247,13 @@ class RequestHandler extends APIHandlerBase {
                     let match = urlPatterns.single.match(path);
                     if (match) {
                         // single resource read
-                        return await this.processSingleRead(prisma, match.type, match.id, query, modelMeta);
+                        return await this.processSingleRead(prisma, match.type, match.id, query);
                     }
 
                     match = urlPatterns.fetchRelationship.match(path);
                     if (match) {
                         // fetch related resource(s)
-                        return await this.processFetchRelated(
-                            prisma,
-                            match.type,
-                            match.id,
-                            match.relationship,
-                            query,
-                            modelMeta
-                        );
+                        return await this.processFetchRelated(prisma, match.type, match.id, match.relationship, query);
                     }
 
                     match = urlPatterns.relationship.match(path);
@@ -271,15 +264,14 @@ class RequestHandler extends APIHandlerBase {
                             match.type,
                             match.id,
                             match.relationship,
-                            query,
-                            modelMeta
+                            query
                         );
                     }
 
                     match = urlPatterns.collection.match(path);
                     if (match) {
                         // collection read
-                        return await this.processCollectionRead(prisma, match.type, query, modelMeta);
+                        return await this.processCollectionRead(prisma, match.type, query);
                     }
 
                     return this.makeError('invalidPath');
@@ -306,8 +298,7 @@ class RequestHandler extends APIHandlerBase {
                             match.id,
                             match.relationship,
                             query,
-                            requestBody,
-                            modelMeta
+                            requestBody
                         );
                     }
 
@@ -345,8 +336,7 @@ class RequestHandler extends APIHandlerBase {
                             match.id,
                             match.relationship as string,
                             query,
-                            requestBody,
-                            modelMeta
+                            requestBody
                         );
                     }
 
@@ -370,8 +360,7 @@ class RequestHandler extends APIHandlerBase {
                             match.id,
                             match.relationship as string,
                             query,
-                            requestBody,
-                            modelMeta
+                            requestBody
                         );
                     }
 
@@ -394,8 +383,7 @@ class RequestHandler extends APIHandlerBase {
         prisma: DbClientContract,
         type: string,
         resourceId: string,
-        query: Record<string, string | string[]> | undefined,
-        modelMeta: ModelMeta
+        query: Record<string, string | string[]> | undefined
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
@@ -420,16 +408,12 @@ class RequestHandler extends APIHandlerBase {
             include = allIncludes;
         }
 
-        let entity = await prisma[type].findUnique(args);
-
-        if (typeInfo.idFields.length > 1) {
-            entity = { ...entity, [this.makeIdKey(typeInfo.idFields)]: resourceId };
-        }
+        const entity = await prisma[type].findUnique(args);
 
         if (entity) {
             return {
                 status: 200,
-                body: await this.serializeItems(type, entity, modelMeta, { include }),
+                body: await this.serializeItems(type, entity, { include }),
             };
         } else {
             return this.makeError('notFound');
@@ -441,8 +425,7 @@ class RequestHandler extends APIHandlerBase {
         type: string,
         resourceId: string,
         relationship: string,
-        query: Record<string, string | string[]> | undefined,
-        modelMeta: ModelMeta
+        query: Record<string, string | string[]> | undefined
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
@@ -499,7 +482,7 @@ class RequestHandler extends APIHandlerBase {
         if (entity?.[relationship]) {
             return {
                 status: 200,
-                body: await this.serializeItems(relationInfo.type, entity[relationship], modelMeta, {
+                body: await this.serializeItems(relationInfo.type, entity[relationship], {
                     linkers: {
                         document: new Linker(() => this.makeLinkUrl(`/${type}/${resourceId}/${relationship}`)),
                         paginator,
@@ -517,8 +500,7 @@ class RequestHandler extends APIHandlerBase {
         type: string,
         resourceId: string,
         relationship: string,
-        query: Record<string, string | string[]> | undefined,
-        modelMeta: ModelMeta
+        query: Record<string, string | string[]> | undefined
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
@@ -560,7 +542,7 @@ class RequestHandler extends APIHandlerBase {
         }
 
         if (entity?.[relationship]) {
-            const serialized: any = await this.serializeItems(relationInfo.type, entity[relationship], modelMeta, {
+            const serialized: any = await this.serializeItems(relationInfo.type, entity[relationship], {
                 linkers: {
                     document: new Linker(() =>
                         this.makeLinkUrl(`/${type}/${resourceId}/relationships/${relationship}`)
@@ -582,8 +564,7 @@ class RequestHandler extends APIHandlerBase {
     private async processCollectionRead(
         prisma: DbClientContract,
         type: string,
-        query: Record<string, string | string[]> | undefined,
-        modelMeta: ModelMeta
+        query: Record<string, string | string[]> | undefined
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
@@ -633,7 +614,7 @@ class RequestHandler extends APIHandlerBase {
         if (limit === Infinity) {
             const entities = await prisma[type].findMany(args);
 
-            const body = await this.serializeItems(type, entities, modelMeta, { include });
+            const body = await this.serializeItems(type, entities, { include });
             const total = entities.length;
             body.meta = this.addTotalCountToMeta(body.meta, total);
 
@@ -656,7 +637,7 @@ class RequestHandler extends APIHandlerBase {
                     paginator: this.makePaginator(url, offset, limit, total),
                 },
             };
-            const body = await this.serializeItems(type, entities, modelMeta, options);
+            const body = await this.serializeItems(type, entities, options);
             body.meta = this.addTotalCountToMeta(body.meta, total);
 
             return {
@@ -797,7 +778,7 @@ class RequestHandler extends APIHandlerBase {
         const entity = await prisma[type].create(createPayload);
         return {
             status: 201,
-            body: await this.serializeItems(type, entity, modelMeta),
+            body: await this.serializeItems(type, entity),
         };
     }
 
@@ -808,8 +789,7 @@ class RequestHandler extends APIHandlerBase {
         resourceId: string,
         relationship: string,
         query: Record<string, string | string[]> | undefined,
-        requestBody: unknown,
-        modelMeta: ModelMeta
+        requestBody: unknown
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
@@ -894,7 +874,7 @@ class RequestHandler extends APIHandlerBase {
 
         const entity: any = await prisma[type].update(updateArgs);
 
-        const serialized: any = await this.serializeItems(relationInfo.type, entity[relationship], modelMeta, {
+        const serialized: any = await this.serializeItems(relationInfo.type, entity[relationship], {
             linkers: {
                 document: new Linker(() => this.makeLinkUrl(`/${type}/${resourceId}/relationships/${relationship}`)),
             },
@@ -969,7 +949,7 @@ class RequestHandler extends APIHandlerBase {
         const entity = await prisma[type].update(updatePayload);
         return {
             status: 200,
-            body: await this.serializeItems(type, entity, modelMeta),
+            body: await this.serializeItems(type, entity),
         };
     }
 
@@ -1134,12 +1114,7 @@ class RequestHandler extends APIHandlerBase {
         }
     }
 
-    private async serializeItems(
-        model: string,
-        items: unknown,
-        modelMeta: ModelMeta,
-        options?: Partial<SerializerOptions<any>>
-    ) {
+    private async serializeItems(model: string, items: unknown, options?: Partial<SerializerOptions<any>>) {
         model = lowerCaseFirst(model);
         const serializer = this.serializers.get(model);
         if (!serializer) {
@@ -1148,17 +1123,23 @@ class RequestHandler extends APIHandlerBase {
 
         const typeInfo = this.typeMap[model];
 
+        let itemsWithId: any = items;
         if (typeInfo.idFields.length > 1 && Array.isArray(items)) {
-            items = items.map((item: any) => {
+            itemsWithId = items.map((item: any) => {
                 return {
                     ...item,
                     [this.makeIdKey(typeInfo.idFields)]: this.makeCompoundId(typeInfo.idFields, item),
                 };
             });
+        } else if (typeInfo.idFields.length > 1 && typeof items === 'object') {
+            itemsWithId = {
+                ...items,
+                [this.makeIdKey(typeInfo.idFields)]: this.makeCompoundId(typeInfo.idFields, items),
+            };
         }
 
         // serialize to JSON:API structure
-        const serialized = await serializer.serialize(items, options);
+        const serialized = await serializer.serialize(itemsWithId, options);
 
         // convert the serialization result to plain object otherwise SuperJSON won't work
         const plainResult = this.toPlainObject(serialized);
@@ -1219,7 +1200,7 @@ class RequestHandler extends APIHandlerBase {
             return { [idFields[0].name]: this.coerce(idFields[0].type, resourceId) };
         } else {
             return {
-                [idFields.map((idf) => idf.name).join('_')]: idFields.reduce(
+                [idFields.map((idf) => idf.name).join(idDivider)]: idFields.reduce(
                     (acc, curr, idx) => ({
                         ...acc,
                         [curr.name]: this.coerce(curr.type, resourceId.split(idDivider)[idx]),
