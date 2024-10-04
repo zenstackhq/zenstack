@@ -328,7 +328,7 @@ describe('REST server tests', () => {
                         links: {
                             self: 'http://localhost/api/post/1/relationships/likes',
                         },
-                        data: [{ type: 'postLike', id: '1_user1' }],
+                        data: [{ type: 'postLike', id: `1${idDivider}user1` }],
                     });
                 });
 
@@ -1937,7 +1937,7 @@ describe('REST server tests', () => {
                         path: '/post/1/relationships/likes',
                         query: {},
                         requestBody: {
-                            data: [{ type: 'postLike', id: '1_user1', attributes: { superLike: true } }],
+                            data: [{ type: 'postLike', id: `1${idDivider}user1`, attributes: { superLike: true } }],
                         },
                         prisma,
                     });
