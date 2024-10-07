@@ -108,9 +108,15 @@ model Bar {
             expect(api.paths?.['/user/{id}/relationships/posts']?.['get']).toBeTruthy();
             expect(api.paths?.['/user/{id}/relationships/posts']?.['post']).toBeTruthy();
             expect(api.paths?.['/user/{id}/relationships/posts']?.['patch']).toBeTruthy();
+            expect(api.paths?.['/user/{id}/relationships/likes']?.['get']).toBeTruthy();
+            expect(api.paths?.['/user/{id}/relationships/likes']?.['post']).toBeTruthy();
+            expect(api.paths?.['/user/{id}/relationships/likes']?.['patch']).toBeTruthy();
             expect(api.paths?.['/post_Item/{id}/relationships/author']?.['get']).toBeTruthy();
             expect(api.paths?.['/post_Item/{id}/relationships/author']?.['post']).toBeUndefined();
             expect(api.paths?.['/post_Item/{id}/relationships/author']?.['patch']).toBeTruthy();
+            expect(api.paths?.['/post_Item/{id}/relationships/likes']?.['get']).toBeTruthy();
+            expect(api.paths?.['/post_Item/{id}/relationships/likes']?.['post']).toBeTruthy();
+            expect(api.paths?.['/post_Item/{id}/relationships/likes']?.['patch']).toBeTruthy();
             expect(api.paths?.['/foo']).toBeUndefined();
             expect(api.paths?.['/bar']).toBeUndefined();
 
@@ -332,6 +338,37 @@ model Foo {
             );
             expect(parsed).toMatchObject(baseline);
         }
+    });
+
+    it('exposes individual fields from a compound id as attributes', async () => {
+        const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
+plugin openapi {
+    provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
+}
+
+model User {
+    email String
+    role String
+    company String
+    @@id([role, company])
+}
+    `);
+
+        const { name: output } = tmp.fileSync({ postfix: '.yaml' });
+
+        const options = buildOptions(model, modelFile, output, '3.1.0');
+        await generate(model, options, dmmf);
+
+        await OpenAPIParser.validate(output);
+
+        const parsed = YAML.parse(fs.readFileSync(output, 'utf-8'));
+        expect(parsed.openapi).toBe('3.1.0');
+
+        expect(Object.keys(parsed.components.schemas.User.properties.attributes.properties)).toEqual(
+            expect.arrayContaining(['role', 'company'])
+        );
+
+        console.log(JSON.stringify(parsed));
     });
 });
 
