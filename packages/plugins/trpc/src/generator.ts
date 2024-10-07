@@ -44,7 +44,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     ) {
         throw new PluginError(
             name,
-            `Option "generateClientHelpers" only support the following values: ${AllSupportedClientHelpers.map(
+            `Option "generateClientHelpers" only supports the following values: ${AllSupportedClientHelpers.map(
                 (n) => '"' + n + '"'
             ).join(', ')}.`
         );
