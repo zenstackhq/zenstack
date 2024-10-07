@@ -9,6 +9,8 @@ tags:
       description: Profile operations
     - name: post_Item
       description: Post-related operations
+    - name: postLike
+      description: PostLike operations 
 paths:
     /user:
         get:
@@ -192,6 +194,16 @@ paths:
                   style: form
                   explode: false
                   schema:
+                      type: string
+                - name: filter[likes]
+                  required: false
+                  description: Equality filter for "likes"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                    type: array
+                    items:
                       type: string
             responses:
                 '200':
@@ -543,6 +555,16 @@ paths:
                   explode: false
                   schema:
                       type: string
+                - name: filter[likes]
+                  required: false
+                  description: Equality filter for "likes"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                    type: array
+                    items:
+                      type: string
             responses:
                 '200':
                     description: Successful operation
@@ -744,6 +766,16 @@ paths:
                   style: form
                   explode: false
                   schema:
+                      type: string
+                - name: filter[likes]
+                  required: false
+                  description: Equality filter for "likes"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                    type: array
+                    items:
                       type: string
             responses:
                 '200':
@@ -1592,6 +1624,16 @@ paths:
                   style: form
                   explode: false
                   schema:
+                      type: string
+                - name: filter[likes]
+                  required: false
+                  description: Equality filter for "likes"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                    type: array
+                    items:
                       type: string
             responses:
                 '200':
