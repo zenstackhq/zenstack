@@ -1918,6 +1918,319 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
+    /postLike:
+        get:
+            operationId: list-PostLike
+            description: List "PostLike" resources
+            tags:
+                - postLike
+            parameters:
+                - $ref: '#/components/parameters/include'
+                - $ref: '#/components/parameters/sort'
+                - $ref: '#/components/parameters/page-offset'
+                - $ref: '#/components/parameters/page-limit'
+                - name: filter[id]
+                  required: false
+                  description: Id filter
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[createdAt]
+                  required: false
+                  description: Equality filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[createdAt$lt]
+                  required: false
+                  description: Less-than filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[createdAt$lte]
+                  required: false
+                  description: Less-than or equal filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[createdAt$gt]
+                  required: false
+                  description: Greater-than filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[createdAt$gte]
+                  required: false
+                  description: Greater-than or equal filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt]
+                  required: false
+                  description: Equality filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt$lt]
+                  required: false
+                  description: Less-than filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt$lte]
+                  required: false
+                  description: Less-than or equal filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt$gt]
+                  required: false
+                  description: Greater-than filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt$gte]
+                  required: false
+                  description: Greater-than or equal filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[title]
+                  required: false
+                  description: Equality filter for "title"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[title$contains]
+                  required: false
+                  description: String contains filter for "title"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[title$icontains]
+                  required: false
+                  description: String case-insensitive contains filter for "title"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[title$search]
+                  required: false
+                  description: String full-text search filter for "title"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[title$startsWith]
+                  required: false
+                  description: String startsWith filter for "title"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[title$endsWith]
+                  required: false
+                  description: String endsWith filter for "title"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[author]
+                  required: false
+                  description: Equality filter for "author"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[published]
+                  required: false
+                  description: Equality filter for "published"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: boolean
+                - name: filter[viewCount]
+                  required: false
+                  description: Equality filter for "viewCount"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: integer
+                - name: filter[viewCount$lt]
+                  required: false
+                  description: Less-than filter for "viewCount"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: integer
+                - name: filter[viewCount$lte]
+                  required: false
+                  description: Less-than or equal filter for "viewCount"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: integer
+                - name: filter[viewCount$gt]
+                  required: false
+                  description: Greater-than filter for "viewCount"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: integer
+                - name: filter[viewCount$gte]
+                  required: false
+                  description: Greater-than or equal filter for "viewCount"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: integer
+                - name: filter[notes]
+                  required: false
+                  description: Equality filter for "notes"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[notes$contains]
+                  required: false
+                  description: String contains filter for "notes"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[notes$icontains]
+                  required: false
+                  description: String case-insensitive contains filter for "notes"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[notes$search]
+                  required: false
+                  description: String full-text search filter for "notes"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[notes$startsWith]
+                  required: false
+                  description: String startsWith filter for "notes"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[notes$endsWith]
+                  required: false
+                  description: String endsWith filter for "notes"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[likes]
+                  required: false
+                  description: Equality filter for "likes"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                    type: array
+                    items:
+                      type: string
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/postLikeListResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        post:
+            operationId: create-postLike
+            description: Create a "postLike" resource
+            tags:
+                - postLike
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/postLikeCreateRequest'
+            responses:
+                '201':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/postLikeResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '422':
+                    description: Request is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
 components:
     schemas:
         _jsonapi:
