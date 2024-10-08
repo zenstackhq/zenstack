@@ -367,8 +367,6 @@ model User {
         expect(Object.keys(parsed.components.schemas.User.properties.attributes.properties)).toEqual(
             expect.arrayContaining(['role', 'company'])
         );
-
-        console.log(JSON.stringify(parsed));
     });
 });
 
