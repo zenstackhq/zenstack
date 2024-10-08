@@ -154,8 +154,12 @@ export function getPrismaOperationTypes(model: string, operation: string) {
 
     switch (operation) {
         case 'findUnique':
-        case 'findUniqueOrThrow':
         case 'findFirst':
+            argsType = selectSubset;
+            resultType = `${getPayload} | null`;
+            break;
+
+        case 'findUniqueOrThrow':
         case 'findFirstOrThrow':
             argsType = selectSubset;
             resultType = getPayload;

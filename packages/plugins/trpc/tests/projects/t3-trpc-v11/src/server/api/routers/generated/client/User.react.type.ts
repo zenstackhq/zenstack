@@ -1,3 +1,4 @@
+/* eslint-disable */
 import type { Prisma } from '@prisma/client';
 import type { TRPCClientErrorLike, TRPCRequestOptions } from '@trpc/client';
 import type { UseTRPCMutationOptions, UseTRPCMutationResult, UseTRPCQueryOptions, UseTRPCQueryResult, UseTRPCInfiniteQueryOptions, UseTRPCInfiniteQueryResult } from '@trpc/react-query/shared';
@@ -39,10 +40,10 @@ export interface ClientType<AppRouter extends AnyRouter, Context = AppRouter['_d
             TRPCClientErrorLike<AppRouter>,
             Prisma.BatchPayload,
             Context
-        >,) =>
+        >) =>
             Omit<UseTRPCMutationResult<Prisma.BatchPayload, TRPCClientErrorLike<AppRouter>, Prisma.SelectSubset<T, Prisma.UserCreateManyArgs>, Context>, 'mutateAsync'> & {
                 mutateAsync:
-                <T extends Prisma.UserCreateManyArgs>(variablestrue: T, opts?: UseTRPCMutationOptions<T, TRPCClientErrorLike<AppRouter>, Prisma.BatchPayload, Context>) => Promise<Prisma.BatchPayload>
+                <T extends Prisma.UserCreateManyArgs>(variables?: T, opts?: UseTRPCMutationOptions<T, TRPCClientErrorLike<AppRouter>, Prisma.BatchPayload, Context>) => Promise<Prisma.BatchPayload>
             };
 
     };
@@ -53,10 +54,10 @@ export interface ClientType<AppRouter extends AnyRouter, Context = AppRouter['_d
             TRPCClientErrorLike<AppRouter>,
             Prisma.UserGetPayload<T>,
             Context
-        >,) =>
+        >) =>
             Omit<UseTRPCMutationResult<Prisma.UserGetPayload<T>, TRPCClientErrorLike<AppRouter>, Prisma.SelectSubset<T, Prisma.UserCreateArgs>, Context>, 'mutateAsync'> & {
                 mutateAsync:
-                <T extends Prisma.UserCreateArgs>(variablesfalse: T, opts?: UseTRPCMutationOptions<T, TRPCClientErrorLike<AppRouter>, Prisma.UserGetPayload<T>, Context>) => Promise<Prisma.UserGetPayload<T>>
+                <T extends Prisma.UserCreateArgs>(variables: T, opts?: UseTRPCMutationOptions<T, TRPCClientErrorLike<AppRouter>, Prisma.UserGetPayload<T>, Context>) => Promise<Prisma.UserGetPayload<T>>
             };
 
     };
@@ -67,10 +68,10 @@ export interface ClientType<AppRouter extends AnyRouter, Context = AppRouter['_d
             TRPCClientErrorLike<AppRouter>,
             Prisma.BatchPayload,
             Context
-        >,) =>
+        >) =>
             Omit<UseTRPCMutationResult<Prisma.BatchPayload, TRPCClientErrorLike<AppRouter>, Prisma.SelectSubset<T, Prisma.UserDeleteManyArgs>, Context>, 'mutateAsync'> & {
                 mutateAsync:
-                <T extends Prisma.UserDeleteManyArgs>(variablestrue: T, opts?: UseTRPCMutationOptions<T, TRPCClientErrorLike<AppRouter>, Prisma.BatchPayload, Context>) => Promise<Prisma.BatchPayload>
+                <T extends Prisma.UserDeleteManyArgs>(variables?: T, opts?: UseTRPCMutationOptions<T, TRPCClientErrorLike<AppRouter>, Prisma.BatchPayload, Context>) => Promise<Prisma.BatchPayload>
             };
 
     };
@@ -81,38 +82,38 @@ export interface ClientType<AppRouter extends AnyRouter, Context = AppRouter['_d
             TRPCClientErrorLike<AppRouter>,
             Prisma.UserGetPayload<T>,
             Context
-        >,) =>
+        >) =>
             Omit<UseTRPCMutationResult<Prisma.UserGetPayload<T>, TRPCClientErrorLike<AppRouter>, Prisma.SelectSubset<T, Prisma.UserDeleteArgs>, Context>, 'mutateAsync'> & {
                 mutateAsync:
-                <T extends Prisma.UserDeleteArgs>(variablesfalse: T, opts?: UseTRPCMutationOptions<T, TRPCClientErrorLike<AppRouter>, Prisma.UserGetPayload<T>, Context>) => Promise<Prisma.UserGetPayload<T>>
+                <T extends Prisma.UserDeleteArgs>(variables: T, opts?: UseTRPCMutationOptions<T, TRPCClientErrorLike<AppRouter>, Prisma.UserGetPayload<T>, Context>) => Promise<Prisma.UserGetPayload<T>>
             };
 
     };
     findFirst: {
 
-        useQuery: <T extends Prisma.UserFindFirstArgs, TData = Prisma.UserGetPayload<T>>(
+        useQuery: <T extends Prisma.UserFindFirstArgs, TData = Prisma.UserGetPayload<T> | null>(
             input?: Prisma.SelectSubset<T, Prisma.UserFindFirstArgs>,
-            opts?: UseTRPCQueryOptions<Prisma.UserGetPayload<T>, TData, Error>
+            opts?: UseTRPCQueryOptions<Prisma.UserGetPayload<T> | null, TData, Error>
         ) => UseTRPCQueryResult<
             TData,
             TRPCClientErrorLike<AppRouter>
         >;
         useInfiniteQuery: <T extends Prisma.UserFindFirstArgs>(
             input?: Omit<Prisma.SelectSubset<T, Prisma.UserFindFirstArgs>, 'cursor'>,
-            opts?: UseTRPCInfiniteQueryOptions<T, Prisma.UserGetPayload<T>, Error>
+            opts?: UseTRPCInfiniteQueryOptions<T, Prisma.UserGetPayload<T> | null, Error>
         ) => UseTRPCInfiniteQueryResult<
-            Prisma.UserGetPayload<T>,
+            Prisma.UserGetPayload<T> | null,
             TRPCClientErrorLike<AppRouter>,
             T
         >;
-        useSuspenseQuery: <T extends Prisma.UserFindFirstArgs, TData = Prisma.UserGetPayload<T>>(
+        useSuspenseQuery: <T extends Prisma.UserFindFirstArgs, TData = Prisma.UserGetPayload<T> | null>(
             input?: Prisma.SelectSubset<T, Prisma.UserFindFirstArgs>,
-            opts?: UseTRPCSuspenseQueryOptions<Prisma.UserGetPayload<T>, TData, Error>
+            opts?: UseTRPCSuspenseQueryOptions<Prisma.UserGetPayload<T> | null, TData, Error>
         ) => UseTRPCSuspenseQueryResult<TData, TRPCClientErrorLike<AppRouter>>;
         useSuspenseInfiniteQuery: <T extends Prisma.UserFindFirstArgs>(
             input?: Omit<Prisma.SelectSubset<T, Prisma.UserFindFirstArgs>, 'cursor'>,
-            opts?: UseTRPCSuspenseInfiniteQueryOptions<T, Prisma.UserGetPayload<T>, Error>
-        ) => UseTRPCSuspenseInfiniteQueryResult<Prisma.UserGetPayload<T>, TRPCClientErrorLike<AppRouter>, T>;
+            opts?: UseTRPCSuspenseInfiniteQueryOptions<T, Prisma.UserGetPayload<T> | null, Error>
+        ) => UseTRPCSuspenseInfiniteQueryResult<Prisma.UserGetPayload<T> | null, TRPCClientErrorLike<AppRouter>, T>;
 
     };
     findFirstOrThrow: {
@@ -171,29 +172,29 @@ export interface ClientType<AppRouter extends AnyRouter, Context = AppRouter['_d
     };
     findUnique: {
 
-        useQuery: <T extends Prisma.UserFindUniqueArgs, TData = Prisma.UserGetPayload<T>>(
+        useQuery: <T extends Prisma.UserFindUniqueArgs, TData = Prisma.UserGetPayload<T> | null>(
             input: Prisma.SelectSubset<T, Prisma.UserFindUniqueArgs>,
-            opts?: UseTRPCQueryOptions<Prisma.UserGetPayload<T>, TData, Error>
+            opts?: UseTRPCQueryOptions<Prisma.UserGetPayload<T> | null, TData, Error>
         ) => UseTRPCQueryResult<
             TData,
             TRPCClientErrorLike<AppRouter>
         >;
         useInfiniteQuery: <T extends Prisma.UserFindUniqueArgs>(
             input: Omit<Prisma.SelectSubset<T, Prisma.UserFindUniqueArgs>, 'cursor'>,
-            opts?: UseTRPCInfiniteQueryOptions<T, Prisma.UserGetPayload<T>, Error>
+            opts?: UseTRPCInfiniteQueryOptions<T, Prisma.UserGetPayload<T> | null, Error>
         ) => UseTRPCInfiniteQueryResult<
-            Prisma.UserGetPayload<T>,
+            Prisma.UserGetPayload<T> | null,
             TRPCClientErrorLike<AppRouter>,
             T
         >;
-        useSuspenseQuery: <T extends Prisma.UserFindUniqueArgs, TData = Prisma.UserGetPayload<T>>(
+        useSuspenseQuery: <T extends Prisma.UserFindUniqueArgs, TData = Prisma.UserGetPayload<T> | null>(
             input: Prisma.SelectSubset<T, Prisma.UserFindUniqueArgs>,
-            opts?: UseTRPCSuspenseQueryOptions<Prisma.UserGetPayload<T>, TData, Error>
+            opts?: UseTRPCSuspenseQueryOptions<Prisma.UserGetPayload<T> | null, TData, Error>
         ) => UseTRPCSuspenseQueryResult<TData, TRPCClientErrorLike<AppRouter>>;
         useSuspenseInfiniteQuery: <T extends Prisma.UserFindUniqueArgs>(
             input: Omit<Prisma.SelectSubset<T, Prisma.UserFindUniqueArgs>, 'cursor'>,
-            opts?: UseTRPCSuspenseInfiniteQueryOptions<T, Prisma.UserGetPayload<T>, Error>
-        ) => UseTRPCSuspenseInfiniteQueryResult<Prisma.UserGetPayload<T>, TRPCClientErrorLike<AppRouter>, T>;
+            opts?: UseTRPCSuspenseInfiniteQueryOptions<T, Prisma.UserGetPayload<T> | null, Error>
+        ) => UseTRPCSuspenseInfiniteQueryResult<Prisma.UserGetPayload<T> | null, TRPCClientErrorLike<AppRouter>, T>;
 
     };
     findUniqueOrThrow: {
@@ -481,10 +482,10 @@ export interface ClientType<AppRouter extends AnyRouter, Context = AppRouter['_d
             TRPCClientErrorLike<AppRouter>,
             Prisma.BatchPayload,
             Context
-        >,) =>
+        >) =>
             Omit<UseTRPCMutationResult<Prisma.BatchPayload, TRPCClientErrorLike<AppRouter>, Prisma.SelectSubset<T, Prisma.UserUpdateManyArgs>, Context>, 'mutateAsync'> & {
                 mutateAsync:
-                <T extends Prisma.UserUpdateManyArgs>(variablesfalse: T, opts?: UseTRPCMutationOptions<T, TRPCClientErrorLike<AppRouter>, Prisma.BatchPayload, Context>) => Promise<Prisma.BatchPayload>
+                <T extends Prisma.UserUpdateManyArgs>(variables: T, opts?: UseTRPCMutationOptions<T, TRPCClientErrorLike<AppRouter>, Prisma.BatchPayload, Context>) => Promise<Prisma.BatchPayload>
             };
 
     };
@@ -495,10 +496,10 @@ export interface ClientType<AppRouter extends AnyRouter, Context = AppRouter['_d
             TRPCClientErrorLike<AppRouter>,
             Prisma.UserGetPayload<T>,
             Context
-        >,) =>
+        >) =>
             Omit<UseTRPCMutationResult<Prisma.UserGetPayload<T>, TRPCClientErrorLike<AppRouter>, Prisma.SelectSubset<T, Prisma.UserUpdateArgs>, Context>, 'mutateAsync'> & {
                 mutateAsync:
-                <T extends Prisma.UserUpdateArgs>(variablesfalse: T, opts?: UseTRPCMutationOptions<T, TRPCClientErrorLike<AppRouter>, Prisma.UserGetPayload<T>, Context>) => Promise<Prisma.UserGetPayload<T>>
+                <T extends Prisma.UserUpdateArgs>(variables: T, opts?: UseTRPCMutationOptions<T, TRPCClientErrorLike<AppRouter>, Prisma.UserGetPayload<T>, Context>) => Promise<Prisma.UserGetPayload<T>>
             };
 
     };
@@ -509,10 +510,10 @@ export interface ClientType<AppRouter extends AnyRouter, Context = AppRouter['_d
             TRPCClientErrorLike<AppRouter>,
             Prisma.UserGetPayload<T>,
             Context
-        >,) =>
+        >) =>
             Omit<UseTRPCMutationResult<Prisma.UserGetPayload<T>, TRPCClientErrorLike<AppRouter>, Prisma.SelectSubset<T, Prisma.UserUpsertArgs>, Context>, 'mutateAsync'> & {
                 mutateAsync:
-                <T extends Prisma.UserUpsertArgs>(variablesfalse: T, opts?: UseTRPCMutationOptions<T, TRPCClientErrorLike<AppRouter>, Prisma.UserGetPayload<T>, Context>) => Promise<Prisma.UserGetPayload<T>>
+                <T extends Prisma.UserUpsertArgs>(variables: T, opts?: UseTRPCMutationOptions<T, TRPCClientErrorLike<AppRouter>, Prisma.UserGetPayload<T>, Context>) => Promise<Prisma.UserGetPayload<T>>
             };
 
     };

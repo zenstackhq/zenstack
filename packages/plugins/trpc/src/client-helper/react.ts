@@ -81,10 +81,10 @@ export function generateProcedureTyping(
                     ${errorType},
                     ${resultType},
                     Context
-                >,) =>
+                >) =>
                 Omit<UseTRPCMutationResult<${resultType}, ${errorType}, ${argsType}, Context>, 'mutateAsync'> & {
                     mutateAsync:
-                        <T extends ${genericBase}>(variables${argsOptional}: T, opts?: UseTRPCMutationOptions<T, ${errorType}, ${resultType}, Context>) => Promise<${resultType}>
+                        <T extends ${genericBase}>(variables${inputOptional}: T, opts?: UseTRPCMutationOptions<T, ${errorType}, ${resultType}, Context>) => Promise<${resultType}>
                 };
                 `);
         }

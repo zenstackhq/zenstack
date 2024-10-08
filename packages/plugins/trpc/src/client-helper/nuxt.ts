@@ -31,7 +31,13 @@ export function generateProcedureTyping(
     writer.block(() => {
         if (procType === 'query') {
             writer.writeLine(`
+                query: <T extends ${genericBase}>(input${inputOptional}: ${argsType}) => Promise<${resultType}>;
                 useQuery: <T extends ${genericBase}, ResT = ${resultType}, DataE = ${errorType}, DataT = ResT, PickKeys extends KeysOf<DataT> = KeysOf<DataT>, DefaultT = null>(input${inputOptional}: MaybeRefOrGetter<${argsType}>, opts?: Omit<AsyncDataOptions<ResT, DataT, PickKeys, DefaultT>, 'watch'> & {
+                    trpc?: TRPCRequestOptions;
+                    queryKey?: string;
+                    watch?: AsyncDataOptions<ResT, DataT, PickKeys, DefaultT>['watch'] | false;
+                }) => AsyncData<PickFrom<DataT, PickKeys> | DefaultT, DataE>;
+                useLazyQuery: <T extends ${genericBase}, ResT = ${resultType}, DataE = ${errorType}, DataT = ResT, PickKeys extends KeysOf<DataT> = KeysOf<DataT>, DefaultT = null>(input${inputOptional}: MaybeRefOrGetter<${argsType}>, opts?: Omit<AsyncDataOptions<ResT, DataT, PickKeys, DefaultT>, 'lazy' | 'watch'> & {
                     trpc?: TRPCRequestOptions;
                     queryKey?: string;
                     watch?: AsyncDataOptions<ResT, DataT, PickKeys, DefaultT>['watch'] | false;

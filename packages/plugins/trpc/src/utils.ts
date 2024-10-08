@@ -110,7 +110,7 @@ export const getInputSchemaByOpName = (opName: string, modelName: string) => {
 };
 
 export const getProcedureTypeByOpName = (opName: string) => {
-    let procType;
+    let procType: string | undefined;
     switch (opName) {
         case 'findUnique':
         case 'findFirst':
@@ -132,7 +132,7 @@ export const getProcedureTypeByOpName = (opName: string) => {
             procType = 'mutation';
             break;
         default:
-            console.log('getProcedureTypeByOpName: ', { opName });
+            break;
     }
     return procType;
 };

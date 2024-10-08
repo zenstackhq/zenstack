@@ -1,5 +1,15 @@
 <script setup lang="ts">
 const { $client } = useNuxtApp();
+
+$client.post.findFirst
+    .query({
+        where: { id: '1' },
+        include: { author: true },
+    })
+    .then((post) => {
+        console.log('Author:', post?.author.email);
+    });
+
 const { data: posts } = $client.post.findMany.useQuery({
     include: { author: true },
 });
