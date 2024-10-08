@@ -134,6 +134,7 @@ export type SchemaLoadOptions = {
     preserveTsFiles?: boolean;
     generatePermissionChecker?: boolean;
     previewFeatures?: string[];
+    prismaLoadPath?: string;
     prismaClientOptions?: object;
     generateNoCompile?: boolean;
 };
@@ -263,7 +264,13 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         fs.cpSync(dep, path.join(projectDir, 'node_modules', pkgJson.name), { recursive: true, force: true });
     });
 
-    const PrismaClient = require(path.join(projectDir, 'node_modules/.prisma/client')).PrismaClient;
+    const prismaLoadPath = options?.prismaLoadPath
+        ? path.isAbsolute(options.prismaLoadPath)
+            ? options.prismaLoadPath
+            : path.join(projectDir, options.prismaLoadPath)
+        : path.join(projectDir, 'node_modules/.prisma/client');
+    const prismaModule = require(prismaLoadPath);
+    const PrismaClient = prismaModule.PrismaClient;
 
     let clientOptions: object = { log: ['info', 'warn', 'error'] };
     if (options?.prismaClientOptions) {
@@ -272,8 +279,6 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     let prisma = new PrismaClient(clientOptions);
     // https://github.com/prisma/prisma/issues/18292
     prisma[Symbol.for('nodejs.util.inspect.custom')] = 'PrismaClient';
-
-    const prismaModule = loadModule('@prisma/client', projectDir).Prisma;
 
     if (opt.pulseApiKey) {
         const withPulse = loadModule('@prisma/extension-pulse/node', projectDir).withPulse;

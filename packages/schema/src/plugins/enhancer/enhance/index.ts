@@ -8,6 +8,7 @@ import {
     getLiteral,
     isDelegateModel,
     isDiscriminatorField,
+    normalizedRelative,
     type PluginOptions,
 } from '@zenstackhq/sdk';
 import {
@@ -159,7 +160,7 @@ ${
         const zodAbsPath = path.isAbsolute(zodCustomOutput)
             ? zodCustomOutput
             : path.resolve(schemaDir, zodCustomOutput);
-        return path.relative(this.outDir, zodAbsPath) || '.';
+        return normalizedRelative(this.outDir, zodAbsPath);
     }
 
     private createSimplePrismaImports(prismaImport: string) {
