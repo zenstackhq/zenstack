@@ -9,6 +9,8 @@ tags:
       description: Profile operations
     - name: post_Item
       description: Post-related operations
+    - name: postLike
+      description: PostLike operations
 paths:
     /user:
         get:
@@ -192,6 +194,16 @@ paths:
                   style: form
                   explode: false
                   schema:
+                      type: string
+                - name: filter[likes]
+                  required: false
+                  description: Equality filter for "likes"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                    type: array
+                    items:
                       type: string
             responses:
                 '200':
@@ -543,6 +555,16 @@ paths:
                   explode: false
                   schema:
                       type: string
+                - name: filter[likes]
+                  required: false
+                  description: Equality filter for "likes"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                    type: array
+                    items:
+                      type: string
             responses:
                 '200':
                     description: Successful operation
@@ -744,6 +766,16 @@ paths:
                   style: form
                   explode: false
                   schema:
+                      type: string
+                - name: filter[likes]
+                  required: false
+                  description: Equality filter for "likes"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                    type: array
+                    items:
                       type: string
             responses:
                 '200':
@@ -1593,6 +1625,16 @@ paths:
                   explode: false
                   schema:
                       type: string
+                - name: filter[likes]
+                  required: false
+                  description: Equality filter for "likes"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                    type: array
+                    items:
+                      type: string
             responses:
                 '200':
                     description: Successful operation
@@ -1850,6 +1892,433 @@ paths:
             description: Update "author" relationship for a "post_Item"
             tags:
                 - post_Item
+            parameters:
+                - $ref: '#/components/parameters/id'
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/_toOneRelationshipRequest'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_toOneRelationshipResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+    /postLike:
+        get:
+            operationId: list-PostLike
+            description: List "PostLike" resources
+            tags:
+                - postLike
+            parameters:
+                - $ref: '#/components/parameters/include'
+                - $ref: '#/components/parameters/sort'
+                - $ref: '#/components/parameters/page-offset'
+                - $ref: '#/components/parameters/page-limit'
+                - name: filter[post]
+                  required: false
+                  description: Equality filter for "post"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[user]
+                  required: false
+                  description: Equality filter for "user"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/PostLikeListResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        post:
+            operationId: create-PostLike
+            description: Create a "PostLike" resource
+            tags:
+                - postLike
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/PostLikeCreateRequest'
+            responses:
+                '201':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/PostLikeResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '422':
+                    description: Request is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+    /postLike/{id}:
+        get:
+            operationId: fetch-PostLike
+            description: Fetch a "PostLike" resource
+            tags:
+                - postLike
+            parameters:
+                - $ref: '#/components/parameters/id'
+                - $ref: '#/components/parameters/include'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/PostLikeResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        put:
+            operationId: update-PostLike-put
+            description: Update a "PostLike" resource
+            tags:
+                - postLike
+            parameters:
+                - $ref: '#/components/parameters/id'
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/PostLikeUpdateRequest'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/PostLikeResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '422':
+                    description: Request is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        patch:
+            operationId: update-PostLike-patch
+            description: Update a "PostLike" resource
+            tags:
+                - postLike
+            parameters:
+                - $ref: '#/components/parameters/id'
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/PostLikeUpdateRequest'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/PostLikeResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '422':
+                    description: Request is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        delete:
+            operationId: delete-PostLike
+            description: Delete a "PostLike" resource
+            tags:
+                - postLike
+            parameters:
+                - $ref: '#/components/parameters/id'
+            responses:
+                '200':
+                    description: Successful operation
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+    /postLike/{id}/post:
+        get:
+            operationId: fetch-PostLike-related-post
+            description: Fetch the related "post" resource for "PostLike"
+            tags:
+                - postLike
+            parameters:
+                - $ref: '#/components/parameters/id'
+                - $ref: '#/components/parameters/include'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/post_ItemResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+    /postLike/{id}/relationships/post:
+        get:
+            operationId: fetch-PostLike-relationship-post
+            description: Fetch the "post" relationships for a "PostLike"
+            tags:
+                - postLike
+            parameters:
+                - $ref: '#/components/parameters/id'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_toOneRelationshipResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        put:
+            operationId: update-PostLike-relationship-post-put
+            description: Update "post" relationship for a "PostLike"
+            tags:
+                - postLike
+            parameters:
+                - $ref: '#/components/parameters/id'
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/_toOneRelationshipRequest'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_toOneRelationshipResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        patch:
+            operationId: update-PostLike-relationship-post-patch
+            description: Update "post" relationship for a "PostLike"
+            tags:
+                - postLike
+            parameters:
+                - $ref: '#/components/parameters/id'
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/_toOneRelationshipRequest'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_toOneRelationshipResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+    /postLike/{id}/user:
+        get:
+            operationId: fetch-PostLike-related-user
+            description: Fetch the related "user" resource for "PostLike"
+            tags:
+                - postLike
+            parameters:
+                - $ref: '#/components/parameters/id'
+                - $ref: '#/components/parameters/include'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/UserResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+    /postLike/{id}/relationships/user:
+        get:
+            operationId: fetch-PostLike-relationship-user
+            description: Fetch the "user" relationships for a "PostLike"
+            tags:
+                - postLike
+            parameters:
+                - $ref: '#/components/parameters/id'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_toOneRelationshipResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        put:
+            operationId: update-PostLike-relationship-user-put
+            description: Update "user" relationship for a "PostLike"
+            tags:
+                - postLike
+            parameters:
+                - $ref: '#/components/parameters/id'
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/_toOneRelationshipRequest'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_toOneRelationshipResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        patch:
+            operationId: update-PostLike-relationship-user-patch
+            description: Update "user" relationship for a "PostLike"
+            tags:
+                - postLike
             parameters:
                 - $ref: '#/components/parameters/id'
             requestBody:
@@ -2601,6 +3070,162 @@ components:
                                   relationships:
                                       type: object
                                       properties: *a3
+                meta:
+                    $ref: '#/components/schemas/_meta'
+                included:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/_resource'
+                links:
+                    allOf:
+                        - $ref: '#/components/schemas/_links'
+                        - $ref: '#/components/schemas/_pagination'
+        PostLike:
+            type: object
+            description: The "PostLike" model
+            required:
+                - id
+                - type
+                - attributes
+            properties:
+                id:
+                    type: string
+                type:
+                    type: string
+                attributes:
+                    type: object
+                    properties:
+                        postId:
+                            type: string
+                        userId:
+                            type: string
+                relationships:
+                    type: object
+                    properties:
+                        post:
+                            $ref: '#/components/schemas/_toOneRelationshipWithLinks'
+                        user:
+                            $ref: '#/components/schemas/_toOneRelationshipWithLinks'
+        PostLikeCreateRequest:
+            type: object
+            description: Input for creating a "PostLike"
+            required:
+                - data
+            properties:
+                data:
+                    type: object
+                    description: The "PostLike" model
+                    required:
+                        - id
+                        - type
+                        - attributes
+                    properties:
+                        type:
+                            type: string
+                        attributes:
+                            type: object
+                            required:
+                                - postId
+                                - userId
+                            properties:
+                                postId:
+                                    type: string
+                                userId:
+                                    type: string
+                        relationships:
+                            type: object
+                            properties:
+                                post:
+                                    $ref: '#/components/schemas/_toOneRelationship'
+                                user:
+                                    $ref: '#/components/schemas/_toOneRelationship'
+                meta:
+                    $ref: '#/components/schemas/_meta'
+        PostLikeUpdateRequest:
+            type: object
+            description: Input for updating a "PostLike"
+            required:
+                - data
+            properties:
+                data:
+                    type: object
+                    description: The "PostLike" model
+                    required:
+                        - id
+                        - type
+                        - attributes
+                    properties:
+                        id:
+                            type: string
+                        type:
+                            type: string
+                        attributes:
+                            type: object
+                            properties:
+                                postId:
+                                    type: string
+                                userId:
+                                    type: string
+                        relationships:
+                            type: object
+                            properties:
+                                post:
+                                    $ref: '#/components/schemas/_toOneRelationship'
+                                user:
+                                    $ref: '#/components/schemas/_toOneRelationship'
+                meta:
+                    $ref: '#/components/schemas/_meta'
+        PostLikeResponse:
+            type: object
+            description: Response for a "PostLike"
+            required:
+                - data
+            properties:
+                jsonapi:
+                    $ref: '#/components/schemas/_jsonapi'
+                data:
+                    allOf:
+                        - $ref: '#/components/schemas/PostLike'
+                        - type: object
+                          properties:
+                              relationships:
+                                  type: object
+                                  properties:
+                                      post:
+                                          $ref: '#/components/schemas/_toOneRelationship'
+                                      user:
+                                          $ref: '#/components/schemas/_toOneRelationship'
+                meta:
+                    $ref: '#/components/schemas/_meta'
+                included:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/_resource'
+                links:
+                    $ref: '#/components/schemas/_links'
+        PostLikeListResponse:
+            type: object
+            description: Response for a list of "PostLike"
+            required:
+                - data
+                - links
+            properties:
+                jsonapi:
+                    $ref: '#/components/schemas/_jsonapi'
+                data:
+                    type: array
+                    items:
+                        allOf:
+                            - $ref: '#/components/schemas/PostLike'
+                            - type: object
+                              properties:
+                                  relationships:
+                                      type: object
+                                      properties:
+                                          post:
+                                              $ref: '#/components/schemas/_toOneRelationship'
+                                          user:
+                                              $ref: '#/components/schemas/_toOneRelationship'
                 meta:
                     $ref: '#/components/schemas/_meta'
                 included:

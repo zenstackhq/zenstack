@@ -409,6 +409,8 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
     private generateFilterParameters(model: DataModel) {
         const result: OAPI.ParameterObject[] = [];
 
+        const hasMultipleIds = model.fields.filter((f) => isIdField(f)).length > 1;
+
         for (const field of model.fields) {
             if (isForeignKeyField(field)) {
                 // no filtering with foreign keys because one can filter
@@ -416,7 +418,8 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 continue;
             }
 
-            if (isIdField(field)) {
+            // For multiple ids, make each id field filterable like a regular field
+            if (isIdField(field) && !hasMultipleIds) {
                 // id filter
                 result.push(this.makeFilterParameter(field, 'id', 'Id filter'));
                 continue;
@@ -843,7 +846,9 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
     }
 
     private generateModelEntity(model: DataModel, mode: 'read' | 'create' | 'update'): OAPI.SchemaObject {
-        const fields = model.fields.filter((f) => !isIdField(f));
+        const idFields = model.fields.filter((f) => isIdField(f));
+        // For compound ids, each component is also exposed as a separate field
+        const fields = idFields.length > 1 ? model.fields : model.fields.filter((f) => !isIdField(f));
 
         const attributes: Record<string, OAPI.SchemaObject> = {};
         const relationships: Record<string, OAPI.ReferenceObject | OAPI.SchemaObject> = {};
@@ -886,8 +891,8 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
 
         if (mode === 'create') {
             // 'id' is required if there's no default value
-            const idField = model.fields.find((f) => isIdField(f));
-            if (idField && !hasAttribute(idField, '@default')) {
+            const idFields = model.fields.filter((f) => isIdField(f));
+            if (idFields.length && idFields.every((f) => !hasAttribute(f, '@default'))) {
                 properties = { id: { type: 'string' }, ...properties };
                 toplevelRequired.unshift('id');
             }
