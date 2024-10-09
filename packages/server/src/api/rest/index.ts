@@ -518,7 +518,6 @@ class RequestHandler extends APIHandlerBase {
         };
 
         // include IDs of relation fields so that they can be serialized
-        // this.includeRelationshipIds(type, args, 'select');
         args.select = { ...args.select, [relationship]: { select: this.makeIdSelect(relationInfo.idFields) } };
 
         let paginator: Paginator<any> | undefined;

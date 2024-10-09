@@ -466,7 +466,9 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
 
         if (delegateInfo.some(([delegate]) => `${delegate.name}Delegate` === iface.getName())) {
             // delegate models cannot be created directly, remove create/createMany/upsert
-            structure.methods = structure.methods?.filter((m) => !['create', 'createMany', 'upsert'].includes(m.name));
+            structure.methods = structure.methods?.filter(
+                (m) => !['create', 'createMany', 'createManyAndReturn', 'upsert'].includes(m.name)
+            );
         }
 
         return structure;
