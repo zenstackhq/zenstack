@@ -1,8 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 /**
  * @jest-environment jsdom
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query-v5';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import nock from 'nock';
