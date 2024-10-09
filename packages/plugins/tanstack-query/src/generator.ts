@@ -76,11 +76,20 @@ function generateQueryHook(
     overrideInputType?: string,
     overrideTypeParameters?: string[],
     supportInfinite = false,
-    supportOptimistic = false
+    supportOptimistic = false,
+    supportPrefetching = false,
 ) {
-    const generateModes: ('' | 'Infinite' | 'Suspense' | 'SuspenseInfinite')[] = [''];
+    const generateModes: ('' | 'Infinite' | 'Suspense' | 'SuspenseInfinite' | 'Prefetch' | 'PrefetchInfinite')[] = [''];
     if (supportInfinite) {
         generateModes.push('Infinite');
+    }
+
+    if (supportPrefetching) {
+        generateModes.push('Prefetch');
+
+        if (supportInfinite) {
+            generateModes.push('PrefetchInfinite');
+        }
     }
 
     if (target === 'react' && version === 'v5') {
@@ -99,6 +108,9 @@ function generateQueryHook(
 
         const infinite = generateMode.includes('Infinite');
         const suspense = generateMode.includes('Suspense');
+        const prefetch = generateMode.includes('Prefetch');
+        const prefetchInfinite = generateMode.includes('PrefetchInfinite');
+
         const optimistic =
             supportOptimistic &&
             // infinite queries are not subject to optimistic updates
@@ -110,6 +122,9 @@ function generateQueryHook(
         }
         if (returnArray) {
             defaultReturnType = `Array<${defaultReturnType}>`;
+        }
+        if (prefetch || prefetchInfinite) {
+            defaultReturnType = `Promise<void>`;
         }
 
         const returnType = overrideReturnType ?? defaultReturnType;
@@ -370,6 +385,7 @@ function generateModelHooks(
             undefined,
             undefined,
             true,
+            true,
             true
         );
     }
@@ -388,6 +404,7 @@ function generateModelHooks(
             undefined,
             undefined,
             false,
+            true,
             true
         );
     }
@@ -406,6 +423,7 @@ function generateModelHooks(
             undefined,
             undefined,
             false,
+            true,
             true
         );
     }
@@ -601,7 +619,7 @@ function makeGetContext(target: TargetFramework) {
 function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
     const runtimeImportBase = makeRuntimeImportBase(version);
     const shared = [
-        `import { useModelQuery, useInfiniteModelQuery, useModelMutation } from '${runtimeImportBase}/${target}';`,
+        `import { useModelQuery, useInfiniteModelQuery, useModelMutation, usePrefetchModelQuery, usePrefetchInfiniteModelQuery } from '${runtimeImportBase}/${target}';`,
         `import type { PickEnumerable, CheckSelect, QueryError, ExtraQueryOptions, ExtraMutationOptions } from '${runtimeImportBase}';`,
         `import type { PolicyCrudKind } from '${RUNTIME_PACKAGE}'`,
         `import metadata from './__model_meta';`,
