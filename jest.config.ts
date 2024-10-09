@@ -32,4 +32,6 @@ export default {
     transform: { '^.+\\.tsx?$': 'ts-jest' },
 
     testTimeout: 300000,
+
+    testEnvironment: 'jsdom',
 };

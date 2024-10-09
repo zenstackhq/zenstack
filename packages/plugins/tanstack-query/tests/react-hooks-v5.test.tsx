@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 /**
  * @jest-environment jsdom
  */
@@ -461,6 +463,118 @@ describe('Tanstack Query React Hooks V5 Test', () => {
         );
 
         act(() => mutationResult.current.mutate({ ...queryArgs, data: { name: 'bar' } }));
+
+        await waitFor(() => {
+            const cacheData = queryClient.getQueryData(
+                getQueryKey('User', 'findUnique', queryArgs, { infinite: false, optimisticUpdate: true })
+            );
+            expect(cacheData).toMatchObject({ name: 'bar', $optimistic: true });
+        });
+    });
+
+    it('optimistic upsert - create', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        const data: any[] = [];
+
+        nock(makeUrl('User', 'findMany'))
+            .get(/.*/)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(data));
+                return { data };
+            })
+            .persist();
+
+        const { result } = renderHook(
+            () => useModelQuery('User', makeUrl('User', 'findMany'), undefined, { optimisticUpdate: true }),
+            {
+                wrapper,
+            }
+        );
+        await waitFor(() => {
+            expect(result.current.data).toHaveLength(0);
+        });
+
+        nock(makeUrl('User', 'upsert'))
+            .post(/.*/)
+            .reply(200, () => {
+                console.log('Not mutating data');
+                return { data: null };
+            });
+
+        const { result: mutationResult } = renderHook(
+            () =>
+                useModelMutation('User', 'POST', makeUrl('User', 'upsert'), modelMeta, {
+                    optimisticUpdate: true,
+                    invalidateQueries: false,
+                }),
+            {
+                wrapper,
+            }
+        );
+
+        act(() =>
+            mutationResult.current.mutate({
+                where: { id: '1' },
+                create: { id: '1', name: 'foo' },
+                update: { name: 'bar' },
+            })
+        );
+
+        await waitFor(() => {
+            const cacheData: any = queryClient.getQueryData(
+                getQueryKey('User', 'findMany', undefined, { infinite: false, optimisticUpdate: true })
+            );
+            expect(cacheData).toHaveLength(1);
+            expect(cacheData[0].$optimistic).toBe(true);
+            expect(cacheData[0].id).toBeTruthy();
+            expect(cacheData[0].name).toBe('foo');
+        });
+    });
+
+    it('optimistic upsert - update', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        const queryArgs = { where: { id: '1' } };
+        const data = { id: '1', name: 'foo' };
+
+        nock(makeUrl('User', 'findUnique', queryArgs))
+            .get(/.*/)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(data));
+                return { data };
+            })
+            .persist();
+
+        const { result } = renderHook(
+            () => useModelQuery('User', makeUrl('User', 'findUnique'), queryArgs, { optimisticUpdate: true }),
+            {
+                wrapper,
+            }
+        );
+        await waitFor(() => {
+            expect(result.current.data).toMatchObject({ name: 'foo' });
+        });
+
+        nock(makeUrl('User', 'upsert'))
+            .post(/.*/)
+            .reply(200, () => {
+                console.log('Not mutating data');
+                return data;
+            });
+
+        const { result: mutationResult } = renderHook(
+            () =>
+                useModelMutation('User', 'POST', makeUrl('User', 'upsert'), modelMeta, {
+                    optimisticUpdate: true,
+                    invalidateQueries: false,
+                }),
+            {
+                wrapper,
+            }
+        );
+
+        act(() => mutationResult.current.mutate({ ...queryArgs, update: { name: 'bar' }, create: { name: 'zee' } }));
 
         await waitFor(() => {
             const cacheData = queryClient.getQueryData(
