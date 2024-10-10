@@ -75,6 +75,31 @@ export async function applyMutation(
             }
         },
 
+        upsert: (model, args) => {
+            if (model === queryModel && args?.where && args?.create && args?.update) {
+                // first see if a matching update can be applied
+                const updateResult = updateMutate(
+                    queryModel,
+                    resultData,
+                    model,
+                    { where: args.where, data: args.update },
+                    modelMeta,
+                    logging
+                );
+                if (updateResult) {
+                    resultData = updateResult;
+                    updated = true;
+                } else {
+                    // if not, try to apply a create
+                    const createResult = createMutate(queryModel, queryOp, resultData, args.create, modelMeta, logging);
+                    if (createResult) {
+                        resultData = createResult;
+                        updated = true;
+                    }
+                }
+            }
+        },
+
         delete: (model, args) => {
             if (model === queryModel) {
                 const r = deleteMutate(queryModel, resultData, model, args, modelMeta, logging);
