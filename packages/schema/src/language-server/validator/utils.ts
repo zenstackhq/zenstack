@@ -10,10 +10,11 @@ import {
     isArrayExpr,
     isDataModelField,
     isEnum,
+    isMemberAccessExpr,
     isReferenceExpr,
     isStringLiteral,
 } from '@zenstackhq/language/ast';
-import { resolved } from '@zenstackhq/sdk';
+import { isAuthInvocation, resolved } from '@zenstackhq/sdk';
 import { AstNode, ValidationAcceptor } from 'langium';
 
 /**
@@ -180,4 +181,8 @@ export function assignableToAttributeParam(
         // reference type
         return (dstRef?.ref === argResolvedType.decl || dstType === 'Any') && dstIsArray === argResolvedType.array;
     }
+}
+
+export function isAuthOrAuthMemberAccess(expr: Expression): boolean {
+    return isAuthInvocation(expr) || (isMemberAccessExpr(expr) && isAuthOrAuthMemberAccess(expr.operand));
 }
