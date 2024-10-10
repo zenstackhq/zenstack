@@ -816,6 +816,11 @@ describe('Attribute tests', () => {
                 E2
             }
 
+            model User {
+                id String @id
+                e E
+            }
+
             model N {
                 id String @id
                 e E
@@ -840,6 +845,7 @@ describe('Attribute tests', () => {
                 @@allow('all', startsWith(s, 'a'))
                 @@allow('all', endsWith(s, 'a'))
                 @@allow('all', has(es, E1))
+                @@allow('all', has(es, auth().e))
                 @@allow('all', hasSome(es, [E1]))
                 @@allow('all', hasEvery(es, [E1]))
                 @@allow('all', isEmpty(es))
@@ -890,7 +896,9 @@ describe('Attribute tests', () => {
                 @@allow('all', contains(s, s1))
             }
         `)
-        ).toContain('second argument must be a literal, an enum, or an array of them');
+        ).toContain(
+            'second argument must be a literal, an enum, an expression starting with `auth().`, or an array of them'
+        );
 
         expect(
             await loadModelWithError(`
@@ -1022,7 +1030,9 @@ describe('Attribute tests', () => {
                 @@validate(contains(s, s1))
             }
         `)
-        ).toContain('second argument must be a literal, an enum, or an array of them');
+        ).toContain(
+            'second argument must be a literal, an enum, an expression starting with `auth().`, or an array of them'
+        );
 
         expect(
             await loadModelWithError(`

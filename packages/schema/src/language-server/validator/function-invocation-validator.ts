@@ -26,7 +26,7 @@ import { AstNode, streamAst, ValidationAcceptor } from 'langium';
 import { match, P } from 'ts-pattern';
 import { isCheckInvocation } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
-import { typeAssignable } from './utils';
+import { isAuthOrAuthMemberAccess, typeAssignable } from './utils';
 
 // a registry of function handlers marked with @func
 const invocationCheckers = new Map<string, PropertyDescriptor>();
@@ -109,15 +109,24 @@ export default class FunctionInvocationValidator implements AstValidator<Express
                     !isLiteralExpr(secondArg) &&
                     // enum field
                     !isEnumFieldReference(secondArg) &&
+                    // `auth()...` expression
+                    !isAuthOrAuthMemberAccess(secondArg) &&
                     // array of literal/enum
                     !(
                         isArrayExpr(secondArg) &&
-                        secondArg.items.every((item) => isLiteralExpr(item) || isEnumFieldReference(item))
+                        secondArg.items.every(
+                            (item) =>
+                                isLiteralExpr(item) || isEnumFieldReference(item) || isAuthOrAuthMemberAccess(item)
+                        )
                     )
                 ) {
-                    accept('error', 'second argument must be a literal, an enum, or an array of them', {
-                        node: secondArg,
-                    });
+                    accept(
+                        'error',
+                        'second argument must be a literal, an enum, an expression starting with `auth().`, or an array of them',
+                        {
+                            node: secondArg,
+                        }
+                    );
                 }
             }
         }
