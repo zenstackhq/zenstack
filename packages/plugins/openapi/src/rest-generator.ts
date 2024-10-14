@@ -875,7 +875,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 ) {
                     required.push(field.name);
                 } else if (mode === 'read') {
-                    // Until we support sparse fieldsets, all fields are required for read
+                    // Until we support sparse fieldsets, all fields are required for read operations
                     required.push(field.name);
                 }
             }
