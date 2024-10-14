@@ -1,8 +1,9 @@
 import { DEFAULT_RUNTIME_LOAD_PATH, type PolicyOperationKind } from '@zenstackhq/runtime';
-import { PluginGlobalOptions, ensureEmptyDir } from '@zenstackhq/sdk';
+import { PluginGlobalOptions, ensureEmptyDir, getLiteral } from '@zenstackhq/sdk';
 import fs from 'fs';
 import path from 'path';
 import { PluginRunnerOptions } from '../cli/plugin-runner';
+import { isPlugin, Model, Plugin } from '@zenstackhq/sdk/ast';
 
 export const ALL_OPERATION_KINDS: PolicyOperationKind[] = ['create', 'update', 'postUpdate', 'read', 'delete'];
 
@@ -38,6 +39,10 @@ export function ensureDefaultOutputFolder(options: PluginRunnerOptions) {
                     './enhance': {
                         types: './enhance.d.ts',
                         default: './enhance.js',
+                    },
+                    './enhance-edge': {
+                        types: './enhance-edge.d.ts',
+                        default: './enhance-edge.js',
                     },
                     './zod': {
                         types: './zod/index.d.ts',
@@ -113,4 +118,19 @@ export enum CorePlugins {
     Prisma = '@core/prisma',
     Zod = '@core/zod',
     Enhancer = '@core/enhancer',
+}
+
+/**
+ * Gets the custom output folder for a plugin.
+ */
+export function getPluginCustomOutputFolder(zmodel: Model, provider: string) {
+    const plugin = zmodel.declarations.find(
+        (d): d is Plugin =>
+            isPlugin(d) && d.fields.some((f) => f.name === 'provider' && getLiteral<string>(f.value) === provider)
+    );
+    if (!plugin) {
+        return undefined;
+    }
+    const output = plugin.fields.find((f) => f.name === 'output');
+    return output && getLiteral<string>(output.value);
 }

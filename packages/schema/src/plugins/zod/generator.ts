@@ -1,4 +1,5 @@
 import {
+    PluginError,
     PluginGlobalOptions,
     PluginOptions,
     RUNTIME_PACKAGE,
@@ -22,11 +23,13 @@ import { upperCaseFirst } from 'upper-case-first';
 import { name } from '.';
 import { getDefaultOutputFolder } from '../plugin-utils';
 import Transformer from './transformer';
+import { ObjectMode } from './types';
 import { makeFieldSchema, makeValidationRefinements } from './utils/schema-gen';
 
 export class ZodSchemaGenerator {
     private readonly sourceFiles: SourceFile[] = [];
     private readonly globalOptions: PluginGlobalOptions;
+    private readonly mode: ObjectMode;
 
     constructor(
         private readonly model: Model,
@@ -38,6 +41,19 @@ export class ZodSchemaGenerator {
             throw new Error('Global options are required');
         }
         this.globalOptions = globalOptions;
+
+        // options validation
+        if (
+            this.options.mode &&
+            (typeof this.options.mode !== 'string' || !['strip', 'strict', 'passthrough'].includes(this.options.mode))
+        ) {
+            throw new PluginError(
+                name,
+                `Invalid mode option: "${this.options.mode}". Must be one of 'strip', 'strict', or 'passthrough'.`
+            );
+        }
+
+        this.mode = (this.options.mode ?? 'strict') as ObjectMode;
     }
 
     async generate() {
@@ -108,6 +124,7 @@ export class ZodSchemaGenerator {
                 project: this.project,
                 inputObjectTypes,
                 zmodel: this.model,
+                mode: this.mode,
             });
             await transformer.generateInputSchemas(this.options, this.model);
             this.sourceFiles.push(...transformer.sourceFiles);
@@ -203,6 +220,7 @@ export class ZodSchemaGenerator {
             project: this.project,
             inputObjectTypes: [],
             zmodel: this.model,
+            mode: this.mode,
         });
         await transformer.generateEnumSchemas();
         this.sourceFiles.push(...transformer.sourceFiles);
@@ -231,6 +249,7 @@ export class ZodSchemaGenerator {
                 project: this.project,
                 inputObjectTypes,
                 zmodel: this.model,
+                mode: this.mode,
             });
             const moduleName = transformer.generateObjectSchema(generateUnchecked, this.options);
             moduleNames.push(moduleName);
@@ -322,7 +341,19 @@ export class ZodSchemaGenerator {
                     writer.writeLine(`${field.name}: ${makeFieldSchema(field)},`);
                 });
             });
-            writer.writeLine(');');
+
+            switch (this.options.mode) {
+                case 'strip':
+                    // zod strips by default
+                    writer.writeLine(')');
+                    break;
+                case 'passthrough':
+                    writer.writeLine(').passthrough();');
+                    break;
+                default:
+                    writer.writeLine(').strict();');
+                    break;
+            }
 
             // relation fields
 
@@ -370,10 +401,10 @@ export function ${refineFuncName}<T, D extends z.ZodTypeDef>(schema: z.ZodType<T
             }
 
             // delegate discriminator fields are to be excluded from mutation schemas
-            const delegateFields = model.fields.filter((field) => isDiscriminatorField(field));
+            const delegateDiscriminatorFields = model.fields.filter((field) => isDiscriminatorField(field));
             const omitDiscriminators =
-                delegateFields.length > 0
-                    ? `.omit({ ${delegateFields.map((f) => `${f.name}: true`).join(', ')} })`
+                delegateDiscriminatorFields.length > 0
+                    ? `.omit({ ${delegateDiscriminatorFields.map((f) => `${f.name}: true`).join(', ')} })`
                     : '';
 
             ////////////////////////////////////////////////
@@ -463,7 +494,7 @@ export const ${upperCaseFirst(model.name)}PrismaCreateSchema = ${prismaCreateSch
                     })
                     .join(',\n')}
     })`;
-            prismaUpdateSchema = this.makePartial(prismaUpdateSchema);
+            prismaUpdateSchema = this.makePassthrough(this.makePartial(prismaUpdateSchema));
             writer.writeLine(
                 `
 /**
@@ -485,9 +516,11 @@ export const ${upperCaseFirst(model.name)}PrismaUpdateSchema = ${prismaUpdateSch
 
             // mark fields with default as optional
             if (fieldsWithDefault.length > 0) {
+                // delegate discriminator fields are omitted from the base schema, so we need
+                // to take care not to make them partial otherwise the schema won't compile
                 createSchema = this.makePartial(
                     createSchema,
-                    fieldsWithDefault.map((f) => f.name)
+                    fieldsWithDefault.filter((f) => !delegateDiscriminatorFields.includes(f)).map((f) => f.name)
                 );
             }
 

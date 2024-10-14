@@ -24,7 +24,7 @@ import {
 import { ValidationAcceptor, streamAst } from 'langium';
 import { findUpAst, getContainingDataModel } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
-import { typeAssignable } from './utils';
+import { isAuthOrAuthMemberAccess, typeAssignable } from './utils';
 
 /**
  * Validates expressions.
@@ -296,13 +296,9 @@ export default class ExpressionValidator implements AstValidator<Expression> {
             // null
             isNullExpr(expr) ||
             // `auth()` access
-            this.isAuthOrAuthMemberAccess(expr) ||
+            isAuthOrAuthMemberAccess(expr) ||
             // array
             (isArrayExpr(expr) && expr.items.every((item) => this.isNotModelFieldExpr(item)))
         );
-    }
-
-    private isAuthOrAuthMemberAccess(expr: Expression) {
-        return isAuthInvocation(expr) || (isMemberAccessExpr(expr) && isAuthInvocation(expr.operand));
     }
 }

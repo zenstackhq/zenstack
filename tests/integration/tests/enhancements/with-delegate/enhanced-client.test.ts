@@ -1361,4 +1361,50 @@ describe('Polymorphism Test', () => {
             ],
         });
     });
+
+    it('merges hierarchy correctly', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model Asset {
+              id Int @id @default(autoincrement())
+              type String
+              viewCount Int
+              comments Comment[]
+              @@delegate(type)
+            }
+
+            model Post extends Asset {
+              title String
+            }
+            
+            model Comment {
+              id Int @id @default(autoincrement())
+              type String
+              asset Asset @relation(fields: [assetId], references: [id])
+              assetId Int
+              moderated Boolean
+              @@delegate(type)
+            }
+
+            model TextComment extends Comment {
+              text String
+            }
+        `,
+            { enhancements: ['delegate'] }
+        );
+
+        const db = enhance();
+        const post = await db.post.create({ data: { title: 'Post1', viewCount: 1 } });
+        const comment = await db.textComment.create({
+            data: { text: 'Comment1', moderated: true, asset: { connect: { id: post.id } } },
+        });
+
+        // delegate include delegate
+        let r = await db.asset.findFirst({ include: { comments: true } });
+        expect(r).toMatchObject({ viewCount: 1, comments: [comment] });
+
+        // concrete include delegate
+        r = await db.post.findFirst({ include: { comments: true } });
+        expect(r).toMatchObject({ ...post, comments: [comment] });
+    });
 });

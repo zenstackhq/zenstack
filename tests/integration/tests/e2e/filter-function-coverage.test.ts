@@ -36,6 +36,28 @@ describe('Filter Function Coverage Tests', () => {
         await expect(enhance({ id: 'user1', name: 'bac' }).foo.create({ data: {} })).toResolveTruthy();
     });
 
+    it('contains with auth()', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model User {
+                id String @id
+                name String
+            }
+
+            model Foo {
+                id String @id @default(cuid())
+                string String
+                @@allow('all', contains(string, auth().name))
+            }
+            `
+        );
+
+        await expect(enhance().foo.create({ data: { string: 'abc' } })).toBeRejectedByPolicy();
+        const db = enhance({ id: '1', name: 'a' });
+        await expect(db.foo.create({ data: { string: 'bcd' } })).toBeRejectedByPolicy();
+        await expect(db.foo.create({ data: { string: 'bac' } })).toResolveTruthy();
+    });
+
     it('startsWith field', async () => {
         const { enhance } = await loadSchema(
             `

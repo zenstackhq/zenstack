@@ -32,6 +32,8 @@ const urlPatterns = {
     relationship: new UrlPattern('/:type/:id/relationships/:relationship'),
 };
 
+export const idDivider = '_';
+
 /**
  * Request handler options
  */
@@ -53,15 +55,13 @@ export type Options = {
 
 type RelationshipInfo = {
     type: string;
-    idField: string;
-    idFieldType: string;
+    idFields: FieldInfo[];
     isCollection: boolean;
     isOptional: boolean;
 };
 
 type ModelInfo = {
-    idField: string;
-    idFieldType: string;
+    idFields: FieldInfo[];
     fields: Record<string, FieldInfo>;
     relationships: Record<string, RelationshipInfo>;
 };
@@ -128,10 +128,6 @@ class RequestHandler extends APIHandlerBase {
         noId: {
             status: 400,
             title: 'Model without an ID field is not supported',
-        },
-        multiId: {
-            status: 400,
-            title: 'Model with multiple ID fields is not supported',
         },
         invalidId: {
             status: 400,
@@ -268,8 +264,7 @@ class RequestHandler extends APIHandlerBase {
                             match.type,
                             match.id,
                             match.relationship,
-                            query,
-                            modelMeta
+                            query
                         );
                     }
 
@@ -290,7 +285,7 @@ class RequestHandler extends APIHandlerBase {
                     let match = urlPatterns.collection.match(path);
                     if (match) {
                         // resource creation
-                        return await this.processCreate(prisma, match.type, query, requestBody, zodSchemas);
+                        return await this.processCreate(prisma, match.type, query, requestBody, modelMeta, zodSchemas);
                     }
 
                     match = urlPatterns.relationship.match(path);
@@ -320,7 +315,15 @@ class RequestHandler extends APIHandlerBase {
                     let match = urlPatterns.single.match(path);
                     if (match) {
                         // resource update
-                        return await this.processUpdate(prisma, match.type, match.id, query, requestBody, zodSchemas);
+                        return await this.processUpdate(
+                            prisma,
+                            match.type,
+                            match.id,
+                            query,
+                            requestBody,
+                            modelMeta,
+                            zodSchemas
+                        );
                     }
 
                     match = urlPatterns.relationship.match(path);
@@ -387,7 +390,7 @@ class RequestHandler extends APIHandlerBase {
             return this.makeUnsupportedModelError(type);
         }
 
-        const args: any = { where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId) };
+        const args: any = { where: this.makeIdFilter(typeInfo.idFields, resourceId) };
 
         // include IDs of relation fields so that they can be serialized
         this.includeRelationshipIds(type, args, 'include');
@@ -406,6 +409,7 @@ class RequestHandler extends APIHandlerBase {
         }
 
         const entity = await prisma[type].findUnique(args);
+
         if (entity) {
             return {
                 status: 200,
@@ -451,7 +455,7 @@ class RequestHandler extends APIHandlerBase {
 
         select = select ?? { [relationship]: true };
         const args: any = {
-            where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
+            where: this.makeIdFilter(typeInfo.idFields, resourceId),
             select,
         };
 
@@ -496,8 +500,7 @@ class RequestHandler extends APIHandlerBase {
         type: string,
         resourceId: string,
         relationship: string,
-        query: Record<string, string | string[]> | undefined,
-        modelMeta: ModelMeta
+        query: Record<string, string | string[]> | undefined
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
@@ -510,13 +513,12 @@ class RequestHandler extends APIHandlerBase {
         }
 
         const args: any = {
-            where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
-            select: this.makeIdSelect(type, modelMeta),
+            where: this.makeIdFilter(typeInfo.idFields, resourceId),
+            select: this.makeIdSelect(typeInfo.idFields),
         };
 
         // include IDs of relation fields so that they can be serialized
-        // this.includeRelationshipIds(type, args, 'select');
-        args.select = { ...args.select, [relationship]: { select: this.makeIdSelect(relationInfo.type, modelMeta) } };
+        args.select = { ...args.select, [relationship]: { select: this.makeIdSelect(relationInfo.idFields) } };
 
         let paginator: Paginator<any> | undefined;
 
@@ -720,6 +722,7 @@ class RequestHandler extends APIHandlerBase {
         type: string,
         _query: Record<string, string | string[]> | undefined,
         requestBody: unknown,
+        modelMeta: ModelMeta,
         zodSchemas?: ZodSchemas
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
@@ -749,7 +752,7 @@ class RequestHandler extends APIHandlerBase {
                 if (relationInfo.isCollection) {
                     createPayload.data[key] = {
                         connect: enumerate(data.data).map((item: any) => ({
-                            [relationInfo.idField]: this.coerce(relationInfo.idFieldType, item.id),
+                            [this.makeIdKey(relationInfo.idFields)]: item.id,
                         })),
                     };
                 } else {
@@ -757,14 +760,16 @@ class RequestHandler extends APIHandlerBase {
                         return this.makeError('invalidRelationData');
                     }
                     createPayload.data[key] = {
-                        connect: { [relationInfo.idField]: this.coerce(relationInfo.idFieldType, data.data.id) },
+                        connect: {
+                            [this.makeIdKey(relationInfo.idFields)]: data.data.id,
+                        },
                     };
                 }
 
                 // make sure ID fields are included for result serialization
                 createPayload.include = {
                     ...createPayload.include,
-                    [key]: { select: { [relationInfo.idField]: true } },
+                    [key]: { select: { [this.makeIdKey(relationInfo.idFields)]: true } },
                 };
             }
         }
@@ -801,8 +806,11 @@ class RequestHandler extends APIHandlerBase {
         }
 
         const updateArgs: any = {
-            where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
-            select: { [typeInfo.idField]: true, [relationship]: { select: { [relationInfo.idField]: true } } },
+            where: this.makeIdFilter(typeInfo.idFields, resourceId),
+            select: {
+                ...typeInfo.idFields.reduce((acc, field) => ({ ...acc, [field.name]: true }), {}),
+                [relationship]: { select: this.makeIdSelect(relationInfo.idFields) },
+            },
         };
 
         if (!relationInfo.isCollection) {
@@ -833,7 +841,7 @@ class RequestHandler extends APIHandlerBase {
                 updateArgs.data = {
                     [relationship]: {
                         connect: {
-                            [relationInfo.idField]: this.coerce(relationInfo.idFieldType, parsed.data.data.id),
+                            [this.makeIdKey(relationInfo.idFields)]: parsed.data.data.id,
                         },
                     },
                 };
@@ -856,9 +864,9 @@ class RequestHandler extends APIHandlerBase {
 
             updateArgs.data = {
                 [relationship]: {
-                    [relationVerb]: enumerate(parsed.data.data).map((item: any) => ({
-                        [relationInfo.idField]: this.coerce(relationInfo.idFieldType, item.id),
-                    })),
+                    [relationVerb]: enumerate(parsed.data.data).map((item: any) =>
+                        this.makeIdFilter(relationInfo.idFields, item.id)
+                    ),
                 },
             };
         }
@@ -884,6 +892,7 @@ class RequestHandler extends APIHandlerBase {
         resourceId: string,
         _query: Record<string, string | string[]> | undefined,
         requestBody: unknown,
+        modelMeta: ModelMeta,
         zodSchemas?: ZodSchemas
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
@@ -897,7 +906,7 @@ class RequestHandler extends APIHandlerBase {
         }
 
         const updatePayload: any = {
-            where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
+            where: this.makeIdFilter(typeInfo.idFields, resourceId),
             data: { ...attributes },
         };
 
@@ -916,7 +925,7 @@ class RequestHandler extends APIHandlerBase {
                 if (relationInfo.isCollection) {
                     updatePayload.data[key] = {
                         set: enumerate(data.data).map((item: any) => ({
-                            [relationInfo.idField]: this.coerce(relationInfo.idFieldType, item.id),
+                            [this.makeIdKey(relationInfo.idFields)]: item.id,
                         })),
                     };
                 } else {
@@ -924,12 +933,14 @@ class RequestHandler extends APIHandlerBase {
                         return this.makeError('invalidRelationData');
                     }
                     updatePayload.data[key] = {
-                        set: { [relationInfo.idField]: this.coerce(relationInfo.idFieldType, data.data.id) },
+                        set: {
+                            [this.makeIdKey(relationInfo.idFields)]: data.data.id,
+                        },
                     };
                 }
                 updatePayload.include = {
                     ...updatePayload.include,
-                    [key]: { select: { [relationInfo.idField]: true } },
+                    [key]: { select: { [this.makeIdKey(relationInfo.idFields)]: true } },
                 };
             }
         }
@@ -948,7 +959,7 @@ class RequestHandler extends APIHandlerBase {
         }
 
         await prisma[type].delete({
-            where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
+            where: this.makeIdFilter(typeInfo.idFields, resourceId),
         });
         return {
             status: 204,
@@ -966,14 +977,9 @@ class RequestHandler extends APIHandlerBase {
                 logWarning(logger, `Not including model ${model} in the API because it has no ID field`);
                 continue;
             }
-            if (idFields.length > 1) {
-                logWarning(logger, `Not including model ${model} in the API because it has multiple ID fields`);
-                continue;
-            }
 
             this.typeMap[model] = {
-                idField: idFields[0].name,
-                idFieldType: idFields[0].type,
+                idFields,
                 relationships: {},
                 fields,
             };
@@ -990,18 +996,10 @@ class RequestHandler extends APIHandlerBase {
                     );
                     continue;
                 }
-                if (fieldTypeIdFields.length > 1) {
-                    logWarning(
-                        logger,
-                        `Not including relation ${model}.${field} in the API because it has multiple ID fields`
-                    );
-                    continue;
-                }
 
                 this.typeMap[model].relationships[field] = {
                     type: fieldInfo.type,
-                    idField: fieldTypeIdFields[0].name,
-                    idFieldType: fieldTypeIdFields[0].type,
+                    idFields: fieldTypeIdFields,
                     isCollection: !!fieldInfo.isArray,
                     isOptional: !!fieldInfo.isOptional,
                 };
@@ -1019,7 +1017,8 @@ class RequestHandler extends APIHandlerBase {
 
         for (const model of Object.keys(modelMeta.models)) {
             const ids = getIdFields(modelMeta, model);
-            if (ids.length !== 1) {
+
+            if (ids.length < 1) {
                 continue;
             }
 
@@ -1042,7 +1041,7 @@ class RequestHandler extends APIHandlerBase {
 
             const serializer = new Serializer(model, {
                 version: '1.1',
-                idKey: ids[0].name,
+                idKey: this.makeIdKey(ids),
                 linkers: {
                     resource: linker,
                     document: linker,
@@ -1069,7 +1068,7 @@ class RequestHandler extends APIHandlerBase {
                     continue;
                 }
                 const fieldIds = getIdFields(modelMeta, fieldMeta.type);
-                if (fieldIds.length === 1) {
+                if (fieldIds.length > 0) {
                     const relator = new Relator(
                         async (data) => {
                             return (data as any)[field];
@@ -1107,10 +1106,10 @@ class RequestHandler extends APIHandlerBase {
             return undefined;
         }
         const ids = getIdFields(modelMeta, model);
-        if (ids.length === 1) {
-            return data[ids[0].name];
-        } else {
+        if (ids.length === 0) {
             return undefined;
+        } else {
+            return data[ids.map((id) => id.name).join(idDivider)];
         }
     }
 
@@ -1121,8 +1120,25 @@ class RequestHandler extends APIHandlerBase {
             throw new Error(`serializer not found for model ${model}`);
         }
 
+        const typeInfo = this.typeMap[model];
+
+        let itemsWithId: any = items;
+        if (typeInfo.idFields.length > 1 && Array.isArray(items)) {
+            itemsWithId = items.map((item: any) => {
+                return {
+                    ...item,
+                    [this.makeIdKey(typeInfo.idFields)]: this.makeCompoundId(typeInfo.idFields, item),
+                };
+            });
+        } else if (typeInfo.idFields.length > 1 && typeof items === 'object') {
+            itemsWithId = {
+                ...items,
+                [this.makeIdKey(typeInfo.idFields)]: this.makeCompoundId(typeInfo.idFields, items),
+            };
+        }
+
         // serialize to JSON:API structure
-        const serialized = await serializer.serialize(items, options);
+        const serialized = await serializer.serialize(itemsWithId, options);
 
         // convert the serialization result to plain object otherwise SuperJSON won't work
         const plainResult = this.toPlainObject(serialized);
@@ -1178,18 +1194,35 @@ class RequestHandler extends APIHandlerBase {
         return r.toString();
     }
 
-    private makeIdFilter(idField: string, idFieldType: string, resourceId: string) {
-        return { [idField]: this.coerce(idFieldType, resourceId) };
+    private makeIdFilter(idFields: FieldInfo[], resourceId: string) {
+        if (idFields.length === 1) {
+            return { [idFields[0].name]: this.coerce(idFields[0].type, resourceId) };
+        } else {
+            return {
+                [idFields.map((idf) => idf.name).join(idDivider)]: idFields.reduce(
+                    (acc, curr, idx) => ({
+                        ...acc,
+                        [curr.name]: this.coerce(curr.type, resourceId.split(idDivider)[idx]),
+                    }),
+                    {}
+                ),
+            };
+        }
     }
 
-    private makeIdSelect(model: string, modelMeta: ModelMeta) {
-        const idFields = getIdFields(modelMeta, model);
+    private makeIdSelect(idFields: FieldInfo[]) {
         if (idFields.length === 0) {
             throw this.errors.noId;
-        } else if (idFields.length > 1) {
-            throw this.errors.multiId;
         }
-        return { [idFields[0].name]: true };
+        return idFields.reduce((acc, curr) => ({ ...acc, [curr.name]: true }), {});
+    }
+
+    private makeIdKey(idFields: FieldInfo[]) {
+        return idFields.map((idf) => idf.name).join(idDivider);
+    }
+
+    private makeCompoundId(idFields: FieldInfo[], item: any) {
+        return idFields.map((idf) => item[idf.name]).join(idDivider);
     }
 
     private includeRelationshipIds(model: string, args: any, mode: 'select' | 'include') {
@@ -1198,7 +1231,7 @@ class RequestHandler extends APIHandlerBase {
             return;
         }
         for (const [relation, relationInfo] of Object.entries(typeInfo.relationships)) {
-            args[mode] = { ...args[mode], [relation]: { select: { [relationInfo.idField]: true } } };
+            args[mode] = { ...args[mode], [relation]: { select: this.makeIdSelect(relationInfo.idFields) } };
         }
     }
 
@@ -1425,7 +1458,10 @@ class RequestHandler extends APIHandlerBase {
                             if (!relationType) {
                                 return { sort: undefined, error: this.makeUnsupportedModelError(fieldInfo.type) };
                             }
-                            curr[fieldInfo.name] = { [relationType.idField]: dir };
+                            curr[fieldInfo.name] = relationType.idFields.reduce((acc: any, idField: FieldInfo) => {
+                                acc[idField.name] = dir;
+                                return acc;
+                            }, {});
                         } else {
                             // regular field
                             curr[fieldInfo.name] = dir;
@@ -1509,11 +1545,11 @@ class RequestHandler extends APIHandlerBase {
                 const values = value.split(',').filter((i) => i);
                 const filterValue =
                     values.length > 1
-                        ? { OR: values.map((v) => this.makeIdFilter(info.idField, info.idFieldType, v)) }
-                        : this.makeIdFilter(info.idField, info.idFieldType, value);
+                        ? { OR: values.map((v) => this.makeIdFilter(info.idFields, v)) }
+                        : this.makeIdFilter(info.idFields, value);
                 return { some: filterValue };
             } else {
-                return { is: this.makeIdFilter(info.idField, info.idFieldType, value) };
+                return { is: this.makeIdFilter(info.idFields, value) };
             }
         } else {
             const coerced = this.coerce(fieldInfo.type, value);
@@ -1589,7 +1625,7 @@ class RequestHandler extends APIHandlerBase {
 
     private handlePrismaError(err: unknown) {
         if (isPrismaClientKnownRequestError(err)) {
-            if (err.code === PrismaErrorCode.CONSTRAINED_FAILED) {
+            if (err.code === PrismaErrorCode.CONSTRAINT_FAILED) {
                 if (err.meta?.reason === CrudFailureReason.DATA_VALIDATION_VIOLATION) {
                     return this.makeError(
                         'validationError',

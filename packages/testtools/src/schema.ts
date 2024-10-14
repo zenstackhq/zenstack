@@ -3,12 +3,12 @@
 import type { Model } from '@zenstackhq/language/ast';
 import {
     DEFAULT_RUNTIME_LOAD_PATH,
-    PolicyDef,
     type AuthUser,
     type CrudContract,
     type EnhancementKind,
     type EnhancementOptions,
 } from '@zenstackhq/runtime';
+import type { PolicyDef } from '@zenstackhq/runtime/enhancements/node';
 import { getDMMF, type DMMF } from '@zenstackhq/sdk/prisma';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
@@ -134,7 +134,9 @@ export type SchemaLoadOptions = {
     preserveTsFiles?: boolean;
     generatePermissionChecker?: boolean;
     previewFeatures?: string[];
+    prismaLoadPath?: string;
     prismaClientOptions?: object;
+    generateNoCompile?: boolean;
 };
 
 const defaultOptions: SchemaLoadOptions = {
@@ -146,6 +148,7 @@ const defaultOptions: SchemaLoadOptions = {
     logPrismaQuery: false,
     provider: 'sqlite',
     preserveTsFiles: false,
+    generateNoCompile: false,
 };
 
 export async function loadSchemaFromFile(schemaFile: string, options?: SchemaLoadOptions) {
@@ -225,19 +228,26 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     }
 
     const outputArg = opt.output ? ` --output ${opt.output}` : '';
+    let otherArgs = '';
+    if (opt.generateNoCompile) {
+        otherArgs = ' --no-compile';
+    }
 
     if (opt.customSchemaFilePath) {
-        run(`npx zenstack generate --no-version-check --schema ${zmodelPath} --no-dependency-check${outputArg}`, {
-            NODE_PATH: './node_modules',
-        });
+        run(
+            `npx zenstack generate --no-version-check --schema ${zmodelPath} --no-dependency-check${outputArg}${otherArgs}`,
+            {
+                NODE_PATH: './node_modules',
+            }
+        );
     } else {
-        run(`npx zenstack generate --no-version-check --no-dependency-check${outputArg}`, {
+        run(`npx zenstack generate --no-version-check --no-dependency-check${outputArg}${otherArgs}`, {
             NODE_PATH: './node_modules',
         });
     }
 
     if (opt.pushDb) {
-        run('npx prisma db push --skip-generate');
+        run('npx prisma db push --skip-generate --accept-data-loss');
     }
 
     if (opt.pulseApiKey) {
@@ -254,7 +264,13 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         fs.cpSync(dep, path.join(projectDir, 'node_modules', pkgJson.name), { recursive: true, force: true });
     });
 
-    const PrismaClient = require(path.join(projectDir, 'node_modules/.prisma/client')).PrismaClient;
+    const prismaLoadPath = options?.prismaLoadPath
+        ? path.isAbsolute(options.prismaLoadPath)
+            ? options.prismaLoadPath
+            : path.join(projectDir, options.prismaLoadPath)
+        : path.join(projectDir, 'node_modules/.prisma/client');
+    const prismaModule = require(prismaLoadPath);
+    const PrismaClient = prismaModule.PrismaClient;
 
     let clientOptions: object = { log: ['info', 'warn', 'error'] };
     if (options?.prismaClientOptions) {
@@ -264,10 +280,8 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     // https://github.com/prisma/prisma/issues/18292
     prisma[Symbol.for('nodejs.util.inspect.custom')] = 'PrismaClient';
 
-    const prismaModule = require(path.join(projectDir, 'node_modules/@prisma/client')).Prisma;
-
     if (opt.pulseApiKey) {
-        const withPulse = require(path.join(projectDir, 'node_modules/@prisma/extension-pulse/dist/cjs')).withPulse;
+        const withPulse = loadModule('@prisma/extension-pulse/node', projectDir).withPulse;
         prisma = prisma.$extends(withPulse({ apiKey: opt.pulseApiKey }));
     }
 
@@ -387,4 +401,9 @@ export async function loadZModelAndDmmf(
 
     const dmmf = await getDMMF({ datamodel: prismaContent });
     return { model, dmmf, modelFile };
+}
+
+function loadModule(module: string, basePath: string): any {
+    const modulePath = require.resolve(module, { paths: [basePath] });
+    return require(modulePath);
 }

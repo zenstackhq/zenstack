@@ -9,6 +9,7 @@ import { Model } from './ast';
 import { RUNTIME_PACKAGE } from './constants';
 import type { PluginOptions } from './types';
 import { getDataSourceProvider } from './utils';
+import { normalizedRelative } from './path';
 
 /**
  * Given an import context directory and plugin options, compute the import spec for the Prisma Client.
@@ -34,12 +35,11 @@ export function getPrismaClientImportSpec(importingFromDir: string, options: Plu
     const resolvedPrismaClientOutput = path.resolve(path.dirname(options.schemaPath), options.prismaClientPath);
 
     // translate to path relative to the importing context directory
-    let result = path.relative(importingFromDir, resolvedPrismaClientOutput);
+    let result = normalizedRelative(importingFromDir, resolvedPrismaClientOutput);
 
     // remove leading `node_modules` (which may be provided by the user)
     result = result.replace(/^([./\\]*)?node_modules\//, '');
 
-    // compute prisma client absolute output dir relative to the importing file
     return normalizePath(result);
 }
 
