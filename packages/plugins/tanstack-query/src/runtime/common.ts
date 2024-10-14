@@ -385,6 +385,11 @@ async function optimisticUpdate(
             state: { data, error },
         } = cacheItem;
 
+        if (!isZenStackQueryKey(queryKey)) {
+            // skip non-zenstack queries
+            continue;
+        }
+
         if (error) {
             if (logging) {
                 console.warn(`Skipping optimistic update for ${JSON.stringify(queryKey)} due to error:`, error);
@@ -392,8 +397,8 @@ async function optimisticUpdate(
             continue;
         }
 
-        const [_, queryModel, queryOperation, queryArgs, { optimisticUpdate }] = queryKey as QueryKey;
-        if (!optimisticUpdate) {
+        const [_, queryModel, queryOperation, queryArgs, queryOptions] = queryKey;
+        if (!queryOptions?.optimisticUpdate) {
             if (logging) {
                 console.log(`Skipping optimistic update for ${JSON.stringify(queryKey)} due to opt-out`);
             }
@@ -449,4 +454,16 @@ async function optimisticUpdate(
             setCache(queryKey, mutatedData);
         }
     }
+}
+
+function isZenStackQueryKey(queryKey: readonly unknown[]): queryKey is QueryKey {
+    if (queryKey.length < 5) {
+        return false;
+    }
+
+    if (queryKey[0] !== QUERY_KEY_PREFIX) {
+        return false;
+    }
+
+    return true;
 }
