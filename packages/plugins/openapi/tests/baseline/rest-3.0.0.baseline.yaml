@@ -2591,6 +2591,11 @@ components:
                             type: string
                         role:
                             $ref: '#/components/schemas/role'
+                    required:
+                        - createdAt
+                        - updatedAt
+                        - email
+                        - role
                 relationships:
                     type: object
                     properties:
@@ -2761,6 +2766,9 @@ components:
                             nullable: true
                         userId:
                             type: string
+                    required:
+                        - image
+                        - userId
                 relationships:
                     type: object
                     properties:
@@ -2919,6 +2927,14 @@ components:
                         notes:
                             type: string
                             nullable: true
+                    required:
+                        - createdAt
+                        - updatedAt
+                        - title
+                        - authorId
+                        - published
+                        - viewCount
+                        - notes
                 relationships:
                     type: object
                     properties:
@@ -3099,6 +3115,9 @@ components:
                             type: string
                         userId:
                             type: string
+                    required:
+                        - postId
+                        - userId
                 relationships:
                     type: object
                     properties:
