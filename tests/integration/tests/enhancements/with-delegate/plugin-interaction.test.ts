@@ -19,7 +19,7 @@ describe('Polymorphic Plugin Interaction Test', () => {
         await loadSchema(schema, {
             compile: true,
             copyDependencies: [tanstackPlugin],
-            extraDependencies: ['@tanstack/react-query'],
+            extraDependencies: ['@tanstack/react-query@5.56.x'],
         });
     });
 
