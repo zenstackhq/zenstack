@@ -8,6 +8,7 @@ import {
     getLiteral,
     isDelegateModel,
     isDiscriminatorField,
+    normalizedRelative,
     type PluginOptions,
 } from '@zenstackhq/sdk';
 import {
@@ -38,6 +39,7 @@ import {
 import { upperCaseFirst } from 'upper-case-first';
 import { name } from '..';
 import { execPackage } from '../../../utils/exec-utils';
+import { CorePlugins, getPluginCustomOutputFolder } from '../../plugin-utils';
 import { trackPrismaSchemaError } from '../../prisma';
 import { PrismaSchemaGenerator } from '../../prisma/schema-generator';
 import { isDefaultWithAuth } from '../enhancer-utils';
@@ -93,14 +95,21 @@ export class EnhancerGenerator {
 
         const checkerTypes = this.generatePermissionChecker ? generateCheckerType(this.model) : '';
 
-        const enhanceTs = this.project.createSourceFile(
-            path.join(this.outDir, 'enhance.ts'),
-            `/* eslint-disable */
+        for (const target of ['node', 'edge']) {
+            // generate separate `enhance()` for node and edge runtime
+            const outFile = target === 'node' ? 'enhance.ts' : 'enhance-edge.ts';
+            const enhanceTs = this.project.createSourceFile(
+                path.join(this.outDir, outFile),
+                `/* eslint-disable */
 import { type EnhancementContext, type EnhancementOptions, type ZodSchemas, type AuthUser } from '@zenstackhq/runtime';
-import { createEnhancement } from '@zenstackhq/runtime/enhancements';
+import { createEnhancement } from '@zenstackhq/runtime/enhancements/${target}';
 import modelMeta from './model-meta';
 import policy from './policy';
-${this.options.withZodSchemas ? "import * as zodSchemas from './zod';" : 'const zodSchemas = undefined;'}
+${
+    this.options.withZodSchemas
+        ? `import * as zodSchemas from '${this.getZodImport()}';`
+        : 'const zodSchemas = undefined;'
+}
 
 ${
     logicalPrismaClientDir
@@ -118,12 +127,40 @@ ${
         : this.createSimplePrismaEnhanceFunction(authTypeParam)
 }
     `,
-            { overwrite: true }
-        );
+                { overwrite: true }
+            );
 
-        await this.saveSourceFile(enhanceTs);
+            await this.saveSourceFile(enhanceTs);
+        }
 
         return { dmmf };
+    }
+
+    private getZodImport() {
+        const zodCustomOutput = getPluginCustomOutputFolder(this.model, CorePlugins.Zod);
+
+        if (!this.options.output && !zodCustomOutput) {
+            // neither zod or me (enhancer) have custom output, use the default
+            return './zod';
+        }
+
+        if (!zodCustomOutput) {
+            // I have a custom output, but zod doesn't, import from runtime
+            return '@zenstackhq/runtime/zod';
+        }
+
+        if (!this.options.output) {
+            // I don't have a custom output, but zod has, CLI will still generate
+            // a copy into the default output, so we can still import from there
+            return './zod';
+        }
+
+        // both zod and me have custom output, resolve to relative path and import
+        const schemaDir = path.dirname(this.options.schemaPath);
+        const zodAbsPath = path.isAbsolute(zodCustomOutput)
+            ? zodCustomOutput
+            : path.resolve(schemaDir, zodCustomOutput);
+        return normalizedRelative(this.outDir, zodAbsPath);
     }
 
     private createSimplePrismaImports(prismaImport: string) {
@@ -429,7 +466,9 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
 
         if (delegateInfo.some(([delegate]) => `${delegate.name}Delegate` === iface.getName())) {
             // delegate models cannot be created directly, remove create/createMany/upsert
-            structure.methods = structure.methods?.filter((m) => !['create', 'createMany', 'upsert'].includes(m.name));
+            structure.methods = structure.methods?.filter(
+                (m) => !['create', 'createMany', 'createManyAndReturn', 'upsert'].includes(m.name)
+            );
         }
 
         return structure;

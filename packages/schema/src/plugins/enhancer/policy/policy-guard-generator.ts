@@ -95,12 +95,19 @@ export class PolicyGenerator {
             namedImports: [
                 { name: 'type QueryContext' },
                 { name: 'type CrudContract' },
-                { name: 'allFieldsEqual' },
-                { name: 'type PolicyDef' },
                 { name: 'type PermissionCheckerContext' },
-                { name: 'type PermissionCheckerConstraint' },
             ],
             moduleSpecifier: `${RUNTIME_PACKAGE}`,
+        });
+
+        sf.addImportDeclaration({
+            namedImports: [{ name: 'allFieldsEqual' }],
+            moduleSpecifier: `${RUNTIME_PACKAGE}/validation`,
+        });
+
+        sf.addImportDeclaration({
+            namedImports: [{ name: 'type PolicyDef' }, { name: 'type PermissionCheckerConstraint' }],
+            moduleSpecifier: `${RUNTIME_PACKAGE}/enhancements/node`,
         });
 
         // import enums

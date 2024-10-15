@@ -389,6 +389,11 @@ describe('auth() runtime test', () => {
         await expect(userDb.post.create({ data: { title: 'abc' } })).toResolveTruthy();
         await expect(userDb.post.findMany()).resolves.toHaveLength(1);
         await expect(userDb.post.count({ where: { authorName: 'user1', score: 10 } })).resolves.toBe(1);
+
+        await expect(userDb.post.createMany({ data: [{ title: 'def' }] })).resolves.toMatchObject({ count: 1 });
+        const r = await userDb.post.createManyAndReturn({ data: [{ title: 'xxx' }, { title: 'yyy' }] });
+        expect(r[0]).toMatchObject({ title: 'xxx', score: 10 });
+        expect(r[1]).toMatchObject({ title: 'yyy', score: 10 });
     });
 
     it('Default auth() data should not override passed args', async () => {
@@ -414,6 +419,12 @@ describe('auth() runtime test', () => {
         const userDb = enhance({ id: '1', name: userContextName });
         await expect(userDb.post.create({ data: { authorName: overrideName } })).toResolveTruthy();
         await expect(userDb.post.count({ where: { authorName: overrideName } })).resolves.toBe(1);
+
+        await expect(userDb.post.createMany({ data: [{ authorName: overrideName }] })).toResolveTruthy();
+        await expect(userDb.post.count({ where: { authorName: overrideName } })).resolves.toBe(2);
+
+        const r = await userDb.post.createManyAndReturn({ data: [{ authorName: overrideName }] });
+        expect(r[0]).toMatchObject({ authorName: overrideName });
     });
 
     it('Default auth() with foreign key', async () => {
@@ -465,6 +476,15 @@ describe('auth() runtime test', () => {
                 update: { title: 'post4' },
             })
         ).resolves.toMatchObject({ authorId: 'userId-1' });
+
+        // default auth effective for createMany
+        await expect(db.post.createMany({ data: { title: 'post5' } })).resolves.toMatchObject({ count: 1 });
+        const r = await db.post.findFirst({ where: { title: 'post5' } });
+        expect(r).toMatchObject({ authorId: 'userId-1' });
+
+        // default auth effective for createManyAndReturn
+        const r1 = await db.post.createManyAndReturn({ data: { title: 'post6' } });
+        expect(r1[0]).toMatchObject({ authorId: 'userId-1' });
     });
 
     it('Default auth() with nested user context value', async () => {
@@ -631,14 +651,23 @@ describe('auth() runtime test', () => {
         const db = enhance({ id: 'userId-1' });
         await db.user.create({ data: { id: 'userId-1' } });
 
-        // safe
-        await db.stats.create({ data: { id: 'stats-1', viewCount: 10 } });
-        await expect(db.post.create({ data: { title: 'title', statsId: 'stats-1' } })).toResolveTruthy();
-
         // unsafe
+        await db.stats.create({ data: { id: 'stats-1', viewCount: 10 } });
+        await expect(db.post.create({ data: { title: 'title1', statsId: 'stats-1' } })).toResolveTruthy();
+
         await db.stats.create({ data: { id: 'stats-2', viewCount: 10 } });
+        await expect(db.post.createMany({ data: [{ title: 'title2', statsId: 'stats-2' }] })).resolves.toMatchObject({
+            count: 1,
+        });
+
+        await db.stats.create({ data: { id: 'stats-3', viewCount: 10 } });
+        const r = await db.post.createManyAndReturn({ data: [{ title: 'title3', statsId: 'stats-3' }] });
+        expect(r[0]).toMatchObject({ statsId: 'stats-3' });
+
+        // safe
+        await db.stats.create({ data: { id: 'stats-4', viewCount: 10 } });
         await expect(
-            db.post.create({ data: { title: 'title', stats: { connect: { id: 'stats-2' } } } })
+            db.post.create({ data: { title: 'title4', stats: { connect: { id: 'stats-4' } } } })
         ).toResolveTruthy();
     });
 });

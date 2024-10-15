@@ -1,4 +1,11 @@
-import { PluginError, RUNTIME_PACKAGE, createProject, resolvePath, type PluginFunction } from '@zenstackhq/sdk';
+import {
+    PluginError,
+    RUNTIME_PACKAGE,
+    createProject,
+    normalizedRelative,
+    resolvePath,
+    type PluginFunction,
+} from '@zenstackhq/sdk';
 import path from 'path';
 import { getDefaultOutputFolder } from '../plugin-utils';
 import { EnhancerGenerator } from './enhance';
@@ -31,7 +38,7 @@ const run: PluginFunction = async (model, options, _dmmf, globalOptions) => {
             const prismaClientPathAbs = path.resolve(outDir, 'models');
 
             // resolve it relative to the schema path
-            prismaClientPath = path.relative(path.dirname(options.schemaPath), prismaClientPathAbs);
+            prismaClientPath = normalizedRelative(path.dirname(options.schemaPath), prismaClientPathAbs);
         } else {
             prismaClientPath = `${RUNTIME_PACKAGE}/models`;
         }

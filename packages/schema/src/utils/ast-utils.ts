@@ -30,7 +30,7 @@ import {
     Mutable,
     Reference,
 } from 'langium';
-import { isAbsolute } from 'node:path';
+import path from 'node:path';
 import { URI, Utils } from 'vscode-uri';
 import { findNodeModulesFile } from './pkg-utils';
 
@@ -116,7 +116,17 @@ function cloneAst<T extends InheritableNode>(
 ): Mutable<T> {
     const clone = copyAstNode(node, buildReference) as Mutable<T>;
     clone.$container = newContainer;
-    clone.$inheritedFrom = node.$inheritedFrom ?? getContainerOfType(node, isDataModel);
+
+    if (isDataModel(newContainer) && isDataModelField(node)) {
+        // walk up the hierarchy to find the upper-most delegate ancestor that defines the field
+        const delegateBases = getRecursiveBases(newContainer).filter(isDelegateModel);
+        clone.$inheritedFrom = delegateBases.findLast((base) => base.fields.some((f) => f.name === node.name));
+    }
+
+    if (!clone.$inheritedFrom) {
+        clone.$inheritedFrom = node.$inheritedFrom ?? getContainerOfType(node, isDataModel);
+    }
+
     return clone;
 }
 
@@ -174,9 +184,16 @@ export function resolveImportUri(imp: ModelImport): URI | undefined {
 
     if (
         !imp.path.startsWith('.') && // Respect relative paths
-        !isAbsolute(imp.path) // Respect Absolute paths
+        !path.isAbsolute(imp.path) // Respect Absolute paths
     ) {
-        imp.path = findNodeModulesFile(imp.path) ?? imp.path;
+        // use the current model's path as the search context
+        const contextPath = imp.$container.$document
+            ? path.dirname(imp.$container.$document.uri.fsPath)
+            : process.cwd();
+        imp.path = findNodeModulesFile(imp.path, contextPath) ?? imp.path;
+        if (imp.path) {
+            console.log('Loaded import from:', imp.path);
+        }
     }
 
     const dirUri = Utils.dirname(getDocument(imp).uri);

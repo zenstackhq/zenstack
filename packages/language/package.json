@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/language",
-    "version": "2.4.1",
+    "version": "2.7.0",
     "displayName": "ZenStack modeling language compiler",
     "description": "ZenStack modeling language compiler",
     "homepage": "https://zenstack.dev",

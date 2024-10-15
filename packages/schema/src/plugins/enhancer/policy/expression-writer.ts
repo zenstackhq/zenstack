@@ -378,17 +378,9 @@ export class ExpressionWriter {
             operator = this.negateOperator(operator);
         }
 
-        if (this.isFutureMemberAccess(fieldAccess)) {
-            // future().field should be treated as the "field" directly, so we
-            // strip 'future().' and synthesize a reference expr
-            fieldAccess = {
-                $type: ReferenceExpr,
-                $container: fieldAccess.$container,
-                target: fieldAccess.member,
-                $resolvedType: fieldAccess.$resolvedType,
-                $future: true,
-            } as unknown as ReferenceExpr;
-        }
+        // future()...field should be treated as the "field" directly, so we
+        // strip 'future().' and synthesize a reference/member-access expr
+        fieldAccess = this.stripFutureCall(fieldAccess);
 
         // guard member access of `auth()` with null check
         if (this.isAuthOrAuthMemberAccess(operand) && !fieldAccess.$resolvedType?.nullable) {
@@ -470,6 +462,39 @@ export class ExpressionWriter {
             // avoid generating a new layer
             !isThisExpr(fieldAccess)
         );
+    }
+
+    private stripFutureCall(fieldAccess: Expression) {
+        if (!this.isFutureMemberAccess(fieldAccess)) {
+            return fieldAccess;
+        }
+
+        const memberAccessStack: MemberAccessExpr[] = [];
+        let current: Expression = fieldAccess;
+        while (isMemberAccessExpr(current)) {
+            memberAccessStack.push(current);
+            current = current.operand;
+        }
+
+        const top = memberAccessStack.pop()!;
+
+        // turn the inner-most member access into a reference expr (strip 'future()')
+        let result: Expression = {
+            $type: ReferenceExpr,
+            $container: top.$container,
+            target: top.member,
+            $resolvedType: top.$resolvedType,
+            args: [],
+        } satisfies ReferenceExpr;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (result as any).$future = true;
+
+        // re-apply member accesses
+        for (const memberAccess of memberAccessStack.reverse()) {
+            result = { ...memberAccess, operand: result };
+        }
+        return result;
     }
 
     private isFutureMemberAccess(expr: Expression): expr is MemberAccessExpr {
@@ -815,8 +840,15 @@ export class ExpressionWriter {
         }
 
         this.block(() => {
-            const targetGuardFunc = getQueryGuardFunctionName(targetModel, undefined, false, operation);
-            this.writer.write(`${fieldRef.target.$refText}: ${targetGuardFunc}(context, db)`);
+            if (operation === 'postUpdate') {
+                // 'postUpdate' policies are not delegated to relations, just use constant `false` here
+                // e.g.:
+                //   @@allow('all', check(author)) should not delegate "postUpdate" to author
+                this.writer.write(`${fieldRef.target.$refText}: ${FALSE}`);
+            } else {
+                const targetGuardFunc = getQueryGuardFunctionName(targetModel, undefined, false, operation);
+                this.writer.write(`${fieldRef.target.$refText}: ${targetGuardFunc}(context, db)`);
+            }
         });
     }
 }

@@ -5,7 +5,7 @@ import { CrudFailureReason, type ModelMeta } from '@zenstackhq/runtime';
 import { loadSchema, run } from '@zenstackhq/testtools';
 import { Decimal } from 'decimal.js';
 import SuperJSON from 'superjson';
-import makeHandler from '../../src/api/rest';
+import makeHandler, { idDivider } from '../../src/api/rest';
 
 describe('REST server tests', () => {
     let prisma: any;
@@ -26,6 +26,7 @@ describe('REST server tests', () => {
         updatedAt DateTime @updatedAt
         email String @unique @email
         posts Post[]
+        likes PostLike[]
         profile Profile?
     }
     
@@ -47,6 +48,7 @@ describe('REST server tests', () => {
         publishedAt DateTime?
         viewCount Int @default(0)
         comments Comment[]
+        likes PostLike[]
         setting Setting?
     }
     
@@ -62,6 +64,15 @@ describe('REST server tests', () => {
         boost Int
         post Post @relation(fields: [postId], references: [id])
         postId Int @unique
+    }
+
+    model PostLike {
+        postId Int
+        userId String
+        superLike Boolean
+        post Post @relation(fields: [postId], references: [id])
+        user User @relation(fields: [userId], references: [myId])
+        @@id([postId, userId])
     }
     `;
 
@@ -125,6 +136,7 @@ describe('REST server tests', () => {
                         path: '/user',
                         prisma,
                     });
+
                     expect(r.status).toBe(200);
                     expect(r.body).toMatchObject({
                         data: [],
@@ -288,6 +300,35 @@ describe('REST server tests', () => {
                                 },
                             },
                         ],
+                    });
+                });
+
+                it('fetches a related resource with a compound ID', async () => {
+                    await prisma.user.create({
+                        data: {
+                            myId: 'user1',
+                            email: 'user1@abc.com',
+                            posts: {
+                                create: { id: 1, title: 'Post1' },
+                            },
+                        },
+                    });
+                    await prisma.postLike.create({
+                        data: { postId: 1, userId: 'user1', superLike: true },
+                    });
+
+                    const r = await handler({
+                        method: 'get',
+                        path: '/post/1/relationships/likes',
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(200);
+                    expect(r.body).toMatchObject({
+                        links: {
+                            self: 'http://localhost/api/post/1/relationships/likes',
+                        },
+                        data: [{ type: 'postLike', id: `1${idDivider}user1` }],
                     });
                 });
 
@@ -1283,6 +1324,56 @@ describe('REST server tests', () => {
                         next: null,
                     });
                 });
+
+                describe('compound id', () => {
+                    beforeEach(async () => {
+                        await prisma.user.create({
+                            data: { myId: 'user1', email: 'user1@abc.com', posts: { create: { title: 'Post1' } } },
+                        });
+                        await prisma.user.create({
+                            data: { myId: 'user2', email: 'user2@abc.com' },
+                        });
+                        await prisma.postLike.create({
+                            data: { userId: 'user2', postId: 1, superLike: false },
+                        });
+                    });
+
+                    it('get all', async () => {
+                        const r = await handler({
+                            method: 'get',
+                            path: '/postLike',
+                            prisma,
+                        });
+
+                        expect(r.status).toBe(200);
+                        expect(r.body).toMatchObject({
+                            data: [
+                                {
+                                    type: 'postLike',
+                                    id: `1${idDivider}user2`,
+                                    attributes: { userId: 'user2', postId: 1, superLike: false },
+                                },
+                            ],
+                        });
+                    });
+
+                    it('get single', async () => {
+                        const r = await handler({
+                            method: 'get',
+                            path: `/postLike/1${idDivider}user2`, // Order of ids is same as in the model @@id
+                            prisma,
+                        });
+
+                        expect(r.status).toBe(200);
+                        expect(r.body).toMatchObject({
+                            data: {
+                                type: 'postLike',
+                                id: `1${idDivider}user2`,
+                                attributes: { userId: 'user2', postId: 1, superLike: false },
+                            },
+                        });
+                    });
+                });
             });
 
             describe('POST', () => {
@@ -1546,6 +1637,50 @@ describe('REST server tests', () => {
 
                     expect(r.status).toBe(404);
                 });
+
+                it('create relation with compound id', async () => {
+                    await prisma.user.create({ data: { myId: 'user1', email: 'user1@abc.com' } });
+                    await prisma.post.create({ data: { id: 1, title: 'Post1' } });
+
+                    const r = await handler({
+                        method: 'post',
+                        path: '/postLike',
+                        query: {},
+                        requestBody: {
+                            data: {
+                                type: 'postLike',
+                                id: `1${idDivider}user1`,
+                                attributes: { userId: 'user1', postId: 1, superLike: false },
+                            },
+                        },
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(201);
+                });
+
+                it('compound id create single', async () => {
+                    await prisma.user.create({ data: { myId: 'user1', email: 'user1@abc.com' } });
+                    await prisma.post.create({
+                        data: { id: 1, title: 'Post1' },
+                    });
+
+                    const r = await handler({
+                        method: 'post',
+                        path: '/postLike',
+                        query: {},
+                        requestBody: {
+                            data: {
+                                type: 'postLike',
+                                id: `1${idDivider}user1`,
+                                attributes: { userId: 'user1', postId: 1, superLike: false },
+                            },
+                        },
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(201);
+                });
             });
 
             describe('PUT', () => {
@@ -1684,6 +1819,27 @@ describe('REST server tests', () => {
                     expect(r.body.errors[0].code).toBe('invalid-payload');
                 });
 
+                it('update item with compound id', async () => {
+                    await prisma.user.create({ data: { myId: 'user1', email: 'user1@abc.com' } });
+                    await prisma.post.create({ data: { id: 1, title: 'Post1' } });
+                    await prisma.postLike.create({ data: { userId: 'user1', postId: 1, superLike: false } });
+
+                    const r = await handler({
+                        method: 'put',
+                        path: `/postLike/1${idDivider}user1`,
+                        query: {},
+                        requestBody: {
+                            data: {
+                                type: 'postLike',
+                                attributes: { superLike: true },
+                            },
+                        },
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(200);
+                });
+
                 it('update a single relation', async () => {
                     await prisma.user.create({ data: { myId: 'user1', email: 'user1@abc.com' } });
                     await prisma.post.create({
@@ -1767,6 +1923,24 @@ describe('REST server tests', () => {
                     });
                 });
 
+                it('update a collection of relations with compound id', async () => {
+                    await prisma.user.create({ data: { myId: 'user1', email: 'user1@abc.com' } });
+                    await prisma.post.create({ data: { id: 1, title: 'Post1' } });
+                    await prisma.postLike.create({ data: { userId: 'user1', postId: 1, superLike: false } });
+
+                    const r = await handler({
+                        method: 'patch',
+                        path: '/post/1/relationships/likes',
+                        query: {},
+                        requestBody: {
+                            data: [{ type: 'postLike', id: `1${idDivider}user1`, attributes: { superLike: true } }],
+                        },
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(200);
+                });
+
                 it('update a collection of relations to empty', async () => {
                     await prisma.user.create({
                         data: { myId: 'user1', email: 'user1@abc.com', posts: { create: { id: 1, title: 'Post1' } } },
@@ -1841,6 +2015,21 @@ describe('REST server tests', () => {
                         prisma,
                     });
 
+                    expect(r.status).toBe(204);
+                    expect(r.body).toBeUndefined();
+                });
+
+                it('deletes an item with compound id', async () => {
+                    await prisma.user.create({
+                        data: { myId: 'user1', email: 'user1@abc.com', posts: { create: { id: 1, title: 'Post1' } } },
+                    });
+                    await prisma.postLike.create({ data: { userId: 'user1', postId: 1, superLike: false } });
+
+                    const r = await handler({
+                        method: 'delete',
+                        path: `/postLike/1${idDivider}user1`,
+                        prisma,
+                    });
                     expect(r.status).toBe(204);
                     expect(r.body).toBeUndefined();
                 });

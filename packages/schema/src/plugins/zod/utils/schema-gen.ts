@@ -20,6 +20,7 @@ import {
     isInvocationExpr,
     isNumberLiteral,
     isStringLiteral,
+    isBooleanLiteral
 } from '@zenstackhq/sdk/ast';
 import { upperCaseFirst } from 'upper-case-first';
 import { name } from '..';
@@ -281,6 +282,8 @@ export function getFieldSchemaDefault(field: DataModelField) {
         if (isStringLiteral(arg.value)) {
             return JSON.stringify(arg.value.value);
         } else if (isNumberLiteral(arg.value)) {
+            return arg.value.value;
+        } else if (isBooleanLiteral(arg.value)) {
             return arg.value.value;
         } else if (
             isInvocationExpr(arg.value) &&

@@ -1,4 +1,11 @@
-import { PluginError, type PluginFunction, type PluginOptions, getLiteral, resolvePath } from '@zenstackhq/sdk';
+import {
+    PluginError,
+    type PluginFunction,
+    type PluginOptions,
+    getLiteral,
+    normalizedRelative,
+    resolvePath,
+} from '@zenstackhq/sdk';
 import { GeneratorDecl, isGeneratorDecl } from '@zenstackhq/sdk/ast';
 import { getDMMF } from '@zenstackhq/sdk/prisma';
 import colors from 'colors';
@@ -59,7 +66,7 @@ const run: PluginFunction = async (model, options, _dmmf, _globalOptions) => {
                 const absPath = path.resolve(path.dirname(output), clientOutput);
 
                 // then make it relative to the zmodel schema location
-                prismaClientPath = path.relative(path.dirname(options.schemaPath), absPath);
+                prismaClientPath = normalizedRelative(path.dirname(options.schemaPath), absPath);
             }
         }
     } else {

@@ -14,6 +14,7 @@ export type TransformerParams = {
     project: Project;
     inputObjectTypes: PrismaDMMF.InputType[];
     zmodel: Model;
+    mode: ObjectMode;
 };
 
 export type AggregateOperationSupport = {
@@ -25,3 +26,5 @@ export type AggregateOperationSupport = {
         avg?: boolean;
     };
 };
+
+export type ObjectMode = 'strict' | 'strip' | 'passthrough';

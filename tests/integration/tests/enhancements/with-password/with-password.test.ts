@@ -93,4 +93,36 @@ describe('Password test', () => {
             })
         ).toBeRejectedByPolicy(['must start with "abc" at "password"']);
     });
+
+    it('prevents query enumeration if password is not readable', async () => {
+        const { prisma, enhance } = await loadSchema(
+            `
+            model User {
+                id       Int    @id @default(autoincrement())
+                email    String @unique
+                password String @password @omit @deny('read', true)
+                @@allow('all', true)
+            }
+            `
+        );
+
+        const db = enhance();
+
+        const user = await db.user.create({
+            data: {
+                email: 'alice@abc.com',
+                password: '123456',
+            },
+        });
+        expect(user.password).toBeUndefined();
+
+        const u = await prisma.user.findFirstOrThrow();
+
+        await expect(db.user.findFirst({ where: { password: u.password } })).toResolveNull();
+        await expect(
+            db.user.findFirst({
+                where: { password: { startsWith: u?.password.substring(0, 3) } },
+            })
+        ).toResolveNull();
+    });
 });
