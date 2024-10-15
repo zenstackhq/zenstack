@@ -116,7 +116,17 @@ function cloneAst<T extends InheritableNode>(
 ): Mutable<T> {
     const clone = copyAstNode(node, buildReference) as Mutable<T>;
     clone.$container = newContainer;
-    clone.$inheritedFrom = node.$inheritedFrom ?? getContainerOfType(node, isDataModel);
+
+    if (isDataModel(newContainer) && isDataModelField(node)) {
+        // walk up the hierarchy to find the upper-most delegate ancestor that defines the field
+        const delegateBases = getRecursiveBases(newContainer).filter(isDelegateModel);
+        clone.$inheritedFrom = delegateBases.findLast((base) => base.fields.some((f) => f.name === node.name));
+    }
+
+    if (!clone.$inheritedFrom) {
+        clone.$inheritedFrom = node.$inheritedFrom ?? getContainerOfType(node, isDataModel);
+    }
+
     return clone;
 }
 

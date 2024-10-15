@@ -484,6 +484,53 @@ describe('Polymorphic Policy Test', () => {
         await expect(prisma.post.findUnique({ where: { id: post.id } })).toResolveFalsy();
     });
 
+    it('respects sub model policies when queried from a base: case 3', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model User {
+                id Int @id @default(autoincrement())
+                assets Asset[]
+                @@allow('all', true)
+            }
+
+            model Asset {
+                id Int @id @default(autoincrement())
+                user User @relation(fields: [userId], references: [id])
+                userId Int
+                value Int @default(0)
+                type String
+                @@delegate(type)
+                @@allow('all', value > 0)
+            }
+
+            model Post extends Asset {
+                title String
+                deleted Boolean @default(false)
+                @@deny('read', deleted)
+            }
+        `
+        );
+
+        const db = enhance();
+        const user = await db.user.create({ data: { id: 1 } });
+
+        // can't create
+        await expect(
+            db.post.create({ data: { id: 1, title: 'Post1', userId: user.id, value: 0 } })
+        ).toBeRejectedByPolicy();
+
+        // can't read back
+        await expect(
+            db.post.create({ data: { id: 1, title: 'Post1', userId: user.id, value: 1, deleted: true } })
+        ).toBeRejectedByPolicy();
+
+        await expect(
+            db.post.create({ data: { id: 2, title: 'Post1', userId: user.id, value: 1, deleted: false } })
+        ).toResolveTruthy();
+
+        await expect(db.asset.findMany()).resolves.toHaveLength(2);
+    });
+
     it('respects field-level policies', async () => {
         const { enhance } = await loadSchema(`  
             model User {
