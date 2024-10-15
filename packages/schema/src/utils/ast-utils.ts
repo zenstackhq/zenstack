@@ -30,7 +30,7 @@ import {
     Mutable,
     Reference,
 } from 'langium';
-import path, { isAbsolute } from 'node:path';
+import path from 'node:path';
 import { URI, Utils } from 'vscode-uri';
 import { findNodeModulesFile } from './pkg-utils';
 
@@ -184,7 +184,7 @@ export function resolveImportUri(imp: ModelImport): URI | undefined {
 
     if (
         !imp.path.startsWith('.') && // Respect relative paths
-        !isAbsolute(imp.path) // Respect Absolute paths
+        !path.isAbsolute(imp.path) // Respect Absolute paths
     ) {
         // use the current model's path as the search context
         const contextPath = imp.$container.$document
