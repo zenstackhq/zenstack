@@ -30,7 +30,7 @@ import {
     Mutable,
     Reference,
 } from 'langium';
-import { isAbsolute } from 'node:path';
+import path, { isAbsolute } from 'node:path';
 import { URI, Utils } from 'vscode-uri';
 import { findNodeModulesFile } from './pkg-utils';
 
@@ -186,7 +186,14 @@ export function resolveImportUri(imp: ModelImport): URI | undefined {
         !imp.path.startsWith('.') && // Respect relative paths
         !isAbsolute(imp.path) // Respect Absolute paths
     ) {
-        imp.path = findNodeModulesFile(imp.path) ?? imp.path;
+        // use the current model's path as the search context
+        const contextPath = imp.$container.$document
+            ? path.dirname(imp.$container.$document.uri.fsPath)
+            : process.cwd();
+        imp.path = findNodeModulesFile(imp.path, contextPath) ?? imp.path;
+        if (imp.path) {
+            console.log('Loaded import from:', imp.path);
+        }
     }
 
     const dirUri = Utils.dirname(getDocument(imp).uri);
