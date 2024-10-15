@@ -118,10 +118,12 @@ function cloneAst<T extends InheritableNode>(
     clone.$container = newContainer;
 
     if (isDataModel(newContainer) && isDataModelField(node)) {
-        // walk up the hierarchy to find the model where the field is defined (delegate or abstract base)
-        const allBases = getRecursiveBases(newContainer);
-        clone.$inheritedFrom = allBases.find((base) => base.fields.some((f) => f.name === node.name));
-    } else {
+        // walk up the hierarchy to find the upper-most delegate ancestor that defines the field
+        const delegateBases = getRecursiveBases(newContainer).filter(isDelegateModel);
+        clone.$inheritedFrom = delegateBases.findLast((base) => base.fields.some((f) => f.name === node.name));
+    }
+
+    if (!clone.$inheritedFrom) {
         clone.$inheritedFrom = node.$inheritedFrom ?? getContainerOfType(node, isDataModel);
     }
 
