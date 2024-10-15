@@ -460,7 +460,7 @@ export function isDelegateModel(node: AstNode) {
 }
 
 export function isDiscriminatorField(field: DataModelField) {
-    const model = field.$inheritedFrom ?? field.$container;
+    const model = getInheritedFromDelegate(field) ?? field.$container;
     const delegateAttr = getAttribute(model, '@@delegate');
     if (!delegateAttr) {
         return false;
