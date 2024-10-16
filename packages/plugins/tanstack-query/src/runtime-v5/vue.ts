@@ -35,7 +35,7 @@ export { APIContext as RequestHandlerContext } from '../runtime/common';
 
 export const VueQueryContextKey = 'zenstack-vue-query-context';
 
-// from "@tanstack/vue-query"
+// #region from "@tanstack/vue-query"
 export type MaybeRefDeep<T> = MaybeRef<
     T extends Function
         ? T
@@ -45,6 +45,7 @@ export type MaybeRefDeep<T> = MaybeRef<
           }
         : T
 >;
+// #endregion
 
 /**
  * Provide context for the generated TanStack Query hooks.
@@ -119,7 +120,7 @@ export function prefetchModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args?: MaybeRef<unknown>,
-    options?: MaybeRefDeep<Omit<FetchQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions>,
+    options?: Omit<FetchQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions,
     fetch?: FetchFn
 ) {
     const optValue = toValue(options);
@@ -133,7 +134,7 @@ export function prefetchModelQuery<TQueryFnData, TData, TError>(
             return fetcher<TQueryFnData, false>(makeUrl(url, _args), undefined, fetch, false);
         },
         ...optValue,
-    });
+    } as MaybeRefDeep<FetchQueryOptions<TQueryFnData, TError, TData>>);
 }
 
 /**
@@ -151,7 +152,7 @@ export function fetchModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args?: MaybeRef<unknown>,
-    options?: MaybeRefDeep<Omit<FetchQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions>,
+    options?: Omit<FetchQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions,
     fetch?: FetchFn
 ) {
     const optValue = toValue(options);
@@ -165,7 +166,7 @@ export function fetchModelQuery<TQueryFnData, TData, TError>(
             return fetcher<TQueryFnData, false>(makeUrl(url, _args), undefined, fetch, false);
         },
         ...optValue,
-    });
+    } as MaybeRefDeep<FetchQueryOptions<TQueryFnData, TError, TData>>);
 }
 
 /**
@@ -221,9 +222,7 @@ export function prefetchInfiniteModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args?: MaybeRef<unknown>,
-    options?: MaybeRefDeep<
-        Omit<FetchInfiniteQueryOptions<TQueryFnData, TError, TData>, 'queryKey' | 'initialPageParam'>
-    >,
+    options?: Omit<FetchInfiniteQueryOptions<TQueryFnData, TError, TData>, 'queryKey' | 'initialPageParam'>,
     fetch?: FetchFn
 ) {
     const optValue = toValue(options);
@@ -254,9 +253,7 @@ export function fetchInfiniteModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args?: MaybeRef<unknown>,
-    options?: MaybeRefDeep<
-        Omit<FetchInfiniteQueryOptions<TQueryFnData, TError, TData>, 'queryKey' | 'initialPageParam'>
-    >,
+    options?: Omit<FetchInfiniteQueryOptions<TQueryFnData, TError, TData>, 'queryKey' | 'initialPageParam'>,
     fetch?: FetchFn
 ) {
     const optValue = toValue(options);

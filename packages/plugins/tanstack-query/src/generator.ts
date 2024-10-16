@@ -223,12 +223,12 @@ function generateQueryHook(
             });
 
             func.addStatements([
-                makeGetContext(target),
+                `const endpoint = options?.endpoint ?? DEFAULT_QUERY_ENDPOINT;`,
                 `return ${mode}${
                     infinite ? 'Infinite' : ''
                 }ModelQuery<TQueryFnData, TData, TError>(queryClient, '${model}', \`\${endpoint}/${lowerCaseFirst(
                     model
-                )}/${operation}\`, args, options, fetch);`,
+                )}/${operation}\`, args, options, options?.fetch);`,
             ]);
         }
     }
@@ -710,7 +710,7 @@ function makeBaseImports(target: TargetFramework, version: TanStackVersion, gene
     const runtimeImportBase = makeRuntimeImportBase(version);
     const shared = [
         `import { useModelQuery, useInfiniteModelQuery, useModelMutation } from '${runtimeImportBase}/${target}';`,
-        `import type { PickEnumerable, CheckSelect, QueryError, ExtraQueryOptions, ExtraMutationOptions } from '${runtimeImportBase}';`,
+        `import { type PickEnumerable, type CheckSelect, type QueryError, type ExtraQueryOptions, type ExtraMutationOptions, DEFAULT_QUERY_ENDPOINT } from '${runtimeImportBase}';`,
         `import type { PolicyCrudKind } from '${RUNTIME_PACKAGE}'`,
         `import metadata from './__model_meta';`,
         `type DefaultError = QueryError;`,
@@ -718,10 +718,9 @@ function makeBaseImports(target: TargetFramework, version: TanStackVersion, gene
 
     if (version === 'v5' && generatePrefetch) {
         shared.push(
-            `import { fetchModelQuery, prefetchModelQuery, fetchInfiniteModelQuery, prefetchInfiniteModelQuery } from '${runtimeImportBase}/${target}';`
-        );
-        shared.push(
-            `import type { QueryClient, FetchQueryOptions, FetchInfiniteQueryOptions } from '@tanstack/${target}-query';`
+            `import { fetchModelQuery, prefetchModelQuery, fetchInfiniteModelQuery, prefetchInfiniteModelQuery } from '${runtimeImportBase}/${target}';`,
+            `import type { QueryClient, FetchQueryOptions, FetchInfiniteQueryOptions } from '@tanstack/${target}-query';`,
+            `import type { ExtraPrefetchOptions } from '${runtimeImportBase}';`
         );
     }
 
@@ -746,7 +745,7 @@ function makeBaseImports(target: TargetFramework, version: TanStackVersion, gene
                 `import type { UseMutationOptions, UseQueryOptions, UseInfiniteQueryOptions, InfiniteData } from '@tanstack/vue-query';`,
                 `import { getHooksContext } from '${runtimeImportBase}/${target}';`,
                 `import type { MaybeRef, MaybeRefOrGetter, ComputedRef, UnwrapRef } from 'vue';`,
-                ...(generatePrefetch ? [`import { type MaybeRefDeep } from '${runtimeImportBase}/${target}';`] : []),
+                `import { toValue } from 'vue';`,
                 ...shared,
             ];
         }
@@ -826,33 +825,16 @@ function makeQueryOptions(
     return result;
 }
 
-function makePrefetchQueryOptions(target: string, returnType: string, dataType: string, infinite: boolean) {
-    let result = match(target)
-        .with('react', () =>
-            infinite
-                ? `Omit<FetchInfiniteQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey' | 'initialPageParam'>`
-                : `Omit<FetchQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`
-        )
-        .with('vue', () =>
-            infinite
-                ? `MaybeRefDeep<Omit<FetchInfiniteQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey' | 'initialPageParam'>>`
-                : `MaybeRefDeep<Omit<FetchQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>>`
-        )
-        .with('svelte', () =>
-            infinite
-                ? `Omit<FetchInfiniteQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey' | 'initialPageParam'>`
-                : `Omit<FetchQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`
-        )
-        .otherwise(() => {
-            throw new PluginError(name, `Unsupported target: ${target}`);
-        });
-
+function makePrefetchQueryOptions(_target: string, returnType: string, dataType: string, infinite: boolean) {
+    let extraOptions = 'ExtraPrefetchOptions';
     if (!infinite) {
         // non-infinite queries support extra options like optimistic updates
-        result = `(${result} & ExtraQueryOptions)`;
+        extraOptions += ' & ExtraQueryOptions';
     }
 
-    return result;
+    return infinite
+        ? `Omit<FetchInfiniteQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey' | 'initialPageParam'> & ${extraOptions}`
+        : `Omit<FetchQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'> & ${extraOptions}`;
 }
 
 function makeMutationOptions(target: string, returnType: string, argsType: string) {
