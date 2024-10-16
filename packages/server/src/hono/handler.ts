@@ -52,6 +52,7 @@ export function createHonoHandler(options: HonoOptions): MiddlewareHandler {
                 prisma,
                 modelMeta,
                 zodSchemas,
+                logger: options.logger,
             });
             return ctx.json(r.body as object, r.status as StatusCode);
         } catch (err) {
