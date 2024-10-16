@@ -5,14 +5,18 @@ import {
     useMutation,
     useQuery,
     useQueryClient,
+    type FetchInfiniteQueryOptions,
+    type FetchQueryOptions,
     type InfiniteData,
+    type QueryClient,
     type QueryKey,
     type UseInfiniteQueryOptions,
     type UseMutationOptions,
     type UseQueryOptions,
 } from '@tanstack/vue-query';
 import type { ModelMeta } from '@zenstackhq/runtime/cross';
-import { computed, inject, provide, toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue';
+import { computed, inject, provide, toValue, type ComputedRef, type MaybeRef, type MaybeRefOrGetter } from 'vue';
+
 import {
     APIContext,
     DEFAULT_QUERY_ENDPOINT,
@@ -30,6 +34,17 @@ import {
 export { APIContext as RequestHandlerContext } from '../runtime/common';
 
 export const VueQueryContextKey = 'zenstack-vue-query-context';
+
+// from "@tanstack/vue-query"
+export type MaybeRefDeep<T> = MaybeRef<
+    T extends Function
+        ? T
+        : T extends object
+        ? {
+              [Property in keyof T]: MaybeRefDeep<T[Property]>;
+          }
+        : T
+>;
 
 /**
  * Provide context for the generated TanStack Query hooks.
@@ -90,47 +105,67 @@ export function useModelQuery<TQueryFnData, TData, TError>(
 }
 
 /**
- * Creates a vue-query prefetch query.
+ * Prefetches a query.
  *
+ * @param queryClient The query client instance.
  * @param model The name of the model under query.
  * @param url The request URL.
  * @param args The request args object, URL-encoded and appended as "?q=" parameter
  * @param options The vue-query options object
  * @param fetch The fetch function to use for sending the HTTP request
- * @returns useQuery hook
  */
-export function usePrefetchModelQuery<TQueryFnData, TData, TError>(
+export function prefetchModelQuery<TQueryFnData, TData, TError>(
+    queryClient: QueryClient,
     model: string,
     url: string,
-    args?: MaybeRefOrGetter<unknown> | ComputedRef<unknown>,
-    options?:
-        | MaybeRefOrGetter<Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions>
-        | ComputedRef<Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions>,
+    args?: MaybeRef<unknown>,
+    options?: MaybeRefDeep<Omit<FetchQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions>,
     fetch?: FetchFn
 ) {
-    const queryOptions: any = computed(() => {
-        const optionsValue = toValue<
-            (Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions) | undefined
-        >(options);
-        return {
-            queryKey: getQueryKey(model, url, args, {
-                infinite: false,
-                optimisticUpdate: optionsValue?.optimisticUpdate !== false,
-            }),
-            queryFn: ({ queryKey }: { queryKey: QueryKey }) => {
-                const [_prefix, _model, _op, args] = queryKey;
-                const reqUrl = makeUrl(url, toValue(args));
-                return fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false);
-            },
-            ...optionsValue,
-        };
+    const optValue = toValue(options);
+    return queryClient.prefetchQuery({
+        queryKey: getQueryKey(model, url, toValue(args), {
+            infinite: false,
+            optimisticUpdate: optValue?.optimisticUpdate !== false,
+        }),
+        queryFn: ({ queryKey }: { queryKey: QueryKey }) => {
+            const [_prefix, _model, _op, _args] = queryKey;
+            return fetcher<TQueryFnData, false>(makeUrl(url, _args), undefined, fetch, false);
+        },
+        ...optValue,
     });
+}
 
-    // Todo : When usePrefetchQuery is available in vue-query, use it
-    const queryClient = useQueryClient();
-
-    return queryClient.prefetchQuery(queryOptions);
-    // return usePrefetchQuery<TQueryFnData, TError, TData>(queryOptions);
+/**
+ * Fetches a query.
+ *
+ * @param queryClient The query client instance.
+ * @param model The name of the model under query.
+ * @param url The request URL.
+ * @param args The request args object, URL-encoded and appended as "?q=" parameter
+ * @param options The vue-query options object
+ * @param fetch The fetch function to use for sending the HTTP request
+ */
+export function fetchModelQuery<TQueryFnData, TData, TError>(
+    queryClient: QueryClient,
+    model: string,
+    url: string,
+    args?: MaybeRef<unknown>,
+    options?: MaybeRefDeep<Omit<FetchQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions>,
+    fetch?: FetchFn
+) {
+    const optValue = toValue(options);
+    return queryClient.fetchQuery({
+        queryKey: getQueryKey(model, url, toValue(args), {
+            infinite: false,
+            optimisticUpdate: optValue?.optimisticUpdate !== false,
+        }),
+        queryFn: ({ queryKey }: { queryKey: QueryKey }) => {
+            const [_prefix, _model, _op, _args] = queryKey;
+            return fetcher<TQueryFnData, false>(makeUrl(url, _args), undefined, fetch, false);
+        },
+        ...optValue,
+    });
 }
 
 /**
@@ -172,45 +207,69 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
 }
 
 /**
- * Creates a vue-query prefetch infinite query.
+ * Prefetches an infinite query.
  *
+ * @param queryClient The query client instance.
  * @param model The name of the model under query.
  * @param url The request URL.
  * @param args The initial request args object, URL-encoded and appended as "?q=" parameter
  * @param options The vue-query infinite query options object
  * @param fetch The fetch function to use for sending the HTTP request
- * @returns usePrefetchInfiniteQuery hook
  */
-export function usePrefetchInfiniteModelQuery<TQueryFnData, TData, TError>(
+export function prefetchInfiniteModelQuery<TQueryFnData, TData, TError>(
+    queryClient: QueryClient,
     model: string,
     url: string,
-    args?: MaybeRefOrGetter<unknown> | ComputedRef<unknown>,
-    options?:
-        | MaybeRefOrGetter<
-        Omit<UseInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>, 'queryKey' | 'initialPageParam'>
-    >
-        | ComputedRef<
-        Omit<UseInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>, 'queryKey' | 'initialPageParam'>
+    args?: MaybeRef<unknown>,
+    options?: MaybeRefDeep<
+        Omit<FetchInfiniteQueryOptions<TQueryFnData, TError, TData>, 'queryKey' | 'initialPageParam'>
     >,
     fetch?: FetchFn
 ) {
-    // CHECKME: vue-query's `useInfiniteQuery`'s input typing seems wrong
-    const queryOptions: any = computed(() => ({
-        queryKey: getQueryKey(model, url, args, { infinite: true, optimisticUpdate: false }),
+    const optValue = toValue(options);
+    const argsValue = toValue(args);
+    return queryClient.prefetchInfiniteQuery({
+        queryKey: getQueryKey(model, url, argsValue, { infinite: true, optimisticUpdate: false }),
         queryFn: ({ queryKey, pageParam }: { queryKey: QueryKey; pageParam?: unknown }) => {
-            const [_prefix, _model, _op, args] = queryKey;
-            const reqUrl = makeUrl(url, pageParam ?? toValue(args));
-            return fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false);
+            const [_prefix, _model, _op, _args] = queryKey;
+            return fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? _args), undefined, fetch, false);
         },
-        initialPageParam: toValue(args),
-        ...toValue(options)
-    }));
+        initialPageParam: argsValue,
+        ...optValue,
+    } as MaybeRefDeep<FetchInfiniteQueryOptions<TQueryFnData, TError, TData>>);
+}
 
-    // Todo : When usePrefetchInfiniteQuery is available in vue-query, use it
-    const queryClient = useQueryClient();
-
-    return queryClient.prefetchQuery(queryOptions);
-    // return usePrefetchInfiniteQuery<TQueryFnData, TError, InfiniteData<TData>>(queryOptions);
+/**
+ * Fetches an infinite query.
+ *
+ * @param queryClient The query client instance.
+ * @param model The name of the model under query.
+ * @param url The request URL.
+ * @param args The initial request args object, URL-encoded and appended as "?q=" parameter
+ * @param options The vue-query infinite query options object
+ * @param fetch The fetch function to use for sending the HTTP request
+ */
+export function fetchInfiniteModelQuery<TQueryFnData, TData, TError>(
+    queryClient: QueryClient,
+    model: string,
+    url: string,
+    args?: MaybeRef<unknown>,
+    options?: MaybeRefDeep<
+        Omit<FetchInfiniteQueryOptions<TQueryFnData, TError, TData>, 'queryKey' | 'initialPageParam'>
+    >,
+    fetch?: FetchFn
+) {
+    const optValue = toValue(options);
+    const argsValue = toValue(args);
+    return queryClient.fetchInfiniteQuery({
+        queryKey: getQueryKey(model, url, argsValue, { infinite: true, optimisticUpdate: false }),
+        queryFn: ({ queryKey, pageParam }: { queryKey: QueryKey; pageParam?: unknown }) => {
+            const [_prefix, _model, _op, _args] = queryKey;
+            return fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? _args), undefined, fetch, false);
+        },
+        initialPageParam: argsValue,
+        ...optValue,
+    } as MaybeRefDeep<FetchInfiniteQueryOptions<TQueryFnData, TError, TData>>);
 }
 
 /**
