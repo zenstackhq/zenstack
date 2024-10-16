@@ -62,6 +62,7 @@ export default function createHandler(options: HandlerOptions): Handle {
                     prisma,
                     modelMeta,
                     zodSchemas,
+                    logger: options.logger,
                 });
 
                 return new Response(JSON.stringify(r.body), {

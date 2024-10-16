@@ -50,6 +50,7 @@ export function createEventHandler(options: HandlerOptions) {
                 prisma,
                 modelMeta,
                 zodSchemas,
+                logger: options.logger,
             });
 
             setResponseStatus(event, status);
