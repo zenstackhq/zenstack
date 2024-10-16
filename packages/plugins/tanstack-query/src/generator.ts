@@ -25,6 +25,8 @@ const supportedTargets = ['react', 'vue', 'svelte'];
 type TargetFramework = (typeof supportedTargets)[number];
 type TanStackVersion = 'v4' | 'v5';
 
+// TODO: turn it into a class to simplify parameter passing
+
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
     const project = createProject();
     const warnings: string[] = [];
@@ -38,6 +40,17 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     const version = typeof options.version === 'string' ? options.version : 'v5';
     if (version !== 'v4' && version !== 'v5') {
         throw new PluginError(name, `Unsupported version "${version}": use "v4" or "v5"`);
+    }
+
+    if (options.generatePrefetch !== undefined && typeof options.generatePrefetch !== 'boolean') {
+        throw new PluginError(
+            name,
+            `Invalid "generatePrefetch" option: expected boolean, got ${options.generatePrefetch}`
+        );
+    }
+
+    if (options.generatePrefetch === true && version === 'v4') {
+        throw new PluginError(name, `"generatePrefetch" is not supported for version "v4"`);
     }
 
     let outDir = requireOption<string>(options, 'output', name);
@@ -71,14 +84,16 @@ function generateQueryHook(
     model: string,
     operation: string,
     returnArray: boolean,
+    returnNullable: boolean,
     optionalInput: boolean,
     overrideReturnType?: string,
     overrideInputType?: string,
     overrideTypeParameters?: string[],
     supportInfinite = false,
-    supportOptimistic = false
+    supportOptimistic = false,
+    generatePrefetch = false
 ) {
-    const generateModes: ('' | 'Infinite' | 'Suspense' | 'SuspenseInfinite')[] = [''];
+    const generateModes: ('' | 'Infinite' | 'Suspense' | 'SuspenseInfinite' | 'Prefetch' | 'PrefetchInfinite')[] = [''];
     if (supportInfinite) {
         generateModes.push('Infinite');
     }
@@ -91,19 +106,15 @@ function generateQueryHook(
         }
     }
 
-    for (const generateMode of generateModes) {
-        const capOperation = upperCaseFirst(operation);
+    const getArgsType = () => {
+        return overrideInputType ?? `Prisma.${model}${upperCaseFirst(operation)}Args`;
+    };
 
-        const argsType = overrideInputType ?? `Prisma.${model}${capOperation}Args`;
-        const inputType = makeQueryArgsType(target, argsType);
+    const getInputType = (prefetch: boolean) => {
+        return makeQueryArgsType(target, getArgsType(), prefetch);
+    };
 
-        const infinite = generateMode.includes('Infinite');
-        const suspense = generateMode.includes('Suspense');
-        const optimistic =
-            supportOptimistic &&
-            // infinite queries are not subject to optimistic updates
-            !infinite;
-
+    const getReturnType = (optimistic: boolean) => {
         let defaultReturnType = `Prisma.${model}GetPayload<TArgs>`;
         if (optimistic) {
             defaultReturnType += '& { $optimistic?: boolean }';
@@ -111,8 +122,29 @@ function generateQueryHook(
         if (returnArray) {
             defaultReturnType = `Array<${defaultReturnType}>`;
         }
+        if (returnNullable) {
+            defaultReturnType = `(${defaultReturnType}) | null`;
+        }
 
         const returnType = overrideReturnType ?? defaultReturnType;
+        return returnType;
+    };
+
+    const capOperation = upperCaseFirst(operation);
+
+    for (const generateMode of generateModes) {
+        const argsType = getArgsType();
+        const inputType = getInputType(false);
+
+        const infinite = generateMode.includes('Infinite');
+        const suspense = generateMode.includes('Suspense');
+
+        const optimistic =
+            supportOptimistic &&
+            // infinite queries are not subject to optimistic updates
+            !infinite;
+
+        const returnType = getReturnType(optimistic);
         const optionsType = makeQueryOptions(target, 'TQueryFnData', 'TData', infinite, suspense, version);
 
         const func = sf.addFunction({
@@ -147,6 +179,58 @@ function generateQueryHook(
                 model
             )}/${operation}\`, args, options, fetch);`,
         ]);
+    }
+
+    if (generatePrefetch) {
+        const argsType = getArgsType();
+        const inputType = getInputType(true);
+        const returnType = getReturnType(false);
+
+        const modes = [
+            { mode: 'prefetch', infinite: false },
+            { mode: 'fetch', infinite: false },
+        ];
+        if (supportInfinite) {
+            modes.push({ mode: 'prefetch', infinite: true }, { mode: 'fetch', infinite: true });
+        }
+
+        for (const { mode, infinite } of modes) {
+            const optionsType = makePrefetchQueryOptions(target, 'TQueryFnData', 'TData', infinite);
+
+            const func = sf.addFunction({
+                name: `${mode}${infinite ? 'Infinite' : ''}${capOperation}${model}`,
+                typeParameters: overrideTypeParameters ?? [
+                    `TArgs extends ${argsType}`,
+                    `TQueryFnData = ${returnType} `,
+                    'TData = TQueryFnData',
+                    'TError = DefaultError',
+                ],
+                parameters: [
+                    {
+                        name: 'queryClient',
+                        type: 'QueryClient',
+                    },
+                    {
+                        name: optionalInput ? 'args?' : 'args',
+                        type: inputType,
+                    },
+                    {
+                        name: 'options?',
+                        type: optionsType,
+                    },
+                ],
+                isExported: true,
+            });
+
+            func.addStatements([
+                `const endpoint = options?.endpoint ?? DEFAULT_QUERY_ENDPOINT;`,
+                `return ${mode}${
+                    infinite ? 'Infinite' : ''
+                }ModelQuery<TQueryFnData, TData, TError>(queryClient, '${model}', \`\${endpoint}/${lowerCaseFirst(
+                    model
+                )}/${operation}\`, args, options, options?.fetch);`,
+            ]);
+        }
     }
 }
 
@@ -334,13 +418,15 @@ function generateModelHooks(
 
     sf.addStatements('/* eslint-disable */');
 
+    const generatePrefetch = options.generatePrefetch === true;
+
     const prismaImport = getPrismaClientImportSpec(outDir, options);
     sf.addImportDeclaration({
         namedImports: ['Prisma', model.name],
         isTypeOnly: true,
         moduleSpecifier: prismaImport,
     });
-    sf.addStatements(makeBaseImports(target, version));
+    sf.addStatements(makeBaseImports(target, version, generatePrefetch));
 
     // Note: delegate models don't support create and upsert operations
 
@@ -365,12 +451,14 @@ function generateModelHooks(
             model.name,
             'findMany',
             true,
+            false,
             true,
             undefined,
             undefined,
             undefined,
             true,
-            true
+            true,
+            generatePrefetch
         );
     }
 
@@ -383,12 +471,14 @@ function generateModelHooks(
             model.name,
             'findUnique',
             false,
+            true,
             false,
             undefined,
             undefined,
             undefined,
             false,
-            true
+            true,
+            generatePrefetch
         );
     }
 
@@ -402,11 +492,13 @@ function generateModelHooks(
             'findFirst',
             false,
             true,
+            true,
             undefined,
             undefined,
             undefined,
             false,
-            true
+            true,
+            generatePrefetch
         );
     }
 
@@ -451,7 +543,13 @@ function generateModelHooks(
             'aggregate',
             false,
             false,
-            `Prisma.Get${modelNameCap}AggregateType<TArgs>`
+            false,
+            `Prisma.Get${modelNameCap}AggregateType<TArgs>`,
+            undefined,
+            undefined,
+            false,
+            false,
+            generatePrefetch
         );
     }
 
@@ -535,9 +633,13 @@ function generateModelHooks(
             'groupBy',
             false,
             false,
+            false,
             returnType,
             `Prisma.SubsetIntersection<TArgs, Prisma.${useName}GroupByArgs, OrderByArg> & InputErrors`,
-            typeParameters
+            typeParameters,
+            false,
+            false,
+            generatePrefetch
         );
     }
 
@@ -550,8 +652,14 @@ function generateModelHooks(
             model.name,
             'count',
             false,
+            false,
             true,
-            `TArgs extends { select: any; } ? TArgs['select'] extends true ? number : Prisma.GetScalarType<TArgs['select'], Prisma.${modelNameCap}CountAggregateOutputType> : number`
+            `TArgs extends { select: any; } ? TArgs['select'] extends true ? number : Prisma.GetScalarType<TArgs['select'], Prisma.${modelNameCap}CountAggregateOutputType> : number`,
+            undefined,
+            undefined,
+            false,
+            false,
+            generatePrefetch
         );
     }
 
@@ -598,15 +706,24 @@ function makeGetContext(target: TargetFramework) {
     }
 }
 
-function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
+function makeBaseImports(target: TargetFramework, version: TanStackVersion, generatePrefetch: boolean) {
     const runtimeImportBase = makeRuntimeImportBase(version);
     const shared = [
         `import { useModelQuery, useInfiniteModelQuery, useModelMutation } from '${runtimeImportBase}/${target}';`,
-        `import type { PickEnumerable, CheckSelect, QueryError, ExtraQueryOptions, ExtraMutationOptions } from '${runtimeImportBase}';`,
+        `import { type PickEnumerable, type CheckSelect, type QueryError, type ExtraQueryOptions, type ExtraMutationOptions, DEFAULT_QUERY_ENDPOINT } from '${runtimeImportBase}';`,
         `import type { PolicyCrudKind } from '${RUNTIME_PACKAGE}'`,
         `import metadata from './__model_meta';`,
         `type DefaultError = QueryError;`,
     ];
+
+    if (version === 'v5' && generatePrefetch) {
+        shared.push(
+            `import { fetchModelQuery, prefetchModelQuery, fetchInfiniteModelQuery, prefetchInfiniteModelQuery } from '${runtimeImportBase}/${target}';`,
+            `import type { QueryClient, FetchQueryOptions, FetchInfiniteQueryOptions } from '@tanstack/${target}-query';`,
+            `import type { ExtraPrefetchOptions } from '${runtimeImportBase}';`
+        );
+    }
+
     switch (target) {
         case 'react': {
             const suspense =
@@ -627,7 +744,8 @@ function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
             return [
                 `import type { UseMutationOptions, UseQueryOptions, UseInfiniteQueryOptions, InfiniteData } from '@tanstack/vue-query';`,
                 `import { getHooksContext } from '${runtimeImportBase}/${target}';`,
-                `import type { MaybeRefOrGetter, ComputedRef, UnwrapRef } from 'vue';`,
+                `import type { MaybeRef, MaybeRefOrGetter, ComputedRef, UnwrapRef } from 'vue';`,
+                `import { toValue } from 'vue';`,
                 ...shared,
             ];
         }
@@ -647,10 +765,14 @@ function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
     }
 }
 
-function makeQueryArgsType(target: string, argsType: string) {
+function makeQueryArgsType(target: string, argsType: string, prefetch: boolean) {
     const type = `Prisma.SelectSubset<TArgs, ${argsType}>`;
     if (target === 'vue') {
-        return `MaybeRefOrGetter<${type}> | ComputedRef<${type}>`;
+        if (prefetch) {
+            return `MaybeRef<${type}>`;
+        } else {
+            return `MaybeRefOrGetter<${type}> | ComputedRef<${type}>`;
+        }
     } else {
         return type;
     }
@@ -701,6 +823,18 @@ function makeQueryOptions(
     }
 
     return result;
+}
+
+function makePrefetchQueryOptions(_target: string, returnType: string, dataType: string, infinite: boolean) {
+    let extraOptions = 'ExtraPrefetchOptions';
+    if (!infinite) {
+        // non-infinite queries support extra options like optimistic updates
+        extraOptions += ' & ExtraQueryOptions';
+    }
+
+    return infinite
+        ? `Omit<FetchInfiniteQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey' | 'initialPageParam'> & ${extraOptions}`
+        : `Omit<FetchQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'> & ${extraOptions}`;
 }
 
 function makeMutationOptions(target: string, returnType: string, argsType: string) {

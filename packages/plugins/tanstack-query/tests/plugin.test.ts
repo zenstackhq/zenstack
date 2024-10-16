@@ -76,6 +76,32 @@ model Foo {
         `,
     };
 
+    const makePrefetchSource = (target: string) => {
+        return {
+            name: 'prefetch.ts',
+            content: `
+            import { QueryClient } from '@tanstack/${target}-query';
+            import { prefetchFindUniquepost_Item, fetchFindUniquepost_Item, prefetchInfiniteFindManypost_Item, fetchInfiniteFindManypost_Item } from './hooks';
+
+            async function prefetch() {
+                const queryClient = new QueryClient();
+                await prefetchFindUniquepost_Item(queryClient, { where: { id: '1' } });
+                const r1 = await fetchFindUniquepost_Item(queryClient, { where: { id: '1' }, include: { author: true } });
+                console.log(r1?.author?.email);
+
+                await prefetchInfiniteFindManypost_Item(queryClient, {
+                    where: { published: true },
+                });
+                const r2 = await fetchInfiniteFindManypost_Item(queryClient, {
+                    where: { published: true },
+                    include: { author: true },
+                });
+                console.log(r2.pages[0][0].author?.email);
+            }
+            `,
+        };
+    };
+
     it('react-query run plugin v4', async () => {
         await loadSchema(
             `
@@ -106,6 +132,7 @@ plugin tanstack {
     provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
     output = '$projectRoot/hooks'
     target = 'react'
+    generatePrefetch = true
 }
 
 ${sharedModel}
@@ -132,6 +159,7 @@ ${sharedModel}
                         }
                         `,
                     },
+                    makePrefetchSource('react'),
                 ],
             }
         );
@@ -195,6 +223,7 @@ plugin tanstack {
     provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
     output = '$projectRoot/hooks'
     target = 'vue'
+    generatePrefetch = true
 }
 
 ${sharedModel}
@@ -205,7 +234,7 @@ ${sharedModel}
                 extraDependencies: ['vue@^3.3.4', '@tanstack/vue-query@latest'],
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
-                extraSourceFiles: [vueAppSource],
+                extraSourceFiles: [vueAppSource, makePrefetchSource('vue')],
             }
         );
     });
@@ -269,6 +298,7 @@ plugin tanstack {
     provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
     output = '$projectRoot/hooks'
     target = 'svelte'
+    generatePrefetch = true
 }
 
 ${sharedModel}
@@ -279,7 +309,7 @@ ${sharedModel}
                 extraDependencies: ['svelte@^3.0.0', '@tanstack/svelte-query@^5.0.0'],
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
-                extraSourceFiles: [svelteAppSource],
+                extraSourceFiles: [svelteAppSource, makePrefetchSource('svelte')],
             }
         );
     });
