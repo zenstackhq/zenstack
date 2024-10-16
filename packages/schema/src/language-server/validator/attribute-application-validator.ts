@@ -15,7 +15,13 @@ import {
     isEnum,
     isReferenceExpr,
 } from '@zenstackhq/language/ast';
-import { isDataModelFieldReference, isFutureExpr, isRelationshipField, resolved } from '@zenstackhq/sdk';
+import {
+    isDataModelFieldReference,
+    isDelegateModel,
+    isFutureExpr,
+    isRelationshipField,
+    resolved,
+} from '@zenstackhq/sdk';
 import { ValidationAcceptor, streamAst } from 'langium';
 import pluralize from 'pluralize';
 import { AstValidator } from '../types';
@@ -161,6 +167,31 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
             )
         ) {
             accept('error', `\`@@validate\` condition cannot use relation fields`, { node: condition });
+        }
+    }
+
+    @check('@@unique')
+    private _checkUnique(attr: AttributeApplication, accept: ValidationAcceptor) {
+        const fields = attr.args[0]?.value;
+        if (fields && isArrayExpr(fields)) {
+            fields.items.forEach((item) => {
+                if (!isReferenceExpr(item)) {
+                    accept('error', `Expecting a field reference`, { node: item });
+                    return;
+                }
+                if (!isDataModelField(item.target.ref)) {
+                    accept('error', `Expecting a field reference`, { node: item });
+                    return;
+                }
+
+                if (item.target.ref.$container !== attr.$container && isDelegateModel(item.target.ref.$container)) {
+                    accept('error', `Cannot use fields inherited from a polymorphic base model in \`@@unique\``, {
+                        node: item,
+                    });
+                }
+            });
+        } else {
+            accept('error', `Expected an array of field references`, { node: fields });
         }
     }
 

@@ -365,12 +365,14 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         if (this.options.processIncludeRelationPayload) {
             // use the callback in options to process the include payload, so enhancements
             // like 'policy' can do extra work (e.g., inject policy rules)
+
+            // TODO: this causes both delegate base's policy rules and concrete model's rules to be injected,
+            // which is not wrong but redundant
+
             await this.options.processIncludeRelationPayload(this.prisma, model, result, this.options, this.context);
 
-            // the callback may directly reference fields from polymorphic bases, we need to fix it
-            // into a proper hierarchy by moving base field references to the base layer relations
-            const properHierarchy = await this.buildSelectIncludeHierarchy(model, result, false);
-            result = { ...result, ...properHierarchy };
+            const properSelectIncludeHierarchy = await this.buildSelectIncludeHierarchy(model, result, false);
+            result = { ...result, ...properSelectIncludeHierarchy };
         }
 
         return result;

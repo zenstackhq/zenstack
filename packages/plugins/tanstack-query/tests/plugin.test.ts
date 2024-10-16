@@ -113,7 +113,7 @@ ${sharedModel}
             {
                 provider: 'postgresql',
                 pushDb: false,
-                extraDependencies: ['react@18.2.0', '@types/react@18.2.0', '@tanstack/react-query@^5.0.0'],
+                extraDependencies: ['react@18.2.0', '@types/react@18.2.0', '@tanstack/react-query@5.56.x'],
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
                 extraSourceFiles: [

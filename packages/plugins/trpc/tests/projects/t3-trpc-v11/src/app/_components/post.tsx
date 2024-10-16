@@ -21,7 +21,7 @@ export function LatestPost() {
         },
         { staleTime: 1000 * 60 }
     );
-    console.log(latestPost1.author.email);
+    console.log(latestPost1?.author.email);
 
     api.post.findMany.useInfiniteQuery(
         {

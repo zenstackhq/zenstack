@@ -4,7 +4,6 @@ import type { AnyTRPCRouter as AnyRouter } from '@trpc/server';
 import type { NextPageContext } from 'next';
 import { type CreateTRPCNext, createTRPCNext as _createTRPCNext } from '@trpc/next';
 import type { DeepOverrideAtPath } from './utils';
-import type { ClientType } from '../routers';
 
 export function createTRPCNext<
     TRouter extends AnyRouter,

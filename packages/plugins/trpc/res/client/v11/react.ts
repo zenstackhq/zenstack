@@ -4,7 +4,6 @@ import type { AnyTRPCRouter as AnyRouter } from '@trpc/server';
 import type { CreateTRPCReactOptions } from '@trpc/react-query/shared';
 import { type CreateTRPCReact, createTRPCReact as _createTRPCReact } from '@trpc/react-query';
 import type { DeepOverrideAtPath } from './utils';
-import type { ClientType } from '../routers';
 
 export function createTRPCReact<
     TRouter extends AnyRouter,
