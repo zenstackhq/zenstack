@@ -5,6 +5,7 @@ import {
     DbClientContract,
     FieldInfo,
     PrismaErrorCode,
+    clone,
     enumerate,
     getIdFields,
     isPrismaClientKnownRequestError,
@@ -1120,22 +1121,8 @@ class RequestHandler extends APIHandlerBase {
             throw new Error(`serializer not found for model ${model}`);
         }
 
-        const typeInfo = this.typeMap[model];
-
-        let itemsWithId: any = items;
-        if (typeInfo.idFields.length > 1 && Array.isArray(items)) {
-            itemsWithId = items.map((item: any) => {
-                return {
-                    ...item,
-                    [this.makeIdKey(typeInfo.idFields)]: this.makeCompoundId(typeInfo.idFields, item),
-                };
-            });
-        } else if (typeInfo.idFields.length > 1 && typeof items === 'object') {
-            itemsWithId = {
-                ...items,
-                [this.makeIdKey(typeInfo.idFields)]: this.makeCompoundId(typeInfo.idFields, items),
-            };
-        }
+        const itemsWithId = clone(items);
+        this.injectCompoundId(model, itemsWithId);
 
         // serialize to JSON:API structure
         const serialized = await serializer.serialize(itemsWithId, options);
@@ -1152,6 +1139,31 @@ class RequestHandler extends APIHandlerBase {
         }
 
         return result;
+    }
+
+    private injectCompoundId(model: string, items: unknown) {
+        const typeInfo = this.typeMap[lowerCaseFirst(model)];
+        if (!typeInfo) {
+            return;
+        }
+
+        // recursively traverse the entity to create synthetic ID field for models with compound ID
+        enumerate(items).forEach((item: any) => {
+            if (!item) {
+                return;
+            }
+
+            if (typeInfo.idFields.length > 1) {
+                item[this.makeIdKey(typeInfo.idFields)] = this.makeCompoundId(typeInfo.idFields, item);
+            }
+
+            for (const [key, value] of Object.entries(item)) {
+                if (typeInfo.relationships[key]) {
+                    // field is a relationship, recurse
+                    this.injectCompoundId(typeInfo.relationships[key].type, value);
+                }
+            }
+        });
     }
 
     private toPlainObject(data: any): any {

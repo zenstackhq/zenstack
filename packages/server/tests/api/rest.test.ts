@@ -1373,6 +1373,40 @@ describe('REST server tests', () => {
                             },
                         });
                     });
+
+                    it('get as relationship', async () => {
+                        const r = await handler({
+                            method: 'get',
+                            path: `/post/1`,
+                            query: { include: 'likes' },
+                            prisma,
+                        });
+
+                        expect(r.status).toBe(200);
+                        expect(r.body).toMatchObject({
+                            data: {
+                                relationships: {
+                                    likes: {
+                                        data: [{ type: 'postLike', id: `1${idDivider}user2` }],
+                                    },
+                                },
+                            },
+                            included: [
+                                expect.objectContaining({
+                                    type: 'postLike',
+                                    id: '1_user2',
+                                    attributes: {
+                                        postId: 1,
+                                        userId: 'user2',
+                                        superLike: false,
+                                    },
+                                    links: {
+                                        self: 'http://localhost/api/postLike/1_user2',
+                                    },
+                                }),
+                            ],
+                        });
+                    });
                 });
             });
 
