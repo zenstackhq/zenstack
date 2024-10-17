@@ -2,7 +2,7 @@
 /// <reference types="@types/jest" />
 
 import { CrudFailureReason, type ModelMeta } from '@zenstackhq/runtime';
-import { loadSchema, run } from '@zenstackhq/testtools';
+import { createPostgresDb, dropPostgresDb, loadSchema, run } from '@zenstackhq/testtools';
 import { Decimal } from 'decimal.js';
 import SuperJSON from 'superjson';
 import makeHandler from '../../src/api/rest';
@@ -2537,17 +2537,25 @@ describe('REST server tests', () => {
     }
     `;
         const idDivider = ':';
+        const dbName = 'restful-compound-id-custom-separator';
 
         beforeAll(async () => {
-            const params = await loadSchema(schema);
+            const params = await loadSchema(schema, {
+                provider: 'postgresql',
+                dbUrl: await createPostgresDb(dbName),
+            });
 
-            prisma = params.enhanceRaw(params.prisma, params);
+            prisma = params.prisma;
             zodSchemas = params.zodSchemas;
             modelMeta = params.modelMeta;
 
             const _handler = makeHandler({ endpoint: 'http://localhost/api', pageSize: 5, idDivider });
             handler = (args) =>
                 _handler({ ...args, zodSchemas, modelMeta, url: new URL(`http://localhost/${args.path}`) });
+        });
+
+        afterAll(async () => {
+            dropPostgresDb(dbName);
         });
 
         it('POST', async () => {
@@ -2590,7 +2598,7 @@ describe('REST server tests', () => {
 
             const r = await handler({
                 method: 'get',
-                path: '/user/user1@abc.om:COMMON_USER',
+                path: '/user/user1@abc.com:COMMON_USER',
                 query: {},
                 prisma,
             });
@@ -2606,8 +2614,14 @@ describe('REST server tests', () => {
 
             const r = await handler({
                 method: 'put',
-                path: '/user/user1@abc.om:COMMON_USER',
+                path: '/user/user1@abc.com:COMMON_USER',
                 query: {},
+                requestBody: {
+                    data: {
+                        type: 'user',
+                        attributes: { role: 'ADMIN_USER' },
+                    },
+                },
                 prisma,
             });
 

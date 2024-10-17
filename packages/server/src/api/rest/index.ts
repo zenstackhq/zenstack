@@ -213,7 +213,7 @@ class RequestHandler extends APIHandlerBase {
     }
 
     buildUrlPatterns(idDivider: string) {
-        const options = { segmentNameCharset: `a-zA-Z0-9-_~ %${idDivider}` };
+        const options = { segmentValueCharset: `a-zA-Z0-9-_~ %${idDivider}` };
         return {
             // collection operations
             collection: new UrlPattern('/:type', options),
@@ -403,7 +403,7 @@ class RequestHandler extends APIHandlerBase {
             return this.makeUnsupportedModelError(type);
         }
 
-        const args: any = { where: this.makeIdFilter(typeInfo.idFields, resourceId) };
+        const args: any = { where: this.makePrismaIdFilter(typeInfo.idFields, resourceId) };
 
         // include IDs of relation fields so that they can be serialized
         this.includeRelationshipIds(type, args, 'include');
@@ -468,7 +468,7 @@ class RequestHandler extends APIHandlerBase {
 
         select = select ?? { [relationship]: true };
         const args: any = {
-            where: this.makeIdFilter(typeInfo.idFields, resourceId),
+            where: this.makePrismaIdFilter(typeInfo.idFields, resourceId),
             select,
         };
 
@@ -526,7 +526,7 @@ class RequestHandler extends APIHandlerBase {
         }
 
         const args: any = {
-            where: this.makeIdFilter(typeInfo.idFields, resourceId),
+            where: this.makePrismaIdFilter(typeInfo.idFields, resourceId),
             select: this.makeIdSelect(typeInfo.idFields),
         };
 
@@ -765,7 +765,7 @@ class RequestHandler extends APIHandlerBase {
                 if (relationInfo.isCollection) {
                     createPayload.data[key] = {
                         connect: enumerate(data.data).map((item: any) => ({
-                            [this.makeIdKey(relationInfo.idFields)]: item.id,
+                            [this.makePrismaIdKey(relationInfo.idFields)]: item.id,
                         })),
                     };
                 } else {
@@ -774,7 +774,7 @@ class RequestHandler extends APIHandlerBase {
                     }
                     createPayload.data[key] = {
                         connect: {
-                            [this.makeIdKey(relationInfo.idFields)]: data.data.id,
+                            [this.makePrismaIdKey(relationInfo.idFields)]: data.data.id,
                         },
                     };
                 }
@@ -782,7 +782,7 @@ class RequestHandler extends APIHandlerBase {
                 // make sure ID fields are included for result serialization
                 createPayload.include = {
                     ...createPayload.include,
-                    [key]: { select: { [this.makeIdKey(relationInfo.idFields)]: true } },
+                    [key]: { select: { [this.makePrismaIdKey(relationInfo.idFields)]: true } },
                 };
             }
         }
@@ -819,7 +819,7 @@ class RequestHandler extends APIHandlerBase {
         }
 
         const updateArgs: any = {
-            where: this.makeIdFilter(typeInfo.idFields, resourceId),
+            where: this.makePrismaIdFilter(typeInfo.idFields, resourceId),
             select: {
                 ...typeInfo.idFields.reduce((acc, field) => ({ ...acc, [field.name]: true }), {}),
                 [relationship]: { select: this.makeIdSelect(relationInfo.idFields) },
@@ -854,7 +854,7 @@ class RequestHandler extends APIHandlerBase {
                 updateArgs.data = {
                     [relationship]: {
                         connect: {
-                            [this.makeIdKey(relationInfo.idFields)]: parsed.data.data.id,
+                            [this.makePrismaIdKey(relationInfo.idFields)]: parsed.data.data.id,
                         },
                     },
                 };
@@ -878,7 +878,7 @@ class RequestHandler extends APIHandlerBase {
             updateArgs.data = {
                 [relationship]: {
                     [relationVerb]: enumerate(parsed.data.data).map((item: any) =>
-                        this.makeIdFilter(relationInfo.idFields, item.id)
+                        this.makePrismaIdFilter(relationInfo.idFields, item.id)
                     ),
                 },
             };
@@ -919,7 +919,7 @@ class RequestHandler extends APIHandlerBase {
         }
 
         const updatePayload: any = {
-            where: this.makeIdFilter(typeInfo.idFields, resourceId),
+            where: this.makePrismaIdFilter(typeInfo.idFields, resourceId),
             data: { ...attributes },
         };
 
@@ -938,7 +938,7 @@ class RequestHandler extends APIHandlerBase {
                 if (relationInfo.isCollection) {
                     updatePayload.data[key] = {
                         set: enumerate(data.data).map((item: any) => ({
-                            [this.makeIdKey(relationInfo.idFields)]: item.id,
+                            [this.makePrismaIdKey(relationInfo.idFields)]: item.id,
                         })),
                     };
                 } else {
@@ -947,13 +947,13 @@ class RequestHandler extends APIHandlerBase {
                     }
                     updatePayload.data[key] = {
                         set: {
-                            [this.makeIdKey(relationInfo.idFields)]: data.data.id,
+                            [this.makePrismaIdKey(relationInfo.idFields)]: data.data.id,
                         },
                     };
                 }
                 updatePayload.include = {
                     ...updatePayload.include,
-                    [key]: { select: { [this.makeIdKey(relationInfo.idFields)]: true } },
+                    [key]: { select: { [this.makePrismaIdKey(relationInfo.idFields)]: true } },
                 };
             }
         }
@@ -972,7 +972,7 @@ class RequestHandler extends APIHandlerBase {
         }
 
         await prisma[type].delete({
-            where: this.makeIdFilter(typeInfo.idFields, resourceId),
+            where: this.makePrismaIdFilter(typeInfo.idFields, resourceId),
         });
         return {
             status: 204,
@@ -1218,12 +1218,13 @@ class RequestHandler extends APIHandlerBase {
         return r.toString();
     }
 
-    private makeIdFilter(idFields: FieldInfo[], resourceId: string) {
+    private makePrismaIdFilter(idFields: FieldInfo[], resourceId: string) {
         if (idFields.length === 1) {
             return { [idFields[0].name]: this.coerce(idFields[0].type, resourceId) };
         } else {
             return {
-                [idFields.map((idf) => idf.name).join(this.idDivider)]: idFields.reduce(
+                // TODO: support `@@id` with custom name
+                [idFields.map((idf) => idf.name).join('_')]: idFields.reduce(
                     (acc, curr, idx) => ({
                         ...acc,
                         [curr.name]: this.coerce(curr.type, resourceId.split(this.idDivider)[idx]),
@@ -1243,6 +1244,11 @@ class RequestHandler extends APIHandlerBase {
 
     private makeIdKey(idFields: FieldInfo[]) {
         return idFields.map((idf) => idf.name).join(this.idDivider);
+    }
+
+    private makePrismaIdKey(idFields: FieldInfo[]) {
+        // TODO: support `@@id` with custom name
+        return idFields.map((idf) => idf.name).join('_');
     }
 
     private makeCompoundId(idFields: FieldInfo[], item: any) {
@@ -1569,11 +1575,11 @@ class RequestHandler extends APIHandlerBase {
                 const values = value.split(',').filter((i) => i);
                 const filterValue =
                     values.length > 1
-                        ? { OR: values.map((v) => this.makeIdFilter(info.idFields, v)) }
-                        : this.makeIdFilter(info.idFields, value);
+                        ? { OR: values.map((v) => this.makePrismaIdFilter(info.idFields, v)) }
+                        : this.makePrismaIdFilter(info.idFields, value);
                 return { some: filterValue };
             } else {
-                return { is: this.makeIdFilter(info.idFields, value) };
+                return { is: this.makePrismaIdFilter(info.idFields, value) };
             }
         } else {
             const coerced = this.coerce(fieldInfo.type, value);
