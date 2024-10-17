@@ -22,19 +22,6 @@ import { LoggerConfig, Response } from '../../types';
 import { APIHandlerBase, RequestContext } from '../base';
 import { logWarning, registerCustomSerializers } from '../utils';
 
-const urlPatterns = {
-    // collection operations
-    collection: new UrlPattern('/:type'),
-    // single resource operations
-    single: new UrlPattern('/:type/:id'),
-    // related entity fetching
-    fetchRelationship: new UrlPattern('/:type/:id/:relationship'),
-    // relationship operations
-    relationship: new UrlPattern('/:type/:id/relationships/:relationship'),
-};
-
-export const idDivider = '_';
-
 /**
  * Request handler options
  */
@@ -52,6 +39,12 @@ export type Options = {
      * Defaults to 100. Set to Infinity to disable pagination.
      */
     pageSize?: number;
+
+    /**
+     * The divider used to separate compound ID fields in the URL.
+     * Defaults to '_'.
+     */
+    idDivider?: string;
 };
 
 type RelationshipInfo = {
@@ -209,9 +202,28 @@ class RequestHandler extends APIHandlerBase {
 
     // all known types and their metadata
     private typeMap: Record<string, ModelInfo>;
+    public idDivider;
+
+    private urlPatterns;
 
     constructor(private readonly options: Options) {
         super();
+        this.idDivider = options.idDivider ?? '_';
+        this.urlPatterns = this.buildUrlPatterns(this.idDivider);
+    }
+
+    buildUrlPatterns(idDivider: string) {
+        const options = { segmentValueCharset: `a-zA-Z0-9-_~ %${idDivider}` };
+        return {
+            // collection operations
+            collection: new UrlPattern('/:type', options),
+            // single resource operations
+            single: new UrlPattern('/:type/:id', options),
+            // related entity fetching
+            fetchRelationship: new UrlPattern('/:type/:id/:relationship', options),
+            // relationship operations
+            relationship: new UrlPattern('/:type/:id/relationships/:relationship', options),
+        };
     }
 
     async handleRequest({
@@ -245,19 +257,19 @@ class RequestHandler extends APIHandlerBase {
         try {
             switch (method) {
                 case 'GET': {
-                    let match = urlPatterns.single.match(path);
+                    let match = this.urlPatterns.single.match(path);
                     if (match) {
                         // single resource read
                         return await this.processSingleRead(prisma, match.type, match.id, query);
                     }
 
-                    match = urlPatterns.fetchRelationship.match(path);
+                    match = this.urlPatterns.fetchRelationship.match(path);
                     if (match) {
                         // fetch related resource(s)
                         return await this.processFetchRelated(prisma, match.type, match.id, match.relationship, query);
                     }
 
-                    match = urlPatterns.relationship.match(path);
+                    match = this.urlPatterns.relationship.match(path);
                     if (match) {
                         // read relationship
                         return await this.processReadRelationship(
@@ -269,7 +281,7 @@ class RequestHandler extends APIHandlerBase {
                         );
                     }
 
-                    match = urlPatterns.collection.match(path);
+                    match = this.urlPatterns.collection.match(path);
                     if (match) {
                         // collection read
                         return await this.processCollectionRead(prisma, match.type, query);
@@ -283,13 +295,13 @@ class RequestHandler extends APIHandlerBase {
                         return this.makeError('invalidPayload');
                     }
 
-                    let match = urlPatterns.collection.match(path);
+                    let match = this.urlPatterns.collection.match(path);
                     if (match) {
                         // resource creation
                         return await this.processCreate(prisma, match.type, query, requestBody, modelMeta, zodSchemas);
                     }
 
-                    match = urlPatterns.relationship.match(path);
+                    match = this.urlPatterns.relationship.match(path);
                     if (match) {
                         // relationship creation (collection relationship only)
                         return await this.processRelationshipCRUD(
@@ -313,7 +325,7 @@ class RequestHandler extends APIHandlerBase {
                         return this.makeError('invalidPayload');
                     }
 
-                    let match = urlPatterns.single.match(path);
+                    let match = this.urlPatterns.single.match(path);
                     if (match) {
                         // resource update
                         return await this.processUpdate(
@@ -327,7 +339,7 @@ class RequestHandler extends APIHandlerBase {
                         );
                     }
 
-                    match = urlPatterns.relationship.match(path);
+                    match = this.urlPatterns.relationship.match(path);
                     if (match) {
                         // relationship update
                         return await this.processRelationshipCRUD(
@@ -345,13 +357,13 @@ class RequestHandler extends APIHandlerBase {
                 }
 
                 case 'DELETE': {
-                    let match = urlPatterns.single.match(path);
+                    let match = this.urlPatterns.single.match(path);
                     if (match) {
                         // resource deletion
                         return await this.processDelete(prisma, match.type, match.id);
                     }
 
-                    match = urlPatterns.relationship.match(path);
+                    match = this.urlPatterns.relationship.match(path);
                     if (match) {
                         // relationship deletion (collection relationship only)
                         return await this.processRelationshipCRUD(
@@ -391,7 +403,7 @@ class RequestHandler extends APIHandlerBase {
             return this.makeUnsupportedModelError(type);
         }
 
-        const args: any = { where: this.makeIdFilter(typeInfo.idFields, resourceId) };
+        const args: any = { where: this.makePrismaIdFilter(typeInfo.idFields, resourceId) };
 
         // include IDs of relation fields so that they can be serialized
         this.includeRelationshipIds(type, args, 'include');
@@ -456,7 +468,7 @@ class RequestHandler extends APIHandlerBase {
 
         select = select ?? { [relationship]: true };
         const args: any = {
-            where: this.makeIdFilter(typeInfo.idFields, resourceId),
+            where: this.makePrismaIdFilter(typeInfo.idFields, resourceId),
             select,
         };
 
@@ -514,7 +526,7 @@ class RequestHandler extends APIHandlerBase {
         }
 
         const args: any = {
-            where: this.makeIdFilter(typeInfo.idFields, resourceId),
+            where: this.makePrismaIdFilter(typeInfo.idFields, resourceId),
             select: this.makeIdSelect(typeInfo.idFields),
         };
 
@@ -753,7 +765,7 @@ class RequestHandler extends APIHandlerBase {
                 if (relationInfo.isCollection) {
                     createPayload.data[key] = {
                         connect: enumerate(data.data).map((item: any) => ({
-                            [this.makeIdKey(relationInfo.idFields)]: item.id,
+                            [this.makePrismaIdKey(relationInfo.idFields)]: item.id,
                         })),
                     };
                 } else {
@@ -762,7 +774,7 @@ class RequestHandler extends APIHandlerBase {
                     }
                     createPayload.data[key] = {
                         connect: {
-                            [this.makeIdKey(relationInfo.idFields)]: data.data.id,
+                            [this.makePrismaIdKey(relationInfo.idFields)]: data.data.id,
                         },
                     };
                 }
@@ -770,7 +782,7 @@ class RequestHandler extends APIHandlerBase {
                 // make sure ID fields are included for result serialization
                 createPayload.include = {
                     ...createPayload.include,
-                    [key]: { select: { [this.makeIdKey(relationInfo.idFields)]: true } },
+                    [key]: { select: { [this.makePrismaIdKey(relationInfo.idFields)]: true } },
                 };
             }
         }
@@ -807,7 +819,7 @@ class RequestHandler extends APIHandlerBase {
         }
 
         const updateArgs: any = {
-            where: this.makeIdFilter(typeInfo.idFields, resourceId),
+            where: this.makePrismaIdFilter(typeInfo.idFields, resourceId),
             select: {
                 ...typeInfo.idFields.reduce((acc, field) => ({ ...acc, [field.name]: true }), {}),
                 [relationship]: { select: this.makeIdSelect(relationInfo.idFields) },
@@ -842,7 +854,7 @@ class RequestHandler extends APIHandlerBase {
                 updateArgs.data = {
                     [relationship]: {
                         connect: {
-                            [this.makeIdKey(relationInfo.idFields)]: parsed.data.data.id,
+                            [this.makePrismaIdKey(relationInfo.idFields)]: parsed.data.data.id,
                         },
                     },
                 };
@@ -866,7 +878,7 @@ class RequestHandler extends APIHandlerBase {
             updateArgs.data = {
                 [relationship]: {
                     [relationVerb]: enumerate(parsed.data.data).map((item: any) =>
-                        this.makeIdFilter(relationInfo.idFields, item.id)
+                        this.makePrismaIdFilter(relationInfo.idFields, item.id)
                     ),
                 },
             };
@@ -907,7 +919,7 @@ class RequestHandler extends APIHandlerBase {
         }
 
         const updatePayload: any = {
-            where: this.makeIdFilter(typeInfo.idFields, resourceId),
+            where: this.makePrismaIdFilter(typeInfo.idFields, resourceId),
             data: { ...attributes },
         };
 
@@ -926,7 +938,7 @@ class RequestHandler extends APIHandlerBase {
                 if (relationInfo.isCollection) {
                     updatePayload.data[key] = {
                         set: enumerate(data.data).map((item: any) => ({
-                            [this.makeIdKey(relationInfo.idFields)]: item.id,
+                            [this.makePrismaIdKey(relationInfo.idFields)]: item.id,
                         })),
                     };
                 } else {
@@ -935,13 +947,13 @@ class RequestHandler extends APIHandlerBase {
                     }
                     updatePayload.data[key] = {
                         set: {
-                            [this.makeIdKey(relationInfo.idFields)]: data.data.id,
+                            [this.makePrismaIdKey(relationInfo.idFields)]: data.data.id,
                         },
                     };
                 }
                 updatePayload.include = {
                     ...updatePayload.include,
-                    [key]: { select: { [this.makeIdKey(relationInfo.idFields)]: true } },
+                    [key]: { select: { [this.makePrismaIdKey(relationInfo.idFields)]: true } },
                 };
             }
         }
@@ -960,7 +972,7 @@ class RequestHandler extends APIHandlerBase {
         }
 
         await prisma[type].delete({
-            where: this.makeIdFilter(typeInfo.idFields, resourceId),
+            where: this.makePrismaIdFilter(typeInfo.idFields, resourceId),
         });
         return {
             status: 204,
@@ -1110,7 +1122,7 @@ class RequestHandler extends APIHandlerBase {
         if (ids.length === 0) {
             return undefined;
         } else {
-            return data[ids.map((id) => id.name).join(idDivider)];
+            return data[ids.map((id) => id.name).join(this.idDivider)];
         }
     }
 
@@ -1206,15 +1218,16 @@ class RequestHandler extends APIHandlerBase {
         return r.toString();
     }
 
-    private makeIdFilter(idFields: FieldInfo[], resourceId: string) {
+    private makePrismaIdFilter(idFields: FieldInfo[], resourceId: string) {
         if (idFields.length === 1) {
             return { [idFields[0].name]: this.coerce(idFields[0].type, resourceId) };
         } else {
             return {
-                [idFields.map((idf) => idf.name).join(idDivider)]: idFields.reduce(
+                // TODO: support `@@id` with custom name
+                [idFields.map((idf) => idf.name).join('_')]: idFields.reduce(
                     (acc, curr, idx) => ({
                         ...acc,
-                        [curr.name]: this.coerce(curr.type, resourceId.split(idDivider)[idx]),
+                        [curr.name]: this.coerce(curr.type, resourceId.split(this.idDivider)[idx]),
                     }),
                     {}
                 ),
@@ -1230,11 +1243,16 @@ class RequestHandler extends APIHandlerBase {
     }
 
     private makeIdKey(idFields: FieldInfo[]) {
-        return idFields.map((idf) => idf.name).join(idDivider);
+        return idFields.map((idf) => idf.name).join(this.idDivider);
+    }
+
+    private makePrismaIdKey(idFields: FieldInfo[]) {
+        // TODO: support `@@id` with custom name
+        return idFields.map((idf) => idf.name).join('_');
     }
 
     private makeCompoundId(idFields: FieldInfo[], item: any) {
-        return idFields.map((idf) => item[idf.name]).join(idDivider);
+        return idFields.map((idf) => item[idf.name]).join(this.idDivider);
     }
 
     private includeRelationshipIds(model: string, args: any, mode: 'select' | 'include') {
@@ -1557,11 +1575,11 @@ class RequestHandler extends APIHandlerBase {
                 const values = value.split(',').filter((i) => i);
                 const filterValue =
                     values.length > 1
-                        ? { OR: values.map((v) => this.makeIdFilter(info.idFields, v)) }
-                        : this.makeIdFilter(info.idFields, value);
+                        ? { OR: values.map((v) => this.makePrismaIdFilter(info.idFields, v)) }
+                        : this.makePrismaIdFilter(info.idFields, value);
                 return { some: filterValue };
             } else {
-                return { is: this.makeIdFilter(info.idFields, value) };
+                return { is: this.makePrismaIdFilter(info.idFields, value) };
             }
         } else {
             const coerced = this.coerce(fieldInfo.type, value);
