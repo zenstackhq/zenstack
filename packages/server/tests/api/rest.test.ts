@@ -85,7 +85,7 @@ describe('REST server tests', () => {
             zodSchemas = params.zodSchemas;
             modelMeta = params.modelMeta;
 
-            const _handler = makeHandler({ endpoint: 'http://localhost/api', pageSize: 5, idDivider });
+            const _handler = makeHandler({ endpoint: 'http://localhost/api', pageSize: 5 });
             handler = (args) =>
                 _handler({ ...args, zodSchemas, modelMeta, url: new URL(`http://localhost/${args.path}`) });
         });
@@ -2519,6 +2519,99 @@ describe('REST server tests', () => {
             deserialized = SuperJSON.deserialize({ json: r.body, meta: serializationMeta });
             const included = deserialized.included[0];
             expect(Buffer.isBuffer(included.attributes.bytes)).toBeTruthy();
+        });
+    });
+
+    describe('REST server tests - compound id with custom separator', () => {
+        const schema = `
+    enum Role {
+        COMMON_USER
+        ADMIN_USER
+    }
+
+    model User {
+        email String
+        role Role
+
+        @@id([email, role])
+    }
+    `;
+        const idDivider = ':';
+
+        beforeAll(async () => {
+            const params = await loadSchema(schema);
+
+            prisma = params.enhanceRaw(params.prisma, params);
+            zodSchemas = params.zodSchemas;
+            modelMeta = params.modelMeta;
+
+            const _handler = makeHandler({ endpoint: 'http://localhost/api', pageSize: 5, idDivider });
+            handler = (args) =>
+                _handler({ ...args, zodSchemas, modelMeta, url: new URL(`http://localhost/${args.path}`) });
+        });
+
+        it('POST', async () => {
+            const r = await handler({
+                method: 'post',
+                path: '/user',
+                query: {},
+                requestBody: {
+                    data: {
+                        type: 'user',
+                        attributes: { email: 'user1@abc.com', role: 'COMMON_USER' },
+                    },
+                },
+                prisma,
+            });
+
+            expect(r.status).toBe(201);
+        });
+
+        it('GET', async () => {
+            await prisma.user.create({
+                data: { email: 'user1@abc.com', role: 'COMMON_USER' },
+            });
+
+            const r = await handler({
+                method: 'get',
+                path: '/user',
+                query: {},
+                prisma,
+            });
+
+            expect(r.status).toBe(200);
+            expect(r.body.data).toHaveLength(1);
+        });
+
+        it('GET single', async () => {
+            await prisma.user.create({
+                data: { email: 'user1@abc.com', role: 'COMMON_USER' },
+            });
+
+            const r = await handler({
+                method: 'get',
+                path: '/user/user1@abc.om:COMMON_USER',
+                query: {},
+                prisma,
+            });
+
+            expect(r.status).toBe(200);
+            expect(r.body.data.attributes.email).toBe('user1@abc.com');
+        });
+
+        it('PUT', async () => {
+            await prisma.user.create({
+                data: { email: 'user1@abc.com', role: 'COMMON_USER' },
+            });
+
+            const r = await handler({
+                method: 'put',
+                path: '/user/user1@abc.om:COMMON_USER',
+                query: {},
+                prisma,
+            });
+
+            expect(r.status).toBe(200);
         });
     });
 });

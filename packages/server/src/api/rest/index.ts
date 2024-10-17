@@ -22,17 +22,6 @@ import { LoggerConfig, Response } from '../../types';
 import { APIHandlerBase, RequestContext } from '../base';
 import { logWarning, registerCustomSerializers } from '../utils';
 
-const urlPatterns = {
-    // collection operations
-    collection: new UrlPattern('/:type'),
-    // single resource operations
-    single: new UrlPattern('/:type/:id'),
-    // related entity fetching
-    fetchRelationship: new UrlPattern('/:type/:id/:relationship'),
-    // relationship operations
-    relationship: new UrlPattern('/:type/:id/relationships/:relationship'),
-};
-
 /**
  * Request handler options
  */
@@ -215,9 +204,26 @@ class RequestHandler extends APIHandlerBase {
     private typeMap: Record<string, ModelInfo>;
     public idDivider;
 
+    private urlPatterns;
+
     constructor(private readonly options: Options) {
         super();
         this.idDivider = options.idDivider ?? '_';
+        this.urlPatterns = this.buildUrlPatterns(this.idDivider);
+    }
+
+    buildUrlPatterns(idDivider: string) {
+        const options = { segmentNameCharset: `a-zA-Z0-9-_~ %${idDivider}` };
+        return {
+            // collection operations
+            collection: new UrlPattern('/:type', options),
+            // single resource operations
+            single: new UrlPattern('/:type/:id', options),
+            // related entity fetching
+            fetchRelationship: new UrlPattern('/:type/:id/:relationship', options),
+            // relationship operations
+            relationship: new UrlPattern('/:type/:id/relationships/:relationship', options),
+        };
     }
 
     async handleRequest({
@@ -251,19 +257,19 @@ class RequestHandler extends APIHandlerBase {
         try {
             switch (method) {
                 case 'GET': {
-                    let match = urlPatterns.single.match(path);
+                    let match = this.urlPatterns.single.match(path);
                     if (match) {
                         // single resource read
                         return await this.processSingleRead(prisma, match.type, match.id, query);
                     }
 
-                    match = urlPatterns.fetchRelationship.match(path);
+                    match = this.urlPatterns.fetchRelationship.match(path);
                     if (match) {
                         // fetch related resource(s)
                         return await this.processFetchRelated(prisma, match.type, match.id, match.relationship, query);
                     }
 
-                    match = urlPatterns.relationship.match(path);
+                    match = this.urlPatterns.relationship.match(path);
                     if (match) {
                         // read relationship
                         return await this.processReadRelationship(
@@ -275,7 +281,7 @@ class RequestHandler extends APIHandlerBase {
                         );
                     }
 
-                    match = urlPatterns.collection.match(path);
+                    match = this.urlPatterns.collection.match(path);
                     if (match) {
                         // collection read
                         return await this.processCollectionRead(prisma, match.type, query);
@@ -289,13 +295,13 @@ class RequestHandler extends APIHandlerBase {
                         return this.makeError('invalidPayload');
                     }
 
-                    let match = urlPatterns.collection.match(path);
+                    let match = this.urlPatterns.collection.match(path);
                     if (match) {
                         // resource creation
                         return await this.processCreate(prisma, match.type, query, requestBody, modelMeta, zodSchemas);
                     }
 
-                    match = urlPatterns.relationship.match(path);
+                    match = this.urlPatterns.relationship.match(path);
                     if (match) {
                         // relationship creation (collection relationship only)
                         return await this.processRelationshipCRUD(
@@ -319,7 +325,7 @@ class RequestHandler extends APIHandlerBase {
                         return this.makeError('invalidPayload');
                     }
 
-                    let match = urlPatterns.single.match(path);
+                    let match = this.urlPatterns.single.match(path);
                     if (match) {
                         // resource update
                         return await this.processUpdate(
@@ -333,7 +339,7 @@ class RequestHandler extends APIHandlerBase {
                         );
                     }
 
-                    match = urlPatterns.relationship.match(path);
+                    match = this.urlPatterns.relationship.match(path);
                     if (match) {
                         // relationship update
                         return await this.processRelationshipCRUD(
@@ -351,13 +357,13 @@ class RequestHandler extends APIHandlerBase {
                 }
 
                 case 'DELETE': {
-                    let match = urlPatterns.single.match(path);
+                    let match = this.urlPatterns.single.match(path);
                     if (match) {
                         // resource deletion
                         return await this.processDelete(prisma, match.type, match.id);
                     }
 
-                    match = urlPatterns.relationship.match(path);
+                    match = this.urlPatterns.relationship.match(path);
                     if (match) {
                         // relationship deletion (collection relationship only)
                         return await this.processRelationshipCRUD(
