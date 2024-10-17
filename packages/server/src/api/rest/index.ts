@@ -33,8 +33,6 @@ const urlPatterns = {
     relationship: new UrlPattern('/:type/:id/relationships/:relationship'),
 };
 
-export const idDivider = '_';
-
 /**
  * Request handler options
  */
@@ -52,6 +50,12 @@ export type Options = {
      * Defaults to 100. Set to Infinity to disable pagination.
      */
     pageSize?: number;
+
+    /**
+     * The divider used to separate compound ID fields in the URL.
+     * Defaults to '_'.
+     */
+    idDivider?: string;
 };
 
 type RelationshipInfo = {
@@ -209,9 +213,11 @@ class RequestHandler extends APIHandlerBase {
 
     // all known types and their metadata
     private typeMap: Record<string, ModelInfo>;
+    public idDivider;
 
     constructor(private readonly options: Options) {
         super();
+        this.idDivider = options.idDivider ?? '_';
     }
 
     async handleRequest({
@@ -1110,7 +1116,7 @@ class RequestHandler extends APIHandlerBase {
         if (ids.length === 0) {
             return undefined;
         } else {
-            return data[ids.map((id) => id.name).join(idDivider)];
+            return data[ids.map((id) => id.name).join(this.idDivider)];
         }
     }
 
@@ -1211,10 +1217,10 @@ class RequestHandler extends APIHandlerBase {
             return { [idFields[0].name]: this.coerce(idFields[0].type, resourceId) };
         } else {
             return {
-                [idFields.map((idf) => idf.name).join(idDivider)]: idFields.reduce(
+                [idFields.map((idf) => idf.name).join(this.idDivider)]: idFields.reduce(
                     (acc, curr, idx) => ({
                         ...acc,
-                        [curr.name]: this.coerce(curr.type, resourceId.split(idDivider)[idx]),
+                        [curr.name]: this.coerce(curr.type, resourceId.split(this.idDivider)[idx]),
                     }),
                     {}
                 ),
@@ -1230,11 +1236,11 @@ class RequestHandler extends APIHandlerBase {
     }
 
     private makeIdKey(idFields: FieldInfo[]) {
-        return idFields.map((idf) => idf.name).join(idDivider);
+        return idFields.map((idf) => idf.name).join(this.idDivider);
     }
 
     private makeCompoundId(idFields: FieldInfo[], item: any) {
-        return idFields.map((idf) => item[idf.name]).join(idDivider);
+        return idFields.map((idf) => item[idf.name]).join(this.idDivider);
     }
 
     private includeRelationshipIds(model: string, args: any, mode: 'select' | 'include') {

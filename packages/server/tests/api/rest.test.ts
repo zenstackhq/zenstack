@@ -5,7 +5,9 @@ import { CrudFailureReason, type ModelMeta } from '@zenstackhq/runtime';
 import { loadSchema, run } from '@zenstackhq/testtools';
 import { Decimal } from 'decimal.js';
 import SuperJSON from 'superjson';
-import makeHandler, { idDivider } from '../../src/api/rest';
+import makeHandler from '../../src/api/rest';
+
+const idDivider = '_';
 
 describe('REST server tests', () => {
     let prisma: any;
@@ -83,7 +85,7 @@ describe('REST server tests', () => {
             zodSchemas = params.zodSchemas;
             modelMeta = params.modelMeta;
 
-            const _handler = makeHandler({ endpoint: 'http://localhost/api', pageSize: 5 });
+            const _handler = makeHandler({ endpoint: 'http://localhost/api', pageSize: 5, idDivider });
             handler = (args) =>
                 _handler({ ...args, zodSchemas, modelMeta, url: new URL(`http://localhost/${args.path}`) });
         });
