@@ -191,9 +191,6 @@ export function resolveImportUri(imp: ModelImport): URI | undefined {
             ? path.dirname(imp.$container.$document.uri.fsPath)
             : process.cwd();
         imp.path = findNodeModulesFile(imp.path, contextPath) ?? imp.path;
-        if (imp.path) {
-            console.log('Loaded import from:', imp.path);
-        }
     }
 
     const dirUri = Utils.dirname(getDocument(imp).uri);
