@@ -45,6 +45,12 @@ export type Options = {
      * Defaults to '_'.
      */
     idDivider?: string;
+
+    /**
+     * The charset used for URL segment values. Defaults to `a-zA-Z0-9-_~ %`.
+     * If the idDivider is set to a different value, it should be included in the charset.
+     */
+    urlSegmentNameCharset?: string;
 };
 
 type RelationshipInfo = {
@@ -202,18 +208,21 @@ class RequestHandler extends APIHandlerBase {
 
     // all known types and their metadata
     private typeMap: Record<string, ModelInfo>;
-    public idDivider;
+
+    // divider used to separate compound ID fields
+    private idDivider;
 
     private urlPatterns;
 
     constructor(private readonly options: Options) {
         super();
         this.idDivider = options.idDivider ?? '_';
-        this.urlPatterns = this.buildUrlPatterns(this.idDivider);
+        const segmentCharset = options.urlSegmentNameCharset ?? 'a-zA-Z0-9-_~ %';
+        this.urlPatterns = this.buildUrlPatterns(this.idDivider, segmentCharset);
     }
 
-    buildUrlPatterns(idDivider: string) {
-        const options = { segmentValueCharset: `a-zA-Z0-9-_~ %${idDivider}` };
+    buildUrlPatterns(idDivider: string, urlSegmentNameCharset: string) {
+        const options = { segmentValueCharset: urlSegmentNameCharset };
         return {
             // collection operations
             collection: new UrlPattern('/:type', options),

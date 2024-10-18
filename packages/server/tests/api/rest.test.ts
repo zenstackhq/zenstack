@@ -2549,7 +2549,12 @@ describe('REST server tests', () => {
             zodSchemas = params.zodSchemas;
             modelMeta = params.modelMeta;
 
-            const _handler = makeHandler({ endpoint: 'http://localhost/api', pageSize: 5, idDivider });
+            const _handler = makeHandler({
+                endpoint: 'http://localhost/api',
+                pageSize: 5,
+                idDivider,
+                urlSegmentNameCharset: 'a-zA-Z0-9-_~ %@.',
+            });
             handler = (args) =>
                 _handler({ ...args, zodSchemas, modelMeta, url: new URL(`http://localhost/${args.path}`) });
         });
