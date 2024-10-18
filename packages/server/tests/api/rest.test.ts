@@ -2532,6 +2532,7 @@ describe('REST server tests', () => {
     model User {
         email String
         role Role
+        enabled Boolean @default(true)
 
         @@id([email, role])
     }
@@ -2553,7 +2554,7 @@ describe('REST server tests', () => {
                 endpoint: 'http://localhost/api',
                 pageSize: 5,
                 idDivider,
-                urlSegmentNameCharset: 'a-zA-Z0-9-_~ %@.',
+                urlSegmentNameCharset: 'a-zA-Z0-9-_~ %@.:',
             });
             handler = (args) =>
                 _handler({ ...args, zodSchemas, modelMeta, url: new URL(`http://localhost/${args.path}`) });
@@ -2624,13 +2625,14 @@ describe('REST server tests', () => {
                 requestBody: {
                     data: {
                         type: 'user',
-                        attributes: { role: 'ADMIN_USER' },
+                        attributes: { enabled: false },
                     },
                 },
                 prisma,
             });
 
             expect(r.status).toBe(200);
+            expect(r.body.data.attributes.enabled).toBe(false);
         });
     });
 });

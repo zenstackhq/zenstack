@@ -92,6 +92,8 @@ const FilterOperations = [
 
 type FilterOperationType = (typeof FilterOperations)[number] | undefined;
 
+const prismaIdDivider = '_';
+
 registerCustomSerializers();
 
 /**
@@ -216,7 +218,7 @@ class RequestHandler extends APIHandlerBase {
 
     constructor(private readonly options: Options) {
         super();
-        this.idDivider = options.idDivider ?? '_';
+        this.idDivider = options.idDivider ?? prismaIdDivider;
         const segmentCharset = options.urlSegmentNameCharset ?? 'a-zA-Z0-9-_~ %';
         this.urlPatterns = this.buildUrlPatterns(this.idDivider, segmentCharset);
     }
@@ -1131,7 +1133,7 @@ class RequestHandler extends APIHandlerBase {
         if (ids.length === 0) {
             return undefined;
         } else {
-            return data[ids.map((id) => id.name).join(this.idDivider)];
+            return data[this.makeIdKey(ids)];
         }
     }
 
@@ -1233,7 +1235,7 @@ class RequestHandler extends APIHandlerBase {
         } else {
             return {
                 // TODO: support `@@id` with custom name
-                [idFields.map((idf) => idf.name).join('_')]: idFields.reduce(
+                [idFields.map((idf) => idf.name).join(prismaIdDivider)]: idFields.reduce(
                     (acc, curr, idx) => ({
                         ...acc,
                         [curr.name]: this.coerce(curr.type, resourceId.split(this.idDivider)[idx]),
@@ -1257,7 +1259,7 @@ class RequestHandler extends APIHandlerBase {
 
     private makePrismaIdKey(idFields: FieldInfo[]) {
         // TODO: support `@@id` with custom name
-        return idFields.map((idf) => idf.name).join('_');
+        return idFields.map((idf) => idf.name).join(prismaIdDivider);
     }
 
     private makeCompoundId(idFields: FieldInfo[], item: any) {
