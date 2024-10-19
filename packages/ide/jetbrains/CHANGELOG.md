@@ -4,6 +4,12 @@
 
 ### Fixed
 
+-   ZModel validation issues importing zmodel files from npm packages.
+
+## 2.6.0
+
+### Fixed
+
 -   ZModel validation issues when accessing fields defined in a base model from `future().` or `this.`.
 
 ## 2.5.0
