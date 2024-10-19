@@ -2561,7 +2561,7 @@ describe('REST server tests', () => {
         });
 
         afterAll(async () => {
-            dropPostgresDb(dbName);
+            await dropPostgresDb(dbName);
         });
 
         it('POST', async () => {
