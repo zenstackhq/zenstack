@@ -47,10 +47,11 @@ export type Options = {
     idDivider?: string;
 
     /**
-     * The charset used for URL segment values. Defaults to `a-zA-Z0-9-_~ %`.
-     * If the idDivider is set to a different value, it should be included in the charset.
+     * The charset used for URL segment values. Defaults to `a-zA-Z0-9-_~ %`. You can change it if your entity's ID values
+     * allow different characters. Specifically, if your models use compound IDs and the idDivider is set to a different value,
+     * it should be included in the charset.
      */
-    urlSegmentNameCharset?: string;
+    urlSegmentCharset?: string;
 };
 
 type RelationshipInfo = {
@@ -219,7 +220,7 @@ class RequestHandler extends APIHandlerBase {
     constructor(private readonly options: Options) {
         super();
         this.idDivider = options.idDivider ?? prismaIdDivider;
-        const segmentCharset = options.urlSegmentNameCharset ?? 'a-zA-Z0-9-_~ %';
+        const segmentCharset = options.urlSegmentCharset ?? 'a-zA-Z0-9-_~ %';
         this.urlPatterns = this.buildUrlPatterns(this.idDivider, segmentCharset);
     }
 
