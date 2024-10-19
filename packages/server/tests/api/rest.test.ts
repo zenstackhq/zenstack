@@ -2561,6 +2561,9 @@ describe('REST server tests', () => {
         });
 
         afterAll(async () => {
+            if (prisma) {
+                await prisma.$disconnect();
+            }
             await dropPostgresDb(dbName);
         });
 
