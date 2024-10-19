@@ -2,10 +2,12 @@
 /// <reference types="@types/jest" />
 
 import { CrudFailureReason, type ModelMeta } from '@zenstackhq/runtime';
-import { loadSchema, run } from '@zenstackhq/testtools';
+import { createPostgresDb, dropPostgresDb, loadSchema, run } from '@zenstackhq/testtools';
 import { Decimal } from 'decimal.js';
 import SuperJSON from 'superjson';
-import makeHandler, { idDivider } from '../../src/api/rest';
+import makeHandler from '../../src/api/rest';
+
+const idDivider = '_';
 
 describe('REST server tests', () => {
     let prisma: any;
@@ -2517,6 +2519,123 @@ describe('REST server tests', () => {
             deserialized = SuperJSON.deserialize({ json: r.body, meta: serializationMeta });
             const included = deserialized.included[0];
             expect(Buffer.isBuffer(included.attributes.bytes)).toBeTruthy();
+        });
+    });
+
+    describe('REST server tests - compound id with custom separator', () => {
+        const schema = `
+    enum Role {
+        COMMON_USER
+        ADMIN_USER
+    }
+
+    model User {
+        email String
+        role Role
+        enabled Boolean @default(true)
+
+        @@id([email, role])
+    }
+    `;
+        const idDivider = ':';
+        const dbName = 'restful-compound-id-custom-separator';
+
+        beforeAll(async () => {
+            const params = await loadSchema(schema, {
+                provider: 'postgresql',
+                dbUrl: await createPostgresDb(dbName),
+            });
+
+            prisma = params.prisma;
+            zodSchemas = params.zodSchemas;
+            modelMeta = params.modelMeta;
+
+            const _handler = makeHandler({
+                endpoint: 'http://localhost/api',
+                pageSize: 5,
+                idDivider,
+                urlSegmentCharset: 'a-zA-Z0-9-_~ %@.:',
+            });
+            handler = (args) =>
+                _handler({ ...args, zodSchemas, modelMeta, url: new URL(`http://localhost/${args.path}`) });
+        });
+
+        afterAll(async () => {
+            if (prisma) {
+                await prisma.$disconnect();
+            }
+            await dropPostgresDb(dbName);
+        });
+
+        it('POST', async () => {
+            const r = await handler({
+                method: 'post',
+                path: '/user',
+                query: {},
+                requestBody: {
+                    data: {
+                        type: 'user',
+                        attributes: { email: 'user1@abc.com', role: 'COMMON_USER' },
+                    },
+                },
+                prisma,
+            });
+
+            expect(r.status).toBe(201);
+        });
+
+        it('GET', async () => {
+            await prisma.user.create({
+                data: { email: 'user1@abc.com', role: 'COMMON_USER' },
+            });
+
+            const r = await handler({
+                method: 'get',
+                path: '/user',
+                query: {},
+                prisma,
+            });
+
+            expect(r.status).toBe(200);
+            expect(r.body.data).toHaveLength(1);
+        });
+
+        it('GET single', async () => {
+            await prisma.user.create({
+                data: { email: 'user1@abc.com', role: 'COMMON_USER' },
+            });
+
+            const r = await handler({
+                method: 'get',
+                path: '/user/user1@abc.com:COMMON_USER',
+                query: {},
+                prisma,
+            });
+
+            expect(r.status).toBe(200);
+            expect(r.body.data.attributes.email).toBe('user1@abc.com');
+        });
+
+        it('PUT', async () => {
+            await prisma.user.create({
+                data: { email: 'user1@abc.com', role: 'COMMON_USER' },
+            });
+
+            const r = await handler({
+                method: 'put',
+                path: '/user/user1@abc.com:COMMON_USER',
+                query: {},
+                requestBody: {
+                    data: {
+                        type: 'user',
+                        attributes: { enabled: false },
+                    },
+                },
+                prisma,
+            });
+
+            expect(r.status).toBe(200);
+            expect(r.body.data.attributes.enabled).toBe(false);
         });
     });
 });
