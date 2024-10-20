@@ -451,7 +451,7 @@ describe('Data Model Validation Tests', () => {
                 aId String
             }
         `)
-        ).toMatchObject(errorLike(`Both "fields" and "references" must be provided`));
+        ).toMatchObject(errorLike(`"fields" and "references" must be provided together`));
 
         // one-to-one inconsistent attribute
         expect(
@@ -541,7 +541,7 @@ describe('Data Model Validation Tests', () => {
         `)
         ).toMatchObject(
             errorLike(
-                `Field for one side of relation must carry @relation attribute with both "fields" and "references" fields`
+                `Field for one side of relation must carry @relation attribute with both "fields" and "references"`
             )
         );
 

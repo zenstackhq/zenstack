@@ -7,13 +7,7 @@ import {
     isEnum,
     isStringLiteral,
 } from '@zenstackhq/language/ast';
-import {
-    getLiteral,
-    getModelFieldsWithBases,
-    getModelIdFields,
-    getModelUniqueFields,
-    isDelegateModel,
-} from '@zenstackhq/sdk';
+import { getModelFieldsWithBases, getModelIdFields, getModelUniqueFields, isDelegateModel } from '@zenstackhq/sdk';
 import { AstNode, DiagnosticInfo, ValidationAcceptor, getDocument } from 'langium';
 import { findUpInheritance } from '../../utils/ast-utils';
 import { IssueCodes, SCALAR_TYPES } from '../constants';
@@ -147,15 +141,15 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             }
         }
 
+        if (!fields && !references) {
+            return { attr: relAttr, name, fields, references, valid: true };
+        }
+
         if (!fields || !references) {
-            if (this.isSelfRelation(field, name)) {
-                // self relations are partial
-                // https://www.prisma.io/docs/concepts/components/prisma-schema/relations/self-relations
-            } else {
-                if (accept) {
-                    accept('error', `Both "fields" and "references" must be provided`, { node: relAttr });
-                }
+            if (accept) {
+                accept('error', `"fields" and "references" must be provided together`, { node: relAttr });
             }
+            // }
         } else {
             // validate "fields" and "references" typing consistency
             if (fields.length !== references.length) {
@@ -203,31 +197,10 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         return { attr: relAttr, name, fields, references, valid };
     }
 
-    private isSelfRelation(field: DataModelField, relationName?: string) {
+    private isSelfRelation(field: DataModelField, _relationName?: string) {
         if (field.type.reference?.ref === field.$container) {
             // field directly references back to its type
             return true;
-        }
-
-        if (relationName) {
-            // field's relation points to another type, and that type's opposite relation field
-            // points back
-            const oppositeModel = field.type.reference?.ref as DataModel;
-            if (oppositeModel) {
-                const oppositeModelFields = getModelFieldsWithBases(oppositeModel);
-                for (const oppositeField of oppositeModelFields) {
-                    // find the opposite relation with the matching name
-                    const relAttr = oppositeField.attributes.find((a) => a.decl.ref?.name === '@relation');
-                    if (relAttr) {
-                        const relNameExpr = relAttr.args.find((a) => !a.name || a.name === 'name');
-                        const relName = getLiteral<string>(relNameExpr?.value);
-                        if (relName === relationName && oppositeField.type.reference?.ref === field.$container) {
-                            // found an opposite relation field that points back to this field's type
-                            return true;
-                        }
-                    }
-                }
-            }
         }
 
         return false;
@@ -333,7 +306,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                     if (!this.isSelfRelation(f, thisRelation.name)) {
                         accept(
                             'error',
-                            'Field for one side of relation must carry @relation attribute with both "fields" and "references" fields',
+                            'Field for one side of relation must carry @relation attribute with both "fields" and "references"',
                             { node: f }
                         );
                     }
