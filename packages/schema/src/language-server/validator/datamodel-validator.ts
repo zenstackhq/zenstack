@@ -197,13 +197,8 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         return { attr: relAttr, name, fields, references, valid };
     }
 
-    private isSelfRelation(field: DataModelField, _relationName?: string) {
-        if (field.type.reference?.ref === field.$container) {
-            // field directly references back to its type
-            return true;
-        }
-
-        return false;
+    private isSelfRelation(field: DataModelField) {
+        return field.type.reference?.ref === field.$container;
     }
 
     private validateRelationField(contextModel: DataModel, field: DataModelField, accept: ValidationAcceptor) {
