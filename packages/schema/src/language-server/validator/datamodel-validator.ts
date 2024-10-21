@@ -149,7 +149,6 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             if (accept) {
                 accept('error', `"fields" and "references" must be provided together`, { node: relAttr });
             }
-            // }
         } else {
             // validate "fields" and "references" typing consistency
             if (fields.length !== references.length) {
