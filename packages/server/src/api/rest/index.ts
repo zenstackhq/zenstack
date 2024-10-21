@@ -266,8 +266,6 @@ class RequestHandler extends APIHandlerBase {
             path = '/' + path;
         }
 
-        path = decodeURIComponent(path);
-
         try {
             switch (method) {
                 case 'GET': {
@@ -1233,15 +1231,16 @@ class RequestHandler extends APIHandlerBase {
     }
 
     private makePrismaIdFilter(idFields: FieldInfo[], resourceId: string) {
+        const decodedId = decodeURIComponent(resourceId);
         if (idFields.length === 1) {
-            return { [idFields[0].name]: this.coerce(idFields[0].type, resourceId) };
+            return { [idFields[0].name]: this.coerce(idFields[0].type, decodedId) };
         } else {
             return {
                 // TODO: support `@@id` with custom name
                 [idFields.map((idf) => idf.name).join(prismaIdDivider)]: idFields.reduce(
                     (acc, curr, idx) => ({
                         ...acc,
-                        [curr.name]: this.coerce(curr.type, resourceId.split(this.idDivider)[idx]),
+                        [curr.name]: this.coerce(curr.type, decodedId.split(this.idDivider)[idx]),
                     }),
                     {}
                 ),
