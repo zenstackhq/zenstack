@@ -266,6 +266,8 @@ class RequestHandler extends APIHandlerBase {
             path = '/' + path;
         }
 
+        path = decodeURIComponent(path);
+
         try {
             switch (method) {
                 case 'GET': {
