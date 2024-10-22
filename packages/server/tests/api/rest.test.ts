@@ -1461,7 +1461,21 @@ describe('REST server tests', () => {
                     expect(r.status).toBe(201);
                     expect(r.body).toMatchObject({
                         jsonapi: { version: '1.1' },
-                        data: { type: 'user', id: 'user1', attributes: { email: 'user1@abc.com' } },
+                        data: {
+                            type: 'user',
+                            id: 'user1',
+                            attributes: { email: 'user1@abc.com' },
+                            relationships: {
+                                posts: {
+                                    links: {
+                                        self: 'http://localhost/api/user/user1/relationships/posts',
+                                        related: 'http://localhost/api/user/user1/posts',
+                                    },
+                                    data: [],
+                                },
+                            },
+                            links: { self: 'http://localhost/api/user/user1' },
+                        },
                     });
                 });
 

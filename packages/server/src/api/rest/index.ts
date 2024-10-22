@@ -799,6 +799,9 @@ class RequestHandler extends APIHandlerBase {
             }
         }
 
+        // include IDs of relation fields so that they can be serialized.
+        this.includeRelationshipIds(type, createPayload, 'include');
+
         const entity = await prisma[type].create(createPayload);
         return {
             status: 201,
@@ -971,7 +974,6 @@ class RequestHandler extends APIHandlerBase {
         }
 
         // include IDs of relation fields so that they can be serialized.
-        // This ensures valid relationships are included in the result payload.
         this.includeRelationshipIds(type, updatePayload, 'include');
 
         const entity = await prisma[type].update(updatePayload);
