@@ -305,6 +305,40 @@ describe('REST server tests', () => {
                     });
                 });
 
+                it('returns an empty data array when loading empty related resources', async () => {
+                    // Create a user first
+                    await prisma.user.create({
+                        data: { myId: 'user1', email: 'user1@abc.com' },
+                    });
+
+                    const r = await handler({
+                        method: 'get',
+                        path: '/user/user1',
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(200);
+                    expect(r.body).toMatchObject({
+                        data: {
+                            type: 'user',
+                            id: 'user1',
+                            attributes: { email: 'user1@abc.com' },
+                            links: {
+                                self: 'http://localhost/api/user/user1',
+                            },
+                            relationships: {
+                                posts: {
+                                    links: {
+                                        self: 'http://localhost/api/user/user1/relationships/posts',
+                                        related: 'http://localhost/api/user/user1/posts',
+                                    },
+                                    data: [],
+                                },
+                            },
+                        },
+                    });
+                });
+
                 it('fetches a related resource with a compound ID', async () => {
                     await prisma.user.create({
                         data: {
@@ -1427,7 +1461,21 @@ describe('REST server tests', () => {
                     expect(r.status).toBe(201);
                     expect(r.body).toMatchObject({
                         jsonapi: { version: '1.1' },
-                        data: { type: 'user', id: 'user1', attributes: { email: 'user1@abc.com' } },
+                        data: {
+                            type: 'user',
+                            id: 'user1',
+                            attributes: { email: 'user1@abc.com' },
+                            relationships: {
+                                posts: {
+                                    links: {
+                                        self: 'http://localhost/api/user/user1/relationships/posts',
+                                        related: 'http://localhost/api/user/user1/posts',
+                                    },
+                                    data: [],
+                                },
+                            },
+                            links: { self: 'http://localhost/api/user/user1' },
+                        },
                     });
                 });
 
@@ -1779,6 +1827,54 @@ describe('REST server tests', () => {
                                         { type: 'post', id: 1 },
                                         { type: 'post', id: 2 },
                                     ],
+                                },
+                            },
+                        },
+                    });
+                });
+
+                it("returns an empty data list in relationships if it's empty", async () => {
+                    await prisma.user.create({
+                        data: {
+                            myId: 'user1',
+                            email: 'user1@abc.com',
+                        },
+                    });
+
+                    const r = await handler({
+                        method: 'put',
+                        path: '/user/user1',
+                        query: {},
+                        requestBody: {
+                            data: {
+                                type: 'user',
+                                attributes: { email: 'user2@abc.com' },
+                            },
+                        },
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(200);
+                    expect(r.body).toMatchObject({
+                        links: {
+                            self: 'http://localhost/api/user/user1',
+                        },
+                        data: {
+                            type: 'user',
+                            id: 'user1',
+                            attributes: {
+                                email: 'user2@abc.com',
+                            },
+                            links: {
+                                self: 'http://localhost/api/user/user1',
+                            },
+                            relationships: {
+                                posts: {
+                                    links: {
+                                        self: 'http://localhost/api/user/user1/relationships/posts',
+                                        related: 'http://localhost/api/user/user1/posts',
+                                    },
+                                    data: [],
                                 },
                             },
                         },
