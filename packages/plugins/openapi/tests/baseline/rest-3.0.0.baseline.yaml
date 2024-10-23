@@ -3143,14 +3143,6 @@ components:
                             type: string
                         attributes:
                             type: object
-                            required:
-                                - postId
-                                - userId
-                            properties:
-                                postId:
-                                    type: string
-                                userId:
-                                    type: string
                         relationships:
                             type: object
                             properties:
@@ -3178,13 +3170,6 @@ components:
                             type: string
                         type:
                             type: string
-                        attributes:
-                            type: object
-                            properties:
-                                postId:
-                                    type: string
-                                userId:
-                                    type: string
                         relationships:
                             type: object
                             properties:
