@@ -847,7 +847,8 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
 
     private generateModelEntity(model: DataModel, mode: 'read' | 'create' | 'update'): OAPI.SchemaObject {
         const idFields = model.fields.filter((f) => isIdField(f));
-        // For compound ids, each component is also exposed as a separate fields for read operations
+        // For compound ids each component is also exposed as a separate fields for read operations,
+        // but not required for write operations
         const fields =
             idFields.length > 1 && mode === 'read' ? model.fields : model.fields.filter((f) => !isIdField(f));
 
