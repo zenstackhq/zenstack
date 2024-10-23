@@ -74,7 +74,16 @@ describe('REST server tests', () => {
         superLike Boolean
         post Post @relation(fields: [postId], references: [id])
         user User @relation(fields: [userId], references: [myId])
+        likeInfos PostLikeInfo[]
         @@id([postId, userId])
+    }
+
+    model PostLikeInfo {
+        id Int @id @default(autoincrement())
+        text String
+        postId Int
+        userId String
+        postLike PostLike @relation(fields: [postId, userId], references: [postId, userId])
     }
     `;
 
@@ -1758,6 +1767,32 @@ describe('REST server tests', () => {
                                 type: 'postLike',
                                 id: `1${idDivider}user1`,
                                 attributes: { userId: 'user1', postId: 1, superLike: false },
+                            },
+                        },
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(201);
+                });
+
+                it('create an entity related to an entity with compound id', async () => {
+                    await prisma.user.create({ data: { myId: 'user1', email: 'user1@abc.com' } });
+                    await prisma.post.create({ data: { id: 1, title: 'Post1' } });
+                    await prisma.postLike.create({ data: { userId: 'user1', postId: 1, superLike: false } });
+
+                    const r = await handler({
+                        method: 'post',
+                        path: '/postLikeInfo',
+                        query: {},
+                        requestBody: {
+                            data: {
+                                type: 'postLikeInfo',
+                                attributes: { text: 'LikeInfo1' },
+                                relationships: {
+                                    postLike: {
+                                        data: { type: 'postLike', id: `1${idDivider}user1` },
+                                    },
+                                },
                             },
                         },
                         prisma,
