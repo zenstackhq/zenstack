@@ -723,7 +723,7 @@ class RequestHandler extends APIHandlerBase {
         if (parsed.data.relationships) {
             for (const [key, data] of Object.entries<any>(parsed.data.relationships)) {
                 const typeInfo = this.typeMap[key];
-                if (typeInfo.idFields.length > 1) {
+                if (typeInfo && typeInfo.idFields.length > 1) {
                     typeInfo.idFields.forEach((field, index) => {
                         attributes[field.name] = this.coerce(field.type, data.data.id.split(this.idDivider)[index]);
                     });
@@ -773,7 +773,7 @@ class RequestHandler extends APIHandlerBase {
             // Remove attributes that are present in compound id relationships, as they are not expected by Prisma
             for (const [key] of Object.entries<any>(relationships)) {
                 const typeInfo = this.typeMap[key];
-                if (typeInfo.idFields.length > 1) {
+                if (typeInfo && typeInfo.idFields.length > 1) {
                     typeInfo.idFields.forEach((field) => {
                         delete attributes[field.name];
                     });
