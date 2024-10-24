@@ -6,11 +6,12 @@ import { AppRouteRequestHandlerOptions } from '.';
 import { RPCApiHandler } from '../api';
 import { loadAssets } from '../shared';
 
-type Context = { params: Promise<{ path: string[] }> };
+type Context = { params: Promise<{ path: string[] }> | { path: string[] } };
 
 /**
  * Creates a Next.js 13 "app dir" API route request handler which encapsulates Prisma CRUD operations.
  *
+ * @remarks Since Next.js 15, `context.params` is asynchronous and must be awaited.
  * @param options Options for initialization
  * @returns An API route request handler
  */
@@ -27,9 +28,15 @@ export default function factory(
             return NextResponse.json({ message: 'unable to get prisma from request context' }, { status: 500 });
         }
 
+        let params: Context['params'];
         const url = new URL(req.url);
-        const params = await context.params;
         const query = Object.fromEntries(url.searchParams);
+
+        try {
+            params = await context.params;
+        } catch {
+            return NextResponse.json({ message: 'Failed to resolve request parameters' }, { status: 500 });
+        }
 
         if (!params.path) {
             return NextResponse.json(
