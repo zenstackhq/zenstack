@@ -1236,11 +1236,11 @@ class RequestHandler extends APIHandlerBase {
         return r.toString();
     }
 
-    private makePrismaIdFilter(idFields: FieldInfo[], resourceId: string) {
+    private makePrismaIdFilter(idFields: FieldInfo[], resourceId: string, nested: boolean = true) {
         const decodedId = decodeURIComponent(resourceId);
         if (idFields.length === 1) {
             return { [idFields[0].name]: this.coerce(idFields[0].type, decodedId) };
-        } else {
+        } else if (nested) {
             return {
                 // TODO: support `@@id` with custom name
                 [idFields.map((idf) => idf.name).join(prismaIdDivider)]: idFields.reduce(
@@ -1251,6 +1251,14 @@ class RequestHandler extends APIHandlerBase {
                     {}
                 ),
             };
+        } else {
+            return idFields.reduce(
+                (acc, curr, idx) => ({
+                    ...acc,
+                    [curr.name]: this.coerce(curr.type, decodedId.split(this.idDivider)[idx]),
+                }),
+                {}
+            );
         }
     }
 
@@ -1598,7 +1606,7 @@ class RequestHandler extends APIHandlerBase {
                         : this.makePrismaIdFilter(info.idFields, value);
                 return { some: filterValue };
             } else {
-                return { is: this.makePrismaIdFilter(info.idFields, value) };
+                return { is: this.makePrismaIdFilter(info.idFields, value, false) };
             }
         } else {
             const coerced = this.coerce(fieldInfo.type, value);
