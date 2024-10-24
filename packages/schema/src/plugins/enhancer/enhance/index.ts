@@ -542,9 +542,13 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         // remove discriminator field from the create/update input because discriminator cannot be set directly
         const typeName = typeAlias.getName();
 
-        const concreteModelNames = delegateInfo.map(([_, concretes]) => concretes.flatMap((c) => c.name));
+        const delegateModelNames = delegateInfo.map(([delegate]) => delegate.name);
+        const concreteModelNames = delegateInfo
+            .map(([_, concretes]) => concretes.flatMap((c) => c.name))
+            .flatMap((name) => name);
+        const allModelNames = [...new Set([...delegateModelNames, ...concreteModelNames])];
         const concreteCreateUpdateInputRegex = new RegExp(
-            `^(${concreteModelNames.join('|')})(Unchecked)?(Create|Update).*Input$`
+            `^(${allModelNames.join('|')})(Unchecked)?(Create|Update).*Input$`
         );
 
         const match = typeName.match(concreteCreateUpdateInputRegex);
