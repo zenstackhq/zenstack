@@ -6,7 +6,7 @@ import { AppRouteRequestHandlerOptions } from '.';
 import { RPCApiHandler } from '../api';
 import { loadAssets } from '../shared';
 
-type Context = { params: { path: string[] } };
+type Context = { params: Promise<{ path: string[] }> };
 
 /**
  * Creates a Next.js 13 "app dir" API route request handler which encapsulates Prisma CRUD operations.
@@ -28,9 +28,10 @@ export default function factory(
         }
 
         const url = new URL(req.url);
+        const params = await context.params;
         const query = Object.fromEntries(url.searchParams);
 
-        if (!context.params.path) {
+        if (!params.path) {
             return NextResponse.json(
                 { message: 'missing path parameter' },
                 {
@@ -38,7 +39,7 @@ export default function factory(
                 }
             );
         }
-        const path = context.params.path.join('/');
+        const path = params.path.join('/');
 
         let requestBody: unknown;
         if (req.body) {
