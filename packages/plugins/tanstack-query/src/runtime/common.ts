@@ -111,6 +111,11 @@ export type ExtraQueryOptions = {
 };
 
 /**
+ * Extra prefetch options.
+ */
+export type ExtraPrefetchOptions = Pick<APIContext, 'endpoint' | 'fetch'>;
+
+/**
  * Context type for configuring the hooks.
  */
 export type APIContext = {

@@ -6,13 +6,16 @@ import {
     useQueryClient,
     type CreateInfiniteQueryOptions,
     type CreateQueryOptions,
+    type FetchInfiniteQueryOptions,
+    type FetchQueryOptions,
     type InfiniteData,
     type MutationOptions,
+    type QueryClient,
     type StoreOrVal,
 } from '@tanstack/svelte-query-v5';
 import { ModelMeta } from '@zenstackhq/runtime/cross';
 import { getContext, setContext } from 'svelte';
-import { Readable, derived } from 'svelte/store';
+import { derived, Readable } from 'svelte/store';
 import {
     APIContext,
     DEFAULT_QUERY_ENDPOINT,
@@ -57,7 +60,7 @@ export function getHooksContext() {
  * @param args The request args object, URL-encoded and appended as "?q=" parameter
  * @param options The svelte-query options object
  * @param fetch The fetch function to use for sending the HTTP request
- * @returns useQuery hook
+ * @returns createQuery hook
  */
 export function useModelQuery<TQueryFnData, TData, TError>(
     model: string,
@@ -95,13 +98,74 @@ export function useModelQuery<TQueryFnData, TData, TError>(
 }
 
 /**
+ * Prefetches a query.
+ *
+ * @param queryClient The query client instance.
+ * @param model The name of the model under query.
+ * @param url The request URL.
+ * @param args The request args object, URL-encoded and appended as "?q=" parameter
+ * @param options The svelte-query options object
+ * @param fetch The fetch function to use for sending the HTTP request
+ */
+export function prefetchModelQuery<TQueryFnData, TData, TError>(
+    queryClient: QueryClient,
+    model: string,
+    url: string,
+    args?: unknown,
+    options?: Omit<FetchQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions,
+    fetch?: FetchFn
+) {
+    const queryKey = getQueryKey(model, url, args, {
+        infinite: false,
+        optimisticUpdate: options?.optimisticUpdate !== false,
+    });
+    const queryFn = () => fetcher<TQueryFnData, false>(makeUrl(url, args), undefined, fetch, false);
+    return queryClient.prefetchQuery({
+        queryKey,
+        queryFn,
+        ...options,
+    });
+}
+
+/**
+ * Fetches a query.
+ *
+ * @param queryClient The query client instance.
+ * @param model The name of the model under query.
+ * @param url The request URL.
+ * @param args The request args object, URL-encoded and appended as "?q=" parameter
+ * @param options The svelte-query options object
+ * @param fetch The fetch function to use for sending the HTTP request
+ */
+export function fetchModelQuery<TQueryFnData, TData, TError>(
+    queryClient: QueryClient,
+    model: string,
+    url: string,
+    args?: unknown,
+    options?: Omit<FetchQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions,
+    fetch?: FetchFn
+) {
+    const queryKey = getQueryKey(model, url, args, {
+        infinite: false,
+        optimisticUpdate: options?.optimisticUpdate !== false,
+    });
+    const queryFn = () => fetcher<TQueryFnData, false>(makeUrl(url, args), undefined, fetch, false);
+    return queryClient.fetchQuery({
+        queryKey,
+        queryFn,
+        ...options,
+    });
+}
+
+/**
  * Creates a svelte-query infinite query.
  *
  * @param model The name of the model under query.
  * @param url The request URL.
  * @param args The initial request args object, URL-encoded and appended as "?q=" parameter
  * @param options The svelte-query infinite query options object
- * @returns useQuery hook
+ * @param fetch The fetch function to use for sending the HTTP request
+ * @returns createInfiniteQuery hook
  */
 export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
     model: string,
@@ -143,6 +207,64 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
     return createInfiniteQuery<TQueryFnData, TError, InfiniteData<TData>>(mergedOpt);
 }
 
+/**
+ * Prefetches an infinite query.
+ *
+ * @param queryClient The query client instance.
+ * @param model The name of the model under query.
+ * @param url The request URL.
+ * @param args The initial request args object, URL-encoded and appended as "?q=" parameter
+ * @param options The svelte-query infinite query options object
+ * @param fetch The fetch function to use for sending the HTTP request
+ */
+export function prefetchInfiniteModelQuery<TQueryFnData, TData, TError>(
+    queryClient: QueryClient,
+    model: string,
+    url: string,
+    args: unknown,
+    options?: Omit<FetchInfiniteQueryOptions<TQueryFnData, TError, TData>, 'queryKey' | 'initialPageParam'>,
+    fetch?: FetchFn
+) {
+    const queryKey = getQueryKey(model, url, args, { infinite: true, optimisticUpdate: false });
+    const queryFn = ({ pageParam }: { pageParam: unknown }) =>
+        fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);
+    return queryClient.prefetchInfiniteQuery({
+        queryKey,
+        queryFn,
+        initialPageParam: args,
+        ...options,
+    } as FetchInfiniteQueryOptions<TQueryFnData, TError, TData>);
+}
+
+/**
+ * Fetches an infinite query.
+ *
+ * @param queryClient The query client instance.
+ * @param model The name of the model under query.
+ * @param url The request URL.
+ * @param args The initial request args object, URL-encoded and appended as "?q=" parameter
+ * @param options The svelte-query infinite query options object
+ * @param fetch The fetch function to use for sending the HTTP request
+ */
+export function fetchInfiniteModelQuery<TQueryFnData, TData, TError>(
+    queryClient: QueryClient,
+    model: string,
+    url: string,
+    args: unknown,
+    options?: Omit<FetchInfiniteQueryOptions<TQueryFnData, TError, TData>, 'queryKey' | 'initialPageParam'>,
+    fetch?: FetchFn
+) {
+    const queryKey = getQueryKey(model, url, args, { infinite: true, optimisticUpdate: false });
+    const queryFn = ({ pageParam }: { pageParam: unknown }) =>
+        fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);
+    return queryClient.fetchInfiniteQuery({
+        queryKey,
+        queryFn,
+        initialPageParam: args,
+        ...options,
+    } as FetchInfiniteQueryOptions<TQueryFnData, TError, TData>);
+}
+
 function isStore<T>(opt: unknown): opt is Readable<T> {
     return typeof (opt as any)?.subscribe === 'function';
 }
@@ -155,7 +277,9 @@ function isStore<T>(opt: unknown): opt is Readable<T> {
  * @param modelMeta The model metadata.
  * @param url The request URL.
  * @param options The svelte-query options.
- * @returns useMutation hooks
+ * @param fetch The fetch function to use for sending the HTTP request
+ * @param checkReadBack Whether to check for read back errors and return undefined if found.
+ * @returns createMutation hook
  */
 export function useModelMutation<
     TArgs,
