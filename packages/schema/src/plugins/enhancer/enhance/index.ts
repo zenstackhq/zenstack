@@ -515,15 +515,11 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         return source;
     }
 
-    private removeCreateFromDelegateInput(
-        typeAlias: TypeAliasDeclaration,
-        delegateModels: DelegateInfo,
-        source: string
-    ) {
+    private removeCreateFromDelegateInput(typeAlias: TypeAliasDeclaration, delegateInfo: DelegateInfo, source: string) {
         // remove create/connectOrCreate/upsert fields from delegate's input types because
         // delegate models cannot be created directly
         const typeName = typeAlias.getName();
-        const delegateModelNames = delegateModels.map(([delegate]) => delegate.name);
+        const delegateModelNames = delegateInfo.map(([delegate]) => delegate.name);
         const delegateCreateUpdateInputRegex = new RegExp(
             `^(${delegateModelNames.join('|')})(Unchecked)?(Create|Update).*Input$`
         );
@@ -538,17 +534,24 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         return source;
     }
 
-    private readonly ModelCreateUpdateInputRegex = /(\S+)(Unchecked)?(Create|Update).*Input/;
-
     private removeDiscriminatorFromConcreteInput(
         typeAlias: TypeAliasDeclaration,
-        _delegateInfo: DelegateInfo,
+        delegateInfo: DelegateInfo,
         source: string
     ) {
         // remove discriminator field from the create/update input because discriminator cannot be set directly
         const typeName = typeAlias.getName();
 
-        const match = typeName.match(this.ModelCreateUpdateInputRegex);
+        const delegateModelNames = delegateInfo.map(([delegate]) => delegate.name);
+        const concreteModelNames = delegateInfo
+            .map(([_, concretes]) => concretes.flatMap((c) => c.name))
+            .flatMap((name) => name);
+        const allModelNames = [...new Set([...delegateModelNames, ...concreteModelNames])];
+        const concreteCreateUpdateInputRegex = new RegExp(
+            `^(${allModelNames.join('|')})(Unchecked)?(Create|Update).*Input$`
+        );
+
+        const match = typeName.match(concreteCreateUpdateInputRegex);
         if (match) {
             const modelName = match[1];
             const dataModel = this.model.declarations.find(
