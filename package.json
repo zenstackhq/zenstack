@@ -1,6 +1,6 @@
 {
     "name": "zenstack-monorepo",
-    "version": "2.7.3",
+    "version": "2.7.4",
     "description": "",
     "scripts": {
         "build": "pnpm -r build",
