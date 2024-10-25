@@ -1602,8 +1602,8 @@ class RequestHandler extends APIHandlerBase {
                 const values = value.split(',').filter((i) => i);
                 const filterValue =
                     values.length > 1
-                        ? { OR: values.map((v) => this.makePrismaIdFilter(info.idFields, v)) }
-                        : this.makePrismaIdFilter(info.idFields, value);
+                        ? { OR: values.map((v) => this.makePrismaIdFilter(info.idFields, v, false)) }
+                        : this.makePrismaIdFilter(info.idFields, value, false);
                 return { some: filterValue };
             } else {
                 return { is: this.makePrismaIdFilter(info.idFields, value, false) };
