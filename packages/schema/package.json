@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "FullStack enhancement for Prisma ORM: seamless integration from database to UI",
-    "version": "2.7.3",
+    "version": "2.7.4",
     "author": {
         "name": "ZenStack Team"
     },
