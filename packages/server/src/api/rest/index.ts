@@ -720,8 +720,9 @@ class RequestHandler extends APIHandlerBase {
         const attributes: any = parsed.data.attributes;
 
         if (attributes) {
-            const schemaName = `${upperCaseFirst(type)}${upperCaseFirst(mode)}Schema`;
-            // zod-parse attributes if a schema is provided
+            // use the zod schema (that only contains non-relation fields) to validate the payload,
+            // if available
+            const schemaName = `${upperCaseFirst(type)}${upperCaseFirst(mode)}ScalarSchema`;
             const payloadSchema = zodSchemas?.models?.[schemaName];
             if (payloadSchema) {
                 const parsed = payloadSchema.safeParse(attributes);
@@ -756,6 +757,7 @@ class RequestHandler extends APIHandlerBase {
         }
 
         const { error, attributes, relationships } = this.processRequestBody(type, requestBody, zodSchemas, 'create');
+
         if (error) {
             return error;
         }
@@ -776,18 +778,16 @@ class RequestHandler extends APIHandlerBase {
 
                 if (relationInfo.isCollection) {
                     createPayload.data[key] = {
-                        connect: enumerate(data.data).map((item: any) => ({
-                            [this.makePrismaIdKey(relationInfo.idFields)]: item.id,
-                        })),
+                        connect: enumerate(data.data).map((item: any) =>
+                            this.makeIdConnect(relationInfo.idFields, item.id)
+                        ),
                     };
                 } else {
                     if (typeof data.data !== 'object') {
                         return this.makeError('invalidRelationData');
                     }
                     createPayload.data[key] = {
-                        connect: {
-                            [this.makePrismaIdKey(relationInfo.idFields)]: data.data.id,
-                        },
+                        connect: this.makeIdConnect(relationInfo.idFields, data.data.id),
                     };
                 }
 
@@ -868,9 +868,7 @@ class RequestHandler extends APIHandlerBase {
             } else {
                 updateArgs.data = {
                     [relationship]: {
-                        connect: {
-                            [this.makePrismaIdKey(relationInfo.idFields)]: parsed.data.data.id,
-                        },
+                        connect: this.makeIdConnect(relationInfo.idFields, parsed.data.data.id),
                     },
                 };
             }
@@ -1236,11 +1234,11 @@ class RequestHandler extends APIHandlerBase {
         return r.toString();
     }
 
-    private makePrismaIdFilter(idFields: FieldInfo[], resourceId: string) {
+    private makePrismaIdFilter(idFields: FieldInfo[], resourceId: string, nested: boolean = true) {
         const decodedId = decodeURIComponent(resourceId);
         if (idFields.length === 1) {
             return { [idFields[0].name]: this.coerce(idFields[0].type, decodedId) };
-        } else {
+        } else if (nested) {
             return {
                 // TODO: support `@@id` with custom name
                 [idFields.map((idf) => idf.name).join(prismaIdDivider)]: idFields.reduce(
@@ -1251,6 +1249,14 @@ class RequestHandler extends APIHandlerBase {
                     {}
                 ),
             };
+        } else {
+            return idFields.reduce(
+                (acc, curr, idx) => ({
+                    ...acc,
+                    [curr.name]: this.coerce(curr.type, decodedId.split(this.idDivider)[idx]),
+                }),
+                {}
+            );
         }
     }
 
@@ -1259,6 +1265,22 @@ class RequestHandler extends APIHandlerBase {
             throw this.errors.noId;
         }
         return idFields.reduce((acc, curr) => ({ ...acc, [curr.name]: true }), {});
+    }
+
+    private makeIdConnect(idFields: FieldInfo[], id: string | number) {
+        if (idFields.length === 1) {
+            return { [idFields[0].name]: this.coerce(idFields[0].type, id) };
+        } else {
+            return {
+                [this.makePrismaIdKey(idFields)]: idFields.reduce(
+                    (acc, curr, idx) => ({
+                        ...acc,
+                        [curr.name]: this.coerce(curr.type, `${id}`.split(this.idDivider)[idx]),
+                    }),
+                    {}
+                ),
+            };
+        }
     }
 
     private makeIdKey(idFields: FieldInfo[]) {
@@ -1594,11 +1616,11 @@ class RequestHandler extends APIHandlerBase {
                 const values = value.split(',').filter((i) => i);
                 const filterValue =
                     values.length > 1
-                        ? { OR: values.map((v) => this.makePrismaIdFilter(info.idFields, v)) }
-                        : this.makePrismaIdFilter(info.idFields, value);
+                        ? { OR: values.map((v) => this.makePrismaIdFilter(info.idFields, v, false)) }
+                        : this.makePrismaIdFilter(info.idFields, value, false);
                 return { some: filterValue };
             } else {
-                return { is: this.makePrismaIdFilter(info.idFields, value) };
+                return { is: this.makePrismaIdFilter(info.idFields, value, false) };
             }
         } else {
             const coerced = this.coerce(fieldInfo.type, value);

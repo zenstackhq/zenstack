@@ -10,6 +10,7 @@ import {
     isEnumFieldReference,
     isForeignKeyField,
     isFromStdlib,
+    isIdField,
     parseOptionAsStrings,
     resolvePath,
 } from '@zenstackhq/sdk';
@@ -291,8 +292,10 @@ export class ZodSchemaGenerator {
         sf.replaceWithText((writer) => {
             const scalarFields = model.fields.filter(
                 (field) =>
+                    // id fields are always included
+                    isIdField(field) ||
                     // regular fields only
-                    !isDataModel(field.type.reference?.ref) && !isForeignKeyField(field)
+                    (!isDataModel(field.type.reference?.ref) && !isForeignKeyField(field))
             );
 
             const relations = model.fields.filter((field) => isDataModel(field.type.reference?.ref));
