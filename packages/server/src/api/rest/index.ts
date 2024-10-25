@@ -719,21 +719,10 @@ class RequestHandler extends APIHandlerBase {
         const parsed = this.createUpdatePayloadSchema.parse(body);
         const attributes: any = parsed.data.attributes;
 
-        // Map in the compound id relationships as attributes, as they are expected by the zod schema
-        if (parsed.data.relationships) {
-            for (const [key, data] of Object.entries<any>(parsed.data.relationships)) {
-                const typeInfo = this.typeMap[key];
-                if (typeInfo && typeInfo.idFields.length > 1) {
-                    typeInfo.idFields.forEach((field, index) => {
-                        attributes[field.name] = this.coerce(field.type, data.data.id.split(this.idDivider)[index]);
-                    });
-                }
-            }
-        }
-
         if (attributes) {
-            const schemaName = `${upperCaseFirst(type)}${upperCaseFirst(mode)}Schema`;
-            // zod-parse attributes if a schema is provided
+            // use the zod schema (that only contains non-relation fields) to validate the payload,
+            // if available
+            const schemaName = `${upperCaseFirst(type)}${upperCaseFirst(mode)}ScalarSchema`;
             const payloadSchema = zodSchemas?.models?.[schemaName];
             if (payloadSchema) {
                 const parsed = payloadSchema.safeParse(attributes);
@@ -768,18 +757,6 @@ class RequestHandler extends APIHandlerBase {
         }
 
         const { error, attributes, relationships } = this.processRequestBody(type, requestBody, zodSchemas, 'create');
-
-        if (relationships) {
-            // Remove attributes that are present in compound id relationships, as they are not expected by Prisma
-            for (const [key] of Object.entries<any>(relationships)) {
-                const typeInfo = this.typeMap[key];
-                if (typeInfo && typeInfo.idFields.length > 1) {
-                    typeInfo.idFields.forEach((field) => {
-                        delete attributes[field.name];
-                    });
-                }
-            }
-        }
 
         if (error) {
             return error;
