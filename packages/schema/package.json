@@ -74,7 +74,7 @@
     "bin": {
         "zenstack": "bin/cli"
     },
-    "main": "./bundle/extension.js",
+    "main": "./dist/extension.js",
     "scripts": {
         "vscode:publish": "vsce publish --no-dependencies",
         "vscode:prerelease": "vsce publish --no-dependencies --pre-release",
