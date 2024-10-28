@@ -47,6 +47,7 @@ enum AttributeTargetField {
     JsonField
     BytesField
     ModelField
+    TypeDefField
 }
 
 /**
@@ -700,3 +701,8 @@ attribute @@delegate(_ discriminator: FieldReference)
  */
 function raw(value: String): Any {
 } @@@expressionContext([Index])
+
+/**
+ * Marks a field to be strong-typed JSON.
+ */
+attribute @json() @@@targetField([TypeDefField])

@@ -20,7 +20,7 @@ export const ZModelTerminals = {
     SL_COMMENT: /\/\/[^\n\r]*/,
 };
 
-export type AbstractDeclaration = Attribute | DataModel | DataSource | Enum | FunctionDecl | GeneratorDecl | Plugin;
+export type AbstractDeclaration = Attribute | DataModel | DataSource | Enum | FunctionDecl | GeneratorDecl | Plugin | TypeDef;
 
 export const AbstractDeclaration = 'AbstractDeclaration';
 
@@ -78,10 +78,10 @@ export function isReferenceTarget(item: unknown): item is ReferenceTarget {
     return reflection.isInstance(item, ReferenceTarget);
 }
 
-export type RegularID = 'abstract' | 'attribute' | 'datasource' | 'enum' | 'import' | 'in' | 'model' | 'plugin' | 'view' | string;
+export type RegularID = 'abstract' | 'attribute' | 'datasource' | 'enum' | 'import' | 'in' | 'model' | 'plugin' | 'type' | 'view' | string;
 
 export function isRegularID(item: unknown): item is RegularID {
-    return item === 'model' || item === 'enum' || item === 'attribute' || item === 'datasource' || item === 'plugin' || item === 'abstract' || item === 'in' || item === 'view' || item === 'import' || (typeof item === 'string' && (/[_a-zA-Z][\w_]*/.test(item)));
+    return item === 'model' || item === 'enum' || item === 'attribute' || item === 'datasource' || item === 'plugin' || item === 'abstract' || item === 'in' || item === 'view' || item === 'import' || item === 'type' || (typeof item === 'string' && (/[_a-zA-Z][\w_]*/.test(item)));
 }
 
 export type RegularIDWithTypeNames = 'Any' | 'BigInt' | 'Boolean' | 'Bytes' | 'DateTime' | 'Decimal' | 'Float' | 'Int' | 'Json' | 'Null' | 'Object' | 'String' | 'Unsupported' | RegularID;
@@ -90,7 +90,7 @@ export function isRegularIDWithTypeNames(item: unknown): item is RegularIDWithTy
     return isRegularID(item) || item === 'String' || item === 'Boolean' || item === 'Int' || item === 'BigInt' || item === 'Float' || item === 'Decimal' || item === 'DateTime' || item === 'Json' || item === 'Bytes' || item === 'Null' || item === 'Object' || item === 'Any' || item === 'Unsupported';
 }
 
-export type TypeDeclaration = DataModel | Enum;
+export type TypeDeclaration = DataModel | Enum | TypeDef;
 
 export const TypeDeclaration = 'TypeDeclaration';
 
@@ -290,7 +290,7 @@ export function isDataModelAttribute(item: unknown): item is DataModelAttribute 
 }
 
 export interface DataModelField extends AstNode {
-    readonly $container: DataModel | Enum | FunctionDecl;
+    readonly $container: DataModel | Enum | FunctionDecl | TypeDef;
     readonly $type: 'DataModelField';
     attributes: Array<DataModelFieldAttribute>
     comments: Array<string>
@@ -362,7 +362,7 @@ export function isEnum(item: unknown): item is Enum {
 }
 
 export interface EnumField extends AstNode {
-    readonly $container: DataModel | Enum | FunctionDecl;
+    readonly $container: DataModel | Enum | FunctionDecl | TypeDef;
     readonly $type: 'EnumField';
     attributes: Array<DataModelFieldAttribute>
     comments: Array<string>
@@ -405,7 +405,7 @@ export function isFunctionDecl(item: unknown): item is FunctionDecl {
 }
 
 export interface FunctionParam extends AstNode {
-    readonly $container: DataModel | Enum | FunctionDecl;
+    readonly $container: DataModel | Enum | FunctionDecl | TypeDef;
     readonly $type: 'FunctionParam';
     name: RegularID
     optional: boolean
@@ -620,6 +620,20 @@ export function isThisExpr(item: unknown): item is ThisExpr {
     return reflection.isInstance(item, ThisExpr);
 }
 
+export interface TypeDef extends AstNode {
+    readonly $container: Model;
+    readonly $type: 'TypeDef';
+    comments: Array<string>
+    fields: Array<DataModelField>
+    name: RegularID
+}
+
+export const TypeDef = 'TypeDef';
+
+export function isTypeDef(item: unknown): item is TypeDef {
+    return reflection.isInstance(item, TypeDef);
+}
+
 export interface UnaryExpr extends AstNode {
     readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | MemberAccessExpr | PluginField | ReferenceArg | UnaryExpr | UnsupportedFieldType;
     readonly $type: 'UnaryExpr';
@@ -691,6 +705,7 @@ export type ZModelAstType = {
     StringLiteral: StringLiteral
     ThisExpr: ThisExpr
     TypeDeclaration: TypeDeclaration
+    TypeDef: TypeDef
     UnaryExpr: UnaryExpr
     UnsupportedFieldType: UnsupportedFieldType
 }
@@ -698,7 +713,7 @@ export type ZModelAstType = {
 export class ZModelAstReflection extends AbstractAstReflection {
 
     getAllTypes(): string[] {
-        return ['AbstractDeclaration', 'Argument', 'ArrayExpr', 'Attribute', 'AttributeArg', 'AttributeParam', 'AttributeParamType', 'BinaryExpr', 'BooleanLiteral', 'ConfigArrayExpr', 'ConfigExpr', 'ConfigField', 'ConfigInvocationArg', 'ConfigInvocationExpr', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'Enum', 'EnumField', 'Expression', 'FieldInitializer', 'FunctionDecl', 'FunctionParam', 'FunctionParamType', 'GeneratorDecl', 'InternalAttribute', 'InvocationExpr', 'LiteralExpr', 'MemberAccessExpr', 'Model', 'ModelImport', 'NullExpr', 'NumberLiteral', 'ObjectExpr', 'Plugin', 'PluginField', 'ReferenceArg', 'ReferenceExpr', 'ReferenceTarget', 'StringLiteral', 'ThisExpr', 'TypeDeclaration', 'UnaryExpr', 'UnsupportedFieldType'];
+        return ['AbstractDeclaration', 'Argument', 'ArrayExpr', 'Attribute', 'AttributeArg', 'AttributeParam', 'AttributeParamType', 'BinaryExpr', 'BooleanLiteral', 'ConfigArrayExpr', 'ConfigExpr', 'ConfigField', 'ConfigInvocationArg', 'ConfigInvocationExpr', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'Enum', 'EnumField', 'Expression', 'FieldInitializer', 'FunctionDecl', 'FunctionParam', 'FunctionParamType', 'GeneratorDecl', 'InternalAttribute', 'InvocationExpr', 'LiteralExpr', 'MemberAccessExpr', 'Model', 'ModelImport', 'NullExpr', 'NumberLiteral', 'ObjectExpr', 'Plugin', 'PluginField', 'ReferenceArg', 'ReferenceExpr', 'ReferenceTarget', 'StringLiteral', 'ThisExpr', 'TypeDeclaration', 'TypeDef', 'UnaryExpr', 'UnsupportedFieldType'];
     }
 
     protected override computeIsSubtype(subtype: string, supertype: string): boolean {
@@ -729,7 +744,8 @@ export class ZModelAstReflection extends AbstractAstReflection {
                 return this.isSubtype(ConfigExpr, supertype);
             }
             case DataModel:
-            case Enum: {
+            case Enum:
+            case TypeDef: {
                 return this.isSubtype(AbstractDeclaration, supertype) || this.isSubtype(TypeDeclaration, supertype);
             }
             case DataModelField:
@@ -986,6 +1002,15 @@ export class ZModelAstReflection extends AbstractAstReflection {
                     name: 'ReferenceExpr',
                     mandatory: [
                         { name: 'args', type: 'array' }
+                    ]
+                };
+            }
+            case 'TypeDef': {
+                return {
+                    name: 'TypeDef',
+                    mandatory: [
+                        { name: 'comments', type: 'array' },
+                        { name: 'fields', type: 'array' }
                     ]
                 };
             }

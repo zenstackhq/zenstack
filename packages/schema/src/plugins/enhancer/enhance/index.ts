@@ -19,6 +19,7 @@ import {
     isDataModel,
     isGeneratorDecl,
     isReferenceExpr,
+    isTypeDef,
     type Model,
 } from '@zenstackhq/sdk/ast';
 import { getDMMF, getPrismaClientImportSpec, getPrismaVersion, type DMMF } from '@zenstackhq/sdk/prisma';
@@ -45,6 +46,7 @@ import { PrismaSchemaGenerator } from '../../prisma/schema-generator';
 import { isDefaultWithAuth } from '../enhancer-utils';
 import { generateAuthType } from './auth-type-generator';
 import { generateCheckerType } from './checker-type-generator';
+import { generateTypeDefType } from './model-typedef-generator';
 
 // information of delegate models and their sub models
 type DelegateInfo = [DataModel, DataModel[]][];
@@ -60,34 +62,26 @@ export class EnhancerGenerator {
     ) {}
 
     async generate(): Promise<{ dmmf: DMMF.Document | undefined }> {
-        let logicalPrismaClientDir: string | undefined;
         let dmmf: DMMF.Document | undefined;
 
         const prismaImport = getPrismaClientImportSpec(this.outDir, this.options);
+        let prismaTypesFixed = false;
+        let resultPrismaImport = prismaImport;
 
-        if (this.needsLogicalClient()) {
-            // schema contains delegate models, need to generate a logical prisma schema
+        if (this.needsLogicalClient || this.needsPrismaClientTypeFixes) {
+            prismaTypesFixed = true;
+            resultPrismaImport = `${LOGICAL_CLIENT_GENERATION_PATH}/index-fixed`;
             const result = await this.generateLogicalPrisma();
-
-            logicalPrismaClientDir = LOGICAL_CLIENT_GENERATION_PATH;
             dmmf = result.dmmf;
-
-            // create a reexport of the logical prisma client
-            const prismaDts = this.project.createSourceFile(
-                path.join(this.outDir, 'models.d.ts'),
-                `export type * from '${logicalPrismaClientDir}/index-fixed';`,
-                { overwrite: true }
-            );
-            await prismaDts.save();
-        } else {
-            // just reexport the prisma client
-            const prismaDts = this.project.createSourceFile(
-                path.join(this.outDir, 'models.d.ts'),
-                `export type * from '${prismaImport}';`,
-                { overwrite: true }
-            );
-            await prismaDts.save();
         }
+
+        // reexport PrismaClient types (original or fixed)
+        const prismaDts = this.project.createSourceFile(
+            path.join(this.outDir, 'models.d.ts'),
+            `export type * from '${resultPrismaImport}';`,
+            { overwrite: true }
+        );
+        await prismaDts.save();
 
         const authModel = getAuthModel(getDataModels(this.model));
         const authTypes = authModel ? generateAuthType(this.model, authModel) : '';
@@ -112,8 +106,8 @@ ${
 }
 
 ${
-    logicalPrismaClientDir
-        ? this.createLogicalPrismaImports(prismaImport, logicalPrismaClientDir)
+    prismaTypesFixed
+        ? this.createLogicalPrismaImports(prismaImport, resultPrismaImport)
         : this.createSimplePrismaImports(prismaImport)
 }
 
@@ -122,7 +116,7 @@ ${authTypes}
 ${checkerTypes}
 
 ${
-    logicalPrismaClientDir
+    prismaTypesFixed
         ? this.createLogicalPrismaEnhanceFunction(authTypeParam)
         : this.createSimplePrismaEnhanceFunction(authTypeParam)
 }
@@ -185,11 +179,11 @@ export function enhance<DbClient extends object>(prisma: DbClient, context?: Enh
             `;
     }
 
-    private createLogicalPrismaImports(prismaImport: string, logicalPrismaClientDir: string) {
+    private createLogicalPrismaImports(prismaImport: string, prismaClientImport: string) {
         return `import { Prisma as _Prisma, PrismaClient as _PrismaClient } from '${prismaImport}';
 import type { InternalArgs, DynamicClientExtensionThis } from '${prismaImport}/runtime/library';
-import type * as _P from '${logicalPrismaClientDir}/index-fixed';
-import type { Prisma, PrismaClient } from '${logicalPrismaClientDir}/index-fixed';
+import type * as _P from '${prismaClientImport}';
+import type { Prisma, PrismaClient } from '${prismaClientImport}';
 export type { PrismaClient };
 `;
     }
@@ -229,8 +223,12 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
 `;
     }
 
-    private needsLogicalClient() {
+    private get needsLogicalClient() {
         return this.hasDelegateModel(this.model) || this.hasAuthInDefault(this.model);
+    }
+
+    private get needsPrismaClientTypeFixes() {
+        return this.hasTypeDef(this.model);
     }
 
     private hasDelegateModel(model: Model) {
@@ -244,6 +242,10 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         return getDataModels(model).some((dm) =>
             dm.fields.some((f) => f.attributes.some((attr) => isDefaultWithAuth(attr)))
         );
+    }
+
+    private hasTypeDef(model: Model) {
+        return model.declarations.some(isTypeDef);
     }
 
     private async generateLogicalPrisma() {
@@ -349,18 +351,27 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
             overwrite: true,
         });
 
-        if (delegateInfo.length > 0) {
-            // transform types for delegated models
-            this.transformDelegate(sf, sfNew, delegateInfo);
-            sfNew.formatText();
-        } else {
-            // just copy
-            sfNew.replaceWithText(sf.getFullText());
-        }
+        this.transformPrismaTypes(sf, sfNew, delegateInfo);
+
+        this.generateExtraTypes(sfNew);
+        sfNew.formatText();
+
+        // if (delegateInfo.length > 0) {
+        //     // transform types for delegated models
+        //     this.transformDelegate(sf, sfNew, delegateInfo);
+        //     sfNew.formatText();
+        // } else {
+
+        //     this.transformJsonFields(sf, sfNew);
+
+        //     // // just copy
+        //     // sfNew.replaceWithText(sf.getFullText());
+        // }
+
         await sfNew.save();
     }
 
-    private transformDelegate(sf: SourceFile, sfNew: SourceFile, delegateInfo: DelegateInfo) {
+    private transformPrismaTypes(sf: SourceFile, sfNew: SourceFile, delegateInfo: DelegateInfo) {
         // copy toplevel imports
         sfNew.addImportDeclarations(sf.getImportDeclarations().map((n) => n.getStructure()));
 
@@ -493,8 +504,70 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         // fix delegate payload union type
         source = this.fixDelegatePayloadType(typeAlias, delegateInfo, source);
 
+        // fix json field type
+        source = this.fixJsonFieldType(typeAlias, source);
+
         structure.type = source;
         return structure;
+    }
+
+    private fixJsonFieldType(typeAlias: TypeAliasDeclaration, source: string) {
+        const modelsWithTypeField = this.model.declarations.filter(
+            (d): d is DataModel => isDataModel(d) && d.fields.some((f) => isTypeDef(f.type.reference?.ref))
+        );
+        const typeName = typeAlias.getName();
+
+        const getTypedJsonFields = (model: DataModel) => {
+            return model.fields.filter((f) => isTypeDef(f.type.reference?.ref));
+        };
+
+        const replacePrismaJson = (source: string, field: DataModelField) => {
+            return source.replace(
+                new RegExp(`(${field.name}\\??\\s*):[^\\n]+`),
+                `$1: ${field.type.reference!.$refText}${field.type.array ? '[]' : ''}${
+                    field.type.optional ? ' | null' : ''
+                }`
+            );
+        };
+
+        // fix "$[Model]Payload" type
+        const payloadModelMatch = modelsWithTypeField.find((m) => `$${m.name}Payload` === typeName);
+        if (payloadModelMatch) {
+            const scalars = typeAlias
+                .getDescendantsOfKind(SyntaxKind.PropertySignature)
+                .find((p) => p.getName() === 'scalars');
+            if (!scalars) {
+                return source;
+            }
+
+            const fieldsToFix = getTypedJsonFields(payloadModelMatch);
+            for (const field of fieldsToFix) {
+                source = replacePrismaJson(source, field);
+            }
+        }
+
+        // fix input/output types, "[Model]CreateInput", etc.
+        const inputOutputModelMatch = modelsWithTypeField.find((m) => typeName.startsWith(m.name));
+        if (inputOutputModelMatch) {
+            const relevantTypePatterns = [
+                'GroupByOutputType',
+                '(Unchecked)?Create(\\S+?)?Input',
+                '(Unchecked)?Update(\\S+?)?Input',
+                'CreateManyInput',
+                '(Unchecked)?UpdateMany(Mutation)?Input',
+            ];
+            const typeRegex = modelsWithTypeField.map(
+                (m) => new RegExp(`^(${m.name})(${relevantTypePatterns.join('|')})$`)
+            );
+            if (typeRegex.some((r) => r.test(typeName))) {
+                const fieldsToFix = getTypedJsonFields(inputOutputModelMatch);
+                for (const field of fieldsToFix) {
+                    source = replacePrismaJson(source, field);
+                }
+            }
+        }
+
+        return source;
     }
 
     private fixDelegatePayloadType(typeAlias: TypeAliasDeclaration, delegateInfo: DelegateInfo, source: string) {
@@ -676,5 +749,13 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
 
     private get generatePermissionChecker() {
         return this.options.generatePermissionChecker === true;
+    }
+
+    private async generateExtraTypes(sf: SourceFile) {
+        for (const decl of this.model.declarations) {
+            if (isTypeDef(decl)) {
+                generateTypeDefType(sf, decl);
+            }
+        }
     }
 }

@@ -14,6 +14,7 @@ import {
     isDataModelField,
     isEnum,
     isReferenceExpr,
+    isTypeDef,
 } from '@zenstackhq/language/ast';
 import {
     isDataModelFieldReference,
@@ -344,6 +345,9 @@ function isValidAttributeTarget(attrDecl: Attribute, targetDecl: DataModelField)
                 break;
             case 'ModelField':
                 allowed = allowed || isDataModel(targetDecl.type.reference?.ref);
+                break;
+            case 'TypeDefField':
+                allowed = allowed || isTypeDef(targetDecl.type.reference?.ref);
                 break;
             default:
                 break;
