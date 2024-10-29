@@ -1,10 +1,10 @@
 import { PluginError } from '@zenstackhq/sdk';
-import { BuiltinType, DataModel, DataModelFieldType, TypeDef } from '@zenstackhq/sdk/ast';
+import { BuiltinType, TypeDef, TypeDefFieldType } from '@zenstackhq/sdk/ast';
 import { SourceFile } from 'ts-morph';
 import { match } from 'ts-pattern';
 import { name } from '..';
 
-export function generateTypeDefType(sourceFile: SourceFile, decl: DataModel | TypeDef) {
+export function generateTypeDefType(sourceFile: SourceFile, decl: TypeDef) {
     sourceFile.addTypeAlias({
         name: decl.name,
         isExported: true,
@@ -20,7 +20,7 @@ export function generateTypeDefType(sourceFile: SourceFile, decl: DataModel | Ty
     });
 }
 
-function zmodelTypeToTsType(type: DataModelFieldType) {
+function zmodelTypeToTsType(type: TypeDefFieldType) {
     let result: string;
 
     if (type.type) {

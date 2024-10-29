@@ -290,7 +290,7 @@ export function isDataModelAttribute(item: unknown): item is DataModelAttribute 
 }
 
 export interface DataModelField extends AstNode {
-    readonly $container: DataModel | Enum | FunctionDecl | TypeDef;
+    readonly $container: DataModel | Enum | FunctionDecl;
     readonly $type: 'DataModelField';
     attributes: Array<DataModelFieldAttribute>
     comments: Array<string>
@@ -305,7 +305,7 @@ export function isDataModelField(item: unknown): item is DataModelField {
 }
 
 export interface DataModelFieldAttribute extends AstNode {
-    readonly $container: DataModelField | EnumField;
+    readonly $container: DataModelField | EnumField | TypeDefField;
     readonly $type: 'DataModelFieldAttribute';
     args: Array<AttributeArg>
     decl: Reference<Attribute>
@@ -362,7 +362,7 @@ export function isEnum(item: unknown): item is Enum {
 }
 
 export interface EnumField extends AstNode {
-    readonly $container: DataModel | Enum | FunctionDecl | TypeDef;
+    readonly $container: DataModel | Enum | FunctionDecl;
     readonly $type: 'EnumField';
     attributes: Array<DataModelFieldAttribute>
     comments: Array<string>
@@ -405,7 +405,7 @@ export function isFunctionDecl(item: unknown): item is FunctionDecl {
 }
 
 export interface FunctionParam extends AstNode {
-    readonly $container: DataModel | Enum | FunctionDecl | TypeDef;
+    readonly $container: DataModel | Enum | FunctionDecl;
     readonly $type: 'FunctionParam';
     name: RegularID
     optional: boolean
@@ -624,7 +624,7 @@ export interface TypeDef extends AstNode {
     readonly $container: Model;
     readonly $type: 'TypeDef';
     comments: Array<string>
-    fields: Array<DataModelField>
+    fields: Array<TypeDefField>
     name: RegularID
 }
 
@@ -632,6 +632,36 @@ export const TypeDef = 'TypeDef';
 
 export function isTypeDef(item: unknown): item is TypeDef {
     return reflection.isInstance(item, TypeDef);
+}
+
+export interface TypeDefField extends AstNode {
+    readonly $container: TypeDef;
+    readonly $type: 'TypeDefField';
+    attributes: Array<DataModelFieldAttribute>
+    comments: Array<string>
+    name: RegularIDWithTypeNames
+    type: TypeDefFieldType
+}
+
+export const TypeDefField = 'TypeDefField';
+
+export function isTypeDefField(item: unknown): item is TypeDefField {
+    return reflection.isInstance(item, TypeDefField);
+}
+
+export interface TypeDefFieldType extends AstNode {
+    readonly $container: TypeDefField;
+    readonly $type: 'TypeDefFieldType';
+    array: boolean
+    optional: boolean
+    reference?: Reference<TypeDef>
+    type?: BuiltinType
+}
+
+export const TypeDefFieldType = 'TypeDefFieldType';
+
+export function isTypeDefFieldType(item: unknown): item is TypeDefFieldType {
+    return reflection.isInstance(item, TypeDefFieldType);
 }
 
 export interface UnaryExpr extends AstNode {
@@ -706,6 +736,8 @@ export type ZModelAstType = {
     ThisExpr: ThisExpr
     TypeDeclaration: TypeDeclaration
     TypeDef: TypeDef
+    TypeDefField: TypeDefField
+    TypeDefFieldType: TypeDefFieldType
     UnaryExpr: UnaryExpr
     UnsupportedFieldType: UnsupportedFieldType
 }
@@ -713,7 +745,7 @@ export type ZModelAstType = {
 export class ZModelAstReflection extends AbstractAstReflection {
 
     getAllTypes(): string[] {
-        return ['AbstractDeclaration', 'Argument', 'ArrayExpr', 'Attribute', 'AttributeArg', 'AttributeParam', 'AttributeParamType', 'BinaryExpr', 'BooleanLiteral', 'ConfigArrayExpr', 'ConfigExpr', 'ConfigField', 'ConfigInvocationArg', 'ConfigInvocationExpr', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'Enum', 'EnumField', 'Expression', 'FieldInitializer', 'FunctionDecl', 'FunctionParam', 'FunctionParamType', 'GeneratorDecl', 'InternalAttribute', 'InvocationExpr', 'LiteralExpr', 'MemberAccessExpr', 'Model', 'ModelImport', 'NullExpr', 'NumberLiteral', 'ObjectExpr', 'Plugin', 'PluginField', 'ReferenceArg', 'ReferenceExpr', 'ReferenceTarget', 'StringLiteral', 'ThisExpr', 'TypeDeclaration', 'TypeDef', 'UnaryExpr', 'UnsupportedFieldType'];
+        return ['AbstractDeclaration', 'Argument', 'ArrayExpr', 'Attribute', 'AttributeArg', 'AttributeParam', 'AttributeParamType', 'BinaryExpr', 'BooleanLiteral', 'ConfigArrayExpr', 'ConfigExpr', 'ConfigField', 'ConfigInvocationArg', 'ConfigInvocationExpr', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'Enum', 'EnumField', 'Expression', 'FieldInitializer', 'FunctionDecl', 'FunctionParam', 'FunctionParamType', 'GeneratorDecl', 'InternalAttribute', 'InvocationExpr', 'LiteralExpr', 'MemberAccessExpr', 'Model', 'ModelImport', 'NullExpr', 'NumberLiteral', 'ObjectExpr', 'Plugin', 'PluginField', 'ReferenceArg', 'ReferenceExpr', 'ReferenceTarget', 'StringLiteral', 'ThisExpr', 'TypeDeclaration', 'TypeDef', 'TypeDefField', 'TypeDefFieldType', 'UnaryExpr', 'UnsupportedFieldType'];
     }
 
     protected override computeIsSubtype(subtype: string, supertype: string): boolean {
@@ -787,6 +819,9 @@ export class ZModelAstReflection extends AbstractAstReflection {
             }
             case 'ReferenceExpr:target': {
                 return ReferenceTarget;
+            }
+            case 'TypeDefFieldType:reference': {
+                return TypeDef;
             }
             default: {
                 throw new Error(`${referenceId} is not a valid reference id.`);
@@ -1011,6 +1046,24 @@ export class ZModelAstReflection extends AbstractAstReflection {
                     mandatory: [
                         { name: 'comments', type: 'array' },
                         { name: 'fields', type: 'array' }
+                    ]
+                };
+            }
+            case 'TypeDefField': {
+                return {
+                    name: 'TypeDefField',
+                    mandatory: [
+                        { name: 'attributes', type: 'array' },
+                        { name: 'comments', type: 'array' }
+                    ]
+                };
+            }
+            case 'TypeDefFieldType': {
+                return {
+                    name: 'TypeDefFieldType',
+                    mandatory: [
+                        { name: 'array', type: 'boolean' },
+                        { name: 'optional', type: 'boolean' }
                     ]
                 };
             }

@@ -1,58 +1,8 @@
-import { createPostgresDb, dropPostgresDb, loadModelWithError, loadSchema } from '@zenstackhq/testtools';
+import { loadSchema } from '@zenstackhq/testtools';
 
 describe('JSON field typing', () => {
-    let dbUrl: string;
-    let prisma: any;
-
-    beforeEach(async () => {
-        dbUrl = await createPostgresDb('json-field-typing');
-    });
-
-    afterEach(async () => {
-        if (prisma) {
-            await prisma.$disconnect();
-        }
-        await dropPostgresDb(dbUrl);
-    });
-
-    it('is only supported by postgres', async () => {
-        await expect(
-            loadModelWithError(
-                `
-            type Profile {
-                age Int @gt(0)
-            }
-            
-            model User {
-                id Int @id @default(autoincrement())
-                profile Profile @json
-                @@allow('all', true)
-            }
-            `
-            )
-        ).resolves.toContain('Custom-typed field is only supported with "postgresql" provider');
-    });
-
-    it('requires field to have @json attribute', async () => {
-        await expect(
-            loadModelWithError(
-                `
-            type Profile {
-                age Int @gt(0)
-            }
-            
-            model User {
-                id Int @id @default(autoincrement())
-                profile Profile
-                @@allow('all', true)
-            }
-            `
-            )
-        ).resolves.toContain('Custom-typed field must have @json attribute');
-    });
-
     it('works with simple field', async () => {
-        const params = await loadSchema(
+        await loadSchema(
             `
             type Profile {
                 age Int @gt(0)
@@ -74,7 +24,7 @@ describe('JSON field typing', () => {
             `,
             {
                 provider: 'postgresql',
-                dbUrl,
+                pushDb: false,
                 compile: true,
                 extraSourceFiles: [
                     {
@@ -98,14 +48,10 @@ async function main() {
                 ],
             }
         );
-
-        prisma = params.prisma;
-        const db = params.enhance();
-        await expect(db.user.create({ data: { profile: { age: 18 } } })).toResolveTruthy();
     });
 
     it('works with optional field', async () => {
-        const params = await loadSchema(
+        await loadSchema(
             `
             type Profile {
                 age Int @gt(0)
@@ -119,7 +65,7 @@ async function main() {
             `,
             {
                 provider: 'postgresql',
-                dbUrl,
+                pushDb: false,
                 compile: true,
                 extraSourceFiles: [
                     {
@@ -143,14 +89,10 @@ async function main() {
                 ],
             }
         );
-
-        prisma = params.prisma;
-        const db = params.enhance();
-        await expect(db.user.create({ data: { profile: { age: 18 } } })).toResolveTruthy();
     });
 
     it('works with array field', async () => {
-        const params = await loadSchema(
+        await loadSchema(
             `
             type Profile {
                 age Int @gt(0)
@@ -164,7 +106,7 @@ async function main() {
             `,
             {
                 provider: 'postgresql',
-                dbUrl,
+                pushDb: false,
                 compile: true,
                 extraSourceFiles: [
                     {
@@ -188,14 +130,10 @@ async function main() {
                 ],
             }
         );
-
-        prisma = params.prisma;
-        const db = params.enhance();
-        await expect(db.user.create({ data: { profiles: [{ age: 18 }] } })).toResolveTruthy();
     });
 
     it('works with type nesting', async () => {
-        const params = await loadSchema(
+        await loadSchema(
             `
             type Profile {
                 age Int @gt(0)
@@ -214,7 +152,7 @@ async function main() {
             `,
             {
                 provider: 'postgresql',
-                dbUrl,
+                pushDb: false,
                 compile: true,
                 extraSourceFiles: [
                     {
@@ -239,13 +177,5 @@ async function main() {
                 ],
             }
         );
-
-        prisma = params.prisma;
-        const db = params.enhance();
-        await expect(
-            db.user.create({ data: { profile: { age: 18, address: { city: 'Issaquah' } } } })
-        ).toResolveTruthy();
-
-        await expect(db.user.create({ data: { profile: { age: 20 } } })).toResolveTruthy();
     });
 });

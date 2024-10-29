@@ -172,19 +172,26 @@ DataModel:
         )*
     '}';
 
-TypeDef:
-    (comments+=TRIPLE_SLASH_COMMENT)*
-    'type' name=RegularID '{' (
-           fields+=DataModelField
-        )+
-    '}';
-
 DataModelField:
     (comments+=TRIPLE_SLASH_COMMENT)*
     name=RegularIDWithTypeNames type=DataModelFieldType (attributes+=DataModelFieldAttribute)*;
 
 DataModelFieldType:
     (type=BuiltinType | unsupported=UnsupportedFieldType | reference=[TypeDeclaration:RegularID]) (array?='[' ']')? (optional?='?')?;
+
+TypeDef:
+    (comments+=TRIPLE_SLASH_COMMENT)*
+    'type' name=RegularID '{' (
+           fields+=TypeDefField
+        )+
+    '}';
+
+TypeDefField:
+    (comments+=TRIPLE_SLASH_COMMENT)*
+    name=RegularIDWithTypeNames type=TypeDefFieldType (attributes+=DataModelFieldAttribute)*;
+
+TypeDefFieldType:
+    (type=BuiltinType | reference=[TypeDef:RegularID]) (array?='[' ']')? (optional?='?')?;
 
 UnsupportedFieldType:
     'Unsupported' '(' (value=LiteralExpr) ')';

@@ -1,4 +1,11 @@
-import type { DataModel, DataModelAttribute, DataModelFieldAttribute } from './ast';
+import {
+    isDataModel,
+    isTypeDef,
+    type DataModel,
+    type DataModelAttribute,
+    type DataModelFieldAttribute,
+    type TypeDef,
+} from './ast';
 
 function isValidationAttribute(attr: DataModelAttribute | DataModelFieldAttribute) {
     return attr.decl.ref?.attributes.some((attr) => attr.decl.$refText === '@@@validation');
@@ -8,12 +15,30 @@ function isValidationAttribute(attr: DataModelAttribute | DataModelFieldAttribut
  * Returns if the given model contains any data validation rules (both at the model
  * level and at the field level).
  */
-export function hasValidationAttributes(model: DataModel) {
-    if (model.attributes.some((attr) => isValidationAttribute(attr))) {
-        return true;
+export function hasValidationAttributes(
+    decl: DataModel | TypeDef,
+    seen: Set<DataModel | TypeDef> = new Set()
+): boolean {
+    if (seen.has(decl)) {
+        return false;
+    }
+    seen.add(decl);
+
+    if (isDataModel(decl)) {
+        if (decl.attributes.some((attr) => isValidationAttribute(attr))) {
+            return true;
+        }
     }
 
-    if (model.fields.some((field) => field.attributes.some((attr) => isValidationAttribute(attr)))) {
+    if (
+        decl.fields.some((field) => {
+            if (isTypeDef(field.type.reference?.ref)) {
+                return hasValidationAttributes(field.type.reference?.ref);
+            } else {
+                return field.attributes.some((attr) => isValidationAttribute(attr));
+            }
+        })
+    ) {
         return true;
     }
 

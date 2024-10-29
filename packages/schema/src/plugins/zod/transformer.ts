@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { indentString, isDiscriminatorField, type PluginOptions } from '@zenstackhq/sdk';
-import { DataModel, isDataModel, type Model } from '@zenstackhq/sdk/ast';
+import { DataModel, isDataModel, isTypeDef, TypeDef, type Model } from '@zenstackhq/sdk/ast';
 import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
 import { supportCreateMany, type DMMF as PrismaDMMF } from '@zenstackhq/sdk/prisma';
 import path from 'path';
@@ -88,29 +88,33 @@ export default class Transformer {
     }
 
     generateObjectSchema(generateUnchecked: boolean, options: PluginOptions) {
-        const zodObjectSchemaFields = this.generateObjectSchemaFields(generateUnchecked);
-        const objectSchema = this.prepareObjectSchema(zodObjectSchemaFields, options);
+        const { schemaFields, extraImports } = this.generateObjectSchemaFields(generateUnchecked);
+        const objectSchema = this.prepareObjectSchema(schemaFields, options);
 
         const filePath = path.join(Transformer.outputPath, `objects/${this.name}.schema.ts`);
-        const content = '/* eslint-disable */\n' + objectSchema;
+        const content = '/* eslint-disable */\n' + extraImports.join('\n\n') + objectSchema;
         this.sourceFiles.push(this.project.createSourceFile(filePath, content, { overwrite: true }));
         return `${this.name}.schema`;
     }
 
-    private delegateCreateUpdateInputRegex = /(\S+)(Unchecked)?(Create|Update).*Input/;
+    private createUpdateInputRegex = /(\S+?)(Unchecked)?(Create|Update|CreateMany|UpdateMany).*Input/;
 
     generateObjectSchemaFields(generateUnchecked: boolean) {
         let fields = this.fields;
+        let contextDataModel: DataModel | undefined;
+        const extraImports: string[] = [];
 
         // exclude discriminator fields from create/update input schemas
-        const createUpdateMatch = this.delegateCreateUpdateInputRegex.exec(this.name);
+        const createUpdateMatch = this.createUpdateInputRegex.exec(this.name);
         if (createUpdateMatch) {
             const modelName = createUpdateMatch[1];
-            const dataModel = this.zmodel.declarations.find(
+            contextDataModel = this.zmodel.declarations.find(
                 (d): d is DataModel => isDataModel(d) && d.name === modelName
             );
-            if (dataModel) {
-                const discriminatorFields = dataModel.fields.filter(isDiscriminatorField);
+
+            if (contextDataModel) {
+                // exclude discriminator fields from create/update input schemas
+                const discriminatorFields = contextDataModel.fields.filter(isDiscriminatorField);
                 if (discriminatorFields.length > 0) {
                     fields = fields.filter((field) => {
                         return !discriminatorFields.some(
@@ -118,11 +122,23 @@ export default class Transformer {
                         );
                     });
                 }
+
+                // import type-def's schemas
+                const typeDefFields = contextDataModel.fields.filter((f) => isTypeDef(f.type.reference?.ref));
+                typeDefFields.forEach((field) => {
+                    const typeName = upperCaseFirst(field.type.reference!.$refText);
+                    const importLine = `import { ${typeName}Schema } from '../models/${typeName}.schema';`;
+                    if (!extraImports.includes(importLine)) {
+                        extraImports.push(importLine);
+                    }
+                });
             }
         }
 
         const zodObjectSchemaFields = fields
-            .map((field) => this.generateObjectSchemaField(field, generateUnchecked))
+            .map((field) =>
+                this.generateObjectSchemaField(field, contextDataModel, generateUnchecked, !!createUpdateMatch)
+            )
             .flatMap((item) => item)
             .map((item) => {
                 const [zodStringWithMainType, field, skipValidators] = item;
@@ -133,12 +149,14 @@ export default class Transformer {
 
                 return value.trim();
             });
-        return zodObjectSchemaFields;
+        return { schemaFields: zodObjectSchemaFields, extraImports };
     }
 
     generateObjectSchemaField(
         field: PrismaDMMF.SchemaArg,
-        generateUnchecked: boolean
+        contextDataModel: DataModel | undefined,
+        generateUnchecked: boolean,
+        replaceJsonWithTypeDef = false
     ): [string, PrismaDMMF.SchemaArg, boolean][] {
         const lines = field.inputTypes;
 
@@ -146,64 +164,75 @@ export default class Transformer {
             return [];
         }
 
-        let alternatives = lines.reduce<string[]>((result, inputType) => {
-            if (!generateUnchecked && typeof inputType.type === 'string' && inputType.type.includes('Unchecked')) {
-                return result;
+        let alternatives: string[] | undefined = undefined;
+
+        if (replaceJsonWithTypeDef) {
+            const dmField = contextDataModel?.fields.find((f) => f.name === field.name);
+            if (isTypeDef(dmField?.type.reference?.ref)) {
+                alternatives = [`z.lazy(() => ${upperCaseFirst(dmField?.type.reference!.$refText)}Schema)`];
             }
+        }
 
-            if (inputType.type.includes('CreateMany') && !supportCreateMany(this.zmodel)) {
-                return result;
-            }
-
-            // TODO: unify the following with `schema-gen.ts`
-
-            if (inputType.type === 'String') {
-                result.push(this.wrapWithZodValidators('z.string()', field, inputType));
-            } else if (inputType.type === 'Int' || inputType.type === 'Float') {
-                result.push(this.wrapWithZodValidators('z.number()', field, inputType));
-            } else if (inputType.type === 'Decimal') {
-                this.hasDecimal = true;
-                result.push(this.wrapWithZodValidators('DecimalSchema', field, inputType));
-            } else if (inputType.type === 'BigInt') {
-                result.push(this.wrapWithZodValidators('z.bigint()', field, inputType));
-            } else if (inputType.type === 'Boolean') {
-                result.push(this.wrapWithZodValidators('z.boolean()', field, inputType));
-            } else if (inputType.type === 'DateTime') {
-                result.push(this.wrapWithZodValidators(['z.date()', 'z.string().datetime()'], field, inputType));
-            } else if (inputType.type === 'Bytes') {
-                result.push(
-                    this.wrapWithZodValidators(
-                        `z.custom<Buffer | Uint8Array>(data => data instanceof Uint8Array)`,
-                        field,
-                        inputType
-                    )
-                );
-            } else if (inputType.type === 'Json') {
-                this.hasJson = true;
-                result.push(this.wrapWithZodValidators('jsonSchema', field, inputType));
-            } else if (inputType.type === 'True') {
-                result.push(this.wrapWithZodValidators('z.literal(true)', field, inputType));
-            } else if (inputType.type === 'Null') {
-                result.push(this.wrapWithZodValidators('z.null()', field, inputType));
-            } else {
-                const isEnum = inputType.location === 'enumTypes';
-                const isFieldRef = inputType.location === 'fieldRefTypes';
-
-                if (
-                    // fieldRefTypes refer to other fields in the model and don't need to be generated as part of schema
-                    !isFieldRef &&
-                    (inputType.namespace === 'prisma' || isEnum)
-                ) {
-                    if (inputType.type !== this.originalName && typeof inputType.type === 'string') {
-                        this.addSchemaImport(inputType.type);
-                    }
-
-                    result.push(this.generatePrismaStringLine(field, inputType, lines.length));
+        if (!alternatives) {
+            alternatives = lines.reduce<string[]>((result, inputType) => {
+                if (!generateUnchecked && typeof inputType.type === 'string' && inputType.type.includes('Unchecked')) {
+                    return result;
                 }
-            }
 
-            return result;
-        }, []);
+                if (inputType.type.includes('CreateMany') && !supportCreateMany(this.zmodel)) {
+                    return result;
+                }
+
+                // TODO: unify the following with `schema-gen.ts`
+
+                if (inputType.type === 'String') {
+                    result.push(this.wrapWithZodValidators('z.string()', field, inputType));
+                } else if (inputType.type === 'Int' || inputType.type === 'Float') {
+                    result.push(this.wrapWithZodValidators('z.number()', field, inputType));
+                } else if (inputType.type === 'Decimal') {
+                    this.hasDecimal = true;
+                    result.push(this.wrapWithZodValidators('DecimalSchema', field, inputType));
+                } else if (inputType.type === 'BigInt') {
+                    result.push(this.wrapWithZodValidators('z.bigint()', field, inputType));
+                } else if (inputType.type === 'Boolean') {
+                    result.push(this.wrapWithZodValidators('z.boolean()', field, inputType));
+                } else if (inputType.type === 'DateTime') {
+                    result.push(this.wrapWithZodValidators(['z.date()', 'z.string().datetime()'], field, inputType));
+                } else if (inputType.type === 'Bytes') {
+                    result.push(
+                        this.wrapWithZodValidators(
+                            `z.custom<Buffer | Uint8Array>(data => data instanceof Uint8Array)`,
+                            field,
+                            inputType
+                        )
+                    );
+                } else if (inputType.type === 'Json') {
+                    this.hasJson = true;
+                    result.push(this.wrapWithZodValidators('jsonSchema', field, inputType));
+                } else if (inputType.type === 'True') {
+                    result.push(this.wrapWithZodValidators('z.literal(true)', field, inputType));
+                } else if (inputType.type === 'Null') {
+                    result.push(this.wrapWithZodValidators('z.null()', field, inputType));
+                } else {
+                    const isEnum = inputType.location === 'enumTypes';
+                    const isFieldRef = inputType.location === 'fieldRefTypes';
+
+                    if (
+                        // fieldRefTypes refer to other fields in the model and don't need to be generated as part of schema
+                        !isFieldRef &&
+                        (inputType.namespace === 'prisma' || isEnum)
+                    ) {
+                        if (inputType.type !== this.originalName && typeof inputType.type === 'string') {
+                            this.addSchemaImport(inputType.type);
+                        }
+
+                        result.push(this.generatePrismaStringLine(field, inputType, lines.length));
+                    }
+                }
+
+                return result;
+            }, []);
+        }
 
         if (alternatives.length === 0) {
             return [];

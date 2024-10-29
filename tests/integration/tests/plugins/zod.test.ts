@@ -1025,4 +1025,60 @@ describe('Zod plugin tests', () => {
             )
         ).rejects.toThrow(/Invalid mode/);
     });
+
+    it('supports type def', async () => {
+        const { zodSchemas } = await loadSchema(
+            `
+            datasource db {
+                provider = 'postgresql'
+                url = env('DATABASE_URL')
+            }
+            
+            generator js {
+                provider = 'prisma-client-js'
+            }
+
+            plugin zod {
+                provider = '@core/zod'
+            }
+
+            type Address {
+                city String @length(2, 20)
+            }
+
+            type Profile {
+                age Int @gte(18)
+                address Address?
+            }
+        
+            model User {
+                id Int @id @default(autoincrement())
+                profile Profile @json
+            }
+            `,
+            { addPrelude: false, pushDb: false }
+        );
+
+        const schemas = zodSchemas.models;
+
+        let parsed = schemas.ProfileSchema.safeParse({ age: 18, address: { city: 'NY' } });
+        expect(parsed.success).toBeTruthy();
+        expect(parsed.data).toEqual({ age: 18, address: { city: 'NY' } });
+
+        expect(schemas.ProfileSchema.safeParse({ age: 18 })).toMatchObject({ success: true });
+        expect(schemas.ProfileSchema.safeParse({ age: 10 })).toMatchObject({ success: false });
+        expect(schemas.ProfileSchema.safeParse({ address: { city: 'NY' } })).toMatchObject({ success: false });
+        expect(schemas.ProfileSchema.safeParse({ address: { age: 18, city: 'N' } })).toMatchObject({ success: false });
+
+        expect(schemas.UserSchema.safeParse({ id: 1, profile: { age: 18 } })).toMatchObject({ success: true });
+        expect(schemas.UserSchema.safeParse({ id: 1, profile: { age: 10 } })).toMatchObject({ success: false });
+
+        const objectSchemas = zodSchemas.objects;
+        expect(objectSchemas.UserCreateInputObjectSchema.safeParse({ profile: { age: 18 } })).toMatchObject({
+            success: true,
+        });
+        expect(objectSchemas.UserCreateInputObjectSchema.safeParse({ profile: { age: 10 } })).toMatchObject({
+            success: false,
+        });
+    });
 });
