@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { indentString, isDiscriminatorField, type PluginOptions } from '@zenstackhq/sdk';
-import { DataModel, isDataModel, isTypeDef, TypeDef, type Model } from '@zenstackhq/sdk/ast';
+import { DataModel, isDataModel, isTypeDef, type Model } from '@zenstackhq/sdk/ast';
 import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
 import { supportCreateMany, type DMMF as PrismaDMMF } from '@zenstackhq/sdk/prisma';
 import path from 'path';
