@@ -100,6 +100,7 @@ export class PrismaSchemaGenerator {
 `;
 
     private mode: 'logical' | 'physical' = 'physical';
+    private customAttributesAsComments = false;
 
     // a mapping from full names to shortened names
     private shortNameMap = new Map<string, string>();
@@ -116,6 +117,14 @@ export class PrismaSchemaGenerator {
         if (options.mode) {
             this.mode = options.mode as 'logical' | 'physical';
         }
+
+        if (
+            options.customAttributesAsComments !== undefined &&
+            typeof options.customAttributesAsComments !== 'boolean'
+        ) {
+            throw new PluginError(name, 'option "customAttributesAsComments" must be a boolean');
+        }
+        this.customAttributesAsComments = options.customAttributesAsComments === true;
 
         const prismaVersion = getPrismaVersion();
         if (prismaVersion && semver.lt(prismaVersion, PRISMA_MINIMUM_VERSION)) {
@@ -284,10 +293,7 @@ export class PrismaSchemaGenerator {
 
         // user defined comments pass-through
         decl.comments.forEach((c) => model.addComment(c));
-
-        decl.attributes
-            .filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr))
-            .forEach((attr) => model.addComment('/// - _' + this.zModelGenerator.generate(attr) + '_'));
+        this.getCustomAttributesAsComments(decl).forEach((c) => model.addComment(c));
 
         // generate relation fields on base models linking to concrete models
         this.generateDelegateRelationForBase(model, decl);
@@ -763,12 +769,8 @@ export class PrismaSchemaGenerator {
             )
             .map((attr) => this.makeFieldAttribute(attr));
 
-        const nonPrismaAttributes = field.attributes.filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr));
-
         // user defined comments pass-through
-        const docs: string[] = [...field.comments];
-        docs.push(...nonPrismaAttributes.map((attr) => '/// - _' + this.zModelGenerator.generate(attr) + '_'));
-
+        const docs = [...field.comments, ...this.getCustomAttributesAsComments(field)];
         const result = model.addField(field.name, type, attributes, docs, addToFront);
 
         if (this.mode === 'logical') {
@@ -900,10 +902,7 @@ export class PrismaSchemaGenerator {
 
         // user defined comments pass-through
         decl.comments.forEach((c) => _enum.addComment(c));
-
-        decl.attributes
-            .filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr))
-            .forEach((attr) => _enum.addComment('/// - _' + this.zModelGenerator.generate(attr) + '_'));
+        this.getCustomAttributesAsComments(decl).forEach((c) => _enum.addComment(c));
     }
 
     private generateEnumField(_enum: PrismaEnum, field: EnumField) {
@@ -911,11 +910,18 @@ export class PrismaSchemaGenerator {
             .filter((attr) => this.isPrismaAttribute(attr))
             .map((attr) => this.makeFieldAttribute(attr));
 
-        const nonPrismaAttributes = field.attributes.filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr));
-
-        const docs = [...field.comments];
-        docs.push(...nonPrismaAttributes.map((attr) => '/// - _' + this.zModelGenerator.generate(attr) + '_'));
+        const docs = [...field.comments, ...this.getCustomAttributesAsComments(field)];
         _enum.addField(field.name, attributes, docs);
+    }
+
+    private getCustomAttributesAsComments(decl: DataModel | DataModelField | Enum | EnumField) {
+        if (!this.customAttributesAsComments) {
+            return [];
+        } else {
+            return decl.attributes
+                .filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr))
+                .map((attr) => `/// ${this.zModelGenerator.generate(attr)}`);
+        }
     }
 }
 

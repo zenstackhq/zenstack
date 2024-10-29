@@ -85,6 +85,7 @@ describe('Prisma generator test', () => {
             schemaPath: 'schema.zmodel',
             output: 'schema.prisma',
             format: false,
+            customAttributesAsComments: true,
         });
 
         const content = fs.readFileSync('schema.prisma', 'utf-8');
@@ -96,9 +97,9 @@ describe('Prisma generator test', () => {
         );
         expect(content).toContain('schemas = ["auth", "public"]');
         expect(content).toContain('/// My user model');
-        expect(content).toContain(`/// - _@@allow('all', true)_`);
+        expect(content).toContain(`/// @@allow('all', true)`);
         expect(content).toContain(`/// the id field`);
-        expect(content).toContain(`/// - _@allow('read', this == auth())_`);
+        expect(content).toContain(`/// @allow('read', this == auth())`);
         expect(content).not.toContain('/// My post model');
         expect(content).toContain('/// User roles');
         expect(content).toContain('/// Admin role');
@@ -205,6 +206,7 @@ describe('Prisma generator test', () => {
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: name,
+            customAttributesAsComments: true,
         });
 
         const content = fs.readFileSync(name, 'utf-8');
@@ -237,6 +239,7 @@ describe('Prisma generator test', () => {
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: name,
+            customAttributesAsComments: true,
         });
 
         const content = fs.readFileSync(name, 'utf-8');
@@ -430,6 +433,7 @@ describe('Prisma generator test', () => {
             schemaPath: 'schema.zmodel',
             output: name,
             generateClient: false,
+            customAttributesAsComments: true,
         });
 
         const content = fs.readFileSync(name, 'utf-8');
@@ -480,6 +484,7 @@ describe('Prisma generator test', () => {
             schemaPath: 'schema.zmodel',
             output: name,
             format: true,
+            customAttributesAsComments: true,
         });
 
         const content = fs.readFileSync(name, 'utf-8');
@@ -511,6 +516,7 @@ describe('Prisma generator test', () => {
             schemaPath: 'schema.zmodel',
             output: name,
             format: true,
+            customAttributesAsComments: true,
         });
 
         const content = fs.readFileSync(name, 'utf-8');
