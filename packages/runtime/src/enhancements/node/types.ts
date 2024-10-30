@@ -19,6 +19,11 @@ export interface CommonEnhancementOptions {
 }
 
 /**
+ * CRUD operations
+ */
+export type CRUD = 'create' | 'read' | 'update' | 'delete';
+
+/**
  * Function for getting policy guard with a given context
  */
 export type PolicyFunc = (context: QueryContext, db: CrudContract) => object;
@@ -75,13 +80,25 @@ export type LogicalConstraint = {
 };
 
 /**
+ * Constraint delegated to another model through `check()` function call
+ * on a relation field.
+ */
+export type DelegateConstraint = {
+    kind: 'delegate';
+    model: string;
+    relation: string;
+    operation?: CRUD;
+};
+
+/**
  * Operation allowability checking constraint
  */
 export type PermissionCheckerConstraint =
     | ValueConstraint
     | VariableConstraint
     | ComparisonConstraint
-    | LogicalConstraint;
+    | LogicalConstraint
+    | DelegateConstraint;
 
 /**
  * Policy definition
