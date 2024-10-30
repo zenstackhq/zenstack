@@ -100,6 +100,7 @@ export class PrismaSchemaGenerator {
 `;
 
     private mode: 'logical' | 'physical' = 'physical';
+    private customAttributesAsComments = false;
 
     // a mapping from full names to shortened names
     private shortNameMap = new Map<string, string>();
@@ -116,6 +117,14 @@ export class PrismaSchemaGenerator {
         if (options.mode) {
             this.mode = options.mode as 'logical' | 'physical';
         }
+
+        if (
+            options.customAttributesAsComments !== undefined &&
+            typeof options.customAttributesAsComments !== 'boolean'
+        ) {
+            throw new PluginError(name, 'option "customAttributesAsComments" must be a boolean');
+        }
+        this.customAttributesAsComments = options.customAttributesAsComments === true;
 
         const prismaVersion = getPrismaVersion();
         if (prismaVersion && semver.lt(prismaVersion, PRISMA_MINIMUM_VERSION)) {
@@ -282,12 +291,9 @@ export class PrismaSchemaGenerator {
             this.generateContainerAttribute(model, attr);
         }
 
-        decl.attributes
-            .filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr))
-            .forEach((attr) => model.addComment('/// ' + this.zModelGenerator.generate(attr)));
-
         // user defined comments pass-through
         decl.comments.forEach((c) => model.addComment(c));
+        this.getCustomAttributesAsComments(decl).forEach((c) => model.addComment(c));
 
         // generate relation fields on base models linking to concrete models
         this.generateDelegateRelationForBase(model, decl);
@@ -763,11 +769,9 @@ export class PrismaSchemaGenerator {
             )
             .map((attr) => this.makeFieldAttribute(attr));
 
-        const nonPrismaAttributes = field.attributes.filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr));
-
-        const documentations = nonPrismaAttributes.map((attr) => '/// ' + this.zModelGenerator.generate(attr));
-
-        const result = model.addField(field.name, type, attributes, documentations, addToFront);
+        // user defined comments pass-through
+        const docs = [...field.comments, ...this.getCustomAttributesAsComments(field)];
+        const result = model.addField(field.name, type, attributes, docs, addToFront);
 
         if (this.mode === 'logical') {
             if (field.attributes.some((attr) => isDefaultWithAuth(attr))) {
@@ -777,8 +781,6 @@ export class PrismaSchemaGenerator {
             }
         }
 
-        // user defined comments pass-through
-        field.comments.forEach((c) => result.addComment(c));
         return result;
     }
 
@@ -898,12 +900,9 @@ export class PrismaSchemaGenerator {
             this.generateContainerAttribute(_enum, attr);
         }
 
-        decl.attributes
-            .filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr))
-            .forEach((attr) => _enum.addComment('/// ' + this.zModelGenerator.generate(attr)));
-
         // user defined comments pass-through
         decl.comments.forEach((c) => _enum.addComment(c));
+        this.getCustomAttributesAsComments(decl).forEach((c) => _enum.addComment(c));
     }
 
     private generateEnumField(_enum: PrismaEnum, field: EnumField) {
@@ -911,10 +910,18 @@ export class PrismaSchemaGenerator {
             .filter((attr) => this.isPrismaAttribute(attr))
             .map((attr) => this.makeFieldAttribute(attr));
 
-        const nonPrismaAttributes = field.attributes.filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr));
+        const docs = [...field.comments, ...this.getCustomAttributesAsComments(field)];
+        _enum.addField(field.name, attributes, docs);
+    }
 
-        const documentations = nonPrismaAttributes.map((attr) => '/// ' + this.zModelGenerator.generate(attr));
-        _enum.addField(field.name, attributes, documentations.concat(field.comments));
+    private getCustomAttributesAsComments(decl: DataModel | DataModelField | Enum | EnumField) {
+        if (!this.customAttributesAsComments) {
+            return [];
+        } else {
+            return decl.attributes
+                .filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr))
+                .map((attr) => `/// ${this.zModelGenerator.generate(attr)}`);
+        }
     }
 }
 

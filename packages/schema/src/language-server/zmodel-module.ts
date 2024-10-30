@@ -27,13 +27,14 @@ import { ZModelValidationRegistry, ZModelValidator } from './validator/zmodel-va
 import { ZModelCodeActionProvider } from './zmodel-code-action';
 import { ZModelCompletionProvider } from './zmodel-completion-provider';
 import { ZModelDefinitionProvider } from './zmodel-definition';
+import { ZModelDocumentationProvider } from './zmodel-documentation-provider';
 import { ZModelFormatter } from './zmodel-formatter';
 import { ZModelHighlightProvider } from './zmodel-highlight';
 import { ZModelHoverProvider } from './zmodel-hover';
 import { ZModelLinker } from './zmodel-linker';
 import { ZModelScopeComputation, ZModelScopeProvider } from './zmodel-scope';
 import { ZModelSemanticTokenProvider } from './zmodel-semantic';
-import ZModelWorkspaceManager from './zmodel-workspace-manager';
+import { ZModelWorkspaceManager } from './zmodel-workspace-manager';
 
 /**
  * Declaration of custom services - add your own service classes here.
@@ -76,6 +77,9 @@ export const ZModelModule: Module<ZModelServices, PartialLangiumServices & ZMode
     },
     parser: {
         GrammarConfig: (services) => createGrammarConfig(services),
+    },
+    documentation: {
+        DocumentationProvider: (services) => new ZModelDocumentationProvider(services),
     },
 };
 

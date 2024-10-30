@@ -9,7 +9,7 @@ import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME } from './constants';
 /**
  * Custom Langium WorkspaceManager implementation which automatically loads stdlib.zmodel
  */
-export default class ZModelWorkspaceManager extends DefaultWorkspaceManager {
+export class ZModelWorkspaceManager extends DefaultWorkspaceManager {
     public pluginModels = new Set<string>();
 
     protected async loadAdditionalDocuments(
