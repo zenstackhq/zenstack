@@ -11,6 +11,7 @@ import {
     isMemberAccessExpr,
     isReferenceExpr,
     isThisExpr,
+    isTypeDef,
 } from '@zenstackhq/language/ast';
 import { PolicyCrudKind, type PolicyOperationKind } from '@zenstackhq/runtime';
 import {
@@ -747,12 +748,23 @@ export class PolicyGenerator {
             for (const model of models) {
                 writer.write(`${lowerCaseFirst(model.name)}:`);
                 writer.inlineBlock(() => {
-                    writer.write(`hasValidation: ${hasValidationAttributes(model)}`);
+                    writer.write(
+                        `hasValidation: ${
+                            // explicit validation rules
+                            hasValidationAttributes(model) ||
+                            // type-def fields require schema validation
+                            this.hasTypeDefFields(model)
+                        }`
+                    );
                 });
                 writer.writeLine(',');
             }
         });
         writer.writeLine(',');
+    }
+
+    private hasTypeDefFields(model: DataModel): boolean {
+        return model.fields.some((f) => isTypeDef(f.type.reference?.ref));
     }
 
     // #endregion

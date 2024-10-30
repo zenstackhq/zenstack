@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-var-requires */
-import { isPlugin, Model, Plugin } from '@zenstackhq/language/ast';
+import { DataModel, isPlugin, isTypeDef, Model, Plugin } from '@zenstackhq/language/ast';
 import {
     createProject,
     emitProject,
@@ -311,7 +311,11 @@ export class PluginRunner {
     }
 
     private hasValidation(schema: Model) {
-        return getDataModels(schema).some((model) => hasValidationAttributes(model));
+        return getDataModels(schema).some((model) => hasValidationAttributes(model) || this.hasTypeDefFields(model));
+    }
+
+    private hasTypeDefFields(model: DataModel) {
+        return model.fields.some((f) => isTypeDef(f.type.reference?.ref));
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

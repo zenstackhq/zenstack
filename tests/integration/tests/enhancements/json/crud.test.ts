@@ -31,7 +31,6 @@ describe('Json field CRUD', () => {
                 id Int @id @default(autoincrement())
                 profile Profile @json
                 posts Post[]
-                @@allow('all', true)
             }
 
             model Post {
@@ -39,6 +38,54 @@ describe('Json field CRUD', () => {
                 title String
                 user User @relation(fields: [userId], references: [id])
                 userId Int
+            }
+            `,
+            {
+                provider: 'postgresql',
+                dbUrl,
+                enhancements: ['validation'],
+            }
+        );
+
+        prisma = params.prisma;
+        const db = params.enhance();
+
+        // expecting object
+        await expect(db.user.create({ data: { profile: 1 } })).toBeRejectedByPolicy();
+        await expect(db.user.create({ data: { profile: [{ age: 18 }] } })).toBeRejectedByPolicy();
+        await expect(db.user.create({ data: { profile: { myAge: 18 } } })).toBeRejectedByPolicy();
+        await expect(db.user.create({ data: { profile: { address: { city: 'NY' } } } })).toBeRejectedByPolicy();
+        await expect(db.user.create({ data: { profile: { age: 18, address: { x: 1 } } } })).toBeRejectedByPolicy();
+
+        await expect(
+            db.user.create({ data: { profile: { age: 18 }, posts: { create: { title: 'Post1' } } } })
+        ).resolves.toMatchObject({
+            profile: { age: 18 },
+        });
+        await expect(
+            db.user.create({
+                data: { profile: { age: 20, address: { city: 'NY' } }, posts: { create: { title: 'Post1' } } },
+            })
+        ).resolves.toMatchObject({
+            profile: { age: 20, address: { city: 'NY' } },
+        });
+    });
+
+    it('works with array', async () => {
+        const params = await loadSchema(
+            `
+            type Address {
+                city String
+            }
+
+            type Profile {
+                age Int
+                address Address?
+            }
+            
+            model User {
+                id Int @id @default(autoincrement())
+                profiles Profile[] @json
                 @@allow('all', true)
             }
             `,
@@ -50,14 +97,17 @@ describe('Json field CRUD', () => {
 
         prisma = params.prisma;
         const db = params.enhance();
+
+        // expecting array
         await expect(
-            db.user.create({ data: { profile: { age: 18 }, posts: { create: { title: 'Post1' } } } })
-        ).toResolveTruthy();
+            db.user.create({ data: { profiles: { age: 18, address: { city: 'NY' } } } })
+        ).toBeRejectedByPolicy();
+
         await expect(
-            db.user.create({
-                data: { profile: { age: 20, address: { city: 'NY' } }, posts: { create: { title: 'Post1' } } },
-            })
-        ).toResolveTruthy();
+            db.user.create({ data: { profiles: [{ age: 18, address: { city: 'NY' } }] } })
+        ).resolves.toMatchObject({
+            profiles: expect.arrayContaining([expect.objectContaining({ age: 18, address: { city: 'NY' } })]),
+        });
     });
 
     it('respects validation rules', async () => {
