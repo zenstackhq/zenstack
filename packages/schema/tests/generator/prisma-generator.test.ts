@@ -47,10 +47,35 @@ describe('Prisma generator test', () => {
                 provider = '@core/prisma'
             }
 
-            model User {
-                id String @id
+            /// User roles
+            enum Role {
+                /// Admin role
+                ADMIN
+                /// Regular role
+                USER
 
                 @@schema("auth")
+            }
+
+            /// My user model
+            /// defined here
+            model User {
+                /// the id field
+                id String @id @allow('read', this == auth())
+                role Role
+
+                @@schema("auth")
+                @@allow('all', true)
+                @@deny('update', this != auth())
+            }
+
+            /**
+             * My post model
+             * defined here
+             */
+            model Post {
+                id String @id
+                @@schema("public")
             }
         `);
 
@@ -60,6 +85,7 @@ describe('Prisma generator test', () => {
             schemaPath: 'schema.zmodel',
             output: 'schema.prisma',
             format: false,
+            customAttributesAsComments: true,
         });
 
         const content = fs.readFileSync('schema.prisma', 'utf-8');
@@ -70,6 +96,14 @@ describe('Prisma generator test', () => {
             'extensions = [pg_trgm, postgis(version: "3.3.2"), uuid_ossp(map: "uuid-ossp", schema: "extensions")]'
         );
         expect(content).toContain('schemas = ["auth", "public"]');
+        expect(content).toContain('/// My user model');
+        expect(content).toContain(`/// @@allow('all', true)`);
+        expect(content).toContain(`/// the id field`);
+        expect(content).toContain(`/// @allow('read', this == auth())`);
+        expect(content).not.toContain('/// My post model');
+        expect(content).toContain('/// User roles');
+        expect(content).toContain('/// Admin role');
+        expect(content).toContain('/// Regular role');
         await getDMMF({ datamodel: content });
     });
 
@@ -172,6 +206,7 @@ describe('Prisma generator test', () => {
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: name,
+            customAttributesAsComments: true,
         });
 
         const content = fs.readFileSync(name, 'utf-8');
@@ -204,6 +239,7 @@ describe('Prisma generator test', () => {
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: name,
+            customAttributesAsComments: true,
         });
 
         const content = fs.readFileSync(name, 'utf-8');
@@ -397,6 +433,7 @@ describe('Prisma generator test', () => {
             schemaPath: 'schema.zmodel',
             output: name,
             generateClient: false,
+            customAttributesAsComments: true,
         });
 
         const content = fs.readFileSync(name, 'utf-8');
@@ -447,6 +484,7 @@ describe('Prisma generator test', () => {
             schemaPath: 'schema.zmodel',
             output: name,
             format: true,
+            customAttributesAsComments: true,
         });
 
         const content = fs.readFileSync(name, 'utf-8');
@@ -478,6 +516,7 @@ describe('Prisma generator test', () => {
             schemaPath: 'schema.zmodel',
             output: name,
             format: true,
+            customAttributesAsComments: true,
         });
 
         const content = fs.readFileSync(name, 'utf-8');
