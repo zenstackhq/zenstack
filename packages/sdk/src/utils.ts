@@ -572,3 +572,24 @@ export function getInheritedFromDelegate(field: DataModelField) {
     const foundBase = bases.findLast((base) => base.fields.some((f) => f.name === field.name) && isDelegateModel(base));
     return foundBase;
 }
+
+/**
+ * Gets the inheritance chain from "from" to "to", excluding them.
+ */
+export function getInheritanceChain(from: DataModel, to: DataModel): DataModel[] | undefined {
+    if (from === to) {
+        return [];
+    }
+
+    for (const base of from.superTypes) {
+        if (base.ref === to) {
+            return [];
+        }
+        const path = getInheritanceChain(base.ref!, to);
+        if (path) {
+            return [base.ref as DataModel, ...path];
+        }
+    }
+
+    return undefined;
+}

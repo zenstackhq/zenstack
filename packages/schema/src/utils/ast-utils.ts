@@ -17,7 +17,13 @@ import {
     ModelImport,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
-import { getModelFieldsWithBases, getRecursiveBases, isDelegateModel, isFromStdlib } from '@zenstackhq/sdk';
+import {
+    getInheritanceChain,
+    getModelFieldsWithBases,
+    getRecursiveBases,
+    isDelegateModel,
+    isFromStdlib,
+} from '@zenstackhq/sdk';
 import {
     AstNode,
     copyAstNode,
@@ -61,7 +67,7 @@ export function mergeBaseModels(model: Model, linker: Linker) {
                 .concat(dataModel.fields);
 
             dataModel.attributes = bases
-                .flatMap((base) => base.attributes.filter((attr) => filterBaseAttribute(base, attr)))
+                .flatMap((base) => base.attributes.filter((attr) => filterBaseAttribute(dataModel, base, attr)))
                 .map((attr) => cloneAst(attr, dataModel, buildReference))
                 .concat(dataModel.attributes);
         }
@@ -85,7 +91,7 @@ export function mergeBaseModels(model: Model, linker: Linker) {
     linkContentToContainer(model);
 }
 
-function filterBaseAttribute(base: DataModel, attr: DataModelAttribute) {
+function filterBaseAttribute(forModel: DataModel, base: DataModel, attr: DataModelAttribute) {
     if (attr.$inheritedFrom) {
         // don't inherit from skip-level base
         return false;
@@ -101,11 +107,24 @@ function filterBaseAttribute(base: DataModel, attr: DataModelAttribute) {
         return false;
     }
 
-    if (isDelegateModel(base) && uninheritableFromDelegateAttributes.includes(attr.decl.$refText)) {
+    if (
+        // checks if the inheritance is from a delegate model or through one, if so,
+        // the attribute shouldn't be inherited as the delegate already inherits it
+        isInheritedFromOrThroughDelegate(forModel, base) &&
+        uninheritableFromDelegateAttributes.includes(attr.decl.$refText)
+    ) {
         return false;
     }
 
     return true;
+}
+
+function isInheritedFromOrThroughDelegate(model: DataModel, base: DataModel) {
+    if (isDelegateModel(base)) {
+        return true;
+    }
+    const chain = getInheritanceChain(model, base);
+    return !!chain?.some(isDelegateModel);
 }
 
 // deep clone an AST, relink references, and set its container
