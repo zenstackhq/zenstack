@@ -8,16 +8,26 @@ export function generateTypeDefType(sourceFile: SourceFile, decl: TypeDef) {
     sourceFile.addTypeAlias({
         name: decl.name,
         isExported: true,
+        docs: decl.comments.map((c) => unwrapTripleSlashComment(c)),
         type: (writer) => {
             writer.block(() => {
                 decl.fields.forEach((field) => {
+                    if (field.comments.length > 0) {
+                        writer.writeLine(`    /**`);
+                        field.comments.forEach((c) => writer.writeLine(`     * ${unwrapTripleSlashComment(c)}`));
+                        writer.writeLine(`     */`);
+                    }
                     writer.writeLine(
-                        `${field.name}${field.type.optional ? '?' : ''}: ${zmodelTypeToTsType(field.type)};`
+                        `    ${field.name}${field.type.optional ? '?' : ''}: ${zmodelTypeToTsType(field.type)};`
                     );
                 });
             });
         },
     });
+}
+
+function unwrapTripleSlashComment(c: string): string {
+    return c.replace(/^[/]*\s*/, '');
 }
 
 function zmodelTypeToTsType(type: TypeDefFieldType) {
