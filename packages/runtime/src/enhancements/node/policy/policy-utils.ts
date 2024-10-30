@@ -3,6 +3,7 @@
 import deepmerge from 'deepmerge';
 import { isPlainObject } from 'is-plain-object';
 import { lowerCaseFirst } from 'lower-case-first';
+import traverse from 'traverse';
 import { upperCaseFirst } from 'upper-case-first';
 import { z, type ZodError, type ZodObject, type ZodSchema } from 'zod';
 import { fromZodError } from 'zod-validation-error';
@@ -31,7 +32,15 @@ import { getVersion } from '../../../version';
 import type { InternalEnhancementOptions } from '../create-enhancement';
 import { Logger } from '../logger';
 import { QueryUtils } from '../query-utils';
-import type { EntityChecker, ModelPolicyDef, PermissionCheckerFunc, PolicyDef, PolicyFunc } from '../types';
+import type {
+    DelegateConstraint,
+    EntityChecker,
+    ModelPolicyDef,
+    PermissionCheckerFunc,
+    PolicyDef,
+    PolicyFunc,
+    VariableConstraint,
+} from '../types';
 import { formatObject, prismaClientKnownRequestError } from '../utils';
 
 /**
@@ -667,7 +676,47 @@ export class PolicyUtil extends QueryUtils {
         }
 
         // call checker function
-        return checker({ user: this.user });
+        let result = checker({ user: this.user });
+
+        // the constraint may contain "delegate" ones that should be resolved
+        // by evaluating the corresponding checker of the delegated models
+
+        const isVariableConstraint = (value: any): value is VariableConstraint => {
+            return value && typeof value === 'object' && value.kind === 'variable';
+        };
+
+        const isDelegateConstraint = (value: any): value is DelegateConstraint => {
+            return value && typeof value === 'object' && value.kind === 'delegate';
+        };
+
+        // here we prefix the constraint variables coming from delegated checkers
+        // with the relation field name to avoid conflicts
+        const prefixConstraintVariables = (constraint: unknown, prefix: string) => {
+            return traverse(constraint).map(function (value) {
+                if (isVariableConstraint(value)) {
+                    this.update(
+                        {
+                            ...value,
+                            name: `${prefix}${value.name}`,
+                        },
+                        true
+                    );
+                }
+            });
+        };
+
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const that = this;
+        result = traverse(result).forEach(function (value) {
+            if (isDelegateConstraint(value)) {
+                const { model: delegateModel, relation, operation: delegateOp } = value;
+                let newValue = that.getCheckerConstraint(delegateModel, delegateOp ?? operation);
+                newValue = prefixConstraintVariables(newValue, `${relation}.`);
+                this.update(newValue, true);
+            }
+        });
+
+        return result;
     }
 
     //#endregion
