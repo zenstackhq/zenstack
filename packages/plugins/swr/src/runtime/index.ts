@@ -420,7 +420,7 @@ function marshal(value: unknown) {
 
 function unmarshal(value: string) {
     const parsed = JSON.parse(value);
-    if (parsed.data && parsed.meta?.serialization) {
+    if (typeof parsed === 'object' && parsed?.data && parsed?.meta?.serialization) {
         const deserializedData = deserialize(parsed.data, parsed.meta.serialization);
         return { ...parsed, data: deserializedData };
     } else {
