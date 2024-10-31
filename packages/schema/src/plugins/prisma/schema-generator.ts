@@ -481,7 +481,7 @@ export class PrismaSchemaGenerator {
 
     private replicateForeignKey(
         model: PrismaDataModel,
-        dataModel: DataModel,
+        delegateModel: DataModel,
         concreteModel: DataModel,
         origForeignKey: DataModelField
     ) {
@@ -499,15 +499,15 @@ export class PrismaSchemaGenerator {
             (attr) => !('name' in attr && attr.name === '@unique')
         );
         const uniqueAttr = addedFkField.addAttribute('@unique');
-        const constraintName = this.truncate(`${concreteModel.name}_${addedFkField.name}_unique`);
+        const constraintName = this.truncate(`${delegateModel.name}_${addedFkField.name}_${concreteModel.name}_unique`);
         uniqueAttr.args.push(new PrismaAttributeArg('map', new AttributeArgValue('String', constraintName)));
 
         // fix its name
-        const addedFkFieldName = `${dataModel.name}_${origForeignKey.name}_${concreteModel.name}`;
+        const addedFkFieldName = `${delegateModel.name}_${origForeignKey.name}_${concreteModel.name}`;
         addedFkField.name = this.truncate(`${DELEGATE_AUX_RELATION_PREFIX}_${addedFkFieldName}`);
 
         // we also need to go through model-level `@@unique` and replicate those involving fk fields
-        this.replicateForeignKeyModelLevelUnique(model, dataModel, origForeignKey, addedFkField);
+        this.replicateForeignKeyModelLevelUnique(model, delegateModel, origForeignKey, addedFkField);
 
         return addedFkField;
     }
