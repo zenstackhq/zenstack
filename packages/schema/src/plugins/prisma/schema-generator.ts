@@ -1,5 +1,4 @@
 import {
-    AbstractDeclaration,
     AttributeArg,
     BooleanLiteral,
     ConfigArrayExpr,
@@ -295,17 +294,17 @@ export class PrismaSchemaGenerator {
         decl.comments.forEach((c) => model.addComment(c));
         this.getCustomAttributesAsComments(decl).forEach((c) => model.addComment(c));
 
-        // generate relation fields on base models linking to concrete models
+        // physical: generate relation fields on base models linking to concrete models
         this.generateDelegateRelationForBase(model, decl);
 
-        // generate reverse relation fields on concrete models
+        // physical: generate reverse relation fields on concrete models
         this.generateDelegateRelationForConcrete(model, decl);
 
-        // expand relations on other models that reference delegated models to concrete models
+        // logical: expand relations on other models that reference delegated models to concrete models
         this.expandPolymorphicRelations(model, decl);
 
-        // name relations inherited from delegate base models for disambiguation
-        this.nameRelationsInheritedFromDelegate(model, decl);
+        // logical: ensure relations inherited from delegate models
+        this.ensureRelationsInheritedFromDelegate(model, decl);
     }
 
     private generateDelegateRelationForBase(model: PrismaDataModel, decl: DataModel) {
@@ -403,7 +402,7 @@ export class PrismaSchemaGenerator {
 
             // find concrete models that inherit from this field's model type
             const concreteModels = dataModel.$container.declarations.filter(
-                (d) => isDataModel(d) && isDescendantOf(d, fieldType)
+                (d): d is DataModel => isDataModel(d) && isDescendantOf(d, fieldType)
             );
 
             concreteModels.forEach((concrete) => {
@@ -418,10 +417,9 @@ export class PrismaSchemaGenerator {
                 );
 
                 const relAttr = getAttribute(field, '@relation');
+                let relAttrAdded = false;
                 if (relAttr) {
-                    const fieldsArg = getAttributeArg(relAttr, 'fields');
-                    const nameArg = getAttributeArg(relAttr, 'name') as LiteralExpr;
-                    if (fieldsArg) {
+                    if (getAttributeArg(relAttr, 'fields')) {
                         // for reach foreign key field pointing to the delegate model, we need to create an aux foreign key
                         // to point to the concrete model
                         const relationFieldPairs = getRelationKeyPairs(field);
@@ -450,10 +448,7 @@ export class PrismaSchemaGenerator {
 
                         const addedRel = new PrismaFieldAttribute('@relation', [
                             // use field name as relation name for disambiguation
-                            new PrismaAttributeArg(
-                                undefined,
-                                new AttributeArgValue('String', nameArg?.value || auxRelationField.name)
-                            ),
+                            new PrismaAttributeArg(undefined, new AttributeArgValue('String', auxRelationField.name)),
                             new PrismaAttributeArg('fields', fieldsArg),
                             new PrismaAttributeArg('references', referencesArg),
                         ]);
@@ -467,12 +462,12 @@ export class PrismaSchemaGenerator {
                                 )
                             );
                         }
-
                         auxRelationField.attributes.push(addedRel);
-                    } else {
-                        auxRelationField.attributes.push(this.makeFieldAttribute(relAttr as DataModelFieldAttribute));
+                        relAttrAdded = true;
                     }
-                } else {
+                }
+
+                if (!relAttrAdded) {
                     auxRelationField.attributes.push(
                         new PrismaFieldAttribute('@relation', [
                             // use field name as relation name for disambiguation
@@ -486,8 +481,8 @@ export class PrismaSchemaGenerator {
 
     private replicateForeignKey(
         model: PrismaDataModel,
-        dataModel: DataModel,
-        concreteModel: AbstractDeclaration,
+        delegateModel: DataModel,
+        concreteModel: DataModel,
         origForeignKey: DataModelField
     ) {
         // aux fk name format: delegate_aux_[model]_[fkField]_[concrete]
@@ -499,26 +494,20 @@ export class PrismaSchemaGenerator {
         // `@map` attribute should not be inherited
         addedFkField.attributes = addedFkField.attributes.filter((attr) => !('name' in attr && attr.name === '@map'));
 
+        // `@unique` attribute should be recreated with disambiguated name
+        addedFkField.attributes = addedFkField.attributes.filter(
+            (attr) => !('name' in attr && attr.name === '@unique')
+        );
+        const uniqueAttr = addedFkField.addAttribute('@unique');
+        const constraintName = this.truncate(`${delegateModel.name}_${addedFkField.name}_${concreteModel.name}_unique`);
+        uniqueAttr.args.push(new PrismaAttributeArg('map', new AttributeArgValue('String', constraintName)));
+
         // fix its name
-        const addedFkFieldName = `${dataModel.name}_${origForeignKey.name}_${concreteModel.name}`;
+        const addedFkFieldName = `${delegateModel.name}_${origForeignKey.name}_${concreteModel.name}`;
         addedFkField.name = this.truncate(`${DELEGATE_AUX_RELATION_PREFIX}_${addedFkFieldName}`);
 
-        // we also need to make sure `@unique` constraint's `map` parameter is fixed to avoid conflict
-        const uniqueAttr = addedFkField.attributes.find(
-            (attr) => (attr as PrismaFieldAttribute).name === '@unique'
-        ) as PrismaFieldAttribute;
-        if (uniqueAttr) {
-            const mapArg = uniqueAttr.args.find((arg) => arg.name === 'map');
-            const constraintName = this.truncate(`${addedFkField.name}_unique`);
-            if (mapArg) {
-                mapArg.value = new AttributeArgValue('String', constraintName);
-            } else {
-                uniqueAttr.args.push(new PrismaAttributeArg('map', new AttributeArgValue('String', constraintName)));
-            }
-        }
-
         // we also need to go through model-level `@@unique` and replicate those involving fk fields
-        this.replicateForeignKeyModelLevelUnique(model, dataModel, origForeignKey, addedFkField);
+        this.replicateForeignKeyModelLevelUnique(model, delegateModel, origForeignKey, addedFkField);
 
         return addedFkField;
     }
@@ -596,12 +585,10 @@ export class PrismaSchemaGenerator {
         return shortName;
     }
 
-    private nameRelationsInheritedFromDelegate(model: PrismaDataModel, decl: DataModel) {
+    private ensureRelationsInheritedFromDelegate(model: PrismaDataModel, decl: DataModel) {
         if (this.mode !== 'logical') {
             return;
         }
-
-        // the logical schema needs to name relations inherited from delegate base models for disambiguation
 
         decl.fields.forEach((f) => {
             if (!isDataModel(f.type.reference?.ref)) {
@@ -636,30 +623,68 @@ export class PrismaSchemaGenerator {
             if (!oppositeRelationField) {
                 return;
             }
+            const oppositeRelationAttr = getAttribute(oppositeRelationField, '@relation');
 
             const fieldType = f.type.reference.ref;
 
             // relation name format: delegate_aux_[relationType]_[oppositeRelationField]_[concrete]
-            const relAttr = getAttribute(f, '@relation');
-            const name = `${fieldType.name}_${oppositeRelationField.name}_${decl.name}`;
-            const relName = this.truncate(`${DELEGATE_AUX_RELATION_PREFIX}_${name}`);
+            const relName = this.truncate(
+                `${DELEGATE_AUX_RELATION_PREFIX}_${fieldType.name}_${oppositeRelationField.name}_${decl.name}`
+            );
 
-            if (relAttr) {
-                const nameArg = getAttributeArg(relAttr, 'name');
-                if (!nameArg) {
-                    const prismaRelAttr = prismaField.attributes.find(
-                        (attr) => (attr as PrismaFieldAttribute).name === '@relation'
-                    ) as PrismaFieldAttribute;
-                    if (prismaRelAttr) {
-                        prismaRelAttr.args.unshift(
-                            new PrismaAttributeArg(undefined, new AttributeArgValue('String', relName))
-                        );
-                    }
-                }
-            } else {
+            // recreate `@relation` attribute
+            prismaField.attributes = prismaField.attributes.filter(
+                (attr) => (attr as PrismaFieldAttribute).name !== '@relation'
+            );
+
+            if (
+                // array relation doesn't need FK
+                f.type.array ||
+                // opposite relation already has FK, we don't need to generate on this side
+                (oppositeRelationAttr && getAttributeArg(oppositeRelationAttr, 'fields'))
+            ) {
                 prismaField.attributes.push(
                     new PrismaFieldAttribute('@relation', [
                         new PrismaAttributeArg(undefined, new AttributeArgValue('String', relName)),
+                    ])
+                );
+            } else {
+                // generate FK field
+                const oppositeModelIds = getIdFields(oppositeRelationField.$container as DataModel);
+                const fkFieldNames: string[] = [];
+
+                oppositeModelIds.forEach((idField) => {
+                    const fkFieldName = this.truncate(`${DELEGATE_AUX_RELATION_PREFIX}_${f.name}_${idField.name}`);
+                    model.addField(fkFieldName, new ModelFieldType(idField.type.type!, false, f.type.optional), [
+                        // one-to-one relation requires FK field to be unique, we're just including it
+                        // in all cases since it doesn't hurt
+                        new PrismaFieldAttribute('@unique'),
+                    ]);
+                    fkFieldNames.push(fkFieldName);
+                });
+
+                prismaField.attributes.push(
+                    new PrismaFieldAttribute('@relation', [
+                        new PrismaAttributeArg(undefined, new AttributeArgValue('String', relName)),
+                        new PrismaAttributeArg(
+                            'fields',
+                            new AttributeArgValue(
+                                'Array',
+                                fkFieldNames.map(
+                                    (fk) => new AttributeArgValue('FieldReference', new PrismaFieldReference(fk))
+                                )
+                            )
+                        ),
+                        new PrismaAttributeArg(
+                            'references',
+                            new AttributeArgValue(
+                                'Array',
+                                oppositeModelIds.map(
+                                    (idField) =>
+                                        new AttributeArgValue('FieldReference', new PrismaFieldReference(idField.name))
+                                )
+                            )
+                        ),
                     ])
                 );
             }
@@ -690,9 +715,24 @@ export class PrismaSchemaGenerator {
 
     private getOppositeRelationField(oppositeModel: DataModel, relationField: DataModelField) {
         const relName = this.getRelationName(relationField);
-        return oppositeModel.fields.find(
+        const matches = oppositeModel.fields.filter(
             (f) => f.type.reference?.ref === relationField.$container && this.getRelationName(f) === relName
         );
+
+        if (matches.length === 0) {
+            return undefined;
+        } else if (matches.length === 1) {
+            return matches[0];
+        } else {
+            // if there are multiple matches, prefer to use the one with the same field name,
+            // this can happen with self-relations
+            const withNameMatch = matches.find((f) => f.name === relationField.name);
+            if (withNameMatch) {
+                return withNameMatch;
+            } else {
+                return matches[0];
+            }
+        }
     }
 
     private getRelationName(field: DataModelField) {
