@@ -9,13 +9,18 @@ import { inspect } from 'util';
 /**
  * CLI action for starting a REPL session
  */
-export async function repl(projectPath: string, options: { prismaClient?: string; debug?: boolean; table?: boolean }) {
+export async function repl(
+    projectPath: string,
+    options: { loadPath?: string; prismaClient?: string; debug?: boolean; table?: boolean }
+) {
     if (!process?.stdout?.isTTY && process?.versions?.bun) {
-        console.error('REPL on Bun is only available in a TTY terminal at this time. Please use npm/npx to run the command in this context instead of bun/bunx.');
+        console.error(
+            'REPL on Bun is only available in a TTY terminal at this time. Please use npm/npx to run the command in this context instead of bun/bunx.'
+        );
         return;
     }
 
-    const prettyRepl = await import('pretty-repl')
+    const prettyRepl = await import('pretty-repl');
 
     console.log('Welcome to ZenStack REPL. See help with the ".help" command.');
     console.log('Global variables:');
@@ -47,7 +52,9 @@ export async function repl(projectPath: string, options: { prismaClient?: string
         }
     }
 
-    const { enhance } = require('@zenstackhq/runtime');
+    const { enhance } = options.loadPath
+        ? require(path.join(path.resolve(options.loadPath), 'enhance'))
+        : require('@zenstackhq/runtime');
 
     let debug = !!options.debug;
     let table = !!options.table;
@@ -63,7 +70,11 @@ export async function repl(projectPath: string, options: { prismaClient?: string
                 let r: any = undefined;
                 let isPrismaCall = false;
 
-                if (cmd.includes('await ')) {
+                if (/^\s*user\s*=[^=]/.test(cmd)) {
+                    // assigning to user variable, reset auth
+                    eval(cmd);
+                    setAuth(user);
+                } else if (/^\s*await\s+/.test(cmd)) {
                     // eval can't handle top-level await, so we wrap it in an async function
                     cmd = `(async () => (${cmd}))()`;
                     r = eval(cmd);
@@ -137,7 +148,7 @@ export async function repl(projectPath: string, options: { prismaClient?: string
 
     // .auth command
     replServer.defineCommand('auth', {
-        help: 'Set current user. Run without argument to switch to anonymous. Pass an user object to set current user.',
+        help: 'Set current user. Run without argument to switch to anonymous. Pass an user object to set current user. Run ".auth info" to show current user.',
         action(value: string) {
             this.clearBufferedCommand();
             try {
@@ -145,6 +156,10 @@ export async function repl(projectPath: string, options: { prismaClient?: string
                     // set anonymous
                     setAuth(undefined);
                     console.log(`Auth user: anonymous. Use ".auth { id: ... }" to change.`);
+                } else if (value.trim() === 'info') {
+                    // refresh auth user
+                    setAuth(user);
+                    console.log(`Current user: ${user ? inspect(user) : 'anonymous'}`);
                 } else {
                     // set current user
                     const user = eval(`(${value})`);
