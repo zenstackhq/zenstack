@@ -93,7 +93,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
 
         if (args.orderBy) {
             // `orderBy` may contain fields from base types
-            this.injectWhereHierarchy(this.model, args.orderBy);
+            enumerate(args.orderBy).forEach((item) => this.injectWhereHierarchy(model, item));
         }
 
         if (this.options.logPrismaQuery) {
@@ -206,7 +206,9 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                     if (fieldValue !== undefined) {
                         if (fieldValue.orderBy) {
                             // `orderBy` may contain fields from base types
-                            this.injectWhereHierarchy(fieldInfo.type, fieldValue.orderBy);
+                            enumerate(fieldValue.orderBy).forEach((item) =>
+                                this.injectWhereHierarchy(fieldInfo.type, item)
+                            );
                         }
 
                         if (this.injectBaseFieldSelect(model, field, fieldValue, args, kind)) {
@@ -1037,7 +1039,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         }
 
         if (args.orderBy) {
-            this.injectWhereHierarchy(this.model, args.orderBy);
+            enumerate(args.orderBy).forEach((item) => this.injectWhereHierarchy(this.model, item));
         }
 
         if (args.where) {
