@@ -143,7 +143,7 @@ export async function fetcher<R, C extends boolean>(
         (typeof fetch === 'function'
             ? fetch
             : // fallback to 'cross-fetch' if otherwise
-              (await import('cross-fetch')).fetch);
+              (await import('cross-fetch')).default);
 
     const res = await _fetch(url, options);
     if (!res.ok) {
