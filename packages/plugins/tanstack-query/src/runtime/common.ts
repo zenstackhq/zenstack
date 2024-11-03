@@ -8,7 +8,6 @@ import {
     type ModelMeta,
     type PrismaWriteActionType,
 } from '@zenstackhq/runtime/cross';
-import * as crossFetch from 'cross-fetch';
 
 /**
  * The default query endpoint.
@@ -133,10 +132,19 @@ export type APIContext = {
 export async function fetcher<R, C extends boolean>(
     url: string,
     options?: RequestInit,
-    fetch?: FetchFn,
+    customFetch?: FetchFn,
     checkReadBack?: C
 ): Promise<C extends true ? R | undefined : R> {
-    const _fetch = fetch ?? crossFetch.fetch;
+    // Note: 'cross-fetch' is supposed to handle fetch compatibility
+    // but it doesn't work for cloudflare workers
+    const _fetch =
+        customFetch ??
+        // check if fetch is available globally
+        (typeof fetch === 'function'
+            ? fetch
+            : // fallback to 'cross-fetch' if otherwise
+              (await import('cross-fetch')).default);
+
     const res = await _fetch(url, options);
     if (!res.ok) {
         const errData = unmarshal(await res.text());
@@ -213,7 +221,7 @@ export function marshal(value: unknown) {
 
 export function unmarshal(value: string) {
     const parsed = JSON.parse(value);
-    if (parsed.data && parsed.meta?.serialization) {
+    if (typeof parsed === 'object' && parsed?.data && parsed?.meta?.serialization) {
         const deserializedData = deserialize(parsed.data, parsed.meta.serialization);
         return { ...parsed, data: deserializedData };
     } else {

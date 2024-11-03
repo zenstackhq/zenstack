@@ -1,4 +1,6 @@
 import {
+    PluginError,
+    getLiteral,
     getRelationKeyPairs,
     isAuthInvocation,
     isDataModelFieldReference,
@@ -7,9 +9,11 @@ import {
 import {
     BinaryExpr,
     BooleanLiteral,
+    DataModel,
     DataModelField,
     Expression,
     ExpressionType,
+    InvocationExpr,
     LiteralExpr,
     MemberAccessExpr,
     NumberLiteral,
@@ -27,6 +31,8 @@ import {
     isUnaryExpr,
 } from '@zenstackhq/sdk/ast';
 import { P, match } from 'ts-pattern';
+import { name } from '..';
+import { isCheckInvocation } from '../../../utils/ast-utils';
 
 /**
  * Options for {@link ConstraintTransformer}.
@@ -107,6 +113,8 @@ export class ConstraintTransformer {
                 .when(isReferenceExpr, (expr) => this.transformReference(expr))
                 // top-level boolean member access expr
                 .when(isMemberAccessExpr, (expr) => this.transformMemberAccess(expr))
+                // `check()` invocation on a relation field
+                .when(isCheckInvocation, (expr) => this.transformCheckInvocation(expr as InvocationExpr))
                 .otherwise(() => this.nextVar())
         );
     }
@@ -257,6 +265,30 @@ export class ConstraintTransformer {
         }
 
         return undefined;
+    }
+
+    private transformCheckInvocation(expr: InvocationExpr) {
+        // transform `check()` invocation to a special "delegate" constraint kind
+        // to be evaluated at runtime
+
+        const field = expr.args[0].value as ReferenceExpr;
+        if (!field) {
+            throw new PluginError(name, 'Invalid check invocation');
+        }
+        const fieldType = field.$resolvedType?.decl as DataModel;
+
+        let operation: string | undefined = undefined;
+        if (expr.args[1]) {
+            operation = getLiteral<string>(expr.args[1].value);
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result: any = { kind: 'delegate', model: fieldType.name, relation: field.target.$refText };
+        if (operation) {
+            // operation can be explicitly specified or inferred from the context
+            result.operation = operation;
+        }
+        return JSON.stringify(result);
     }
 
     // normalize `auth()` access undefined value to null
