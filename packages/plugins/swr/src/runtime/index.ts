@@ -7,7 +7,6 @@ import {
     type ModelMeta,
     type PrismaWriteActionType,
 } from '@zenstackhq/runtime/cross';
-import * as crossFetch from 'cross-fetch';
 import { lowerCaseFirst } from 'lower-case-first';
 import { createContext, useContext } from 'react';
 import type { Cache, Fetcher, SWRConfiguration, SWRResponse } from 'swr';
@@ -376,10 +375,19 @@ export function useInvalidation(model: string, modelMeta: ModelMeta): Invalidato
 export async function fetcher<R, C extends boolean>(
     url: string,
     options?: RequestInit,
-    fetch?: FetchFn,
+    customFetch?: FetchFn,
     checkReadBack?: C
 ): Promise<C extends true ? R | undefined : R> {
-    const _fetch = fetch ?? crossFetch.fetch;
+    // Note: 'cross-fetch' is supposed to handle fetch compatibility
+    // but it doesn't work for cloudflare workers
+    const _fetch =
+        customFetch ??
+        // check if fetch is available globally
+        (typeof fetch === 'function'
+            ? fetch
+            : // fallback to 'cross-fetch' if otherwise
+              (await import('cross-fetch')).default);
+
     const res = await _fetch(url, options);
     if (!res.ok) {
         const errData = unmarshal(await res.text());
