@@ -1354,4 +1354,19 @@ describe('Attribute tests', () => {
             'Field-level policy rules with "update" or "all" kind are not allowed for relation fields. Put rules on foreign-key fields instead.'
         );
     });
+
+    it('type def field attribute', async () => {
+        await expect(
+            loadModelWithError(`
+            model User {
+                id String @id
+                profile Profile
+            }
+            
+            type Profile {
+                email String @omit
+            }
+        `)
+        ).resolves.toContain(`attribute "@omit" cannot be used on type declaration fields`);
+    });
 });

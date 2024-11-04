@@ -6,8 +6,16 @@ import {
     isDataModel,
     isEnum,
     isStringLiteral,
+    isTypeDef,
 } from '@zenstackhq/language/ast';
-import { getModelFieldsWithBases, getModelIdFields, getModelUniqueFields, isDelegateModel } from '@zenstackhq/sdk';
+import {
+    getDataSourceProvider,
+    getModelFieldsWithBases,
+    getModelIdFields,
+    getModelUniqueFields,
+    hasAttribute,
+    isDelegateModel,
+} from '@zenstackhq/sdk';
 import { AstNode, DiagnosticInfo, ValidationAcceptor, getDocument } from 'langium';
 import { findUpInheritance } from '../../utils/ast-utils';
 import { IssueCodes, SCALAR_TYPES } from '../constants';
@@ -95,6 +103,16 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         }
 
         field.attributes.forEach((attr) => validateAttributeApplication(attr, accept));
+
+        if (isTypeDef(field.type.reference?.ref)) {
+            if (!hasAttribute(field, '@json')) {
+                accept('error', 'Custom-typed field must have @json attribute', { node: field });
+            }
+
+            if (getDataSourceProvider(field.$container.$container) !== 'postgresql') {
+                accept('error', 'Custom-typed field is only supported with "postgresql" provider', { node: field });
+            }
+        }
     }
 
     private validateAttributes(dm: DataModel, accept: ValidationAcceptor) {

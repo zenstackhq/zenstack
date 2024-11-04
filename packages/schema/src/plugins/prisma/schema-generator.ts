@@ -23,6 +23,7 @@ import {
     isNullExpr,
     isReferenceExpr,
     isStringLiteral,
+    isTypeDef,
     LiteralExpr,
     Model,
     NumberLiteral,
@@ -785,13 +786,34 @@ export class PrismaSchemaGenerator {
     }
 
     private generateModelField(model: PrismaDataModel, field: DataModelField, addToFront = false) {
-        const fieldType =
-            field.type.type || field.type.reference?.ref?.name || this.getUnsupportedFieldType(field.type);
+        let fieldType: string | undefined;
+
+        if (field.type.type) {
+            // intrinsic type
+            fieldType = field.type.type;
+        } else if (field.type.reference?.ref) {
+            // model, enum, or type-def
+            if (isTypeDef(field.type.reference.ref)) {
+                fieldType = 'Json';
+            } else {
+                fieldType = field.type.reference.ref.name;
+            }
+        } else {
+            // Unsupported type
+            const unsupported = this.getUnsupportedFieldType(field.type);
+            if (unsupported) {
+                fieldType = unsupported;
+            }
+        }
+
         if (!fieldType) {
             throw new PluginError(name, `Field type is not resolved: ${field.$container.name}.${field.name}`);
         }
 
-        const type = new ModelFieldType(fieldType, field.type.array, field.type.optional);
+        const isArray =
+            // typed-JSON fields should be translated to scalar Json type
+            isTypeDef(field.type.reference?.ref) ? false : field.type.array;
+        const type = new ModelFieldType(fieldType, isArray, field.type.optional);
 
         const attributes = field.attributes
             .filter((attr) => this.isPrismaAttribute(attr))

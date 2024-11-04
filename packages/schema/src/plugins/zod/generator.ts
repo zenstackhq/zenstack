@@ -14,12 +14,12 @@ import {
     parseOptionAsStrings,
     resolvePath,
 } from '@zenstackhq/sdk';
-import { DataModel, EnumField, Model, isDataModel, isEnum } from '@zenstackhq/sdk/ast';
+import { DataModel, EnumField, Model, TypeDef, isDataModel, isEnum, isTypeDef } from '@zenstackhq/sdk/ast';
 import { addMissingInputObjectTypes, resolveAggregateOperationSupport } from '@zenstackhq/sdk/dmmf-helpers';
 import { getPrismaClientImportSpec, supportCreateMany, type DMMF } from '@zenstackhq/sdk/prisma';
 import { streamAllContents } from 'langium';
 import path from 'path';
-import type { SourceFile } from 'ts-morph';
+import type { CodeBlockWriter, SourceFile } from 'ts-morph';
 import { upperCaseFirst } from 'upper-case-first';
 import { name } from '.';
 import { getDefaultOutputFolder } from '../plugin-utils';
@@ -274,6 +274,12 @@ export class ZodSchemaGenerator {
             }
         }
 
+        for (const typeDef of this.model.declarations.filter(isTypeDef)) {
+            if (!excludedModels.includes(typeDef.name)) {
+                schemaNames.push(await this.generateTypeDefSchema(typeDef, output));
+            }
+        }
+
         this.sourceFiles.push(
             this.project.createSourceFile(
                 path.join(output, 'models', 'index.ts'),
@@ -281,6 +287,89 @@ export class ZodSchemaGenerator {
                 { overwrite: true }
             )
         );
+    }
+
+    private generateTypeDefSchema(typeDef: TypeDef, output: string) {
+        const schemaName = `${upperCaseFirst(typeDef.name)}.schema`;
+        const sf = this.project.createSourceFile(path.join(output, 'models', `${schemaName}.ts`), undefined, {
+            overwrite: true,
+        });
+        this.sourceFiles.push(sf);
+        sf.replaceWithText((writer) => {
+            this.addPreludeAndImports(typeDef, writer, output);
+
+            writer.write(`export const ${typeDef.name}Schema = z.object(`);
+            writer.inlineBlock(() => {
+                typeDef.fields.forEach((field) => {
+                    writer.writeLine(`${field.name}: ${makeFieldSchema(field)},`);
+                });
+            });
+
+            switch (this.options.mode) {
+                case 'strip':
+                    // zod strips by default
+                    writer.writeLine(')');
+                    break;
+                case 'passthrough':
+                    writer.writeLine(').passthrough();');
+                    break;
+                default:
+                    writer.writeLine(').strict();');
+                    break;
+            }
+        });
+
+        // TODO: "@@validate" refinements
+
+        return schemaName;
+    }
+
+    private addPreludeAndImports(decl: DataModel | TypeDef, writer: CodeBlockWriter, output: string) {
+        writer.writeLine('/* eslint-disable */');
+        writer.writeLine(`import { z } from 'zod';`);
+
+        // import user-defined enums from Prisma as they might be referenced in the expressions
+        const importEnums = new Set<string>();
+        for (const node of streamAllContents(decl)) {
+            if (isEnumFieldReference(node)) {
+                const field = node.target.ref as EnumField;
+                if (!isFromStdlib(field.$container)) {
+                    importEnums.add(field.$container.name);
+                }
+            }
+        }
+        if (importEnums.size > 0) {
+            const prismaImport = computePrismaClientImport(path.join(output, 'models'), this.options);
+            writer.writeLine(`import { ${[...importEnums].join(', ')} } from '${prismaImport}';`);
+        }
+
+        // import enum schemas
+        const importedEnumSchemas = new Set<string>();
+        for (const field of decl.fields) {
+            if (field.type.reference?.ref && isEnum(field.type.reference?.ref)) {
+                const name = upperCaseFirst(field.type.reference?.ref.name);
+                if (!importedEnumSchemas.has(name)) {
+                    writer.writeLine(`import { ${name}Schema } from '../enums/${name}.schema';`);
+                    importedEnumSchemas.add(name);
+                }
+            }
+        }
+
+        // import Decimal
+        if (decl.fields.some((field) => field.type.type === 'Decimal')) {
+            writer.writeLine(`import { DecimalSchema } from '../common';`);
+            writer.writeLine(`import { Decimal } from 'decimal.js';`);
+        }
+
+        // import referenced types' schemas
+        const referencedTypes = new Set(
+            decl.fields
+                .filter((field) => isTypeDef(field.type.reference?.ref) && field.type.reference?.ref.name !== decl.name)
+                .map((field) => field.type.reference!.ref!.name)
+        );
+        for (const refType of referencedTypes) {
+            writer.writeLine(`import { ${upperCaseFirst(refType)}Schema } from './${upperCaseFirst(refType)}.schema';`);
+        }
     }
 
     private async generateModelSchema(model: DataModel, output: string) {
@@ -301,41 +390,7 @@ export class ZodSchemaGenerator {
             const relations = model.fields.filter((field) => isDataModel(field.type.reference?.ref));
             const fkFields = model.fields.filter((field) => isForeignKeyField(field));
 
-            writer.writeLine('/* eslint-disable */');
-            writer.writeLine(`import { z } from 'zod';`);
-
-            // import user-defined enums from Prisma as they might be referenced in the expressions
-            const importEnums = new Set<string>();
-            for (const node of streamAllContents(model)) {
-                if (isEnumFieldReference(node)) {
-                    const field = node.target.ref as EnumField;
-                    if (!isFromStdlib(field.$container)) {
-                        importEnums.add(field.$container.name);
-                    }
-                }
-            }
-            if (importEnums.size > 0) {
-                const prismaImport = computePrismaClientImport(path.join(output, 'models'), this.options);
-                writer.writeLine(`import { ${[...importEnums].join(', ')} } from '${prismaImport}';`);
-            }
-
-            // import enum schemas
-            const importedEnumSchemas = new Set<string>();
-            for (const field of scalarFields) {
-                if (field.type.reference?.ref && isEnum(field.type.reference?.ref)) {
-                    const name = upperCaseFirst(field.type.reference?.ref.name);
-                    if (!importedEnumSchemas.has(name)) {
-                        writer.writeLine(`import { ${name}Schema } from '../enums/${name}.schema';`);
-                        importedEnumSchemas.add(name);
-                    }
-                }
-            }
-
-            // import Decimal
-            if (scalarFields.some((field) => field.type.type === 'Decimal')) {
-                writer.writeLine(`import { DecimalSchema } from '../common';`);
-                writer.writeLine(`import { Decimal } from 'decimal.js';`);
-            }
+            this.addPreludeAndImports(model, writer, output);
 
             // base schema - including all scalar fields, with optionality following the schema
             writer.write(`const baseSchema = z.object(`);

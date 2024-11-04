@@ -7,6 +7,7 @@ import {
     FunctionDecl,
     InvocationExpr,
     Model,
+    TypeDef,
     ZModelAstType,
 } from '@zenstackhq/language/ast';
 import { AstNode, LangiumDocument, ValidationAcceptor, ValidationChecks, ValidationRegistry } from 'langium';
@@ -19,6 +20,7 @@ import ExpressionValidator from './expression-validator';
 import FunctionDeclValidator from './function-decl-validator';
 import FunctionInvocationValidator from './function-invocation-validator';
 import SchemaValidator from './schema-validator';
+import TypeDefValidator from './typedef-validator';
 
 /**
  * Registry for validation checks.
@@ -31,6 +33,7 @@ export class ZModelValidationRegistry extends ValidationRegistry {
             Model: validator.checkModel,
             DataSource: validator.checkDataSource,
             DataModel: validator.checkDataModel,
+            TypeDef: validator.checkTypeDef,
             Enum: validator.checkEnum,
             Attribute: validator.checkAttribute,
             Expression: validator.checkExpression,
@@ -71,6 +74,10 @@ export class ZModelValidator {
 
     checkDataModel(node: DataModel, accept: ValidationAcceptor): void {
         this.shouldCheck(node) && new DataModelValidator().validate(node, accept);
+    }
+
+    checkTypeDef(node: TypeDef, accept: ValidationAcceptor): void {
+        this.shouldCheck(node) && new TypeDefValidator().validate(node, accept);
     }
 
     checkEnum(node: Enum, accept: ValidationAcceptor): void {

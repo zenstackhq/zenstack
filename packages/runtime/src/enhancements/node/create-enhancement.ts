@@ -10,6 +10,7 @@ import type {
 } from '../../types';
 import { withDefaultAuth } from './default-auth';
 import { withDelegate } from './delegate';
+import { withJsonProcessor } from './json-processor';
 import { Logger } from './logger';
 import { withOmit } from './omit';
 import { withPassword } from './password';
@@ -90,10 +91,18 @@ export function createEnhancement<DbClient extends object>(
 
     // TODO: move the detection logic into each enhancement
     // TODO: how to properly cache the detection result?
+
     const allFields = Object.values(options.modelMeta.models).flatMap((modelInfo) => Object.values(modelInfo.fields));
+    if (options.modelMeta.typeDefs) {
+        allFields.push(
+            ...Object.values(options.modelMeta.typeDefs).flatMap((typeDefInfo) => Object.values(typeDefInfo.fields))
+        );
+    }
+
     const hasPassword = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@password'));
     const hasOmit = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@omit'));
     const hasDefaultAuth = allFields.some((field) => field.defaultValueProvider);
+    const hasTypeDefField = allFields.some((field) => field.isTypeDef);
 
     const kinds = options.kinds ?? ALL_ENHANCEMENTS;
     let result = prisma;
@@ -140,6 +149,10 @@ export function createEnhancement<DbClient extends object>(
     if (hasOmit && kinds.includes('omit')) {
         // @omit proxy
         result = withOmit(result, options);
+    }
+
+    if (hasTypeDefField) {
+        result = withJsonProcessor(result, options);
     }
 
     return result;

@@ -1,5 +1,5 @@
 import { lowerCaseFirst } from 'lower-case-first';
-import { requireField, type ModelInfo, type ModelMeta } from '.';
+import { requireField, type ModelInfo, type ModelMeta, type TypeDefInfo } from '.';
 
 /**
  * Gets field names in a data model entity, filtering out internal fields.
@@ -46,6 +46,9 @@ export function zip<T1, T2>(x: Enumerable<T1>, y: Enumerable<T2>): Array<[T1, T2
     }
 }
 
+/**
+ * Gets ID fields of a model.
+ */
 export function getIdFields(modelMeta: ModelMeta, model: string, throwIfNotFound = false) {
     const uniqueConstraints = modelMeta.models[lowerCaseFirst(model)]?.uniqueConstraints ?? {};
 
@@ -60,6 +63,9 @@ export function getIdFields(modelMeta: ModelMeta, model: string, throwIfNotFound
     return entries[0].fields.map((f) => requireField(modelMeta, model, f));
 }
 
+/**
+ * Gets info for a model.
+ */
 export function getModelInfo<Throw extends boolean = false>(
     modelMeta: ModelMeta,
     model: string,
@@ -72,6 +78,25 @@ export function getModelInfo<Throw extends boolean = false>(
     return info;
 }
 
+/**
+ * Gets info for a type def.
+ */
+export function getTypeDefInfo<Throw extends boolean = false>(
+    modelMeta: ModelMeta,
+    typeDef: string,
+    throwIfNotFound: Throw = false as Throw
+): Throw extends true ? TypeDefInfo : TypeDefInfo | undefined {
+    const info = modelMeta.typeDefs?.[lowerCaseFirst(typeDef)];
+    if (!info && throwIfNotFound) {
+        throw new Error(`Unable to load info for ${typeDef}`);
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return info as any;
+}
+
+/**
+ * Checks if a model is a delegate model.
+ */
 export function isDelegateModel(modelMeta: ModelMeta, model: string) {
     return !!getModelInfo(modelMeta, model)?.attributes?.some((attr) => attr.name === '@@delegate');
 }
