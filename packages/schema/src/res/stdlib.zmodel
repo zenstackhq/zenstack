@@ -177,6 +177,11 @@ function isEmpty(field: Any[]): Boolean {
 attribute @@@targetField(_ targetField: AttributeTargetField[])
 
 /**
+ * Marks an attribute to be applicable to type defs and fields.
+ */
+attribute @@@supportTypeDef()
+
+/**
  * Marks an attribute to be used for data validation.
  */
 attribute @@@validation()
@@ -210,7 +215,7 @@ attribute @id(map: String?, length: Int?, sort: SortOrder?, clustered: Boolean?)
  * Defines a default value for a field.
  * @param value: An expression (e.g. 5, true, now(), auth()).
  */
-attribute @default(_ value: ContextType, map: String?) @@@prisma
+attribute @default(_ value: ContextType, map: String?) @@@prisma @@@supportTypeDef
 
 /**
  * Defines a unique constraint for this field.
@@ -559,77 +564,77 @@ attribute @omit()
 /**
  * Validates length of a string field.
  */
-attribute @length(_ min: Int?, _ max: Int?, _ message: String?) @@@targetField([StringField]) @@@validation
+attribute @length(_ min: Int?, _ max: Int?, _ message: String?) @@@targetField([StringField]) @@@validation @@@supportTypeDef
 
 /**
  * Validates a string field value starts with the given text.
  */
-attribute @startsWith(_ text: String, _ message: String?) @@@targetField([StringField]) @@@validation
+attribute @startsWith(_ text: String, _ message: String?) @@@targetField([StringField]) @@@validation @@@supportTypeDef
 
 /**
  * Validates a string field value ends with the given text.
  */
-attribute @endsWith(_ text: String, _ message: String?) @@@targetField([StringField]) @@@validation
+attribute @endsWith(_ text: String, _ message: String?) @@@targetField([StringField]) @@@validation @@@supportTypeDef
 
 /**
  * Validates a string field value contains the given text.
  */
-attribute @contains(_ text: String, _ message: String?) @@@targetField([StringField]) @@@validation
+attribute @contains(_ text: String, _ message: String?) @@@targetField([StringField]) @@@validation @@@supportTypeDef
 
 /**
  * Validates a string field value matches a regex.
  */
-attribute @regex(_ regex: String, _ message: String?) @@@targetField([StringField]) @@@validation
+attribute @regex(_ regex: String, _ message: String?) @@@targetField([StringField]) @@@validation @@@supportTypeDef
 
 /**
  * Validates a string field value is a valid email address.
  */
-attribute @email(_ message: String?) @@@targetField([StringField]) @@@validation
+attribute @email(_ message: String?) @@@targetField([StringField]) @@@validation @@@supportTypeDef
 
 /**
  * Validates a string field value is a valid ISO datetime.
  */
-attribute @datetime(_ message: String?) @@@targetField([StringField]) @@@validation
+attribute @datetime(_ message: String?) @@@targetField([StringField]) @@@validation @@@supportTypeDef
 
 /**
  * Validates a string field value is a valid url.
  */
-attribute @url(_ message: String?) @@@targetField([StringField]) @@@validation
+attribute @url(_ message: String?) @@@targetField([StringField]) @@@validation @@@supportTypeDef
 
 /**
  * Trims whitespaces from the start and end of the string.
  */
-attribute @trim() @@@targetField([StringField]) @@@validation
+attribute @trim() @@@targetField([StringField]) @@@validation @@@supportTypeDef
 
 /**
  * Transform entire string toLowerCase.
  */
-attribute @lower() @@@targetField([StringField]) @@@validation
+attribute @lower() @@@targetField([StringField]) @@@validation @@@supportTypeDef
 
 /**
  * Transform entire string toUpperCase.
  */
-attribute @upper() @@@targetField([StringField]) @@@validation
+attribute @upper() @@@targetField([StringField]) @@@validation @@@supportTypeDef
 
 /**
  * Validates a number field is greater than the given value.
  */
-attribute @gt(_ value: Int, _ message: String?) @@@targetField([IntField, FloatField, DecimalField]) @@@validation
+attribute @gt(_ value: Int, _ message: String?) @@@targetField([IntField, FloatField, DecimalField]) @@@validation @@@supportTypeDef
 
 /**
  * Validates a number field is greater than or equal to the given value.
  */
-attribute @gte(_ value: Int, _ message: String?) @@@targetField([IntField, FloatField, DecimalField]) @@@validation
+attribute @gte(_ value: Int, _ message: String?) @@@targetField([IntField, FloatField, DecimalField]) @@@validation @@@supportTypeDef
 
 /**
  * Validates a number field is less than the given value.
  */
-attribute @lt(_ value: Int, _ message: String?) @@@targetField([IntField, FloatField, DecimalField]) @@@validation
+attribute @lt(_ value: Int, _ message: String?) @@@targetField([IntField, FloatField, DecimalField]) @@@validation @@@supportTypeDef
 
 /**
  * Validates a number field is less than or equal to the given value.
  */
-attribute @lte(_ value: Int, _ message: String?) @@@targetField([IntField, FloatField, DecimalField]) @@@validation
+attribute @lte(_ value: Int, _ message: String?) @@@targetField([IntField, FloatField, DecimalField]) @@@validation @@@supportTypeDef
 
 /**
  * Validates the entity with a complex condition.

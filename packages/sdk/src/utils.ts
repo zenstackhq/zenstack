@@ -30,6 +30,7 @@ import {
     Model,
     Reference,
     ReferenceExpr,
+    TypeDefField,
 } from '@zenstackhq/language/ast';
 import fs from 'node:fs';
 import path from 'path';
@@ -123,7 +124,7 @@ export function hasAttribute(
 }
 
 export function getAttribute(
-    decl: DataModel | DataModelField | Enum | EnumField | FunctionDecl | Attribute | AttributeParam,
+    decl: DataModel | DataModelField | TypeDefField | Enum | EnumField | FunctionDecl | Attribute | AttributeParam,
     name: string
 ) {
     return (decl.attributes as (DataModelAttribute | DataModelFieldAttribute)[]).find(

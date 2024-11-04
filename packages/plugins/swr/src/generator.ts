@@ -10,7 +10,7 @@ import {
     resolvePath,
     saveProject,
 } from '@zenstackhq/sdk';
-import { DataModel, DataModelFieldType, Model, isEnum } from '@zenstackhq/sdk/ast';
+import { DataModel, DataModelFieldType, Model, isEnum, isTypeDef } from '@zenstackhq/sdk/ast';
 import { getPrismaClientImportSpec, supportCreateMany, type DMMF } from '@zenstackhq/sdk/prisma';
 import { paramCase } from 'change-case';
 import path from 'path';
@@ -28,8 +28,9 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     const warnings: string[] = [];
 
     const models = getDataModels(model);
+    const typeDefs = model.declarations.filter(isTypeDef);
 
-    await generateModelMeta(project, models, {
+    await generateModelMeta(project, models, typeDefs, {
         output: path.join(outDir, '__model_meta.ts'),
         generateAttributes: false,
     });

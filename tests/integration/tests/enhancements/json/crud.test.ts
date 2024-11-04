@@ -190,4 +190,81 @@ describe('Json field CRUD', () => {
             })
         ).toResolveTruthy();
     });
+
+    it('respects @default', async () => {
+        const params = await loadSchema(
+            `
+            type Address {
+                state String
+                city String @default('Issaquah')
+            }
+
+            type Profile {
+                createdAt DateTime @default(now())
+                address Address?
+            }
+            
+            model User {
+                id Int @id @default(autoincrement())
+                profile Profile @json
+                @@allow('all', true)
+            }
+            `,
+            {
+                provider: 'postgresql',
+                dbUrl,
+            }
+        );
+
+        prisma = params.prisma;
+        const db = params.enhance();
+
+        // default value
+        await expect(db.user.create({ data: { profile: { address: { state: 'WA' } } } })).resolves.toMatchObject({
+            profile: { address: { state: 'WA', city: 'Issaquah' }, createdAt: expect.any(Date) },
+        });
+
+        // override default
+        await expect(
+            db.user.create({ data: { profile: { address: { state: 'WA', city: 'Seattle' } } } })
+        ).resolves.toMatchObject({
+            profile: { address: { state: 'WA', city: 'Seattle' } },
+        });
+    });
+
+    it('works auth() in @default', async () => {
+        const params = await loadSchema(
+            `
+            type NestedProfile {
+                userId Int @default(auth().id)
+            }
+
+            type Profile {
+                ownerId Int @default(auth().id)
+                nested NestedProfile
+            }
+            
+            model User {
+                id Int @id @default(autoincrement())
+                profile Profile @json
+                @@allow('all', true)
+            }
+            `,
+            {
+                provider: 'postgresql',
+                dbUrl,
+            }
+        );
+
+        prisma = params.prisma;
+
+        const db = params.enhance({ id: 1 });
+        const u1 = await db.user.create({ data: { profile: { nested: {} } } });
+        expect(u1.profile.ownerId).toBe(1);
+        expect(u1.profile.nested.userId).toBe(1);
+
+        const u2 = await db.user.create({ data: { profile: { ownerId: 2, nested: { userId: 3 } } } });
+        expect(u2.profile.ownerId).toBe(2);
+        expect(u2.profile.nested.userId).toBe(3);
+    });
 });
