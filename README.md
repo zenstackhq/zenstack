@@ -248,9 +248,9 @@ Thank you for your generous support!
 
 <table>
   <tr>
+   <td align="center"><a href="https://github.com/baenie"><img src="https://avatars.githubusercontent.com/u/58309104?v=4" width="100" style="border-radius:50%" alt="Benjamin Zecirovic"/><br />Benjamin Zecirovic</a></td>
    <td align="center"><a href="https://github.com/umussetu"><img src="https://avatars.githubusercontent.com/u/152648499?v=4" width="100" style="border-radius:50%" alt="Ulric"/><br />Ulric</a></td>
    <td align="center"><a href="https://github.com/iamfj"><img src="https://avatars.githubusercontent.com/u/24557998?v=4" width="100" style="border-radius:50%" alt="Fabian Jocks"/><br />Fabian Jocks</a></td>
-   <td align="center"><a href="https://github.com/baenie"><img src="https://avatars.githubusercontent.com/u/58309104?v=4" width="100" style="border-radius:50%" alt="Benjamin Zecirovic"/><br />Benjamin Zecirovic</a></td>
   </tr>
 </table>
 
