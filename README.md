@@ -158,7 +158,7 @@ The following diagram gives a high-level architecture overview of ZenStack.
 ### Plugins
 
 -   Prisma schema generator
--   Zod schema generator
+-   [Zod](https://zod.dev/) schema generator
 -   [SWR](https://github.com/vercel/swr) and [TanStack Query](https://github.com/TanStack/query) hooks generator
 -   OpenAPI specification generator
 -   [tRPC](https://trpc.io) router generator
@@ -166,7 +166,7 @@ The following diagram gives a high-level architecture overview of ZenStack.
 
 ### Framework adapters
 
--   [Next.js](https://zenstack.dev/docs/reference/server-adapters/next) (including support for the new "app directory" in Next.js 13)
+-   [Next.js](https://zenstack.dev/docs/reference/server-adapters/next)
 -   [Nuxt](https://zenstack.dev/docs/reference/server-adapters/nuxt)
 -   [SvelteKit](https://zenstack.dev/docs/reference/server-adapters/sveltekit)
 -   [Fastify](https://zenstack.dev/docs/reference/server-adapters/fastify)
@@ -180,7 +180,7 @@ The following diagram gives a high-level architecture overview of ZenStack.
 -   [Custom attributes and functions](https://zenstack.dev/docs/reference/zmodel-language#custom-attributes-and-functions)
 -   [Multi-file schema and model inheritance](https://zenstack.dev/docs/guides/multiple-schema)
 -   [Polymorphic Relations](https://zenstack.dev/docs/guides/polymorphism)
--   Strong-typed JSON field (coming soon)
+-   [Strongly typed JSON field](https://zenstack.dev/docs/guides/typing-json)
 -   🙋🏻 [Request for an extension](https://discord.gg/Ykhr738dUe)
 
 ## Examples
@@ -200,19 +200,19 @@ You can use [this blog post](https://zenstack.dev/blog/model-authz) as an introd
 
 Check out the [Multi-tenant Todo App](https://zenstack-todo.vercel.app/) for a running example. You can find different implementations below:
 
--   [Next.js 13 + NextAuth + SWR](https://github.com/zenstackhq/sample-todo-nextjs)
--   [Next.js 13 + NextAuth + TanStack Query](https://github.com/zenstackhq/sample-todo-nextjs-tanstack)
--   [Next.js 13 + NextAuth + tRPC](https://github.com/zenstackhq/sample-todo-trpc)
--   [Nuxt V3 + TanStack Query](https://github.com/zenstackhq/sample-todo-nuxt)
+-   [Next.js + NextAuth + TanStack Query](https://github.com/zenstackhq/sample-todo-nextjs-tanstack)
+-   [Next.js + NextAuth + SWR](https://github.com/zenstackhq/sample-todo-nextjs)
+-   [Next.js + NextAuth + tRPC](https://github.com/zenstackhq/sample-todo-trpc)
+-   [Nuxt + TanStack Query](https://github.com/zenstackhq/sample-todo-nuxt)
 -   [SvelteKit + TanStack Query](https://github.com/zenstackhq/sample-todo-sveltekit)
 -   [RedwoodJS](https://github.com/zenstackhq/sample-todo-redwood)
 
 ### Blog App
 
--   [Next.js 13 + Pages Route + SWR](https://github.com/zenstackhq/docs-tutorial-nextjs)
--   [Next.js 13 + App Route + ReactQuery](https://github.com/zenstackhq/docs-tutorial-nextjs-app-dir)
--   [Next.js 13 + App Route + tRPC](https://github.com/zenstackhq/sample-blog-nextjs-app-trpc)
--   [Nuxt V3 + TanStack Query](https://github.com/zenstackhq/docs-tutorial-nuxt)
+-   [Next.js + App Route + TanStack Query](https://github.com/zenstackhq/docs-tutorial-nextjs-app-dir)
+-   [Next.js + Pages Route + SWR](https://github.com/zenstackhq/docs-tutorial-nextjs)
+-   [Next.js + App Route + tRPC](https://github.com/zenstackhq/sample-blog-nextjs-app-trpc)
+-   [Nuxt + TanStack Query](https://github.com/zenstackhq/docs-tutorial-nuxt)
 -   [SvelteKit](https://github.com/zenstackhq/docs-tutorial-sveltekit)
 -   [Remix](https://github.com/zenstackhq/docs-tutorial-remix)
 -   [NestJS Backend API](https://github.com/zenstackhq/docs-tutorial-nestjs)
@@ -225,7 +225,7 @@ Join our [discord server](https://discord.gg/Ykhr738dUe) for chat and updates!
 
 ## Contributing
 
-If you like ZenStack, join us to make it a better tool! Please use the [Contributing Guide](CONTRIBUTING.md) for details on how to get started, and don't hesitate to join [Discord](https://discord.gg/Ykhr738dUe) to share your thoughts.
+If you like ZenStack, join us to make it a better tool! Please use the [Contributing Guide](CONTRIBUTING.md) for details on how to get started, and don't hesitate to join [Discord](https://discord.gg/Ykhr738dUe) to share your thoughts. Documentations reside in a separate repo: [zenstack-docs](https://github.com/zenstackhq/zenstack-docs).
 
 Please also consider [sponsoring our work](https://github.com/sponsors/zenstackhq) to speed up the development. Your contribution will be 100% used as a bounty reward to encourage community members to help fix bugs, add features, and improve documentation.
 
@@ -241,7 +241,6 @@ Thank you for your generous support!
    <td align="center"><a href="https://www.mermaidchart.com/"><img src="https://avatars.githubusercontent.com/u/117662492?s=200&v=4" width="100" style="border-radius:50%" alt="Mermaid Chart"/><br />Mermaid Chart</a></td>
    <td align="center"><a href="https://coderabbit.ai/"><img src="https://avatars.githubusercontent.com/u/132028505?v=4" width="100" style="border-radius:50%" alt="CodeRabbit"/><br />CodeRabbit</a></td>
    <td align="center"><a href="https://github.com/j0hannr"><img src="https://avatars.githubusercontent.com/u/52762073?v=4" width="100" style="border-radius:50%" alt="Johann Rohn"/><br />Johann Rohn</a></td>
-   <td align="center"><a href="https://github.com/baenie"><img src="https://avatars.githubusercontent.com/u/58309104?v=4" width="100" style="border-radius:50%" alt="Benjamin Zecirovic"/><br />Benjamin Zecirovic</a></td>
   </tr>
 </table>
 
@@ -249,6 +248,7 @@ Thank you for your generous support!
 
 <table>
   <tr>
+   <td align="center"><a href="https://github.com/baenie"><img src="https://avatars.githubusercontent.com/u/58309104?v=4" width="100" style="border-radius:50%" alt="Benjamin Zecirovic"/><br />Benjamin Zecirovic</a></td>
    <td align="center"><a href="https://github.com/umussetu"><img src="https://avatars.githubusercontent.com/u/152648499?v=4" width="100" style="border-radius:50%" alt="Ulric"/><br />Ulric</a></td>
    <td align="center"><a href="https://github.com/iamfj"><img src="https://avatars.githubusercontent.com/u/24557998?v=4" width="100" style="border-radius:50%" alt="Fabian Jocks"/><br />Fabian Jocks</a></td>
   </tr>

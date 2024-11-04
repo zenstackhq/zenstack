@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+
+-   Type declaration support.
+
+## 2.7.0
+
 ### Fixed
 
 -   ZModel validation issues importing zmodel files from npm packages.
