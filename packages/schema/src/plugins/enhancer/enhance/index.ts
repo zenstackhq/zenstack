@@ -354,20 +354,8 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         this.transformPrismaTypes(sf, sfNew, delegateInfo);
 
         this.generateExtraTypes(sfNew);
+
         sfNew.formatText();
-
-        // if (delegateInfo.length > 0) {
-        //     // transform types for delegated models
-        //     this.transformDelegate(sf, sfNew, delegateInfo);
-        //     sfNew.formatText();
-        // } else {
-
-        //     this.transformJsonFields(sf, sfNew);
-
-        //     // // just copy
-        //     // sfNew.replaceWithText(sf.getFullText());
-        // }
-
         await sfNew.save();
     }
 
