@@ -33,7 +33,7 @@ export function hasValidationAttributes(
     if (
         decl.fields.some((field) => {
             if (isTypeDef(field.type.reference?.ref)) {
-                return hasValidationAttributes(field.type.reference?.ref);
+                return hasValidationAttributes(field.type.reference?.ref, seen);
             } else {
                 return field.attributes.some((attr) => isValidationAttribute(attr));
             }
