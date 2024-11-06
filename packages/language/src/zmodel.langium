@@ -11,7 +11,7 @@ ModelImport:
     'import' path=STRING  ';'?;
 
 AbstractDeclaration:
-    DataSource | GeneratorDecl| Plugin | DataModel | Enum | FunctionDecl | Attribute;
+    DataSource | GeneratorDecl| Plugin | DataModel | TypeDef | Enum | FunctionDecl | Attribute;
 
 // datasource
 DataSource:
@@ -113,22 +113,6 @@ CollectionPredicateExpr infers Expression:
         '[' right=Expression ']'
     )*;
 
-// TODO: support arithmetics?
-//
-// MultDivExpr infers Expression:
-//     CollectionPredicateExpr (
-//         {infer BinaryExpr.left=current}
-//         operator=('*'|'/')
-//         right=CollectionPredicateExpr
-//     )*;
-
-// AddSubExpr infers Expression:
-//     MultDivExpr (
-//         {infer BinaryExpr.left=current}
-//         operator=('+'|'-')
-//         right=MultDivExpr
-//     )*;
-
 InExpr infers Expression:
     CollectionPredicateExpr (
         {infer BinaryExpr.left=current}
@@ -195,6 +179,20 @@ DataModelField:
 DataModelFieldType:
     (type=BuiltinType | unsupported=UnsupportedFieldType | reference=[TypeDeclaration:RegularID]) (array?='[' ']')? (optional?='?')?;
 
+TypeDef:
+    (comments+=TRIPLE_SLASH_COMMENT)*
+    'type' name=RegularID '{' (
+           fields+=TypeDefField
+        )+
+    '}';
+
+TypeDefField:
+    (comments+=TRIPLE_SLASH_COMMENT)*
+    name=RegularIDWithTypeNames type=TypeDefFieldType (attributes+=DataModelFieldAttribute)*;
+
+TypeDefFieldType:
+    (type=BuiltinType | reference=[TypeDef:RegularID]) (array?='[' ']')? (optional?='?')?;
+
 UnsupportedFieldType:
     'Unsupported' '(' (value=LiteralExpr) ')';
 
@@ -224,7 +222,7 @@ FunctionParamType:
 // https://github.com/langium/langium/discussions/1012
 RegularID returns string:
     // include keywords that we'd like to work as ID in most places
-    ID | 'model' | 'enum' | 'attribute' | 'datasource' | 'plugin' | 'abstract' | 'in' | 'view' | 'import';
+    ID | 'model' | 'enum' | 'attribute' | 'datasource' | 'plugin' | 'abstract' | 'in' | 'view' | 'import' | 'type';
 
 RegularIDWithTypeNames returns string:
     RegularID | 'String' | 'Boolean' | 'Int' | 'BigInt' | 'Float' | 'Decimal' | 'DateTime' | 'Json' | 'Bytes' | 'Null' | 'Object' | 'Any' | 'Unsupported';
@@ -241,7 +239,7 @@ AttributeParam:
 AttributeParamType:
     (type=(ExpressionType | 'FieldReference' | 'TransitiveFieldReference' | 'ContextType') | reference=[TypeDeclaration:RegularID]) (array?='[' ']')? (optional?='?')?;
 
-type TypeDeclaration = DataModel | Enum;
+type TypeDeclaration = DataModel | TypeDef | Enum;
 DataModelFieldAttribute:
     decl=[Attribute:FIELD_ATTRIBUTE_NAME] ('(' AttributeArgList? ')')?;
 

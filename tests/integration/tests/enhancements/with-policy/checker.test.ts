@@ -357,7 +357,7 @@ describe('Permission checker', () => {
         await expect(db.model.check({ operation: 'update', where: { x: 1, y: 1 } })).toResolveFalsy();
     });
 
-    it('field condition unsolvable', async () => {
+    it('field condition unsatisfiable', async () => {
         const { enhance } = await load(
             `
             model Model {
@@ -648,5 +648,116 @@ describe('Permission checker', () => {
         await expect(db.model.check({ operation: 'read' })).toResolveTruthy();
         await expect(db.model.check({ operation: 'read', where: { value: 1 } })).toResolveTruthy();
         await expect(db.model.check({ operation: 'read', where: { value: 2 } })).toResolveTruthy();
+    });
+
+    it('supports policy delegation simple', async () => {
+        const { enhance } = await load(
+            `
+            model User {
+                id Int @id @default(autoincrement())
+                foo Foo[]
+            }
+
+            model Foo {
+                id Int @id @default(autoincrement())
+                owner User @relation(fields: [ownerId], references: [id])
+                ownerId Int
+                model Model?
+                @@allow('read', auth().id == ownerId)
+                @@allow('create', auth().id != ownerId)
+                @@allow('update', auth() == owner)
+            }
+
+            model Model {
+                id Int @id @default(autoincrement())
+                foo Foo @relation(fields: [fooId], references: [id])
+                fooId Int @unique
+                @@allow('all', check(foo))
+            }
+            `,
+            { preserveTsFiles: true }
+        );
+
+        await expect(enhance().model.check({ operation: 'read' })).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'read' })).toResolveTruthy();
+
+        await expect(enhance().model.check({ operation: 'create' })).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'create' })).toResolveTruthy();
+
+        await expect(enhance().model.check({ operation: 'update' })).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'update' })).toResolveTruthy();
+
+        await expect(enhance().model.check({ operation: 'delete' })).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'delete' })).toResolveFalsy();
+    });
+
+    it('supports policy delegation explicit', async () => {
+        const { enhance } = await load(
+            `
+            model Foo {
+                id Int @id @default(autoincrement())
+                model Model?
+                @@allow('all', true)
+                @@deny('update', true)
+            }
+
+            model Model {
+                id Int @id @default(autoincrement())
+                foo Foo @relation(fields: [fooId], references: [id])
+                fooId Int @unique
+                @@allow('read', check(foo, 'update'))
+            }
+            `,
+            { preserveTsFiles: true }
+        );
+
+        await expect(enhance().model.check({ operation: 'read' })).toResolveFalsy();
+    });
+
+    it('supports policy delegation combined', async () => {
+        const { enhance } = await load(
+            `
+            model User {
+                id Int @id @default(autoincrement())
+                foo Foo[]
+            }
+
+            model Foo {
+                id Int @id @default(autoincrement())
+                owner User @relation(fields: [ownerId], references: [id])
+                ownerId Int
+                model Model?
+                @@allow('read', auth().id == ownerId)
+                @@allow('create', auth().id != ownerId)
+                @@allow('update', auth() == owner)
+            }
+
+            model Model {
+                id Int @id @default(autoincrement())
+                foo Foo @relation(fields: [fooId], references: [id])
+                fooId Int @unique
+                value Int
+                @@allow('all', check(foo) && value > 0)
+                @@deny('update', check(foo) && value == 1)
+            }
+            `,
+            { preserveTsFiles: true }
+        );
+
+        await expect(enhance().model.check({ operation: 'read' })).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'read' })).toResolveTruthy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'read', where: { value: 1 } })).toResolveTruthy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'read', where: { value: 0 } })).toResolveFalsy();
+
+        await expect(enhance().model.check({ operation: 'create' })).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'create' })).toResolveTruthy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'create', where: { value: 1 } })).toResolveTruthy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'create', where: { value: 0 } })).toResolveFalsy();
+
+        await expect(enhance().model.check({ operation: 'update' })).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'update' })).toResolveTruthy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'update', where: { value: 2 } })).toResolveTruthy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'update', where: { value: 0 } })).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'update', where: { value: 1 } })).toResolveFalsy();
     });
 });

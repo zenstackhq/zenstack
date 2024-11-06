@@ -30,6 +30,7 @@ import {
     Model,
     Reference,
     ReferenceExpr,
+    TypeDefField,
 } from '@zenstackhq/language/ast';
 import fs from 'node:fs';
 import path from 'path';
@@ -123,7 +124,7 @@ export function hasAttribute(
 }
 
 export function getAttribute(
-    decl: DataModel | DataModelField | Enum | EnumField | FunctionDecl | Attribute | AttributeParam,
+    decl: DataModel | DataModelField | TypeDefField | Enum | EnumField | FunctionDecl | Attribute | AttributeParam,
     name: string
 ) {
     return (decl.attributes as (DataModelAttribute | DataModelFieldAttribute)[]).find(
@@ -460,6 +461,9 @@ export function isDelegateModel(node: AstNode) {
 }
 
 export function isDiscriminatorField(field: DataModelField) {
+    if (!isDataModel(field.$container)) {
+        return false;
+    }
     const model = field.$inheritedFrom ?? field.$container;
     const delegateAttr = getAttribute(model, '@@delegate');
     if (!delegateAttr) {
@@ -568,4 +572,25 @@ export function getInheritedFromDelegate(field: DataModelField) {
     const bases = getRecursiveBases(field.$container as DataModel, true);
     const foundBase = bases.findLast((base) => base.fields.some((f) => f.name === field.name) && isDelegateModel(base));
     return foundBase;
+}
+
+/**
+ * Gets the inheritance chain from "from" to "to", excluding them.
+ */
+export function getInheritanceChain(from: DataModel, to: DataModel): DataModel[] | undefined {
+    if (from === to) {
+        return [];
+    }
+
+    for (const base of from.superTypes) {
+        if (base.ref === to) {
+            return [];
+        }
+        const path = getInheritanceChain(base.ref!, to);
+        if (path) {
+            return [base.ref as DataModel, ...path];
+        }
+    }
+
+    return undefined;
 }

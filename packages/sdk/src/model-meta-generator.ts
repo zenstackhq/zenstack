@@ -6,11 +6,15 @@ import {
     isArrayExpr,
     isBooleanLiteral,
     isDataModel,
+    isDataModelField,
     isInvocationExpr,
     isNumberLiteral,
     isReferenceExpr,
     isStringLiteral,
+    isTypeDef,
     ReferenceExpr,
+    TypeDef,
+    TypeDefField,
 } from '@zenstackhq/language/ast';
 import type { RuntimeAttribute } from '@zenstackhq/runtime';
 import { streamAst } from 'langium';
@@ -62,13 +66,18 @@ export type ModelMetaGeneratorOptions = {
     shortNameMap?: Map<string, string>;
 };
 
-export async function generate(project: Project, models: DataModel[], options: ModelMetaGeneratorOptions) {
+export async function generate(
+    project: Project,
+    models: DataModel[],
+    typeDefs: TypeDef[],
+    options: ModelMetaGeneratorOptions
+) {
     const sf = project.createSourceFile(options.output, undefined, { overwrite: true });
     sf.addStatements('/* eslint-disable */');
     sf.addVariableStatement({
         declarationKind: VariableDeclarationKind.Const,
         declarations: [
-            { name: 'metadata', initializer: (writer) => generateModelMetadata(models, sf, writer, options) },
+            { name: 'metadata', initializer: (writer) => generateModelMetadata(models, typeDefs, sf, writer, options) },
         ],
     });
     sf.addStatements('export default metadata;');
@@ -82,12 +91,14 @@ export async function generate(project: Project, models: DataModel[], options: M
 
 function generateModelMetadata(
     dataModels: DataModel[],
+    typeDefs: TypeDef[],
     sourceFile: SourceFile,
     writer: CodeBlockWriter,
     options: ModelMetaGeneratorOptions
 ) {
     writer.block(() => {
         writeModels(sourceFile, writer, dataModels, options);
+        writeTypeDefs(sourceFile, writer, typeDefs, options);
         writeDeleteCascade(writer, dataModels);
         writeShortNameMap(options, writer);
         writeAuthModel(writer, dataModels);
@@ -113,6 +124,29 @@ function writeModels(
                     writeModelAttributes(writer, model);
                 }
                 writeDiscriminator(writer, model);
+            });
+            writer.writeLine(',');
+        }
+    });
+    writer.writeLine(',');
+}
+
+function writeTypeDefs(
+    sourceFile: SourceFile,
+    writer: CodeBlockWriter,
+    typedDefs: TypeDef[],
+    options: ModelMetaGeneratorOptions
+) {
+    if (typedDefs.length === 0) {
+        return;
+    }
+    writer.write('typeDefs:');
+    writer.block(() => {
+        for (const typeDef of typedDefs) {
+            writer.write(`${lowerCaseFirst(typeDef.name)}:`);
+            writer.block(() => {
+                writer.write(`name: '${typeDef.name}',`);
+                writeFields(sourceFile, writer, typeDef, options);
             });
             writer.writeLine(',');
         }
@@ -189,14 +223,14 @@ function writeDiscriminator(writer: CodeBlockWriter, model: DataModel) {
 function writeFields(
     sourceFile: SourceFile,
     writer: CodeBlockWriter,
-    model: DataModel,
+    container: DataModel | TypeDef,
     options: ModelMetaGeneratorOptions
 ) {
     writer.write('fields:');
     writer.block(() => {
-        for (const f of model.fields) {
-            const backlink = getBackLink(f);
-            const fkMapping = generateForeignKeyMapping(f);
+        for (const f of container.fields) {
+            const dmField = isDataModelField(f) ? f : undefined;
+
             writer.write(`${f.name}: {`);
 
             writer.write(`
@@ -208,7 +242,7 @@ function writeFields(
                   f.type.type!
         }",`);
 
-            if (isIdField(f)) {
+            if (dmField && isIdField(dmField)) {
                 writer.write(`
         isId: true,`);
             }
@@ -216,6 +250,9 @@ function writeFields(
             if (isDataModel(f.type.reference?.ref)) {
                 writer.write(`
         isDataModel: true,`);
+            } else if (isTypeDef(f.type.reference?.ref)) {
+                writer.write(`
+        isTypeDef: true,`);
             }
 
             if (f.type.array) {
@@ -243,46 +280,53 @@ function writeFields(
                 }
             }
 
-            if (backlink) {
-                writer.write(`
-        backLink: '${backlink.name}',`);
-            }
-
-            if (isRelationOwner(f, backlink)) {
-                writer.write(`
-        isRelationOwner: true,`);
-            }
-
-            if (isForeignKeyField(f)) {
-                writer.write(`
-        isForeignKey: true,`);
-                const relationField = getRelationField(f);
-                if (relationField) {
-                    writer.write(`
-        relationField: '${relationField.name}',`);
-                }
-            }
-
-            if (fkMapping && Object.keys(fkMapping).length > 0) {
-                writer.write(`
-        foreignKeyMapping: ${JSON.stringify(fkMapping)},`);
-            }
-
             const defaultValueProvider = generateDefaultValueProvider(f, sourceFile);
             if (defaultValueProvider) {
                 writer.write(`
-                defaultValueProvider: ${defaultValueProvider},`);
+            defaultValueProvider: ${defaultValueProvider},`);
             }
 
-            const inheritedFromDelegate = getInheritedFromDelegate(f);
-            if (inheritedFromDelegate && !isIdField(f)) {
-                writer.write(`
+            if (dmField) {
+                // metadata specific to DataModelField
+
+                const backlink = getBackLink(dmField);
+                const fkMapping = generateForeignKeyMapping(dmField);
+
+                if (backlink) {
+                    writer.write(`
+        backLink: '${backlink.name}',`);
+                }
+
+                if (isRelationOwner(dmField, backlink)) {
+                    writer.write(`
+        isRelationOwner: true,`);
+                }
+
+                if (isForeignKeyField(dmField)) {
+                    writer.write(`
+        isForeignKey: true,`);
+                    const relationField = getRelationField(dmField);
+                    if (relationField) {
+                        writer.write(`
+        relationField: '${relationField.name}',`);
+                    }
+                }
+
+                if (fkMapping && Object.keys(fkMapping).length > 0) {
+                    writer.write(`
+        foreignKeyMapping: ${JSON.stringify(fkMapping)},`);
+                }
+
+                const inheritedFromDelegate = getInheritedFromDelegate(dmField);
+                if (inheritedFromDelegate && !isIdField(dmField)) {
+                    writer.write(`
         inheritedFrom: ${JSON.stringify(inheritedFromDelegate.name)},`);
-            }
+                }
 
-            if (isAutoIncrement(f)) {
-                writer.write(`
+                if (isAutoIncrement(dmField)) {
+                    writer.write(`
         isAutoIncrement: true,`);
+                }
             }
 
             writer.write(`
@@ -337,7 +381,7 @@ function getRelationName(field: DataModelField) {
     return getAttributeArgLiteral(relAttr, 'name');
 }
 
-function getAttributes(target: DataModelField | DataModel): RuntimeAttribute[] {
+function getAttributes(target: DataModelField | DataModel | TypeDefField): RuntimeAttribute[] {
     return target.attributes
         .map((attr) => {
             const args: Array<{ name?: string; value: unknown }> = [];
@@ -498,7 +542,7 @@ function getDeleteCascades(model: DataModel): string[] {
         .map((m) => m.name);
 }
 
-function generateDefaultValueProvider(field: DataModelField, sourceFile: SourceFile) {
+function generateDefaultValueProvider(field: DataModelField | TypeDefField, sourceFile: SourceFile) {
     const defaultAttr = getAttribute(field, '@default');
     if (!defaultAttr) {
         return undefined;

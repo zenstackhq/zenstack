@@ -45,6 +45,11 @@ export type FieldInfo = {
     isDataModel?: boolean;
 
     /**
+     * If the field type is a type def (or an optional/array of type def)
+     */
+    isTypeDef?: boolean;
+
+    /**
      * If the field is an array
      */
     isArray?: boolean;
@@ -144,6 +149,21 @@ export type ModelInfo = {
 };
 
 /**
+ * Metadata for a type def
+ */
+export type TypeDefInfo = {
+    /**
+     * TypeDef name
+     */
+    name: string;
+
+    /**
+     * Fields
+     */
+    fields: Record<string, FieldInfo>;
+};
+
+/**
  * ZModel data model metadata
  */
 export type ModelMeta = {
@@ -151,6 +171,11 @@ export type ModelMeta = {
      * Data models
      */
     models: Record<string, ModelInfo>;
+
+    /**
+     * Type defs
+     */
+    typeDefs?: Record<string, TypeDefInfo>;
 
     /**
      * Mapping from model name to models that will be deleted because of it due to cascade delete
@@ -171,15 +196,21 @@ export type ModelMeta = {
 /**
  * Resolves a model field to its metadata. Returns undefined if not found.
  */
-export function resolveField(modelMeta: ModelMeta, model: string, field: string): FieldInfo | undefined {
-    return modelMeta.models[lowerCaseFirst(model)]?.fields?.[field];
+export function resolveField(
+    modelMeta: ModelMeta,
+    modelOrTypeDef: string,
+    field: string,
+    isTypeDef = false
+): FieldInfo | undefined {
+    const container = isTypeDef ? modelMeta.typeDefs : modelMeta.models;
+    return container?.[lowerCaseFirst(modelOrTypeDef)]?.fields?.[field];
 }
 
 /**
  * Resolves a model field to its metadata. Throws an error if not found.
  */
-export function requireField(modelMeta: ModelMeta, model: string, field: string) {
-    const f = resolveField(modelMeta, model, field);
+export function requireField(modelMeta: ModelMeta, model: string, field: string, isTypeDef = false) {
+    const f = resolveField(modelMeta, model, field, isTypeDef);
     if (!f) {
         throw new Error(`Field ${model}.${field} cannot be resolved`);
     }

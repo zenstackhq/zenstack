@@ -14,8 +14,11 @@ import {
     isDataModelField,
     isEnum,
     isReferenceExpr,
+    isTypeDef,
+    isTypeDefField,
 } from '@zenstackhq/language/ast';
 import {
+    hasAttribute,
     isDataModelFieldReference,
     isDelegateModel,
     isFutureExpr,
@@ -60,6 +63,10 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
 
         if (isDataModelField(targetDecl) && !isValidAttributeTarget(decl, targetDecl)) {
             accept('error', `attribute "${decl.name}" cannot be used on this type of field`, { node: attr });
+        }
+
+        if (isTypeDefField(targetDecl) && !hasAttribute(decl, '@@@supportTypeDef')) {
+            accept('error', `attribute "${decl.name}" cannot be used on type declaration fields`, { node: attr });
         }
 
         const filledParams = new Set<AttributeParam>();
@@ -344,6 +351,9 @@ function isValidAttributeTarget(attrDecl: Attribute, targetDecl: DataModelField)
                 break;
             case 'ModelField':
                 allowed = allowed || isDataModel(targetDecl.type.reference?.ref);
+                break;
+            case 'TypeDefField':
+                allowed = allowed || isTypeDef(targetDecl.type.reference?.ref);
                 break;
             default:
                 break;

@@ -8,6 +8,7 @@ import {
     clone,
     enumerate,
     getFields,
+    getTypeDefInfo,
     requireField,
 } from '../../cross';
 import { DbClientContract, EnhancementContext } from '../../types';
@@ -70,6 +71,11 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
         const processCreatePayload = (model: string, data: any) => {
             const fields = getFields(this.options.modelMeta, model);
             for (const fieldInfo of Object.values(fields)) {
+                if (fieldInfo.isTypeDef) {
+                    this.setDefaultValueForTypeDefData(fieldInfo.type, data[fieldInfo.name]);
+                    continue;
+                }
+
                 if (fieldInfo.name in data) {
                     // create payload already sets field value
                     continue;
@@ -80,10 +86,10 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
                     continue;
                 }
 
-                const authDefaultValue = this.getDefaultValueFromAuth(fieldInfo);
-                if (authDefaultValue !== undefined) {
+                const defaultValue = this.getDefaultValue(fieldInfo);
+                if (defaultValue !== undefined) {
                     // set field value extracted from `auth()`
-                    this.setAuthDefaultValue(fieldInfo, model, data, authDefaultValue);
+                    this.setDefaultValueForModelData(fieldInfo, model, data, defaultValue);
                 }
             }
         };
@@ -109,7 +115,7 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
         return newArgs;
     }
 
-    private setAuthDefaultValue(fieldInfo: FieldInfo, model: string, data: any, authDefaultValue: unknown) {
+    private setDefaultValueForModelData(fieldInfo: FieldInfo, model: string, data: any, authDefaultValue: unknown) {
         if (fieldInfo.isForeignKey && fieldInfo.relationField && fieldInfo.relationField in data) {
             // if the field is a fk, and the relation field is already set, we should not override it
             return;
@@ -155,7 +161,7 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
         return entry?.[0];
     }
 
-    private getDefaultValueFromAuth(fieldInfo: FieldInfo) {
+    private getDefaultValue(fieldInfo: FieldInfo) {
         if (!this.userContext) {
             throw prismaClientValidationError(
                 this.prisma,
@@ -164,5 +170,35 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
             );
         }
         return fieldInfo.defaultValueProvider?.(this.userContext);
+    }
+
+    private setDefaultValueForTypeDefData(type: string, data: any) {
+        if (!data || (typeof data !== 'object' && !Array.isArray(data))) {
+            return;
+        }
+
+        const typeDef = getTypeDefInfo(this.options.modelMeta, type);
+        if (!typeDef) {
+            return;
+        }
+
+        enumerate(data).forEach((item) => {
+            if (!item || typeof item !== 'object') {
+                return;
+            }
+
+            for (const fieldInfo of Object.values(typeDef.fields)) {
+                if (fieldInfo.isTypeDef) {
+                    // recurse
+                    this.setDefaultValueForTypeDefData(fieldInfo.type, item[fieldInfo.name]);
+                } else if (!(fieldInfo.name in item)) {
+                    // set default value if the payload doesn't set the field
+                    const defaultValue = this.getDefaultValue(fieldInfo);
+                    if (defaultValue !== undefined) {
+                        item[fieldInfo.name] = defaultValue;
+                    }
+                }
+            }
+        });
     }
 }

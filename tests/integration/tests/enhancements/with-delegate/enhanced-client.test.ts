@@ -1407,4 +1407,101 @@ describe('Polymorphism Test', () => {
         r = await db.post.findFirst({ include: { comments: true } });
         expect(r).toMatchObject({ ...post, comments: [comment] });
     });
+
+    it('works with one-to-one self relation', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model User {
+                id          Int     @id @default(autoincrement())
+                successorId Int?    @unique
+                successor   User?   @relation("BlogOwnerHistory", fields: [successorId], references: [id])
+                predecessor User?   @relation("BlogOwnerHistory")
+                type        String
+                @@delegate(type)
+            }
+
+            model Person extends User {
+            }
+
+            model Organization extends User {
+            }
+            `,
+            { enhancements: ['delegate'] }
+        );
+
+        const db = enhance();
+        const u1 = await db.person.create({ data: {} });
+        const u2 = await db.organization.create({
+            data: { predecessor: { connect: { id: u1.id } } },
+            include: { predecessor: true },
+        });
+        expect(u2).toMatchObject({ id: u2.id, predecessor: { id: u1.id } });
+        const foundP1 = await db.person.findUnique({ where: { id: u1.id }, include: { successor: true } });
+        expect(foundP1).toMatchObject({ id: u1.id, successor: { id: u2.id } });
+    });
+
+    it('works with one-to-many self relation', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model User {
+                id        Int     @id @default(autoincrement())
+                name      String?
+                parentId  Int?
+                parent    User?   @relation("ParentChild", fields: [parentId], references: [id])
+                children  User[]  @relation("ParentChild")
+                type      String
+                @@delegate(type)
+            }
+
+            model Person extends User {
+            }
+
+            model Organization extends User {
+            }
+            `,
+            { enhancements: ['delegate'] }
+        );
+
+        const db = enhance();
+        const u1 = await db.person.create({ data: {} });
+        const u2 = await db.organization.create({
+            data: { parent: { connect: { id: u1.id } } },
+            include: { parent: true },
+        });
+        expect(u2).toMatchObject({ id: u2.id, parent: { id: u1.id } });
+        const foundP1 = await db.person.findUnique({ where: { id: u1.id }, include: { children: true } });
+        expect(foundP1).toMatchObject({ id: u1.id, children: [{ id: u2.id }] });
+    });
+
+    it('works with many-to-many self relation', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model User {
+                id        Int     @id @default(autoincrement())
+                name      String?
+                followedBy User[] @relation("UserFollows")
+                following  User[] @relation("UserFollows")
+                type      String
+                @@delegate(type)
+            }
+
+            model Person extends User {
+            }
+
+            model Organization extends User {
+            }
+            `,
+            { enhancements: ['delegate'] }
+        );
+
+        const db = enhance();
+        const u1 = await db.person.create({ data: {} });
+        const u2 = await db.organization.create({
+            data: { following: { connect: { id: u1.id } } },
+            include: { following: true },
+        });
+        expect(u2).toMatchObject({ id: u2.id, following: [{ id: u1.id }] });
+        const foundP1 = await db.person.findUnique({ where: { id: u1.id }, include: { followedBy: true } });
+        expect(foundP1).toMatchObject({ id: u1.id, followedBy: [{ id: u2.id }] });
+    });
 });

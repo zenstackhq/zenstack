@@ -1,32 +1,34 @@
 import {
     ExpressionContext,
-    PluginError,
-    TypeScriptExpressionTransformer,
-    TypeScriptExpressionTransformerError,
     getAttributeArg,
     getAttributeArgLiteral,
     getLiteral,
     getLiteralArray,
     isDataModelFieldReference,
     isFromStdlib,
+    PluginError,
+    TypeScriptExpressionTransformer,
+    TypeScriptExpressionTransformerError,
 } from '@zenstackhq/sdk';
 import {
     DataModel,
     DataModelField,
     DataModelFieldAttribute,
-    isDataModel,
     isArrayExpr,
+    isBooleanLiteral,
+    isDataModel,
     isEnum,
     isInvocationExpr,
     isNumberLiteral,
     isStringLiteral,
-    isBooleanLiteral
+    isTypeDef,
+    TypeDefField,
 } from '@zenstackhq/sdk/ast';
 import { upperCaseFirst } from 'upper-case-first';
 import { name } from '..';
 import { isDefaultWithAuth } from '../../enhancer/enhancer-utils';
 
-export function makeFieldSchema(field: DataModelField) {
+export function makeFieldSchema(field: DataModelField | TypeDefField) {
     if (isDataModel(field.type.reference?.ref)) {
         if (field.type.array) {
             // array field is always optional
@@ -172,11 +174,17 @@ export function makeFieldSchema(field: DataModelField) {
     return schema;
 }
 
-function makeZodSchema(field: DataModelField) {
+function makeZodSchema(field: DataModelField | TypeDefField) {
     let schema: string;
 
-    if (field.type.reference?.ref && isEnum(field.type.reference?.ref)) {
-        schema = `${upperCaseFirst(field.type.reference.ref.name)}Schema`;
+    if (field.type.reference?.ref) {
+        if (isEnum(field.type.reference?.ref)) {
+            schema = `${upperCaseFirst(field.type.reference.ref.name)}Schema`;
+        } else if (isTypeDef(field.type.reference?.ref)) {
+            schema = `z.lazy(() => ${upperCaseFirst(field.type.reference.ref.name)}Schema)`;
+        } else {
+            schema = 'z.any()';
+        }
     } else {
         switch (field.type.type) {
             case 'Int':
@@ -227,7 +235,8 @@ export function makeValidationRefinements(model: DataModel) {
             const message = messageArg ? `message: ${JSON.stringify(messageArg)},` : '';
 
             const pathArg = getAttributeArg(attr, 'path');
-            const path = pathArg && isArrayExpr(pathArg) ? `path: ['${getLiteralArray<string>(pathArg)?.join(`', '`)}'],` : '';
+            const path =
+                pathArg && isArrayExpr(pathArg) ? `path: ['${getLiteralArray<string>(pathArg)?.join(`', '`)}'],` : '';
 
             const options = `, { ${message} ${path} }`;
 
@@ -272,7 +281,7 @@ function refineDecimal(op: 'gt' | 'gte' | 'lt' | 'lte', value: number, messageAr
     }${messageArg})`;
 }
 
-export function getFieldSchemaDefault(field: DataModelField) {
+export function getFieldSchemaDefault(field: DataModelField | TypeDefField) {
     const attr = field.attributes.find((attr) => attr.decl.ref?.name === '@default');
     if (!attr) {
         return undefined;
