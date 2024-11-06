@@ -178,4 +178,56 @@ async function main() {
             }
         );
     });
+
+    it('type coverage', async () => {
+        await loadSchema(
+            `
+            type Profile {
+                boolean Boolean
+                bigint BigInt
+                int Int
+                float Float
+                decimal Decimal
+                string String
+                bytes Bytes
+                dateTime DateTime
+                json Json
+            }
+
+            model User {
+                id Int @id @default(autoincrement())
+                profile Profile @json
+                @@allow('all', true)
+            }
+            `,
+            {
+                provider: 'postgresql',
+                pushDb: false,
+                compile: true,
+                extraSourceFiles: [
+                    {
+                        name: 'main.ts',
+                        content: `
+import type { Profile } from '.zenstack/models';
+import { Prisma } from '@prisma/client';
+
+async function main() {
+    const profile: Profile = {
+        boolean: true,
+        bigint: BigInt(9007199254740991),
+        int: 100,
+        float: 1.23,
+        decimal: new Prisma.Decimal(1.2345),
+        string: 'string',
+        bytes: new Uint8Array([0, 1, 2, 3]),
+        dateTime: new Date(),
+        json: { a: 1 },
+    }
+}
+                `,
+                    },
+                ],
+            }
+        );
+    });
 });
