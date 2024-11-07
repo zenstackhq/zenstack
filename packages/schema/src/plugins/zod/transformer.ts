@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { indentString, isDiscriminatorField, type PluginOptions } from '@zenstackhq/sdk';
-import { DataModel, isDataModel, isEnum, isTypeDef, type Model } from '@zenstackhq/sdk/ast';
+import { DataModel, Enum, isDataModel, isEnum, isTypeDef, type Model } from '@zenstackhq/sdk/ast';
 import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
 import { supportCreateMany, type DMMF as PrismaDMMF } from '@zenstackhq/sdk/prisma';
 import path from 'path';
@@ -17,6 +17,7 @@ export default class Transformer {
     models: readonly PrismaDMMF.Model[];
     modelOperations: PrismaDMMF.ModelMapping[];
     aggregateOperationSupport: AggregateOperationSupport;
+    enumTypes: readonly PrismaDMMF.SchemaEnum[];
 
     static enumNames: string[] = [];
     static rawOpsMap: { [name: string]: string } = {};
@@ -36,6 +37,7 @@ export default class Transformer {
         this.models = params.models ?? [];
         this.modelOperations = params.modelOperations ?? [];
         this.aggregateOperationSupport = params.aggregateOperationSupport ?? {};
+        this.enumTypes = params.enumTypes ?? [];
         this.project = params.project;
         this.inputObjectTypes = params.inputObjectTypes;
         this.zmodel = params.zmodel;
@@ -51,8 +53,23 @@ export default class Transformer {
     }
 
     async generateEnumSchemas() {
-        const enums = this.zmodel.declarations.filter(isEnum);
-        for (const enumDecl of enums) {
+        const generated: string[] = [];
+
+        // generate for enums in DMMF
+        for (const enumType of this.enumTypes) {
+            const name = upperCaseFirst(enumType.name);
+            const filePath = path.join(Transformer.outputPath, `enums/${name}.schema.ts`);
+            const content = `/* eslint-disable */\n${this.generateImportZodStatement()}\n${this.generateExportSchemaStatement(
+                `${name}`,
+                `z.enum(${JSON.stringify(enumType.values)})`
+            )}`;
+            this.sourceFiles.push(this.project.createSourceFile(filePath, content, { overwrite: true }));
+            generated.push(enumType.name);
+        }
+
+        // enums not referenced by data models are not in DMMF, deal with them separately
+        const extraEnums = this.zmodel.declarations.filter((d): d is Enum => isEnum(d) && !generated.includes(d.name));
+        for (const enumDecl of extraEnums) {
             const name = upperCaseFirst(enumDecl.name);
             const filePath = path.join(Transformer.outputPath, `enums/${name}.schema.ts`);
             const content = `/* eslint-disable */\n${this.generateImportZodStatement()}\n${this.generateExportSchemaStatement(
@@ -60,12 +77,13 @@ export default class Transformer {
                 `z.enum(${JSON.stringify(enumDecl.fields.map((f) => f.name))})`
             )}`;
             this.sourceFiles.push(this.project.createSourceFile(filePath, content, { overwrite: true }));
+            generated.push(enumDecl.name);
         }
 
         this.sourceFiles.push(
             this.project.createSourceFile(
                 path.join(Transformer.outputPath, `enums/index.ts`),
-                enums.map((enumDecl) => `export * from './${upperCaseFirst(enumDecl.name)}.schema';`).join('\n'),
+                generated.map((name) => `export * from './${upperCaseFirst(name)}.schema';`).join('\n'),
                 { overwrite: true }
             )
         );
