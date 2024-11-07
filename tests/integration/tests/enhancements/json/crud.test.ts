@@ -191,6 +191,83 @@ describe('Json field CRUD', () => {
         ).toResolveTruthy();
     });
 
+    it('respects enums used by data models', async () => {
+        const params = await loadSchema(
+            `
+            enum Role {
+                USER
+                ADMIN
+            }
+
+            type Profile {
+                role Role
+            }
+            
+            model User {
+                id Int @id @default(autoincrement())
+                profile Profile @json
+                @@allow('all', true)
+            }
+
+            model Foo {
+                id Int @id @default(autoincrement())
+                role Role
+            }
+            `,
+            {
+                provider: 'postgresql',
+                dbUrl,
+            }
+        );
+
+        prisma = params.prisma;
+        const db = params.enhance();
+
+        await expect(db.user.create({ data: { profile: { role: 'MANAGER' } } })).toBeRejectedByPolicy();
+        await expect(db.user.create({ data: { profile: { role: 'ADMIN' } } })).resolves.toMatchObject({
+            profile: { role: 'ADMIN' },
+        });
+        await expect(db.user.findFirst()).resolves.toMatchObject({
+            profile: { role: 'ADMIN' },
+        });
+    });
+
+    it('respects enums unused by data models', async () => {
+        const params = await loadSchema(
+            `
+            enum Role {
+                USER
+                ADMIN
+            }
+
+            type Profile {
+                role Role
+            }
+            
+            model User {
+                id Int @id @default(autoincrement())
+                profile Profile @json
+                @@allow('all', true)
+            }
+            `,
+            {
+                provider: 'postgresql',
+                dbUrl,
+            }
+        );
+
+        prisma = params.prisma;
+        const db = params.enhance();
+
+        await expect(db.user.create({ data: { profile: { role: 'MANAGER' } } })).toBeRejectedByPolicy();
+        await expect(db.user.create({ data: { profile: { role: 'ADMIN' } } })).resolves.toMatchObject({
+            profile: { role: 'ADMIN' },
+        });
+        await expect(db.user.findFirst()).resolves.toMatchObject({
+            profile: { role: 'ADMIN' },
+        });
+    });
+
     it('respects @default', async () => {
         const params = await loadSchema(
             `

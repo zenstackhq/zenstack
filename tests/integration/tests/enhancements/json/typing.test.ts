@@ -179,6 +179,108 @@ async function main() {
         );
     });
 
+    it('works with enums used in models', async () => {
+        await loadSchema(
+            `
+            enum Role {
+                USER
+                ADMIN
+            }
+
+            type Profile {
+                role Role
+            }
+            
+            model User {
+                id Int @id @default(autoincrement())
+                profile Profile @json
+                @@allow('all', true)
+            }
+
+            model Foo {
+                id Int @id @default(autoincrement())
+                role Role
+            }
+            `,
+            {
+                provider: 'postgresql',
+                pushDb: false,
+                compile: true,
+                extraSourceFiles: [
+                    {
+                        name: 'main.ts',
+                        content: `
+import type { Profile } from '.zenstack/models';
+import { enhance } from '.zenstack/enhance';
+import { PrismaClient } from '@prisma/client';
+import { Role } from '@prisma/client';
+const prisma = new PrismaClient();
+const db = enhance(prisma);
+
+async function main() {
+    const profile: Profile = {
+        role: Role.ADMIN,
+    }
+
+    await db.user.create({ data: { profile: { role: Role.ADMIN } } });
+    const user = await db.user.findFirstOrThrow();
+    console.log(user.profile.role === Role.ADMIN);
+}
+`,
+                    },
+                ],
+            }
+        );
+    });
+
+    it('works with enums unused in models', async () => {
+        await loadSchema(
+            `
+            enum Role {
+                USER
+                ADMIN
+            }
+
+            type Profile {
+                role Role
+            }
+            
+            model User {
+                id Int @id @default(autoincrement())
+                profile Profile @json
+                @@allow('all', true)
+            }
+            `,
+            {
+                provider: 'postgresql',
+                pushDb: false,
+                compile: true,
+                extraSourceFiles: [
+                    {
+                        name: 'main.ts',
+                        content: `
+import type { Profile } from '.zenstack/models';
+import { enhance } from '.zenstack/enhance';
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
+const db = enhance(prisma);
+
+async function main() {
+    const profile: Profile = {
+        role: 'ADMIN',
+    }
+
+    await db.user.create({ data: { profile: { role: 'ADMIN' } } });
+    const user = await db.user.findFirstOrThrow();
+    console.log(user.profile.role === 'ADMIN');
+}
+`,
+                    },
+                ],
+            }
+        );
+    });
+
     it('type coverage', async () => {
         await loadSchema(
             `

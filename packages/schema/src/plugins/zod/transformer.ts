@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { indentString, isDiscriminatorField, type PluginOptions } from '@zenstackhq/sdk';
-import { DataModel, isDataModel, isTypeDef, type Model } from '@zenstackhq/sdk/ast';
+import { DataModel, Enum, isDataModel, isEnum, isTypeDef, type Model } from '@zenstackhq/sdk/ast';
 import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
 import { supportCreateMany, type DMMF as PrismaDMMF } from '@zenstackhq/sdk/prisma';
 import path from 'path';
@@ -53,6 +53,9 @@ export default class Transformer {
     }
 
     async generateEnumSchemas() {
+        const generated: string[] = [];
+
+        // generate for enums in DMMF
         for (const enumType of this.enumTypes) {
             const name = upperCaseFirst(enumType.name);
             const filePath = path.join(Transformer.outputPath, `enums/${name}.schema.ts`);
@@ -61,14 +64,26 @@ export default class Transformer {
                 `z.enum(${JSON.stringify(enumType.values)})`
             )}`;
             this.sourceFiles.push(this.project.createSourceFile(filePath, content, { overwrite: true }));
+            generated.push(enumType.name);
+        }
+
+        // enums not referenced by data models are not in DMMF, deal with them separately
+        const extraEnums = this.zmodel.declarations.filter((d): d is Enum => isEnum(d) && !generated.includes(d.name));
+        for (const enumDecl of extraEnums) {
+            const name = upperCaseFirst(enumDecl.name);
+            const filePath = path.join(Transformer.outputPath, `enums/${name}.schema.ts`);
+            const content = `/* eslint-disable */\n${this.generateImportZodStatement()}\n${this.generateExportSchemaStatement(
+                `${name}`,
+                `z.enum(${JSON.stringify(enumDecl.fields.map((f) => f.name))})`
+            )}`;
+            this.sourceFiles.push(this.project.createSourceFile(filePath, content, { overwrite: true }));
+            generated.push(enumDecl.name);
         }
 
         this.sourceFiles.push(
             this.project.createSourceFile(
                 path.join(Transformer.outputPath, `enums/index.ts`),
-                this.enumTypes
-                    .map((enumType) => `export * from './${upperCaseFirst(enumType.name)}.schema';`)
-                    .join('\n'),
+                generated.map((name) => `export * from './${upperCaseFirst(name)}.schema';`).join('\n'),
                 { overwrite: true }
             )
         );

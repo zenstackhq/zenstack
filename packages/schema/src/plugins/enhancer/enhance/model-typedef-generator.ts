@@ -1,5 +1,5 @@
-import { PluginError } from '@zenstackhq/sdk';
-import { BuiltinType, TypeDef, TypeDefFieldType } from '@zenstackhq/sdk/ast';
+import { getDataModels, PluginError } from '@zenstackhq/sdk';
+import { BuiltinType, Enum, isEnum, TypeDef, TypeDefFieldType } from '@zenstackhq/sdk/ast';
 import { SourceFile } from 'ts-morph';
 import { match } from 'ts-pattern';
 import { name } from '..';
@@ -36,7 +36,11 @@ function zmodelTypeToTsType(type: TypeDefFieldType) {
     if (type.type) {
         result = builtinTypeToTsType(type.type);
     } else if (type.reference?.ref) {
-        result = type.reference.ref.name;
+        if (isEnum(type.reference.ref)) {
+            result = makeEnumTypeReference(type.reference.ref);
+        } else {
+            result = type.reference.ref.name;
+        }
     } else {
         throw new PluginError(name, `Unsupported field type: ${type}`);
     }
@@ -60,4 +64,18 @@ function builtinTypeToTsType(type: BuiltinType) {
         .with('DateTime', () => 'Date')
         .with('Json', () => 'unknown')
         .exhaustive();
+}
+
+function makeEnumTypeReference(enumDecl: Enum) {
+    const zmodel = enumDecl.$container;
+    const models = getDataModels(zmodel);
+
+    if (models.some((model) => model.fields.some((field) => field.type.reference?.ref === enumDecl))) {
+        // if the enum is referenced by any data model, Prisma already generates its type,
+        // we just need to reference it
+        return enumDecl.name;
+    } else {
+        // otherwise, we need to inline the enum
+        return enumDecl.fields.map((field) => `'${field.name}'`).join(' | ');
+    }
 }

@@ -2165,7 +2165,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
                 "terminal": {
                   "$type": "CrossReference",
                   "type": {
-                    "$ref": "#/types@1"
+                    "$ref": "#/types@2"
                   },
                   "terminal": {
                     "$type": "RuleCall",
@@ -2267,7 +2267,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
               },
               "arguments": []
             },
-            "cardinality": "+"
+            "cardinality": "*"
           },
           {
             "$type": "Keyword",
@@ -2375,7 +2375,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
                 "terminal": {
                   "$type": "CrossReference",
                   "type": {
-                    "$ref": "#/rules@40"
+                    "$ref": "#/types@1"
                   },
                   "terminal": {
                     "$type": "RuleCall",
@@ -2827,7 +2827,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
                 "terminal": {
                   "$type": "CrossReference",
                   "type": {
-                    "$ref": "#/types@1"
+                    "$ref": "#/types@2"
                   },
                   "terminal": {
                     "$type": "RuleCall",
@@ -3255,7 +3255,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
                 "terminal": {
                   "$type": "CrossReference",
                   "type": {
-                    "$ref": "#/types@1"
+                    "$ref": "#/types@2"
                   },
                   "terminal": {
                     "$type": "RuleCall",
@@ -3833,6 +3833,27 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             "$type": "SimpleType",
             "typeRef": {
               "$ref": "#/rules@45"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "$type": "Type",
+      "name": "TypeDefFieldTypes",
+      "type": {
+        "$type": "UnionType",
+        "types": [
+          {
+            "$type": "SimpleType",
+            "typeRef": {
+              "$ref": "#/rules@40"
+            }
+          },
+          {
+            "$type": "SimpleType",
+            "typeRef": {
+              "$ref": "#/rules@44"
             }
           }
         ]
