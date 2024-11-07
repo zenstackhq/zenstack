@@ -1,9 +1,9 @@
-import { loadModelWithError } from '@zenstackhq/testtools';
+import { loadModelWithError, loadSchema } from '@zenstackhq/testtools';
 
 describe('JSON field typing', () => {
     it('is only supported by postgres', async () => {
         await expect(
-            loadModelWithError(
+            loadSchema(
                 `
             type Profile {
                 age Int @gt(0)
@@ -16,7 +16,7 @@ describe('JSON field typing', () => {
             }
             `
             )
-        ).resolves.toContain('Custom-typed field is only supported with "postgresql" provider');
+        ).rejects.toThrow('Datasource provider "sqlite" does not support "@json" fields');
     });
 
     it('requires field to have @json attribute', async () => {
