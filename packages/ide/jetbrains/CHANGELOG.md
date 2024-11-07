@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Fixed
+
+-   Wrong validation errors when using strongly typed JSON fields in a multi-file schema setup.
+
+## 2.8.0
+
 ### Added
 
 -   Type declaration support.
