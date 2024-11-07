@@ -9,7 +9,6 @@ import {
     isTypeDef,
 } from '@zenstackhq/language/ast';
 import {
-    getDataSourceProvider,
     getModelFieldsWithBases,
     getModelIdFields,
     getModelUniqueFields,
@@ -107,10 +106,6 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         if (isTypeDef(field.type.reference?.ref)) {
             if (!hasAttribute(field, '@json')) {
                 accept('error', 'Custom-typed field must have @json attribute', { node: field });
-            }
-
-            if (getDataSourceProvider(field.$container.$container) !== 'postgresql') {
-                accept('error', 'Custom-typed field is only supported with "postgresql" provider', { node: field });
             }
         }
     }

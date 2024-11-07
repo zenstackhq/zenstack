@@ -39,6 +39,7 @@ import {
     getAttribute,
     getAttributeArg,
     getAttributeArgLiteral,
+    getDataSourceProvider,
     getInheritedFromDelegate,
     getLiteral,
     getRelationKeyPairs,
@@ -81,6 +82,7 @@ import {
 const MODEL_PASSTHROUGH_ATTR = '@@prisma.passthrough';
 const FIELD_PASSTHROUGH_ATTR = '@prisma.passthrough';
 const PROVIDERS_SUPPORTING_NAMED_CONSTRAINTS = ['postgresql', 'mysql', 'cockroachdb'];
+const PROVIDERS_SUPPORTING_TYPEDEF_FIELDS = ['postgresql'];
 
 // Some database providers like postgres and mysql have default limit to the length of identifiers
 // Here we use a conservative value that should work for most cases, and truncate names if needed
@@ -794,6 +796,7 @@ export class PrismaSchemaGenerator {
         } else if (field.type.reference?.ref) {
             // model, enum, or type-def
             if (isTypeDef(field.type.reference.ref)) {
+                this.ensureSupportingTypeDefFields(this.zmodel);
                 fieldType = 'Json';
             } else {
                 fieldType = field.type.reference.ref.name;
@@ -844,6 +847,13 @@ export class PrismaSchemaGenerator {
         }
 
         return result;
+    }
+
+    private ensureSupportingTypeDefFields(zmodel: Model) {
+        const dsProvider = getDataSourceProvider(zmodel);
+        if (dsProvider && !PROVIDERS_SUPPORTING_TYPEDEF_FIELDS.includes(dsProvider)) {
+            throw new PluginError(name, `Datasource provider "${dsProvider}" does not support "@json" fields`);
+        }
     }
 
     private setDummyDefault(result: ModelField, field: DataModelField) {
