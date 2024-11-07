@@ -98,6 +98,14 @@ export function isTypeDeclaration(item: unknown): item is TypeDeclaration {
     return reflection.isInstance(item, TypeDeclaration);
 }
 
+export type TypeDefFieldTypes = Enum | TypeDef;
+
+export const TypeDefFieldTypes = 'TypeDefFieldTypes';
+
+export function isTypeDefFieldTypes(item: unknown): item is TypeDefFieldTypes {
+    return reflection.isInstance(item, TypeDefFieldTypes);
+}
+
 export interface Argument extends AstNode {
     readonly $container: InvocationExpr;
     readonly $type: 'Argument';
@@ -654,7 +662,7 @@ export interface TypeDefFieldType extends AstNode {
     readonly $type: 'TypeDefFieldType';
     array: boolean
     optional: boolean
-    reference?: Reference<TypeDef>
+    reference?: Reference<TypeDefFieldTypes>
     type?: BuiltinType
 }
 
@@ -738,6 +746,7 @@ export type ZModelAstType = {
     TypeDef: TypeDef
     TypeDefField: TypeDefField
     TypeDefFieldType: TypeDefFieldType
+    TypeDefFieldTypes: TypeDefFieldTypes
     UnaryExpr: UnaryExpr
     UnsupportedFieldType: UnsupportedFieldType
 }
@@ -745,7 +754,7 @@ export type ZModelAstType = {
 export class ZModelAstReflection extends AbstractAstReflection {
 
     getAllTypes(): string[] {
-        return ['AbstractDeclaration', 'Argument', 'ArrayExpr', 'Attribute', 'AttributeArg', 'AttributeParam', 'AttributeParamType', 'BinaryExpr', 'BooleanLiteral', 'ConfigArrayExpr', 'ConfigExpr', 'ConfigField', 'ConfigInvocationArg', 'ConfigInvocationExpr', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'Enum', 'EnumField', 'Expression', 'FieldInitializer', 'FunctionDecl', 'FunctionParam', 'FunctionParamType', 'GeneratorDecl', 'InternalAttribute', 'InvocationExpr', 'LiteralExpr', 'MemberAccessExpr', 'Model', 'ModelImport', 'NullExpr', 'NumberLiteral', 'ObjectExpr', 'Plugin', 'PluginField', 'ReferenceArg', 'ReferenceExpr', 'ReferenceTarget', 'StringLiteral', 'ThisExpr', 'TypeDeclaration', 'TypeDef', 'TypeDefField', 'TypeDefFieldType', 'UnaryExpr', 'UnsupportedFieldType'];
+        return ['AbstractDeclaration', 'Argument', 'ArrayExpr', 'Attribute', 'AttributeArg', 'AttributeParam', 'AttributeParamType', 'BinaryExpr', 'BooleanLiteral', 'ConfigArrayExpr', 'ConfigExpr', 'ConfigField', 'ConfigInvocationArg', 'ConfigInvocationExpr', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'Enum', 'EnumField', 'Expression', 'FieldInitializer', 'FunctionDecl', 'FunctionParam', 'FunctionParamType', 'GeneratorDecl', 'InternalAttribute', 'InvocationExpr', 'LiteralExpr', 'MemberAccessExpr', 'Model', 'ModelImport', 'NullExpr', 'NumberLiteral', 'ObjectExpr', 'Plugin', 'PluginField', 'ReferenceArg', 'ReferenceExpr', 'ReferenceTarget', 'StringLiteral', 'ThisExpr', 'TypeDeclaration', 'TypeDef', 'TypeDefField', 'TypeDefFieldType', 'TypeDefFieldTypes', 'UnaryExpr', 'UnsupportedFieldType'];
     }
 
     protected override computeIsSubtype(subtype: string, supertype: string): boolean {
@@ -775,15 +784,17 @@ export class ZModelAstReflection extends AbstractAstReflection {
             case ConfigArrayExpr: {
                 return this.isSubtype(ConfigExpr, supertype);
             }
-            case DataModel:
-            case Enum:
-            case TypeDef: {
+            case DataModel: {
                 return this.isSubtype(AbstractDeclaration, supertype) || this.isSubtype(TypeDeclaration, supertype);
             }
             case DataModelField:
             case EnumField:
             case FunctionParam: {
                 return this.isSubtype(ReferenceTarget, supertype);
+            }
+            case Enum:
+            case TypeDef: {
+                return this.isSubtype(AbstractDeclaration, supertype) || this.isSubtype(TypeDeclaration, supertype) || this.isSubtype(TypeDefFieldTypes, supertype);
             }
             case InvocationExpr:
             case LiteralExpr: {
@@ -821,7 +832,7 @@ export class ZModelAstReflection extends AbstractAstReflection {
                 return ReferenceTarget;
             }
             case 'TypeDefFieldType:reference': {
-                return TypeDef;
+                return TypeDefFieldTypes;
             }
             default: {
                 throw new Error(`${referenceId} is not a valid reference id.`);

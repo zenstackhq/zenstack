@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { indentString, isDiscriminatorField, type PluginOptions } from '@zenstackhq/sdk';
-import { DataModel, isDataModel, isTypeDef, type Model } from '@zenstackhq/sdk/ast';
+import { DataModel, isDataModel, isEnum, isTypeDef, type Model } from '@zenstackhq/sdk/ast';
 import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
 import { supportCreateMany, type DMMF as PrismaDMMF } from '@zenstackhq/sdk/prisma';
 import path from 'path';
@@ -17,7 +17,6 @@ export default class Transformer {
     models: readonly PrismaDMMF.Model[];
     modelOperations: PrismaDMMF.ModelMapping[];
     aggregateOperationSupport: AggregateOperationSupport;
-    enumTypes: readonly PrismaDMMF.SchemaEnum[];
 
     static enumNames: string[] = [];
     static rawOpsMap: { [name: string]: string } = {};
@@ -37,7 +36,6 @@ export default class Transformer {
         this.models = params.models ?? [];
         this.modelOperations = params.modelOperations ?? [];
         this.aggregateOperationSupport = params.aggregateOperationSupport ?? {};
-        this.enumTypes = params.enumTypes ?? [];
         this.project = params.project;
         this.inputObjectTypes = params.inputObjectTypes;
         this.zmodel = params.zmodel;
@@ -53,12 +51,13 @@ export default class Transformer {
     }
 
     async generateEnumSchemas() {
-        for (const enumType of this.enumTypes) {
-            const name = upperCaseFirst(enumType.name);
+        const enums = this.zmodel.declarations.filter(isEnum);
+        for (const enumDecl of enums) {
+            const name = upperCaseFirst(enumDecl.name);
             const filePath = path.join(Transformer.outputPath, `enums/${name}.schema.ts`);
             const content = `/* eslint-disable */\n${this.generateImportZodStatement()}\n${this.generateExportSchemaStatement(
                 `${name}`,
-                `z.enum(${JSON.stringify(enumType.values)})`
+                `z.enum(${JSON.stringify(enumDecl.fields.map((f) => f.name))})`
             )}`;
             this.sourceFiles.push(this.project.createSourceFile(filePath, content, { overwrite: true }));
         }
@@ -66,9 +65,7 @@ export default class Transformer {
         this.sourceFiles.push(
             this.project.createSourceFile(
                 path.join(Transformer.outputPath, `enums/index.ts`),
-                this.enumTypes
-                    .map((enumType) => `export * from './${upperCaseFirst(enumType.name)}.schema';`)
-                    .join('\n'),
+                enums.map((enumDecl) => `export * from './${upperCaseFirst(enumDecl.name)}.schema';`).join('\n'),
                 { overwrite: true }
             )
         );

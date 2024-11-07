@@ -183,15 +183,17 @@ TypeDef:
     (comments+=TRIPLE_SLASH_COMMENT)*
     'type' name=RegularID '{' (
            fields+=TypeDefField
-        )+
+        )*
     '}';
 
+type TypeDefFieldTypes = TypeDef | Enum;
+
 TypeDefField:
-    (comments+=TRIPLE_SLASH_COMMENT)*
+    (comments+=TRIPLE_SLASH_COMMENT)*   
     name=RegularIDWithTypeNames type=TypeDefFieldType (attributes+=DataModelFieldAttribute)*;
 
 TypeDefFieldType:
-    (type=BuiltinType | reference=[TypeDef:RegularID]) (array?='[' ']')? (optional?='?')?;
+    (type=BuiltinType | reference=[TypeDefFieldTypes:RegularID]) (array?='[' ']')? (optional?='?')?;
 
 UnsupportedFieldType:
     'Unsupported' '(' (value=LiteralExpr) ')';
