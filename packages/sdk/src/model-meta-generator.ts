@@ -26,7 +26,7 @@ import {
     getAttributeArg,
     getAttributeArgLiteral,
     getAttributeArgs,
-    getAuthModel,
+    getAuthDecl,
     getDataModels,
     getInheritedFromDelegate,
     getLiteral,
@@ -101,7 +101,7 @@ function generateModelMetadata(
         writeTypeDefs(sourceFile, writer, typeDefs, options);
         writeDeleteCascade(writer, dataModels);
         writeShortNameMap(options, writer);
-        writeAuthModel(writer, dataModels);
+        writeAuthModel(writer, dataModels, typeDefs);
     });
 }
 
@@ -162,8 +162,8 @@ function writeBaseTypes(writer: CodeBlockWriter, model: DataModel) {
     }
 }
 
-function writeAuthModel(writer: CodeBlockWriter, dataModels: DataModel[]) {
-    const authModel = getAuthModel(dataModels);
+function writeAuthModel(writer: CodeBlockWriter, dataModels: DataModel[], typeDefs: TypeDef[]) {
+    const authModel = getAuthDecl([...dataModels, ...typeDefs]);
     if (authModel) {
         writer.writeLine(`authModel: '${authModel.name}'`);
     }

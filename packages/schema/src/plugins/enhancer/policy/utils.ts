@@ -6,8 +6,8 @@ import {
     TypeScriptExpressionTransformer,
     TypeScriptExpressionTransformerError,
     getAttributeArg,
-    getAuthModel,
-    getDataModels,
+    getAuthDecl,
+    getDataModelAndTypeDefs,
     getEntityCheckerFunctionName,
     getIdFields,
     getLiteral,
@@ -519,7 +519,7 @@ export function generateNormalizedAuthRef(
     const hasAuthRef = [...allows, ...denies].some((rule) => streamAst(rule).some((child) => isAuthInvocation(child)));
 
     if (hasAuthRef) {
-        const authModel = getAuthModel(getDataModels(model.$container, true));
+        const authModel = getAuthDecl(getDataModelAndTypeDefs(model.$container, true));
         if (!authModel) {
             throw new PluginError(name, 'Auth model not found');
         }

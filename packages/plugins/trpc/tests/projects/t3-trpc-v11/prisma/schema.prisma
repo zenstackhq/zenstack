@@ -12,14 +12,12 @@ generator client {
   provider = "prisma-client-js"
 }
 
-/// @@allow('all', true)
 model User {
   id    Int    @id() @default(autoincrement())
   email String @unique()
   posts Post[]
 }
 
-/// @@allow('all', true)
 model Post {
   id        Int      @id() @default(autoincrement())
   name      String

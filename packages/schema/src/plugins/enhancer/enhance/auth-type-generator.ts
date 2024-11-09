@@ -5,6 +5,7 @@ import {
     Expression,
     isDataModel,
     isMemberAccessExpr,
+    TypeDef,
     type Model,
 } from '@zenstackhq/sdk/ast';
 import { streamAst, type AstNode } from 'langium';
@@ -14,7 +15,7 @@ import { isCollectionPredicate } from '../../../utils/ast-utils';
  * Generate types for typing the `user` context object passed to the `enhance` call, based
  * on the fields (potentially deeply) access through `auth()`.
  */
-export function generateAuthType(model: Model, authModel: DataModel) {
+export function generateAuthType(model: Model, authDecl: DataModel | TypeDef) {
     const types = new Map<
         string,
         {
@@ -23,7 +24,7 @@ export function generateAuthType(model: Model, authModel: DataModel) {
         }
     >();
 
-    types.set(authModel.name, { requiredRelations: [] });
+    types.set(authDecl.name, { requiredRelations: [] });
 
     const ensureType = (model: string) => {
         if (!types.has(model)) {
@@ -88,9 +89,9 @@ ${Array.from(types.entries())
     .map(([model, fields]) => {
         let result = `Partial<_P.${model}>`;
 
-        if (model === authModel.name) {
+        if (model === authDecl.name) {
             // auth model's id fields are always required
-            const idFields = getIdFields(authModel).map((f) => f.name);
+            const idFields = getIdFields(authDecl).map((f) => f.name);
             if (idFields.length > 0) {
                 result = `WithRequired<${result}, ${idFields.map((f) => `'${f}'`).join('|')}>`;
             }

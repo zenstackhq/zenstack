@@ -24,6 +24,7 @@ import {
     ResolvedShape,
     StringLiteral,
     ThisExpr,
+    TypeDefFieldType,
     UnaryExpr,
     isArrayExpr,
     isBooleanLiteral,
@@ -35,7 +36,7 @@ import {
     isReferenceExpr,
     isStringLiteral,
 } from '@zenstackhq/language/ast';
-import { getAuthModel, getModelFieldsWithBases, isAuthInvocation, isFutureExpr } from '@zenstackhq/sdk';
+import { getAuthDecl, getModelFieldsWithBases, isAuthInvocation, isFutureExpr } from '@zenstackhq/sdk';
 import {
     AstNode,
     AstNodeDescription,
@@ -53,7 +54,8 @@ import {
 } from 'langium';
 import { match } from 'ts-pattern';
 import { CancellationToken } from 'vscode-jsonrpc';
-import { getAllLoadedAndReachableDataModels, getContainingDataModel } from '../utils/ast-utils';
+import { getAllLoadedAndReachableDataModelsAndTypeDefs, getContainingDataModel } from '../utils/ast-utils';
+import { isMemberContainer } from './utils';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
 
 interface DefaultReference extends Reference {
@@ -281,14 +283,14 @@ export class ZModelLinker extends DefaultLinker {
                 // auth() function is resolved against all loaded and reachable documents
 
                 // get all data models from loaded and reachable documents
-                const allDataModels = getAllLoadedAndReachableDataModels(
+                const allDecls = getAllLoadedAndReachableDataModelsAndTypeDefs(
                     this.langiumDocuments(),
                     getContainerOfType(node, isDataModel)
                 );
 
-                const authModel = getAuthModel(allDataModels);
-                if (authModel) {
-                    node.$resolvedType = { decl: authModel, nullable: true };
+                const authDecl = getAuthDecl(allDecls);
+                if (authDecl) {
+                    node.$resolvedType = { decl: authDecl, nullable: true };
                 }
             } else if (isFutureExpr(node)) {
                 // future() function is resolved to current model
@@ -319,7 +321,7 @@ export class ZModelLinker extends DefaultLinker {
         this.resolveDefault(node, document, extraScopes);
         const operandResolved = node.operand.$resolvedType;
 
-        if (operandResolved && !operandResolved.array && isDataModel(operandResolved.decl)) {
+        if (operandResolved && !operandResolved.array && isMemberContainer(operandResolved.decl)) {
             // member access is resolved only in the context of the operand type
             if (node.member.ref) {
                 this.resolveToDeclaredType(node, node.member.ref.type);
@@ -337,7 +339,7 @@ export class ZModelLinker extends DefaultLinker {
         this.resolveDefault(node, document, extraScopes);
 
         const resolvedType = node.left.$resolvedType;
-        if (resolvedType && isDataModel(resolvedType.decl) && resolvedType.array) {
+        if (resolvedType && isMemberContainer(resolvedType.decl) && resolvedType.array) {
             this.resolveToBuiltinTypeOrDecl(node, 'Boolean');
         } else {
             // error is reported in validation pass
@@ -513,7 +515,7 @@ export class ZModelLinker extends DefaultLinker {
 
     //#region Utils
 
-    private resolveToDeclaredType(node: AstNode, type: FunctionParamType | DataModelFieldType) {
+    private resolveToDeclaredType(node: AstNode, type: FunctionParamType | DataModelFieldType | TypeDefFieldType) {
         let nullable = false;
         if (isDataModelFieldType(type)) {
             nullable = type.optional;

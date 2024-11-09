@@ -10,7 +10,12 @@ import { validateDuplicatedDeclarations } from './utils';
 export default class TypeDefValidator implements AstValidator<TypeDef> {
     validate(typeDef: TypeDef, accept: ValidationAcceptor): void {
         validateDuplicatedDeclarations(typeDef, typeDef.fields, accept);
+        this.validateAttributes(typeDef, accept);
         this.validateFields(typeDef, accept);
+    }
+
+    private validateAttributes(typeDef: TypeDef, accept: ValidationAcceptor) {
+        typeDef.attributes.forEach((attr) => validateAttributeApplication(attr, accept));
     }
 
     private validateFields(typeDef: TypeDef, accept: ValidationAcceptor) {

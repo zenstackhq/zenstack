@@ -209,7 +209,7 @@ attribute @@@completionHint(_ values: String[])
  * @param sort: Allows you to specify in what order the entries of the ID are stored in the database. The available options are Asc and Desc.
  * @param clustered: Defines whether the ID is clustered or non-clustered. Defaults to true.
  */
-attribute @id(map: String?, length: Int?, sort: SortOrder?, clustered: Boolean?) @@@prisma
+attribute @id(map: String?, length: Int?, sort: SortOrder?, clustered: Boolean?) @@@prisma @@@supportTypeDef
 
 /**
  * Defines a default value for a field.
@@ -536,7 +536,7 @@ attribute @deny(_ operation: String @@@completionHint(["'create'", "'read'", "'u
  * Used to specify the model for resolving `auth()` function call in access policies. A Zmodel
  * can have at most one model with this attribute. By default, the model named "User" is used.
  */
-attribute @@auth()
+attribute @@auth() @@@supportTypeDef
 
 /**
  * Indicates that the field is a password field and needs to be hashed before persistence.
@@ -639,7 +639,7 @@ attribute @lte(_ value: Int, _ message: String?) @@@targetField([IntField, Float
 /**
  * Validates the entity with a complex condition.
  */
-attribute @@validate(_ value: Boolean, _ message: String?, _ path: String[]?) @@@validation
+attribute @@validate(_ value: Boolean, _ message: String?, _ path: String[]?) @@@validation @@@supportTypeDef
 
 /**
  * Validates length of a string field.

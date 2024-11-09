@@ -69,6 +69,10 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
             accept('error', `attribute "${decl.name}" cannot be used on type declaration fields`, { node: attr });
         }
 
+        if (isTypeDef(targetDecl) && !hasAttribute(decl, '@@@supportTypeDef')) {
+            accept('error', `attribute "${decl.name}" cannot be used on type declarations`, { node: attr });
+        }
+
         const filledParams = new Set<AttributeParam>();
 
         for (const arg of attr.args) {

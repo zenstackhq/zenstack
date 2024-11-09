@@ -3,7 +3,8 @@ import {
     PluginError,
     getAttribute,
     getAttributeArg,
-    getAuthModel,
+    getAuthDecl,
+    getDataModelAndTypeDefs,
     getDataModels,
     getLiteral,
     isDelegateModel,
@@ -83,9 +84,9 @@ export class EnhancerGenerator {
         );
         await prismaDts.save();
 
-        const authModel = getAuthModel(getDataModels(this.model));
-        const authTypes = authModel ? generateAuthType(this.model, authModel) : '';
-        const authTypeParam = authModel ? `auth.${authModel.name}` : 'AuthUser';
+        const authDecl = getAuthDecl(getDataModelAndTypeDefs(this.model));
+        const authTypes = authDecl ? generateAuthType(this.model, authDecl) : '';
+        const authTypeParam = authDecl ? `auth.${authDecl.name}` : 'AuthUser';
 
         const checkerTypes = this.generatePermissionChecker ? generateCheckerType(this.model) : '';
 
