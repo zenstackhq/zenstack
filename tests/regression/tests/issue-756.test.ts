@@ -28,6 +28,6 @@ describe('Regression: issue 756', () => {
           }
         `
             )
-        ).toContain(`Could not resolve reference to DataModelField named 'authorId'.`);
+        ).toContain(`Could not resolve reference to MemberAccessTarget named 'authorId'.`);
     });
 });

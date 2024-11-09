@@ -35,6 +35,7 @@ import {
     isNumberLiteral,
     isReferenceExpr,
     isStringLiteral,
+    isTypeDefField,
 } from '@zenstackhq/language/ast';
 import { getAuthDecl, getModelFieldsWithBases, isAuthInvocation, isFutureExpr } from '@zenstackhq/sdk';
 import {
@@ -517,7 +518,7 @@ export class ZModelLinker extends DefaultLinker {
 
     private resolveToDeclaredType(node: AstNode, type: FunctionParamType | DataModelFieldType | TypeDefFieldType) {
         let nullable = false;
-        if (isDataModelFieldType(type)) {
+        if (isDataModelFieldType(type) || isTypeDefField(type)) {
             nullable = type.optional;
 
             // referencing a field of 'Unsupported' type
