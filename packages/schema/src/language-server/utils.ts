@@ -1,6 +1,9 @@
 import {
     isArrayExpr,
+    isDataModel,
     isReferenceExpr,
+    isTypeDef,
+    TypeDef,
     type DataModel,
     type DataModelField,
     type ReferenceExpr,
@@ -24,4 +27,11 @@ export function getUniqueFields(model: DataModel) {
             .filter((item): item is ReferenceExpr => isReferenceExpr(item))
             .map((item) => resolved(item.target) as DataModelField);
     });
+}
+
+/**
+ * Checks if the given node can contain resolvable members.
+ */
+export function isMemberContainer(node: unknown): node is DataModel | TypeDef {
+    return isDataModel(node) || isTypeDef(node);
 }

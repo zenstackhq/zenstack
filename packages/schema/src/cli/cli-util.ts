@@ -1,5 +1,5 @@
 import { isDataSource, isPlugin, Model } from '@zenstackhq/language/ast';
-import { getDataModels, getLiteral, hasAttribute } from '@zenstackhq/sdk';
+import { getDataModelAndTypeDefs, getLiteral, hasAttribute } from '@zenstackhq/sdk';
 import colors from 'colors';
 import fs from 'fs';
 import { getDocument, LangiumDocument, LangiumDocuments, linkContentToContainer } from 'langium';
@@ -133,10 +133,10 @@ function validationAfterImportMerge(model: Model) {
     }
 
     // at most one `@@auth` model
-    const dataModels = getDataModels(model, true);
-    const authModels = dataModels.filter((d) => hasAttribute(d, '@@auth'));
-    if (authModels.length > 1) {
-        console.error(colors.red('Validation error: Multiple `@@auth` models are not allowed'));
+    const decls = getDataModelAndTypeDefs(model, true);
+    const authDecls = decls.filter((d) => hasAttribute(d, '@@auth'));
+    if (authDecls.length > 1) {
+        console.error(colors.red('Validation error: Multiple `@@auth` declarations are not allowed'));
         throw new CliError('schema validation errors');
     }
 }

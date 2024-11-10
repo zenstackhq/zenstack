@@ -66,7 +66,7 @@ ConfigArrayExpr:
 ConfigExpr:
     LiteralExpr | InvocationExpr | ConfigArrayExpr;
 
-type ReferenceTarget = FunctionParam | DataModelField | EnumField;
+type ReferenceTarget = FunctionParam | DataModelField | TypeDefField | EnumField;
 ThisExpr:
     value='this';
 
@@ -94,17 +94,19 @@ FieldInitializer:
 InvocationExpr:
     function=[FunctionDecl] '(' ArgumentList? ')';
 
-// binary operator precedence follow Javascript's rules:
-// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence#table
+type MemberAccessTarget = DataModelField | TypeDefField;
 
 MemberAccessExpr infers Expression:
     PrimaryExpr (
         {infer MemberAccessExpr.operand=current}
-        ('.' member=[DataModelField])
+        ('.' member=[MemberAccessTarget])
     )*;
 
 UnaryExpr:
     operator=('!') operand=MemberAccessExpr;
+
+// binary operator precedence follow Javascript's rules:
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence#table
 
 CollectionPredicateExpr infers Expression:
     MemberAccessExpr (
@@ -179,10 +181,12 @@ DataModelField:
 DataModelFieldType:
     (type=BuiltinType | unsupported=UnsupportedFieldType | reference=[TypeDeclaration:RegularID]) (array?='[' ']')? (optional?='?')?;
 
+// TODO: unify TypeDef and abstract DataModel
 TypeDef:
     (comments+=TRIPLE_SLASH_COMMENT)*
     'type' name=RegularID '{' (
-           fields+=TypeDefField
+           fields+=TypeDefField |
+           attributes+=DataModelAttribute
         )*
     '}';
 
@@ -245,6 +249,7 @@ type TypeDeclaration = DataModel | TypeDef | Enum;
 DataModelFieldAttribute:
     decl=[Attribute:FIELD_ATTRIBUTE_NAME] ('(' AttributeArgList? ')')?;
 
+// TODO: need rename since it's for both DataModel and TypeDef
 DataModelAttribute:
     TRIPLE_SLASH_COMMENT* decl=[Attribute:MODEL_ATTRIBUTE_NAME] ('(' AttributeArgList? ')')?;
 

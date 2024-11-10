@@ -13,9 +13,11 @@ import {
     isMemberAccessExpr,
     isModel,
     isReferenceExpr,
+    isTypeDef,
     Model,
     ModelImport,
     ReferenceExpr,
+    TypeDef,
 } from '@zenstackhq/language/ast';
 import {
     getInheritanceChain,
@@ -302,21 +304,24 @@ export function findUpAst(node: AstNode, predicate: (node: AstNode) => boolean):
 }
 
 /**
- * Gets all data models from all loaded documents
+ * Gets all data models and type defs from all loaded documents
  */
-export function getAllLoadedDataModels(langiumDocuments: LangiumDocuments) {
+export function getAllLoadedDataModelsAndTypeDefs(langiumDocuments: LangiumDocuments) {
     return langiumDocuments.all
         .map((doc) => doc.parseResult.value as Model)
-        .flatMap((model) => model.declarations.filter(isDataModel))
+        .flatMap((model) => model.declarations.filter((d): d is DataModel | TypeDef => isDataModel(d) || isTypeDef(d)))
         .toArray();
 }
 
 /**
- * Gets all data models from loaded and reachable documents
+ * Gets all data models and type defs from loaded and reachable documents
  */
-export function getAllLoadedAndReachableDataModels(langiumDocuments: LangiumDocuments, fromModel?: DataModel) {
+export function getAllLoadedAndReachableDataModelsAndTypeDefs(
+    langiumDocuments: LangiumDocuments,
+    fromModel?: DataModel
+) {
     // get all data models from loaded documents
-    const allDataModels = getAllLoadedDataModels(langiumDocuments);
+    const allDataModels = getAllLoadedDataModelsAndTypeDefs(langiumDocuments);
 
     if (fromModel) {
         // merge data models transitively reached from the current model
