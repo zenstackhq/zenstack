@@ -1117,7 +1117,7 @@ describe('Tanstack Query React Hooks V5 Test', () => {
         });
     });
 
-    it('optimistic delete', async () => {
+    it('optimistic delete simple', async () => {
         const { queryClient, wrapper } = createWrapper();
 
         const data: any[] = [{ id: '1', name: 'foo' }];
@@ -1165,6 +1165,122 @@ describe('Tanstack Query React Hooks V5 Test', () => {
                 getQueryKey('User', 'findMany', undefined, { infinite: false, optimisticUpdate: true })
             );
             expect(cacheData).toHaveLength(0);
+        });
+    });
+
+    it('optimistic delete nested query', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        const data: any = { id: '1', name: 'foo', posts: [{ id: 'p1', title: 'post1' }] };
+
+        nock(makeUrl('User', 'findFirst'))
+            .get(/.*/)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(data));
+                return { data };
+            })
+            .persist();
+
+        const { result } = renderHook(
+            () =>
+                useModelQuery(
+                    'User',
+                    makeUrl('User', 'findFirst'),
+                    { include: { posts: true } },
+                    { optimisticUpdate: true }
+                ),
+            {
+                wrapper,
+            }
+        );
+        await waitFor(() => {
+            expect(result.current.data).toMatchObject({ id: '1' });
+        });
+
+        nock(makeUrl('Post', 'delete'))
+            .delete(/.*/)
+            .reply(200, () => {
+                console.log('Not mutating data');
+                return { data };
+            });
+
+        const { result: mutationResult } = renderHook(
+            () =>
+                useModelMutation('Post', 'DELETE', makeUrl('Post', 'delete'), modelMeta, {
+                    optimisticUpdate: true,
+                    invalidateQueries: false,
+                }),
+            {
+                wrapper,
+            }
+        );
+
+        act(() => mutationResult.current.mutate({ where: { id: 'p1' } }));
+
+        await waitFor(() => {
+            const cacheData: any = queryClient.getQueryData(
+                getQueryKey(
+                    'User',
+                    'findFirst',
+                    { include: { posts: true } },
+                    { infinite: false, optimisticUpdate: true }
+                )
+            );
+            expect(cacheData.posts).toHaveLength(0);
+        });
+    });
+
+    it('optimistic nested delete update query', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        const data: any = [
+            { id: 'p1', title: 'post1' },
+            { id: 'p2', title: 'post2' },
+        ];
+
+        nock(makeUrl('Post', 'findMany'))
+            .get(/.*/)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(data));
+                return { data };
+            })
+            .persist();
+
+        const { result } = renderHook(
+            () => useModelQuery('Post', makeUrl('Post', 'findMany'), undefined, { optimisticUpdate: true }),
+            {
+                wrapper,
+            }
+        );
+        await waitFor(() => {
+            expect(result.current.data).toHaveLength(2);
+        });
+
+        nock(makeUrl('User', 'update'))
+            .delete(/.*/)
+            .reply(200, () => {
+                console.log('Not mutating data');
+                return { data };
+            });
+
+        const { result: mutationResult } = renderHook(
+            () =>
+                useModelMutation('User', 'PUT', makeUrl('User', 'update'), modelMeta, {
+                    optimisticUpdate: true,
+                    invalidateQueries: false,
+                }),
+            {
+                wrapper,
+            }
+        );
+
+        act(() => mutationResult.current.mutate({ where: { id: '1' }, data: { posts: { delete: { id: 'p1' } } } }));
+
+        await waitFor(() => {
+            const cacheData: any = queryClient.getQueryData(
+                getQueryKey('Post', 'findMany', undefined, { infinite: false, optimisticUpdate: true })
+            );
+            expect(cacheData).toHaveLength(1);
         });
     });
 
