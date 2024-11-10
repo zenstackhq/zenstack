@@ -281,6 +281,124 @@ describe('Tanstack Query React Hooks V5 Test', () => {
         });
     });
 
+    it('optimistic create updating nested query', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        const data: any[] = [{ id: '1', name: 'user1', posts: [] }];
+
+        nock(makeUrl('User', 'findMany'))
+            .get(/.*/)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(data));
+                return { data };
+            })
+            .persist();
+
+        const { result } = renderHook(
+            () =>
+                useModelQuery(
+                    'User',
+                    makeUrl('User', 'findMany'),
+                    { include: { posts: true } },
+                    { optimisticUpdate: true }
+                ),
+            {
+                wrapper,
+            }
+        );
+        await waitFor(() => {
+            expect(result.current.data).toHaveLength(1);
+        });
+
+        nock(makeUrl('Post', 'create'))
+            .post(/.*/)
+            .reply(200, () => {
+                console.log('Not mutating data');
+                return { data: null };
+            });
+
+        const { result: mutationResult } = renderHook(
+            () =>
+                useModelMutation('Post', 'POST', makeUrl('Post', 'create'), modelMeta, {
+                    optimisticUpdate: true,
+                    invalidateQueries: false,
+                }),
+            {
+                wrapper,
+            }
+        );
+
+        act(() => mutationResult.current.mutate({ data: { title: 'post1', owner: { connect: { id: '1' } } } }));
+
+        await waitFor(() => {
+            const cacheData: any = queryClient.getQueryData(
+                getQueryKey(
+                    'User',
+                    'findMany',
+                    { include: { posts: true } },
+                    { infinite: false, optimisticUpdate: true }
+                )
+            );
+            const posts = cacheData[0].posts;
+            expect(posts).toHaveLength(1);
+            expect(posts[0]).toMatchObject({ $optimistic: true, id: expect.any(String), title: 'post1', ownerId: '1' });
+        });
+    });
+
+    it('optimistic nested create updating query', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        const data: any[] = [];
+
+        nock(makeUrl('Post', 'findMany'))
+            .get(/.*/)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(data));
+                return { data };
+            })
+            .persist();
+
+        const { result } = renderHook(
+            () => useModelQuery('Post', makeUrl('Post', 'findMany'), undefined, { optimisticUpdate: true }),
+            {
+                wrapper,
+            }
+        );
+        await waitFor(() => {
+            expect(result.current.data).toHaveLength(0);
+        });
+
+        nock(makeUrl('User', 'create'))
+            .post(/.*/)
+            .reply(200, () => {
+                console.log('Not mutating data');
+                return { data: null };
+            });
+
+        const { result: mutationResult } = renderHook(
+            () =>
+                useModelMutation('User', 'POST', makeUrl('User', 'create'), modelMeta, {
+                    optimisticUpdate: true,
+                    invalidateQueries: false,
+                }),
+            {
+                wrapper,
+            }
+        );
+
+        act(() => mutationResult.current.mutate({ data: { name: 'user1', posts: { create: { title: 'post1' } } } }));
+
+        await waitFor(() => {
+            const cacheData: any = queryClient.getQueryData(
+                getQueryKey('Post', 'findMany', undefined, { infinite: false, optimisticUpdate: true })
+            );
+            expect(cacheData).toHaveLength(1);
+            expect(cacheData[0].$optimistic).toBe(true);
+            expect(cacheData[0].id).toBeTruthy();
+            expect(cacheData[0].title).toBe('post1');
+        });
+    });
+
     it('optimistic create many', async () => {
         const { queryClient, wrapper } = createWrapper();
 
@@ -420,7 +538,7 @@ describe('Tanstack Query React Hooks V5 Test', () => {
         });
     });
 
-    it('optimistic update', async () => {
+    it('optimistic update simple', async () => {
         const { queryClient, wrapper } = createWrapper();
 
         const queryArgs = { where: { id: '1' } };
@@ -472,7 +590,121 @@ describe('Tanstack Query React Hooks V5 Test', () => {
         });
     });
 
-    it('optimistic upsert - create', async () => {
+    it('optimistic update updating nested query', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        const queryArgs = { where: { id: '1' }, include: { posts: true } };
+        const data = { id: '1', name: 'foo', posts: [{ id: 'p1', title: 'post1' }] };
+
+        nock(makeUrl('User', 'findUnique', queryArgs))
+            .get(/.*/)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(data));
+                return { data };
+            })
+            .persist();
+
+        const { result } = renderHook(
+            () => useModelQuery('User', makeUrl('User', 'findUnique'), queryArgs, { optimisticUpdate: true }),
+            {
+                wrapper,
+            }
+        );
+        await waitFor(() => {
+            expect(result.current.data).toMatchObject({ name: 'foo' });
+        });
+
+        nock(makeUrl('Post', 'update'))
+            .put(/.*/)
+            .reply(200, () => {
+                console.log('Not mutating data');
+                return data;
+            });
+
+        const { result: mutationResult } = renderHook(
+            () =>
+                useModelMutation('Post', 'PUT', makeUrl('Post', 'update'), modelMeta, {
+                    optimisticUpdate: true,
+                    invalidateQueries: false,
+                }),
+            {
+                wrapper,
+            }
+        );
+
+        act(() =>
+            mutationResult.current.mutate({
+                where: { id: 'p1' },
+                data: { title: 'post2', owner: { connect: { id: '2' } } },
+            })
+        );
+
+        await waitFor(() => {
+            const cacheData: any = queryClient.getQueryData(
+                getQueryKey('User', 'findUnique', queryArgs, { infinite: false, optimisticUpdate: true })
+            );
+            expect(cacheData.posts[0]).toMatchObject({ title: 'post2', $optimistic: true, ownerId: '2' });
+        });
+    });
+
+    it('optimistic nested update updating query', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        const queryArgs = { where: { id: 'p1' } };
+        const data = { id: 'p1', title: 'post1' };
+
+        nock(makeUrl('Post', 'findUnique', queryArgs))
+            .get(/.*/)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(data));
+                return { data };
+            })
+            .persist();
+
+        const { result } = renderHook(
+            () => useModelQuery('Post', makeUrl('Post', 'findUnique'), queryArgs, { optimisticUpdate: true }),
+            {
+                wrapper,
+            }
+        );
+        await waitFor(() => {
+            expect(result.current.data).toMatchObject({ title: 'post1' });
+        });
+
+        nock(makeUrl('User', 'update'))
+            .put(/.*/)
+            .reply(200, () => {
+                console.log('Not mutating data');
+                return data;
+            });
+
+        const { result: mutationResult } = renderHook(
+            () =>
+                useModelMutation('User', 'PUT', makeUrl('User', 'update'), modelMeta, {
+                    optimisticUpdate: true,
+                    invalidateQueries: false,
+                }),
+            {
+                wrapper,
+            }
+        );
+
+        act(() =>
+            mutationResult.current.mutate({
+                where: { id: '1' },
+                data: { posts: { update: { where: { id: 'p1' }, data: { title: 'post2' } } } },
+            })
+        );
+
+        await waitFor(() => {
+            const cacheData: any = queryClient.getQueryData(
+                getQueryKey('Post', 'findUnique', queryArgs, { infinite: false, optimisticUpdate: true })
+            );
+            expect(cacheData).toMatchObject({ title: 'post2', $optimistic: true });
+        });
+    });
+
+    it('optimistic upsert - create simple', async () => {
         const { queryClient, wrapper } = createWrapper();
 
         const data: any[] = [];
@@ -526,13 +758,141 @@ describe('Tanstack Query React Hooks V5 Test', () => {
                 getQueryKey('User', 'findMany', undefined, { infinite: false, optimisticUpdate: true })
             );
             expect(cacheData).toHaveLength(1);
-            expect(cacheData[0].$optimistic).toBe(true);
-            expect(cacheData[0].id).toBeTruthy();
-            expect(cacheData[0].name).toBe('foo');
+            expect(cacheData[0]).toMatchObject({ id: '1', name: 'foo', $optimistic: true });
         });
     });
 
-    it('optimistic upsert - update', async () => {
+    it('optimistic upsert - create updating nested query', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        const data: any = { id: '1', name: 'user1', posts: [{ id: 'p1', title: 'post1' }] };
+
+        nock(makeUrl('User', 'findUnique'))
+            .get(/.*/)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(data));
+                return { data };
+            })
+            .persist();
+
+        const { result } = renderHook(
+            () =>
+                useModelQuery(
+                    'User',
+                    makeUrl('User', 'findUnique'),
+                    { where: { id: '1' } },
+                    { optimisticUpdate: true }
+                ),
+            {
+                wrapper,
+            }
+        );
+        await waitFor(() => {
+            expect(result.current.data).toMatchObject({ id: '1' });
+        });
+
+        nock(makeUrl('Post', 'upsert'))
+            .post(/.*/)
+            .reply(200, () => {
+                console.log('Not mutating data');
+                return { data: null };
+            });
+
+        const { result: mutationResult } = renderHook(
+            () =>
+                useModelMutation('Post', 'POST', makeUrl('Post', 'upsert'), modelMeta, {
+                    optimisticUpdate: true,
+                    invalidateQueries: false,
+                }),
+            {
+                wrapper,
+            }
+        );
+
+        act(() =>
+            mutationResult.current.mutate({
+                where: { id: 'p2' },
+                create: { id: 'p2', title: 'post2', owner: { connect: { id: '1' } } },
+                update: { title: 'post3' },
+            })
+        );
+
+        await waitFor(() => {
+            const cacheData: any = queryClient.getQueryData(
+                getQueryKey('User', 'findUnique', { where: { id: '1' } }, { infinite: false, optimisticUpdate: true })
+            );
+            const posts = cacheData.posts;
+            expect(posts).toHaveLength(2);
+            expect(posts[0]).toMatchObject({ id: 'p2', title: 'post2', ownerId: '1', $optimistic: true });
+        });
+    });
+
+    it('optimistic upsert - nested create updating query', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        const data: any = [{ id: 'p1', title: 'post1' }];
+
+        nock(makeUrl('Post', 'findMany'))
+            .get(/.*/)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(data));
+                return { data };
+            })
+            .persist();
+
+        const { result } = renderHook(
+            () => useModelQuery('Post', makeUrl('Post', 'findMany'), undefined, { optimisticUpdate: true }),
+            {
+                wrapper,
+            }
+        );
+        await waitFor(() => {
+            expect(result.current.data).toHaveLength(1);
+        });
+
+        nock(makeUrl('User', 'update'))
+            .post(/.*/)
+            .reply(200, () => {
+                console.log('Not mutating data');
+                return { data: null };
+            });
+
+        const { result: mutationResult } = renderHook(
+            () =>
+                useModelMutation('User', 'PUT', makeUrl('User', 'update'), modelMeta, {
+                    optimisticUpdate: true,
+                    invalidateQueries: false,
+                }),
+            {
+                wrapper,
+            }
+        );
+
+        act(() =>
+            mutationResult.current.mutate({
+                where: { id: '1' },
+                data: {
+                    posts: {
+                        upsert: {
+                            where: { id: 'p2' },
+                            create: { id: 'p2', title: 'post2', owner: { connect: { id: '1' } } },
+                            update: { title: 'post3', owner: { connect: { id: '2' } } },
+                        },
+                    },
+                },
+            })
+        );
+
+        await waitFor(() => {
+            const cacheData: any = queryClient.getQueryData(
+                getQueryKey('Post', 'findMany', undefined, { infinite: false, optimisticUpdate: true })
+            );
+            expect(cacheData).toHaveLength(2);
+            expect(cacheData[0]).toMatchObject({ id: 'p2', title: 'post2', ownerId: '1', $optimistic: true });
+        });
+    });
+
+    it('optimistic upsert - update simple', async () => {
         const { queryClient, wrapper } = createWrapper();
 
         const queryArgs = { where: { id: '1' } };
@@ -581,6 +941,136 @@ describe('Tanstack Query React Hooks V5 Test', () => {
                 getQueryKey('User', 'findUnique', queryArgs, { infinite: false, optimisticUpdate: true })
             );
             expect(cacheData).toMatchObject({ name: 'bar', $optimistic: true });
+        });
+    });
+
+    it('optimistic upsert - update updating nested query', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        const data: any = { id: '1', name: 'user1', posts: [{ id: 'p1', title: 'post1' }] };
+
+        nock(makeUrl('User', 'findUnique'))
+            .get(/.*/)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(data));
+                return { data };
+            })
+            .persist();
+
+        const { result } = renderHook(
+            () =>
+                useModelQuery(
+                    'User',
+                    makeUrl('User', 'findUnique'),
+                    { where: { id: '1' } },
+                    { optimisticUpdate: true }
+                ),
+            {
+                wrapper,
+            }
+        );
+        await waitFor(() => {
+            expect(result.current.data).toMatchObject({ id: '1' });
+        });
+
+        nock(makeUrl('Post', 'upsert'))
+            .post(/.*/)
+            .reply(200, () => {
+                console.log('Not mutating data');
+                return { data: null };
+            });
+
+        const { result: mutationResult } = renderHook(
+            () =>
+                useModelMutation('Post', 'POST', makeUrl('Post', 'upsert'), modelMeta, {
+                    optimisticUpdate: true,
+                    invalidateQueries: false,
+                }),
+            {
+                wrapper,
+            }
+        );
+
+        act(() =>
+            mutationResult.current.mutate({
+                where: { id: 'p1' },
+                create: { id: 'p1', title: 'post1' },
+                update: { title: 'post2' },
+            })
+        );
+
+        await waitFor(() => {
+            const cacheData: any = queryClient.getQueryData(
+                getQueryKey('User', 'findUnique', { where: { id: '1' } }, { infinite: false, optimisticUpdate: true })
+            );
+            const posts = cacheData.posts;
+            expect(posts).toHaveLength(1);
+            expect(posts[0]).toMatchObject({ id: 'p1', title: 'post2', $optimistic: true });
+        });
+    });
+
+    it('optimistic upsert - nested update updating query', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        const data: any = [{ id: 'p1', title: 'post1' }];
+
+        nock(makeUrl('Post', 'findMany'))
+            .get(/.*/)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(data));
+                return { data };
+            })
+            .persist();
+
+        const { result } = renderHook(
+            () => useModelQuery('Post', makeUrl('Post', 'findMany'), undefined, { optimisticUpdate: true }),
+            {
+                wrapper,
+            }
+        );
+        await waitFor(() => {
+            expect(result.current.data).toHaveLength(1);
+        });
+
+        nock(makeUrl('User', 'update'))
+            .post(/.*/)
+            .reply(200, () => {
+                console.log('Not mutating data');
+                return { data: null };
+            });
+
+        const { result: mutationResult } = renderHook(
+            () =>
+                useModelMutation('User', 'PUT', makeUrl('User', 'update'), modelMeta, {
+                    optimisticUpdate: true,
+                    invalidateQueries: false,
+                }),
+            {
+                wrapper,
+            }
+        );
+
+        act(() =>
+            mutationResult.current.mutate({
+                where: { id: '1' },
+                data: {
+                    posts: {
+                        upsert: {
+                            where: { id: 'p1' },
+                            create: { id: 'p1', title: 'post1' },
+                            update: { title: 'post2' },
+                        },
+                    },
+                },
+            })
+        );
+
+        await waitFor(() => {
+            const cacheData: any = queryClient.getQueryData(
+                getQueryKey('Post', 'findMany', undefined, { infinite: false, optimisticUpdate: true })
+            );
+            expect(cacheData).toHaveLength(1);
+            expect(cacheData[0]).toMatchObject({ id: 'p1', title: 'post2', $optimistic: true });
         });
     });
 
