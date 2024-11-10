@@ -52,7 +52,7 @@ describe('JSON field typing', () => {
             }
             `
             )
-        ).resolves.toContain(`Could not resolve reference to MemberAccessMember named 'age'.`);
+        ).resolves.toContain(`Could not resolve reference to MemberAccessTarget named 'age'.`);
     });
 
     it('allows auth member accesses in policy rules', async () => {
@@ -92,7 +92,7 @@ describe('JSON field typing', () => {
             }
             `
             )
-        ).resolves.toContain(`Could not resolve reference to MemberAccessMember named 'roles'.`);
+        ).resolves.toContain(`Could not resolve reference to MemberAccessTarget named 'roles'.`);
 
         await expect(
             loadModelWithError(
