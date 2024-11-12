@@ -326,6 +326,7 @@ export class ZodSchemaGenerator {
 
     private addPreludeAndImports(decl: DataModel | TypeDef, writer: CodeBlockWriter, output: string) {
         writer.writeLine('/* eslint-disable */');
+        writer.writeLine('// @ts-nocheck');
         writer.writeLine(`import { z } from 'zod';`);
 
         // import user-defined enums from Prisma as they might be referenced in the expressions
