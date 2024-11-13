@@ -44,13 +44,9 @@ describe('With Policy: client extensions', () => {
             });
         });
 
-        const xprisma = prisma.$extends(ext);
-        const db = enhanceRaw(xprisma);
-        await expect(db.model.getAll()).resolves.toHaveLength(2);
-
-        // FIXME: extending an enhanced client doesn't work for this case
-        // const db1 = enhance(prisma).$extends(ext);
-        // await expect(db1.model.getAll()).resolves.toHaveLength(2);
+        await expect(prisma.$extends(ext).model.getAll()).resolves.toHaveLength(3);
+        await expect(enhanceRaw(prisma.$extends(ext)).model.getAll()).resolves.toHaveLength(2);
+        await expect(enhanceRaw(prisma).$extends(ext).model.getAll()).resolves.toHaveLength(2);
     });
 
     it('one model new method', async () => {
@@ -84,9 +80,9 @@ describe('With Policy: client extensions', () => {
             });
         });
 
-        const xprisma = prisma.$extends(ext);
-        const db = enhanceRaw(xprisma);
-        await expect(db.model.getAll()).resolves.toHaveLength(2);
+        await expect(prisma.$extends(ext).model.getAll()).resolves.toHaveLength(3);
+        await expect(enhanceRaw(prisma.$extends(ext)).model.getAll()).resolves.toHaveLength(2);
+        await expect(enhanceRaw(prisma).$extends(ext).model.getAll()).resolves.toHaveLength(2);
     });
 
     it('add client method', async () => {
@@ -115,8 +111,11 @@ describe('With Policy: client extensions', () => {
             });
         });
 
-        const xprisma = prisma.$extends(ext);
-        xprisma.$log('abc');
+        enhanceRaw(prisma).$extends(ext).$log('abc');
+        expect(logged).toBeTruthy();
+
+        logged = false;
+        enhanceRaw(prisma.$extends(ext)).$log('abc');
         expect(logged).toBeTruthy();
     });
 
@@ -143,7 +142,6 @@ describe('With Policy: client extensions', () => {
                 query: {
                     model: {
                         async findMany({ args, query }: any) {
-                            // take incoming `where` and set `age`
                             args.where = { ...args.where, y: { lt: 300 } };
                             return query(args);
                         },
@@ -152,9 +150,8 @@ describe('With Policy: client extensions', () => {
             });
         });
 
-        const xprisma = prisma.$extends(ext);
-        const db = enhanceRaw(xprisma);
-        await expect(db.model.findMany()).resolves.toHaveLength(1);
+        await expect(enhanceRaw(prisma.$extends(ext)).model.findMany()).resolves.toHaveLength(1);
+        await expect(enhanceRaw(prisma).$extends(ext).model.findMany()).resolves.toHaveLength(1);
     });
 
     it('query override all models', async () => {
@@ -180,7 +177,6 @@ describe('With Policy: client extensions', () => {
                 query: {
                     $allModels: {
                         async findMany({ args, query }: any) {
-                            // take incoming `where` and set `age`
                             args.where = { ...args.where, y: { lt: 300 } };
                             console.log('findMany args:', args);
                             return query(args);
@@ -190,9 +186,8 @@ describe('With Policy: client extensions', () => {
             });
         });
 
-        const xprisma = prisma.$extends(ext);
-        const db = enhanceRaw(xprisma);
-        await expect(db.model.findMany()).resolves.toHaveLength(1);
+        await expect(enhanceRaw(prisma.$extends(ext)).model.findMany()).resolves.toHaveLength(1);
+        await expect(enhanceRaw(prisma).$extends(ext).model.findMany()).resolves.toHaveLength(1);
     });
 
     it('query override all operations', async () => {
@@ -218,7 +213,6 @@ describe('With Policy: client extensions', () => {
                 query: {
                     model: {
                         async $allOperations({ operation, args, query }: any) {
-                            // take incoming `where` and set `age`
                             args.where = { ...args.where, y: { lt: 300 } };
                             console.log(`${operation} args:`, args);
                             return query(args);
@@ -228,9 +222,8 @@ describe('With Policy: client extensions', () => {
             });
         });
 
-        const xprisma = prisma.$extends(ext);
-        const db = enhanceRaw(xprisma);
-        await expect(db.model.findMany()).resolves.toHaveLength(1);
+        await expect(enhanceRaw(prisma.$extends(ext)).model.findMany()).resolves.toHaveLength(1);
+        await expect(enhanceRaw(prisma).$extends(ext).model.findMany()).resolves.toHaveLength(1);
     });
 
     it('query override everything', async () => {
@@ -255,7 +248,6 @@ describe('With Policy: client extensions', () => {
                 name: 'prisma-extension-queryOverride',
                 query: {
                     async $allOperations({ operation, args, query }: any) {
-                        // take incoming `where` and set `age`
                         args.where = { ...args.where, y: { lt: 300 } };
                         console.log(`${operation} args:`, args);
                         return query(args);
@@ -264,9 +256,8 @@ describe('With Policy: client extensions', () => {
             });
         });
 
-        const xprisma = prisma.$extends(ext);
-        const db = enhanceRaw(xprisma);
-        await expect(db.model.findMany()).resolves.toHaveLength(1);
+        await expect(enhanceRaw(prisma.$extends(ext)).model.findMany()).resolves.toHaveLength(1);
+        await expect(enhanceRaw(prisma).$extends(ext).model.findMany()).resolves.toHaveLength(1);
     });
 
     it('result mutation', async () => {
@@ -301,11 +292,9 @@ describe('With Policy: client extensions', () => {
             });
         });
 
-        const xprisma = prisma.$extends(ext);
-        const db = enhanceRaw(xprisma);
-        const r = await db.model.findMany();
-        expect(r).toHaveLength(1);
-        expect(r).toEqual(expect.arrayContaining([expect.objectContaining({ value: 2 })]));
+        const expected = [expect.objectContaining({ value: 2 })];
+        await expect(enhanceRaw(prisma.$extends(ext)).model.findMany()).resolves.toEqual(expected);
+        await expect(enhanceRaw(prisma).$extends(ext).model.findMany()).resolves.toEqual(expected);
     });
 
     it('result custom fields', async () => {
@@ -339,10 +328,8 @@ describe('With Policy: client extensions', () => {
             });
         });
 
-        const xprisma = prisma.$extends(ext);
-        const db = enhanceRaw(xprisma);
-        const r = await db.model.findMany();
-        expect(r).toHaveLength(1);
-        expect(r).toEqual(expect.arrayContaining([expect.objectContaining({ doubleValue: 2 })]));
+        const expected = [expect.objectContaining({ doubleValue: 2 })];
+        await expect(enhanceRaw(prisma.$extends(ext)).model.findMany()).resolves.toEqual(expected);
+        await expect(enhanceRaw(prisma).$extends(ext).model.findMany()).resolves.toEqual(expected);
     });
 });
