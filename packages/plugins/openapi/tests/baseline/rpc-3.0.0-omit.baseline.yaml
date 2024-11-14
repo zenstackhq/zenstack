@@ -549,7 +549,7 @@ components:
                 where:
                     $ref: '#/components/schemas/_AnyObject'
                 meta:
-                    $ref: '#/components/schemas/_AnyObject'
+                    $ref: '#/components/schemas/_Meta'
         UserFindFirstArgs:
             type: object
             properties:
@@ -737,7 +737,7 @@ components:
                 where:
                     $ref: '#/components/schemas/_AnyObject'
                 meta:
-                    $ref: '#/components/schemas/_AnyObject'
+                    $ref: '#/components/schemas/_Meta'
         ProfileFindFirstArgs:
             type: object
             properties:
@@ -925,7 +925,7 @@ components:
                 where:
                     $ref: '#/components/schemas/_AnyObject'
                 meta:
-                    $ref: '#/components/schemas/_AnyObject'
+                    $ref: '#/components/schemas/_Meta'
         Post_ItemFindFirstArgs:
             type: object
             properties:
