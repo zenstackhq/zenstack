@@ -59,7 +59,6 @@ export class PolicyGenerator {
 
     async generate(project: Project, model: Model, output: string) {
         const sf = project.createSourceFile(path.join(output, 'policy.ts'), undefined, { overwrite: true });
-        sf.addStatements('/* eslint-disable */');
 
         this.writeImports(model, output, sf);
 

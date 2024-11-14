@@ -59,7 +59,7 @@ export default class Transformer {
         for (const enumType of this.enumTypes) {
             const name = upperCaseFirst(enumType.name);
             const filePath = path.join(Transformer.outputPath, `enums/${name}.schema.ts`);
-            const content = `/* eslint-disable */\n${this.generateImportZodStatement()}\n${this.generateExportSchemaStatement(
+            const content = `${this.generateImportZodStatement()}\n${this.generateExportSchemaStatement(
                 `${name}`,
                 `z.enum(${JSON.stringify(enumType.values)})`
             )}`;
@@ -72,7 +72,7 @@ export default class Transformer {
         for (const enumDecl of extraEnums) {
             const name = upperCaseFirst(enumDecl.name);
             const filePath = path.join(Transformer.outputPath, `enums/${name}.schema.ts`);
-            const content = `/* eslint-disable */\n${this.generateImportZodStatement()}\n${this.generateExportSchemaStatement(
+            const content = `${this.generateImportZodStatement()}\n${this.generateExportSchemaStatement(
                 `${name}`,
                 `z.enum(${JSON.stringify(enumDecl.fields.map((f) => f.name))})`
             )}`;
@@ -107,7 +107,7 @@ export default class Transformer {
         const objectSchema = this.prepareObjectSchema(schemaFields, options);
 
         const filePath = path.join(Transformer.outputPath, `objects/${this.name}.schema.ts`);
-        const content = '/* eslint-disable */\n' + extraImports.join('\n\n') + objectSchema;
+        const content = extraImports.join('\n\n') + objectSchema;
         this.sourceFiles.push(this.project.createSourceFile(filePath, content, { overwrite: true }));
         return `${this.name}.schema`;
     }
@@ -773,7 +773,6 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
 
             const filePath = path.join(Transformer.outputPath, `input/${modelName}Input.schema.ts`);
             const content = `
-            /* eslint-disable */
             ${imports.join(';\n')}
             
             type ${modelName}InputSchemaType = {
@@ -794,7 +793,6 @@ ${operations
 
         const indexFilePath = path.join(Transformer.outputPath, 'input/index.ts');
         const indexContent = `
-/* eslint-disable */
 ${globalExports.join(';\n')}
 `;
         this.sourceFiles.push(this.project.createSourceFile(indexFilePath, indexContent, { overwrite: true }));

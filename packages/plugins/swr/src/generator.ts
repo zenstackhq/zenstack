@@ -60,8 +60,6 @@ function generateModelHooks(
     const fileName = paramCase(model.name);
     const sf = project.createSourceFile(path.join(outDir, `${fileName}.ts`), undefined, { overwrite: true });
 
-    sf.addStatements('/* eslint-disable */');
-
     const prismaImport = getPrismaClientImportSpec(outDir, options);
     sf.addImportDeclaration({
         namedImports: ['Prisma'],
@@ -261,6 +259,7 @@ function generateIndex(project: Project, outDir: string, models: DataModel[]) {
     const sf = project.createSourceFile(path.join(outDir, 'index.ts'), undefined, { overwrite: true });
     sf.addStatements(models.map((d) => `export * from './${paramCase(d.name)}';`));
     sf.addStatements(`export { Provider } from '@zenstackhq/swr/runtime';`);
+    sf.addStatements(`export { default as metadata } from './__model_meta';`);
 }
 
 function generateQueryHook(

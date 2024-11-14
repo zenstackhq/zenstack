@@ -122,8 +122,6 @@ function createAppRouter(
         overwrite: true,
     });
 
-    appRouter.addStatements('/* eslint-disable */');
-
     const prismaImport = getPrismaClientImportSpec(path.dirname(indexFile), options);
 
     if (version === 'v10') {
@@ -274,8 +272,6 @@ function generateModelCreateRouter(
         overwrite: true,
     });
 
-    modelRouter.addStatements('/* eslint-disable */');
-
     if (version === 'v10') {
         modelRouter.addImportDeclarations([
             {
@@ -386,7 +382,6 @@ function createHelper(outDir: string) {
         overwrite: true,
     });
 
-    sf.addStatements('/* eslint-disable */');
     sf.addStatements(`import { TRPCError } from '@trpc/server';`);
     sf.addStatements(`import { isPrismaClientKnownRequestError } from '${RUNTIME_PACKAGE}';`);
 

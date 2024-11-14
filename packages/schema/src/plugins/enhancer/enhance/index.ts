@@ -62,7 +62,7 @@ export class EnhancerGenerator {
         private readonly outDir: string
     ) {}
 
-    async generate(): Promise<{ dmmf: DMMF.Document | undefined }> {
+    async generate(): Promise<{ dmmf: DMMF.Document | undefined; newPrismaClientDtsPath: string | undefined }> {
         let dmmf: DMMF.Document | undefined;
 
         const prismaImport = getPrismaClientImportSpec(this.outDir, this.options);
@@ -128,7 +128,12 @@ ${
             await this.saveSourceFile(enhanceTs);
         }
 
-        return { dmmf };
+        return {
+            dmmf,
+            newPrismaClientDtsPath: prismaTypesFixed
+                ? path.resolve(this.outDir, LOGICAL_CLIENT_GENERATION_PATH, 'index-fixed.d.ts')
+                : undefined,
+        };
     }
 
     private getZodImport() {
