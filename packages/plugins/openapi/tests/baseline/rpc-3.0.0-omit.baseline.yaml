@@ -1,0 +1,2996 @@
+openapi: 3.0.0
+info:
+    title: ZenStack Generated API
+    version: 1.0.0
+tags:
+    - name: user
+      description: User operations
+    - name: profile
+      description: Profile operations
+    - name: post_Item
+      description: Post-related operations
+components:
+    schemas:
+        _AnyObject:
+            type: object
+            additionalProperties: true
+        Role:
+            type: string
+            enum:
+                - USER
+                - ADMIN
+        User:
+            type: object
+            properties:
+                id:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                email:
+                    type: string
+                role:
+                    $ref: '#/components/schemas/Role'
+                posts:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Post_Item'
+                profile:
+                    allOf:
+                        - $ref: '#/components/schemas/Profile'
+                    nullable: true
+            required:
+                - id
+                - createdAt
+                - updatedAt
+                - email
+                - role
+        Profile:
+            type: object
+            properties:
+                id:
+                    type: string
+                image:
+                    type: string
+                    nullable: true
+                user:
+                    $ref: '#/components/schemas/User'
+                userId:
+                    type: string
+            required:
+                - id
+                - user
+                - userId
+        Post_Item:
+            type: object
+            properties:
+                id:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                title:
+                    type: string
+                author:
+                    allOf:
+                        - $ref: '#/components/schemas/User'
+                    nullable: true
+                authorId:
+                    type: string
+                    nullable: true
+                published:
+                    type: boolean
+                viewCount:
+                    type: integer
+                notes:
+                    type: string
+                    nullable: true
+            required:
+                - id
+                - createdAt
+                - updatedAt
+                - title
+                - published
+                - viewCount
+        AggregateUser:
+            type: object
+            properties:
+                _count:
+                    allOf:
+                        - $ref: '#/components/schemas/UserCountAggregateOutputType'
+                    nullable: true
+                _min:
+                    allOf:
+                        - $ref: '#/components/schemas/UserMinAggregateOutputType'
+                    nullable: true
+                _max:
+                    allOf:
+                        - $ref: '#/components/schemas/UserMaxAggregateOutputType'
+                    nullable: true
+        UserGroupByOutputType:
+            type: object
+            properties:
+                id:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                email:
+                    type: string
+                role:
+                    $ref: '#/components/schemas/Role'
+                _count:
+                    allOf:
+                        - $ref: '#/components/schemas/UserCountAggregateOutputType'
+                    nullable: true
+                _min:
+                    allOf:
+                        - $ref: '#/components/schemas/UserMinAggregateOutputType'
+                    nullable: true
+                _max:
+                    allOf:
+                        - $ref: '#/components/schemas/UserMaxAggregateOutputType'
+                    nullable: true
+            required:
+                - id
+                - createdAt
+                - updatedAt
+                - email
+                - role
+        AggregateProfile:
+            type: object
+            properties:
+                _count:
+                    allOf:
+                        - $ref: '#/components/schemas/ProfileCountAggregateOutputType'
+                    nullable: true
+                _min:
+                    allOf:
+                        - $ref: '#/components/schemas/ProfileMinAggregateOutputType'
+                    nullable: true
+                _max:
+                    allOf:
+                        - $ref: '#/components/schemas/ProfileMaxAggregateOutputType'
+                    nullable: true
+        ProfileGroupByOutputType:
+            type: object
+            properties:
+                id:
+                    type: string
+                image:
+                    type: string
+                    nullable: true
+                userId:
+                    type: string
+                _count:
+                    allOf:
+                        - $ref: '#/components/schemas/ProfileCountAggregateOutputType'
+                    nullable: true
+                _min:
+                    allOf:
+                        - $ref: '#/components/schemas/ProfileMinAggregateOutputType'
+                    nullable: true
+                _max:
+                    allOf:
+                        - $ref: '#/components/schemas/ProfileMaxAggregateOutputType'
+                    nullable: true
+            required:
+                - id
+                - userId
+        AggregatePost_Item:
+            type: object
+            properties:
+                _count:
+                    allOf:
+                        - $ref: '#/components/schemas/Post_ItemCountAggregateOutputType'
+                    nullable: true
+                _avg:
+                    allOf:
+                        - $ref: '#/components/schemas/Post_ItemAvgAggregateOutputType'
+                    nullable: true
+                _sum:
+                    allOf:
+                        - $ref: '#/components/schemas/Post_ItemSumAggregateOutputType'
+                    nullable: true
+                _min:
+                    allOf:
+                        - $ref: '#/components/schemas/Post_ItemMinAggregateOutputType'
+                    nullable: true
+                _max:
+                    allOf:
+                        - $ref: '#/components/schemas/Post_ItemMaxAggregateOutputType'
+                    nullable: true
+        Post_ItemGroupByOutputType:
+            type: object
+            properties:
+                id:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                title:
+                    type: string
+                authorId:
+                    type: string
+                    nullable: true
+                published:
+                    type: boolean
+                viewCount:
+                    type: integer
+                notes:
+                    type: string
+                    nullable: true
+                _count:
+                    allOf:
+                        - $ref: '#/components/schemas/Post_ItemCountAggregateOutputType'
+                    nullable: true
+                _avg:
+                    allOf:
+                        - $ref: '#/components/schemas/Post_ItemAvgAggregateOutputType'
+                    nullable: true
+                _sum:
+                    allOf:
+                        - $ref: '#/components/schemas/Post_ItemSumAggregateOutputType'
+                    nullable: true
+                _min:
+                    allOf:
+                        - $ref: '#/components/schemas/Post_ItemMinAggregateOutputType'
+                    nullable: true
+                _max:
+                    allOf:
+                        - $ref: '#/components/schemas/Post_ItemMaxAggregateOutputType'
+                    nullable: true
+            required:
+                - id
+                - createdAt
+                - updatedAt
+                - title
+                - published
+                - viewCount
+        UserCountAggregateOutputType:
+            type: object
+            properties:
+                id:
+                    type: integer
+                createdAt:
+                    type: integer
+                updatedAt:
+                    type: integer
+                email:
+                    type: integer
+                role:
+                    type: integer
+                _all:
+                    type: integer
+            required:
+                - id
+                - createdAt
+                - updatedAt
+                - email
+                - role
+                - _all
+        UserMinAggregateOutputType:
+            type: object
+            properties:
+                id:
+                    type: string
+                    nullable: true
+                createdAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+                updatedAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+                email:
+                    type: string
+                    nullable: true
+                role:
+                    allOf:
+                        - $ref: '#/components/schemas/Role'
+                    nullable: true
+        UserMaxAggregateOutputType:
+            type: object
+            properties:
+                id:
+                    type: string
+                    nullable: true
+                createdAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+                updatedAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+                email:
+                    type: string
+                    nullable: true
+                role:
+                    allOf:
+                        - $ref: '#/components/schemas/Role'
+                    nullable: true
+        ProfileCountAggregateOutputType:
+            type: object
+            properties:
+                id:
+                    type: integer
+                image:
+                    type: integer
+                userId:
+                    type: integer
+                _all:
+                    type: integer
+            required:
+                - id
+                - image
+                - userId
+                - _all
+        ProfileMinAggregateOutputType:
+            type: object
+            properties:
+                id:
+                    type: string
+                    nullable: true
+                image:
+                    type: string
+                    nullable: true
+                userId:
+                    type: string
+                    nullable: true
+        ProfileMaxAggregateOutputType:
+            type: object
+            properties:
+                id:
+                    type: string
+                    nullable: true
+                image:
+                    type: string
+                    nullable: true
+                userId:
+                    type: string
+                    nullable: true
+        Post_ItemCountAggregateOutputType:
+            type: object
+            properties:
+                id:
+                    type: integer
+                createdAt:
+                    type: integer
+                updatedAt:
+                    type: integer
+                title:
+                    type: integer
+                authorId:
+                    type: integer
+                published:
+                    type: integer
+                viewCount:
+                    type: integer
+                notes:
+                    type: integer
+                _all:
+                    type: integer
+            required:
+                - id
+                - createdAt
+                - updatedAt
+                - title
+                - authorId
+                - published
+                - viewCount
+                - notes
+                - _all
+        Post_ItemAvgAggregateOutputType:
+            type: object
+            properties:
+                viewCount:
+                    type: number
+                    nullable: true
+        Post_ItemSumAggregateOutputType:
+            type: object
+            properties:
+                viewCount:
+                    type: integer
+                    nullable: true
+        Post_ItemMinAggregateOutputType:
+            type: object
+            properties:
+                id:
+                    type: string
+                    nullable: true
+                createdAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+                updatedAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+                title:
+                    type: string
+                    nullable: true
+                authorId:
+                    type: string
+                    nullable: true
+                published:
+                    type: boolean
+                    nullable: true
+                viewCount:
+                    type: integer
+                    nullable: true
+                notes:
+                    type: string
+                    nullable: true
+        Post_ItemMaxAggregateOutputType:
+            type: object
+            properties:
+                id:
+                    type: string
+                    nullable: true
+                createdAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+                updatedAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+                title:
+                    type: string
+                    nullable: true
+                authorId:
+                    type: string
+                    nullable: true
+                published:
+                    type: boolean
+                    nullable: true
+                viewCount:
+                    type: integer
+                    nullable: true
+                notes:
+                    type: string
+                    nullable: true
+        _Meta:
+            type: object
+            description: Meta information about the request or response
+            properties:
+                serialization:
+                    description: Serialization metadata
+            additionalProperties: true
+        _Error:
+            type: object
+            required:
+                - error
+            properties:
+                error:
+                    type: object
+                    required:
+                        - message
+                    properties:
+                        prisma:
+                            type: boolean
+                            description: Indicates if the error occurred during a Prisma call
+                        rejectedByPolicy:
+                            type: boolean
+                            description: Indicates if the error was due to rejection by a policy
+                        code:
+                            type: string
+                            description: Prisma error code. Only available when "prisma" field is true.
+                        message:
+                            type: string
+                            description: Error message
+                        reason:
+                            type: string
+                            description: Detailed error reason
+                        zodErrors:
+                            type: object
+                            additionalProperties: true
+                            description: Zod validation errors if the error is due to data validation
+                                failure
+                    additionalProperties: true
+        BatchPayload:
+            type: object
+            properties:
+                count:
+                    type: integer
+        UserCreateArgs:
+            type: object
+            required:
+                - data
+            properties:
+                select:
+                    $ref: '#/components/schemas/_AnyObject'
+                include:
+                    $ref: '#/components/schemas/_AnyObject'
+                data:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        UserCreateManyArgs:
+            type: object
+            required:
+                - data
+            properties:
+                data:
+                    oneOf:
+                        - $ref: '#/components/schemas/_AnyObject'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/_AnyObject'
+                skipDuplicates:
+                    type: boolean
+                    description: Do not insert records with unique fields or ID fields that already
+                        exist.
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        UserFindUniqueArgs:
+            type: object
+            required:
+                - where
+            properties:
+                select:
+                    $ref: '#/components/schemas/_AnyObject'
+                include:
+                    $ref: '#/components/schemas/_AnyObject'
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_AnyObject'
+        UserFindFirstArgs:
+            type: object
+            properties:
+                select:
+                    $ref: '#/components/schemas/_AnyObject'
+                include:
+                    $ref: '#/components/schemas/_AnyObject'
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        UserFindManyArgs:
+            type: object
+            properties:
+                select:
+                    $ref: '#/components/schemas/_AnyObject'
+                include:
+                    $ref: '#/components/schemas/_AnyObject'
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        UserUpdateArgs:
+            type: object
+            required:
+                - where
+                - data
+            properties:
+                select:
+                    $ref: '#/components/schemas/_AnyObject'
+                include:
+                    $ref: '#/components/schemas/_AnyObject'
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                data:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        UserUpdateManyArgs:
+            type: object
+            required:
+                - data
+            properties:
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                data:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        UserUpsertArgs:
+            type: object
+            required:
+                - create
+                - update
+                - where
+            properties:
+                select:
+                    $ref: '#/components/schemas/_AnyObject'
+                include:
+                    $ref: '#/components/schemas/_AnyObject'
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                create:
+                    $ref: '#/components/schemas/_AnyObject'
+                update:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        UserDeleteUniqueArgs:
+            type: object
+            required:
+                - where
+            properties:
+                select:
+                    $ref: '#/components/schemas/_AnyObject'
+                include:
+                    $ref: '#/components/schemas/_AnyObject'
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        UserDeleteManyArgs:
+            type: object
+            properties:
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        UserCountArgs:
+            type: object
+            properties:
+                select:
+                    $ref: '#/components/schemas/_AnyObject'
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        UserAggregateArgs:
+            type: object
+            properties:
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                orderBy:
+                    $ref: '#/components/schemas/_AnyObject'
+                cursor:
+                    $ref: '#/components/schemas/_AnyObject'
+                take:
+                    type: integer
+                skip:
+                    type: integer
+                _count:
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/_AnyObject'
+                _min:
+                    $ref: '#/components/schemas/_AnyObject'
+                _max:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        UserGroupByArgs:
+            type: object
+            properties:
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                orderBy:
+                    $ref: '#/components/schemas/_AnyObject'
+                by:
+                    $ref: '#/components/schemas/_AnyObject'
+                having:
+                    $ref: '#/components/schemas/_AnyObject'
+                take:
+                    type: integer
+                skip:
+                    type: integer
+                _count:
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/_AnyObject'
+                _min:
+                    $ref: '#/components/schemas/_AnyObject'
+                _max:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileCreateArgs:
+            type: object
+            required:
+                - data
+            properties:
+                select:
+                    $ref: '#/components/schemas/_AnyObject'
+                include:
+                    $ref: '#/components/schemas/_AnyObject'
+                data:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileCreateManyArgs:
+            type: object
+            required:
+                - data
+            properties:
+                data:
+                    oneOf:
+                        - $ref: '#/components/schemas/_AnyObject'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/_AnyObject'
+                skipDuplicates:
+                    type: boolean
+                    description: Do not insert records with unique fields or ID fields that already
+                        exist.
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileFindUniqueArgs:
+            type: object
+            required:
+                - where
+            properties:
+                select:
+                    $ref: '#/components/schemas/_AnyObject'
+                include:
+                    $ref: '#/components/schemas/_AnyObject'
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_AnyObject'
+        ProfileFindFirstArgs:
+            type: object
+            properties:
+                select:
+                    $ref: '#/components/schemas/_AnyObject'
+                include:
+                    $ref: '#/components/schemas/_AnyObject'
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileFindManyArgs:
+            type: object
+            properties:
+                select:
+                    $ref: '#/components/schemas/_AnyObject'
+                include:
+                    $ref: '#/components/schemas/_AnyObject'
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileUpdateArgs:
+            type: object
+            required:
+                - where
+                - data
+            properties:
+                select:
+                    $ref: '#/components/schemas/_AnyObject'
+                include:
+                    $ref: '#/components/schemas/_AnyObject'
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                data:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileUpdateManyArgs:
+            type: object
+            required:
+                - data
+            properties:
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                data:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileUpsertArgs:
+            type: object
+            required:
+                - create
+                - update
+                - where
+            properties:
+                select:
+                    $ref: '#/components/schemas/_AnyObject'
+                include:
+                    $ref: '#/components/schemas/_AnyObject'
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                create:
+                    $ref: '#/components/schemas/_AnyObject'
+                update:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileDeleteUniqueArgs:
+            type: object
+            required:
+                - where
+            properties:
+                select:
+                    $ref: '#/components/schemas/_AnyObject'
+                include:
+                    $ref: '#/components/schemas/_AnyObject'
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileDeleteManyArgs:
+            type: object
+            properties:
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileCountArgs:
+            type: object
+            properties:
+                select:
+                    $ref: '#/components/schemas/_AnyObject'
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileAggregateArgs:
+            type: object
+            properties:
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                orderBy:
+                    $ref: '#/components/schemas/_AnyObject'
+                cursor:
+                    $ref: '#/components/schemas/_AnyObject'
+                take:
+                    type: integer
+                skip:
+                    type: integer
+                _count:
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/_AnyObject'
+                _min:
+                    $ref: '#/components/schemas/_AnyObject'
+                _max:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileGroupByArgs:
+            type: object
+            properties:
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                orderBy:
+                    $ref: '#/components/schemas/_AnyObject'
+                by:
+                    $ref: '#/components/schemas/_AnyObject'
+                having:
+                    $ref: '#/components/schemas/_AnyObject'
+                take:
+                    type: integer
+                skip:
+                    type: integer
+                _count:
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/_AnyObject'
+                _min:
+                    $ref: '#/components/schemas/_AnyObject'
+                _max:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        Post_ItemCreateArgs:
+            type: object
+            required:
+                - data
+            properties:
+                select:
+                    $ref: '#/components/schemas/_AnyObject'
+                include:
+                    $ref: '#/components/schemas/_AnyObject'
+                data:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        Post_ItemCreateManyArgs:
+            type: object
+            required:
+                - data
+            properties:
+                data:
+                    oneOf:
+                        - $ref: '#/components/schemas/_AnyObject'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/_AnyObject'
+                skipDuplicates:
+                    type: boolean
+                    description: Do not insert records with unique fields or ID fields that already
+                        exist.
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        Post_ItemFindUniqueArgs:
+            type: object
+            required:
+                - where
+            properties:
+                select:
+                    $ref: '#/components/schemas/_AnyObject'
+                include:
+                    $ref: '#/components/schemas/_AnyObject'
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_AnyObject'
+        Post_ItemFindFirstArgs:
+            type: object
+            properties:
+                select:
+                    $ref: '#/components/schemas/_AnyObject'
+                include:
+                    $ref: '#/components/schemas/_AnyObject'
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        Post_ItemUpdateArgs:
+            type: object
+            required:
+                - where
+                - data
+            properties:
+                select:
+                    $ref: '#/components/schemas/_AnyObject'
+                include:
+                    $ref: '#/components/schemas/_AnyObject'
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                data:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        Post_ItemUpdateManyArgs:
+            type: object
+            required:
+                - data
+            properties:
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                data:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        Post_ItemUpsertArgs:
+            type: object
+            required:
+                - create
+                - update
+                - where
+            properties:
+                select:
+                    $ref: '#/components/schemas/_AnyObject'
+                include:
+                    $ref: '#/components/schemas/_AnyObject'
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                create:
+                    $ref: '#/components/schemas/_AnyObject'
+                update:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        Post_ItemDeleteUniqueArgs:
+            type: object
+            required:
+                - where
+            properties:
+                select:
+                    $ref: '#/components/schemas/_AnyObject'
+                include:
+                    $ref: '#/components/schemas/_AnyObject'
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        Post_ItemDeleteManyArgs:
+            type: object
+            properties:
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        Post_ItemCountArgs:
+            type: object
+            properties:
+                select:
+                    $ref: '#/components/schemas/_AnyObject'
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        Post_ItemAggregateArgs:
+            type: object
+            properties:
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                orderBy:
+                    $ref: '#/components/schemas/_AnyObject'
+                cursor:
+                    $ref: '#/components/schemas/_AnyObject'
+                take:
+                    type: integer
+                skip:
+                    type: integer
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        Post_ItemGroupByArgs:
+            type: object
+            properties:
+                where:
+                    $ref: '#/components/schemas/_AnyObject'
+                orderBy:
+                    $ref: '#/components/schemas/_AnyObject'
+                by:
+                    $ref: '#/components/schemas/_AnyObject'
+                having:
+                    $ref: '#/components/schemas/_AnyObject'
+                take:
+                    type: integer
+                skip:
+                    type: integer
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+paths:
+    /user/create:
+        post:
+            operationId: createUser
+            description: Create a new User
+            tags:
+                - user
+            responses:
+                '201':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/User'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UserCreateArgs'
+    /user/createMany:
+        post:
+            operationId: createManyUser
+            description: Create several User
+            tags:
+                - user
+            responses:
+                '201':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UserCreateManyArgs'
+    /user/findUnique:
+        get:
+            operationId: findUniqueUser
+            description: Find one unique User
+            tags:
+                - user
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/User'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/UserFindUniqueArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /user/findFirst:
+        get:
+            operationId: findFirstUser
+            description: Find the first User matching the given condition
+            tags:
+                - user
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/User'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/UserFindFirstArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /user/findMany:
+        get:
+            operationId: findManyUser
+            description: Find users matching the given conditions
+            tags:
+                - user
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/User'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/UserFindManyArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /user/update:
+        patch:
+            operationId: updateUser
+            description: Update a User
+            tags:
+                - user
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/User'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UserUpdateArgs'
+    /user/updateMany:
+        patch:
+            operationId: updateManyUser
+            description: Update Users matching the given condition
+            tags:
+                - user
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UserUpdateManyArgs'
+    /user/upsert:
+        post:
+            operationId: upsertUser
+            description: Upsert a User
+            tags:
+                - user
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/User'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UserUpsertArgs'
+    /user/dodelete:
+        put:
+            operationId: deleteUser
+            description: Delete a unique user
+            tags:
+                - delete
+                - user
+            summary: Delete a user yeah yeah
+            deprecated: true
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/User'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UserDeleteUniqueArgs'
+    /user/deleteMany:
+        delete:
+            operationId: deleteManyUser
+            description: Delete Users matching the given condition
+            tags:
+                - user
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/UserDeleteManyArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /user/count:
+        get:
+            operationId: countUser
+            description: Find a list of User
+            tags:
+                - user
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        oneOf:
+                                            - type: integer
+                                            - $ref: '#/components/schemas/UserCountAggregateOutputType'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/UserCountArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /user/aggregate:
+        get:
+            operationId: aggregateUser
+            description: Aggregate Users
+            tags:
+                - user
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/AggregateUser'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/UserAggregateArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /user/groupBy:
+        get:
+            operationId: groupByUser
+            description: Group Users by fields
+            tags:
+                - user
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/UserGroupByOutputType'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/UserGroupByArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /profile/create:
+        post:
+            operationId: createProfile
+            description: Create a new Profile
+            tags:
+                - profile
+            responses:
+                '201':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Profile'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ProfileCreateArgs'
+    /profile/createMany:
+        post:
+            operationId: createManyProfile
+            description: Create several Profile
+            tags:
+                - profile
+            responses:
+                '201':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ProfileCreateManyArgs'
+    /profile/findUnique:
+        get:
+            operationId: findUniqueProfile
+            description: Find one unique Profile
+            tags:
+                - profile
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Profile'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/ProfileFindUniqueArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /profile/findFirst:
+        get:
+            operationId: findFirstProfile
+            description: Find the first Profile matching the given condition
+            tags:
+                - profile
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Profile'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/ProfileFindFirstArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /profile/findMany:
+        get:
+            operationId: findManyProfile
+            description: Find a list of Profile
+            tags:
+                - profile
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/Profile'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/ProfileFindManyArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /profile/update:
+        patch:
+            operationId: updateProfile
+            description: Update a Profile
+            tags:
+                - profile
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Profile'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ProfileUpdateArgs'
+    /profile/updateMany:
+        patch:
+            operationId: updateManyProfile
+            description: Update Profiles matching the given condition
+            tags:
+                - profile
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ProfileUpdateManyArgs'
+    /profile/upsert:
+        post:
+            operationId: upsertProfile
+            description: Upsert a Profile
+            tags:
+                - profile
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Profile'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ProfileUpsertArgs'
+    /profile/delete:
+        delete:
+            operationId: deleteProfile
+            description: Delete one unique Profile
+            tags:
+                - profile
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Profile'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/ProfileDeleteUniqueArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /profile/deleteMany:
+        delete:
+            operationId: deleteManyProfile
+            description: Delete Profiles matching the given condition
+            tags:
+                - profile
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/ProfileDeleteManyArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /profile/count:
+        get:
+            operationId: countProfile
+            description: Find a list of Profile
+            tags:
+                - profile
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        oneOf:
+                                            - type: integer
+                                            - $ref: '#/components/schemas/ProfileCountAggregateOutputType'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/ProfileCountArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /profile/aggregate:
+        get:
+            operationId: aggregateProfile
+            description: Aggregate Profiles
+            tags:
+                - profile
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/AggregateProfile'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/ProfileAggregateArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /profile/groupBy:
+        get:
+            operationId: groupByProfile
+            description: Group Profiles by fields
+            tags:
+                - profile
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/ProfileGroupByOutputType'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/ProfileGroupByArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /post_Item/create:
+        post:
+            operationId: createPost_Item
+            description: Create a new Post_Item
+            tags:
+                - post_Item
+            responses:
+                '201':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Post_Item'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Post_ItemCreateArgs'
+    /post_Item/createMany:
+        post:
+            operationId: createManyPost_Item
+            description: Create several Post_Item
+            tags:
+                - post_Item
+            responses:
+                '201':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Post_ItemCreateManyArgs'
+    /post_Item/findUnique:
+        get:
+            operationId: findUniquePost_Item
+            description: Find one unique Post_Item
+            tags:
+                - post_Item
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Post_Item'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/Post_ItemFindUniqueArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /post_Item/findFirst:
+        get:
+            operationId: findFirstPost_Item
+            description: Find the first Post_Item matching the given condition
+            tags:
+                - post_Item
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Post_Item'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/Post_ItemFindFirstArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /post_Item/update:
+        patch:
+            operationId: updatePost_Item
+            description: Update a Post_Item
+            tags:
+                - post_Item
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Post_Item'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Post_ItemUpdateArgs'
+    /post_Item/updateMany:
+        patch:
+            operationId: updateManyPost_Item
+            description: Update Post_Items matching the given condition
+            tags:
+                - post_Item
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Post_ItemUpdateManyArgs'
+    /post_Item/upsert:
+        post:
+            operationId: upsertPost_Item
+            description: Upsert a Post_Item
+            tags:
+                - post_Item
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Post_Item'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Post_ItemUpsertArgs'
+    /post_Item/delete:
+        delete:
+            operationId: deletePost_Item
+            description: Delete one unique Post_Item
+            tags:
+                - post_Item
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Post_Item'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/Post_ItemDeleteUniqueArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /post_Item/deleteMany:
+        delete:
+            operationId: deleteManyPost_Item
+            description: Delete Post_Items matching the given condition
+            tags:
+                - post_Item
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/Post_ItemDeleteManyArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /post_Item/count:
+        get:
+            operationId: countPost_Item
+            description: Find a list of Post_Item
+            tags:
+                - post_Item
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        oneOf:
+                                            - type: integer
+                                            - $ref: '#/components/schemas/Post_ItemCountAggregateOutputType'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/Post_ItemCountArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /post_Item/aggregate:
+        get:
+            operationId: aggregatePost_Item
+            description: Aggregate Post_Items
+            tags:
+                - post_Item
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/AggregatePost_Item'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/Post_ItemAggregateArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /post_Item/groupBy:
+        get:
+            operationId: groupByPost_Item
+            description: Group Post_Items by fields
+            tags:
+                - post_Item
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/Post_ItemGroupByOutputType'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/Post_ItemGroupByArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
