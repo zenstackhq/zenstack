@@ -1742,7 +1742,6 @@ describe('REST server tests', () => {
                         requestBody: {
                             data: {
                                 type: 'postLike',
-                                id: `1${idDivider}user1`,
                                 attributes: { userId: 'user1', postId: 1, superLike: false },
                             },
                         },
