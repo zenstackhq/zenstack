@@ -105,11 +105,10 @@ export async function loadDocument(fileName: string, validateOnly = false): Prom
     const imported = mergeImportsDeclarations(langiumDocuments, model);
 
     // remove imported documents
-    await services.shared.workspace.DocumentBuilder.update(
-        [],
-        imported.map((m) => m.$document!.uri)
-    );
+    imported.forEach((model) => langiumDocuments.deleteDocument(model.$document!.uri));
+    services.shared.workspace.IndexManager.remove(imported.map((model) => model.$document!.uri));
 
+    // extra validation after merging imported declarations
     validationAfterImportMerge(model);
 
     // merge fields and attributes from base models
