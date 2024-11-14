@@ -16,10 +16,12 @@ tmp.setGracefulCleanup();
 describe('Open API Plugin RPC Tests', () => {
     it('run plugin', async () => {
         for (const specVersion of ['3.0.0', '3.1.0']) {
-            const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
+            for (const omitInputDetails of [true, false]) {
+                const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
 plugin openapi {
     provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
     specVersion = '${specVersion}'
+    omitInputDetails = ${omitInputDetails}
 }
 
 enum role {
@@ -89,40 +91,46 @@ model Bar {
 }
         `);
 
-            const { name: output } = tmp.fileSync({ postfix: '.yaml' });
+                const { name: output } = tmp.fileSync({ postfix: '.yaml' });
 
-            const options = buildOptions(model, modelFile, output);
-            await generate(model, options, dmmf);
+                const options = buildOptions(model, modelFile, output);
+                await generate(model, options, dmmf);
 
-            console.log(`OpenAPI specification generated for ${specVersion}: ${output}`);
+                console.log(
+                    `OpenAPI specification generated for ${specVersion}${omitInputDetails ? ' - omit' : ''}: ${output}`
+                );
 
-            const parsed = YAML.parse(fs.readFileSync(output, 'utf-8'));
-            expect(parsed.openapi).toBe(specVersion);
-            const baseline = YAML.parse(
-                fs.readFileSync(`${__dirname}/baseline/rpc-${specVersion}.baseline.yaml`, 'utf-8')
-            );
-            expect(parsed).toMatchObject(baseline);
+                const parsed = YAML.parse(fs.readFileSync(output, 'utf-8'));
+                expect(parsed.openapi).toBe(specVersion);
+                const baseline = YAML.parse(
+                    fs.readFileSync(
+                        `${__dirname}/baseline/rpc-${specVersion}${omitInputDetails ? '-omit' : ''}.baseline.yaml`,
+                        'utf-8'
+                    )
+                );
+                expect(parsed).toMatchObject(baseline);
 
-            const api = await OpenAPIParser.validate(output);
+                const api = await OpenAPIParser.validate(output);
 
-            expect(api.tags).toEqual(
-                expect.arrayContaining([
-                    expect.objectContaining({ name: 'user', description: 'User operations' }),
-                    expect.objectContaining({ name: 'post_Item', description: 'Post-related operations' }),
-                ])
-            );
+                expect(api.tags).toEqual(
+                    expect.arrayContaining([
+                        expect.objectContaining({ name: 'user', description: 'User operations' }),
+                        expect.objectContaining({ name: 'post_Item', description: 'Post-related operations' }),
+                    ])
+                );
 
-            expect(api.paths?.['/user/findMany']?.['get']?.description).toBe(
-                'Find users matching the given conditions'
-            );
-            const del = api.paths?.['/user/dodelete']?.['put'];
-            expect(del?.description).toBe('Delete a unique user');
-            expect(del?.summary).toBe('Delete a user yeah yeah');
-            expect(del?.tags).toEqual(expect.arrayContaining(['delete', 'user']));
-            expect(del?.deprecated).toBe(true);
-            expect(api.paths?.['/post/findMany']).toBeUndefined();
-            expect(api.paths?.['/foo/findMany']).toBeUndefined();
-            expect(api.paths?.['/bar/findMany']).toBeUndefined();
+                expect(api.paths?.['/user/findMany']?.['get']?.description).toBe(
+                    'Find users matching the given conditions'
+                );
+                const del = api.paths?.['/user/dodelete']?.['put'];
+                expect(del?.description).toBe('Delete a unique user');
+                expect(del?.summary).toBe('Delete a user yeah yeah');
+                expect(del?.tags).toEqual(expect.arrayContaining(['delete', 'user']));
+                expect(del?.deprecated).toBe(true);
+                expect(api.paths?.['/post/findMany']).toBeUndefined();
+                expect(api.paths?.['/foo/findMany']).toBeUndefined();
+                expect(api.paths?.['/bar/findMany']).toBeUndefined();
+            }
         }
     });
 

@@ -7,10 +7,12 @@ import {
     isForeignKeyField,
     isIdField,
     isRelationshipField,
+    PluginError,
+    PluginOptions,
     requireOption,
     resolvePath,
 } from '@zenstackhq/sdk';
-import { DataModel, DataModelField, DataModelFieldType, Enum, isDataModel, isEnum } from '@zenstackhq/sdk/ast';
+import { DataModel, DataModelField, DataModelFieldType, Enum, isDataModel, isEnum, Model } from '@zenstackhq/sdk/ast';
 import type { DMMF } from '@zenstackhq/sdk/prisma';
 import fs from 'fs';
 import { lowerCaseFirst } from 'lower-case-first';
@@ -18,7 +20,7 @@ import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
 import path from 'path';
 import pluralize from 'pluralize';
 import invariant from 'tiny-invariant';
-import { P, match } from 'ts-pattern';
+import { match, P } from 'ts-pattern';
 import YAML from 'yaml';
 import { name } from '.';
 import { OpenAPIGeneratorBase } from './generator-base';
@@ -31,6 +33,14 @@ type Policies = ReturnType<typeof analyzePolicies>;
  */
 export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
     private warnings: string[] = [];
+
+    constructor(protected model: Model, protected options: PluginOptions, protected dmmf: DMMF.Document) {
+        super(model, options, dmmf);
+
+        if (this.options.omitInputDetails !== undefined) {
+            throw new PluginError(name, '"omitInputDetails" option is not supported for "rest" flavor');
+        }
+    }
 
     generate() {
         let output = requireOption<string>(this.options, 'output', name);
