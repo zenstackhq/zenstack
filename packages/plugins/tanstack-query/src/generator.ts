@@ -14,6 +14,7 @@ import {
 import { DataModel, DataModelFieldType, Model, isEnum, isTypeDef } from '@zenstackhq/sdk/ast';
 import { getPrismaClientImportSpec, supportCreateMany, type DMMF } from '@zenstackhq/sdk/prisma';
 import { paramCase } from 'change-case';
+import fs from 'fs';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
@@ -45,6 +46,14 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     outDir = resolvePath(outDir, options);
     ensureEmptyDir(outDir);
 
+    if (options.portable && typeof options.portable !== 'boolean') {
+        throw new PluginError(
+            name,
+            `Invalid value for "portable" option: ${options.portable}, a boolean value is expected`
+        );
+    }
+    const portable = options.portable ?? false;
+
     await generateModelMeta(project, models, typeDefs, {
         output: path.join(outDir, '__model_meta.ts'),
         generateAttributes: false,
@@ -60,6 +69,10 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
         }
         generateModelHooks(target, version, project, outDir, dataModel, mapping, options);
     });
+
+    if (portable) {
+        generateBundledTypes(project, outDir, options);
+    }
 
     await saveProject(project);
     return { warnings };
@@ -333,9 +346,7 @@ function generateModelHooks(
     const fileName = paramCase(model.name);
     const sf = project.createSourceFile(path.join(outDir, `${fileName}.ts`), undefined, { overwrite: true });
 
-    sf.addStatements('/* eslint-disable */');
-
-    const prismaImport = getPrismaClientImportSpec(outDir, options);
+    const prismaImport = options.portable ? './__types' : getPrismaClientImportSpec(outDir, options);
     sf.addImportDeclaration({
         namedImports: ['Prisma', model.name],
         isTypeOnly: true,
@@ -584,6 +595,7 @@ function generateIndex(
             sf.addStatements(`export { SvelteQueryContextKey, setHooksContext } from '${runtimeImportBase}/svelte';`);
             break;
     }
+    sf.addStatements(`export { default as metadata } from './__model_meta';`);
 }
 
 function makeGetContext(target: TargetFramework) {
@@ -723,4 +735,22 @@ function makeMutationOptions(target: string, returnType: string, argsType: strin
 
 function makeRuntimeImportBase(version: TanStackVersion) {
     return `@zenstackhq/tanstack-query/runtime${version === 'v5' ? '-v5' : ''}`;
+}
+
+function generateBundledTypes(project: Project, outDir: string, options: PluginOptions) {
+    if (!options.prismaClientDtsPath) {
+        throw new PluginError(name, `Unable to determine the location of PrismaClient types`);
+    }
+
+    // copy PrismaClient index.d.ts
+    const content = fs.readFileSync(options.prismaClientDtsPath, 'utf-8');
+    project.createSourceFile(path.join(outDir, '__types.d.ts'), content, { overwrite: true });
+
+    // "runtime/library.d.ts" is referenced by Prisma's DTS, and it's generated into Prisma's output
+    // folder if a custom output is specified; if not, it's referenced from '@prisma/client'
+    const libraryDts = path.join(path.dirname(options.prismaClientDtsPath), 'runtime', 'library.d.ts');
+    if (fs.existsSync(libraryDts)) {
+        const content = fs.readFileSync(libraryDts, 'utf-8');
+        project.createSourceFile(path.join(outDir, 'runtime', 'library.d.ts'), content, { overwrite: true });
+    }
 }

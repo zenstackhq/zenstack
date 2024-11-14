@@ -13,6 +13,7 @@ import {
     isIdField,
     parseOptionAsStrings,
     resolvePath,
+    saveSourceFile,
 } from '@zenstackhq/sdk';
 import { DataModel, EnumField, Model, TypeDef, isDataModel, isEnum, isTypeDef } from '@zenstackhq/sdk/ast';
 import { addMissingInputObjectTypes, resolveAggregateOperationSupport } from '@zenstackhq/sdk/dmmf-helpers';
@@ -143,12 +144,7 @@ export class ZodSchemaGenerator {
         if (this.options.preserveTsFiles === true || this.options.output) {
             // if preserveTsFiles is true or the user provided a custom output directory,
             // save the generated files
-            await Promise.all(
-                this.sourceFiles.map(async (sf) => {
-                    await sf.formatText();
-                    await sf.save();
-                })
-            );
+            this.sourceFiles.forEach(saveSourceFile);
         }
     }
 
@@ -325,8 +321,6 @@ export class ZodSchemaGenerator {
     }
 
     private addPreludeAndImports(decl: DataModel | TypeDef, writer: CodeBlockWriter, output: string) {
-        writer.writeLine('/* eslint-disable */');
-        writer.writeLine('// @ts-nocheck');
         writer.writeLine(`import { z } from 'zod';`);
 
         // import user-defined enums from Prisma as they might be referenced in the expressions

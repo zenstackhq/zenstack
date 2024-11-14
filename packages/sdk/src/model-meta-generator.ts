@@ -73,7 +73,6 @@ export async function generate(
     options: ModelMetaGeneratorOptions
 ) {
     const sf = project.createSourceFile(options.output, undefined, { overwrite: true });
-    sf.addStatements('/* eslint-disable */');
     sf.addVariableStatement({
         declarationKind: VariableDeclarationKind.Const,
         declarations: [

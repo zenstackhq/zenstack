@@ -26,7 +26,7 @@ const run: PluginFunction = async (model, options, _dmmf, globalOptions) => {
 
     await generateModelMeta(model, options, project, outDir);
     await generatePolicy(model, options, project, outDir);
-    const { dmmf } = await new EnhancerGenerator(model, options, project, outDir).generate();
+    const { dmmf, newPrismaClientDtsPath } = await new EnhancerGenerator(model, options, project, outDir).generate();
 
     let prismaClientPath: string | undefined;
     if (dmmf) {
@@ -44,7 +44,7 @@ const run: PluginFunction = async (model, options, _dmmf, globalOptions) => {
         }
     }
 
-    return { dmmf, warnings: [], prismaClientPath };
+    return { dmmf, warnings: [], prismaClientPath, prismaClientDtsPath: newPrismaClientDtsPath };
 };
 
 export default run;
