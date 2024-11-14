@@ -1,9 +1,10 @@
 import { DEFAULT_RUNTIME_LOAD_PATH, type PolicyOperationKind } from '@zenstackhq/runtime';
-import { PluginGlobalOptions, ensureEmptyDir, getLiteral } from '@zenstackhq/sdk';
+import { ensureEmptyDir, getLiteral, PluginGlobalOptions } from '@zenstackhq/sdk';
+import { isPlugin, Model, Plugin } from '@zenstackhq/sdk/ast';
 import fs from 'fs';
 import path from 'path';
 import { PluginRunnerOptions } from '../cli/plugin-runner';
-import { isPlugin, Model, Plugin } from '@zenstackhq/sdk/ast';
+import { getVersion } from '../utils/version-utils';
 
 export const ALL_OPERATION_KINDS: PolicyOperationKind[] = ['create', 'update', 'postUpdate', 'read', 'delete'];
 
@@ -33,8 +34,8 @@ export function ensureDefaultOutputFolder(options: PluginRunnerOptions) {
         ensureEmptyDir(output);
         if (!options.output) {
             const pkgJson = {
-                name: '.zenstack',
-                version: '1.0.0',
+                name: 'zenstack-generated',
+                version: getVersion() ?? '1.0.0',
                 exports: {
                     './enhance': {
                         types: './enhance.d.ts',
