@@ -3135,14 +3135,11 @@ components:
                     type: object
                     description: The "PostLike" model
                     required:
-                        - id
                         - type
                         - attributes
                     properties:
                         type:
                             type: string
-                        attributes:
-                            type: object
                         relationships:
                             type: object
                             properties:

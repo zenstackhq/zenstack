@@ -860,7 +860,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         // For compound ids each component is also exposed as a separate fields for read operations,
         // but not required for write operations
         const fields =
-            idFields.length > 1 && mode === 'read' ? model.fields : model.fields.filter((f) => !isIdField(f));
+            idFields.length > 1 && mode !== 'update' ? model.fields : model.fields.filter((f) => !isIdField(f));
 
         const attributes: Record<string, OAPI.SchemaObject> = {};
         const relationships: Record<string, OAPI.ReferenceObject | OAPI.SchemaObject> = {};
@@ -907,7 +907,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         if (mode === 'create') {
             // 'id' is required if there's no default value
             const idFields = model.fields.filter((f) => isIdField(f));
-            if (idFields.length && idFields.every((f) => !hasAttribute(f, '@default'))) {
+            if (idFields.length === 1 && idFields.every((f) => !hasAttribute(f, '@default'))) {
                 properties = { id: { type: 'string' }, ...properties };
                 toplevelRequired.unshift('id');
             }
