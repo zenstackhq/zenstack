@@ -2764,8 +2764,11 @@ components:
                         image:
                             type: string
                             nullable: true
+                        userId:
+                            type: string
                     required:
                         - image
+                        - userId
                 relationships:
                     type: object
                     properties:
@@ -2908,6 +2911,9 @@ components:
                             format: date-time
                         title:
                             type: string
+                        authorId:
+                            type: string
+                            nullable: true
                         published:
                             type: boolean
                         viewCount:
@@ -2919,6 +2925,7 @@ components:
                         - createdAt
                         - updatedAt
                         - title
+                        - authorId
                         - published
                         - viewCount
                         - notes
@@ -3089,6 +3096,16 @@ components:
                     type: string
                 type:
                     type: string
+                attributes:
+                    type: object
+                    properties:
+                        postId:
+                            type: string
+                        userId:
+                            type: string
+                    required:
+                        - postId
+                        - userId
                 relationships:
                     type: object
                     properties:
