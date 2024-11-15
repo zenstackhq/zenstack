@@ -635,6 +635,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     // convert foreign key assignments to `connect` payload
     // e.g.: { authorId: value } -> { author: { connect: { id: value } } }
     private fkAssignmentToConnect(model: string, args: any) {
+        const keysToDelete: string[] = [];
         for (const [key, value] of Object.entries(args)) {
             if (value === undefined) {
                 continue;
@@ -648,19 +649,22 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                 const relationInfo = this.queryUtils.getRelationForForeignKey(model, key);
                 if (relationInfo) {
                     // turn { [fk]: value } into { [relation]: { connect: { [id]: value } } }
-                    if (!args[relationInfo.relation.name]) {
-                        args[relationInfo.relation.name] = {};
+                    const relationName = relationInfo.relation.name;
+                    if (!args[relationName]) {
+                        args[relationName] = {};
                     }
-                    if (!args[relationInfo.relation.name].connect) {
-                        args[relationInfo.relation.name].connect = {};
+                    if (!args[relationName].connect) {
+                        args[relationName].connect = {};
                     }
-                    if (!(relationInfo.idField in args[relationInfo.relation.name].connect)) {
-                        args[relationInfo.relation.name].connect[relationInfo.idField] = value;
-                        delete args[key];
+                    if (!(relationInfo.idField in args[relationName].connect)) {
+                        args[relationName].connect[relationInfo.idField] = value;
+                        keysToDelete.push(key);
                     }
                 }
             }
         }
+
+        keysToDelete.forEach((key) => delete args[key]);
     }
 
     // inject field data that belongs to base type into proper nesting structure
