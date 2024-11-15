@@ -635,8 +635,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     // convert foreign key assignments to `connect` payload
     // e.g.: { authorId: value } -> { author: { connect: { id: value } } }
     private fkAssignmentToConnect(model: string, args: any) {
-        for (const key of Object.keys(args)) {
-            const value = args[key];
+        for (const [key, value] of Object.entries(args)) {
             if (value === undefined) {
                 continue;
             }
@@ -655,8 +654,10 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                     if (!args[relationInfo.relation.name].connect) {
                         args[relationInfo.relation.name].connect = {};
                     }
-                    args[relationInfo.relation.name].connect[relationInfo.idField] = value;
-                    delete args[key];
+                    if (!(relationInfo.idField in args[relationInfo.relation.name].connect)) {
+                        args[relationInfo.relation.name].connect[relationInfo.idField] = value;
+                        delete args[key];
+                    }
                 }
             }
         }
