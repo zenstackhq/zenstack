@@ -777,24 +777,16 @@ class RequestHandler extends APIHandlerBase {
 
         let entity: any;
 
-        try {
-            if (operation === 'upsert') {
-                entity = await this.runUpsert(
-                    typeInfo,
-                    type,
-                    prisma,
-                    modelMeta,
-                    attributes,
-                    relationships,
-                    matchFields
-                );
-            } else if (operation === 'create') {
-                entity = await this.runCreate(typeInfo, type, prisma, attributes, relationships);
-            } else {
-                return this.makeError('invalidPayload');
-            }
-        } catch (e) {
-            return e as any;
+        if (operation === 'upsert') {
+            entity = await this.runUpsert(typeInfo, type, prisma, modelMeta, attributes, relationships, matchFields);
+        } else if (operation === 'create') {
+            entity = await this.runCreate(typeInfo, type, prisma, attributes, relationships);
+        } else {
+            return this.makeError('invalidPayload');
+        }
+
+        if (entity.status) {
+            return entity;
         }
 
         return {
@@ -817,7 +809,7 @@ class RequestHandler extends APIHandlerBase {
         if (
             !uniqueFields.some((uniqueCombination) => uniqueCombination.every((field) => matchFields.includes(field)))
         ) {
-            throw this.makeError('invalidPayload', 'Match fields must be unique fields', 400);
+            return this.makeError('invalidPayload', 'Match fields must be unique fields', 400);
         }
 
         const upsertPayload: any = {};
@@ -831,12 +823,12 @@ class RequestHandler extends APIHandlerBase {
         if (relationships) {
             for (const [key, data] of Object.entries<any>(relationships)) {
                 if (!data?.data) {
-                    throw this.makeError('invalidRelationData');
+                    return this.makeError('invalidRelationData');
                 }
 
                 const relationInfo = typeInfo.relationships[key];
                 if (!relationInfo) {
-                    throw this.makeUnsupportedRelationshipError(type, key, 400);
+                    return this.makeUnsupportedRelationshipError(type, key, 400);
                 }
 
                 if (relationInfo.isCollection) {
@@ -852,7 +844,7 @@ class RequestHandler extends APIHandlerBase {
                     };
                 } else {
                     if (typeof data.data !== 'object') {
-                        throw this.makeError('invalidRelationData');
+                        return this.makeError('invalidRelationData');
                     }
                     upsertPayload.create[key] = {
                         connect: this.makeIdConnect(relationInfo.idFields, data.data.id),
@@ -883,12 +875,12 @@ class RequestHandler extends APIHandlerBase {
         if (relationships) {
             for (const [key, data] of Object.entries<any>(relationships)) {
                 if (!data?.data) {
-                    throw this.makeError('invalidRelationData');
+                    return this.makeError('invalidRelationData');
                 }
 
                 const relationInfo = typeInfo.relationships[key];
                 if (!relationInfo) {
-                    throw this.makeUnsupportedRelationshipError(type, key, 400);
+                    return this.makeUnsupportedRelationshipError(type, key, 400);
                 }
 
                 if (relationInfo.isCollection) {
@@ -899,7 +891,7 @@ class RequestHandler extends APIHandlerBase {
                     };
                 } else {
                     if (typeof data.data !== 'object') {
-                        throw this.makeError('invalidRelationData');
+                        return this.makeError('invalidRelationData');
                     }
                     createPayload.data[key] = {
                         connect: this.makeIdConnect(relationInfo.idFields, data.data.id),
