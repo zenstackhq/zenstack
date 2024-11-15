@@ -1839,6 +1839,39 @@ describe('REST server tests', () => {
                         },
                     });
                 });
+
+                it('upsert an existing entity', async () => {
+                    await prisma.user.create({
+                        data: { myId: 'user1', email: 'user1@abc.com' },
+                    });
+
+                    const r = await handler({
+                        method: 'post',
+                        path: '/user',
+                        query: {},
+                        requestBody: {
+                            data: {
+                                type: 'user',
+                                attributes: { myId: 'user1', email: 'user2@abc.com' },
+                            },
+                            meta: {
+                                operation: 'upsert',
+                                matchFields: ['myId'],
+                            },
+                        },
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(201);
+                    expect(r.body).toMatchObject({
+                        jsonapi: { version: '1.1' },
+                        data: {
+                            type: 'user',
+                            id: 'user1',
+                            attributes: { email: 'user2@abc.com' },
+                        },
+                    });
+                });
             });
 
             describe('PUT', () => {

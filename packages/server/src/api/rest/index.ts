@@ -805,7 +805,9 @@ class RequestHandler extends APIHandlerBase {
         }, {});
 
         upsertPayload.create = { ...attributes };
-        upsertPayload.update = { ...attributes };
+        upsertPayload.update = {
+            ...Object.fromEntries(Object.entries(attributes).filter((e) => !matchFields.includes(e[0]))),
+        };
 
         if (relationships) {
             for (const [key, data] of Object.entries<any>(relationships)) {
