@@ -716,11 +716,11 @@ class RequestHandler extends APIHandlerBase {
             body = SuperJSON.deserialize({ json: body, meta: body.meta.serialization });
         }
 
-        let method: 'create' | 'update' | 'upsert' = mode;
+        let operation: 'create' | 'update' | 'upsert' = mode;
         let matchFields = [];
 
         if (body.meta?.operation === 'upsert' && body.meta?.matchFields.length) {
-            method = 'upsert';
+            operation = 'upsert';
             matchFields = body.meta.matchFields;
         }
 
@@ -748,7 +748,7 @@ class RequestHandler extends APIHandlerBase {
             }
         }
 
-        return { attributes, relationships: parsed.data.relationships, method, matchFields };
+        return { attributes, relationships: parsed.data.relationships, operation, matchFields };
     }
 
     private async processCreate(
@@ -764,7 +764,7 @@ class RequestHandler extends APIHandlerBase {
             return this.makeUnsupportedModelError(type);
         }
 
-        const { error, attributes, relationships, method, matchFields } = this.processRequestBody(
+        const { error, attributes, relationships, operation, matchFields } = this.processRequestBody(
             type,
             requestBody,
             zodSchemas,
@@ -776,55 +776,127 @@ class RequestHandler extends APIHandlerBase {
         }
 
         let entity: any;
-        if (method === 'upsert') {
-            entity = await prisma[type].upsert(createPayload);
+        if (operation === 'upsert') {
+            entity = await this.runUsert(typeInfo, type, prisma, attributes, relationships, matchFields);
+        } else if (operation === 'create') {
+            entity = await this.runCreate(typeInfo, type, prisma, attributes, relationships);
         } else {
-            const createPayload: any = { data: { ...attributes } };
-
-            // turn relationship payload into Prisma connect objects
-            if (relationships) {
-                for (const [key, data] of Object.entries<any>(relationships)) {
-                    if (!data?.data) {
-                        return this.makeError('invalidRelationData');
-                    }
-
-                    const relationInfo = typeInfo.relationships[key];
-                    if (!relationInfo) {
-                        return this.makeUnsupportedRelationshipError(type, key, 400);
-                    }
-
-                    if (relationInfo.isCollection) {
-                        createPayload.data[key] = {
-                            connect: enumerate(data.data).map((item: any) =>
-                                this.makeIdConnect(relationInfo.idFields, item.id)
-                            ),
-                        };
-                    } else {
-                        if (typeof data.data !== 'object') {
-                            return this.makeError('invalidRelationData');
-                        }
-                        createPayload.data[key] = {
-                            connect: this.makeIdConnect(relationInfo.idFields, data.data.id),
-                        };
-                    }
-
-                    // make sure ID fields are included for result serialization
-                    createPayload.include = {
-                        ...createPayload.include,
-                        [key]: { select: { [this.makePrismaIdKey(relationInfo.idFields)]: true } },
-                    };
-                }
-            }
-
-            // include IDs of relation fields so that they can be serialized.
-            this.includeRelationshipIds(type, createPayload, 'include');
-
-            entity = await prisma[type].create(createPayload);
+            return this.makeError('invalidPayload');
         }
+
         return {
             status: 201,
             body: await this.serializeItems(type, entity),
         };
+    }
+
+    private async runUsert(
+        typeInfo: ModelInfo,
+        type: string,
+        prisma: DbClientContract,
+        attributes: any,
+        relationships: any,
+        matchFields: any[]
+    ) {
+        const upsertPayload: any = {};
+        upsertPayload.where = matchFields.reduce((acc: any, field: string) => {
+            acc[field] = attributes[field] ?? null;
+            return acc;
+        }, {});
+
+        upsertPayload.create = { ...attributes };
+        upsertPayload.update = { ...attributes };
+
+        if (relationships) {
+            for (const [key, data] of Object.entries<any>(relationships)) {
+                if (!data?.data) {
+                    return this.makeError('invalidRelationData');
+                }
+
+                const relationInfo = typeInfo.relationships[key];
+                if (!relationInfo) {
+                    return this.makeUnsupportedRelationshipError(type, key, 400);
+                }
+
+                if (relationInfo.isCollection) {
+                    upsertPayload.create[key] = {
+                        connect: enumerate(data.data).map((item: any) =>
+                            this.makeIdConnect(relationInfo.idFields, item.id)
+                        ),
+                    };
+                    upsertPayload.update[key] = {
+                        connect: enumerate(data.data).map((item: any) =>
+                            this.makeIdConnect(relationInfo.idFields, item.id)
+                        ),
+                    };
+                } else {
+                    if (typeof data.data !== 'object') {
+                        return this.makeError('invalidRelationData');
+                    }
+                    upsertPayload.create[key] = {
+                        connect: this.makeIdConnect(relationInfo.idFields, data.data.id),
+                    };
+                    upsertPayload.update[key] = {
+                        connect: this.makeIdConnect(relationInfo.idFields, data.data.id),
+                    };
+                }
+            }
+        }
+
+        // include IDs of relation fields so that they can be serialized.
+        this.includeRelationshipIds(type, upsertPayload, 'include');
+
+        return prisma[type].upsert(upsertPayload);
+    }
+
+    private async runCreate(
+        typeInfo: ModelInfo,
+        type: string,
+        prisma: DbClientContract,
+        attributes: any,
+        relationships: any
+    ) {
+        const createPayload: any = { data: { ...attributes } };
+
+        // turn relationship payload into Prisma connect objects
+        if (relationships) {
+            for (const [key, data] of Object.entries<any>(relationships)) {
+                if (!data?.data) {
+                    return this.makeError('invalidRelationData');
+                }
+
+                const relationInfo = typeInfo.relationships[key];
+                if (!relationInfo) {
+                    return this.makeUnsupportedRelationshipError(type, key, 400);
+                }
+
+                if (relationInfo.isCollection) {
+                    createPayload.data[key] = {
+                        connect: enumerate(data.data).map((item: any) =>
+                            this.makeIdConnect(relationInfo.idFields, item.id)
+                        ),
+                    };
+                } else {
+                    if (typeof data.data !== 'object') {
+                        return this.makeError('invalidRelationData');
+                    }
+                    createPayload.data[key] = {
+                        connect: this.makeIdConnect(relationInfo.idFields, data.data.id),
+                    };
+                }
+
+                // make sure ID fields are included for result serialization
+                createPayload.include = {
+                    ...createPayload.include,
+                    [key]: { select: { [this.makePrismaIdKey(relationInfo.idFields)]: true } },
+                };
+            }
+        }
+
+        // include IDs of relation fields so that they can be serialized.
+        this.includeRelationshipIds(type, createPayload, 'include');
+
+        return prisma[type].create(createPayload);
     }
 
     private async processRelationshipCRUD(

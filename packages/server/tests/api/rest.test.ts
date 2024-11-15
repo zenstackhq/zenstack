@@ -6,6 +6,7 @@ import { createPostgresDb, dropPostgresDb, loadSchema, run } from '@zenstackhq/t
 import { Decimal } from 'decimal.js';
 import SuperJSON from 'superjson';
 import makeHandler from '../../src/api/rest';
+import { query } from 'express';
 
 const idDivider = '_';
 
@@ -1799,6 +1800,44 @@ describe('REST server tests', () => {
                     });
 
                     expect(r.status).toBe(201);
+                });
+
+                it('upsert a new entity', async () => {
+                    const r = await handler({
+                        method: 'post',
+                        path: '/user',
+                        query: {},
+                        requestBody: {
+                            data: {
+                                type: 'user',
+                                attributes: { myId: 'user1', email: 'user1@abc.com' },
+                            },
+                            meta: {
+                                operation: 'upsert',
+                                matchFields: ['myId'],
+                            },
+                        },
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(201);
+                    expect(r.body).toMatchObject({
+                        jsonapi: { version: '1.1' },
+                        data: {
+                            type: 'user',
+                            id: 'user1',
+                            attributes: { email: 'user1@abc.com' },
+                            relationships: {
+                                posts: {
+                                    links: {
+                                        self: 'http://localhost/api/user/user1/relationships/posts',
+                                        related: 'http://localhost/api/user/user1/posts',
+                                    },
+                                    data: [],
+                                },
+                            },
+                        },
+                    });
                 });
             });
 
