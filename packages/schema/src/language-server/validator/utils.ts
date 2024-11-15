@@ -1,20 +1,12 @@
 import {
-    AttributeArg,
-    AttributeParam,
     BuiltinType,
-    DataModelAttribute,
-    DataModelFieldAttribute,
     Expression,
     ExpressionType,
-    InternalAttribute,
-    isArrayExpr,
     isDataModelField,
-    isEnum,
     isMemberAccessExpr,
-    isReferenceExpr,
     isStringLiteral,
 } from '@zenstackhq/language/ast';
-import { isAuthInvocation, resolved } from '@zenstackhq/sdk';
+import { isAuthInvocation } from '@zenstackhq/sdk';
 import { AstNode, ValidationAcceptor } from 'langium';
 
 /**
@@ -106,80 +98,6 @@ export function mapBuiltinTypeToExpressionType(
             return 'Object';
         case 'Unsupported':
             return 'Unsupported';
-    }
-}
-
-/**
- * Determines if the given attribute argument is assignable to the given attribute parameter
- */
-export function assignableToAttributeParam(
-    arg: AttributeArg,
-    param: AttributeParam,
-    attr: DataModelAttribute | DataModelFieldAttribute | InternalAttribute
-): boolean {
-    const argResolvedType = arg.$resolvedType;
-    if (!argResolvedType) {
-        return false;
-    }
-
-    let dstType = param.type.type;
-    let dstIsArray = param.type.array;
-    const dstRef = param.type.reference;
-
-    if (dstType === 'Any' && !dstIsArray) {
-        return true;
-    }
-
-    // destination is field reference or transitive field reference, check if
-    // argument is reference or array or reference
-    if (dstType === 'FieldReference' || dstType === 'TransitiveFieldReference') {
-        if (dstIsArray) {
-            return (
-                isArrayExpr(arg.value) &&
-                !arg.value.items.find((item) => !isReferenceExpr(item) || !isDataModelField(item.target.ref))
-            );
-        } else {
-            return isReferenceExpr(arg.value) && isDataModelField(arg.value.target.ref);
-        }
-    }
-
-    if (isEnum(argResolvedType.decl)) {
-        // enum type
-
-        let attrArgDeclType = dstRef?.ref;
-        if (dstType === 'ContextType' && isDataModelField(attr.$container) && attr.$container?.type?.reference) {
-            // attribute parameter type is ContextType, need to infer type from
-            // the attribute's container
-            attrArgDeclType = resolved(attr.$container.type.reference);
-            dstIsArray = attr.$container.type.array;
-        }
-        return attrArgDeclType === argResolvedType.decl && dstIsArray === argResolvedType.array;
-    } else if (dstType) {
-        // scalar type
-
-        if (typeof argResolvedType?.decl !== 'string') {
-            // destination type is not a reference, so argument type must be a plain expression
-            return false;
-        }
-
-        if (dstType === 'ContextType') {
-            // attribute parameter type is ContextType, need to infer type from
-            // the attribute's container
-            if (isDataModelField(attr.$container)) {
-                if (!attr.$container?.type?.type) {
-                    return false;
-                }
-                dstType = mapBuiltinTypeToExpressionType(attr.$container.type.type);
-                dstIsArray = attr.$container.type.array;
-            } else {
-                dstType = 'Any';
-            }
-        }
-
-        return typeAssignable(dstType, argResolvedType.decl, arg.value) && dstIsArray === argResolvedType.array;
-    } else {
-        // reference type
-        return (dstRef?.ref === argResolvedType.decl || dstType === 'Any') && dstIsArray === argResolvedType.array;
     }
 }
 
