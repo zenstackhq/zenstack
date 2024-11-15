@@ -868,7 +868,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         const required: string[] = [];
 
         for (const field of fields) {
-            if (isForeignKeyField(field)) {
+            if (isForeignKeyField(field) && mode !== 'read') {
                 // foreign keys are not exposed as attributes
                 continue;
             }
