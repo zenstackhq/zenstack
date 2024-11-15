@@ -7,6 +7,7 @@ import {
     getDataModelAndTypeDefs,
     getDataModels,
     getLiteral,
+    getRelationField,
     isDelegateModel,
     isDiscriminatorField,
     normalizedRelative,
@@ -55,12 +56,23 @@ type DelegateInfo = [DataModel, DataModel[]][];
 const LOGICAL_CLIENT_GENERATION_PATH = './.logical-prisma-client';
 
 export class EnhancerGenerator {
+    // regex for matching "ModelCreateXXXInput" and "ModelUncheckedCreateXXXInput" type
+    // names for models that use `auth()` in `@default` attribute
+    private readonly modelsWithAuthInDefaultCreateInputPattern: RegExp;
+
     constructor(
         private readonly model: Model,
         private readonly options: PluginOptions,
         private readonly project: Project,
         private readonly outDir: string
-    ) {}
+    ) {
+        const modelsWithAuthInDefault = this.model.declarations.filter(
+            (d): d is DataModel => isDataModel(d) && d.fields.some((f) => f.attributes.some(isDefaultWithAuth))
+        );
+        this.modelsWithAuthInDefaultCreateInputPattern = new RegExp(
+            `^(${modelsWithAuthInDefault.map((m) => m.name).join('|')})(Unchecked)?Create.*?Input$`
+        );
+    }
 
     async generate(): Promise<{ dmmf: DMMF.Document | undefined; newPrismaClientDtsPath: string | undefined }> {
         let dmmf: DMMF.Document | undefined;
@@ -69,7 +81,7 @@ export class EnhancerGenerator {
         let prismaTypesFixed = false;
         let resultPrismaImport = prismaImport;
 
-        if (this.needsLogicalClient || this.needsPrismaClientTypeFixes) {
+        if (this.needsLogicalClient) {
             prismaTypesFixed = true;
             resultPrismaImport = `${LOGICAL_CLIENT_GENERATION_PATH}/index-fixed`;
             const result = await this.generateLogicalPrisma();
@@ -230,11 +242,7 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
     }
 
     private get needsLogicalClient() {
-        return this.hasDelegateModel(this.model) || this.hasAuthInDefault(this.model);
-    }
-
-    private get needsPrismaClientTypeFixes() {
-        return this.hasTypeDef(this.model);
+        return this.hasDelegateModel(this.model) || this.hasAuthInDefault(this.model) || this.hasTypeDef(this.model);
     }
 
     private hasDelegateModel(model: Model) {
@@ -449,11 +457,13 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         const auxFields = this.findAuxDecls(variable);
         if (auxFields.length > 0) {
             structure.declarations.forEach((variable) => {
-                let source = variable.type?.toString();
-                auxFields.forEach((f) => {
-                    source = source?.replace(f.getText(), '');
-                });
-                variable.type = source;
+                if (variable.type) {
+                    let source = variable.type.toString();
+                    auxFields.forEach((f) => {
+                        source = this.removeFromSource(source, f.getText());
+                    });
+                    variable.type = source;
+                }
             });
         }
 
@@ -498,11 +508,189 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         // fix delegate payload union type
         source = this.fixDelegatePayloadType(typeAlias, delegateInfo, source);
 
+        // fix fk and relation fields related to using `auth()` in `@default`
+        source = this.fixDefaultAuthType(typeAlias, source);
+
         // fix json field type
         source = this.fixJsonFieldType(typeAlias, source);
 
         structure.type = source;
         return structure;
+    }
+
+    private fixDelegatePayloadType(typeAlias: TypeAliasDeclaration, delegateInfo: DelegateInfo, source: string) {
+        // change the type of `$<DelegateModel>Payload` type of delegate model to a union of concrete types
+        const typeName = typeAlias.getName();
+        const payloadRecord = delegateInfo.find(([delegate]) => `$${delegate.name}Payload` === typeName);
+        if (payloadRecord) {
+            const discriminatorDecl = this.getDiscriminatorField(payloadRecord[0]);
+            if (discriminatorDecl) {
+                source = `${payloadRecord[1]
+                    .map(
+                        (concrete) =>
+                            `($${concrete.name}Payload<ExtArgs> & { scalars: { ${discriminatorDecl.name}: '${concrete.name}' } })`
+                    )
+                    .join(' | ')}`;
+            }
+        }
+        return source;
+    }
+
+    private removeCreateFromDelegateInput(typeAlias: TypeAliasDeclaration, delegateInfo: DelegateInfo, source: string) {
+        // remove create/connectOrCreate/upsert fields from delegate's input types because
+        // delegate models cannot be created directly
+        const typeName = typeAlias.getName();
+        const delegateModelNames = delegateInfo.map(([delegate]) => delegate.name);
+        const delegateCreateUpdateInputRegex = new RegExp(
+            `^(${delegateModelNames.join('|')})(Unchecked)?(Create|Update).*Input$`
+        );
+        if (delegateCreateUpdateInputRegex.test(typeName)) {
+            const toRemove = typeAlias
+                .getDescendantsOfKind(SyntaxKind.PropertySignature)
+                .filter((p) => ['create', 'createMany', 'connectOrCreate', 'upsert'].includes(p.getName()));
+            toRemove.forEach((r) => {
+                this.removeFromSource(source, r.getText());
+            });
+        }
+        return source;
+    }
+
+    private removeDiscriminatorFromConcreteInput(
+        typeAlias: TypeAliasDeclaration,
+        delegateInfo: DelegateInfo,
+        source: string
+    ) {
+        // remove discriminator field from the create/update input because discriminator cannot be set directly
+        const typeName = typeAlias.getName();
+
+        const delegateModelNames = delegateInfo.map(([delegate]) => delegate.name);
+        const concreteModelNames = delegateInfo
+            .map(([_, concretes]) => concretes.flatMap((c) => c.name))
+            .flatMap((name) => name);
+        const allModelNames = [...new Set([...delegateModelNames, ...concreteModelNames])];
+        const concreteCreateUpdateInputRegex = new RegExp(
+            `^(${allModelNames.join('|')})(Unchecked)?(Create|Update).*Input$`
+        );
+
+        const match = typeName.match(concreteCreateUpdateInputRegex);
+        if (match) {
+            const modelName = match[1];
+            const dataModel = this.model.declarations.find(
+                (d): d is DataModel => isDataModel(d) && d.name === modelName
+            );
+
+            if (!dataModel) {
+                return source;
+            }
+
+            for (const field of dataModel.fields) {
+                if (isDiscriminatorField(field)) {
+                    const fieldDef = this.findNamedProperty(typeAlias, field.name);
+                    if (fieldDef) {
+                        source = this.removeFromSource(source, fieldDef.getText());
+                    }
+                }
+            }
+        }
+        return source;
+    }
+
+    private removeAuxFieldsFromTypeAlias(typeAlias: TypeAliasDeclaration, source: string) {
+        // remove `delegate_aux_*` fields from the type alias
+        const auxDecls = this.findAuxDecls(typeAlias);
+        if (auxDecls.length > 0) {
+            auxDecls.forEach((d) => {
+                source = this.removeFromSource(source, d.getText());
+            });
+        }
+        return source;
+    }
+
+    private readonly CreateUpdateWithoutDelegateRelationRegex = new RegExp(
+        `(.+)(Create|Update)Without${upperCaseFirst(DELEGATE_AUX_RELATION_PREFIX)}_(.+)Input`
+    );
+
+    private removeDelegateFieldsFromNestedMutationInput(
+        typeAlias: TypeAliasDeclaration,
+        _delegateInfo: DelegateInfo,
+        source: string
+    ) {
+        const name = typeAlias.getName();
+
+        // remove delegate model fields (and corresponding fk fields) from
+        // create/update input types nested inside concrete models
+
+        const match = name.match(this.CreateUpdateWithoutDelegateRelationRegex);
+        if (!match) {
+            return source;
+        }
+
+        const nameTuple = match[3]; // [modelName]_[relationFieldName]_[concreteModelName]
+        const [modelName, relationFieldName, _] = nameTuple.split('_');
+
+        const fieldDef = this.findNamedProperty(typeAlias, relationFieldName);
+        if (fieldDef) {
+            // remove relation field of delegate type, e.g., `asset`
+            source = this.removeFromSource(source, fieldDef.getText());
+        }
+
+        // remove fk fields related to the delegate type relation, e.g., `assetId`
+
+        const relationModel = this.model.declarations.find(
+            (d): d is DataModel => isDataModel(d) && d.name === modelName
+        );
+
+        if (!relationModel) {
+            return source;
+        }
+
+        const relationField = relationModel.fields.find((f) => f.name === relationFieldName);
+        if (!relationField) {
+            return source;
+        }
+
+        const relAttr = getAttribute(relationField, '@relation');
+        if (!relAttr) {
+            return source;
+        }
+
+        const fieldsArg = getAttributeArg(relAttr, 'fields');
+        let fkFields: string[] = [];
+        if (isArrayExpr(fieldsArg)) {
+            fkFields = fieldsArg.items.map((e) => (e as ReferenceExpr).target.$refText);
+        }
+
+        fkFields.forEach((fkField) => {
+            const fieldDef = this.findNamedProperty(typeAlias, fkField);
+            if (fieldDef) {
+                source = this.removeFromSource(source, fieldDef.getText());
+            }
+        });
+
+        return source;
+    }
+
+    private fixDefaultAuthType(typeAlias: TypeAliasDeclaration, source: string) {
+        const match = typeAlias.getName().match(this.modelsWithAuthInDefaultCreateInputPattern);
+        if (!match) {
+            return source;
+        }
+
+        const modelName = match[1];
+        const dataModel = this.model.declarations.find((d): d is DataModel => isDataModel(d) && d.name === modelName);
+        if (dataModel) {
+            for (const fkField of dataModel.fields.filter((f) => f.attributes.some(isDefaultWithAuth))) {
+                // change fk field to optional since it has a default
+                source = source.replace(new RegExp(`^(\\s*${fkField.name}\\s*):`, 'm'), `$1?:`);
+
+                const relationField = getRelationField(fkField);
+                if (relationField) {
+                    // change relation field to optional since its fk has a default
+                    source = source.replace(new RegExp(`^(\\s*${relationField.name}\\s*):`, 'm'), `$1?:`);
+                }
+            }
+        }
+        return source;
     }
 
     private fixJsonFieldType(typeAlias: TypeAliasDeclaration, source: string) {
@@ -564,156 +752,12 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         return source;
     }
 
-    private fixDelegatePayloadType(typeAlias: TypeAliasDeclaration, delegateInfo: DelegateInfo, source: string) {
-        // change the type of `$<DelegateModel>Payload` type of delegate model to a union of concrete types
-        const typeName = typeAlias.getName();
-        const payloadRecord = delegateInfo.find(([delegate]) => `$${delegate.name}Payload` === typeName);
-        if (payloadRecord) {
-            const discriminatorDecl = this.getDiscriminatorField(payloadRecord[0]);
-            if (discriminatorDecl) {
-                source = `${payloadRecord[1]
-                    .map(
-                        (concrete) =>
-                            `($${concrete.name}Payload<ExtArgs> & { scalars: { ${discriminatorDecl.name}: '${concrete.name}' } })`
-                    )
-                    .join(' | ')}`;
+    private async generateExtraTypes(sf: SourceFile) {
+        for (const decl of this.model.declarations) {
+            if (isTypeDef(decl)) {
+                generateTypeDefType(sf, decl);
             }
         }
-        return source;
-    }
-
-    private removeCreateFromDelegateInput(typeAlias: TypeAliasDeclaration, delegateInfo: DelegateInfo, source: string) {
-        // remove create/connectOrCreate/upsert fields from delegate's input types because
-        // delegate models cannot be created directly
-        const typeName = typeAlias.getName();
-        const delegateModelNames = delegateInfo.map(([delegate]) => delegate.name);
-        const delegateCreateUpdateInputRegex = new RegExp(
-            `^(${delegateModelNames.join('|')})(Unchecked)?(Create|Update).*Input$`
-        );
-        if (delegateCreateUpdateInputRegex.test(typeName)) {
-            const toRemove = typeAlias
-                .getDescendantsOfKind(SyntaxKind.PropertySignature)
-                .filter((p) => ['create', 'createMany', 'connectOrCreate', 'upsert'].includes(p.getName()));
-            toRemove.forEach((r) => {
-                source = source.replace(r.getText(), '');
-            });
-        }
-        return source;
-    }
-
-    private removeDiscriminatorFromConcreteInput(
-        typeAlias: TypeAliasDeclaration,
-        delegateInfo: DelegateInfo,
-        source: string
-    ) {
-        // remove discriminator field from the create/update input because discriminator cannot be set directly
-        const typeName = typeAlias.getName();
-
-        const delegateModelNames = delegateInfo.map(([delegate]) => delegate.name);
-        const concreteModelNames = delegateInfo
-            .map(([_, concretes]) => concretes.flatMap((c) => c.name))
-            .flatMap((name) => name);
-        const allModelNames = [...new Set([...delegateModelNames, ...concreteModelNames])];
-        const concreteCreateUpdateInputRegex = new RegExp(
-            `^(${allModelNames.join('|')})(Unchecked)?(Create|Update).*Input$`
-        );
-
-        const match = typeName.match(concreteCreateUpdateInputRegex);
-        if (match) {
-            const modelName = match[1];
-            const dataModel = this.model.declarations.find(
-                (d): d is DataModel => isDataModel(d) && d.name === modelName
-            );
-
-            if (!dataModel) {
-                return source;
-            }
-
-            for (const field of dataModel.fields) {
-                if (isDiscriminatorField(field)) {
-                    const fieldDef = this.findNamedProperty(typeAlias, field.name);
-                    if (fieldDef) {
-                        source = source.replace(fieldDef.getText(), '');
-                    }
-                }
-            }
-        }
-        return source;
-    }
-
-    private removeAuxFieldsFromTypeAlias(typeAlias: TypeAliasDeclaration, source: string) {
-        // remove `delegate_aux_*` fields from the type alias
-        const auxDecls = this.findAuxDecls(typeAlias);
-        if (auxDecls.length > 0) {
-            auxDecls.forEach((d) => {
-                source = source.replace(d.getText(), '');
-            });
-        }
-        return source;
-    }
-
-    private readonly CreateUpdateWithoutDelegateRelationRegex = new RegExp(
-        `(.+)(Create|Update)Without${upperCaseFirst(DELEGATE_AUX_RELATION_PREFIX)}_(.+)Input`
-    );
-
-    private removeDelegateFieldsFromNestedMutationInput(
-        typeAlias: TypeAliasDeclaration,
-        _delegateInfo: DelegateInfo,
-        source: string
-    ) {
-        const name = typeAlias.getName();
-
-        // remove delegate model fields (and corresponding fk fields) from
-        // create/update input types nested inside concrete models
-
-        const match = name.match(this.CreateUpdateWithoutDelegateRelationRegex);
-        if (!match) {
-            return source;
-        }
-
-        const nameTuple = match[3]; // [modelName]_[relationFieldName]_[concreteModelName]
-        const [modelName, relationFieldName, _] = nameTuple.split('_');
-
-        const fieldDef = this.findNamedProperty(typeAlias, relationFieldName);
-        if (fieldDef) {
-            // remove relation field of delegate type, e.g., `asset`
-            source = source.replace(fieldDef.getText(), '');
-        }
-
-        // remove fk fields related to the delegate type relation, e.g., `assetId`
-
-        const relationModel = this.model.declarations.find(
-            (d): d is DataModel => isDataModel(d) && d.name === modelName
-        );
-
-        if (!relationModel) {
-            return source;
-        }
-
-        const relationField = relationModel.fields.find((f) => f.name === relationFieldName);
-        if (!relationField) {
-            return source;
-        }
-
-        const relAttr = getAttribute(relationField, '@relation');
-        if (!relAttr) {
-            return source;
-        }
-
-        const fieldsArg = getAttributeArg(relAttr, 'fields');
-        let fkFields: string[] = [];
-        if (isArrayExpr(fieldsArg)) {
-            fkFields = fieldsArg.items.map((e) => (e as ReferenceExpr).target.$refText);
-        }
-
-        fkFields.forEach((fkField) => {
-            const fieldDef = this.findNamedProperty(typeAlias, fkField);
-            if (fieldDef) {
-                source = source.replace(fieldDef.getText(), '');
-            }
-        });
-
-        return source;
     }
 
     private findNamedProperty(typeAlias: TypeAliasDeclaration, name: string) {
@@ -745,11 +789,12 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         return this.options.generatePermissionChecker === true;
     }
 
-    private async generateExtraTypes(sf: SourceFile) {
-        for (const decl of this.model.declarations) {
-            if (isTypeDef(decl)) {
-                generateTypeDefType(sf, decl);
-            }
-        }
+    private removeFromSource(source: string, text: string) {
+        source = source.replace(text, '');
+        return this.trimEmptyLines(source);
+    }
+
+    private trimEmptyLines(source: string): string {
+        return source.replace(/^\s*[\r\n]/gm, '');
     }
 }
