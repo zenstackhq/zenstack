@@ -232,4 +232,25 @@ export class QueryUtils {
 
         return model;
     }
+
+    /**
+     * Gets relation info for a foreign key field.
+     */
+    getRelationForForeignKey(model: string, fkField: string) {
+        const modelInfo = getModelInfo(this.options.modelMeta, model);
+        if (!modelInfo) {
+            return undefined;
+        }
+
+        for (const field of Object.values(modelInfo.fields)) {
+            if (field.foreignKeyMapping) {
+                const entry = Object.entries(field.foreignKeyMapping).find(([, v]) => v === fkField);
+                if (entry) {
+                    return { relation: field, idField: entry[0], fkField: entry[1] };
+                }
+            }
+        }
+
+        return undefined;
+    }
 }
