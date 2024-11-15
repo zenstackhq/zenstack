@@ -1,6 +1,12 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { indentString, isDiscriminatorField, type PluginOptions } from '@zenstackhq/sdk';
-import { DataModel, Enum, isDataModel, isEnum, isTypeDef, type Model } from '@zenstackhq/sdk/ast';
+import {
+    getForeignKeyFields,
+    hasAttribute,
+    indentString,
+    isDiscriminatorField,
+    type PluginOptions,
+} from '@zenstackhq/sdk';
+import { DataModel, DataModelField, Enum, isDataModel, isEnum, isTypeDef, type Model } from '@zenstackhq/sdk/ast';
 import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
 import { supportCreateMany, type DMMF as PrismaDMMF } from '@zenstackhq/sdk/prisma';
 import path from 'path';
@@ -241,7 +247,8 @@ export default class Transformer {
                             this.addSchemaImport(inputType.type);
                         }
 
-                        result.push(this.generatePrismaStringLine(field, inputType, lines.length));
+                        const contextField = contextDataModel?.fields.find((f) => f.name === field.name);
+                        result.push(this.generatePrismaStringLine(field, inputType, lines.length, contextField));
                     }
                 }
 
@@ -315,7 +322,12 @@ export default class Transformer {
         this.schemaImports.add(upperCaseFirst(name));
     }
 
-    generatePrismaStringLine(field: PrismaDMMF.SchemaArg, inputType: PrismaDMMF.InputTypeRef, inputsLength: number) {
+    generatePrismaStringLine(
+        field: PrismaDMMF.SchemaArg,
+        inputType: PrismaDMMF.InputTypeRef,
+        inputsLength: number,
+        contextField: DataModelField | undefined
+    ) {
         const isEnum = inputType.location === 'enumTypes';
 
         const { isModelQueryType, modelName, queryName } = this.checkIsModelQueryType(inputType.type as string);
@@ -330,11 +342,36 @@ export default class Transformer {
 
         const arr = inputType.isList ? '.array()' : '';
 
-        const opt = !field.isRequired ? '.optional()' : '';
+        const optional =
+            !field.isRequired ||
+            // also check if the zmodel field infers the field as optional
+            (contextField && this.isFieldOptional(contextField));
 
         return inputsLength === 1
-            ? `  ${field.name}: z.lazy(() => ${schema})${arr}${opt}`
-            : `z.lazy(() => ${schema})${arr}${opt}`;
+            ? `  ${field.name}: z.lazy(() => ${schema})${arr}${optional ? '.optional()' : ''}`
+            : `z.lazy(() => ${schema})${arr}${optional ? '.optional()' : ''}`;
+    }
+
+    private isFieldOptional(dmField: DataModelField) {
+        if (hasAttribute(dmField, '@default')) {
+            // it's possible that ZModel field has a default but it's transformed away
+            // when generating Prisma schema, e.g.: `@default(auth().id)`
+            return true;
+        }
+
+        if (isDataModel(dmField.type.reference?.ref)) {
+            // if field is a relation, we need to check if the corresponding fk field has a default
+            // {
+            //   authorId Int @default(auth().id)
+            //   author User @relation(...)  // <- author should be optional
+            // }
+            const fkFields = getForeignKeyFields(dmField);
+            if (fkFields.every((fkField) => hasAttribute(fkField, '@default'))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     generateFieldValidators(zodStringWithMainType: string, field: PrismaDMMF.SchemaArg) {

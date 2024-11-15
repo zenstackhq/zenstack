@@ -2,7 +2,7 @@ import { loadSchema } from '@zenstackhq/testtools';
 
 describe('issue 1843', () => {
     it('regression', async () => {
-        await loadSchema(
+        const { zodSchemas, enhance, prisma } = await loadSchema(
             `
             model User {
                 id              String    @id @default(cuid())
@@ -43,9 +43,9 @@ describe('issue 1843', () => {
                 coauthorId String
 
                 @@allow('all', true)
-                }
+            }
 
-                model Post extends Content {
+            model Post extends Content {
                 title      String
 
                 @@allow('all', true)
@@ -85,5 +85,24 @@ describe('issue 1843', () => {
                 ],
             }
         );
+
+        const user = await prisma.user.create({ data: { email: 'abc', password: '123' } });
+        const db = enhance({ id: user.id });
+
+        // connect
+        await expect(
+            db.postWithCoauthor.create({ data: { title: 'new post', coauthor: { connect: { id: user.id } } } })
+        ).toResolveTruthy();
+
+        // fk setting
+        await expect(
+            db.postWithCoauthor.create({ data: { title: 'new post', coauthorId: user.id } })
+        ).toResolveTruthy();
+
+        // zod validation
+        zodSchemas.models.PostWithCoauthorCreateSchema.parse({
+            title: 'new post',
+            coauthorId: '1',
+        });
     });
 });

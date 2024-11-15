@@ -381,6 +381,13 @@ export function getRelationField(fkField: DataModelField) {
     });
 }
 
+/**
+ * Gets the foreign key fields of the given relation field.
+ */
+export function getForeignKeyFields(relationField: DataModelField) {
+    return getRelationKeyPairs(relationField).map((pair) => pair.foreignKey);
+}
+
 export function resolvePath(_path: string, options: Pick<PluginOptions, 'schemaPath'>) {
     if (path.isAbsolute(_path)) {
         return _path;

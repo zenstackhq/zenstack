@@ -587,6 +587,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         let curr = args;
         let base = this.getBaseModel(model);
         let sub = this.getModelInfo(model);
+        const hasDelegateBase = !!base;
 
         while (base) {
             const baseRelationName = this.makeAuxRelationName(base);
@@ -614,6 +615,50 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             curr = curr[baseRelationName].create;
             sub = base;
             base = this.getBaseModel(base.name);
+        }
+
+        if (hasDelegateBase) {
+            // A delegate base model creation is added, this can be incompatible if
+            // the user-provided payload assigns foreign keys directly, because Prisma
+            // doesn't permit mixed "checked" and "unchecked" fields in a payload.
+            //
+            // {
+            //   delegate_aux_base: { ... },
+            //   [fkField]: value  // <- this is not compatible
+            // }
+            //
+            // We need to convert foreign key assignments to `connect`.
+            this.fkAssignmentToConnect(model, args);
+        }
+    }
+
+    // convert foreign key assignments to `connect` payload
+    // e.g.: { authorId: value } -> { author: { connect: { id: value } } }
+    private fkAssignmentToConnect(model: string, args: any) {
+        for (const key of Object.keys(args)) {
+            const value = args[key];
+            if (value === undefined) {
+                continue;
+            }
+
+            const fieldInfo = this.queryUtils.getModelField(model, key);
+            if (
+                !fieldInfo?.inheritedFrom && // fields from delegate base are handled outside
+                fieldInfo?.isForeignKey
+            ) {
+                const relationInfo = this.queryUtils.getRelationForForeignKey(model, key);
+                if (relationInfo) {
+                    // turn { [fk]: value } into { [relation]: { connect: { [id]: value } } }
+                    if (!args[relationInfo.relation.name]) {
+                        args[relationInfo.relation.name] = {};
+                    }
+                    if (!args[relationInfo.relation.name].connect) {
+                        args[relationInfo.relation.name].connect = {};
+                    }
+                    args[relationInfo.relation.name].connect[relationInfo.idField] = value;
+                    delete args[key];
+                }
+            }
         }
     }
 
