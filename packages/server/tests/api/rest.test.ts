@@ -2006,6 +2006,31 @@ describe('REST server tests', () => {
                     expect(r.status).toBe(200);
                 });
 
+                it('update the id of an item with compound id', async () => {
+                    await prisma.user.create({ data: { myId: 'user1', email: 'user1@abc.com' } });
+                    await prisma.post.create({ data: { id: 1, title: 'Post1' } });
+                    await prisma.post.create({ data: { id: 2, title: 'Post2' } });
+                    await prisma.postLike.create({ data: { userId: 'user1', postId: 1, superLike: false } });
+
+                    const r = await handler({
+                        method: 'put',
+                        path: `/postLike/1${idDivider}user1`,
+                        query: {},
+                        requestBody: {
+                            data: {
+                                type: 'postLike',
+                                relationships: {
+                                    post: { data: { type: 'post', id: 2 } },
+                                },
+                            },
+                        },
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(200);
+                    expect(r.body.data.id).toBe(`2${idDivider}user1`);
+                });
+
                 it('update a single relation', async () => {
                     await prisma.user.create({ data: { myId: 'user1', email: 'user1@abc.com' } });
                     await prisma.post.create({
