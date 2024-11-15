@@ -1,20 +1,12 @@
 import {
-    AttributeArg,
-    AttributeParam,
     BuiltinType,
-    DataModelAttribute,
-    DataModelFieldAttribute,
     Expression,
     ExpressionType,
-    InternalAttribute,
-    isArrayExpr,
     isDataModelField,
-    isEnum,
     isMemberAccessExpr,
-    isReferenceExpr,
     isStringLiteral,
 } from '@zenstackhq/language/ast';
-import { isAuthInvocation, resolved } from '@zenstackhq/sdk';
+import { isAuthInvocation } from '@zenstackhq/sdk';
 import { AstNode, ValidationAcceptor } from 'langium';
 
 /**
