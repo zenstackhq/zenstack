@@ -1872,6 +1872,69 @@ describe('REST server tests', () => {
                         },
                     });
                 });
+
+                it('upsert fails if matchFields are not unique', async () => {
+                    await prisma.user.create({
+                        data: { myId: 'user1', email: 'user1@abc.com' },
+                    });
+
+                    const r = await handler({
+                        method: 'post',
+                        path: '/profile',
+                        query: {},
+                        requestBody: {
+                            data: {
+                                type: 'profile',
+                                attributes: { gender: 'male' },
+                                relationships: {
+                                    user: {
+                                        data: { type: 'user', id: 'user1' },
+                                    },
+                                },
+                            },
+                            meta: {
+                                operation: 'upsert',
+                                matchFields: ['gender'],
+                            },
+                        },
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(400);
+                    expect(r.body).toMatchObject({
+                        errors: [
+                            {
+                                status: 400,
+                                code: 'invalid-payload',
+                            },
+                        ],
+                    });
+                });
+
+                it('upsert works with compound id', async () => {
+                    await prisma.user.create({ data: { myId: 'user1', email: 'user1@abc.com' } });
+                    await prisma.post.create({ data: { id: 1, title: 'Post1' } });
+
+                    const r = await handler({
+                        method: 'post',
+                        path: '/postLike',
+                        query: {},
+                        requestBody: {
+                            data: {
+                                type: 'postLike',
+                                id: `1${idDivider}user1`,
+                                attributes: { userId: 'user1', postId: 1, superLike: false },
+                            },
+                            meta: {
+                                operation: 'upsert',
+                                matchFields: ['userId', 'postId'],
+                            },
+                        },
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(201);
+                });
             });
 
             describe('PUT', () => {
