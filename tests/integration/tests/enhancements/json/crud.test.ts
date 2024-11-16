@@ -344,4 +344,49 @@ describe('Json field CRUD', () => {
         expect(u2.profile.ownerId).toBe(2);
         expect(u2.profile.nested.userId).toBe(3);
     });
+
+    it('works with recursive types', async () => {
+        const params = await loadSchema(
+            `
+            type Content {
+                type String
+                content Content[]?
+                text String?
+            }
+            
+            model Post {
+                id Int @id @default(autoincrement())
+                content Content @json
+                @@allow('all', true)
+            }
+            `,
+            {
+                provider: 'postgresql',
+                dbUrl,
+            }
+        );
+
+        prisma = params.prisma;
+        const db = params.enhance();
+        const post = await db.post.create({
+            data: {
+                content: {
+                    type: 'text',
+                    content: [
+                        {
+                            type: 'text',
+                            content: [
+                                {
+                                    type: 'text',
+                                    text: 'hello',
+                                },
+                            ],
+                        },
+                    ],
+                },
+            },
+        });
+
+        await expect(post.content.content[0].content[0].text).toBe('hello');
+    });
 });
