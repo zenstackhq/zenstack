@@ -254,6 +254,25 @@ export function makeProxy<T extends PrismaProxyHandler>(
                 }
             }
 
+            if (prop === '$extends') {
+                // Prisma's `$extends` API returns a new client instance, we need to recreate
+                // a proxy around it
+                const $extends = Reflect.get(target, prop, receiver);
+                if ($extends && typeof $extends === 'function') {
+                    return (...args: any[]) => {
+                        const result = $extends.bind(target)(...args);
+                        if (!result[PRISMA_PROXY_ENHANCER]) {
+                            return makeProxy(result, modelMeta, makeHandler, name + '$ext', errorTransformer);
+                        } else {
+                            // avoid double wrapping
+                            return result;
+                        }
+                    };
+                } else {
+                    return $extends;
+                }
+            }
+
             if (typeof prop !== 'string' || prop.startsWith('$') || !models.includes(prop.toLowerCase())) {
                 // skip non-model fields
                 return Reflect.get(target, prop, receiver);
