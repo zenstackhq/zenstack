@@ -848,6 +848,7 @@ class RequestHandler extends APIHandlerBase {
             return error;
         }
 
+        const matchFields = (requestBody as any).meta.matchFields;
         const uniqueFields = Object.values(modelMeta.models[type].uniqueConstraints || {}).map((uf) => uf.fields);
 
         if (
@@ -856,14 +857,12 @@ class RequestHandler extends APIHandlerBase {
             return this.makeError('invalidPayload', 'Match fields must be unique fields', 400);
         }
 
-        const matchFields = (requestBody as any).meta.matchFields;
-
-        const upsertPayload: any = {};
-        upsertPayload.where = this.makeUpsertWhere(matchFields, attributes, typeInfo);
-
-        upsertPayload.create = { ...attributes };
-        upsertPayload.update = {
-            ...Object.fromEntries(Object.entries(attributes).filter((e) => !matchFields.includes(e[0]))),
+        const upsertPayload: any = {
+            where: this.makeUpsertWhere(matchFields, attributes, typeInfo),
+            create: { ...attributes },
+            update: {
+                ...Object.fromEntries(Object.entries(attributes).filter((e) => !matchFields.includes(e[0]))),
+            },
         };
 
         if (relationships) {
