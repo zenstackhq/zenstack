@@ -17,8 +17,11 @@ export function generateTypeDefType(sourceFile: SourceFile, decl: TypeDef) {
                         field.comments.forEach((c) => writer.writeLine(`     * ${unwrapTripleSlashComment(c)}`));
                         writer.writeLine(`     */`);
                     }
+                    // optional fields are also nullable (to be consistent with Prisma)
                     writer.writeLine(
-                        `    ${field.name}${field.type.optional ? '?' : ''}: ${zmodelTypeToTsType(field.type)};`
+                        `    ${field.name}${field.type.optional ? '?' : ''}: ${zmodelTypeToTsType(field.type)}${
+                            field.type.optional ? ' | null' : ''
+                        };`
                     );
                 });
             });
