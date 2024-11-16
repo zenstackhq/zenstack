@@ -905,7 +905,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         if (mode === 'create') {
             // 'id' is required if there's no default value
             const idFields = model.fields.filter((f) => isIdField(f));
-            if (idFields.length === 1 && idFields.every((f) => !hasAttribute(f, '@default'))) {
+            if (idFields.length === 1 && !hasAttribute(idFields[0], '@default')) {
                 properties = { id: { type: 'string' }, ...properties };
                 toplevelRequired.unshift('id');
             }
