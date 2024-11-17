@@ -2791,14 +2791,10 @@ components:
                             type: string
                         attributes:
                             type: object
-                            required:
-                                - userId
                             properties:
                                 image:
                                     type: string
                                     nullable: true
-                                userId:
-                                    type: string
                         relationships:
                             type: object
                             properties:
@@ -2830,8 +2826,6 @@ components:
                                 image:
                                     type: string
                                     nullable: true
-                                userId:
-                                    type: string
                         relationships:
                             type: object
                             properties:
@@ -2974,9 +2968,6 @@ components:
                                     format: date-time
                                 title:
                                     type: string
-                                authorId:
-                                    type: string
-                                    nullable: true
                                 published:
                                     type: boolean
                                 viewCount:
@@ -3022,9 +3013,6 @@ components:
                                     format: date-time
                                 title:
                                     type: string
-                                authorId:
-                                    type: string
-                                    nullable: true
                                 published:
                                     type: boolean
                                 viewCount:
