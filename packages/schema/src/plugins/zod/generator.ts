@@ -1,11 +1,18 @@
 import {
+    ExpressionContext,
     PluginError,
     PluginGlobalOptions,
     PluginOptions,
     RUNTIME_PACKAGE,
+    TypeScriptExpressionTransformer,
+    TypeScriptExpressionTransformerError,
     ensureEmptyDir,
+    getAttributeArg,
+    getAttributeArgLiteral,
     getDataModels,
+    getLiteralArray,
     hasAttribute,
+    isDataModelFieldReference,
     isDiscriminatorField,
     isEnumFieldReference,
     isForeignKeyField,
@@ -15,7 +22,7 @@ import {
     resolvePath,
     saveSourceFile,
 } from '@zenstackhq/sdk';
-import { DataModel, EnumField, Model, TypeDef, isDataModel, isEnum, isTypeDef } from '@zenstackhq/sdk/ast';
+import { DataModel, EnumField, Model, TypeDef, isArrayExpr, isDataModel, isEnum, isTypeDef } from '@zenstackhq/sdk/ast';
 import { addMissingInputObjectTypes, resolveAggregateOperationSupport } from '@zenstackhq/sdk/dmmf-helpers';
 import { getPrismaClientImportSpec, supportCreateMany, type DMMF } from '@zenstackhq/sdk/prisma';
 import { streamAllContents } from 'langium';
@@ -26,7 +33,7 @@ import { name } from '.';
 import { getDefaultOutputFolder } from '../plugin-utils';
 import Transformer from './transformer';
 import { ObjectMode } from './types';
-import { makeFieldSchema, makeValidationRefinements } from './utils/schema-gen';
+import { makeFieldSchema } from './utils/schema-gen';
 
 export class ZodSchemaGenerator {
     private readonly sourceFiles: SourceFile[] = [];
@@ -294,7 +301,7 @@ export class ZodSchemaGenerator {
         sf.replaceWithText((writer) => {
             this.addPreludeAndImports(typeDef, writer, output);
 
-            writer.write(`export const ${typeDef.name}Schema = z.object(`);
+            writer.write(`const baseSchema = z.object(`);
             writer.inlineBlock(() => {
                 typeDef.fields.forEach((field) => {
                     writer.writeLine(`${field.name}: ${makeFieldSchema(field)},`);
@@ -313,9 +320,24 @@ export class ZodSchemaGenerator {
                     writer.writeLine(').strict();');
                     break;
             }
-        });
 
-        // TODO: "@@validate" refinements
+            // compile "@@validate" to a function calling zod's `.refine()`
+            const refineFuncName = this.createRefineFunction(typeDef, writer);
+
+            if (refineFuncName) {
+                // export a schema without refinement for extensibility: `[Model]WithoutRefineSchema`
+                const noRefineSchema = `${upperCaseFirst(typeDef.name)}WithoutRefineSchema`;
+                writer.writeLine(`
+/**
+ * \`${typeDef.name}\` schema prior to calling \`.refine()\` for extensibility.
+ */
+export const ${noRefineSchema} = baseSchema;
+export const ${typeDef.name}Schema = ${refineFuncName}(${noRefineSchema});
+`);
+            } else {
+                writer.writeLine(`export const ${typeDef.name}Schema = baseSchema;`);
+            }
+        });
 
         return schemaName;
     }
@@ -436,22 +458,7 @@ export class ZodSchemaGenerator {
             }
 
             // compile "@@validate" to ".refine"
-            const refinements = makeValidationRefinements(model);
-            let refineFuncName: string | undefined;
-            if (refinements.length > 0) {
-                refineFuncName = `refine${upperCaseFirst(model.name)}`;
-                writer.writeLine(
-                    `
-/**
- * Schema refinement function for applying \`@@validate\` rules.
- */
-export function ${refineFuncName}<T, D extends z.ZodTypeDef>(schema: z.ZodType<T, D, T>) { return schema${refinements.join(
-                        '\n'
-                    )};
-}
-`
-                );
-            }
+            const refineFuncName = this.createRefineFunction(model, writer);
 
             // delegate discriminator fields are to be excluded from mutation schemas
             const delegateDiscriminatorFields = model.fields.filter((field) => isDiscriminatorField(field));
@@ -656,6 +663,74 @@ export const ${upperCaseFirst(model.name)}UpdateSchema = ${updateSchema};
         });
 
         return schemaName;
+    }
+
+    private createRefineFunction(decl: DataModel | TypeDef, writer: CodeBlockWriter) {
+        const refinements = this.makeValidationRefinements(decl);
+        let refineFuncName: string | undefined;
+        if (refinements.length > 0) {
+            refineFuncName = `refine${upperCaseFirst(decl.name)}`;
+            writer.writeLine(
+                `
+    /**
+    * Schema refinement function for applying \`@@validate\` rules.
+    */
+    export function ${refineFuncName}<T, D extends z.ZodTypeDef>(schema: z.ZodType<T, D, T>) { return schema${refinements.join(
+                    '\n'
+                )};
+    }
+    `
+            );
+            return refineFuncName;
+        } else {
+            return undefined;
+        }
+    }
+
+    private makeValidationRefinements(decl: DataModel | TypeDef) {
+        const attrs = decl.attributes.filter((attr) => attr.decl.ref?.name === '@@validate');
+        const refinements = attrs
+            .map((attr) => {
+                const valueArg = getAttributeArg(attr, 'value');
+                if (!valueArg) {
+                    return undefined;
+                }
+
+                const messageArg = getAttributeArgLiteral<string>(attr, 'message');
+                const message = messageArg ? `message: ${JSON.stringify(messageArg)},` : '';
+
+                const pathArg = getAttributeArg(attr, 'path');
+                const path =
+                    pathArg && isArrayExpr(pathArg)
+                        ? `path: ['${getLiteralArray<string>(pathArg)?.join(`', '`)}'],`
+                        : '';
+
+                const options = `, { ${message} ${path} }`;
+
+                try {
+                    let expr = new TypeScriptExpressionTransformer({
+                        context: ExpressionContext.ValidationRule,
+                        fieldReferenceContext: 'value',
+                    }).transform(valueArg);
+
+                    if (isDataModelFieldReference(valueArg)) {
+                        // if the expression is a simple field reference, treat undefined
+                        // as true since the all fields are optional in validation context
+                        expr = `${expr} ?? true`;
+                    }
+
+                    return `.refine((value: any) => ${expr}${options})`;
+                } catch (err) {
+                    if (err instanceof TypeScriptExpressionTransformerError) {
+                        throw new PluginError(name, err.message);
+                    } else {
+                        throw err;
+                    }
+                }
+            })
+            .filter((r) => !!r);
+
+        return refinements;
     }
 
     private makePartial(schema: string, fields?: string[]) {

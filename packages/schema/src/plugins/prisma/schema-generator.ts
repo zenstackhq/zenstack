@@ -30,9 +30,9 @@ import {
     ReferenceExpr,
     StringLiteral,
 } from '@zenstackhq/language/ast';
+import { getIdFields } from '@zenstackhq/sdk';
 import { getPrismaVersion } from '@zenstackhq/sdk/prisma';
 import { match } from 'ts-pattern';
-import { getIdFields } from '../../utils/ast-utils';
 
 import { DELEGATE_AUX_RELATION_PREFIX, PRISMA_MINIMUM_VERSION } from '@zenstackhq/runtime';
 import {

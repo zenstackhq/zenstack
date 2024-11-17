@@ -191,6 +191,45 @@ describe('Json field CRUD', () => {
         ).toResolveTruthy();
     });
 
+    it('respects refine validation rules', async () => {
+        const params = await loadSchema(
+            `
+            type Address {
+                city String @length(2, 10)
+            }
+
+            type Profile {
+                age Int @gte(18)
+                address Address?
+                @@validate(age > 18 && length(address.city, 2, 2))
+            }
+            
+            model User {
+                id Int @id @default(autoincrement())
+                profile Profile @json
+                @@allow('all', true)
+            }
+            `,
+            {
+                provider: 'postgresql',
+                dbUrl,
+            }
+        );
+
+        const schema = params.zodSchemas.models.ProfileSchema;
+
+        expect(schema.safeParse({ age: 10, address: { city: 'NY' } })).toMatchObject({ success: false });
+        expect(schema.safeParse({ age: 20, address: { city: 'NYC' } })).toMatchObject({ success: false });
+        expect(schema.safeParse({ age: 20, address: { city: 'NY' } })).toMatchObject({ success: true });
+
+        const db = params.enhance();
+        await expect(db.user.create({ data: { profile: { age: 10 } } })).toBeRejectedByPolicy();
+        await expect(
+            db.user.create({ data: { profile: { age: 20, address: { city: 'NYC' } } } })
+        ).toBeRejectedByPolicy();
+        await expect(db.user.create({ data: { profile: { age: 20, address: { city: 'NY' } } } })).toResolveTruthy();
+    });
+
     it('respects enums used by data models', async () => {
         const params = await loadSchema(
             `
