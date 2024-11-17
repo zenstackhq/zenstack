@@ -137,13 +137,14 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
         const node = context.container as MemberAccessExpr;
 
         // typedef's fields are only added to the scope if the access starts with `auth().`
-        const allowTypeDefScope = isAuthOrAuthMemberAccess(node.operand);
+        // or the member access resides inside a typedef
+        const allowTypeDefScope = isAuthOrAuthMemberAccess(node.operand) || !!getContainerOfType(node, isTypeDef);
 
         return match(node.operand)
             .when(isReferenceExpr, (operand) => {
                 // operand is a reference, it can only be a model/type-def field
                 const ref = operand.target.ref;
-                if (isDataModelField(ref)) {
+                if (isDataModelField(ref) || isTypeDefField(ref)) {
                     return this.createScopeForContainer(ref.type.reference?.ref, globalScope, allowTypeDefScope);
                 }
                 return EMPTY_SCOPE;

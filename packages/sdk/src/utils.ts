@@ -28,6 +28,7 @@ import {
     isObjectExpr,
     isReferenceExpr,
     isTypeDef,
+    isTypeDefField,
     Model,
     Reference,
     ReferenceExpr,
@@ -518,17 +519,17 @@ export function getIdFields(decl: DataModel | TypeDef) {
             }
             const argValue = modelIdAttr.args[0].value;
             return argValue.items
-                .filter((expr): expr is ReferenceExpr => isReferenceExpr(expr) && !!getDataModelFieldReference(expr))
+                .filter((expr): expr is ReferenceExpr => isReferenceExpr(expr) && !!getFieldReference(expr))
                 .map((expr) => expr.target.ref as DataModelField);
         }
     }
     return [];
 }
 
-export function getDataModelFieldReference(expr: Expression): DataModelField | undefined {
-    if (isReferenceExpr(expr) && isDataModelField(expr.target.ref)) {
+export function getFieldReference(expr: Expression): DataModelField | TypeDefField | undefined {
+    if (isReferenceExpr(expr) && (isDataModelField(expr.target.ref) || isTypeDefField(expr.target.ref))) {
         return expr.target.ref;
-    } else if (isMemberAccessExpr(expr) && isDataModelField(expr.member.ref)) {
+    } else if (isMemberAccessExpr(expr) && (isDataModelField(expr.member.ref) || isTypeDefField(expr.member.ref))) {
         return expr.member.ref;
     } else {
         return undefined;
