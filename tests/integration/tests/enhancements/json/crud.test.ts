@@ -216,6 +216,7 @@ describe('Json field CRUD', () => {
             }
         );
 
+        prisma = params.prisma;
         const schema = params.zodSchemas.models.ProfileSchema;
 
         expect(schema.safeParse({ age: 10, address: { city: 'NY' } })).toMatchObject({ success: false });
