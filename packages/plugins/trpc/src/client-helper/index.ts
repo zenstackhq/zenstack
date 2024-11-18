@@ -41,8 +41,6 @@ export function generateClientTypingForModel(
             }
         );
 
-        sf.addStatements([`/* eslint-disable */`]);
-
         generateImports(clientType, sf, options, version);
 
         // generate a `ClientType` interface that contains typing for query/mutation operations

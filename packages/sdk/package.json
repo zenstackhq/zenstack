@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/sdk",
-    "version": "2.8.1",
+    "version": "2.9.0",
     "description": "ZenStack plugin development SDK",
     "main": "index.js",
     "scripts": {
@@ -48,6 +48,7 @@
         "./dmmf-helpers": {
             "types": "./dmmf-helpers/index.d.ts",
             "default": "./dmmf-helpers/index.js"
-        }
+        },
+        "./package.json": "./package.json"
     }
 }

@@ -1301,7 +1301,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
                     "terminal": {
                       "$type": "CrossReference",
                       "type": {
-                        "$ref": "#/rules@38"
+                        "$ref": "#/types@1"
                       },
                       "deprecatedSyntax": false
                     }
@@ -2165,7 +2165,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
                 "terminal": {
                   "$type": "CrossReference",
                   "type": {
-                    "$ref": "#/types@2"
+                    "$ref": "#/types@3"
                   },
                   "terminal": {
                     "$type": "RuleCall",
@@ -2257,16 +2257,33 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             "value": "{"
           },
           {
-            "$type": "Assignment",
-            "feature": "fields",
-            "operator": "+=",
-            "terminal": {
-              "$type": "RuleCall",
-              "rule": {
-                "$ref": "#/rules@41"
+            "$type": "Alternatives",
+            "elements": [
+              {
+                "$type": "Assignment",
+                "feature": "fields",
+                "operator": "+=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$ref": "#/rules@41"
+                  },
+                  "arguments": []
+                }
               },
-              "arguments": []
-            },
+              {
+                "$type": "Assignment",
+                "feature": "attributes",
+                "operator": "+=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$ref": "#/rules@55"
+                  },
+                  "arguments": []
+                }
+              }
+            ],
             "cardinality": "*"
           },
           {
@@ -2375,7 +2392,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
                 "terminal": {
                   "$type": "CrossReference",
                   "type": {
-                    "$ref": "#/types@1"
+                    "$ref": "#/types@2"
                   },
                   "terminal": {
                     "$type": "RuleCall",
@@ -2827,7 +2844,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
                 "terminal": {
                   "$type": "CrossReference",
                   "type": {
-                    "$ref": "#/types@2"
+                    "$ref": "#/types@3"
                   },
                   "terminal": {
                     "$type": "RuleCall",
@@ -3255,7 +3272,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
                 "terminal": {
                   "$type": "CrossReference",
                   "type": {
-                    "$ref": "#/types@2"
+                    "$ref": "#/types@3"
                   },
                   "terminal": {
                     "$type": "RuleCall",
@@ -3832,7 +3849,34 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
           {
             "$type": "SimpleType",
             "typeRef": {
+              "$ref": "#/rules@41"
+            }
+          },
+          {
+            "$type": "SimpleType",
+            "typeRef": {
               "$ref": "#/rules@45"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "$type": "Type",
+      "name": "MemberAccessTarget",
+      "type": {
+        "$type": "UnionType",
+        "types": [
+          {
+            "$type": "SimpleType",
+            "typeRef": {
+              "$ref": "#/rules@38"
+            }
+          },
+          {
+            "$type": "SimpleType",
+            "typeRef": {
+              "$ref": "#/rules@41"
             }
           }
         ]

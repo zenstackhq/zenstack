@@ -2,28 +2,19 @@ import {
     BinaryExpr,
     DataModel,
     DataModelAttribute,
-    DataModelField,
     Expression,
     InheritableNode,
-    isArrayExpr,
     isBinaryExpr,
     isDataModel,
     isDataModelField,
     isInvocationExpr,
-    isMemberAccessExpr,
     isModel,
-    isReferenceExpr,
+    isTypeDef,
     Model,
     ModelImport,
-    ReferenceExpr,
+    TypeDef,
 } from '@zenstackhq/language/ast';
-import {
-    getInheritanceChain,
-    getModelFieldsWithBases,
-    getRecursiveBases,
-    isDelegateModel,
-    isFromStdlib,
-} from '@zenstackhq/sdk';
+import { getInheritanceChain, getRecursiveBases, isDelegateModel, isFromStdlib } from '@zenstackhq/sdk';
 import {
     AstNode,
     copyAstNode,
@@ -149,29 +140,6 @@ function cloneAst<T extends InheritableNode>(
     return clone;
 }
 
-export function getIdFields(dataModel: DataModel) {
-    const fieldLevelId = getModelFieldsWithBases(dataModel).find((f) =>
-        f.attributes.some((attr) => attr.decl.$refText === '@id')
-    );
-    if (fieldLevelId) {
-        return [fieldLevelId];
-    } else {
-        // get model level @@id attribute
-        const modelIdAttr = dataModel.attributes.find((attr) => attr.decl?.ref?.name === '@@id');
-        if (modelIdAttr) {
-            // get fields referenced in the attribute: @@id([field1, field2]])
-            if (!isArrayExpr(modelIdAttr.args[0]?.value)) {
-                return [];
-            }
-            const argValue = modelIdAttr.args[0].value;
-            return argValue.items
-                .filter((expr): expr is ReferenceExpr => isReferenceExpr(expr) && !!getDataModelFieldReference(expr))
-                .map((expr) => expr.target.ref as DataModelField);
-        }
-    }
-    return [];
-}
-
 export function isAuthInvocation(node: AstNode) {
     return isInvocationExpr(node) && node.function.ref?.name === 'auth' && isFromStdlib(node.function.ref);
 }
@@ -182,16 +150,6 @@ export function isFutureInvocation(node: AstNode) {
 
 export function isCheckInvocation(node: AstNode) {
     return isInvocationExpr(node) && node.function.ref?.name === 'check' && isFromStdlib(node.function.ref);
-}
-
-export function getDataModelFieldReference(expr: Expression): DataModelField | undefined {
-    if (isReferenceExpr(expr) && isDataModelField(expr.target.ref)) {
-        return expr.target.ref;
-    } else if (isMemberAccessExpr(expr) && isDataModelField(expr.member.ref)) {
-        return expr.member.ref;
-    } else {
-        return undefined;
-    }
 }
 
 export function resolveImportUri(imp: ModelImport): URI | undefined {
@@ -302,21 +260,24 @@ export function findUpAst(node: AstNode, predicate: (node: AstNode) => boolean):
 }
 
 /**
- * Gets all data models from all loaded documents
+ * Gets all data models and type defs from all loaded documents
  */
-export function getAllLoadedDataModels(langiumDocuments: LangiumDocuments) {
+export function getAllLoadedDataModelsAndTypeDefs(langiumDocuments: LangiumDocuments) {
     return langiumDocuments.all
         .map((doc) => doc.parseResult.value as Model)
-        .flatMap((model) => model.declarations.filter(isDataModel))
+        .flatMap((model) => model.declarations.filter((d): d is DataModel | TypeDef => isDataModel(d) || isTypeDef(d)))
         .toArray();
 }
 
 /**
- * Gets all data models from loaded and reachable documents
+ * Gets all data models and type defs from loaded and reachable documents
  */
-export function getAllLoadedAndReachableDataModels(langiumDocuments: LangiumDocuments, fromModel?: DataModel) {
+export function getAllLoadedAndReachableDataModelsAndTypeDefs(
+    langiumDocuments: LangiumDocuments,
+    fromModel?: DataModel
+) {
     // get all data models from loaded documents
-    const allDataModels = getAllLoadedDataModels(langiumDocuments);
+    const allDataModels = getAllLoadedDataModelsAndTypeDefs(langiumDocuments);
 
     if (fromModel) {
         // merge data models transitively reached from the current model

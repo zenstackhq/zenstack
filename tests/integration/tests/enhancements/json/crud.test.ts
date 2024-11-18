@@ -191,6 +191,46 @@ describe('Json field CRUD', () => {
         ).toResolveTruthy();
     });
 
+    it('respects refine validation rules', async () => {
+        const params = await loadSchema(
+            `
+            type Address {
+                city String @length(2, 10)
+            }
+
+            type Profile {
+                age Int @gte(18)
+                address Address?
+                @@validate(age > 18 && length(address.city, 2, 2))
+            }
+            
+            model User {
+                id Int @id @default(autoincrement())
+                profile Profile @json
+                @@allow('all', true)
+            }
+            `,
+            {
+                provider: 'postgresql',
+                dbUrl,
+            }
+        );
+
+        prisma = params.prisma;
+        const schema = params.zodSchemas.models.ProfileSchema;
+
+        expect(schema.safeParse({ age: 10, address: { city: 'NY' } })).toMatchObject({ success: false });
+        expect(schema.safeParse({ age: 20, address: { city: 'NYC' } })).toMatchObject({ success: false });
+        expect(schema.safeParse({ age: 20, address: { city: 'NY' } })).toMatchObject({ success: true });
+
+        const db = params.enhance();
+        await expect(db.user.create({ data: { profile: { age: 10 } } })).toBeRejectedByPolicy();
+        await expect(
+            db.user.create({ data: { profile: { age: 20, address: { city: 'NYC' } } } })
+        ).toBeRejectedByPolicy();
+        await expect(db.user.create({ data: { profile: { age: 20, address: { city: 'NY' } } } })).toResolveTruthy();
+    });
+
     it('respects enums used by data models', async () => {
         const params = await loadSchema(
             `
@@ -343,5 +383,50 @@ describe('Json field CRUD', () => {
         const u2 = await db.user.create({ data: { profile: { ownerId: 2, nested: { userId: 3 } } } });
         expect(u2.profile.ownerId).toBe(2);
         expect(u2.profile.nested.userId).toBe(3);
+    });
+
+    it('works with recursive types', async () => {
+        const params = await loadSchema(
+            `
+            type Content {
+                type String
+                content Content[]?
+                text String?
+            }
+            
+            model Post {
+                id Int @id @default(autoincrement())
+                content Content @json
+                @@allow('all', true)
+            }
+            `,
+            {
+                provider: 'postgresql',
+                dbUrl,
+            }
+        );
+
+        prisma = params.prisma;
+        const db = params.enhance();
+        const post = await db.post.create({
+            data: {
+                content: {
+                    type: 'text',
+                    content: [
+                        {
+                            type: 'text',
+                            content: [
+                                {
+                                    type: 'text',
+                                    text: 'hello',
+                                },
+                            ],
+                        },
+                    ],
+                },
+            },
+        });
+
+        await expect(post.content.content[0].content[0].text).toBe('hello');
     });
 });

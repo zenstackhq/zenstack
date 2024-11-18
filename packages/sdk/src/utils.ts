@@ -27,9 +27,12 @@ import {
     isModel,
     isObjectExpr,
     isReferenceExpr,
+    isTypeDef,
+    isTypeDefField,
     Model,
     Reference,
     ReferenceExpr,
+    TypeDef,
     TypeDefField,
 } from '@zenstackhq/language/ast';
 import fs from 'node:fs';
@@ -42,6 +45,18 @@ import { PluginError, type PluginDeclaredOptions, type PluginOptions } from './t
  */
 export function getDataModels(model: Model, includeIgnored = false) {
     const r = model.declarations.filter((d): d is DataModel => isDataModel(d));
+    if (includeIgnored) {
+        return r;
+    } else {
+        return r.filter((model) => !hasAttribute(model, '@@ignore'));
+    }
+}
+
+/**
+ * Gets data models and type defs in the ZModel schema.
+ */
+export function getDataModelAndTypeDefs(model: Model, includeIgnored = false) {
+    const r = model.declarations.filter((d): d is DataModel | TypeDef => isDataModel(d) || isTypeDef(d));
     if (includeIgnored) {
         return r;
     } else {
@@ -117,14 +132,23 @@ export function indentString(string: string, count = 4): string {
 }
 
 export function hasAttribute(
-    decl: DataModel | DataModelField | Enum | EnumField | FunctionDecl | Attribute | AttributeParam,
+    decl: DataModel | TypeDef | DataModelField | Enum | EnumField | FunctionDecl | Attribute | AttributeParam,
     name: string
 ) {
     return !!getAttribute(decl, name);
 }
 
 export function getAttribute(
-    decl: DataModel | DataModelField | TypeDefField | Enum | EnumField | FunctionDecl | Attribute | AttributeParam,
+    decl:
+        | DataModel
+        | TypeDef
+        | DataModelField
+        | TypeDefField
+        | Enum
+        | EnumField
+        | FunctionDecl
+        | Attribute
+        | AttributeParam,
     name: string
 ) {
     return (decl.attributes as (DataModelAttribute | DataModelFieldAttribute)[]).find(
@@ -358,6 +382,13 @@ export function getRelationField(fkField: DataModelField) {
     });
 }
 
+/**
+ * Gets the foreign key fields of the given relation field.
+ */
+export function getForeignKeyFields(relationField: DataModelField) {
+    return getRelationKeyPairs(relationField).map((pair) => pair.foreignKey);
+}
+
 export function resolvePath(_path: string, options: Pick<PluginOptions, 'schemaPath'>) {
     if (path.isAbsolute(_path)) {
         return _path;
@@ -448,10 +479,10 @@ export function getPreviewFeatures(model: Model) {
     return [] as string[];
 }
 
-export function getAuthModel(dataModels: DataModel[]) {
-    let authModel = dataModels.find((m) => hasAttribute(m, '@@auth'));
+export function getAuthDecl(decls: (DataModel | TypeDef)[]) {
+    let authModel = decls.find((m) => hasAttribute(m, '@@auth'));
     if (!authModel) {
-        authModel = dataModels.find((m) => m.name === 'User');
+        authModel = decls.find((m) => m.name === 'User');
     }
     return authModel;
 }
@@ -473,15 +504,14 @@ export function isDiscriminatorField(field: DataModelField) {
     return isDataModelFieldReference(arg) && arg.target.$refText === field.name;
 }
 
-export function getIdFields(dataModel: DataModel) {
-    const fieldLevelId = getModelFieldsWithBases(dataModel).find((f) =>
-        f.attributes.some((attr) => attr.decl.$refText === '@id')
-    );
+export function getIdFields(decl: DataModel | TypeDef) {
+    const fields = isDataModel(decl) ? getModelFieldsWithBases(decl) : decl.fields;
+    const fieldLevelId = fields.find((f) => f.attributes.some((attr) => attr.decl.$refText === '@id'));
     if (fieldLevelId) {
         return [fieldLevelId];
     } else {
         // get model level @@id attribute
-        const modelIdAttr = dataModel.attributes.find((attr) => attr.decl?.ref?.name === '@@id');
+        const modelIdAttr = decl.attributes.find((attr) => attr.decl?.ref?.name === '@@id');
         if (modelIdAttr) {
             // get fields referenced in the attribute: @@id([field1, field2]])
             if (!isArrayExpr(modelIdAttr.args[0].value)) {
@@ -489,17 +519,17 @@ export function getIdFields(dataModel: DataModel) {
             }
             const argValue = modelIdAttr.args[0].value;
             return argValue.items
-                .filter((expr): expr is ReferenceExpr => isReferenceExpr(expr) && !!getDataModelFieldReference(expr))
+                .filter((expr): expr is ReferenceExpr => isReferenceExpr(expr) && !!getFieldReference(expr))
                 .map((expr) => expr.target.ref as DataModelField);
         }
     }
     return [];
 }
 
-export function getDataModelFieldReference(expr: Expression): DataModelField | undefined {
-    if (isReferenceExpr(expr) && isDataModelField(expr.target.ref)) {
+export function getFieldReference(expr: Expression): DataModelField | TypeDefField | undefined {
+    if (isReferenceExpr(expr) && (isDataModelField(expr.target.ref) || isTypeDefField(expr.target.ref))) {
         return expr.target.ref;
-    } else if (isMemberAccessExpr(expr) && isDataModelField(expr.member.ref)) {
+    } else if (isMemberAccessExpr(expr) && (isDataModelField(expr.member.ref) || isTypeDefField(expr.member.ref))) {
         return expr.member.ref;
     } else {
         return undefined;

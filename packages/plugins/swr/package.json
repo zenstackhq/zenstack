@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/swr",
     "displayName": "ZenStack plugin for generating SWR hooks",
-    "version": "2.8.1",
+    "version": "2.9.0",
     "description": "ZenStack plugin for generating SWR hooks",
     "main": "index.js",
     "repository": {

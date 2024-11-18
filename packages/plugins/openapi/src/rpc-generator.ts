@@ -1,7 +1,7 @@
 // Inspired by: https://github.com/omar-dulaimi/prisma-trpc-generator
 
-import { PluginError, analyzePolicies, requireOption, resolvePath } from '@zenstackhq/sdk';
-import { DataModel, isDataModel } from '@zenstackhq/sdk/ast';
+import { PluginError, PluginOptions, analyzePolicies, requireOption, resolvePath } from '@zenstackhq/sdk';
+import { DataModel, Model, isDataModel } from '@zenstackhq/sdk/ast';
 import {
     AggregateOperationSupport,
     addMissingInputObjectTypesForAggregate,
@@ -23,6 +23,8 @@ import { name } from '.';
 import { OpenAPIGeneratorBase } from './generator-base';
 import { getModelResourceMeta } from './meta';
 
+const ANY_OBJECT = '_AnyObject';
+
 /**
  * Generates OpenAPI specification.
  */
@@ -32,6 +34,16 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
     private usedComponents: Set<string> = new Set<string>();
     private aggregateOperationSupport: AggregateOperationSupport;
     private warnings: string[] = [];
+    private omitInputDetails: boolean;
+
+    constructor(protected model: Model, protected options: PluginOptions, protected dmmf: DMMF.Document) {
+        super(model, options, dmmf);
+
+        this.omitInputDetails = this.getOption<boolean>('omitInputDetails', false);
+        if (this.omitInputDetails !== undefined && typeof this.omitInputDetails !== 'boolean') {
+            throw new PluginError(name, `Invalid option value for "omitInputDetails", boolean expected`);
+        }
+    }
 
     generate() {
         let output = requireOption<string>(this.options, 'output', name);
@@ -151,9 +163,9 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                         type: 'object',
                         required: ['data'],
                         properties: {
-                            select: this.ref(`${modelName}Select`),
-                            include: hasRelation ? this.ref(`${modelName}Include`) : undefined,
-                            data: this.ref(`${modelName}CreateInput`),
+                            select: this.omittableRef(`${modelName}Select`),
+                            include: hasRelation ? this.omittableRef(`${modelName}Include`) : undefined,
+                            data: this.omittableRef(`${modelName}CreateInput`),
                             meta: this.ref('_Meta'),
                         },
                     },
@@ -177,8 +189,8 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                         required: ['data'],
                         properties: {
                             data: this.oneOf(
-                                this.ref(`${modelName}CreateManyInput`),
-                                this.array(this.ref(`${modelName}CreateManyInput`))
+                                this.omittableRef(`${modelName}CreateManyInput`),
+                                this.array(this.omittableRef(`${modelName}CreateManyInput`))
                             ),
                             skipDuplicates: {
                                 type: 'boolean',
@@ -207,9 +219,9 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                         type: 'object',
                         required: ['where'],
                         properties: {
-                            select: this.ref(`${modelName}Select`),
-                            include: hasRelation ? this.ref(`${modelName}Include`) : undefined,
-                            where: this.ref(`${modelName}WhereUniqueInput`),
+                            select: this.omittableRef(`${modelName}Select`),
+                            include: hasRelation ? this.omittableRef(`${modelName}Include`) : undefined,
+                            where: this.omittableRef(`${modelName}WhereUniqueInput`),
                             meta: this.ref('_Meta'),
                         },
                     },
@@ -230,9 +242,9 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                     {
                         type: 'object',
                         properties: {
-                            select: this.ref(`${modelName}Select`),
-                            include: hasRelation ? this.ref(`${modelName}Include`) : undefined,
-                            where: this.ref(`${modelName}WhereInput`),
+                            select: this.omittableRef(`${modelName}Select`),
+                            include: hasRelation ? this.omittableRef(`${modelName}Include`) : undefined,
+                            where: this.omittableRef(`${modelName}WhereInput`),
                             meta: this.ref('_Meta'),
                         },
                     },
@@ -253,9 +265,9 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                     {
                         type: 'object',
                         properties: {
-                            select: this.ref(`${modelName}Select`),
-                            include: hasRelation ? this.ref(`${modelName}Include`) : undefined,
-                            where: this.ref(`${modelName}WhereInput`),
+                            select: this.omittableRef(`${modelName}Select`),
+                            include: hasRelation ? this.omittableRef(`${modelName}Include`) : undefined,
+                            where: this.omittableRef(`${modelName}WhereInput`),
                             meta: this.ref('_Meta'),
                         },
                     },
@@ -277,10 +289,10 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                         type: 'object',
                         required: ['where', 'data'],
                         properties: {
-                            select: this.ref(`${modelName}Select`),
-                            include: hasRelation ? this.ref(`${modelName}Include`) : undefined,
-                            where: this.ref(`${modelName}WhereUniqueInput`),
-                            data: this.ref(`${modelName}UpdateInput`),
+                            select: this.omittableRef(`${modelName}Select`),
+                            include: hasRelation ? this.omittableRef(`${modelName}Include`) : undefined,
+                            where: this.omittableRef(`${modelName}WhereUniqueInput`),
+                            data: this.omittableRef(`${modelName}UpdateInput`),
                             meta: this.ref('_Meta'),
                         },
                     },
@@ -302,8 +314,8 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                         type: 'object',
                         required: ['data'],
                         properties: {
-                            where: this.ref(`${modelName}WhereInput`),
-                            data: this.ref(`${modelName}UpdateManyMutationInput`),
+                            where: this.omittableRef(`${modelName}WhereInput`),
+                            data: this.omittableRef(`${modelName}UpdateManyMutationInput`),
                             meta: this.ref('_Meta'),
                         },
                     },
@@ -325,11 +337,11 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                         type: 'object',
                         required: ['create', 'update', 'where'],
                         properties: {
-                            select: this.ref(`${modelName}Select`),
-                            include: hasRelation ? this.ref(`${modelName}Include`) : undefined,
-                            where: this.ref(`${modelName}WhereUniqueInput`),
-                            create: this.ref(`${modelName}CreateInput`),
-                            update: this.ref(`${modelName}UpdateInput`),
+                            select: this.omittableRef(`${modelName}Select`),
+                            include: hasRelation ? this.omittableRef(`${modelName}Include`) : undefined,
+                            where: this.omittableRef(`${modelName}WhereUniqueInput`),
+                            create: this.omittableRef(`${modelName}CreateInput`),
+                            update: this.omittableRef(`${modelName}UpdateInput`),
                             meta: this.ref('_Meta'),
                         },
                     },
@@ -351,9 +363,9 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                         type: 'object',
                         required: ['where'],
                         properties: {
-                            select: this.ref(`${modelName}Select`),
-                            include: hasRelation ? this.ref(`${modelName}Include`) : undefined,
-                            where: this.ref(`${modelName}WhereUniqueInput`),
+                            select: this.omittableRef(`${modelName}Select`),
+                            include: hasRelation ? this.omittableRef(`${modelName}Include`) : undefined,
+                            where: this.omittableRef(`${modelName}WhereUniqueInput`),
                             meta: this.ref('_Meta'),
                         },
                     },
@@ -374,7 +386,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                     {
                         type: 'object',
                         properties: {
-                            where: this.ref(`${modelName}WhereInput`),
+                            where: this.omittableRef(`${modelName}WhereInput`),
                             meta: this.ref('_Meta'),
                         },
                     },
@@ -395,8 +407,8 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                 {
                     type: 'object',
                     properties: {
-                        select: this.ref(`${modelName}Select`),
-                        where: this.ref(`${modelName}WhereInput`),
+                        select: this.omittableRef(`${modelName}Select`),
+                        where: this.omittableRef(`${modelName}WhereInput`),
                         meta: this.ref('_Meta'),
                     },
                 },
@@ -425,9 +437,9 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                     {
                         type: 'object',
                         properties: {
-                            where: this.ref(`${modelName}WhereInput`),
-                            orderBy: this.ref(orderByWithRelationInput),
-                            cursor: this.ref(`${modelName}WhereUniqueInput`),
+                            where: this.omittableRef(`${modelName}WhereInput`),
+                            orderBy: this.omittableRef(orderByWithRelationInput),
+                            cursor: this.omittableRef(`${modelName}WhereUniqueInput`),
                             take: { type: 'integer' },
                             skip: { type: 'integer' },
                             ...this.aggregateFields(model),
@@ -451,10 +463,10 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                     {
                         type: 'object',
                         properties: {
-                            where: this.ref(`${modelName}WhereInput`),
-                            orderBy: this.ref(orderByWithRelationInput),
-                            by: this.ref(`${modelName}ScalarFieldEnum`),
-                            having: this.ref(`${modelName}ScalarWhereWithAggregatesInput`),
+                            where: this.omittableRef(`${modelName}WhereInput`),
+                            orderBy: this.omittableRef(orderByWithRelationInput),
+                            by: this.omittableRef(`${modelName}ScalarFieldEnum`),
+                            having: this.omittableRef(`${modelName}ScalarWhereWithAggregatesInput`),
                             take: { type: 'integer' },
                             skip: { type: 'integer' },
                             ...this.aggregateFields(model),
@@ -587,19 +599,19 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         const modelName = upperCaseFirst(model.name);
         if (supportedOps) {
             if (supportedOps.count) {
-                result._count = this.oneOf({ type: 'boolean' }, this.ref(`${modelName}CountAggregateInput`));
+                result._count = this.oneOf({ type: 'boolean' }, this.omittableRef(`${modelName}CountAggregateInput`));
             }
             if (supportedOps.min) {
-                result._min = this.ref(`${modelName}MinAggregateInput`);
+                result._min = this.omittableRef(`${modelName}MinAggregateInput`);
             }
             if (supportedOps.max) {
-                result._max = this.ref(`${modelName}MaxAggregateInput`);
+                result._max = this.omittableRef(`${modelName}MaxAggregateInput`);
             }
             if (supportedOps.sum) {
-                result._sum = this.ref(`${modelName}SumAggregateInput`);
+                result._sum = this.omittableRef(`${modelName}SumAggregateInput`);
             }
             if (supportedOps.avg) {
-                result._avg = this.ref(`${modelName}AvgAggregateInput`);
+                result._avg = this.omittableRef(`${modelName}AvgAggregateInput`);
             }
         }
         return result;
@@ -616,6 +628,14 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         const components: OAPI.ComponentsObject = {
             schemas,
         };
+
+        if (this.omitInputDetails) {
+            // generate a catch-all object type
+            schemas[ANY_OBJECT] = {
+                type: 'object',
+                additionalProperties: true,
+            };
+        }
 
         // user-defined and built-in enums
         for (const _enum of [...(this.dmmf.schema.enumTypes.model ?? []), ...this.dmmf.schema.enumTypes.prisma]) {
@@ -822,6 +842,14 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
             this.usedComponents.add(type);
         }
         return { $ref: `#/components/schemas/${upperCaseFirst(type)}`, description };
+    }
+
+    private omittableRef(type: string, rooted = true, description?: string): OAPI.ReferenceObject {
+        if (this.omitInputDetails) {
+            return this.ref(ANY_OBJECT);
+        } else {
+            return this.ref(type, rooted, description);
+        }
     }
 
     private response(schema: OAPI.SchemaObject): OAPI.SchemaObject {

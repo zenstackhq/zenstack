@@ -1,20 +1,7 @@
+import { getLiteral, isFromStdlib } from '@zenstackhq/sdk';
 import {
-    ExpressionContext,
-    getAttributeArg,
-    getAttributeArgLiteral,
-    getLiteral,
-    getLiteralArray,
-    isDataModelFieldReference,
-    isFromStdlib,
-    PluginError,
-    TypeScriptExpressionTransformer,
-    TypeScriptExpressionTransformerError,
-} from '@zenstackhq/sdk';
-import {
-    DataModel,
     DataModelField,
     DataModelFieldAttribute,
-    isArrayExpr,
     isBooleanLiteral,
     isDataModel,
     isEnum,
@@ -25,7 +12,6 @@ import {
     TypeDefField,
 } from '@zenstackhq/sdk/ast';
 import { upperCaseFirst } from 'upper-case-first';
-import { name } from '..';
 import { isDefaultWithAuth } from '../../enhancer/enhancer-utils';
 
 export function makeFieldSchema(field: DataModelField | TypeDefField) {
@@ -220,50 +206,6 @@ function makeZodSchema(field: DataModelField | TypeDefField) {
     }
 
     return schema;
-}
-
-export function makeValidationRefinements(model: DataModel) {
-    const attrs = model.attributes.filter((attr) => attr.decl.ref?.name === '@@validate');
-    const refinements = attrs
-        .map((attr) => {
-            const valueArg = getAttributeArg(attr, 'value');
-            if (!valueArg) {
-                return undefined;
-            }
-
-            const messageArg = getAttributeArgLiteral<string>(attr, 'message');
-            const message = messageArg ? `message: ${JSON.stringify(messageArg)},` : '';
-
-            const pathArg = getAttributeArg(attr, 'path');
-            const path =
-                pathArg && isArrayExpr(pathArg) ? `path: ['${getLiteralArray<string>(pathArg)?.join(`', '`)}'],` : '';
-
-            const options = `, { ${message} ${path} }`;
-
-            try {
-                let expr = new TypeScriptExpressionTransformer({
-                    context: ExpressionContext.ValidationRule,
-                    fieldReferenceContext: 'value',
-                }).transform(valueArg);
-
-                if (isDataModelFieldReference(valueArg)) {
-                    // if the expression is a simple field reference, treat undefined
-                    // as true since the all fields are optional in validation context
-                    expr = `${expr} ?? true`;
-                }
-
-                return `.refine((value: any) => ${expr}${options})`;
-            } catch (err) {
-                if (err instanceof TypeScriptExpressionTransformerError) {
-                    throw new PluginError(name, err.message);
-                } else {
-                    throw err;
-                }
-            }
-        })
-        .filter((r) => !!r);
-
-    return refinements;
 }
 
 function getAttrLiteralArg<T extends string | number>(attr: DataModelFieldAttribute, paramName: string) {

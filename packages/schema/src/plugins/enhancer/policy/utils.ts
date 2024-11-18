@@ -6,7 +6,8 @@ import {
     TypeScriptExpressionTransformer,
     TypeScriptExpressionTransformerError,
     getAttributeArg,
-    getAuthModel,
+    getAuthDecl,
+    getDataModelAndTypeDefs,
     getDataModels,
     getEntityCheckerFunctionName,
     getIdFields,
@@ -519,7 +520,7 @@ export function generateNormalizedAuthRef(
     const hasAuthRef = [...allows, ...denies].some((rule) => streamAst(rule).some((child) => isAuthInvocation(child)));
 
     if (hasAuthRef) {
-        const authModel = getAuthModel(getDataModels(model.$container, true));
+        const authModel = getAuthDecl(getDataModelAndTypeDefs(model.$container, true));
         if (!authModel) {
             throw new PluginError(name, 'Auth model not found');
         }
@@ -537,16 +538,19 @@ export function generateNormalizedAuthRef(
  * Check if the given enum is referenced in the model
  */
 export function isEnumReferenced(model: Model, decl: Enum): unknown {
-    return streamAllContents(model).some((node) => {
-        if (isDataModelField(node) && node.type.reference?.ref === decl) {
-            // referenced as field type
-            return true;
-        }
-        if (isEnumFieldReference(node) && node.target.ref?.$container === decl) {
-            // enum field is referenced
-            return true;
-        }
-        return false;
+    const dataModels = getDataModels(model);
+    return dataModels.some((dm) => {
+        return streamAllContents(dm).some((node) => {
+            if (isDataModelField(node) && node.type.reference?.ref === decl) {
+                // referenced as field type
+                return true;
+            }
+            if (isEnumFieldReference(node) && node.target.ref?.$container === decl) {
+                // enum field is referenced
+                return true;
+            }
+            return false;
+        });
     });
 }
 

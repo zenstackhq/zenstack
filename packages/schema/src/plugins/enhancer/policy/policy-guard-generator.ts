@@ -26,6 +26,7 @@ import {
     hasValidationAttributes,
     isAuthInvocation,
     isForeignKeyField,
+    saveSourceFile,
 } from '@zenstackhq/sdk';
 import { getPrismaClientImportSpec } from '@zenstackhq/sdk/prisma';
 import { streamAst } from 'langium';
@@ -57,9 +58,8 @@ import {
 export class PolicyGenerator {
     constructor(private options: PluginOptions) {}
 
-    async generate(project: Project, model: Model, output: string) {
+    generate(project: Project, model: Model, output: string) {
         const sf = project.createSourceFile(path.join(output, 'policy.ts'), undefined, { overwrite: true });
-        sf.addStatements('/* eslint-disable */');
 
         this.writeImports(model, output, sf);
 
@@ -87,7 +87,7 @@ export class PolicyGenerator {
         // save ts files if requested explicitly or the user provided
         const preserveTsFiles = this.options.preserveTsFiles === true || !!this.options.output;
         if (preserveTsFiles) {
-            await sf.save();
+            saveSourceFile(sf);
         }
     }
 

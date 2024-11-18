@@ -28,7 +28,15 @@ const run: PluginFunction = async (model, options, _dmmf, _globalOptions) => {
 
     const mergedOptions = { ...options, output } as unknown as PluginOptions;
     const { warnings, shortNameMap } = await new PrismaSchemaGenerator(model).generate(mergedOptions);
+
+    // the path to import the prisma client from
     let prismaClientPath = '@prisma/client';
+
+    // the real path where the prisma client was generated
+    let clientOutputDir = '.prisma/client';
+
+    // the path to the prisma client dts file
+    let prismaClientDtsPath: string | undefined = undefined;
 
     if (options.generateClient !== false) {
         let generateCmd = `prisma generate --schema "${output}"`;
@@ -68,6 +76,23 @@ const run: PluginFunction = async (model, options, _dmmf, _globalOptions) => {
                 // then make it relative to the zmodel schema location
                 prismaClientPath = normalizedRelative(path.dirname(options.schemaPath), absPath);
             }
+
+            // record custom location where the prisma client was generated
+            clientOutputDir = prismaClientPath;
+        }
+
+        // get PrismaClient dts path
+        try {
+            const prismaClientResolvedPath = require.resolve(clientOutputDir, {
+                paths: [path.dirname(options.schemaPath)],
+            });
+            prismaClientDtsPath = path.join(path.dirname(prismaClientResolvedPath), 'index.d.ts');
+        } catch (err) {
+            console.warn(
+                colors.yellow(
+                    `Could not resolve PrismaClient type declaration path. This may break plugins that depend on it.`
+                )
+            );
         }
     } else {
         console.warn(
@@ -82,7 +107,7 @@ const run: PluginFunction = async (model, options, _dmmf, _globalOptions) => {
         datamodel: fs.readFileSync(output, 'utf-8'),
     });
 
-    return { warnings, dmmf, prismaClientPath, shortNameMap };
+    return { warnings, dmmf, prismaClientPath, prismaClientDtsPath, shortNameMap };
 };
 
 function getDefaultPrismaOutputFile(schemaPath: string) {

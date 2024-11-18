@@ -15,7 +15,7 @@ import {
 } from '@zenstackhq/language/ast';
 import {
     ExpressionContext,
-    getDataModelFieldReference,
+    getFieldReference,
     getFunctionExpressionContext,
     getLiteral,
     isDataModelFieldReference,
@@ -96,7 +96,7 @@ export default class FunctionInvocationValidator implements AstValidator<Express
                 // first argument must refer to a model field
                 const firstArg = expr.args?.[0]?.value;
                 if (firstArg) {
-                    if (!getDataModelFieldReference(firstArg)) {
+                    if (!getFieldReference(firstArg)) {
                         accept('error', 'first argument must be a field reference', { node: firstArg });
                     }
                 }

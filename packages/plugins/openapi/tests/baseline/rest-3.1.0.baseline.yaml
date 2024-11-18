@@ -2797,15 +2797,11 @@ components:
                             type: string
                         attributes:
                             type: object
-                            required:
-                                - userId
                             properties:
                                 image:
                                     oneOf:
                                         - type: 'null'
                                         - type: string
-                                userId:
-                                    type: string
                         relationships:
                             type: object
                             properties:
@@ -2838,8 +2834,6 @@ components:
                                     oneOf:
                                         - type: 'null'
                                         - type: string
-                                userId:
-                                    type: string
                         relationships:
                             type: object
                             properties:
@@ -2984,10 +2978,6 @@ components:
                                     format: date-time
                                 title:
                                     type: string
-                                authorId:
-                                    oneOf:
-                                        - type: 'null'
-                                        - type: string
                                 published:
                                     type: boolean
                                 viewCount:
@@ -3034,10 +3024,6 @@ components:
                                     format: date-time
                                 title:
                                     type: string
-                                authorId:
-                                    oneOf:
-                                        - type: 'null'
-                                        - type: string
                                 published:
                                     type: boolean
                                 viewCount:

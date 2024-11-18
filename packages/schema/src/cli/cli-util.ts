@@ -1,5 +1,5 @@
 import { isDataSource, isPlugin, Model } from '@zenstackhq/language/ast';
-import { getDataModels, getLiteral, hasAttribute } from '@zenstackhq/sdk';
+import { getDataModelAndTypeDefs, getLiteral, hasAttribute } from '@zenstackhq/sdk';
 import colors from 'colors';
 import fs from 'fs';
 import { getDocument, LangiumDocument, LangiumDocuments, linkContentToContainer } from 'langium';
@@ -105,11 +105,10 @@ export async function loadDocument(fileName: string, validateOnly = false): Prom
     const imported = mergeImportsDeclarations(langiumDocuments, model);
 
     // remove imported documents
-    await services.shared.workspace.DocumentBuilder.update(
-        [],
-        imported.map((m) => m.$document!.uri)
-    );
+    imported.forEach((model) => langiumDocuments.deleteDocument(model.$document!.uri));
+    services.shared.workspace.IndexManager.remove(imported.map((model) => model.$document!.uri));
 
+    // extra validation after merging imported declarations
     validationAfterImportMerge(model);
 
     // merge fields and attributes from base models
@@ -133,10 +132,10 @@ function validationAfterImportMerge(model: Model) {
     }
 
     // at most one `@@auth` model
-    const dataModels = getDataModels(model, true);
-    const authModels = dataModels.filter((d) => hasAttribute(d, '@@auth'));
-    if (authModels.length > 1) {
-        console.error(colors.red('Validation error: Multiple `@@auth` models are not allowed'));
+    const decls = getDataModelAndTypeDefs(model, true);
+    const authDecls = decls.filter((d) => hasAttribute(d, '@@auth'));
+    if (authDecls.length > 1) {
+        console.error(colors.red('Validation error: Multiple `@@auth` declarations are not allowed'));
         throw new CliError('schema validation errors');
     }
 }

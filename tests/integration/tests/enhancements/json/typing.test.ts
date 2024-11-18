@@ -332,4 +332,57 @@ async function main() {
             }
         );
     });
+
+    it('supports recursive definition', async () => {
+        await loadSchema(
+            `
+            type Content {
+                type String
+                content Content[]?
+                text String?
+            }
+            
+            model Post {
+                id Int @id @default(autoincrement())
+                content Content @json
+            }
+            `,
+            {
+                provider: 'postgresql',
+                pushDb: false,
+                compile: true,
+                extraSourceFiles: [
+                    {
+                        name: 'main.ts',
+                        content: `
+import type { Content } from '.zenstack/models';
+import { enhance } from '.zenstack/enhance';
+import { PrismaClient } from '@prisma/client';
+
+async function main() {
+    const content: Content = {
+        type: 'text',
+        content: [
+            {
+                type: 'text',
+                content: [
+                    {
+                        type: 'text',
+                        text: 'hello',
+                    },
+                ],
+            },
+        ],
+    }
+
+    const db = enhance(new PrismaClient());
+    const post = await db.post.create({ data: { content } });
+    console.log(post.content.content?.[0].content?.[0].text);
+}
+                `,
+                    },
+                ],
+            }
+        );
+    });
 });

@@ -136,6 +136,8 @@ export class PluginRunner {
         let dmmf: DMMF.Document | undefined = undefined;
         let shortNameMap: Map<string, string> | undefined;
         let prismaClientPath = '@prisma/client';
+        let prismaClientDtsPath: string | undefined = undefined;
+
         const project = createProject();
         for (const { name, description, run, options: pluginOptions } of corePlugins) {
             const options = { ...pluginOptions, prismaClientPath };
@@ -165,6 +167,7 @@ export class PluginRunner {
             if (r.prismaClientPath) {
                 // use the prisma client path returned by the plugin
                 prismaClientPath = r.prismaClientPath;
+                prismaClientDtsPath = r.prismaClientDtsPath;
             }
         }
 
@@ -173,13 +176,13 @@ export class PluginRunner {
 
         // run user plugins
         for (const { name, description, run, options: pluginOptions } of userPlugins) {
-            const options = { ...pluginOptions, prismaClientPath };
+            const options = { ...pluginOptions, prismaClientPath, prismaClientDtsPath };
             const r = await this.runPlugin(
                 name,
                 description,
                 run,
                 runnerOptions,
-                options,
+                options as PluginOptions,
                 dmmf,
                 shortNameMap,
                 project,

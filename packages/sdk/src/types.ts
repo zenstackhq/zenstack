@@ -32,6 +32,12 @@ export type PluginOptions = {
     prismaClientPath?: string;
 
     /**
+     * PrismaClient's TypeScript declaration file's path
+     * @private
+     */
+    prismaClientDtsPath?: string;
+
+    /**
      * An optional map of full names to shortened names
      * @private
      */
@@ -73,6 +79,12 @@ export type PluginResult = {
      * generated a PrismaClient
      */
     prismaClientPath?: string;
+
+    /**
+     * PrismaClient's TypeScript declaration file's path
+     * @private
+     */
+    prismaClientDtsPath?: string;
 
     /**
      * An optional Prisma DMMF document that a plugin can generate

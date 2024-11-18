@@ -26,7 +26,7 @@ import {
     getAttributeArg,
     getAttributeArgLiteral,
     getAttributeArgs,
-    getAuthModel,
+    getAuthDecl,
     getDataModels,
     getInheritedFromDelegate,
     getLiteral,
@@ -38,6 +38,7 @@ import {
     isForeignKeyField,
     isIdField,
     resolved,
+    saveSourceFile,
     TypeScriptExpressionTransformer,
 } from '.';
 
@@ -66,14 +67,13 @@ export type ModelMetaGeneratorOptions = {
     shortNameMap?: Map<string, string>;
 };
 
-export async function generate(
+export function generate(
     project: Project,
     models: DataModel[],
     typeDefs: TypeDef[],
     options: ModelMetaGeneratorOptions
 ) {
     const sf = project.createSourceFile(options.output, undefined, { overwrite: true });
-    sf.addStatements('/* eslint-disable */');
     sf.addVariableStatement({
         declarationKind: VariableDeclarationKind.Const,
         declarations: [
@@ -83,7 +83,7 @@ export async function generate(
     sf.addStatements('export default metadata;');
 
     if (options.preserveTsFiles) {
-        await sf.save();
+        saveSourceFile(sf);
     }
 
     return sf;
@@ -101,7 +101,7 @@ function generateModelMetadata(
         writeTypeDefs(sourceFile, writer, typeDefs, options);
         writeDeleteCascade(writer, dataModels);
         writeShortNameMap(options, writer);
-        writeAuthModel(writer, dataModels);
+        writeAuthModel(writer, dataModels, typeDefs);
     });
 }
 
@@ -162,8 +162,8 @@ function writeBaseTypes(writer: CodeBlockWriter, model: DataModel) {
     }
 }
 
-function writeAuthModel(writer: CodeBlockWriter, dataModels: DataModel[]) {
-    const authModel = getAuthModel(dataModels);
+function writeAuthModel(writer: CodeBlockWriter, dataModels: DataModel[], typeDefs: TypeDef[]) {
+    const authModel = getAuthDecl([...dataModels, ...typeDefs]);
     if (authModel) {
         writer.writeLine(`authModel: '${authModel.name}'`);
     }
