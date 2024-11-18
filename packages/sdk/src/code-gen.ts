@@ -30,8 +30,7 @@ export function saveSourceFile(sourceFile: SourceFile) {
 /* eslint-disable */
 // @ts-nocheck
 
-    ${sourceFile.getText()}
-    `
+    ${sourceFile.getText()}`
     );
     sourceFile.formatText();
     sourceFile.saveSync();
