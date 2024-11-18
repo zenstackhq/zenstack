@@ -11,6 +11,7 @@ import {
     isDelegateModel,
     isDiscriminatorField,
     normalizedRelative,
+    saveSourceFile,
     type PluginOptions,
 } from '@zenstackhq/sdk';
 import {
@@ -137,7 +138,7 @@ ${
                 { overwrite: true }
             );
 
-            await this.saveSourceFile(enhanceTs);
+            this.saveSourceFile(enhanceTs);
         }
 
         return {
@@ -779,9 +780,9 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         return isReferenceExpr(arg) ? (arg.target.ref as DataModelField) : undefined;
     }
 
-    private async saveSourceFile(sf: SourceFile) {
+    private saveSourceFile(sf: SourceFile) {
         if (this.options.preserveTsFiles) {
-            await sf.save();
+            saveSourceFile(sf);
         }
     }
 
