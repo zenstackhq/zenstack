@@ -38,6 +38,7 @@ import {
     isForeignKeyField,
     isIdField,
     resolved,
+    saveSourceFile,
     TypeScriptExpressionTransformer,
 } from '.';
 
@@ -66,7 +67,7 @@ export type ModelMetaGeneratorOptions = {
     shortNameMap?: Map<string, string>;
 };
 
-export async function generate(
+export function generate(
     project: Project,
     models: DataModel[],
     typeDefs: TypeDef[],
@@ -82,7 +83,7 @@ export async function generate(
     sf.addStatements('export default metadata;');
 
     if (options.preserveTsFiles) {
-        await sf.save();
+        saveSourceFile(sf);
     }
 
     return sf;
