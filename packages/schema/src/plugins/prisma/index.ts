@@ -82,17 +82,27 @@ const run: PluginFunction = async (model, options, _dmmf, _globalOptions) => {
         }
 
         // get PrismaClient dts path
-        try {
-            const prismaClientResolvedPath = require.resolve(clientOutputDir, {
-                paths: [path.dirname(options.schemaPath)],
-            });
-            prismaClientDtsPath = path.join(path.dirname(prismaClientResolvedPath), 'index.d.ts');
-        } catch (err) {
-            console.warn(
-                colors.yellow(
-                    `Could not resolve PrismaClient type declaration path. This may break plugins that depend on it.`
-                )
-            );
+
+        if (clientOutput) {
+            // if a custom prisma client output path is configured, first try treating
+            // clientOutputDir as a relative path and locate the index.d.ts file
+            prismaClientDtsPath = path.resolve(path.dirname(options.schemaPath), clientOutputDir, 'index.d.ts');
+        }
+
+        if (!prismaClientDtsPath || !fs.existsSync(prismaClientDtsPath)) {
+            // if the file does not exist, try node module resolution
+            try {
+                const prismaClientResolvedPath = require.resolve(clientOutputDir, {
+                    paths: [path.dirname(options.schemaPath)],
+                });
+                prismaClientDtsPath = path.join(path.dirname(prismaClientResolvedPath), 'index.d.ts');
+            } catch (err) {
+                console.warn(
+                    colors.yellow(
+                        `Could not resolve PrismaClient type declaration path. This may break plugins that depend on it.`
+                    )
+                );
+            }
         }
     } else {
         console.warn(
