@@ -6,7 +6,6 @@ import { createPostgresDb, dropPostgresDb, loadSchema, run } from '@zenstackhq/t
 import { Decimal } from 'decimal.js';
 import SuperJSON from 'superjson';
 import makeHandler from '../../src/api/rest';
-import { query } from 'express';
 
 const idDivider = '_';
 
