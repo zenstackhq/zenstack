@@ -883,7 +883,7 @@ class RequestHandler extends APIHandlerBase {
                         ),
                     };
                     upsertPayload.update[key] = {
-                        connect: enumerate(data.data).map((item: any) =>
+                        set: enumerate(data.data).map((item: any) =>
                             this.makeIdConnect(relationInfo.idFields, item.id)
                         ),
                     };
