@@ -92,9 +92,15 @@ const run: PluginFunction = async (model, options, _dmmf, _globalOptions) => {
         if (!prismaClientDtsPath || !fs.existsSync(prismaClientDtsPath)) {
             // if the file does not exist, try node module resolution
             try {
-                const prismaClientResolvedPath = require.resolve(clientOutputDir, {
-                    paths: [path.dirname(options.schemaPath)],
-                });
+                // the resolution is relative to the schema path by default
+                let resolveBase = path.dirname(options.schemaPath);
+                if (!clientOutput) {
+                    // PrismaClient is generated into the default location, considering symlinked
+                    // environments like pnpm, we need to first resolve "@prisma/client",and then
+                    // resolve the ".prisma/client/index.d.ts" file relative to that
+                    resolveBase = path.dirname(require.resolve('@prisma/client', { paths: [resolveBase] }));
+                }
+                const prismaClientResolvedPath = require.resolve(clientOutputDir, { paths: [resolveBase] });
                 prismaClientDtsPath = path.join(path.dirname(prismaClientResolvedPath), 'index.d.ts');
             } catch (err) {
                 console.warn(
