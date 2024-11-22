@@ -396,9 +396,7 @@ export const ${typeDef.name}Schema = ${refineFuncName}(${noRefineSchema});
         });
         this.sourceFiles.push(sf);
         sf.replaceWithText((writer) => {
-            const allFields = model.fields.filter((f) => !hasAttribute(f, '@ignore'));
-
-            const scalarFields = allFields.filter(
+            const scalarFields = model.fields.filter(
                 (field) =>
                     // id fields are always included
                     isIdField(field) ||
@@ -406,8 +404,8 @@ export const ${typeDef.name}Schema = ${refineFuncName}(${noRefineSchema});
                     (!isDataModel(field.type.reference?.ref) && !isForeignKeyField(field))
             );
 
-            const relations = allFields.filter((field) => isDataModel(field.type.reference?.ref));
-            const fkFields = allFields.filter((field) => isForeignKeyField(field));
+            const relations = model.fields.filter((field) => isDataModel(field.type.reference?.ref));
+            const fkFields = model.fields.filter((field) => isForeignKeyField(field));
 
             this.addPreludeAndImports(model, writer, output);
 
@@ -463,7 +461,7 @@ export const ${typeDef.name}Schema = ${refineFuncName}(${noRefineSchema});
             const refineFuncName = this.createRefineFunction(model, writer);
 
             // delegate discriminator fields are to be excluded from mutation schemas
-            const delegateDiscriminatorFields = allFields.filter((field) => isDiscriminatorField(field));
+            const delegateDiscriminatorFields = model.fields.filter((field) => isDiscriminatorField(field));
             const omitDiscriminators =
                 delegateDiscriminatorFields.length > 0
                     ? `.omit({ ${delegateDiscriminatorFields.map((f) => `${f.name}: true`).join(', ')} })`

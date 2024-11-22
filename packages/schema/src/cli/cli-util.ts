@@ -1,4 +1,4 @@
-import { isDataSource, isPlugin, Model } from '@zenstackhq/language/ast';
+import { isDataModel, isDataSource, isPlugin, Model } from '@zenstackhq/language/ast';
 import { getDataModelAndTypeDefs, getLiteral, hasAttribute } from '@zenstackhq/sdk';
 import colors from 'colors';
 import fs from 'fs';
@@ -116,6 +116,9 @@ export async function loadDocument(fileName: string, validateOnly = false): Prom
 
     // finally relink all references
     const relinkedModel = await relinkAll(model, services);
+
+    // filter out data model fields marked with `@ignore`
+    filterIgnoredFields(relinkedModel);
 
     return relinkedModel;
 }
@@ -366,6 +369,16 @@ async function relinkAll(model: Model, services: ZModelServices) {
     await services.shared.workspace.DocumentBuilder.build([newDoc], { validationChecks: 'all' });
 
     return newDoc.parseResult.value as Model;
+}
+
+function filterIgnoredFields(model: Model) {
+    model.declarations.forEach((decl) => {
+        if (!isDataModel(decl)) {
+            return;
+        }
+        decl.$allFields = [...decl.fields];
+        decl.fields = decl.fields.filter((f) => !hasAttribute(f, '@ignore'));
+    });
 }
 
 export async function showNotification() {
