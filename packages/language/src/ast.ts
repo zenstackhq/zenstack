@@ -58,6 +58,11 @@ declare module './generated/ast' {
          * Indicates whether the model is already merged with the base types
          */
         $baseMerged?: boolean;
+
+        /**
+         * All fields including those marked with `@ignore`
+         */
+        $allFields?: DataModelField[];
     }
 }
 
