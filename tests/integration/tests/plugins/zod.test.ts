@@ -1081,4 +1081,20 @@ describe('Zod plugin tests', () => {
             success: false,
         });
     });
+
+    it('ignores "@ignore" fields', async () => {
+        const { zodSchemas } = await loadSchema(
+            `
+            model User {
+                id Int @id @default(autoincrement())
+                email String @unique
+                password String @ignore
+            }
+            `
+        );
+
+        const schemas = zodSchemas.models;
+        expect(schemas.UserSchema.safeParse({ id: 1, email: 'a@b.com' }).success).toBeTruthy();
+        expect(schemas.UserPrismaCreateSchema.safeParse({ email: 'a@b.com' }).success).toBeTruthy();
+    });
 });
