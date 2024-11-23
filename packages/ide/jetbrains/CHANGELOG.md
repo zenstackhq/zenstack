@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Fixed
+
+-   Proper semantic highlighting and formatting for type declarations.
+
+## 2.9.0
+
 ### Added
 
 -   Support for using `@@validate` attribute inside type declarations.
