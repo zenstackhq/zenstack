@@ -317,7 +317,7 @@ class RequestHandler extends APIHandlerBase {
                     let match = this.urlPatterns.collection.match(path);
                     if (match) {
                         const body = requestBody as any;
-                        const upsertMeta = this.upsertMetaSchema.safeParse(body.meta);
+                        const upsertMeta = this.upsertMetaSchema.safeParse(body);
                         if (upsertMeta.success) {
                             // resource upsert
                             return await this.processUpsert(
