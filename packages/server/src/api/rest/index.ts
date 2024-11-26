@@ -1071,7 +1071,7 @@ class RequestHandler extends APIHandlerBase {
                         return this.makeError('invalidRelationData');
                     }
                     updatePayload.data[key] = {
-                        set: {
+                        connect: {
                             [this.makePrismaIdKey(relationInfo.idFields)]: data.data.id,
                         },
                     };
