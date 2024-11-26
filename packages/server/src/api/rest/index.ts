@@ -209,6 +209,13 @@ class RequestHandler extends APIHandlerBase {
         data: z.array(z.object({ type: z.string(), id: z.union([z.string(), z.number()]) })),
     });
 
+    private upsertMetaSchema = z.object({
+        meta: z.object({
+            operation: z.literal('upsert'),
+            matchFields: z.array(z.string()).min(1),
+        }),
+    });
+
     // all known types and their metadata
     private typeMap: Record<string, ModelInfo>;
 
@@ -310,7 +317,8 @@ class RequestHandler extends APIHandlerBase {
                     let match = this.urlPatterns.collection.match(path);
                     if (match) {
                         const body = requestBody as any;
-                        if (body?.meta?.operation === 'upsert' && body?.meta?.matchFields?.length) {
+                        const upsertMeta = this.upsertMetaSchema.safeParse(body.meta);
+                        if (upsertMeta.success) {
                             // resource upsert
                             return await this.processUpsert(
                                 prisma,
@@ -848,7 +856,8 @@ class RequestHandler extends APIHandlerBase {
             return error;
         }
 
-        const matchFields = (requestBody as any).meta.matchFields;
+        const matchFields = this.upsertMetaSchema.parse(requestBody).meta.matchFields;
+
         const uniqueFields = Object.values(modelMeta.models[type].uniqueConstraints || {}).map((uf) => uf.fields);
 
         if (
