@@ -151,7 +151,7 @@ async function doApplyMutation(
                 logging
             );
 
-            if (r) {
+            if (r && typeof r === 'object') {
                 if (!arrayCloned) {
                     resultData = [...resultData];
                     arrayCloned = true;
@@ -160,9 +160,12 @@ async function doApplyMutation(
                 updated = true;
             }
         }
-    } else {
+    } else if (resultData !== null && typeof resultData === 'object') {
+        // Clone resultData to prevent mutations affecting the loop
+        const currentData = { ...resultData };
+
         // iterate over each field and apply mutation to nested data models
-        for (const [key, value] of Object.entries(resultData)) {
+        for (const [key, value] of Object.entries(currentData)) {
             const fieldInfo = modelFields[key];
             if (!fieldInfo?.isDataModel) {
                 continue;
@@ -178,7 +181,7 @@ async function doApplyMutation(
                 logging
             );
 
-            if (r) {
+            if (r && typeof r === 'object') {
                 resultData = { ...resultData, [key]: r };
                 updated = true;
             }
