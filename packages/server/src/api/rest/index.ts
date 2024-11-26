@@ -209,6 +209,13 @@ class RequestHandler extends APIHandlerBase {
         data: z.array(z.object({ type: z.string(), id: z.union([z.string(), z.number()]) })),
     });
 
+    private upsertMetaSchema = z.object({
+        meta: z.object({
+            operation: z.literal('upsert'),
+            matchFields: z.array(z.string()).min(1),
+        }),
+    });
+
     // all known types and their metadata
     private typeMap: Record<string, ModelInfo>;
 
@@ -309,8 +316,29 @@ class RequestHandler extends APIHandlerBase {
 
                     let match = this.urlPatterns.collection.match(path);
                     if (match) {
-                        // resource creation
-                        return await this.processCreate(prisma, match.type, query, requestBody, modelMeta, zodSchemas);
+                        const body = requestBody as any;
+                        const upsertMeta = this.upsertMetaSchema.safeParse(body);
+                        if (upsertMeta.success) {
+                            // resource upsert
+                            return await this.processUpsert(
+                                prisma,
+                                match.type,
+                                query,
+                                requestBody,
+                                modelMeta,
+                                zodSchemas
+                            );
+                        } else {
+                            // resource creation
+                            return await this.processCreate(
+                                prisma,
+                                match.type,
+                                query,
+                                requestBody,
+                                modelMeta,
+                                zodSchemas
+                            );
+                        }
                     }
 
                     match = this.urlPatterns.relationship.match(path);
@@ -809,6 +837,90 @@ class RequestHandler extends APIHandlerBase {
         };
     }
 
+    private async processUpsert(
+        prisma: DbClientContract,
+        type: string,
+        _query: Record<string, string | string[]> | undefined,
+        requestBody: unknown,
+        modelMeta: ModelMeta,
+        zodSchemas?: ZodSchemas
+    ) {
+        const typeInfo = this.typeMap[type];
+        if (!typeInfo) {
+            return this.makeUnsupportedModelError(type);
+        }
+
+        const { error, attributes, relationships } = this.processRequestBody(type, requestBody, zodSchemas, 'create');
+
+        if (error) {
+            return error;
+        }
+
+        const matchFields = this.upsertMetaSchema.parse(requestBody).meta.matchFields;
+
+        const uniqueFields = Object.values(modelMeta.models[type].uniqueConstraints || {}).map((uf) => uf.fields);
+
+        if (
+            !uniqueFields.some((uniqueCombination) => uniqueCombination.every((field) => matchFields.includes(field)))
+        ) {
+            return this.makeError('invalidPayload', 'Match fields must be unique fields', 400);
+        }
+
+        const upsertPayload: any = {
+            where: this.makeUpsertWhere(matchFields, attributes, typeInfo),
+            create: { ...attributes },
+            update: {
+                ...Object.fromEntries(Object.entries(attributes).filter((e) => !matchFields.includes(e[0]))),
+            },
+        };
+
+        if (relationships) {
+            for (const [key, data] of Object.entries<any>(relationships)) {
+                if (!data?.data) {
+                    return this.makeError('invalidRelationData');
+                }
+
+                const relationInfo = typeInfo.relationships[key];
+                if (!relationInfo) {
+                    return this.makeUnsupportedRelationshipError(type, key, 400);
+                }
+
+                if (relationInfo.isCollection) {
+                    upsertPayload.create[key] = {
+                        connect: enumerate(data.data).map((item: any) =>
+                            this.makeIdConnect(relationInfo.idFields, item.id)
+                        ),
+                    };
+                    upsertPayload.update[key] = {
+                        set: enumerate(data.data).map((item: any) =>
+                            this.makeIdConnect(relationInfo.idFields, item.id)
+                        ),
+                    };
+                } else {
+                    if (typeof data.data !== 'object') {
+                        return this.makeError('invalidRelationData');
+                    }
+                    upsertPayload.create[key] = {
+                        connect: this.makeIdConnect(relationInfo.idFields, data.data.id),
+                    };
+                    upsertPayload.update[key] = {
+                        connect: this.makeIdConnect(relationInfo.idFields, data.data.id),
+                    };
+                }
+            }
+        }
+
+        // include IDs of relation fields so that they can be serialized.
+        this.includeRelationshipIds(type, upsertPayload, 'include');
+
+        const entity = await prisma[type].upsert(upsertPayload);
+
+        return {
+            status: 201,
+            body: await this.serializeItems(type, entity),
+        };
+    }
+
     private async processRelationshipCRUD(
         prisma: DbClientContract,
         mode: 'create' | 'update' | 'delete',
@@ -1294,6 +1406,24 @@ class RequestHandler extends APIHandlerBase {
 
     private makeCompoundId(idFields: FieldInfo[], item: any) {
         return idFields.map((idf) => item[idf.name]).join(this.idDivider);
+    }
+
+    private makeUpsertWhere(matchFields: any[], attributes: any, typeInfo: ModelInfo) {
+        const where = matchFields.reduce((acc: any, field: string) => {
+            acc[field] = attributes[field] ?? null;
+            return acc;
+        }, {});
+
+        if (
+            typeInfo.idFields.length > 1 &&
+            matchFields.some((mf) => typeInfo.idFields.map((idf) => idf.name).includes(mf))
+        ) {
+            return {
+                [this.makePrismaIdKey(typeInfo.idFields)]: where,
+            };
+        }
+
+        return where;
     }
 
     private includeRelationshipIds(model: string, args: any, mode: 'select' | 'include') {
