@@ -4,11 +4,10 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| >=0.4.0 | :white_check_mark: |
+| >=1.0.0 | :white_check_mark: |
 
 ## Reporting a Vulnerability
 
-Please [create an issue](https://github.com/zenstackhq/zenstack/issues) and add a "security" label. We'll actively watch, verify and fix them with high priority.
-Alternatively, you can also reach out to us at contact@zenstack.dev.
+Please send an email to contact@zenstack.dev. We'll actively watch, verify, and fix them with high priority.
 
 Thank you for helping us make a better project!
