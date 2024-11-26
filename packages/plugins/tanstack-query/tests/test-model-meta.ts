@@ -59,7 +59,6 @@ export const modelMeta: ModelMeta = {
                     type: 'Category',
                     name: 'category',
                     isDataModel: true,
-                    isOptional: true,
                     isRelationOwner: true,
                     backLink: 'posts',
                     foreignKeyMapping: { id: 'categoryId' },
