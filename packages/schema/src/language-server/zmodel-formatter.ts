@@ -26,8 +26,8 @@ export class ZModelFormatter extends AbstractFormatter {
     protected format(node: AstNode): void {
         const formatter = this.getNodeFormatter(node);
 
-        if (ast.isDataModelField(node)) {
-            if (this.isPrismaStyle && ast.isDataModel(node.$container)) {
+        if (ast.isDataModelField(node) || ast.isTypeDefField(node)) {
+            if (this.isPrismaStyle && (ast.isDataModel(node.$container) || ast.isTypeDef(node.$container))) {
                 const dataModel = node.$container;
 
                 const compareFn = (a: number, b: number) => b - a;
@@ -104,14 +104,14 @@ export class ZModelFormatter extends AbstractFormatter {
         this.isPrismaStyle = isPrismaStyle;
     }
 
-    private getFieldTypeLength(field: ast.DataModelField) {
+    private getFieldTypeLength(field: ast.DataModelField | ast.TypeDefField) {
         let length: number;
 
         if (field.type.type) {
             length = field.type.type.length;
         } else if (field.type.reference) {
             length = field.type.reference.$refText.length;
-        } else if (field.type.unsupported) {
+        } else if (ast.isDataModelField(field) && field.type.unsupported) {
             const name = `Unsupported("${field.type.unsupported.value.value}")`;
             length = name.length;
         } else {

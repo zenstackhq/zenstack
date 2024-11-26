@@ -11,6 +11,8 @@ import { RequestHandlerContext, useInfiniteModelQuery, useModelMutation, useMode
 import { getQueryKey } from '../src/runtime/common';
 import { modelMeta } from './test-model-meta';
 
+const BASE_URL = 'http://localhost';
+
 describe('Tanstack Query React Hooks V5 Test', () => {
     function createWrapper() {
         const queryClient = new QueryClient();
@@ -25,7 +27,7 @@ describe('Tanstack Query React Hooks V5 Test', () => {
     }
 
     function makeUrl(model: string, operation: string, args?: unknown) {
-        let r = `http://localhost/api/model/${model}/${operation}`;
+        let r = `${BASE_URL}/api/model/${model}/${operation}`;
         if (args) {
             r += `?q=${encodeURIComponent(JSON.stringify(args))}`;
         }
@@ -342,6 +344,350 @@ describe('Tanstack Query React Hooks V5 Test', () => {
             const posts = cacheData[0].posts;
             expect(posts).toHaveLength(1);
             expect(posts[0]).toMatchObject({ $optimistic: true, id: expect.any(String), title: 'post1', ownerId: '1' });
+        });
+    });
+
+    it('optimistic create updating deeply nested query', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        // populate the cache with a user
+
+        const userData: any[] = [{ id: '1', name: 'user1', posts: [] }];
+
+        nock(BASE_URL)
+            .get('/api/model/User/findMany')
+            .query(true)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(userData));
+                return { data: userData };
+            })
+            .persist();
+
+        const { result: userResult } = renderHook(
+            () =>
+                useModelQuery(
+                    'User',
+                    makeUrl('User', 'findMany'),
+                    {
+                        include: {
+                            posts: {
+                                include: {
+                                    category: true,
+                                },
+                            },
+                        },
+                    },
+                    { optimisticUpdate: true }
+                ),
+            {
+                wrapper,
+            }
+        );
+        await waitFor(() => {
+            expect(userResult.current.data).toHaveLength(1);
+        });
+
+        // pupulate the cache with a category
+        const categoryData: any[] = [{ id: '1', name: 'category1', posts: [] }];
+
+        nock(BASE_URL)
+            .get('/api/model/Category/findMany')
+            .query(true)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(categoryData));
+                return { data: categoryData };
+            })
+            .persist();
+
+        const { result: categoryResult } = renderHook(
+            () =>
+                useModelQuery(
+                    'Category',
+                    makeUrl('Category', 'findMany'),
+                    { include: { posts: true } },
+                    { optimisticUpdate: true }
+                ),
+            {
+                wrapper,
+            }
+        );
+        await waitFor(() => {
+            expect(categoryResult.current.data).toHaveLength(1);
+        });
+
+        // create a post and connect it to the category
+        nock(BASE_URL)
+            .post('/api/model/Post/create')
+            .reply(200, () => {
+                console.log('Not mutating data');
+                return { data: null };
+            });
+
+        const { result: mutationResult } = renderHook(
+            () =>
+                useModelMutation('Post', 'POST', makeUrl('Post', 'create'), modelMeta, {
+                    optimisticUpdate: true,
+                    invalidateQueries: false,
+                }),
+            {
+                wrapper,
+            }
+        );
+
+        act(() =>
+            mutationResult.current.mutate({
+                data: { title: 'post1', owner: { connect: { id: '1' } }, category: { connect: { id: '1' } } },
+            })
+        );
+
+        // assert that the post was created and connected to the category
+        await waitFor(() => {
+            const cacheData: any = queryClient.getQueryData(
+                getQueryKey(
+                    'Category',
+                    'findMany',
+                    {
+                        include: {
+                            posts: true,
+                        },
+                    },
+                    { infinite: false, optimisticUpdate: true }
+                )
+            );
+            const posts = cacheData[0].posts;
+            expect(posts).toHaveLength(1);
+            console.log('category.posts', posts[0]);
+            expect(posts[0]).toMatchObject({
+                $optimistic: true,
+                id: expect.any(String),
+                title: 'post1',
+                ownerId: '1',
+            });
+        });
+
+        // assert that the post was created and connected to the user, and included the category
+        await waitFor(() => {
+            const cacheData: any = queryClient.getQueryData(
+                getQueryKey(
+                    'User',
+                    'findMany',
+                    {
+                        include: {
+                            posts: {
+                                include: {
+                                    category: true,
+                                },
+                            },
+                        },
+                    },
+                    { infinite: false, optimisticUpdate: true }
+                )
+            );
+            const posts = cacheData[0].posts;
+            expect(posts).toHaveLength(1);
+            console.log('user.posts', posts[0]);
+            expect(posts[0]).toMatchObject({
+                $optimistic: true,
+                id: expect.any(String),
+                title: 'post1',
+                ownerId: '1',
+                categoryId: '1',
+                // TODO: should this include the category object and not just the foreign key?
+                // category: { $optimistic: true, id: '1', name: 'category1' },
+            });
+        });
+    });
+
+    it('optimistic update with optional one-to-many relationship', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        // populate the cache with a post, with an optional category relatonship
+        const postData: any = {
+            id: '1',
+            title: 'post1',
+            ownerId: '1',
+            categoryId: null,
+            category: null,
+        };
+
+        const data: any[] = [postData];
+
+        nock(makeUrl('Post', 'findMany'))
+            .get(/.*/)
+            .query(true)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(data));
+                return { data };
+            })
+            .persist();
+
+        const { result: postResult } = renderHook(
+            () =>
+                useModelQuery(
+                    'Post',
+                    makeUrl('Post', 'findMany'),
+                    {
+                        include: {
+                            category: true,
+                        },
+                    },
+                    { optimisticUpdate: true }
+                ),
+            {
+                wrapper,
+            }
+        );
+        await waitFor(() => {
+            expect(postResult.current.data).toHaveLength(1);
+        });
+
+        // mock a put request to update the post title
+        nock(makeUrl('Post', 'update'))
+            .put(/.*/)
+            .reply(200, () => {
+                console.log('Mutating data');
+                postData.title = 'postA';
+                return { data: postData };
+            });
+
+        const { result: mutationResult } = renderHook(
+            () =>
+                useModelMutation('Post', 'PUT', makeUrl('Post', 'update'), modelMeta, {
+                    optimisticUpdate: true,
+                    invalidateQueries: false,
+                }),
+            {
+                wrapper,
+            }
+        );
+
+        act(() => mutationResult.current.mutate({ where: { id: '1' }, data: { title: 'postA' } }));
+
+        // assert that the post was updated despite the optional (null) category relationship
+        await waitFor(() => {
+            const cacheData: any = queryClient.getQueryData(
+                getQueryKey(
+                    'Post',
+                    'findMany',
+                    {
+                        include: {
+                            category: true,
+                        },
+                    },
+                    { infinite: false, optimisticUpdate: true }
+                )
+            );
+            const posts = cacheData;
+            expect(posts).toHaveLength(1);
+            expect(posts[0]).toMatchObject({
+                $optimistic: true,
+                id: expect.any(String),
+                title: 'postA',
+                ownerId: '1',
+                categoryId: null,
+                category: null,
+            });
+        });
+    });
+
+    it('optimistic update with nested optional one-to-many relationship', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        // populate the cache with a user and a post, with an optional category
+        const postData: any = {
+            id: '1',
+            title: 'post1',
+            ownerId: '1',
+            categoryId: null,
+            category: null,
+        };
+
+        const userData: any[] = [{ id: '1', name: 'user1', posts: [postData] }];
+
+        nock(BASE_URL)
+            .get('/api/model/User/findMany')
+            .query(true)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(userData));
+                return { data: userData };
+            })
+            .persist();
+
+        const { result: userResult } = renderHook(
+            () =>
+                useModelQuery(
+                    'User',
+                    makeUrl('User', 'findMany'),
+                    {
+                        include: {
+                            posts: {
+                                include: {
+                                    category: true,
+                                },
+                            },
+                        },
+                    },
+                    { optimisticUpdate: true }
+                ),
+            {
+                wrapper,
+            }
+        );
+        await waitFor(() => {
+            expect(userResult.current.data).toHaveLength(1);
+        });
+
+        // mock a put request to update the post title
+        nock(BASE_URL)
+            .put('/api/model/Post/update')
+            .reply(200, () => {
+                console.log('Mutating data');
+                postData.title = 'postA';
+                return { data: postData };
+            });
+
+        const { result: mutationResult } = renderHook(
+            () =>
+                useModelMutation('Post', 'PUT', makeUrl('Post', 'update'), modelMeta, {
+                    optimisticUpdate: true,
+                    invalidateQueries: false,
+                }),
+            {
+                wrapper,
+            }
+        );
+
+        act(() => mutationResult.current.mutate({ where: { id: '1' }, data: { title: 'postA' } }));
+
+        // assert that the post was updated
+        await waitFor(() => {
+            const cacheData: any = queryClient.getQueryData(
+                getQueryKey(
+                    'User',
+                    'findMany',
+                    {
+                        include: {
+                            posts: {
+                                include: {
+                                    category: true,
+                                },
+                            },
+                        },
+                    },
+                    { infinite: false, optimisticUpdate: true }
+                )
+            );
+            const posts = cacheData[0].posts;
+            expect(posts).toHaveLength(1);
+            console.log('user.posts', posts[0]);
+            expect(posts[0]).toMatchObject({
+                $optimistic: true,
+                id: expect.any(String),
+                title: 'postA',
+                ownerId: '1',
+                categoryId: null,
+                category: null,
+            });
         });
     });
 

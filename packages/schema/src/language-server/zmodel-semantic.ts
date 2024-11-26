@@ -18,6 +18,8 @@ import {
     isPlugin,
     isPluginField,
     isReferenceExpr,
+    isTypeDef,
+    isTypeDefField,
 } from '@zenstackhq/language/ast';
 import { AbstractSemanticTokenProvider, AstNode, SemanticTokenAcceptor } from 'langium';
 import { SemanticTokenTypes } from 'vscode-languageserver';
@@ -36,7 +38,7 @@ export class ZModelSemanticTokenProvider extends AbstractSemanticTokenProvider {
                 property: 'superTypes',
                 type: SemanticTokenTypes.type,
             });
-        } else if (isDataSource(node) || isGeneratorDecl(node) || isPlugin(node) || isEnum(node)) {
+        } else if (isDataSource(node) || isGeneratorDecl(node) || isPlugin(node) || isEnum(node) || isTypeDef(node)) {
             acceptor({
                 node,
                 property: 'name',
@@ -44,6 +46,7 @@ export class ZModelSemanticTokenProvider extends AbstractSemanticTokenProvider {
             });
         } else if (
             isDataModelField(node) ||
+            isTypeDefField(node) ||
             isConfigField(node) ||
             isAttributeArg(node) ||
             isPluginField(node) ||
