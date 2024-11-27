@@ -1742,7 +1742,6 @@ describe('REST server tests', () => {
                         requestBody: {
                             data: {
                                 type: 'postLike',
-                                id: `1${idDivider}user1`,
                                 attributes: { userId: 'user1', postId: 1, superLike: false },
                             },
                         },
@@ -1793,6 +1792,140 @@ describe('REST server tests', () => {
                                         data: { type: 'postLike', id: `1${idDivider}user1` },
                                     },
                                 },
+                            },
+                        },
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(201);
+                });
+
+                it('upsert a new entity', async () => {
+                    const r = await handler({
+                        method: 'post',
+                        path: '/user',
+                        query: {},
+                        requestBody: {
+                            data: {
+                                type: 'user',
+                                attributes: { myId: 'user1', email: 'user1@abc.com' },
+                            },
+                            meta: {
+                                operation: 'upsert',
+                                matchFields: ['myId'],
+                            },
+                        },
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(201);
+                    expect(r.body).toMatchObject({
+                        jsonapi: { version: '1.1' },
+                        data: {
+                            type: 'user',
+                            id: 'user1',
+                            attributes: { email: 'user1@abc.com' },
+                            relationships: {
+                                posts: {
+                                    links: {
+                                        self: 'http://localhost/api/user/user1/relationships/posts',
+                                        related: 'http://localhost/api/user/user1/posts',
+                                    },
+                                    data: [],
+                                },
+                            },
+                        },
+                    });
+                });
+
+                it('upsert an existing entity', async () => {
+                    await prisma.user.create({
+                        data: { myId: 'user1', email: 'user1@abc.com' },
+                    });
+
+                    const r = await handler({
+                        method: 'post',
+                        path: '/user',
+                        query: {},
+                        requestBody: {
+                            data: {
+                                type: 'user',
+                                attributes: { myId: 'user1', email: 'user2@abc.com' },
+                            },
+                            meta: {
+                                operation: 'upsert',
+                                matchFields: ['myId'],
+                            },
+                        },
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(201);
+                    expect(r.body).toMatchObject({
+                        jsonapi: { version: '1.1' },
+                        data: {
+                            type: 'user',
+                            id: 'user1',
+                            attributes: { email: 'user2@abc.com' },
+                        },
+                    });
+                });
+
+                it('upsert fails if matchFields are not unique', async () => {
+                    await prisma.user.create({
+                        data: { myId: 'user1', email: 'user1@abc.com' },
+                    });
+
+                    const r = await handler({
+                        method: 'post',
+                        path: '/profile',
+                        query: {},
+                        requestBody: {
+                            data: {
+                                type: 'profile',
+                                attributes: { gender: 'male' },
+                                relationships: {
+                                    user: {
+                                        data: { type: 'user', id: 'user1' },
+                                    },
+                                },
+                            },
+                            meta: {
+                                operation: 'upsert',
+                                matchFields: ['gender'],
+                            },
+                        },
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(400);
+                    expect(r.body).toMatchObject({
+                        errors: [
+                            {
+                                status: 400,
+                                code: 'invalid-payload',
+                            },
+                        ],
+                    });
+                });
+
+                it('upsert works with compound id', async () => {
+                    await prisma.user.create({ data: { myId: 'user1', email: 'user1@abc.com' } });
+                    await prisma.post.create({ data: { id: 1, title: 'Post1' } });
+
+                    const r = await handler({
+                        method: 'post',
+                        path: '/postLike',
+                        query: {},
+                        requestBody: {
+                            data: {
+                                type: 'postLike',
+                                id: `1${idDivider}user1`,
+                                attributes: { userId: 'user1', postId: 1, superLike: false },
+                            },
+                            meta: {
+                                operation: 'upsert',
+                                matchFields: ['userId', 'postId'],
                             },
                         },
                         prisma,
@@ -2005,6 +2138,31 @@ describe('REST server tests', () => {
                     });
 
                     expect(r.status).toBe(200);
+                });
+
+                it('update the id of an item with compound id', async () => {
+                    await prisma.user.create({ data: { myId: 'user1', email: 'user1@abc.com' } });
+                    await prisma.post.create({ data: { id: 1, title: 'Post1' } });
+                    await prisma.post.create({ data: { id: 2, title: 'Post2' } });
+                    await prisma.postLike.create({ data: { userId: 'user1', postId: 1, superLike: false } });
+
+                    const r = await handler({
+                        method: 'put',
+                        path: `/postLike/1${idDivider}user1`,
+                        query: {},
+                        requestBody: {
+                            data: {
+                                type: 'postLike',
+                                relationships: {
+                                    post: { data: { type: 'post', id: 2 } },
+                                },
+                            },
+                        },
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(200);
+                    expect(r.body.data.id).toBe(`2${idDivider}user1`);
                 });
 
                 it('update a single relation', async () => {
