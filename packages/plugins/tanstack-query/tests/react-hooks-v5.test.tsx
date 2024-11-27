@@ -387,7 +387,7 @@ describe('Tanstack Query React Hooks V5 Test', () => {
             expect(userResult.current.data).toHaveLength(1);
         });
 
-        // pupulate the cache with a category
+        // populate the cache with a category
         const categoryData: any[] = [{ id: '1', name: 'category1', posts: [] }];
 
         nock(BASE_URL)
@@ -501,7 +501,7 @@ describe('Tanstack Query React Hooks V5 Test', () => {
     it('optimistic update with optional one-to-many relationship', async () => {
         const { queryClient, wrapper } = createWrapper();
 
-        // populate the cache with a post, with an optional category relatonship
+        // populate the cache with a post, with an optional category relationship
         const postData: any = {
             id: '1',
             title: 'post1',
