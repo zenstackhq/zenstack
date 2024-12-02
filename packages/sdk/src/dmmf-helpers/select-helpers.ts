@@ -1,4 +1,5 @@
-import type { DMMF } from '../prisma';
+import semver from 'semver';
+import { getPrismaVersion, type DMMF } from '../prisma';
 import { checkIsModelRelationField, checkModelHasManyModelRelation } from './model-helpers';
 
 export function addMissingInputObjectTypesForSelect(
@@ -60,10 +61,14 @@ function generateModelCountOutputTypeSelectInputObjectTypes(modelCountOutputType
 
 function generateModelCountOutputTypeArgsInputObjectTypes(modelCountOutputTypes: DMMF.OutputType[]) {
     const modelCountOutputTypeArgsInputObjectTypes: DMMF.InputType[] = [];
+    const prismaVersion = getPrismaVersion();
     for (const modelCountOutputType of modelCountOutputTypes) {
         const { name: modelCountOutputTypeName } = modelCountOutputType;
         const modelCountOutputTypeArgsInputObjectType: DMMF.InputType = {
-            name: `${modelCountOutputTypeName}Args`,
+            name:
+                prismaVersion && semver.gte(prismaVersion, '6.0.0')
+                    ? `${modelCountOutputTypeName}DefaultArgs` // Prisma 6+ removed [Model]Args type
+                    : `${modelCountOutputTypeName}Args`,
             constraints: {
                 maxNumFields: null,
                 minNumFields: null,
@@ -91,6 +96,7 @@ function generateModelCountOutputTypeArgsInputObjectTypes(modelCountOutputTypes:
 
 function generateModelSelectInputObjectTypes(models: readonly DMMF.Model[]) {
     const modelSelectInputObjectTypes: DMMF.InputType[] = [];
+    const prismaVersion = getPrismaVersion();
     for (const model of models) {
         const { name: modelName, fields: modelFields } = model;
         const fields: DMMF.SchemaArg[] = [];
@@ -103,7 +109,11 @@ function generateModelSelectInputObjectTypes(models: readonly DMMF.Model[]) {
             if (isRelationField) {
                 const schemaArgInputType: DMMF.InputTypeRef = {
                     isList: false,
-                    type: isList ? `${type}FindManyArgs` : `${type}Args`,
+                    type: isList
+                        ? `${type}FindManyArgs`
+                        : prismaVersion && semver.gte(prismaVersion, '6.0.0')
+                        ? `${type}DefaultArgs` // Prisma 6+ removed [Model]Args type
+                        : `${type}Args`,
                     location: 'inputObjectTypes',
                     namespace: 'prisma',
                 };
@@ -131,7 +141,10 @@ function generateModelSelectInputObjectTypes(models: readonly DMMF.Model[]) {
                     { isList: false, type: 'Boolean', location: 'scalar' },
                     {
                         isList: false,
-                        type: `${modelName}CountOutputTypeArgs`,
+                        type:
+                            prismaVersion && semver.gte(prismaVersion, '6.0.0')
+                                ? `${modelName}CountOutputTypeDefaultArgs` // Prisma 6+ removed [Model]CountOutputTypeArgs type
+                                : `${modelName}CountOutputTypeArgs`,
                         location: 'inputObjectTypes',
                         namespace: 'prisma',
                     },
