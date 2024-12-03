@@ -2701,7 +2701,7 @@ describe('REST server tests', () => {
                 float: 1.23,
                 decimal: decimalValue1,
                 boolean: true,
-                bytes: Buffer.from([1, 2, 3, 4]),
+                bytes: new Uint8Array([1, 2, 3, 4]),
             };
 
             const { json: createPayload, meta: createMeta } = SuperJSON.serialize({
@@ -2736,7 +2736,7 @@ describe('REST server tests', () => {
             let deserialized: any = SuperJSON.deserialize({ json: r.body, meta: serializationMeta });
             let data = deserialized.data.attributes;
             expect(typeof data.bigInt).toBe('bigint');
-            expect(Buffer.isBuffer(data.bytes)).toBeTruthy();
+            expect(data.bytes).toBeInstanceOf(Uint8Array);
             expect(data.date instanceof Date).toBeTruthy();
             expect(Decimal.isDecimal(data.decimal)).toBeTruthy();
 
@@ -2744,7 +2744,7 @@ describe('REST server tests', () => {
                 bigInt: BigInt(1534543543534),
                 date: new Date(),
                 decimal: decimalValue2,
-                bytes: Buffer.from([5, 2, 3, 4]),
+                bytes: new Uint8Array([5, 2, 3, 4]),
             };
             const { json: updatePayload, meta: updateMeta } = SuperJSON.serialize({
                 data: {
@@ -2776,7 +2776,7 @@ describe('REST server tests', () => {
             expect(data.bigInt).toEqual(updateAttrs.bigInt);
             expect(data.date).toEqual(updateAttrs.date);
             expect(data.decimal.equals(updateAttrs.decimal)).toBeTruthy();
-            expect(data.bytes.toString('base64')).toEqual(updateAttrs.bytes.toString('base64'));
+            expect(data.bytes.toString()).toEqual(updateAttrs.bytes.toString());
 
             r = await handler({
                 method: 'get',
@@ -2791,7 +2791,7 @@ describe('REST server tests', () => {
             deserialized = SuperJSON.deserialize({ json: r.body, meta: serializationMeta });
             data = deserialized.data.attributes;
             expect(typeof data.bigInt).toBe('bigint');
-            expect(Buffer.isBuffer(data.bytes)).toBeTruthy();
+            expect(data.bytes).toBeInstanceOf(Uint8Array);
             expect(data.date instanceof Date).toBeTruthy();
             expect(Decimal.isDecimal(data.decimal)).toBeTruthy();
 
@@ -2807,7 +2807,7 @@ describe('REST server tests', () => {
             expect(serializationMeta).toBeTruthy();
             deserialized = SuperJSON.deserialize({ json: r.body, meta: serializationMeta });
             const included = deserialized.included[0];
-            expect(Buffer.isBuffer(included.attributes.bytes)).toBeTruthy();
+            expect(included.attributes.bytes).toBeInstanceOf(Uint8Array);
         });
     });
 

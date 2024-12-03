@@ -1,4 +1,5 @@
-import type { DMMF } from '../prisma';
+import semver from 'semver';
+import { getPrismaVersion, type DMMF } from '../prisma';
 import { checkIsModelRelationField, checkModelHasManyModelRelation, checkModelHasModelRelation } from './model-helpers';
 
 export function addMissingInputObjectTypesForInclude(
@@ -14,6 +15,7 @@ export function addMissingInputObjectTypesForInclude(
 }
 function generateModelIncludeInputObjectTypes(models: readonly DMMF.Model[]) {
     const modelIncludeInputObjectTypes: DMMF.InputType[] = [];
+    const prismaVersion = getPrismaVersion();
     for (const model of models) {
         const { name: modelName, fields: modelFields } = model;
         const fields: DMMF.SchemaArg[] = [];
@@ -32,7 +34,11 @@ function generateModelIncludeInputObjectTypes(models: readonly DMMF.Model[]) {
                         { isList: false, type: 'Boolean', location: 'scalar' },
                         {
                             isList: false,
-                            type: isList ? `${type}FindManyArgs` : `${type}Args`,
+                            type: isList
+                                ? `${type}FindManyArgs`
+                                : prismaVersion && semver.gte(prismaVersion, '6.0.0')
+                                ? `${type}DefaultArgs` // Prisma 6+ removed [Model]Args type
+                                : `${type}Args`,
                             location: 'inputObjectTypes',
                             namespace: 'prisma',
                         },
@@ -58,7 +64,10 @@ function generateModelIncludeInputObjectTypes(models: readonly DMMF.Model[]) {
             const inputTypes: DMMF.InputTypeRef[] = [{ isList: false, type: 'Boolean', location: 'scalar' }];
             inputTypes.push({
                 isList: false,
-                type: `${modelName}CountOutputTypeArgs`,
+                type:
+                    prismaVersion && semver.gte(prismaVersion, '6.0.0')
+                        ? `${modelName}CountOutputTypeDefaultArgs` // Prisma 6+ removed [Model]CountOutputTypeArgs type
+                        : `${modelName}CountOutputTypeArgs`,
                 location: 'inputObjectTypes',
                 namespace: 'prisma',
             });
