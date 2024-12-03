@@ -640,17 +640,49 @@ export class PrismaSchemaGenerator {
                 (attr) => (attr as PrismaFieldAttribute).name !== '@relation'
             );
 
+            const relKeyPairs = getRelationKeyPairs(f);
+
             if (
                 // array relation doesn't need FK
                 f.type.array ||
+                // FK field is defined on this side
+                relKeyPairs.length > 0 ||
                 // opposite relation already has FK, we don't need to generate on this side
                 (oppositeRelationAttr && getAttributeArg(oppositeRelationAttr, 'fields'))
             ) {
-                prismaField.attributes.push(
-                    new PrismaFieldAttribute('@relation', [
-                        new PrismaAttributeArg(undefined, new AttributeArgValue('String', relName)),
-                    ])
-                );
+                const relationArgs = [new PrismaAttributeArg(undefined, new AttributeArgValue('String', relName))];
+                const isSelfRelation = f.type.reference.ref === (f.$inheritedFrom ?? f.$container);
+                if (relKeyPairs.length > 0 && !isSelfRelation) {
+                    // carry over "fields" and "references" args if not a self-relation
+                    relationArgs.push(
+                        new PrismaAttributeArg(
+                            'fields',
+                            new AttributeArgValue(
+                                'Array',
+                                relKeyPairs.map(
+                                    (pair) =>
+                                        new AttributeArgValue(
+                                            'FieldReference',
+                                            new PrismaFieldReference(pair.foreignKey.name)
+                                        )
+                                )
+                            )
+                        )
+                    );
+                    relationArgs.push(
+                        new PrismaAttributeArg(
+                            'references',
+                            new AttributeArgValue(
+                                'Array',
+                                relKeyPairs.map(
+                                    (pair) =>
+                                        new AttributeArgValue('FieldReference', new PrismaFieldReference(pair.id.name))
+                                )
+                            )
+                        )
+                    );
+                }
+                prismaField.attributes.push(new PrismaFieldAttribute('@relation', relationArgs));
             } else {
                 // generate FK field
                 const oppositeModelIds = getIdFields(oppositeRelationField.$container as DataModel);
