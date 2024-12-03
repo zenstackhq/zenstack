@@ -6,7 +6,6 @@ import {
     useQuery,
     useQueryClient,
     type InfiniteData,
-    type QueryKey,
     type UseInfiniteQueryOptions,
     type UseMutationOptions,
     type UseQueryOptions,
@@ -69,24 +68,27 @@ export function useModelQuery<TQueryFnData, TData, TError>(
         | ComputedRef<Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions>,
     fetch?: FetchFn
 ) {
-    const queryOptions = computed(() => {
-        const optionsValue = toValue<
-            (Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions) | undefined
-        >(options);
-        return {
-            queryKey: getQueryKey(model, url, args, {
-                infinite: false,
-                optimisticUpdate: optionsValue?.optimisticUpdate !== false,
-            }),
-            queryFn: ({ queryKey }: { queryKey: QueryKey }) => {
-                const [_prefix, _model, _op, args] = queryKey;
-                const reqUrl = makeUrl(url, toValue(args));
-                return fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false);
-            },
-            ...optionsValue,
-        };
+    const optionsValue = toValue<
+        (Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions) | undefined
+    >(options);
+    const queryKey = getQueryKey(model, url, args, {
+        infinite: false,
+        optimisticUpdate: optionsValue?.optimisticUpdate !== false,
     });
-    return useQuery<TQueryFnData, TError, TData>(queryOptions);
+    const queryOptions = computed<Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions>(
+        () => {
+            return {
+                queryKey,
+                queryFn: ({ queryKey, signal }) => {
+                    const [_prefix, _model, _op, args] = queryKey;
+                    const reqUrl = makeUrl(url, toValue(args));
+                    return fetcher<TQueryFnData, false>(reqUrl, { signal }, fetch, false);
+                },
+                ...optionsValue,
+            };
+        }
+    );
+    return { queryKey, ...useQuery<TQueryFnData, TError, TData>(queryOptions) };
 }
 
 /**
@@ -113,18 +115,21 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
     fetch?: FetchFn
 ) {
     // CHECKME: vue-query's `useInfiniteQuery`'s input typing seems wrong
-    const queryOptions: any = computed(() => ({
-        queryKey: getQueryKey(model, url, args, { infinite: true, optimisticUpdate: false }),
-        queryFn: ({ queryKey, pageParam }: { queryKey: QueryKey; pageParam?: unknown }) => {
+    const queryKey = getQueryKey(model, url, args, { infinite: true, optimisticUpdate: false });
+    const queryOptions: any = computed<
+        Omit<UseInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>, 'queryKey' | 'initialPageParam'>
+    >(() => ({
+        queryKey,
+        queryFn: ({ queryKey, pageParam, signal }) => {
             const [_prefix, _model, _op, args] = queryKey;
             const reqUrl = makeUrl(url, pageParam ?? toValue(args));
-            return fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false);
+            return fetcher<TQueryFnData, false>(reqUrl, { signal }, fetch, false);
         },
         initialPageParam: toValue(args),
         ...toValue(options),
     }));
 
-    return useInfiniteQuery<TQueryFnData, TError, InfiniteData<TData>>(queryOptions);
+    return { queryKey, ...useInfiniteQuery<TQueryFnData, TError, TData>(queryOptions) };
 }
 
 /**

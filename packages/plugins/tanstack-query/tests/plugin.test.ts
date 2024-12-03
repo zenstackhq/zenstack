@@ -54,15 +54,17 @@ model Foo {
         import { useFindFirstpost_Item, useInfiniteFindManypost_Item, useCreatepost_Item } from './hooks';
 
         function query() {
-            const { data } = useFindFirstpost_Item({include: { author: true }}, { enabled: true, optimisticUpdate: false });
+            const { data, queryKey } = useFindFirstpost_Item({include: { author: true }}, { enabled: true, optimisticUpdate: false });
+            console.log(queryKey);
             console.log(data?.viewCount);
             console.log(data?.author?.email);
         }
 
         function infiniteQuery() {
-            const { data, fetchNextPage, hasNextPage } = useInfiniteFindManypost_Item();
+            const { data, queryKey, fetchNextPage, hasNextPage } = useInfiniteFindManypost_Item();
             useInfiniteFindManypost_Item({ where: { published: true } });
             useInfiniteFindManypost_Item(undefined, { enabled: true, getNextPageParam: () => null });
+            console.log(queryKey);
             console.log(data?.pages[0][0].published);
             console.log(data?.pageParams[0]);
         }
@@ -124,9 +126,10 @@ ${sharedModel}
                         import { useSuspenseInfiniteFindManypost_Item } from './hooks';
 
                         function suspenseInfiniteQuery() {
-                            const { data, fetchNextPage, hasNextPage } = useSuspenseInfiniteFindManypost_Item();
+                            const { data, queryKey, fetchNextPage, hasNextPage } = useSuspenseInfiniteFindManypost_Item();
                             useSuspenseInfiniteFindManypost_Item({ where: { published: true } });
                             useSuspenseInfiniteFindManypost_Item(undefined, { getNextPageParam: () => null });
+                            console.log(queryKey);
                             console.log(data?.pages[0][0].published);
                             console.log(data?.pageParams[0]);
                         }
@@ -143,15 +146,17 @@ ${sharedModel}
         import { useFindFirstpost_Item, useInfiniteFindManypost_Item, useCreatepost_Item } from './hooks';
 
         function query() {
-            const { data } = useFindFirstpost_Item({include: { author: true }}, { enabled: true, optimisticUpdate: false });
+            const { data, queryKey } = useFindFirstpost_Item({include: { author: true }}, { enabled: true, optimisticUpdate: false });
+            console.log(queryKey);
             console.log(data.value?.viewCount);
             console.log(data.value?.author?.email);
         }
 
         function infiniteQuery() {
-            const { data, fetchNextPage, hasNextPage } = useInfiniteFindManypost_Item();
+            const { data, queryKey, fetchNextPage, hasNextPage } = useInfiniteFindManypost_Item();
             useInfiniteFindManypost_Item({ where: { published: true } }, { enabled: true, getNextPageParam: () => null });
             useInfiniteFindManypost_Item(undefined, { getNextPageParam: () => null });
+            console.log(queryKey);
             console.log(data.value?.pages[0][0].published);
             console.log(data.value?.pageParams[0]);
         }
@@ -217,15 +222,17 @@ ${sharedModel}
         import { useFindFirstpost_Item, useInfiniteFindManypost_Item, useCreatepost_Item } from './hooks';
 
         function query() {
-            const { data } = get(useFindFirstpost_Item({include: { author: true }}, { enabled: true, optimisticUpdate: false }));
+            const { data, queryKey } = get(useFindFirstpost_Item({include: { author: true }}, { enabled: true, optimisticUpdate: false }));
+            console.log(queryKey);
             console.log(data?.viewCount);
             console.log(data?.author?.email);
         }
 
         function infiniteQuery() {
-            const { data, fetchNextPage, hasNextPage } = get(useInfiniteFindManypost_Item());
+            const { data, queryKey, fetchNextPage, hasNextPage } = get(useInfiniteFindManypost_Item());
             useInfiniteFindManypost_Item({ where: { published: true } });
             useInfiniteFindManypost_Item(undefined, { enabled: true, getNextPageParam: () => null });
+            console.log(queryKey);
             console.log(data?.pages[0][0].published);
             console.log(data?.pageParams[0]);
         }

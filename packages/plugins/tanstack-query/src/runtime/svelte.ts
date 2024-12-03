@@ -10,6 +10,7 @@ import {
 } from '@tanstack/svelte-query';
 import { ModelMeta } from '@zenstackhq/runtime/cross';
 import { getContext, setContext } from 'svelte';
+import { derived } from 'svelte/store';
 import {
     APIContext,
     DEFAULT_QUERY_ENDPOINT,
@@ -64,14 +65,19 @@ export function useModelQuery<TQueryFnData, TData, TError>(
     fetch?: FetchFn
 ) {
     const reqUrl = makeUrl(url, args);
-    return createQuery<TQueryFnData, TError, TData>({
-        queryKey: getQueryKey(model, url, args, {
-            infinite: false,
-            optimisticUpdate: options?.optimisticUpdate !== false,
-        }),
-        queryFn: () => fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false),
+    const queryKey = getQueryKey(model, url, args, {
+        infinite: false,
+        optimisticUpdate: options?.optimisticUpdate !== false,
+    });
+    const result = createQuery<TQueryFnData, TError, TData>({
+        queryKey,
+        queryFn: ({ signal }) => fetcher<TQueryFnData, false>(reqUrl, { signal }, fetch, false),
         ...options,
     });
+    return derived(result, (r) => ({
+        queryKey,
+        ...r,
+    }));
 }
 
 /**
@@ -91,12 +97,17 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
     options?: Omit<CreateInfiniteQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>,
     fetch?: FetchFn
 ) {
-    return createInfiniteQuery<TQueryFnData, TError, TData>({
-        queryKey: getQueryKey(model, url, args, { infinite: true, optimisticUpdate: false }),
-        queryFn: ({ pageParam }) =>
-            fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false),
+    const queryKey = getQueryKey(model, url, args, { infinite: true, optimisticUpdate: false });
+    const result = createInfiniteQuery<TQueryFnData, TError, TData>({
+        queryKey,
+        queryFn: ({ pageParam, signal }) =>
+            fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), { signal }, fetch, false),
         ...options,
     });
+    return derived(result, (r) => ({
+        queryKey,
+        ...r,
+    }));
 }
 
 /**
