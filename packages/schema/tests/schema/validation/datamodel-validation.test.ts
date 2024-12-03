@@ -75,7 +75,7 @@ describe('Data Model Validation Tests', () => {
                 @@allow('all', a == 'a')
             }
         `)
-        ).toMatchObject(errorLike('Field of "Unsupported" type cannot be used in expressions'));
+        ).toMatchObject(errorLike('incompatible operand types'));
     });
 
     it('Using `this` in collection predicate', async () => {
