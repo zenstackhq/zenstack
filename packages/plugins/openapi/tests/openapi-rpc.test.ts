@@ -457,6 +457,36 @@ model post_Item {
 
         await OpenAPIParser.validate(output);
     });
+
+    it('auth() in @default()', async () => {
+        const { projectDir } = await loadSchema(`
+plugin openapi {
+    provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
+    output = '$projectRoot/openapi.yaml'
+    flavor = 'rpc'
+}
+
+model User {
+    id Int @id
+    posts Post[]
+}
+
+model Post {
+    id Int @id
+    title String
+    author User @relation(fields: [authorId], references: [id])
+    authorId Int @default(auth().id)
+}
+        `);
+
+        const output = path.join(projectDir, 'openapi.yaml');
+        console.log('OpenAPI specification generated:', output);
+
+        await OpenAPIParser.validate(output);
+        const parsed = YAML.parse(fs.readFileSync(output, 'utf-8'));
+        expect(parsed.components.schemas.PostCreateInput.required).not.toContain('author');
+        expect(parsed.components.schemas.PostCreateManyInput.required).not.toContain('authorId');
+    });
 });
 
 function buildOptions(model: Model, modelFile: string, output: string) {
