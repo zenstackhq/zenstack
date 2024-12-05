@@ -1,4 +1,5 @@
-import type { DMMF } from '../prisma';
+import semver from 'semver';
+import { getPrismaVersion, type DMMF } from '../prisma';
 import { checkModelHasModelRelation } from './model-helpers';
 
 export function addMissingInputObjectTypesForModelArgs(
@@ -13,6 +14,7 @@ export function addMissingInputObjectTypesForModelArgs(
 }
 function generateModelArgsInputObjectTypes(models: readonly DMMF.Model[]) {
     const modelArgsInputObjectTypes: DMMF.InputType[] = [];
+    const prismaVersion = getPrismaVersion();
     for (const model of models) {
         const { name: modelName } = model;
         const fields: DMMF.SchemaArg[] = [];
@@ -52,7 +54,10 @@ function generateModelArgsInputObjectTypes(models: readonly DMMF.Model[]) {
         }
 
         const modelArgsInputObjectType: DMMF.InputType = {
-            name: `${modelName}Args`,
+            name:
+                prismaVersion && semver.gte(prismaVersion, '6.0.0')
+                    ? `${modelName}DefaultArgs` // Prisma 6+ removed [Model]Args type
+                    : `${modelName}Args`,
             constraints: {
                 maxNumFields: null,
                 minNumFields: null,

@@ -180,7 +180,7 @@ components:
                     $ref: '#/components/schemas/Post_ItemListRelationFilter'
                 profile:
                     oneOf:
-                        - $ref: '#/components/schemas/ProfileNullableRelationFilter'
+                        - $ref: '#/components/schemas/ProfileNullableScalarRelationFilter'
                         - $ref: '#/components/schemas/ProfileWhereInput'
                     nullable: true
         UserOrderByWithRelationInput:
@@ -241,7 +241,7 @@ components:
                     $ref: '#/components/schemas/Post_ItemListRelationFilter'
                 profile:
                     oneOf:
-                        - $ref: '#/components/schemas/ProfileNullableRelationFilter'
+                        - $ref: '#/components/schemas/ProfileNullableScalarRelationFilter'
                         - $ref: '#/components/schemas/ProfileWhereInput'
                     nullable: true
         UserScalarWhereWithAggregatesInput:
@@ -319,7 +319,7 @@ components:
                         - type: string
                 user:
                     oneOf:
-                        - $ref: '#/components/schemas/UserRelationFilter'
+                        - $ref: '#/components/schemas/UserScalarRelationFilter'
                         - $ref: '#/components/schemas/UserWhereInput'
         ProfileOrderByWithRelationInput:
             type: object
@@ -364,7 +364,7 @@ components:
                     nullable: true
                 user:
                     oneOf:
-                        - $ref: '#/components/schemas/UserRelationFilter'
+                        - $ref: '#/components/schemas/UserScalarRelationFilter'
                         - $ref: '#/components/schemas/UserWhereInput'
         ProfileScalarWhereWithAggregatesInput:
             type: object
@@ -455,7 +455,7 @@ components:
                     nullable: true
                 author:
                     oneOf:
-                        - $ref: '#/components/schemas/UserNullableRelationFilter'
+                        - $ref: '#/components/schemas/UserNullableScalarRelationFilter'
                         - $ref: '#/components/schemas/UserWhereInput'
                     nullable: true
         Post_ItemOrderByWithRelationInput:
@@ -538,7 +538,7 @@ components:
                     nullable: true
                 author:
                     oneOf:
-                        - $ref: '#/components/schemas/UserNullableRelationFilter'
+                        - $ref: '#/components/schemas/UserNullableScalarRelationFilter'
                         - $ref: '#/components/schemas/UserWhereInput'
                     nullable: true
         Post_ItemScalarWhereWithAggregatesInput:
@@ -951,7 +951,7 @@ components:
                     $ref: '#/components/schemas/Post_ItemWhereInput'
                 none:
                     $ref: '#/components/schemas/Post_ItemWhereInput'
-        ProfileNullableRelationFilter:
+        ProfileNullableScalarRelationFilter:
             type: object
             properties:
                 is:
@@ -1105,7 +1105,7 @@ components:
                         - type: string
                         - $ref: '#/components/schemas/NestedStringNullableFilter'
                     nullable: true
-        UserRelationFilter:
+        UserScalarRelationFilter:
             type: object
             properties:
                 is:
@@ -1198,7 +1198,7 @@ components:
                     oneOf:
                         - type: integer
                         - $ref: '#/components/schemas/NestedIntFilter'
-        UserNullableRelationFilter:
+        UserNullableScalarRelationFilter:
             type: object
             properties:
                 is:
@@ -2660,14 +2660,14 @@ components:
                         - type: string
                         - $ref: '#/components/schemas/NullableStringFieldUpdateOperationsInput'
                     nullable: true
-        UserArgs:
+        UserDefaultArgs:
             type: object
             properties:
                 select:
                     $ref: '#/components/schemas/UserSelect'
                 include:
                     $ref: '#/components/schemas/UserInclude'
-        ProfileArgs:
+        ProfileDefaultArgs:
             type: object
             properties:
                 select:
@@ -2684,31 +2684,31 @@ components:
                 profile:
                     oneOf:
                         - type: boolean
-                        - $ref: '#/components/schemas/ProfileArgs'
+                        - $ref: '#/components/schemas/ProfileDefaultArgs'
                 _count:
                     oneOf:
                         - type: boolean
-                        - $ref: '#/components/schemas/UserCountOutputTypeArgs'
+                        - $ref: '#/components/schemas/UserCountOutputTypeDefaultArgs'
         ProfileInclude:
             type: object
             properties:
                 user:
                     oneOf:
                         - type: boolean
-                        - $ref: '#/components/schemas/UserArgs'
+                        - $ref: '#/components/schemas/UserDefaultArgs'
         Post_ItemInclude:
             type: object
             properties:
                 author:
                     oneOf:
                         - type: boolean
-                        - $ref: '#/components/schemas/UserArgs'
+                        - $ref: '#/components/schemas/UserDefaultArgs'
         UserCountOutputTypeSelect:
             type: object
             properties:
                 posts:
                     type: boolean
-        UserCountOutputTypeArgs:
+        UserCountOutputTypeDefaultArgs:
             type: object
             properties:
                 select:
@@ -2733,11 +2733,11 @@ components:
                 profile:
                     oneOf:
                         - type: boolean
-                        - $ref: '#/components/schemas/ProfileArgs'
+                        - $ref: '#/components/schemas/ProfileDefaultArgs'
                 _count:
                     oneOf:
                         - type: boolean
-                        - $ref: '#/components/schemas/UserCountOutputTypeArgs'
+                        - $ref: '#/components/schemas/UserCountOutputTypeDefaultArgs'
         ProfileSelect:
             type: object
             properties:
@@ -2748,7 +2748,7 @@ components:
                 user:
                     oneOf:
                         - type: boolean
-                        - $ref: '#/components/schemas/UserArgs'
+                        - $ref: '#/components/schemas/UserDefaultArgs'
                 userId:
                     type: boolean
         Post_ItemSelect:
@@ -2765,7 +2765,7 @@ components:
                 author:
                     oneOf:
                         - type: boolean
-                        - $ref: '#/components/schemas/UserArgs'
+                        - $ref: '#/components/schemas/UserDefaultArgs'
                 authorId:
                     type: boolean
                 published:

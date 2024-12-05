@@ -304,8 +304,8 @@ describe('RPC API Handler Tests', () => {
         const decimalValue = new Decimal('0.046875');
         const bigIntValue = BigInt(534543543534);
         const dateValue = new Date();
-        const bufferValue = Buffer.from([1, 2, 3, 4]);
-        const barBufferValue = Buffer.from([7, 8, 9]);
+        const bytesValue = new Uint8Array([1, 2, 3, 4]);
+        const barBytesValue = new Uint8Array([7, 8, 9]);
 
         const createData = {
             string: 'string',
@@ -315,9 +315,9 @@ describe('RPC API Handler Tests', () => {
             float: 1.23,
             decimal: decimalValue,
             boolean: true,
-            bytes: bufferValue,
+            bytes: bytesValue,
             bars: {
-                create: { bytes: barBufferValue },
+                create: { bytes: barBytesValue },
             },
         };
 
@@ -342,10 +342,10 @@ describe('RPC API Handler Tests', () => {
         expect(r.meta).toBeTruthy();
         const data: any = SuperJSON.deserialize({ json: r.data, meta: r.meta.serialization });
         expect(typeof data.bigInt).toBe('bigint');
-        expect(Buffer.isBuffer(data.bytes)).toBeTruthy();
+        expect(data.bytes).toBeInstanceOf(Uint8Array);
         expect(data.date instanceof Date).toBeTruthy();
         expect(Decimal.isDecimal(data.decimal)).toBeTruthy();
-        expect(Buffer.isBuffer(data.bars[0].bytes)).toBeTruthy();
+        expect(data.bars[0].bytes).toBeInstanceOf(Uint8Array);
 
         // find with filter not found
         const serializedQ = SuperJSON.serialize({
@@ -394,7 +394,7 @@ describe('RPC API Handler Tests', () => {
             where: {
                 bars: {
                     some: {
-                        bytes: barBufferValue,
+                        bytes: barBytesValue,
                     },
                 },
             },
@@ -418,7 +418,7 @@ describe('RPC API Handler Tests', () => {
             where: {
                 bars: {
                     none: {
-                        bytes: barBufferValue,
+                        bytes: barBytesValue,
                     },
                 },
             },

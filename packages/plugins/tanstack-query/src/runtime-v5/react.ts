@@ -68,14 +68,18 @@ export function useModelQuery<TQueryFnData, TData, TError>(
     fetch?: FetchFn
 ) {
     const reqUrl = makeUrl(url, args);
-    return useQuery({
-        queryKey: getQueryKey(model, url, args, {
-            infinite: false,
-            optimisticUpdate: options?.optimisticUpdate !== false,
-        }),
-        queryFn: () => fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false),
-        ...options,
+    const queryKey = getQueryKey(model, url, args, {
+        infinite: false,
+        optimisticUpdate: options?.optimisticUpdate !== false,
     });
+    return {
+        queryKey,
+        ...useQuery({
+            queryKey,
+            queryFn: ({ signal }) => fetcher<TQueryFnData, false>(reqUrl, { signal }, fetch, false),
+            ...options,
+        }),
+    };
 }
 
 /**
@@ -96,14 +100,18 @@ export function useSuspenseModelQuery<TQueryFnData, TData, TError>(
     fetch?: FetchFn
 ) {
     const reqUrl = makeUrl(url, args);
-    return useSuspenseQuery({
-        queryKey: getQueryKey(model, url, args, {
-            infinite: false,
-            optimisticUpdate: options?.optimisticUpdate !== false,
-        }),
-        queryFn: () => fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false),
-        ...options,
+    const queryKey = getQueryKey(model, url, args, {
+        infinite: false,
+        optimisticUpdate: options?.optimisticUpdate !== false,
     });
+    return {
+        queryKey,
+        ...useSuspenseQuery({
+            queryKey,
+            queryFn: ({ signal }) => fetcher<TQueryFnData, false>(reqUrl, { signal }, fetch, false),
+            ...options,
+        }),
+    };
 }
 
 /**
@@ -123,14 +131,18 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
     options: Omit<UseInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>, 'queryKey' | 'initialPageParam'>,
     fetch?: FetchFn
 ) {
-    return useInfiniteQuery({
-        queryKey: getQueryKey(model, url, args, { infinite: true, optimisticUpdate: false }),
-        queryFn: ({ pageParam }) => {
-            return fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);
-        },
-        initialPageParam: args,
-        ...options,
-    });
+    const queryKey = getQueryKey(model, url, args, { infinite: true, optimisticUpdate: false });
+    return {
+        queryKey,
+        ...useInfiniteQuery({
+            queryKey,
+            queryFn: ({ pageParam, signal }) => {
+                return fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), { signal }, fetch, false);
+            },
+            initialPageParam: args,
+            ...options,
+        }),
+    };
 }
 
 /**
@@ -153,14 +165,18 @@ export function useSuspenseInfiniteModelQuery<TQueryFnData, TData, TError>(
     >,
     fetch?: FetchFn
 ) {
-    return useSuspenseInfiniteQuery({
-        queryKey: getQueryKey(model, url, args, { infinite: true, optimisticUpdate: false }),
-        queryFn: ({ pageParam }) => {
-            return fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);
-        },
-        initialPageParam: args,
-        ...options,
-    });
+    const queryKey = getQueryKey(model, url, args, { infinite: true, optimisticUpdate: false });
+    return {
+        queryKey,
+        ...useSuspenseInfiniteQuery({
+            queryKey,
+            queryFn: ({ pageParam, signal }) => {
+                return fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), { signal }, fetch, false);
+            },
+            initialPageParam: args,
+            ...options,
+        }),
+    };
 }
 
 /**

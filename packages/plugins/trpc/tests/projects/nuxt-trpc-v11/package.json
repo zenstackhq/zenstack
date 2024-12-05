@@ -10,9 +10,10 @@
         "postinstall": "nuxt prepare"
     },
     "dependencies": {
-        "@prisma/client": "^5.19.1",
+        "@prisma/client": "6.0.x",
         "@trpc/client": "^11.0.0-rc.563",
         "@trpc/server": "^11.0.0-rc.563",
+        "nuxt": "^3.14.1592",
         "trpc-nuxt": "^0.11.0-beta.1",
         "vue": "latest",
         "vue-router": "latest",
@@ -20,7 +21,7 @@
     },
     "devDependencies": {
         "esbuild": "^0.24.0",
-        "prisma": "^5.19.1",
+        "prisma": "6.0.x",
         "typescript": "^5.6.2",
         "vue-tsc": "^2.1.10"
     }

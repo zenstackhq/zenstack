@@ -48,7 +48,7 @@ describe('Type Coverage Tests', () => {
             Float: 1.23,
             Decimal: new Decimal(1.2345),
             Boolean: true,
-            Bytes: Buffer.from('hello'),
+            Bytes: new Uint8Array([1, 2, 3, 4]),
         };
 
         await db.foo.create({

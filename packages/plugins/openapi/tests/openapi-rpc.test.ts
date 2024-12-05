@@ -4,7 +4,7 @@
 import OpenAPIParser from '@readme/openapi-parser';
 import { getLiteral, getObjectLiteral } from '@zenstackhq/sdk';
 import { Model, Plugin, isPlugin } from '@zenstackhq/sdk/ast';
-import { loadZModelAndDmmf, normalizePath } from '@zenstackhq/testtools';
+import { loadSchema, loadZModelAndDmmf, normalizePath } from '@zenstackhq/testtools';
 import fs from 'fs';
 import path from 'path';
 import * as tmp from 'tmp';
@@ -17,11 +17,13 @@ describe('Open API Plugin RPC Tests', () => {
     it('run plugin', async () => {
         for (const specVersion of ['3.0.0', '3.1.0']) {
             for (const omitInputDetails of [true, false]) {
-                const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
+                const { projectDir } = await loadSchema(
+                    `
 plugin openapi {
     provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
     specVersion = '${specVersion}'
     omitInputDetails = ${omitInputDetails}
+    output = '$projectRoot/openapi.yaml'
 }
 
 enum role {
@@ -89,18 +91,17 @@ model Bar {
     id String @id
     @@ignore
 }
-        `);
-
-                const { name: output } = tmp.fileSync({ postfix: '.yaml' });
-
-                const options = buildOptions(model, modelFile, output);
-                await generate(model, options, dmmf);
-
-                console.log(
-                    `OpenAPI specification generated for ${specVersion}${omitInputDetails ? ' - omit' : ''}: ${output}`
+        `,
+                    { provider: 'postgresql', pushDb: false }
                 );
 
-                const parsed = YAML.parse(fs.readFileSync(output, 'utf-8'));
+                console.log(
+                    `OpenAPI specification generated for ${specVersion}${
+                        omitInputDetails ? ' - omit' : ''
+                    }: ${projectDir}/openapi.yaml`
+                );
+
+                const parsed = YAML.parse(fs.readFileSync(path.join(projectDir, 'openapi.yaml'), 'utf-8'));
                 expect(parsed.openapi).toBe(specVersion);
                 const baseline = YAML.parse(
                     fs.readFileSync(
@@ -110,7 +111,7 @@ model Bar {
                 );
                 expect(parsed).toMatchObject(baseline);
 
-                const api = await OpenAPIParser.validate(output);
+                const api = await OpenAPIParser.validate(path.join(projectDir, 'openapi.yaml'));
 
                 expect(api.tags).toEqual(
                     expect.arrayContaining([
@@ -455,6 +456,36 @@ model post_Item {
         console.log('OpenAPI specification generated:', output);
 
         await OpenAPIParser.validate(output);
+    });
+
+    it('auth() in @default()', async () => {
+        const { projectDir } = await loadSchema(`
+plugin openapi {
+    provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
+    output = '$projectRoot/openapi.yaml'
+    flavor = 'rpc'
+}
+
+model User {
+    id Int @id
+    posts Post[]
+}
+
+model Post {
+    id Int @id
+    title String
+    author User @relation(fields: [authorId], references: [id])
+    authorId Int @default(auth().id)
+}
+        `);
+
+        const output = path.join(projectDir, 'openapi.yaml');
+        console.log('OpenAPI specification generated:', output);
+
+        await OpenAPIParser.validate(output);
+        const parsed = YAML.parse(fs.readFileSync(output, 'utf-8'));
+        expect(parsed.components.schemas.PostCreateInput.required).not.toContain('author');
+        expect(parsed.components.schemas.PostCreateManyInput.required).not.toContain('authorId');
     });
 });
 
