@@ -1,6 +1,7 @@
 import colors from 'colors';
 import fs from 'fs';
 import path from 'path';
+import pkgJson from '../../package.json';
 import { PackageManagers, ensurePackage, installPackage } from '../../utils/pkg-utils';
 import { getVersion } from '../../utils/version-utils';
 import { CliError } from '../cli-error';
@@ -50,8 +51,10 @@ export async function init(projectPath: string, options: Options) {
         }
     }
 
-    ensurePackage('prisma', true, options.packageManager, 'latest', projectPath);
-    ensurePackage('@prisma/client', false, options.packageManager, 'latest', projectPath);
+    const latestSupportedPrismaVersion = getLatestSupportedPrismaVersion();
+
+    ensurePackage('prisma', true, options.packageManager, latestSupportedPrismaVersion, projectPath);
+    ensurePackage('@prisma/client', false, options.packageManager, latestSupportedPrismaVersion, projectPath);
 
     const tag = options.tag ?? getVersion();
     installPackage('zenstack', true, options.packageManager, tag, projectPath);
@@ -74,4 +77,16 @@ Moving forward please edit this file and run "zenstack generate" to regenerate P
     if (options.versionCheck) {
         await checkNewVersion();
     }
+}
+
+function getLatestSupportedPrismaVersion() {
+    const versionSpec = pkgJson.peerDependencies.prisma;
+    let maxVersion: string | undefined;
+    const hyphen = versionSpec.indexOf('-');
+    if (hyphen > 0) {
+        maxVersion = versionSpec.substring(hyphen + 1).trim();
+    } else {
+        maxVersion = versionSpec;
+    }
+    return maxVersion ?? 'latest';
 }
