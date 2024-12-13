@@ -86,7 +86,7 @@ jobs:
                   gradle-home-cache-cleanup: true
 
             - name: Build
-              run: DEFAULT_NPM_TAG=latest pnpm run build
+              run: DEFAULT_NPM_TAG=latest pnpm run build-ci
 
             - name: Lint
               run: pnpm lint
