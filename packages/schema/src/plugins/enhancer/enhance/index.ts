@@ -283,6 +283,7 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
             output: logicalPrismaFile,
             overrideClientGenerationPath: prismaClientOutDir,
             mode: 'logical',
+            customAttributesAsComments: true,
         });
 
         // generate the prisma client
