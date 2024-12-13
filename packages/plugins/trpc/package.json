@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/trpc",
     "displayName": "ZenStack plugin for tRPC",
-    "version": "2.10.0",
+    "version": "2.10.1",
     "description": "ZenStack plugin for tRPC",
     "main": "index.js",
     "repository": {
@@ -31,8 +31,10 @@
         "lower-case-first": "^2.0.2",
         "ts-morph": "^16.0.0",
         "tslib": "^2.4.1",
-        "upper-case-first": "^2.0.2",
-        "zod": "^3.22.4"
+        "upper-case-first": "^2.0.2"
+    },
+    "peerDependencies": {
+        "zod": "^3.22.4"        
     },
     "devDependencies": {
         "@trpc/next": "^10.32.0",

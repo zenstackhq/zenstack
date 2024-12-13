@@ -9,10 +9,12 @@ import { z as Z } from 'zod';
  * accidentally matching a less-ideal schema candidate.
  *
  * The helper uses a custom schema to find the candidate that results in the fewest unrecognized keys when parsing the data.
+ *
+ * The function uses `any` for parameter and return type to be compatible with various zod versions.
  */
-export function smartUnion(z: typeof Z, candidates: Z.ZodSchema[]) {
+export function smartUnion(z: any, candidates: any[]): any {
     // strip `z.lazy`
-    const processedCandidates = candidates.map((candidate) => unwrapLazy(z, candidate));
+    const processedCandidates: Z.ZodSchema[] = candidates.map((candidate) => unwrapLazy(z, candidate));
 
     if (processedCandidates.some((c) => !(c instanceof z.ZodObject || c instanceof z.ZodArray))) {
         // fall back to plain union if not all candidates are objects or arrays
@@ -22,11 +24,13 @@ export function smartUnion(z: typeof Z, candidates: Z.ZodSchema[]) {
     let resultData: any;
 
     return z
-        .custom((data) => {
+        .custom((data: any) => {
             if (Array.isArray(data)) {
                 const { data: result, success } = smartArrayUnion(
                     z,
-                    processedCandidates.filter((c) => c instanceof z.ZodArray),
+                    processedCandidates.filter((c) => c instanceof z.ZodArray) as Array<
+                        Z.ZodArray<Z.ZodObject<Z.ZodRawShape>>
+                    >,
                     data
                 );
                 if (success) {
@@ -36,7 +40,7 @@ export function smartUnion(z: typeof Z, candidates: Z.ZodSchema[]) {
             } else {
                 const { data: result, success } = smartObjectUnion(
                     z,
-                    processedCandidates.filter((c) => c instanceof z.ZodObject),
+                    processedCandidates.filter((c) => c instanceof z.ZodObject) as Z.ZodObject<Z.ZodRawShape>[],
                     data
                 );
                 if (success) {

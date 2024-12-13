@@ -1,9 +1,10 @@
 {
     "name": "zenstack-monorepo",
-    "version": "2.10.0",
+    "version": "2.10.1",
     "description": "",
     "scripts": {
-        "build": "pnpm -r build",
+        "build": "pnpm -r --filter=\"!./packages/ide/*\" build",
+        "build-ci": "pnpm -r build",
         "lint": "pnpm -r lint",
         "test": "pnpm -r --parallel run test --silent --forceExit",
         "test-ci": "pnpm -r --parallel run --filter=\"./packages/**\" test --silent --forceExit",
