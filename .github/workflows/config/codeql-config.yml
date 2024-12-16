@@ -1,0 +1,8 @@
+paths:
+    - 'packages'
+paths-ignore:
+    - '**/*.test.js'
+    - '**/*.test.ts'
+    - '**/*.test.tsx'
+    - '**/__tests__/**'
+    - 'packages/ide/**'
