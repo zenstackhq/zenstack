@@ -14,13 +14,14 @@ import { withJsonProcessor } from './json-processor';
 import { Logger } from './logger';
 import { withOmit } from './omit';
 import { withPassword } from './password';
+import { withEncrypted } from './encrypted';
 import { policyProcessIncludeRelationPayload, withPolicy } from './policy';
 import type { PolicyDef } from './types';
 
 /**
  * All enhancement kinds
  */
-const ALL_ENHANCEMENTS: EnhancementKind[] = ['password', 'omit', 'policy', 'validation', 'delegate'];
+const ALL_ENHANCEMENTS: EnhancementKind[] = ['password', 'omit', 'policy', 'validation', 'delegate', 'encrypted'];
 
 /**
  * Options for {@link createEnhancement}
@@ -100,6 +101,7 @@ export function createEnhancement<DbClient extends object>(
     }
 
     const hasPassword = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@password'));
+    const hasEncrypted = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@encrypted'));
     const hasOmit = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@omit'));
     const hasDefaultAuth = allFields.some((field) => field.defaultValueProvider);
     const hasTypeDefField = allFields.some((field) => field.isTypeDef);
@@ -120,11 +122,16 @@ export function createEnhancement<DbClient extends object>(
         }
     }
 
-    // password enhancement must be applied prior to policy because it changes then length of the field
+    // password and encrypted enhancement must be applied prior to policy because it changes then length of the field
     // and can break validation rules like `@length`
     if (hasPassword && kinds.includes('password')) {
         // @password proxy
         result = withPassword(result, options);
+    }
+
+    if (hasEncrypted && kinds.includes('encrypted')) {
+        // @encrypted proxy
+        result = withEncrypted(result, options);
     }
 
     // 'policy' and 'validation' enhancements are both enabled by `withPolicy`
