@@ -13,22 +13,32 @@ describe('Encrypted test', () => {
     });
 
     it('encrypted tests', async () => {
+        const ENCRYPTION_KEY = 'c558Gq0YQK2QcqtkMF9BGXHCQn4dMF8w';
+
         const { enhance } = await loadSchema(`
     model User {
         id String @id @default(cuid())
-        encrypted_value String @encrypted(saltLength: 16)
+        encrypted_value String @encrypted(secret: "${ENCRYPTION_KEY}")
     
         @@allow('all', true)
     }`);
 
         const db = enhance();
-        const r = await db.user.create({
+
+        const create = await db.user.create({
             data: {
                 id: '1',
                 encrypted_value: 'abc123',
             },
         });
 
-        expect(r.encrypted_value).toBe('abc123');
+        const read = await db.user.findUnique({
+            where: {
+                id: '1',
+            },
+        });
+
+        expect(create.encrypted_value).toBe('abc123');
+        expect(read.encrypted_value).toBe('abc123');
     });
 });
