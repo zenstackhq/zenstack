@@ -12,6 +12,7 @@ export function analyzePolicies(dataModel: DataModel) {
     const read = toStaticPolicy('read', allows, denies);
     const update = toStaticPolicy('update', allows, denies);
     const del = toStaticPolicy('delete', allows, denies);
+    const list = toStaticPolicy('list', allows, denies);
     const hasFieldValidation = hasValidationAttributes(dataModel);
 
     return {
@@ -21,6 +22,7 @@ export function analyzePolicies(dataModel: DataModel) {
         read,
         update,
         delete: del,
+        list,
         allowAll: create === true && read === true && update === true && del === true,
         denyAll: create === false && read === false && update === false && del === false,
         hasFieldValidation,
