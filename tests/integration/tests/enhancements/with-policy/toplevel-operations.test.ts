@@ -271,4 +271,52 @@ describe('With Policy: toplevel operations', () => {
 
         expect(await db.model.deleteMany()).toEqual(expect.objectContaining({ count: 0 }));
     });
+
+    it('list tests', async () => {
+        const { enhance, prisma } = await loadSchema(
+            `
+        model Model {
+            id String @id @default(uuid())
+        
+            @@allow('create', true)
+            @@allow('list', true)
+        }
+        `
+        );
+
+        const db = enhance();
+
+        await expect(
+            db.model.create({
+                data: {
+                    id: '1',
+                    value: 1,
+                },
+            })
+        ).toBeRejectedByPolicy();
+        const fromPrisma = await prisma.model.findUnique({
+            where: { id: '1' },
+        });
+        expect(fromPrisma).toBeTruthy();
+
+        expect(await db.model.findMany()).toHaveLength(0);
+        expect(await db.model.findUnique({ where: { id: '1' } })).toBeNull();
+        expect(await db.model.findFirst({ where: { id: '1' } })).toBeNull();
+        await expect(db.model.findUniqueOrThrow({ where: { id: '1' } })).toBeNotFound();
+        await expect(db.model.findFirstOrThrow({ where: { id: '1' } })).toBeNotFound();
+
+        const item2 = {
+            id: '2',
+            value: 2,
+        };
+        const r1 = await db.model.create({
+            data: item2,
+        });
+        expect(r1).toBeTruthy();
+        expect(await db.model.findMany()).toHaveLength(1);
+        expect(await db.model.findUnique({ where: { id: '2' } })).toEqual(expect.objectContaining(item2));
+        expect(await db.model.findFirst({ where: { id: '2' } })).toEqual(expect.objectContaining(item2));
+        expect(await db.model.findUniqueOrThrow({ where: { id: '2' } })).toEqual(expect.objectContaining(item2));
+        expect(await db.model.findFirstOrThrow({ where: { id: '2' } })).toEqual(expect.objectContaining(item2));
+    });
 });
