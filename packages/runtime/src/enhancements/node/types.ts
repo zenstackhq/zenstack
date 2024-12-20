@@ -140,6 +140,7 @@ export type ModelCrudDef = {
     create: ModelCreateDef;
     update: ModelUpdateDef;
     delete: ModelDeleteDef;
+    list: ModelListDef;
     postUpdate: ModelPostUpdateDef;
 };
 
@@ -206,6 +207,11 @@ type ModelUpdateDef = ModelCrudCommon;
  * Policy definition for deleting a model
  */
 type ModelDeleteDef = ModelCrudCommon;
+
+/**
+ * Policy definition for listing a model
+ */
+type ModelListDef = ModelCrudCommon;
 
 /**
  * Policy definition for post-update checking a model

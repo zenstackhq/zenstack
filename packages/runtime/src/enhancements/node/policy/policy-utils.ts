@@ -277,6 +277,7 @@ export class PolicyUtil extends QueryUtils {
             create: { guard: true, inputChecker: true },
             update: { guard: true },
             delete: { guard: true },
+            list: { guard: true },
             postUpdate: { guard: true },
         },
     };
