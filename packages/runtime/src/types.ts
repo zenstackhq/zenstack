@@ -174,8 +174,8 @@ export type ZodSchemas = {
 };
 
 export type CustomEncryption = {
-    encrypt: (model: string, field: FieldInfo, plain: string) => string;
-    decrypt: (model: string, field: FieldInfo, cipher: string) => string;
+    encrypt: (model: string, field: FieldInfo, plain: string) => Promise<string>;
+    decrypt: (model: string, field: FieldInfo, cipher: string) => Promise<string>;
 };
 
 export type SimpleEncryption = { encryptionKey: string };

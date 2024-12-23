@@ -56,7 +56,7 @@ class EncryptedHandler extends DefaultPrismaProxyHandler {
 
     private async encrypt(field: FieldInfo, data: string): Promise<string> {
         if (this.isCustomEncryption(this.options.encryption!)) {
-            return this.options.encryption.encrypt(this.model, field, data);
+            return await this.options.encryption.encrypt(this.model, field, data);
         }
 
         const key = await getKey(this.options.encryption!.encryptionKey);
@@ -80,7 +80,7 @@ class EncryptedHandler extends DefaultPrismaProxyHandler {
 
     private async decrypt(field: FieldInfo, data: string): Promise<string> {
         if (this.isCustomEncryption(this.options.encryption!)) {
-            return this.options.encryption.decrypt(this.model, field, data);
+            return await this.options.encryption.decrypt(this.model, field, data);
         }
 
         const key = await getKey(this.options.encryption!.encryptionKey);
@@ -145,10 +145,6 @@ class EncryptedHandler extends DefaultPrismaProxyHandler {
             field: async (field, _action, data, context) => {
                 const encAttr = field.attributes?.find((attr) => attr.name === '@encrypted');
                 if (encAttr && field.type === 'String') {
-                    // encrypt value
-
-                    const secret: string = encAttr.args.find((arg) => arg.name === 'secret')?.value as string;
-
                     context.parent[field.name] = await this.encrypt(field, data);
                 }
             },
