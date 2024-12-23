@@ -241,7 +241,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
             }
         );
     } else {
-        run(`encryption_key=c558Gq0YQK2QcqtkMF9BGXHCQn4dMF8w npx zenstack generate --no-version-check --no-dependency-check${outputArg}${otherArgs}`, {
+        run(`npx zenstack generate --no-version-check --no-dependency-check${outputArg}${otherArgs}`, {
             NODE_PATH: './node_modules',
         });
     }
