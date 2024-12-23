@@ -130,6 +130,10 @@ export function createEnhancement<DbClient extends object>(
     }
 
     if (hasEncrypted && kinds.includes('encrypted')) {
+        if (!options.encryption) {
+            throw new Error('Encryption options are required for @encrypted enhancement');
+        }
+
         // @encrypted proxy
         result = withEncrypted(result, options);
     }
