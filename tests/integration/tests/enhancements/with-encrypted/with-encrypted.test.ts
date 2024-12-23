@@ -13,17 +13,15 @@ describe('Encrypted test', () => {
     });
 
     it('encrypted tests', async () => {
-        const ENCRYPTION_KEY = 'c558Gq0YQK2QcqtkMF9BGXHCQn4dMF8w';
-
         const { enhance } = await loadSchema(`
     model User {
         id String @id @default(cuid())
-        encrypted_value String @encrypted(secret: "${ENCRYPTION_KEY}")
+        encrypted_value String @encrypted()
     
         @@allow('all', true)
     }`);
 
-        const db = enhance();
+        const db = enhance(undefined, { encryption: { encryptionKey: 'c558Gq0YQK2QcqtkMF9BGXHCQn4dMF8w' } });
 
         const create = await db.user.create({
             data: {
