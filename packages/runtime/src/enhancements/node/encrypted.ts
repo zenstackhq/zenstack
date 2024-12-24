@@ -149,6 +149,9 @@ class EncryptedHandler extends DefaultPrismaProxyHandler {
     private async preprocessWritePayload(model: string, action: PrismaWriteActionType, args: any) {
         const visitor = new NestedWriteVisitor(this.options.modelMeta, {
             field: async (field, _action, data, context) => {
+                // Don't encrypt null, undefined or empty string values
+                if (!data) return;
+                
                 const encAttr = field.attributes?.find((attr) => attr.name === '@encrypted');
                 if (encAttr && field.type === 'String') {
                     context.parent[field.name] = await this.encrypt(field, data);
