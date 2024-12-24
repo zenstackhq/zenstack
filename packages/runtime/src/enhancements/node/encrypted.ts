@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import {
     FieldInfo,
     NestedWriteVisitor,
@@ -31,23 +28,22 @@ export function withEncrypted<DbClient extends object = any>(
     );
 }
 
-const encoder = new TextEncoder();
-const decoder = new TextDecoder();
-
-const getKey = async (secret: string): Promise<CryptoKey> => {
-    return crypto.subtle.importKey('raw', encoder.encode(secret).slice(0, 32), 'AES-GCM', false, [
-        'encrypt',
-        'decrypt',
-    ]);
-};
-
 class EncryptedHandler extends DefaultPrismaProxyHandler {
     private queryUtils: QueryUtils;
+    private encoder = new TextEncoder();
+    private decoder = new TextDecoder();
 
     constructor(prisma: DbClientContract, model: string, options: InternalEnhancementOptions) {
         super(prisma, model, options);
 
         this.queryUtils = new QueryUtils(prisma, options);
+    }
+
+    private async getKey(secret: string): Promise<CryptoKey> {
+        return crypto.subtle.importKey('raw', this.encoder.encode(secret).slice(0, 32), 'AES-GCM', false, [
+            'encrypt',
+            'decrypt',
+        ]);
     }
 
     private isCustomEncryption(encryption: CustomEncryption | SimpleEncryption): encryption is CustomEncryption {
@@ -56,10 +52,10 @@ class EncryptedHandler extends DefaultPrismaProxyHandler {
 
     private async encrypt(field: FieldInfo, data: string): Promise<string> {
         if (this.isCustomEncryption(this.options.encryption!)) {
-            return await this.options.encryption.encrypt(this.model, field, data);
+            return this.options.encryption.encrypt(this.model, field, data);
         }
 
-        const key = await getKey(this.options.encryption!.encryptionKey);
+        const key = await this.getKey(this.options.encryption!.encryptionKey);
         const iv = crypto.getRandomValues(new Uint8Array(12));
 
         const encrypted = await crypto.subtle.encrypt(
@@ -68,7 +64,7 @@ class EncryptedHandler extends DefaultPrismaProxyHandler {
                 iv,
             },
             key,
-            encoder.encode(data)
+            this.encoder.encode(data)
         );
 
         // Combine IV and encrypted data into a single array of bytes
@@ -80,13 +76,13 @@ class EncryptedHandler extends DefaultPrismaProxyHandler {
 
     private async decrypt(field: FieldInfo, data: string): Promise<string> {
         if (this.isCustomEncryption(this.options.encryption!)) {
-            return await this.options.encryption.decrypt(this.model, field, data);
+            return this.options.encryption.decrypt(this.model, field, data);
         }
 
-        const key = await getKey(this.options.encryption!.encryptionKey);
+        const key = await this.getKey(this.options.encryption!.encryptionKey);
 
         // Convert base64 back to bytes
-        const bytes = Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
+        const bytes = Uint8Array.from(atob(data));
 
         // First 12 bytes are IV, rest is encrypted data
         const decrypted = await crypto.subtle.decrypt(
@@ -98,7 +94,7 @@ class EncryptedHandler extends DefaultPrismaProxyHandler {
             bytes.slice(12)
         );
 
-        return decoder.decode(decrypted);
+        return this.decoder.decode(decrypted);
     }
 
     // base override
