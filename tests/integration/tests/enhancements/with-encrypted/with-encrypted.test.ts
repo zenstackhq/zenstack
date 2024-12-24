@@ -23,7 +23,10 @@ describe('Encrypted test', () => {
     }`);
 
         const sudoDb = enhance(undefined, { kinds: [] });
-        const db = enhance(undefined, { encryption: { encryptionKey: 'c558Gq0YQK2QcqtkMF9BGXHCQn4dMF8w' } });
+        const db = enhance(undefined, {
+            kinds: ['encrypted'],
+            encryption: { encryptionKey: 'c558Gq0YQK2QcqtkMF9BGXHCQn4dMF8w' },
+        });
 
         const create = await db.user.create({
             data: {
@@ -60,6 +63,7 @@ describe('Encrypted test', () => {
 
         const sudoDb = enhance(undefined, { kinds: [] });
         const db = enhance(undefined, {
+            kinds: ['encrypted'],
             encryption: {
                 encrypt: async (model: string, field: FieldInfo, data: string) => {
                     // Add _enc to the end of the input
