@@ -178,4 +178,4 @@ export type CustomEncryption = {
     decrypt: (model: string, field: FieldInfo, cipher: string) => Promise<string>;
 };
 
-export type SimpleEncryption = { encryptionKey: string };
+export type SimpleEncryption = { encryptionKey: Uint8Array };
