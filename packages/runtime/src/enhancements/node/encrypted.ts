@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import {
     FieldInfo,
     NestedWriteVisitor,
@@ -37,13 +40,20 @@ class EncryptedHandler extends DefaultPrismaProxyHandler {
         super(prisma, model, options);
 
         this.queryUtils = new QueryUtils(prisma, options);
+
+        if (!options.encryption) throw new Error('Encryption options must be provided');
+
+        if (this.isCustomEncryption(options.encryption!)) {
+            if (!options.encryption.encrypt || !options.encryption.decrypt)
+                throw new Error('Custom encryption must provide encrypt and decrypt functions');
+        } else {
+            if (!options.encryption.encryptionKey) throw new Error('Encryption key must be provided');
+            if (options.encryption.encryptionKey.length !== 32) throw new Error('Encryption key must be 32 bytes');
+        }
     }
 
-    private async getKey(secret: string): Promise<CryptoKey> {
-        return crypto.subtle.importKey('raw', this.encoder.encode(secret).slice(0, 32), 'AES-GCM', false, [
-            'encrypt',
-            'decrypt',
-        ]);
+    private async getKey(secret: Uint8Array): Promise<CryptoKey> {
+        return crypto.subtle.importKey('raw', secret, 'AES-GCM', false, ['encrypt', 'decrypt']);
     }
 
     private isCustomEncryption(encryption: CustomEncryption | SimpleEncryption): encryption is CustomEncryption {
@@ -82,7 +92,7 @@ class EncryptedHandler extends DefaultPrismaProxyHandler {
         const key = await this.getKey(this.options.encryption!.encryptionKey);
 
         // Convert base64 back to bytes
-        const bytes = Uint8Array.from(atob(data));
+        const bytes = Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
 
         // First 12 bytes are IV, rest is encrypted data
         const decrypted = await crypto.subtle.decrypt(
