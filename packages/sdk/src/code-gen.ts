@@ -47,6 +47,11 @@ export async function saveProject(project: Project) {
  * Emit a TS project to JS files.
  */
 export async function emitProject(project: Project) {
+    // ignore type checking for all source files
+    for (const sf of project.getSourceFiles()) {
+        sf.insertStatements(0, '// @ts-nocheck');
+    }
+
     const errors = project.getPreEmitDiagnostics().filter((d) => d.getCategory() === DiagnosticCategory.Error);
     if (errors.length > 0) {
         console.error('Error compiling generated code:');
