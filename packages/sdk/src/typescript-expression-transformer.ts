@@ -20,6 +20,7 @@ import {
     isNullExpr,
     isThisExpr,
 } from '@zenstackhq/language/ast';
+import { getContainerOfType } from 'langium';
 import { P, match } from 'ts-pattern';
 import { ExpressionContext } from './constants';
 import { getEntityCheckerFunctionName } from './names';
@@ -39,6 +40,8 @@ type Options = {
     context: ExpressionContext;
     operationContext?: 'read' | 'create' | 'update' | 'postUpdate' | 'delete';
 };
+
+type Casing = 'original' | 'upper' | 'lower' | 'capitalize' | 'uncapitalize';
 
 // a registry of function handlers marked with @func
 const functionHandlers = new Map<string, PropertyDescriptor>();
@@ -150,7 +153,7 @@ export class TypeScriptExpressionTransformer {
         }
 
         const args = expr.args.map((arg) => arg.value);
-        return handler.value.call(this, args, normalizeUndefined);
+        return handler.value.call(this, expr, args, normalizeUndefined);
     }
 
     // #region function invocation handlers
@@ -168,7 +171,7 @@ export class TypeScriptExpressionTransformer {
     }
 
     @func('length')
-    private _length(args: Expression[]) {
+    private _length(_invocation: InvocationExpr, args: Expression[]) {
         const field = this.transform(args[0], false);
         const min = getLiteral<number>(args[1]);
         const max = getLiteral<number>(args[2]);
@@ -188,7 +191,7 @@ export class TypeScriptExpressionTransformer {
     }
 
     @func('contains')
-    private _contains(args: Expression[], normalizeUndefined: boolean) {
+    private _contains(_invocation: InvocationExpr, args: Expression[], normalizeUndefined: boolean) {
         const field = this.transform(args[0], false);
         const caseInsensitive = getLiteral<boolean>(args[2]) === true;
         let result: string;
@@ -201,34 +204,34 @@ export class TypeScriptExpressionTransformer {
     }
 
     @func('startsWith')
-    private _startsWith(args: Expression[], normalizeUndefined: boolean) {
+    private _startsWith(_invocation: InvocationExpr, args: Expression[], normalizeUndefined: boolean) {
         const field = this.transform(args[0], false);
         const result = `${field}?.startsWith(${this.transform(args[1], normalizeUndefined)})`;
         return this.ensureBoolean(result);
     }
 
     @func('endsWith')
-    private _endsWith(args: Expression[], normalizeUndefined: boolean) {
+    private _endsWith(_invocation: InvocationExpr, args: Expression[], normalizeUndefined: boolean) {
         const field = this.transform(args[0], false);
         const result = `${field}?.endsWith(${this.transform(args[1], normalizeUndefined)})`;
         return this.ensureBoolean(result);
     }
 
     @func('regex')
-    private _regex(args: Expression[]) {
+    private _regex(_invocation: InvocationExpr, args: Expression[]) {
         const field = this.transform(args[0], false);
         const pattern = getLiteral<string>(args[1]);
         return this.ensureBooleanTernary(args[0], field, `new RegExp(${JSON.stringify(pattern)}).test(${field})`);
     }
 
     @func('email')
-    private _email(args: Expression[]) {
+    private _email(_invocation: InvocationExpr, args: Expression[]) {
         const field = this.transform(args[0], false);
         return this.ensureBooleanTernary(args[0], field, `z.string().email().safeParse(${field}).success`);
     }
 
     @func('datetime')
-    private _datetime(args: Expression[]) {
+    private _datetime(_invocation: InvocationExpr, args: Expression[]) {
         const field = this.transform(args[0], false);
         return this.ensureBooleanTernary(
             args[0],
@@ -238,20 +241,20 @@ export class TypeScriptExpressionTransformer {
     }
 
     @func('url')
-    private _url(args: Expression[]) {
+    private _url(_invocation: InvocationExpr, args: Expression[]) {
         const field = this.transform(args[0], false);
         return this.ensureBooleanTernary(args[0], field, `z.string().url().safeParse(${field}).success`);
     }
 
     @func('has')
-    private _has(args: Expression[], normalizeUndefined: boolean) {
+    private _has(_invocation: InvocationExpr, args: Expression[], normalizeUndefined: boolean) {
         const field = this.transform(args[0], false);
         const result = `${field}?.includes(${this.transform(args[1], normalizeUndefined)})`;
         return this.ensureBoolean(result);
     }
 
     @func('hasEvery')
-    private _hasEvery(args: Expression[], normalizeUndefined: boolean) {
+    private _hasEvery(_invocation: InvocationExpr, args: Expression[], normalizeUndefined: boolean) {
         const field = this.transform(args[0], false);
         return this.ensureBooleanTernary(
             args[0],
@@ -261,7 +264,7 @@ export class TypeScriptExpressionTransformer {
     }
 
     @func('hasSome')
-    private _hasSome(args: Expression[], normalizeUndefined: boolean) {
+    private _hasSome(_invocation: InvocationExpr, args: Expression[], normalizeUndefined: boolean) {
         const field = this.transform(args[0], false);
         return this.ensureBooleanTernary(
             args[0],
@@ -271,13 +274,13 @@ export class TypeScriptExpressionTransformer {
     }
 
     @func('isEmpty')
-    private _isEmpty(args: Expression[]) {
+    private _isEmpty(_invocation: InvocationExpr, args: Expression[]) {
         const field = this.transform(args[0], false);
         return `(!${field} || ${field}?.length === 0)`;
     }
 
     @func('check')
-    private _check(args: Expression[]) {
+    private _check(_invocation: InvocationExpr, args: Expression[]) {
         if (!isDataModelFieldReference(args[0])) {
             throw new TypeScriptExpressionTransformerError(`First argument of check() must be a field`);
         }
@@ -307,6 +310,52 @@ export class TypeScriptExpressionTransformer {
 
         const entityCheckerFunc = getEntityCheckerFunctionName(targetModel, undefined, false, operation);
         return `${entityCheckerFunc}(input.${fieldRef.target.$refText}, context)`;
+    }
+
+    private toStringWithCaseChange(value: string, casing: Casing) {
+        if (!value) {
+            return "''";
+        }
+        return match(casing)
+            .with('original', () => `'${value}'`)
+            .with('upper', () => `'${value.toUpperCase()}'`)
+            .with('lower', () => `'${value.toLowerCase()}'`)
+            .with('capitalize', () => `'${value.charAt(0).toUpperCase() + value.slice(1)}'`)
+            .with('uncapitalize', () => `'${value.charAt(0).toLowerCase() + value.slice(1)}'`)
+            .exhaustive();
+    }
+
+    @func('currentModel')
+    private _currentModel(invocation: InvocationExpr, args: Expression[]) {
+        let casing: Casing = 'original';
+        if (args[0]) {
+            casing = getLiteral<string>(args[0]) as Casing;
+        }
+
+        const containingModel = getContainerOfType(invocation, isDataModel);
+        if (!containingModel) {
+            throw new TypeScriptExpressionTransformerError('currentModel() must be called inside a model');
+        }
+        return this.toStringWithCaseChange(containingModel.name, casing);
+    }
+
+    @func('currentOperation')
+    private _currentOperation(_invocation: InvocationExpr, args: Expression[]) {
+        let casing: Casing = 'original';
+        if (args[0]) {
+            casing = getLiteral<string>(args[0]) as Casing;
+        }
+
+        if (!this.options.operationContext) {
+            throw new TypeScriptExpressionTransformerError(
+                'currentOperation() must be called inside an access policy rule'
+            );
+        }
+        let contextOperation = this.options.operationContext;
+        if (contextOperation === 'postUpdate') {
+            contextOperation = 'update';
+        }
+        return this.toStringWithCaseChange(contextOperation, casing);
     }
 
     private ensureBoolean(expr: string) {

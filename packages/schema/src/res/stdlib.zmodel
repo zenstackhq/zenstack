@@ -172,6 +172,29 @@ function isEmpty(field: Any[]): Boolean {
 } @@@expressionContext([AccessPolicy, ValidationRule])
 
 /**
+ * The name of the model for which the policy rule is defined. If the rule is
+ * inherited to a sub model, this function returns the name of the sub model.
+ * 
+ * @param optional parameter to control the casing of the returned value. Valid
+ * values are "original", "upper", "lower", "capitalize", "uncapitalize". Defaults 
+ * to "original".
+ */
+function currentModel(casing: String?): String {
+} @@@expressionContext([AccessPolicy])
+
+/**
+ * The operation for which the policy rule is defined for. Note that a rule with
+ * "all" operation is expanded to "create", "read", "update", and "delete" rules,
+ * and the function returns corresponding value for each expanded version.
+ * 
+ * @param optional parameter to control the casing of the returned value. Valid
+ * values are "original", "upper", "lower", "capitalize", "uncapitalize". Defaults
+ * to "original".
+ */
+function currentOperation(casing: String?): String {
+} @@@expressionContext([AccessPolicy])
+
+/**
  * Marks an attribute to be only applicable to certain field types.
  */
 attribute @@@targetField(_ targetField: AttributeTargetField[])
