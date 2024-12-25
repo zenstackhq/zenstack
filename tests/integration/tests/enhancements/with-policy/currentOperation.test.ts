@@ -112,12 +112,12 @@ describe('currentOperation tests', () => {
             model User {
                 id Int @id
                 @@allow('read', true)
-                @@allow('create', currentOperation('capitalize') == 'create')
+                @@allow('create', currentOperation('uncapitalize') == 'create')
             }
             model Post {
                 id Int @id
                 @@allow('read', true)
-                @@allow('create', currentOperation('capitalize') == 'read')
+                @@allow('create', currentOperation('uncapitalize') == 'read')
             }
             `
         );
