@@ -142,7 +142,7 @@ class EncryptedHandler extends DefaultPrismaProxyHandler {
             const shouldDecrypt = fieldInfo.attributes?.find((attr) => attr.name === '@encrypted');
             if (shouldDecrypt) {
                 // Don't decrypt null, undefined or empty string values
-                if (!entityData[field]) return;
+                if (!entityData[field]) continue;
 
                 entityData[field] = await this.decrypt(fieldInfo, entityData[field]);
             }
