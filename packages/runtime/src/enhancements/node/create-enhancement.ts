@@ -21,7 +21,7 @@ import type { PolicyDef } from './types';
 /**
  * All enhancement kinds
  */
-const ALL_ENHANCEMENTS: EnhancementKind[] = ['password', 'omit', 'policy', 'validation', 'delegate'];
+const ALL_ENHANCEMENTS: EnhancementKind[] = ['password', 'omit', 'policy', 'validation', 'delegate', 'encrypted'];
 
 /**
  * Options for {@link createEnhancement}
