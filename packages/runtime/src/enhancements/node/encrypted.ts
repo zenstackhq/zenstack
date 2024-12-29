@@ -144,7 +144,11 @@ class EncryptedHandler extends DefaultPrismaProxyHandler {
                 // Don't decrypt null, undefined or empty string values
                 if (!entityData[field]) continue;
 
-                entityData[field] = await this.decrypt(fieldInfo, entityData[field]);
+                try {
+                    entityData[field] = await this.decrypt(fieldInfo, entityData[field]);
+                } catch (error) {
+                    console.warn('Decryption failed, keeping original value:', error);
+                }
             }
         }
     }
@@ -157,7 +161,11 @@ class EncryptedHandler extends DefaultPrismaProxyHandler {
 
                 const encAttr = field.attributes?.find((attr) => attr.name === '@encrypted');
                 if (encAttr && field.type === 'String') {
-                    context.parent[field.name] = await this.encrypt(field, data);
+                    try {
+                        context.parent[field.name] = await this.encrypt(field, data);
+                    } catch (error) {
+                        throw new Error(`Encryption failed for field ${field.name}: ${error}`);
+                    }
                 }
             },
         });

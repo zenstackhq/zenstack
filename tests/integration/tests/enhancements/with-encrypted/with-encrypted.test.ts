@@ -23,9 +23,11 @@ describe('Encrypted test', () => {
     }`);
 
         const sudoDb = enhance(undefined, { kinds: [] });
+        const encryptionKey = new Uint8Array(Buffer.from('AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=', 'base64'));
+
         const db = enhance(undefined, {
             kinds: ['encrypted'],
-            encryption: { encryptionKey: 'c558Gq0YQK2QcqtkMF9BGXHCQn4dMF8w' },
+            encryption: { encryptionKey },
         });
 
         const create = await db.user.create({
