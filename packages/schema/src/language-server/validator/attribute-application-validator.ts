@@ -25,7 +25,7 @@ import {
     isRelationshipField,
     resolved,
 } from '@zenstackhq/sdk';
-import { ValidationAcceptor, streamAst } from 'langium';
+import { ValidationAcceptor, streamAllContents, streamAst } from 'langium';
 import pluralize from 'pluralize';
 import { AstValidator } from '../types';
 import { getStringLiteral, mapBuiltinTypeToExpressionType, typeAssignable } from './utils';
@@ -138,6 +138,9 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
             return;
         }
         this.validatePolicyKinds(kind, ['create', 'read', 'update', 'delete', 'all'], attr, accept);
+
+        // @encrypted fields cannot be used in policy rules
+        this.rejectEncryptedFields(attr, accept);
     }
 
     @check('@allow')
@@ -166,6 +169,9 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
                 );
             }
         }
+
+        // @encrypted fields cannot be used in policy rules
+        this.rejectEncryptedFields(attr, accept);
     }
 
     @check('@@validate')
@@ -204,6 +210,14 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
         } else {
             accept('error', `Expected an array of field references`, { node: fields });
         }
+    }
+
+    private rejectEncryptedFields(attr: AttributeApplication, accept: ValidationAcceptor) {
+        streamAllContents(attr).forEach((node) => {
+            if (isDataModelFieldReference(node) && hasAttribute(node.target.ref as DataModelField, '@encrypted')) {
+                accept('error', `Encrypted fields cannot be used in policy rules`, { node });
+            }
+        });
     }
 
     private validatePolicyKinds(

@@ -151,7 +151,7 @@ export type EnhancementContext<User extends AuthUser = AuthUser> = {
 /**
  * Kinds of enhancements to `PrismaClient`
  */
-export type EnhancementKind = 'password' | 'omit' | 'policy' | 'validation' | 'delegate' | 'encrypted';
+export type EnhancementKind = 'password' | 'omit' | 'policy' | 'validation' | 'delegate' | 'encryption';
 
 /**
  * Function for transforming errors.

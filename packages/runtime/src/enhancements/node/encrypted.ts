@@ -9,8 +9,9 @@ import {
     resolveField,
     type PrismaWriteActionType,
 } from '../../cross';
-import { DbClientContract, CustomEncryption, SimpleEncryption } from '../../types';
+import { CustomEncryption, DbClientContract, SimpleEncryption } from '../../types';
 import { InternalEnhancementOptions } from './create-enhancement';
+import { Logger } from './logger';
 import { DefaultPrismaProxyHandler, PrismaProxyActions, makeProxy } from './proxy';
 import { QueryUtils } from './query-utils';
 
@@ -27,7 +28,7 @@ export function withEncrypted<DbClient extends object = any>(
         prisma,
         options.modelMeta,
         (_prisma, model) => new EncryptedHandler(_prisma as DbClientContract, model, options),
-        'encrypted'
+        'encryption'
     );
 }
 
@@ -35,20 +36,24 @@ class EncryptedHandler extends DefaultPrismaProxyHandler {
     private queryUtils: QueryUtils;
     private encoder = new TextEncoder();
     private decoder = new TextDecoder();
+    private logger: Logger;
 
     constructor(prisma: DbClientContract, model: string, options: InternalEnhancementOptions) {
         super(prisma, model, options);
 
         this.queryUtils = new QueryUtils(prisma, options);
+        this.logger = new Logger(prisma);
 
-        if (!options.encryption) throw new Error('Encryption options must be provided');
+        if (!options.encryption) throw this.queryUtils.unknownError('Encryption options must be provided');
 
         if (this.isCustomEncryption(options.encryption!)) {
             if (!options.encryption.encrypt || !options.encryption.decrypt)
-                throw new Error('Custom encryption must provide encrypt and decrypt functions');
+                throw this.queryUtils.unknownError('Custom encryption must provide encrypt and decrypt functions');
         } else {
-            if (!options.encryption.encryptionKey) throw new Error('Encryption key must be provided');
-            if (options.encryption.encryptionKey.length !== 32) throw new Error('Encryption key must be 32 bytes');
+            if (!options.encryption.encryptionKey)
+                throw this.queryUtils.unknownError('Encryption key must be provided');
+            if (options.encryption.encryptionKey.length !== 32)
+                throw this.queryUtils.unknownError('Encryption key must be 32 bytes');
         }
     }
 
@@ -147,7 +152,7 @@ class EncryptedHandler extends DefaultPrismaProxyHandler {
                 try {
                     entityData[field] = await this.decrypt(fieldInfo, entityData[field]);
                 } catch (error) {
-                    console.warn('Decryption failed, keeping original value:', error);
+                    this.logger.warn(`Decryption failed, keeping original value: ${error}`);
                 }
             }
         }
@@ -164,7 +169,7 @@ class EncryptedHandler extends DefaultPrismaProxyHandler {
                     try {
                         context.parent[field.name] = await this.encrypt(field, data);
                     } catch (error) {
-                        throw new Error(`Encryption failed for field ${field.name}: ${error}`);
+                        this.queryUtils.unknownError(`Encryption failed for field ${field.name}: ${error}`);
                     }
                 }
             },

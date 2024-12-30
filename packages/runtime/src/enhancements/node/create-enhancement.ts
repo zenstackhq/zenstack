@@ -21,7 +21,7 @@ import type { PolicyDef } from './types';
 /**
  * All enhancement kinds
  */
-const ALL_ENHANCEMENTS: EnhancementKind[] = ['password', 'omit', 'policy', 'validation', 'delegate', 'encrypted'];
+const ALL_ENHANCEMENTS: EnhancementKind[] = ['password', 'omit', 'policy', 'validation', 'delegate', 'encryption'];
 
 /**
  * Options for {@link createEnhancement}
@@ -129,7 +129,7 @@ export function createEnhancement<DbClient extends object>(
         result = withPassword(result, options);
     }
 
-    if (hasEncrypted && kinds.includes('encrypted')) {
+    if (hasEncrypted && kinds.includes('encryption')) {
         if (!options.encryption) {
             throw new Error('Encryption options are required for @encrypted enhancement');
         }
