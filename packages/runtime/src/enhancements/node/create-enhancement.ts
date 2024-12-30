@@ -10,11 +10,11 @@ import type {
 } from '../../types';
 import { withDefaultAuth } from './default-auth';
 import { withDelegate } from './delegate';
+import { withEncrypted } from './encryption';
 import { withJsonProcessor } from './json-processor';
 import { Logger } from './logger';
 import { withOmit } from './omit';
 import { withPassword } from './password';
-import { withEncrypted } from './encrypted';
 import { policyProcessIncludeRelationPayload, withPolicy } from './policy';
 import type { PolicyDef } from './types';
 
