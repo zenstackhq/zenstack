@@ -575,6 +575,14 @@ attribute @@auth() @@@supportTypeDef
  */
 attribute @password(saltLength: Int?, salt: String?) @@@targetField([StringField])
 
+
+/**
+ * Indicates that the field is encrypted when storing in the DB and should be decrypted when read
+ * 
+ * ZenStack uses the Web Crypto API to encrypt and decrypt the field. 
+ */
+attribute @encrypted() @@@targetField([StringField])
+
 /**
  * Indicates that the field should be omitted when read from the generated services.
  */

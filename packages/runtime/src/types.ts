@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { z } from 'zod';
+import { FieldInfo } from './cross';
 
 export type PrismaPromise<T> = Promise<T> & Record<string, (args?: any) => PrismaPromise<any>>;
 
@@ -133,6 +134,11 @@ export type EnhancementOptions = {
      * The `isolationLevel` option passed to `prisma.$transaction()` call for transactions initiated by ZenStack.
      */
     transactionIsolationLevel?: TransactionIsolationLevel;
+
+    /**
+     * The encryption options for using the `encrypted` enhancement.
+     */
+    encryption?: SimpleEncryption | CustomEncryption;
 };
 
 /**
@@ -145,7 +151,7 @@ export type EnhancementContext<User extends AuthUser = AuthUser> = {
 /**
  * Kinds of enhancements to `PrismaClient`
  */
-export type EnhancementKind = 'password' | 'omit' | 'policy' | 'validation' | 'delegate';
+export type EnhancementKind = 'password' | 'omit' | 'policy' | 'validation' | 'delegate' | 'encrypted';
 
 /**
  * Function for transforming errors.
@@ -166,3 +172,10 @@ export type ZodSchemas = {
      */
     input?: Record<string, Record<string, z.ZodSchema>>;
 };
+
+export type CustomEncryption = {
+    encrypt: (model: string, field: FieldInfo, plain: string) => Promise<string>;
+    decrypt: (model: string, field: FieldInfo, cipher: string) => Promise<string>;
+};
+
+export type SimpleEncryption = { encryptionKey: Uint8Array };
