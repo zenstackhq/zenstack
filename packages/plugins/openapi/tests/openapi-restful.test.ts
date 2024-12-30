@@ -84,7 +84,7 @@ model Bar {
 
             const { name: output } = tmp.fileSync({ postfix: '.yaml' });
 
-            const options = buildOptions(model, modelFile, output, '3.1.0');
+            const options = buildOptions(model, modelFile, output, specVersion);
             await generate(model, options, dmmf);
 
             console.log(`OpenAPI specification generated for ${specVersion}: ${output}`);
@@ -324,7 +324,7 @@ model Foo {
 
             const { name: output } = tmp.fileSync({ postfix: '.yaml' });
 
-            const options = buildOptions(model, modelFile, output, '3.1.0');
+            const options = buildOptions(model, modelFile, output, specVersion);
             await generate(model, options, dmmf);
 
             console.log(`OpenAPI specification generated for ${specVersion}: ${output}`);
@@ -338,6 +338,28 @@ model Foo {
             );
             expect(parsed).toMatchObject(baseline);
         }
+    });
+
+    it('int field as id', async () => {
+        const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
+plugin openapi {
+    provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
+}
+
+model Foo {
+    id Int @id @default(autoincrement())
+}
+        `);
+
+        const { name: output } = tmp.fileSync({ postfix: '.yaml' });
+
+        const options = buildOptions(model, modelFile, output, '3.0.0');
+        await generate(model, options, dmmf);
+        console.log(`OpenAPI specification generated: ${output}`);
+        await OpenAPIParser.validate(output);
+
+        const parsed = YAML.parse(fs.readFileSync(output, 'utf-8'));
+        expect(parsed.components.schemas.Foo.properties.id.type).toBe('integer');
     });
 
     it('exposes individual fields from a compound id as attributes', async () => {

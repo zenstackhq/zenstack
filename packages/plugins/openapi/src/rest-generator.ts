@@ -906,16 +906,24 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             },
         };
 
+        let idFieldSchema: OAPI.SchemaObject = { type: 'string' };
+        if (idFields.length === 1) {
+            // FIXME: JSON:API actually requires id field to be a string,
+            // but currently the RESTAPIHandler returns the original data
+            // type as declared in the ZModel schema.
+            idFieldSchema = this.fieldTypeToOpenAPISchema(idFields[0].type);
+        }
+
         if (mode === 'create') {
             // 'id' is required if there's no default value
             const idFields = model.fields.filter((f) => isIdField(f));
             if (idFields.length === 1 && !hasAttribute(idFields[0], '@default')) {
-                properties = { id: { type: 'string' }, ...properties };
+                properties = { id: idFieldSchema, ...properties };
                 toplevelRequired.unshift('id');
             }
         } else {
             // 'id' always required for read and update
-            properties = { id: { type: 'string' }, ...properties };
+            properties = { id: idFieldSchema, ...properties };
             toplevelRequired.unshift('id');
         }
 
