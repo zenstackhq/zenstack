@@ -571,4 +571,82 @@ describe('Polymorphic Policy Test', () => {
         expect(foundPost2.foo).toBeUndefined();
         expect(foundPost2.bar).toBeUndefined();
     });
+
+    it('respects concrete policies when read as base optional relation', async () => {
+        const { enhance } = await loadSchema(
+            `  
+            model User {
+                id Int @id @default(autoincrement())
+                asset Asset?
+                @@allow('all', true)
+            }          
+
+            model Asset {
+                id Int @id @default(autoincrement())
+                user User @relation(fields: [userId], references: [id])
+                userId Int @unique
+                type String
+
+                @@delegate(type)
+            }
+            
+            model Post extends Asset {
+                title String
+                private Boolean
+                @@allow('create', true)
+                @@allow('read', !private)
+            }
+        `
+        );
+
+        const fullDb = enhance(undefined, { kinds: ['delegate'] });
+        await fullDb.user.create({ data: { id: 1 } });
+        await fullDb.post.create({ data: { title: 'Post1', private: true, user: { connect: { id: 1 } } } });
+        await expect(fullDb.user.findUnique({ where: { id: 1 }, include: { asset: true } })).resolves.toMatchObject({
+            asset: expect.objectContaining({ type: 'Post' }),
+        });
+
+        const db = enhance();
+        await expect(db.user.findUnique({ where: { id: 1 }, include: { asset: true } })).resolves.toMatchObject({
+            asset: null,
+        });
+    });
+
+    it('respects concrete policies when read as base required relation', async () => {
+        const { enhance } = await loadSchema(
+            `  
+            model User {
+                id Int @id @default(autoincrement())
+                asset Asset @relation(fields: [assetId], references: [id])
+                assetId Int @unique
+                @@allow('all', true)
+            }          
+
+            model Asset {
+                id Int @id @default(autoincrement())
+                user User?
+                type String
+
+                @@delegate(type)
+                @@allow('all', true)
+            }
+            
+            model Post extends Asset {
+                title String
+                private Boolean
+                @@deny('read', private)
+            }
+        `,
+            { logPrismaQuery: true }
+        );
+
+        const fullDb = enhance(undefined, { kinds: ['delegate'] });
+        await fullDb.post.create({ data: { id: 1, title: 'Post1', private: true, user: { create: { id: 1 } } } });
+        await expect(fullDb.user.findUnique({ where: { id: 1 }, include: { asset: true } })).resolves.toMatchObject({
+            asset: expect.objectContaining({ type: 'Post' }),
+        });
+
+        const db = enhance();
+        await expect(db.user.findUnique({ where: { id: 1 }, include: { asset: true } })).toResolveNull();
+    });
 });
