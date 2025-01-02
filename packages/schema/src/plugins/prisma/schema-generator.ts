@@ -57,6 +57,7 @@ import path from 'path';
 import semver from 'semver';
 import { name } from '.';
 import { getStringLiteral } from '../../language-server/validator/utils';
+import { getConcreteModels } from '../../utils/ast-utils';
 import { execPackage } from '../../utils/exec-utils';
 import { isDefaultWithAuth } from '../enhancer/enhancer-utils';
 import {
@@ -320,9 +321,7 @@ export class PrismaSchemaGenerator {
         }
 
         // collect concrete models inheriting this model
-        const concreteModels = decl.$container.declarations.filter(
-            (d) => isDataModel(d) && d !== decl && d.superTypes.some((base) => base.ref === decl)
-        );
+        const concreteModels = getConcreteModels(decl);
 
         // generate an optional relation field in delegate base model to each concrete model
         concreteModels.forEach((concrete) => {

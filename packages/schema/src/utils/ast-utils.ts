@@ -2,6 +2,7 @@ import {
     BinaryExpr,
     DataModel,
     DataModelAttribute,
+    DataModelField,
     Expression,
     InheritableNode,
     isBinaryExpr,
@@ -9,12 +10,13 @@ import {
     isDataModelField,
     isInvocationExpr,
     isModel,
+    isReferenceExpr,
     isTypeDef,
     Model,
     ModelImport,
     TypeDef,
 } from '@zenstackhq/language/ast';
-import { getInheritanceChain, getRecursiveBases, isDelegateModel, isFromStdlib } from '@zenstackhq/sdk';
+import { getAttribute, getInheritanceChain, getRecursiveBases, isDelegateModel, isFromStdlib } from '@zenstackhq/sdk';
 import {
     AstNode,
     copyAstNode,
@@ -309,4 +311,28 @@ export function findUpInheritance(start: DataModel, target: DataModel): DataMode
         }
     }
     return undefined;
+}
+
+/**
+ * Gets all concrete models that inherit from the given delegate model
+ */
+export function getConcreteModels(dataModel: DataModel): DataModel[] {
+    if (!isDelegateModel(dataModel)) {
+        return [];
+    }
+    return dataModel.$container.declarations.filter(
+        (d): d is DataModel => isDataModel(d) && d !== dataModel && d.superTypes.some((base) => base.ref === dataModel)
+    );
+}
+
+/**
+ * Gets the discriminator field for the given delegate model
+ */
+export function getDiscriminatorField(dataModel: DataModel) {
+    const delegateAttr = getAttribute(dataModel, '@@delegate');
+    if (!delegateAttr) {
+        return undefined;
+    }
+    const arg = delegateAttr.args[0]?.value;
+    return isReferenceExpr(arg) ? (arg.target.ref as DataModelField) : undefined;
 }

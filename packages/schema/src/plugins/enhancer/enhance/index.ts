@@ -24,7 +24,6 @@ import {
     isArrayExpr,
     isDataModel,
     isGeneratorDecl,
-    isReferenceExpr,
     isTypeDef,
     type Model,
 } from '@zenstackhq/sdk/ast';
@@ -45,6 +44,7 @@ import {
 } from 'ts-morph';
 import { upperCaseFirst } from 'upper-case-first';
 import { name } from '..';
+import { getConcreteModels, getDiscriminatorField } from '../../../utils/ast-utils';
 import { execPackage } from '../../../utils/exec-utils';
 import { CorePlugins, getPluginCustomOutputFolder } from '../../plugin-utils';
 import { trackPrismaSchemaError } from '../../prisma';
@@ -407,9 +407,7 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         this.model.declarations
             .filter((d): d is DataModel => isDelegateModel(d))
             .forEach((dm) => {
-                const concreteModels = this.model.declarations.filter(
-                    (d): d is DataModel => isDataModel(d) && d.superTypes.some((s) => s.ref === dm)
-                );
+                const concreteModels = getConcreteModels(dm);
                 if (concreteModels.length > 0) {
                     delegateInfo.push([dm, concreteModels]);
                 }
@@ -579,7 +577,7 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         const typeName = typeAlias.getName();
         const payloadRecord = delegateInfo.find(([delegate]) => `$${delegate.name}Payload` === typeName);
         if (payloadRecord) {
-            const discriminatorDecl = this.getDiscriminatorField(payloadRecord[0]);
+            const discriminatorDecl = getDiscriminatorField(payloadRecord[0]);
             if (discriminatorDecl) {
                 source = `${payloadRecord[1]
                     .map(
@@ -824,15 +822,6 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         return node
             .getDescendantsOfKind(SyntaxKind.PropertySignature)
             .filter((n) => n.getName().startsWith(DELEGATE_AUX_RELATION_PREFIX));
-    }
-
-    private getDiscriminatorField(delegate: DataModel) {
-        const delegateAttr = getAttribute(delegate, '@@delegate');
-        if (!delegateAttr) {
-            return undefined;
-        }
-        const arg = delegateAttr.args[0]?.value;
-        return isReferenceExpr(arg) ? (arg.target.ref as DataModelField) : undefined;
     }
 
     private saveSourceFile(sf: SourceFile) {
