@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { type PolicyKind, type PolicyOperationKind } from '@zenstackhq/runtime';
+import type { PolicyKind, PolicyOperationKind } from '@zenstackhq/runtime';
 import {
     ExpressionContext,
     PluginError,
@@ -304,6 +304,7 @@ export function generateQueryGuardFunction(
     fieldOverride = false
 ) {
     const statements: (string | WriterFunction)[] = [];
+
     const allowRules = allows.filter((rule) => !hasCrossModelComparison(rule));
     const denyRules = denies.filter((rule) => !hasCrossModelComparison(rule));
 
