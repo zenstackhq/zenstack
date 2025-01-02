@@ -138,6 +138,9 @@ class EncryptedHandler extends DefaultPrismaProxyHandler {
         const realModel = this.queryUtils.getDelegateConcreteModel(model, entityData);
 
         for (const field of getModelFields(entityData)) {
+            // Don't decrypt null, undefined or empty string values
+            if (!entityData[field]) continue;
+
             const fieldInfo = await resolveField(this.options.modelMeta, realModel, field);
             if (!fieldInfo) {
                 continue;
@@ -153,9 +156,6 @@ class EncryptedHandler extends DefaultPrismaProxyHandler {
             } else {
                 const shouldDecrypt = fieldInfo.attributes?.find((attr) => attr.name === '@encrypted');
                 if (shouldDecrypt) {
-                    // Don't decrypt null, undefined or empty string values
-                    if (!entityData[field]) continue;
-
                     try {
                         entityData[field] = await this.decrypt(fieldInfo, entityData[field]);
                     } catch (error) {
