@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { DELEGATE_AUX_RELATION_PREFIX, type PolicyKind, type PolicyOperationKind } from '@zenstackhq/runtime';
+import { type PolicyKind, type PolicyOperationKind } from '@zenstackhq/runtime';
 import {
     ExpressionContext,
     PluginError,
@@ -15,7 +15,6 @@ import {
     getQueryGuardFunctionName,
     isAuthInvocation,
     isDataModelFieldReference,
-    isDelegateModel,
     isEnumFieldReference,
     isFromStdlib,
     isFutureExpr,
@@ -40,16 +39,9 @@ import {
 } from '@zenstackhq/sdk/ast';
 import deepmerge from 'deepmerge';
 import { getContainerOfType, streamAllContents, streamAst, streamContents } from 'langium';
-import { lowerCaseFirst } from 'lower-case-first';
 import { SourceFile, WriterFunction } from 'ts-morph';
 import { name } from '..';
-import {
-    getConcreteModels,
-    getDiscriminatorField,
-    isCheckInvocation,
-    isCollectionPredicate,
-    isFutureInvocation,
-} from '../../../utils/ast-utils';
+import { isCheckInvocation, isCollectionPredicate, isFutureInvocation } from '../../../utils/ast-utils';
 import { ExpressionWriter, FALSE, TRUE } from './expression-writer';
 
 /**
@@ -311,10 +303,6 @@ export function generateQueryGuardFunction(
     forField?: DataModelField,
     fieldOverride = false
 ) {
-    if (isDelegateModel(model) && !forField) {
-        return generateDelegateQueryGuardFunction(sourceFile, model, kind);
-    }
-
     const statements: (string | WriterFunction)[] = [];
     const allowRules = allows.filter((rule) => !hasCrossModelComparison(rule));
     const denyRules = denies.filter((rule) => !hasCrossModelComparison(rule));
@@ -444,61 +432,6 @@ export function generateQueryGuardFunction(
             },
         ],
         statements,
-    });
-
-    return func;
-}
-
-function generateDelegateQueryGuardFunction(sourceFile: SourceFile, model: DataModel, kind: PolicyOperationKind) {
-    const concreteModels = getConcreteModels(model);
-
-    const discriminator = getDiscriminatorField(model);
-    if (!discriminator) {
-        throw new PluginError(name, `Model '${model.name}' does not have a discriminator field`);
-    }
-
-    const func = sourceFile.addFunction({
-        name: getQueryGuardFunctionName(model, undefined, false, kind),
-        returnType: 'any',
-        parameters: [
-            {
-                name: 'context',
-                type: 'QueryContext',
-            },
-            {
-                // for generating field references used by field comparison in the same model
-                name: 'db',
-                type: 'CrudContract',
-            },
-        ],
-        statements: (writer) => {
-            writer.write('return ');
-            if (concreteModels.length === 0) {
-                writer.write(TRUE);
-            } else {
-                writer.block(() => {
-                    // union all concrete model's guards
-                    writer.writeLine('OR: [');
-                    concreteModels.forEach((concrete) => {
-                        writer.block(() => {
-                            writer.write('AND: [');
-                            // discriminator condition
-                            writer.write(`{ ${discriminator.name}: '${concrete.name}' },`);
-                            // concrete model guard
-                            writer.write(
-                                `{ ${DELEGATE_AUX_RELATION_PREFIX}_${lowerCaseFirst(
-                                    concrete.name
-                                )}: ${getQueryGuardFunctionName(concrete, undefined, false, kind)}(context, db) }`
-                            );
-                            writer.writeLine(']');
-                        });
-                        writer.write(',');
-                    });
-                    writer.writeLine(']');
-                });
-            }
-            writer.write(';');
-        },
     });
 
     return func;

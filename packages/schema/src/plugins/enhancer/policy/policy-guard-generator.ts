@@ -25,7 +25,6 @@ import {
     hasAttribute,
     hasValidationAttributes,
     isAuthInvocation,
-    isDelegateModel,
     isForeignKeyField,
     saveSourceFile,
 } from '@zenstackhq/sdk';
@@ -455,44 +454,38 @@ export class PolicyGenerator {
         writer: CodeBlockWriter,
         sourceFile: SourceFile
     ) {
-        const isDelegate = isDelegateModel(model);
+        // first handle several cases where a constant function can be used
 
-        if (!isDelegate) {
-            // handle cases where a constant function can be used
-            // note that this doesn't apply to delegate models because
-            // all concrete models inheriting it need to be considered
-
-            if (kind === 'update' && allows.length === 0) {
-                // no allow rule for 'update', policy is constant based on if there's
-                // post-update counterpart
-                let func: FunctionDeclaration;
-                if (getPolicyExpressions(model, 'allow', 'postUpdate').length === 0) {
-                    func = generateConstantQueryGuardFunction(sourceFile, model, kind, false);
-                } else {
-                    func = generateConstantQueryGuardFunction(sourceFile, model, kind, true);
-                }
-                writer.write(`guard: ${func.getName()!},`);
-                return;
+        if (kind === 'update' && allows.length === 0) {
+            // no allow rule for 'update', policy is constant based on if there's
+            // post-update counterpart
+            let func: FunctionDeclaration;
+            if (getPolicyExpressions(model, 'allow', 'postUpdate').length === 0) {
+                func = generateConstantQueryGuardFunction(sourceFile, model, kind, false);
+            } else {
+                func = generateConstantQueryGuardFunction(sourceFile, model, kind, true);
             }
+            writer.write(`guard: ${func.getName()!},`);
+            return;
+        }
 
-            if (kind === 'postUpdate' && allows.length === 0 && denies.length === 0) {
-                // no 'postUpdate' rule, always allow
-                const func = generateConstantQueryGuardFunction(sourceFile, model, kind, true);
-                writer.write(`guard: ${func.getName()},`);
-                return;
-            }
+        if (kind === 'postUpdate' && allows.length === 0 && denies.length === 0) {
+            // no 'postUpdate' rule, always allow
+            const func = generateConstantQueryGuardFunction(sourceFile, model, kind, true);
+            writer.write(`guard: ${func.getName()},`);
+            return;
+        }
 
-            if (kind in policies && typeof policies[kind as keyof typeof policies] === 'boolean') {
-                // constant policy
-                const func = generateConstantQueryGuardFunction(
-                    sourceFile,
-                    model,
-                    kind,
-                    policies[kind as keyof typeof policies] as boolean
-                );
-                writer.write(`guard: ${func.getName()!},`);
-                return;
-            }
+        if (kind in policies && typeof policies[kind as keyof typeof policies] === 'boolean') {
+            // constant policy
+            const func = generateConstantQueryGuardFunction(
+                sourceFile,
+                model,
+                kind,
+                policies[kind as keyof typeof policies] as boolean
+            );
+            writer.write(`guard: ${func.getName()!},`);
+            return;
         }
 
         // generate a policy function that evaluates a partial prisma query

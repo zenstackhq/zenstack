@@ -87,12 +87,16 @@ describe('Polymorphic Policy Test', () => {
         `;
 
         for (const schema of [booleanCondition, booleanExpression]) {
-            const { enhanceRaw: enhance, prisma } = await loadSchema(schema);
+            const { enhanceRaw: enhance, prisma } = await loadSchema(schema, { logPrismaQuery: true });
 
             const fullDb = enhance(prisma, undefined, { kinds: ['delegate'] });
 
             const user = await fullDb.user.create({ data: { id: 1 } });
-            const userDb = enhance(prisma, { user: { id: user.id } }, { kinds: ['delegate', 'policy'] });
+            const userDb = enhance(
+                prisma,
+                { user: { id: user.id } },
+                { kinds: ['delegate', 'policy'], logPrismaQuery: true }
+            );
 
             // violating Asset create
             await expect(
@@ -588,13 +592,14 @@ describe('Polymorphic Policy Test', () => {
                 type String
 
                 @@delegate(type)
+                @@allow('all', true)
             }
             
             model Post extends Asset {
                 title String
                 private Boolean
                 @@allow('create', true)
-                @@allow('read', !private)
+                @@deny('read', private)
             }
         `
         );
@@ -607,9 +612,9 @@ describe('Polymorphic Policy Test', () => {
         });
 
         const db = enhance();
-        await expect(db.user.findUnique({ where: { id: 1 }, include: { asset: true } })).resolves.toMatchObject({
-            asset: null,
-        });
+        const read = await db.user.findUnique({ where: { id: 1 }, include: { asset: true } });
+        expect(read.asset).toBeTruthy();
+        expect(read.asset.title).toBeUndefined();
     });
 
     it('respects concrete policies when read as base required relation', async () => {
@@ -636,8 +641,7 @@ describe('Polymorphic Policy Test', () => {
                 private Boolean
                 @@deny('read', private)
             }
-        `,
-            { logPrismaQuery: true }
+        `
         );
 
         const fullDb = enhance(undefined, { kinds: ['delegate'] });
@@ -647,6 +651,8 @@ describe('Polymorphic Policy Test', () => {
         });
 
         const db = enhance();
-        await expect(db.user.findUnique({ where: { id: 1 }, include: { asset: true } })).toResolveNull();
+        const read = await db.user.findUnique({ where: { id: 1 }, include: { asset: true } });
+        expect(read).toBeTruthy();
+        expect(read.asset.title).toBeUndefined();
     });
 });

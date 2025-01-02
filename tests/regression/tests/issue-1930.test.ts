@@ -38,8 +38,6 @@ model EntityContent {
 }
 
 model Article extends Entity {
-  private Boolean @default(false)
-  @@deny('all', private)
 }
 
 model ArticleContent extends EntityContent {
@@ -78,14 +76,5 @@ model OtherContent extends EntityContent {
             data: { body: 'bcd', entity: { connect: { id: deletedArticle.id } } },
         });
         await expect(db.articleContent.findUnique({ where: { id: content1.id } })).toResolveNull();
-
-        // private article's contents are not readable
-        const privateArticle = await fullDb.article.create({
-            data: { org: { connect: { id: org.id } }, private: true },
-        });
-        const content2 = await fullDb.articleContent.create({
-            data: { body: 'cde', entity: { connect: { id: privateArticle.id } } },
-        });
-        await expect(db.articleContent.findUnique({ where: { id: content2.id } })).toResolveNull();
     });
 });
