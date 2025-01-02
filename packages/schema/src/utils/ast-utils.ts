@@ -328,8 +328,8 @@ export function getConcreteModels(dataModel: DataModel): DataModel[] {
 /**
  * Gets the discriminator field for the given delegate model
  */
-export function getDiscriminatorField(delegate: DataModel) {
-    const delegateAttr = getAttribute(delegate, '@@delegate');
+export function getDiscriminatorField(dataModel: DataModel) {
+    const delegateAttr = getAttribute(dataModel, '@@delegate');
     if (!delegateAttr) {
         return undefined;
     }
