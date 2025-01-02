@@ -87,16 +87,12 @@ describe('Polymorphic Policy Test', () => {
         `;
 
         for (const schema of [booleanCondition, booleanExpression]) {
-            const { enhanceRaw: enhance, prisma } = await loadSchema(schema, { logPrismaQuery: true });
+            const { enhanceRaw: enhance, prisma } = await loadSchema(schema);
 
             const fullDb = enhance(prisma, undefined, { kinds: ['delegate'] });
 
             const user = await fullDb.user.create({ data: { id: 1 } });
-            const userDb = enhance(
-                prisma,
-                { user: { id: user.id } },
-                { kinds: ['delegate', 'policy'], logPrismaQuery: true }
-            );
+            const userDb = enhance(prisma, { user: { id: user.id } }, { kinds: ['delegate', 'policy'] });
 
             // violating Asset create
             await expect(
