@@ -20,8 +20,6 @@ describe('Encrypted test', () => {
     model User {
         id String @id @default(cuid())
         encrypted_value String @encrypted()
-    
-        @@allow('all', true)
     }`,
             {
                 enhancements: ['encryption'],
@@ -62,6 +60,52 @@ describe('Encrypted test', () => {
         expect(rawRead.encrypted_value).not.toBe('abc123');
     });
 
+    it('Decrypts nested fields', async () => {
+        const { enhance, prisma } = await loadSchema(
+            `
+    model User {
+        id String @id @default(cuid())
+        posts Post[]
+    }
+    
+    model Post {
+        id String @id @default(cuid())
+        title String @encrypted()
+        author User @relation(fields: [authorId], references: [id])
+        authorId String
+    }
+    `,
+            {
+                enhancements: ['encryption'],
+                enhanceOptions: {
+                    encryption: { encryptionKey },
+                },
+            }
+        );
+
+        const db = enhance();
+
+        const create = await db.user.create({
+            data: {
+                id: '1',
+                posts: { create: { title: 'Post1' } },
+            },
+            include: { posts: true },
+        });
+        expect(create.posts[0].title).toBe('Post1');
+
+        const read = await db.user.findUnique({
+            where: {
+                id: '1',
+            },
+            include: { posts: true },
+        });
+        expect(read.posts[0].title).toBe('Post1');
+
+        const rawRead = await prisma.user.findUnique({ where: { id: '1' }, include: { posts: true } });
+        expect(rawRead.posts[0].title).not.toBe('Post1');
+    });
+
     it('Multi-field encryption test', async () => {
         const { enhance } = await loadSchema(
             `
@@ -69,8 +113,6 @@ describe('Encrypted test', () => {
         id String @id @default(cuid())
         x1 String @encrypted()
         x2 String @encrypted()
-    
-        @@allow('all', true)
     }`,
             {
                 enhancements: ['encryption'],
@@ -105,8 +147,6 @@ describe('Encrypted test', () => {
     model User {
         id String @id @default(cuid())
         encrypted_value String @encrypted()
-    
-        @@allow('all', true)
     }`);
 
         const sudoDb = enhance(undefined, { kinds: [] });
@@ -203,7 +243,6 @@ describe('Encrypted test', () => {
     model User {
         id String @id @default(cuid())
         encrypted_value String @encrypted() @length(0, 6)
-    
         @@allow('all', true)
     }`,
             {
