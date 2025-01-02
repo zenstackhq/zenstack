@@ -139,20 +139,28 @@ class EncryptedHandler extends DefaultPrismaProxyHandler {
 
         for (const field of getModelFields(entityData)) {
             const fieldInfo = await resolveField(this.options.modelMeta, realModel, field);
-
             if (!fieldInfo) {
                 continue;
             }
 
-            const shouldDecrypt = fieldInfo.attributes?.find((attr) => attr.name === '@encrypted');
-            if (shouldDecrypt) {
-                // Don't decrypt null, undefined or empty string values
-                if (!entityData[field]) continue;
+            if (fieldInfo.isDataModel) {
+                const items =
+                    fieldInfo.isArray && Array.isArray(entityData[field]) ? entityData[field] : [entityData[field]];
+                for (const item of items) {
+                    // recurse
+                    await this.doPostProcess(item, fieldInfo.type);
+                }
+            } else {
+                const shouldDecrypt = fieldInfo.attributes?.find((attr) => attr.name === '@encrypted');
+                if (shouldDecrypt) {
+                    // Don't decrypt null, undefined or empty string values
+                    if (!entityData[field]) continue;
 
-                try {
-                    entityData[field] = await this.decrypt(fieldInfo, entityData[field]);
-                } catch (error) {
-                    this.logger.warn(`Decryption failed, keeping original value: ${error}`);
+                    try {
+                        entityData[field] = await this.decrypt(fieldInfo, entityData[field]);
+                    } catch (error) {
+                        this.logger.warn(`Decryption failed, keeping original value: ${error}`);
+                    }
                 }
             }
         }
