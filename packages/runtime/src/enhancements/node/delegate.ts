@@ -180,47 +180,82 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             return;
         }
 
-        for (const kind of ['select', 'include'] as const) {
-            if (args[kind] && typeof args[kind] === 'object') {
-                for (const [field, value] of Object.entries<any>(args[kind])) {
-                    const fieldInfo = resolveField(this.options.modelMeta, model, field);
-                    if (!fieldInfo) {
-                        continue;
+        const selectors = [
+            (payload: any) => ({ data: payload.select, kind: 'select' as const, isCount: false }),
+            (payload: any) => ({ data: payload.include, kind: 'include' as const, isCount: false }),
+            (payload: any) => ({
+                data: payload.select?._count?.select,
+                kind: 'select' as const,
+                isCount: true,
+            }),
+            (payload: any) => ({
+                data: payload.include?._count?.select,
+                kind: 'include' as const,
+                isCount: true,
+            }),
+        ];
+
+        for (const selector of selectors) {
+            const { data, kind, isCount } = selector(args);
+            if (!data || typeof data !== 'object') {
+                continue;
+            }
+
+            for (const [field, value] of Object.entries<any>(data)) {
+                const fieldInfo = resolveField(this.options.modelMeta, model, field);
+                if (!fieldInfo) {
+                    continue;
+                }
+
+                if (this.isDelegateOrDescendantOfDelegate(fieldInfo?.type) && value) {
+                    // delegate model, recursively inject hierarchy
+                    if (data[field]) {
+                        if (data[field] === true) {
+                            // make sure the payload is an object
+                            data[field] = {};
+                        }
+                        await this.injectSelectIncludeHierarchy(fieldInfo.type, data[field]);
+                    }
+                }
+
+                // refetch the field select/include value because it may have been
+                // updated during injection
+                const fieldValue = data[field];
+
+                if (fieldValue !== undefined) {
+                    if (fieldValue.orderBy) {
+                        // `orderBy` may contain fields from base types
+                        enumerate(fieldValue.orderBy).forEach((item) =>
+                            this.injectWhereHierarchy(fieldInfo.type, item)
+                        );
                     }
 
-                    if (this.isDelegateOrDescendantOfDelegate(fieldInfo?.type) && value) {
-                        // delegate model, recursively inject hierarchy
-                        if (args[kind][field]) {
-                            if (args[kind][field] === true) {
-                                // make sure the payload is an object
-                                args[kind][field] = {};
+                    let injected = false;
+                    if (!isCount) {
+                        injected = await this.injectBaseFieldSelect(model, field, fieldValue, args, kind);
+                        if (injected) {
+                            delete data[field];
+                        }
+                    } else {
+                        const injectTarget = { [kind]: {} };
+                        injected = await this.injectBaseFieldSelect(model, field, fieldValue, injectTarget, kind, true);
+                        if (injected) {
+                            delete data[field];
+                            if (Object.keys(data).length === 0) {
+                                delete args[kind]['_count'];
                             }
-                            await this.injectSelectIncludeHierarchy(fieldInfo.type, args[kind][field]);
+                            const merged = deepmerge(args[kind], injectTarget[kind]);
+                            args[kind] = merged;
                         }
                     }
 
-                    // refetch the field select/include value because it may have been
-                    // updated during injection
-                    const fieldValue = args[kind][field];
-
-                    if (fieldValue !== undefined) {
-                        if (fieldValue.orderBy) {
-                            // `orderBy` may contain fields from base types
-                            enumerate(fieldValue.orderBy).forEach((item) =>
-                                this.injectWhereHierarchy(fieldInfo.type, item)
-                            );
+                    if (!injected && fieldInfo.isDataModel) {
+                        let nextValue = fieldValue;
+                        if (nextValue === true) {
+                            // make sure the payload is an object
+                            data[field] = nextValue = {};
                         }
-
-                        if (this.injectBaseFieldSelect(model, field, fieldValue, args, kind)) {
-                            delete args[kind][field];
-                        } else if (fieldInfo.isDataModel) {
-                            let nextValue = fieldValue;
-                            if (nextValue === true) {
-                                // make sure the payload is an object
-                                args[kind][field] = nextValue = {};
-                            }
-                            await this.injectSelectIncludeHierarchy(fieldInfo.type, nextValue);
-                        }
+                        await this.injectSelectIncludeHierarchy(fieldInfo.type, nextValue);
                     }
                 }
             }
@@ -272,7 +307,8 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         field: string,
         value: any,
         selectInclude: any,
-        context: 'select' | 'include'
+        context: 'select' | 'include',
+        forCount = false
     ) {
         const fieldInfo = resolveField(this.options.modelMeta, model, field);
         if (!fieldInfo?.inheritedFrom) {
@@ -286,16 +322,12 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             const baseRelationName = this.makeAuxRelationName(base);
 
             // prepare base layer select/include
-            // let selectOrInclude = 'select';
             let thisLayer: any;
             if (target.include) {
-                // selectOrInclude = 'include';
                 thisLayer = target.include;
             } else if (target.select) {
-                // selectOrInclude = 'select';
                 thisLayer = target.select;
             } else {
-                // selectInclude = 'include';
                 thisLayer = target.select = {};
             }
 
@@ -303,7 +335,20 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                 if (!thisLayer[baseRelationName]) {
                     thisLayer[baseRelationName] = { [context]: {} };
                 }
-                thisLayer[baseRelationName][context][field] = value;
+                if (forCount) {
+                    if (
+                        !thisLayer[baseRelationName][context]['_count'] ||
+                        typeof thisLayer[baseRelationName][context] !== 'object'
+                    ) {
+                        thisLayer[baseRelationName][context]['_count'] = {};
+                    }
+                    thisLayer[baseRelationName][context]['_count'] = deepmerge(
+                        thisLayer[baseRelationName][context]['_count'],
+                        { select: { [field]: value } }
+                    );
+                } else {
+                    thisLayer[baseRelationName][context][field] = value;
+                }
                 break;
             } else {
                 if (!thisLayer[baseRelationName]) {
