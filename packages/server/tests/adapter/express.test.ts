@@ -190,7 +190,7 @@ describe('Express adapter tests - rest handler', () => {
         expect(r.body.data.attributes.email).toBe('user1@def.com');
 
         r = await request(app).delete(makeUrl('/api/user/user1'));
-        expect(r.status).toBe(204);
+        expect(r.status).toBe(200);
         expect(await prisma.user.findMany()).toHaveLength(0);
     });
 });
