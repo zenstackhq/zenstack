@@ -2340,8 +2340,8 @@ describe('REST server tests', () => {
                         prisma,
                     });
 
-                    expect(r.status).toBe(204);
-                    expect(r.body).toBeUndefined();
+                    expect(r.status).toBe(200);
+                    expect(r.body).toMatchObject({ meta: {} });
                 });
 
                 it('deletes an item with compound id', async () => {
@@ -2355,8 +2355,8 @@ describe('REST server tests', () => {
                         path: `/postLike/1${idDivider}user1`,
                         prisma,
                     });
-                    expect(r.status).toBe(204);
-                    expect(r.body).toBeUndefined();
+                    expect(r.status).toBe(200);
+                    expect(r.body).toMatchObject({ meta: {} });
                 });
 
                 it('returns 404 if the user does not exist', async () => {
