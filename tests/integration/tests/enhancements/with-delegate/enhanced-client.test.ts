@@ -378,6 +378,66 @@ describe('Polymorphism Test', () => {
         ).resolves.toHaveLength(1);
     });
 
+    it('read with counting relation defined in base', async () => {
+        const { enhance } = await loadSchema(
+            `
+
+        model A {
+            id Int @id @default(autoincrement())
+            type String
+            bs B[]
+            cs C[]
+            @@delegate(type)
+        }
+            
+        model A1 extends A {
+            a1 Int
+            type1 String
+            @@delegate(type1)
+        }
+
+        model A2 extends A1 {
+            a2 Int
+        }
+
+        model B {
+            id Int @id @default(autoincrement())
+            a A @relation(fields: [aId], references: [id])
+            aId Int
+            b Int
+        }
+
+        model C {
+            id Int @id @default(autoincrement())
+            a A @relation(fields: [aId], references: [id])
+            aId Int
+            c Int
+        }
+            `,
+            { enhancements: ['delegate'] }
+        );
+        const db = enhance();
+
+        const a2 = await db.a2.create({
+            data: { a1: 1, a2: 2, bs: { create: [{ b: 1 }, { b: 2 }] }, cs: { create: [{ c: 1 }] } },
+            include: { _count: { select: { bs: true } } },
+        });
+        expect(a2).toMatchObject({ a1: 1, a2: 2, _count: { bs: 2 } });
+
+        await expect(
+            db.a2.findFirst({ select: { a1: true, _count: { select: { bs: true } } } })
+        ).resolves.toStrictEqual({
+            a1: 1,
+            _count: { bs: 2 },
+        });
+
+        await expect(db.a.findFirst({ select: { _count: { select: { bs: true, cs: true } } } })).resolves.toMatchObject(
+            {
+                _count: { bs: 2, cs: 1 },
+            }
+        );
+    });
+
     it('order by base fields', async () => {
         const { db, user } = await setup();
 
