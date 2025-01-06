@@ -37,8 +37,8 @@ export async function generate(projectPath: string, options: Options) {
 
     // check for multiple versions of Zenstack packages
     const packages = getZenStackPackages(projectPath);
-    if (packages) {
-        const versions = new Set<string>(packages.map((p) => p.version));
+    if (packages.length > 0) {
+        const versions = new Set<string>(packages.map((p) => p.version).filter((v): v is string => !!v));
         if (versions.size > 1) {
             console.warn(
                 colors.yellow(
