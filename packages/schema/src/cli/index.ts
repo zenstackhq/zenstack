@@ -73,7 +73,7 @@ export const checkAction = async (options: Parameters<typeof actions.check>[1]):
 export function createProgram() {
     const program = new Command('zenstack');
 
-    program.version(getVersion(), '-v --version', 'display CLI version');
+    program.version(getVersion()!, '-v --version', 'display CLI version');
 
     const schemaExtensions = ZModelLanguageMetaData.fileExtensions.join(', ');
 

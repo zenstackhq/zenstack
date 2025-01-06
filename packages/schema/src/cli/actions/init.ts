@@ -63,8 +63,7 @@ export async function init(projectPath: string, options: Options) {
     if (sampleModelGenerated) {
         console.log(`Sample model generated at: ${colors.blue(zmodelFile)}
 
-Please check the following guide on how to model your app:
-    https://zenstack.dev/#/modeling-your-app.`);
+Learn how to use ZenStack: https://zenstack.dev/docs.`);
     } else if (prismaSchema) {
         console.log(
             `Your current Prisma schema "${prismaSchema}" has been copied to "${zmodelFile}".

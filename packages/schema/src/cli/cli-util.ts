@@ -227,13 +227,13 @@ export async function getPluginDocuments(services: ZModelServices, fileName: str
     return result;
 }
 
-export function getZenStackPackages(projectPath: string) {
+export function getZenStackPackages(projectPath: string): Array<{ pkg: string; version: string | undefined }> {
     let pkgJson: { dependencies: Record<string, unknown>; devDependencies: Record<string, unknown> };
     const resolvedPath = path.resolve(projectPath);
     try {
         pkgJson = require(path.join(resolvedPath, 'package.json'));
     } catch {
-        return undefined;
+        return [];
     }
 
     const packages = [
@@ -245,7 +245,7 @@ export function getZenStackPackages(projectPath: string) {
         try {
             const resolved = require.resolve(`${pkg}/package.json`, { paths: [resolvedPath] });
             // eslint-disable-next-line @typescript-eslint/no-var-requires
-            return { pkg, version: require(resolved).version };
+            return { pkg, version: require(resolved).version as string };
         } catch {
             return { pkg, version: undefined };
         }
@@ -286,7 +286,7 @@ export async function checkNewVersion() {
         return;
     }
 
-    if (latestVersion && semver.gt(latestVersion, currVersion)) {
+    if (latestVersion && currVersion && semver.gt(latestVersion, currVersion)) {
         console.log(`A newer version ${colors.cyan(latestVersion)} is available.`);
     }
 }
