@@ -307,7 +307,7 @@ model M {
                 expect(resp.body.data.attributes.value).toBe(2);
             });
 
-        await makeTestClient('/m/1', options).del('/').expect(204);
+        await makeTestClient('/m/1', options).del('/').expect(200);
         expect(await prisma.m.count()).toBe(0);
     });
 });
