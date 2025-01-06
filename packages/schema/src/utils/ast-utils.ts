@@ -16,7 +16,14 @@ import {
     ModelImport,
     TypeDef,
 } from '@zenstackhq/language/ast';
-import { getAttribute, getInheritanceChain, getRecursiveBases, isDelegateModel, isFromStdlib } from '@zenstackhq/sdk';
+import {
+    getAttribute,
+    getInheritanceChain,
+    getRecursiveBases,
+    hasAttribute,
+    isDelegateModel,
+    isFromStdlib,
+} from '@zenstackhq/sdk';
 import {
     AstNode,
     copyAstNode,
@@ -96,6 +103,9 @@ function filterBaseAttribute(forModel: DataModel, base: DataModel, attr: DataMod
     // uninheritable attributes for delegate inheritance (they reference fields from the base)
     const uninheritableFromDelegateAttributes = ['@@unique', '@@index', '@@fulltext'];
 
+    // attributes that are inherited but can be overridden
+    const overrideAttributes = ['@@schema'];
+
     if (uninheritableAttributes.includes(attr.decl.$refText)) {
         return false;
     }
@@ -106,6 +116,11 @@ function filterBaseAttribute(forModel: DataModel, base: DataModel, attr: DataMod
         isInheritedFromOrThroughDelegate(forModel, base) &&
         uninheritableFromDelegateAttributes.includes(attr.decl.$refText)
     ) {
+        return false;
+    }
+
+    if (hasAttribute(forModel, attr.decl.$refText) && overrideAttributes.includes(attr.decl.$refText)) {
+        // don't inherit an attribute if it's overridden in the sub model
         return false;
     }
 
