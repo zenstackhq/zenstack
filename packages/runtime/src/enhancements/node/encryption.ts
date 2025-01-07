@@ -41,7 +41,7 @@ class EncryptedHandler extends DefaultPrismaProxyHandler {
     private encryptionKey: CryptoKey | undefined;
     private encryptionKeyDigest: string | undefined;
     private decryptionKeys: Array<{ key: CryptoKey; digest: string }> = [];
-    private encryptedResultSchema = z.object({
+    private encryptionMetaSchema = z.object({
         // version
         v: z.number(),
         // algorithm
@@ -179,7 +179,7 @@ class EncryptedHandler extends DefaultPrismaProxyHandler {
         }
 
         // parse meta
-        const { a: algorithm, k: keyDigest } = this.encryptedResultSchema.parse(metaObj);
+        const { a: algorithm, k: keyDigest } = this.encryptionMetaSchema.parse(metaObj);
 
         // find a matching decryption key
         const keys = await this.findDecryptionKeys(keyDigest);
