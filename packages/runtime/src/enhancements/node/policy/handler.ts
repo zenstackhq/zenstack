@@ -116,7 +116,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     }
 
     findMany(args?: any) {
-        return createDeferredPromise<unknown[]>(() => this.doFind(args, 'findMany', () => []));
+        return createDeferredPromise<unknown[]>(() => this.doFind(args, 'findMany', () => [], true));
     }
 
     // make a find query promise with fluent API call stubs installed
@@ -130,7 +130,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         );
     }
 
-    private async doFind(args: any, actionName: FindOperations, handleRejection: () => any) {
+    private async doFind(args: any, actionName: FindOperations, handleRejection: () => any, isList: boolean = false) {
         const origArgs = args;
         const _args = this.policyUtils.safeClone(args);
         if (!this.policyUtils.injectForRead(this.prisma, this.model, _args)) {
