@@ -612,6 +612,11 @@ export class PolicyUtil extends QueryUtils {
             return false;
         }
 
+        if (!this.injectAuthGuardAsWhere(db, injected, model, 'list')) {
+            args.where = this.makeFalse();
+            return false;
+        }
+
         if (args.where) {
             // inject into fields:
             //   to-many: some/none/every
