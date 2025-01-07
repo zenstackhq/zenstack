@@ -154,6 +154,7 @@ export class PolicyGenerator {
             this.writeModelUpdateDef(model, policies, writer, sourceFile);
             this.writeModelPostUpdateDef(model, policies, writer, sourceFile);
             this.writeModelDeleteDef(model, policies, writer, sourceFile);
+            this.writeModelListDef(model, policies, writer, sourceFile);
         });
         writer.writeLine(',');
     }
@@ -347,6 +348,21 @@ export class PolicyGenerator {
         writer.inlineBlock(() => {
             this.writeCommonModelDef(model, 'delete', policies, writer, sourceFile);
         });
+        writer.writeLine(',');
+    }
+
+    // writes `list: ...` for a given model
+    private writeModelListDef(
+        model: DataModel,
+        policies: PolicyAnalysisResult,
+        writer: CodeBlockWriter,
+        sourceFile: SourceFile
+    ) {
+        writer.write(`list:`);
+        writer.inlineBlock(() => {
+            this.writeCommonModelDef(model, 'list', policies, writer, sourceFile);
+        });
+        writer.writeLine(',');
     }
 
     // writes `[kind]: ...` for a given model
