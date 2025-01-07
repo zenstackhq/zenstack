@@ -58,6 +58,124 @@ describe('Encrypted test', () => {
         expect(read.encrypted_value).toBe('abc123');
         expect(sudoRead.encrypted_value).not.toBe('abc123');
         expect(rawRead.encrypted_value).not.toBe('abc123');
+
+        // update
+        const updated = await db.user.update({
+            where: { id: '1' },
+            data: { encrypted_value: 'abc234' },
+        });
+        expect(updated.encrypted_value).toBe('abc234');
+        await expect(db.user.findUnique({ where: { id: '1' } })).resolves.toMatchObject({
+            encrypted_value: 'abc234',
+        });
+        await expect(prisma.user.findUnique({ where: { id: '1' } })).resolves.not.toMatchObject({
+            encrypted_value: 'abc234',
+        });
+
+        // upsert with create
+        const upsertCreate = await db.user.upsert({
+            where: { id: '2' },
+            create: {
+                id: '2',
+                encrypted_value: 'abc345',
+            },
+            update: {
+                encrypted_value: 'abc456',
+            },
+        });
+        expect(upsertCreate.encrypted_value).toBe('abc345');
+        await expect(db.user.findUnique({ where: { id: '2' } })).resolves.toMatchObject({
+            encrypted_value: 'abc345',
+        });
+        await expect(prisma.user.findUnique({ where: { id: '2' } })).resolves.not.toMatchObject({
+            encrypted_value: 'abc345',
+        });
+
+        // upsert with update
+        const upsertUpdate = await db.user.upsert({
+            where: { id: '2' },
+            create: {
+                id: '2',
+                encrypted_value: 'abc345',
+            },
+            update: {
+                encrypted_value: 'abc456',
+            },
+        });
+        expect(upsertUpdate.encrypted_value).toBe('abc456');
+        await expect(db.user.findUnique({ where: { id: '2' } })).resolves.toMatchObject({
+            encrypted_value: 'abc456',
+        });
+        await expect(prisma.user.findUnique({ where: { id: '2' } })).resolves.not.toMatchObject({
+            encrypted_value: 'abc456',
+        });
+
+        // createMany
+        await db.user.createMany({
+            data: [
+                { id: '3', encrypted_value: 'abc567' },
+                { id: '4', encrypted_value: 'abc678' },
+            ],
+        });
+        await expect(db.user.findUnique({ where: { id: '3' } })).resolves.toMatchObject({
+            encrypted_value: 'abc567',
+        });
+        await expect(prisma.user.findUnique({ where: { id: '3' } })).resolves.not.toMatchObject({
+            encrypted_value: 'abc567',
+        });
+
+        // createManyAndReturn
+        await expect(
+            db.user.createManyAndReturn({
+                data: [
+                    { id: '5', encrypted_value: 'abc789' },
+                    { id: '6', encrypted_value: 'abc890' },
+                ],
+            })
+        ).resolves.toEqual(
+            expect.arrayContaining([
+                { id: '5', encrypted_value: 'abc789' },
+                { id: '6', encrypted_value: 'abc890' },
+            ])
+        );
+        await expect(db.user.findUnique({ where: { id: '5' } })).resolves.toMatchObject({
+            encrypted_value: 'abc789',
+        });
+        await expect(prisma.user.findUnique({ where: { id: '5' } })).resolves.not.toMatchObject({
+            encrypted_value: 'abc789',
+        });
+    });
+
+    it('Works with nullish values', async () => {
+        const { enhance, prisma } = await loadSchema(
+            `
+    model User {
+        id String @id @default(cuid())
+        encrypted_value String? @encrypted()
+    }`,
+            {
+                enhancements: ['encryption'],
+                enhanceOptions: {
+                    encryption: { encryptionKey },
+                },
+            }
+        );
+
+        const db = enhance();
+        await expect(db.user.create({ data: { id: '1', encrypted_value: '' } })).resolves.toMatchObject({
+            encrypted_value: '',
+        });
+        await expect(prisma.user.findUnique({ where: { id: '1' } })).resolves.toMatchObject({ encrypted_value: '' });
+
+        await expect(db.user.create({ data: { id: '2' } })).resolves.toMatchObject({
+            encrypted_value: null,
+        });
+        await expect(prisma.user.findUnique({ where: { id: '2' } })).resolves.toMatchObject({ encrypted_value: null });
+
+        await expect(db.user.create({ data: { id: '3', encrypted_value: null } })).resolves.toMatchObject({
+            encrypted_value: null,
+        });
+        await expect(prisma.user.findUnique({ where: { id: '3' } })).resolves.toMatchObject({ encrypted_value: null });
     });
 
     it('Decrypts nested fields', async () => {

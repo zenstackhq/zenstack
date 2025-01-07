@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { z } from 'zod';
+import { ACTIONS_WITH_WRITE_PAYLOAD } from '../../constants';
 import {
     FieldInfo,
     NestedWriteVisitor,
@@ -211,8 +212,7 @@ class EncryptedHandler extends DefaultPrismaProxyHandler {
 
     // base override
     protected async preprocessArgs(action: PrismaProxyActions, args: any) {
-        const actionsOfInterest: PrismaProxyActions[] = ['create', 'createMany', 'update', 'updateMany', 'upsert'];
-        if (args && args.data && actionsOfInterest.includes(action)) {
+        if (args && ACTIONS_WITH_WRITE_PAYLOAD.includes(action)) {
             await this.preprocessWritePayload(this.model, action as PrismaWriteActionType, args);
         }
         return args;
