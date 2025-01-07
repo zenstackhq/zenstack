@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { ACTIONS_WITH_WRITE_PAYLOAD } from '../../constants';
 import {
     FieldInfo,
     NestedWriteVisitor,
@@ -50,15 +51,7 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
 
     // base override
     protected async preprocessArgs(action: PrismaProxyActions, args: any) {
-        const actionsOfInterest: PrismaProxyActions[] = [
-            'create',
-            'createMany',
-            'createManyAndReturn',
-            'update',
-            'updateMany',
-            'upsert',
-        ];
-        if (actionsOfInterest.includes(action)) {
+        if (args && ACTIONS_WITH_WRITE_PAYLOAD.includes(action)) {
             const newArgs = await this.preprocessWritePayload(this.model, action as PrismaWriteActionType, args);
             return newArgs;
         }

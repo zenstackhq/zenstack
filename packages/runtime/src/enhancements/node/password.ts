@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { DEFAULT_PASSWORD_SALT_LENGTH } from '../../constants';
+import { ACTIONS_WITH_WRITE_PAYLOAD, DEFAULT_PASSWORD_SALT_LENGTH } from '../../constants';
 import { NestedWriteVisitor, type PrismaWriteActionType } from '../../cross';
 import { DbClientContract } from '../../types';
 import { InternalEnhancementOptions } from './create-enhancement';
@@ -39,8 +39,7 @@ class PasswordHandler extends DefaultPrismaProxyHandler {
 
     // base override
     protected async preprocessArgs(action: PrismaProxyActions, args: any) {
-        const actionsOfInterest: PrismaProxyActions[] = ['create', 'createMany', 'update', 'updateMany', 'upsert'];
-        if (args && args.data && actionsOfInterest.includes(action)) {
+        if (args && ACTIONS_WITH_WRITE_PAYLOAD.includes(action)) {
             await this.preprocessWritePayload(this.model, action as PrismaWriteActionType, args);
         }
         return args;
