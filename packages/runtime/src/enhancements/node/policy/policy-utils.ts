@@ -652,6 +652,14 @@ export class PolicyUtil extends QueryUtils {
         return true;
     }
 
+    /**
+     * Injects auth guard for read operations.
+     */
+    injectForList(_db: CrudContract, _model: string, _args: any) {
+        // make select and include visible to the injection
+        return true;
+    }
+
     //#endregion
 
     //#region Checker

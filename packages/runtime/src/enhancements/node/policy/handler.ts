@@ -140,6 +140,14 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             return handleRejection();
         }
 
+        if (isList && !this.policyUtils.injectForList(this.prisma, this.model, _args)) {
+            if (this.shouldLogQuery) {
+                this.logger.info(`[policy] \`${actionName}\` ${this.model}: unconditionally denied`);
+            }
+
+            return handleRejection();
+        }
+
         this.policyUtils.injectReadCheckSelect(this.model, _args);
 
         if (this.shouldLogQuery) {
