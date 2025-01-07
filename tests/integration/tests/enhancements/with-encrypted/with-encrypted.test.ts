@@ -53,7 +53,6 @@ describe('Encrypted test', () => {
         });
 
         const rawRead = await prisma.user.findUnique({ where: { id: '1' } });
-        console.log('Raw data:', JSON.stringify(rawRead));
 
         expect(create.encrypted_value).toBe('abc123');
         expect(read.encrypted_value).toBe('abc123');
@@ -104,7 +103,6 @@ describe('Encrypted test', () => {
         expect(read.posts[0].title).toBe('Post1');
 
         const rawRead = await prisma.user.findUnique({ where: { id: '1' }, include: { posts: true } });
-        console.log('Raw data:', JSON.stringify(rawRead));
         expect(rawRead.posts[0].title).not.toBe('Post1');
     });
 
@@ -187,7 +185,6 @@ describe('Encrypted test', () => {
                 id: '1',
             },
         });
-        console.log('Raw data:', JSON.stringify(rawRead));
 
         expect(create.encrypted_value).toBe('abc123');
         expect(read.encrypted_value).toBe('abc123');
@@ -211,21 +208,18 @@ describe('Encrypted test', () => {
             encryption: { encryptionKey: key1 },
         });
         const user1 = await db1.user.create({ data: { secret: 'user1' } });
-        console.log('User1:', user1);
 
         const db2 = enhance(prisma, undefined, {
             kinds: ['encryption'],
             encryption: { encryptionKey: key2 },
         });
         const user2 = await db2.user.create({ data: { secret: 'user2' } });
-        console.log('User2:', user2);
 
         const dbAll = enhance(prisma, undefined, {
             kinds: ['encryption'],
             encryption: { encryptionKey: crypto.getRandomValues(new Uint8Array(32)), decryptionKeys: [key1, key2] },
         });
         const allUsers = await dbAll.user.findMany();
-        console.log('All users:', allUsers);
         expect(allUsers).toEqual(expect.arrayContaining([user1, user2]));
 
         const dbWithEncryptionKeyExplicitlyProvided = enhance(prisma, undefined, {
@@ -253,7 +247,6 @@ describe('Encrypted test', () => {
             encryption: { encryptionKey: key2 },
         });
         const found = await dbWithMissingKeys.user.findMany();
-        console.log('Mixed decrypted and raw:', found);
         expect(found).not.toContainEqual(user1);
         expect(found).toContainEqual(user2);
 
@@ -262,7 +255,6 @@ describe('Encrypted test', () => {
             encryption: { encryptionKey: crypto.getRandomValues(new Uint8Array(32)) },
         });
         const found1 = await dbWithAllWrongKeys.user.findMany();
-        console.log('All raw:', found1);
         expect(found1).not.toContainEqual(user1);
         expect(found1).not.toContainEqual(user2);
     });
