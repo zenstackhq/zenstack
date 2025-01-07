@@ -80,6 +80,10 @@
             "types": "./zod-utils.d.ts",
             "default": "./zod-utils.js"
         },
+        "./encryption": {
+            "types": "./encryption/index.d.ts",
+            "default": "./encryption/index.js"
+        },
         "./package.json": {
             "default": "./package.json"
         }
