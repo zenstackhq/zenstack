@@ -143,13 +143,12 @@ describe('Encrypted test', () => {
     });
 
     it('Custom encryption test', async () => {
-        const { enhance } = await loadSchema(`
+        const { enhance, prisma } = await loadSchema(`
     model User {
         id String @id @default(cuid())
         encrypted_value String @encrypted()
     }`);
 
-        const sudoDb = enhance(undefined, { kinds: [] });
         const db = enhance(undefined, {
             kinds: ['encryption'],
             encryption: {
@@ -181,7 +180,7 @@ describe('Encrypted test', () => {
             },
         });
 
-        const sudoRead = await sudoDb.user.findUnique({
+        const rawRead = await prisma.user.findUnique({
             where: {
                 id: '1',
             },
@@ -189,7 +188,75 @@ describe('Encrypted test', () => {
 
         expect(create.encrypted_value).toBe('abc123');
         expect(read.encrypted_value).toBe('abc123');
-        expect(sudoRead.encrypted_value).toBe('abc123_enc');
+        expect(rawRead.encrypted_value).toBe('abc123_enc');
+    });
+
+    it('Works with multiple decryption keys', async () => {
+        const { enhanceRaw: enhance, prisma } = await loadSchema(
+            `
+    model User {
+        id String @id @default(cuid())
+        secret String @encrypted()
+    }`
+        );
+
+        const key1 = crypto.getRandomValues(new Uint8Array(32));
+        const key2 = crypto.getRandomValues(new Uint8Array(32));
+
+        const db1 = enhance(prisma, undefined, {
+            kinds: ['encryption'],
+            encryption: { encryptionKey: key1 },
+        });
+        const user1 = await db1.user.create({ data: { secret: 'user1' } });
+
+        const db2 = enhance(prisma, undefined, {
+            kinds: ['encryption'],
+            encryption: { encryptionKey: key2 },
+        });
+        const user2 = await db2.user.create({ data: { secret: 'user2' } });
+
+        const dbAll = enhance(prisma, undefined, {
+            kinds: ['encryption'],
+            encryption: { encryptionKey: crypto.getRandomValues(new Uint8Array(32)), decryptionKeys: [key1, key2] },
+        });
+        const allUsers = await dbAll.user.findMany();
+        expect(allUsers).toEqual(expect.arrayContaining([user1, user2]));
+
+        const dbWithEncryptionKeyExplicitlyProvided = enhance(prisma, undefined, {
+            kinds: ['encryption'],
+            encryption: { encryptionKey: key1, decryptionKeys: [key1, key2] },
+        });
+        await expect(dbWithEncryptionKeyExplicitlyProvided.user.findMany()).resolves.toEqual(
+            expect.arrayContaining([user1, user2])
+        );
+
+        const dbWithDuplicatedKeys = enhance(prisma, undefined, {
+            kinds: ['encryption'],
+            encryption: { encryptionKey: key1, decryptionKeys: [key1, key1, key2, key2] },
+        });
+        await expect(dbWithDuplicatedKeys.user.findMany()).resolves.toEqual(expect.arrayContaining([user1, user2]));
+
+        const dbWithInvalidKeys = enhance(prisma, undefined, {
+            kinds: ['encryption'],
+            encryption: { encryptionKey: key1, decryptionKeys: [key2, crypto.getRandomValues(new Uint8Array(32))] },
+        });
+        await expect(dbWithInvalidKeys.user.findMany()).resolves.toEqual(expect.arrayContaining([user1, user2]));
+
+        const dbWithMissingKeys = enhance(prisma, undefined, {
+            kinds: ['encryption'],
+            encryption: { encryptionKey: key2 },
+        });
+        const found = await dbWithMissingKeys.user.findMany();
+        expect(found).not.toContainEqual(user1);
+        expect(found).toContainEqual(user2);
+
+        const dbWithAllWrongKeys = enhance(prisma, undefined, {
+            kinds: ['encryption'],
+            encryption: { encryptionKey: crypto.getRandomValues(new Uint8Array(32)) },
+        });
+        const found1 = await dbWithAllWrongKeys.user.findMany();
+        expect(found1).not.toContainEqual(user1);
+        expect(found1).not.toContainEqual(user2);
     });
 
     it('Only supports string fields', async () => {
