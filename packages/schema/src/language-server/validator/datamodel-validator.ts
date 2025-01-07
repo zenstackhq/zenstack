@@ -33,6 +33,10 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         validateDuplicatedDeclarations(dm, getModelFieldsWithBases(dm), accept);
         this.validateAttributes(dm, accept);
         this.validateFields(dm, accept);
+
+        if (dm.superTypes.length > 0) {
+            this.validateInheritance(dm, accept);
+        }
     }
 
     private validateFields(dm: DataModel, accept: ValidationAcceptor) {
@@ -405,6 +409,26 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                 node: model,
                 property: 'superTypes',
             });
+        }
+    }
+
+    private validateInheritance(dm: DataModel, accept: ValidationAcceptor) {
+        const seen = [dm];
+        const todo: DataModel[] = dm.superTypes.map((superType) => superType.ref!);
+        while (todo.length > 0) {
+            const current = todo.shift()!;
+            if (seen.includes(current)) {
+                accept(
+                    'error',
+                    `Circular inheritance detected: ${seen.map((m) => m.name).join(' -> ')} -> ${current.name}`,
+                    {
+                        node: dm,
+                    }
+                );
+                return;
+            }
+            seen.push(current);
+            todo.push(...current.superTypes.map((superType) => superType.ref!));
         }
     }
 }

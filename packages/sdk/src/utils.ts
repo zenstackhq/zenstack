@@ -544,8 +544,16 @@ export function getModelFieldsWithBases(model: DataModel, includeDelegate = true
     }
 }
 
-export function getRecursiveBases(dataModel: DataModel, includeDelegate = true): DataModel[] {
+export function getRecursiveBases(
+    dataModel: DataModel,
+    includeDelegate = true,
+    seen = new Set<DataModel>()
+): DataModel[] {
     const result: DataModel[] = [];
+    if (seen.has(dataModel)) {
+        return result;
+    }
+    seen.add(dataModel);
     dataModel.superTypes.forEach((superType) => {
         const baseDecl = superType.ref;
         if (baseDecl) {
@@ -553,7 +561,7 @@ export function getRecursiveBases(dataModel: DataModel, includeDelegate = true):
                 return;
             }
             result.push(baseDecl);
-            result.push(...getRecursiveBases(baseDecl, includeDelegate));
+            result.push(...getRecursiveBases(baseDecl, includeDelegate, seen));
         }
     });
     return result;

@@ -16,7 +16,9 @@ export async function info(projectPath: string) {
     console.log('Installed ZenStack Packages:');
     const versions = new Set<string>();
     for (const { pkg, version } of packages) {
-        versions.add(version);
+        if (version) {
+            versions.add(version);
+        }
         console.log(`    ${colors.green(pkg.padEnd(20))}\t${version}`);
     }
 

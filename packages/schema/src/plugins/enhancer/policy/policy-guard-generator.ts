@@ -454,6 +454,8 @@ export class PolicyGenerator {
         writer: CodeBlockWriter,
         sourceFile: SourceFile
     ) {
+        // first handle several cases where a constant function can be used
+
         if (kind === 'update' && allows.length === 0) {
             // no allow rule for 'update', policy is constant based on if there's
             // post-update counterpart

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { z } from 'zod';
+import { FieldInfo } from './cross';
 
 export type PrismaPromise<T> = Promise<T> & Record<string, (args?: any) => PrismaPromise<any>>;
 
@@ -133,6 +134,11 @@ export type EnhancementOptions = {
      * The `isolationLevel` option passed to `prisma.$transaction()` call for transactions initiated by ZenStack.
      */
     transactionIsolationLevel?: TransactionIsolationLevel;
+
+    /**
+     * The encryption options for using the `encrypted` enhancement.
+     */
+    encryption?: SimpleEncryption | CustomEncryption;
 };
 
 /**
@@ -145,7 +151,7 @@ export type EnhancementContext<User extends AuthUser = AuthUser> = {
 /**
  * Kinds of enhancements to `PrismaClient`
  */
-export type EnhancementKind = 'password' | 'omit' | 'policy' | 'validation' | 'delegate';
+export type EnhancementKind = 'password' | 'omit' | 'policy' | 'validation' | 'delegate' | 'encryption';
 
 /**
  * Function for transforming errors.
@@ -165,4 +171,40 @@ export type ZodSchemas = {
      * Zod schema for Prisma input types for each model
      */
     input?: Record<string, Record<string, z.ZodSchema>>;
+};
+
+/**
+ * Simple encryption settings for processing fields marked with `@encrypted`.
+ */
+export type SimpleEncryption = {
+    /**
+     * The encryption key.
+     */
+    encryptionKey: Uint8Array;
+
+    /**
+     * Optional list of all decryption keys that were previously used to encrypt the data
+     * , for supporting key rotation. The `encryptionKey` field value is automatically
+     * included for decryption.
+     *
+     * When the encrypted data is persisted, a metadata object containing the digest of the
+     * encryption key is stored alongside the data. This digest is used to quickly determine
+     * the correct decryption key to use when reading the data.
+     */
+    decryptionKeys?: Uint8Array[];
+};
+
+/**
+ * Custom encryption settings for processing fields marked with `@encrypted`.
+ */
+export type CustomEncryption = {
+    /**
+     * Encryption function.
+     */
+    encrypt: (model: string, field: FieldInfo, plain: string) => Promise<string>;
+
+    /**
+     * Decryption function
+     */
+    decrypt: (model: string, field: FieldInfo, cipher: string) => Promise<string>;
 };

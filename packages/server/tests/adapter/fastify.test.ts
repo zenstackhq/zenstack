@@ -233,7 +233,7 @@ describe('Fastify adapter tests - rest handler', () => {
         expect(r.json().data.attributes.email).toBe('user1@def.com');
 
         r = await app.inject({ method: 'DELETE', url: '/api/user/user1' });
-        expect(r.statusCode).toBe(204);
+        expect(r.statusCode).toBe(200);
         expect(await prisma.user.findMany()).toHaveLength(0);
     });
 });

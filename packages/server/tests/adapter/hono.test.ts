@@ -167,7 +167,7 @@ describe('Hono adapter tests - rest handler', () => {
         expect((await unmarshal(r)).data.attributes.email).toBe('user1@def.com');
 
         r = await handler(makeRequest('DELETE', makeUrl(makeUrl('/api/user/user1'))));
-        expect(r.status).toBe(204);
+        expect(r.status).toBe(200);
         expect(await prisma.user.findMany()).toHaveLength(0);
     });
 });

@@ -67,3 +67,15 @@ export const PRISMA_MINIMUM_VERSION = '5.0.0';
  * Prefix for auxiliary relation field generated for delegated models
  */
 export const DELEGATE_AUX_RELATION_PREFIX = 'delegate_aux';
+
+/**
+ * Prisma actions that can have a write payload
+ */
+export const ACTIONS_WITH_WRITE_PAYLOAD = [
+    'create',
+    'createMany',
+    'createManyAndReturn',
+    'update',
+    'updateMany',
+    'upsert',
+];

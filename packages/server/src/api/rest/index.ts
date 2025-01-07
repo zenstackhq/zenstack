@@ -1103,8 +1103,8 @@ class RequestHandler extends APIHandlerBase {
             where: this.makePrismaIdFilter(typeInfo.idFields, resourceId),
         });
         return {
-            status: 204,
-            body: undefined,
+            status: 200,
+            body: { meta: {} },
         };
     }
 

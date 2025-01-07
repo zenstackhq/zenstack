@@ -4,7 +4,7 @@
 import type { FieldInfo, ModelMeta } from './model-meta';
 import { resolveField } from './model-meta';
 import { MaybePromise, PrismaWriteActionType, PrismaWriteActions } from './types';
-import { getModelFields } from './utils';
+import { enumerate, getModelFields } from './utils';
 
 type NestingPathItem = { field?: FieldInfo; model: string; where: any; unique: boolean };
 
@@ -310,31 +310,33 @@ export class NestedWriteVisitor {
         payload: any,
         nestingPath: NestingPathItem[]
     ) {
-        for (const field of getModelFields(payload)) {
-            const fieldInfo = resolveField(this.modelMeta, model, field);
-            if (!fieldInfo) {
-                continue;
-            }
+        for (const item of enumerate(payload)) {
+            for (const field of getModelFields(item)) {
+                const fieldInfo = resolveField(this.modelMeta, model, field);
+                if (!fieldInfo) {
+                    continue;
+                }
 
-            if (fieldInfo.isDataModel) {
-                if (payload[field]) {
-                    // recurse into nested payloads
-                    for (const [subAction, subData] of Object.entries<any>(payload[field])) {
-                        if (this.isPrismaWriteAction(subAction) && subData) {
-                            await this.doVisit(fieldInfo.type, subAction, subData, payload[field], fieldInfo, [
-                                ...nestingPath,
-                            ]);
+                if (fieldInfo.isDataModel) {
+                    if (item[field]) {
+                        // recurse into nested payloads
+                        for (const [subAction, subData] of Object.entries<any>(item[field])) {
+                            if (this.isPrismaWriteAction(subAction) && subData) {
+                                await this.doVisit(fieldInfo.type, subAction, subData, item[field], fieldInfo, [
+                                    ...nestingPath,
+                                ]);
+                            }
                         }
                     }
-                }
-            } else {
-                // visit plain field
-                if (this.callback.field) {
-                    await this.callback.field(fieldInfo, action, payload[field], {
-                        parent: payload,
-                        nestingPath,
-                        field: fieldInfo,
-                    });
+                } else {
+                    // visit plain field
+                    if (this.callback.field) {
+                        await this.callback.field(fieldInfo, action, item[field], {
+                            parent: item,
+                            nestingPath,
+                            field: fieldInfo,
+                        });
+                    }
                 }
             }
         }

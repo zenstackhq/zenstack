@@ -14,7 +14,7 @@ describe('Password test', () => {
     });
 
     it('password tests', async () => {
-        const { enhance } = await loadSchema(`
+        const { enhance, prisma } = await loadSchema(`
     model User {
         id String @id @default(cuid())
         password String @password(saltLength: 16)
@@ -38,6 +38,27 @@ describe('Password test', () => {
             },
         });
         expect(compareSync('abc456', r1.password)).toBeTruthy();
+
+        await db.user.createMany({
+            data: [
+                { id: '2', password: 'user2' },
+                { id: '3', password: 'user3' },
+            ],
+        });
+        await expect(prisma.user.findUnique({ where: { id: '2' } })).resolves.not.toMatchObject({ password: 'user2' });
+        const r2 = await db.user.findUnique({ where: { id: '2' } });
+        expect(compareSync('user2', r2.password)).toBeTruthy();
+
+        const [u4] = await db.user.createManyAndReturn({
+            data: [
+                { id: '4', password: 'user4' },
+                { id: '5', password: 'user5' },
+            ],
+        });
+        expect(compareSync('user4', u4.password)).toBeTruthy();
+        await expect(prisma.user.findUnique({ where: { id: '4' } })).resolves.not.toMatchObject({ password: 'user4' });
+        const r4 = await db.user.findUnique({ where: { id: '4' } });
+        expect(compareSync('user4', r4.password)).toBeTruthy();
     });
 
     it('length tests', async () => {

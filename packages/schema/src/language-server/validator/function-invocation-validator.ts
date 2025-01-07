@@ -87,7 +87,17 @@ export default class FunctionInvocationValidator implements AstValidator<Express
                 return;
             }
 
-            if (
+            // TODO: express function validation rules declaratively in ZModel
+
+            const allCasing = ['original', 'upper', 'lower', 'capitalize', 'uncapitalize'];
+            if (['currentModel', 'currentOperation'].includes(funcDecl.name)) {
+                const arg = getLiteral<string>(expr.args[0]?.value);
+                if (arg && !allCasing.includes(arg)) {
+                    accept('error', `argument must be one of: ${allCasing.map((c) => '"' + c + '"').join(', ')}`, {
+                        node: expr.args[0],
+                    });
+                }
+            } else if (
                 funcAllowedContext.includes(ExpressionContext.AccessPolicy) ||
                 funcAllowedContext.includes(ExpressionContext.ValidationRule)
             ) {
