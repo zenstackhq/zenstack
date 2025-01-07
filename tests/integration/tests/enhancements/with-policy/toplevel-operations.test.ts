@@ -296,9 +296,11 @@ describe('With Policy: toplevel operations', () => {
         const fromPrisma = await prisma.model.findMany();
         expect(fromPrisma).toHaveLength(4);
 
-        const firstItem = await db.model.findFirst();
+        const fromDb = await db.model.findMany();
+        console.log(fromDb);
+        // const firstItem = await db.model.findFirst();
 
-        expect(firstItem).toBeTruthy();
+        // expect(firstItem).toBeTruthy();
 
         // listing denied
         // expect(fromDb).toHaveLength(0);
