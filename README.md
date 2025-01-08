@@ -181,6 +181,7 @@ The following diagram gives a high-level architecture overview of ZenStack.
 -   [Multi-file schema and model inheritance](https://zenstack.dev/docs/guides/multiple-schema)
 -   [Polymorphic Relations](https://zenstack.dev/docs/guides/polymorphism)
 -   [Strongly typed JSON field](https://zenstack.dev/docs/guides/typing-json)
+-   [Field encryption](https://zenstack.dev/docs/guides/field-encryption)
 -   🙋🏻 [Request for an extension](https://discord.gg/Ykhr738dUe)
 
 ## Examples
