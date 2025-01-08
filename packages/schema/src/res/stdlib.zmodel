@@ -94,13 +94,19 @@ function uuid(version: Int?): String {
 /**
  * Generates a globally unique identifier based on the CUID spec.
  */
-function cuid(): String {
+function cuid(version: Int?): String {
 } @@@expressionContext([DefaultValue])
 
 /**
  * Generates an identifier based on the nanoid spec.
  */
 function nanoid(length: Int?): String {
+} @@@expressionContext([DefaultValue])
+
+/**
+ * Generates an identifier based on the ulid spec.
+ */
+function ulid(): String {
 } @@@expressionContext([DefaultValue])
 
 /**
