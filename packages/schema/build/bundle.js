@@ -11,14 +11,6 @@ require('esbuild')
         external: ['vscode', '@prisma/*'],
         platform: 'node',
         sourcemap: !minify,
-        watch: watch
-            ? {
-                  onRebuild(error) {
-                      if (error) console.error('Watch build failed');
-                      else console.log(success);
-                  },
-              }
-            : false,
         minify,
     })
     .then(() => {

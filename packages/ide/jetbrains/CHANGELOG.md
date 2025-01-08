@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+
+-   Field encryption attribute `@encrypted`.
+
+## 2.9.3
+
 ### Fixed
 
 -   Proper semantic highlighting and formatting for type declarations.
