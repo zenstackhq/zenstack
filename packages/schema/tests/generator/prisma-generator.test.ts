@@ -164,6 +164,9 @@ describe('Prisma generator test', () => {
                 x String @default(nanoid())
                 y String @default(dbgenerated("gen_random_uuid()"))
                 z String @default(auth().id)
+                cuid String @default(cuid())
+                cuid2 String @default(cuid(2))
+                ulid String @default(ulid())
             }
         `);
 
@@ -183,6 +186,9 @@ describe('Prisma generator test', () => {
         expect(content).toContain('@default(nanoid())');
         expect(content).toContain('@default(dbgenerated("gen_random_uuid()"))');
         expect(content).not.toContain('@default(auth().id)');
+        expect(content).toContain('@default(cuid())');
+        expect(content).toContain('@default(cuid(2))');
+        expect(content).toContain('@default(ulid())');
     });
 
     it('triple slash comments', async () => {
