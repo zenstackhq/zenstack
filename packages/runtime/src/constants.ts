@@ -77,5 +77,6 @@ export const ACTIONS_WITH_WRITE_PAYLOAD = [
     'createManyAndReturn',
     'update',
     'updateMany',
+    'updateManyAndReturn',
     'upsert',
 ];
