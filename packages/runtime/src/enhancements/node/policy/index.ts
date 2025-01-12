@@ -75,6 +75,6 @@ export async function policyProcessIncludeRelationPayload(
     context: EnhancementContext | undefined
 ) {
     const utils = new PolicyUtil(prisma, options, context);
-    await utils.injectForRead(prisma, model, payload);
+    await utils.injectForReadOrList(prisma, model, payload, false);
     await utils.injectReadCheckSelect(model, payload);
 }
