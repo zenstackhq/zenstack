@@ -478,8 +478,13 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             let result: { result: unknown; error?: Error }[];
 
             if (!shouldConvertToCreate) {
-                // direct `createManyAndReturn`
-                const created = await this.modelClient.createManyAndReturn(args);
+                // direct `createManyAndReturn`, make sure we only select id fields for return
+                // so we can use the results directly for read-back check
+                const updatedArgs = {
+                    ...args,
+                    select: this.policyUtils.makeIdSelection(this.model),
+                };
+                const created = await this.modelClient.createManyAndReturn(updatedArgs);
 
                 // process read-back
                 result = await Promise.all(
