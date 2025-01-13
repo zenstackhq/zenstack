@@ -483,6 +483,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 const updatedArgs = {
                     ...args,
                     select: this.policyUtils.makeIdSelection(this.model),
+                    include: undefined,
                 };
                 const created = await this.modelClient.createManyAndReturn(updatedArgs);
 
