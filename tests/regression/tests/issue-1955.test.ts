@@ -40,7 +40,7 @@ describe('issue 1955', () => {
             );
         } finally {
             await _prisma.$disconnect();
-            await dropPostgresDb('issue-1955');
+            await dropPostgresDb('issue-1955-1');
         }
     });
 
