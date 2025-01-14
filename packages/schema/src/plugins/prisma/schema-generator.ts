@@ -32,7 +32,7 @@ import {
 } from '@zenstackhq/language/ast';
 import { getIdFields } from '@zenstackhq/sdk';
 import { getPrismaVersion } from '@zenstackhq/sdk/prisma';
-import { match } from 'ts-pattern';
+import { match, P } from 'ts-pattern';
 
 import { DELEGATE_AUX_RELATION_PREFIX, PRISMA_MINIMUM_VERSION } from '@zenstackhq/runtime';
 import {
@@ -869,7 +869,32 @@ export class PrismaSchemaGenerator {
         const docs = [...field.comments, ...this.getCustomAttributesAsComments(field)];
         const result = model.addField(field.name, type, attributes, docs, addToFront);
 
+        if (this.mode === 'logical') {
+            if (field.attributes.some((attr) => isDefaultWithAuth(attr))) {
+                // field has `@default` with `auth()`, turn it into a dummy default value, and the
+                // real default value setting is handled outside Prisma
+                this.setDummyDefault(result, field);
+            }
+        }
+
         return result;
+    }
+
+    private setDummyDefault(result: ModelField, field: DataModelField) {
+        const dummyDefaultValue = match(field.type.type)
+            .with('String', () => new AttributeArgValue('String', ''))
+            .with(P.union('Int', 'BigInt', 'Float', 'Decimal'), () => new AttributeArgValue('Number', '0'))
+            .with('Boolean', () => new AttributeArgValue('Boolean', 'false'))
+            .with('DateTime', () => new AttributeArgValue('FunctionCall', new PrismaFunctionCall('now')))
+            .with('Json', () => new AttributeArgValue('String', '{}'))
+            .with('Bytes', () => new AttributeArgValue('String', ''))
+            .otherwise(() => {
+                throw new PluginError(name, `Unsupported field type with default value: ${field.type.type}`);
+            });
+
+        result.attributes.push(
+            new PrismaFieldAttribute('@default', [new PrismaAttributeArg(undefined, dummyDefaultValue)])
+        );
     }
 
     private ensureSupportingTypeDefFields(zmodel: Model) {
