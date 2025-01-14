@@ -19,6 +19,7 @@ export interface DbOperations {
     createManyAndReturn(args: unknown): Promise<unknown[]>;
     update(args: unknown): Promise<any>;
     updateMany(args: unknown): Promise<{ count: number }>;
+    updateManyAndReturn(args: unknown): Promise<unknown[]>;
     upsert(args: unknown): Promise<any>;
     delete(args: unknown): Promise<any>;
     deleteMany(args?: unknown): Promise<{ count: number }>;

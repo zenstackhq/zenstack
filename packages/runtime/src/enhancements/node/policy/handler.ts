@@ -511,7 +511,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 });
             }
 
-            // throw read-back error if any of create result read-back fails
+            // throw read-back error if any of the create result read-back fails
             const error = result.find((r) => !!r.error)?.error;
             if (error) {
                 throw error;
@@ -1268,6 +1268,14 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     }
 
     updateMany(args: any) {
+        return this.doUpdateMany(args, 'updateMany');
+    }
+
+    updateManyAndReturn(args: any): Promise<unknown[]> {
+        return this.doUpdateMany(args, 'updateManyAndReturn');
+    }
+
+    private doUpdateMany(args: any, action: 'updateMany' | 'updateManyAndReturn'): Promise<any> {
         if (!args) {
             throw prismaClientValidationError(this.prisma, this.prismaModule, 'query argument is required');
         }
@@ -1279,9 +1287,10 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             );
         }
 
-        return createDeferredPromise(() => {
+        return createDeferredPromise(async () => {
             this.policyUtils.tryReject(this.prisma, this.model, 'update');
 
+            const origArgs = args;
             args = this.policyUtils.safeClone(args);
             this.policyUtils.injectAuthGuardAsWhere(this.prisma, args, this.model, 'update');
 
@@ -1302,13 +1311,37 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 if (this.shouldLogQuery) {
                     this.logger.info(`[policy] \`updateMany\` ${this.model}: ${formatObject(args)}`);
                 }
-                return this.modelClient.updateMany(args);
+                if (action === 'updateMany') {
+                    return this.modelClient.updateMany(args);
+                } else {
+                    // make sure only id fields are returned so we can directly use the result
+                    // for read-back check
+                    const updatedArg = {
+                        ...args,
+                        select: this.policyUtils.makeIdSelection(this.model),
+                        include: undefined,
+                    };
+                    const updated = await this.modelClient.updateManyAndReturn(updatedArg);
+                    // process read-back
+                    const result = await Promise.all(
+                        updated.map((item) =>
+                            this.policyUtils.readBack(this.prisma, this.model, 'update', origArgs, item)
+                        )
+                    );
+                    // throw read-back error if any of create result read-back fails
+                    const error = result.find((r) => !!r.error)?.error;
+                    if (error) {
+                        throw error;
+                    } else {
+                        return result.map((r) => r.result);
+                    }
+                }
             }
 
             // collect post-update checks
             const postWriteChecks: PostWriteCheckRecord[] = [];
 
-            return this.queryUtils.transaction(this.prisma, async (tx) => {
+            const result = await this.queryUtils.transaction(this.prisma, async (tx) => {
                 // collect pre-update values
                 let select = this.policyUtils.makeIdSelection(this.model);
                 const preValueSelect = this.policyUtils.getPreValueSelect(this.model);
@@ -1352,13 +1385,45 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 if (this.shouldLogQuery) {
                     this.logger.info(`[policy] \`updateMany\` in tx for ${this.model}: ${formatObject(args)}`);
                 }
-                const result = await tx[this.model].updateMany(args);
 
-                // run post-write checks
-                await this.runPostWriteChecks(postWriteChecks, tx);
-
-                return result;
+                if (action === 'updateMany') {
+                    const result = await tx[this.model].updateMany(args);
+                    // run post-write checks
+                    await this.runPostWriteChecks(postWriteChecks, tx);
+                    return result;
+                } else {
+                    // make sure only id fields are returned so we can directly use the result
+                    // for read-back check
+                    const updatedArg = {
+                        ...args,
+                        select: this.policyUtils.makeIdSelection(this.model),
+                        include: undefined,
+                    };
+                    const result = await tx[this.model].updateManyAndReturn(updatedArg);
+                    // run post-write checks
+                    await this.runPostWriteChecks(postWriteChecks, tx);
+                    return result;
+                }
             });
+
+            if (action === 'updateMany') {
+                // no further processing needed
+                return result;
+            } else {
+                // process read-back
+                const readBackResult = await Promise.all(
+                    (result as unknown[]).map((item) =>
+                        this.policyUtils.readBack(this.prisma, this.model, 'update', origArgs, item)
+                    )
+                );
+                // throw read-back error if any of the update result read-back fails
+                const error = readBackResult.find((r) => !!r.error)?.error;
+                if (error) {
+                    throw error;
+                } else {
+                    return readBackResult.map((r) => r.result);
+                }
+            }
         });
     }
 

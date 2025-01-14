@@ -21,6 +21,7 @@ describe('issue 1955', () => {
             _prisma = prisma;
 
             const db = enhance();
+
             await expect(
                 db.post.createManyAndReturn({
                     data: [
@@ -36,6 +37,17 @@ describe('issue 1955', () => {
                 expect.arrayContaining([
                     expect.objectContaining({ name: 'bla' }),
                     expect.objectContaining({ name: 'blu' }),
+                ])
+            );
+
+            await expect(
+                db.post.updateManyAndReturn({
+                    data: { name: 'foo' },
+                })
+            ).resolves.toEqual(
+                expect.arrayContaining([
+                    expect.objectContaining({ name: 'foo' }),
+                    expect.objectContaining({ name: 'foo' }),
                 ])
             );
         } finally {
@@ -72,6 +84,7 @@ describe('issue 1955', () => {
             _prisma = prisma;
 
             const db = enhance();
+
             await expect(
                 db.post.createManyAndReturn({
                     data: [
@@ -87,6 +100,17 @@ describe('issue 1955', () => {
                 expect.arrayContaining([
                     expect.objectContaining({ name: 'bla' }),
                     expect.objectContaining({ name: 'blu' }),
+                ])
+            );
+
+            await expect(
+                db.post.updateManyAndReturn({
+                    data: { name: 'foo' },
+                })
+            ).resolves.toEqual(
+                expect.arrayContaining([
+                    expect.objectContaining({ name: 'foo' }),
+                    expect.objectContaining({ name: 'foo' }),
                 ])
             );
         } finally {

@@ -247,6 +247,7 @@ export class NestedWriteVisitor {
                 break;
 
             case 'updateMany':
+            case 'updateManyAndReturn':
                 for (const item of this.enumerateReverse(data)) {
                     const newContext = pushNewContext(field, model, item.where);
                     let callbackResult: any;

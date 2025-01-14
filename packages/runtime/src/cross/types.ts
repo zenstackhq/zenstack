@@ -8,6 +8,7 @@ export const PrismaWriteActions = [
     'connectOrCreate',
     'update',
     'updateMany',
+    'updateManyAndReturn',
     'upsert',
     'connect',
     'disconnect',

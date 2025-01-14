@@ -35,6 +35,8 @@ export interface PrismaProxyHandler {
 
     updateMany(args: any): Promise<BatchResult>;
 
+    updateManyAndReturn(args: any): Promise<unknown[]>;
+
     upsert(args: any): Promise<unknown>;
 
     delete(args: any): Promise<unknown>;
@@ -130,6 +132,10 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
 
     updateMany(args: any) {
         return this.deferred<{ count: number }>('updateMany', args, false);
+    }
+
+    updateManyAndReturn(args: any) {
+        return this.deferred<unknown[]>('updateManyAndReturn', args);
     }
 
     upsert(args: any) {
