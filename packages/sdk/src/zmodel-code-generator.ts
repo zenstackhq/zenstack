@@ -39,6 +39,9 @@ import {
     StringLiteral,
     ThisExpr,
     UnaryExpr,
+    TypeDef,
+    TypeDefField,
+    TypeDefFieldType,
 } from './ast';
 import { resolved } from './utils';
 
@@ -177,10 +180,10 @@ ${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}${
         }`;
     }
 
-    private fieldType(type: DataModelFieldType) {
+    private fieldType(type: DataModelFieldType | TypeDefFieldType) {
         const baseType = type.type
             ? type.type
-            : type.unsupported
+            : type.$type == 'DataModelFieldType' && type.unsupported
             ? 'Unsupported(' + this.generate(type.unsupported.value) + ')'
             : type.reference?.$refText;
         return `${baseType}${type.array ? '[]' : ''}${type.optional ? '?' : ''}`;
@@ -320,6 +323,24 @@ ${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}${
     @gen(FunctionParamType)
     private _generateFunctionParamType(ast: FunctionParamType) {
         return `${ast.type ?? ast.reference?.$refText}${ast.array ? '[]' : ''}`;
+    }
+
+    @gen(TypeDef)
+    private _genearteTypeDef(ast: TypeDef) {
+        return `type ${ast.name} {
+${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}${
+            ast.attributes.length > 0
+                ? '\n\n' + ast.attributes.map((x) => this.indent + this.generate(x)).join('\n')
+                : ''
+        }
+}`;
+    }
+
+    @gen(TypeDefField)
+    private _generateTypeDefField(ast: TypeDefField) {
+        return `${ast.name} ${this.fieldType(ast.type)}${
+            ast.attributes.length > 0 ? ' ' + ast.attributes.map((x) => this.generate(x)).join(' ') : ''
+        }`;
     }
 
     private argument(ast: Argument) {
