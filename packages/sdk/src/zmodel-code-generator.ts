@@ -326,7 +326,7 @@ ${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}${
     }
 
     @gen(TypeDef)
-    private _genearteTypeDef(ast: TypeDef) {
+    private _generateTypeDef(ast: TypeDef) {
         return `type ${ast.name} {
 ${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}${
             ast.attributes.length > 0
