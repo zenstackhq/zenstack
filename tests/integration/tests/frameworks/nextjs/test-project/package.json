@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@prisma/client": "6.2.x",
+    "@prisma/client": "6.3.x",
     "@types/node": "18.11.18",
     "@types/react": "18.0.27",
     "@types/react-dom": "18.0.10",
@@ -18,7 +18,7 @@
     "react-dom": "18.2.0",
     "superjson": "^1.13.0",
     "swr": "^2.2.0",
-    "typescript": "4.9.4",
+    "typescript": "5.x",
     "zod": "^3.22.4",
     "@zenstackhq/language": "../../../../../../../packages/language/dist",
     "@zenstackhq/runtime": "../../../../../../../packages/runtime/dist",
@@ -26,6 +26,6 @@
     "@zenstackhq/swr": "../../../../../../../packages/plugins/swr/dist"
   },
   "devDependencies": {
-    "prisma": "6.2.x"
+    "prisma": "6.3.x"
   }
 }
