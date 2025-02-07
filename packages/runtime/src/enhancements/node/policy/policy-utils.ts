@@ -1183,7 +1183,7 @@ export class PolicyUtil extends QueryUtils {
 
         if (this.hasFieldLevelPolicy(model)) {
             // recursively inject selection for fields needed for field-level read checks
-            const readFieldSelect = this.getFieldReadCheckSelector(model);
+            const readFieldSelect = this.getFieldReadCheckSelector(model, args.select);
             if (readFieldSelect) {
                 this.doInjectReadCheckSelect(model, args, { select: readFieldSelect });
             }
@@ -1311,17 +1311,20 @@ export class PolicyUtil extends QueryUtils {
     }
 
     // get a merged selector object for all field-level read policies
-    private getFieldReadCheckSelector(model: string) {
+    private getFieldReadCheckSelector(model: string, fieldSelection: Record<string, any> | undefined) {
         const def = this.getModelPolicyDef(model);
         let result: any = {};
         const fieldLevel = def.fieldLevel?.read;
         if (fieldLevel) {
-            for (const def of Object.values(fieldLevel)) {
-                if (def.entityChecker?.selector) {
-                    result = deepmerge(result, def.entityChecker.selector);
-                }
-                if (def.overrideEntityChecker?.selector) {
-                    result = deepmerge(result, def.overrideEntityChecker.selector);
+            for (const [field, def] of Object.entries(fieldLevel)) {
+                if (!fieldSelection || fieldSelection[field]) {
+                    // field is selected, merge the field-level selector
+                    if (def.entityChecker?.selector) {
+                        result = deepmerge(result, def.entityChecker.selector);
+                    }
+                    if (def.overrideEntityChecker?.selector) {
+                        result = deepmerge(result, def.overrideEntityChecker.selector);
+                    }
                 }
             }
         }
