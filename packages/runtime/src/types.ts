@@ -37,7 +37,7 @@ export interface DbOperations {
  */
 export type PolicyKind = 'allow' | 'deny';
 
-export type PolicyCrudKind = 'read' | 'create' | 'update' | 'delete';
+export type PolicyCrudKind = 'read' | 'create' | 'update' | 'delete' | 'list';
 
 /**
  * Kinds of operations controlled by access policies
