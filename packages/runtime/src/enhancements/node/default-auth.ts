@@ -5,10 +5,12 @@ import { ACTIONS_WITH_WRITE_PAYLOAD } from '../../constants';
 import {
     FieldInfo,
     NestedWriteVisitor,
+    NestedWriteVisitorContext,
     PrismaWriteActionType,
     clone,
     enumerate,
     getFields,
+    getModelInfo,
     getTypeDefInfo,
     requireField,
 } from '../../cross';
@@ -61,7 +63,7 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
     private async preprocessWritePayload(model: string, action: PrismaWriteActionType, args: any) {
         const newArgs = clone(args);
 
-        const processCreatePayload = (model: string, data: any) => {
+        const processCreatePayload = (model: string, data: any, context: NestedWriteVisitorContext) => {
             const fields = getFields(this.options.modelMeta, model);
             for (const fieldInfo of Object.values(fields)) {
                 if (fieldInfo.isTypeDef) {
@@ -82,24 +84,24 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
                 const defaultValue = this.getDefaultValue(fieldInfo);
                 if (defaultValue !== undefined) {
                     // set field value extracted from `auth()`
-                    this.setDefaultValueForModelData(fieldInfo, model, data, defaultValue);
+                    this.setDefaultValueForModelData(fieldInfo, model, data, defaultValue, context);
                 }
             }
         };
 
         // visit create payload and set default value to fields using `auth()` in `@default()`
         const visitor = new NestedWriteVisitor(this.options.modelMeta, {
-            create: (model, data) => {
-                processCreatePayload(model, data);
+            create: (model, data, context) => {
+                processCreatePayload(model, data, context);
             },
 
-            upsert: (model, data) => {
-                processCreatePayload(model, data.create);
+            upsert: (model, data, context) => {
+                processCreatePayload(model, data.create, context);
             },
 
-            createMany: (model, args) => {
+            createMany: (model, args, context) => {
                 for (const item of enumerate(args.data)) {
-                    processCreatePayload(model, item);
+                    processCreatePayload(model, item, context);
                 }
             },
         });
@@ -108,10 +110,30 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
         return newArgs;
     }
 
-    private setDefaultValueForModelData(fieldInfo: FieldInfo, model: string, data: any, authDefaultValue: unknown) {
+    private setDefaultValueForModelData(
+        fieldInfo: FieldInfo,
+        model: string,
+        data: any,
+        authDefaultValue: unknown,
+        context: NestedWriteVisitorContext
+    ) {
         if (fieldInfo.isForeignKey && fieldInfo.relationField && fieldInfo.relationField in data) {
             // if the field is a fk, and the relation field is already set, we should not override it
             return;
+        }
+
+        if (context.field?.backLink) {
+            const modelInfo = getModelInfo(this.options.modelMeta, model);
+            const parentModel = modelInfo?.fields[context.field.backLink];
+
+            if (
+                parentModel?.isDataModel &&
+                parentModel.foreignKeyMapping &&
+                Object.keys(parentModel.foreignKeyMapping).includes(fieldInfo.name)
+            ) {
+                // if the field is part of a fk as part of a nested write, then prisma handles setting it
+                return;
+            }
         }
 
         if (fieldInfo.isForeignKey && !isUnsafeMutate(model, data, this.options.modelMeta)) {
