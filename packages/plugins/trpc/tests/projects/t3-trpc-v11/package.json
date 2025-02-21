@@ -15,7 +15,7 @@
         "start": "next start"
     },
     "dependencies": {
-        "@prisma/client": "6.3.x",
+        "@prisma/client": "6.4.x",
         "@t3-oss/env-nextjs": "^0.10.1",
         "@tanstack/react-query": "^5.50.0",
         "@trpc/client": "^11.0.0-rc.446",
@@ -39,7 +39,7 @@
         "@typescript-eslint/parser": "^8.1.0",
         "eslint": "^8.57.0",
         "eslint-config-next": "^14.2.4",
-        "prisma": "6.3.x",
+        "prisma": "6.4.x",
         "typescript": "^5.5.3"
     },
     "ct3aMetadata": {
