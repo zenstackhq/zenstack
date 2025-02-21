@@ -64,6 +64,12 @@ export class EnhancerGenerator {
     // names for models that use `auth()` in `@default` attribute
     private readonly modelsWithAuthInDefaultCreateInputPattern: RegExp;
 
+    // models with JSON type fields
+    private readonly modelsWithJsonTypeFields: DataModel[];
+
+    // Regex patterns for matching input/output types for models with JSON type fields
+    private readonly modelsWithJsonTypeFieldsInputOutputPattern: RegExp[];
+
     constructor(
         private readonly model: Model,
         private readonly options: PluginOptions,
@@ -73,8 +79,26 @@ export class EnhancerGenerator {
         const modelsWithAuthInDefault = this.model.declarations.filter(
             (d): d is DataModel => isDataModel(d) && d.fields.some((f) => f.attributes.some(isDefaultWithAuth))
         );
+
         this.modelsWithAuthInDefaultCreateInputPattern = new RegExp(
             `^(${modelsWithAuthInDefault.map((m) => m.name).join('|')})(Unchecked)?Create.*?Input$`
+        );
+
+        this.modelsWithJsonTypeFields = this.model.declarations.filter(
+            (d): d is DataModel => isDataModel(d) && d.fields.some((f) => isTypeDef(f.type.reference?.ref))
+        );
+
+        // input/output patterns for models with json type fields
+        const relevantTypePatterns = [
+            'GroupByOutputType',
+            '(Unchecked)?Create(\\S+?)?Input',
+            '(Unchecked)?Update(\\S+?)?Input',
+            'CreateManyInput',
+            '(Unchecked)?UpdateMany(Mutation)?Input',
+        ];
+        // build combination regex with all models with JSON types and the above suffixes
+        this.modelsWithJsonTypeFieldsInputOutputPattern = this.modelsWithJsonTypeFields.map(
+            (m) => new RegExp(`^(${m.name})(${relevantTypePatterns.join('|')})$`)
         );
     }
 
@@ -748,9 +772,6 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
     }
 
     private fixJsonFieldType(typeAlias: TypeAliasDeclaration, source: string) {
-        const modelsWithTypeField = this.model.declarations.filter(
-            (d): d is DataModel => isDataModel(d) && d.fields.some((f) => isTypeDef(f.type.reference?.ref))
-        );
         const typeName = typeAlias.getName();
 
         const getTypedJsonFields = (model: DataModel) => {
@@ -767,7 +788,7 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         };
 
         // fix "$[Model]Payload" type
-        const payloadModelMatch = modelsWithTypeField.find((m) => `$${m.name}Payload` === typeName);
+        const payloadModelMatch = this.modelsWithJsonTypeFields.find((m) => `$${m.name}Payload` === typeName);
         if (payloadModelMatch) {
             const scalars = typeAlias
                 .getDescendantsOfKind(SyntaxKind.PropertySignature)
@@ -783,24 +804,19 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         }
 
         // fix input/output types, "[Model]CreateInput", etc.
-        const inputOutputModelMatch = modelsWithTypeField.find((m) => typeName.startsWith(m.name));
-        if (inputOutputModelMatch) {
-            const relevantTypePatterns = [
-                'GroupByOutputType',
-                '(Unchecked)?Create(\\S+?)?Input',
-                '(Unchecked)?Update(\\S+?)?Input',
-                'CreateManyInput',
-                '(Unchecked)?UpdateMany(Mutation)?Input',
-            ];
-            const typeRegex = modelsWithTypeField.map(
-                (m) => new RegExp(`^(${m.name})(${relevantTypePatterns.join('|')})$`)
-            );
-            if (typeRegex.some((r) => r.test(typeName))) {
-                const fieldsToFix = getTypedJsonFields(inputOutputModelMatch);
-                for (const field of fieldsToFix) {
-                    source = replacePrismaJson(source, field);
-                }
+        for (const pattern of this.modelsWithJsonTypeFieldsInputOutputPattern) {
+            const match = typeName.match(pattern);
+            if (!match) {
+                continue;
             }
+            // first capture group is the model name
+            const modelName = match[1];
+            const model = this.modelsWithJsonTypeFields.find((m) => m.name === modelName);
+            const fieldsToFix = getTypedJsonFields(model!);
+            for (const field of fieldsToFix) {
+                source = replacePrismaJson(source, field);
+            }
+            break;
         }
 
         return source;
