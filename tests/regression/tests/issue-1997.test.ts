@@ -1,6 +1,6 @@
 import { loadSchema } from '@zenstackhq/testtools';
 
-describe('issue 1989', () => {
+describe('issue 1997', () => {
     it('regression', async () => {
         const { prisma, enhance } = await loadSchema(
             `
@@ -79,43 +79,53 @@ describe('issue 1989', () => {
 
         const db = enhance({ id: user.id, tenantId: tenant.id });
 
-        await expect(db.post.create({
-            data: {
-                likes: {
-                    createMany: {
-                        data: [{
-                            userId: user.id
-                        }]
-                    }
-                }
-            },
-            include: {
-                likes: true
-            }
-        })).resolves.toMatchObject({
+        await expect(
+            db.post.create({
+                data: {
+                    likes: {
+                        createMany: {
+                            data: [
+                                {
+                                    userId: user.id,
+                                },
+                            ],
+                        },
+                    },
+                },
+                include: {
+                    likes: true,
+                },
+            })
+        ).resolves.toMatchObject({
             authorId: user.id,
-            likes: [{
-                tenantId: tenant.id,
-                userId: user.id
-            }]
+            likes: [
+                {
+                    tenantId: tenant.id,
+                    userId: user.id,
+                },
+            ],
         });
 
-        await expect(db.post.create({
-            data: {
-                comments: {
-                    createMany: {
-                        data: [{}]
-                    }
-                }
-            },
-            include: {
-                comments: true
-            }
-        })).resolves.toMatchObject({
+        await expect(
+            db.post.create({
+                data: {
+                    comments: {
+                        createMany: {
+                            data: [{}],
+                        },
+                    },
+                },
+                include: {
+                    comments: true,
+                },
+            })
+        ).resolves.toMatchObject({
             authorId: user.id,
-            comments: [{
-                tenantId: tenant.id
-            }]
+            comments: [
+                {
+                    tenantId: tenant.id,
+                },
+            ],
         });
     });
 });

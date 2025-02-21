@@ -117,55 +117,75 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
         authDefaultValue: unknown,
         context: NestedWriteVisitorContext
     ) {
-        if (fieldInfo.isForeignKey && fieldInfo.relationField && fieldInfo.relationField in data) {
+        if (fieldInfo.isForeignKey) {
+            // if the field being inspected is a fk field, there are several cases we should not
+            // set the default value or should not set directly
+
             // if the field is a fk, and the relation field is already set, we should not override it
-            return;
-        }
+            if (fieldInfo.relationField && fieldInfo.relationField in data) {
+                return;
+            }
 
-        if (context.field?.backLink) {
-            const modelInfo = getModelInfo(this.options.modelMeta, model);
-            const parentModel = modelInfo?.fields[context.field.backLink];
+            if (context.field?.backLink && context.nestingPath.length > 1) {
+                // if the fk field is in a creation context where its implied by the parent,
+                // we should not set the default value, e.g.:
+                //
+                // ```
+                // parent.create({ data: { child: { create: {} } } })
+                // ```
+                //
+                // event if child's fk to parent has a default value, we should not set default
+                // value here
 
-            if (
-                parentModel?.isDataModel &&
-                parentModel.foreignKeyMapping &&
-                Object.keys(parentModel.foreignKeyMapping).includes(fieldInfo.name)
-            ) {
-                // if the field is part of a fk as part of a nested write, then prisma handles setting it
+                // fetch parent model from the parent context
+                const parentModel = getModelInfo(
+                    this.options.modelMeta,
+                    context.nestingPath[context.nestingPath.length - 2].model
+                );
+
+                if (parentModel) {
+                    // get the opposite side of the relation for the current create context
+                    const oppositeRelationField = requireField(this.options.modelMeta, model, context.field.backLink);
+                    if (parentModel.name === oppositeRelationField.type) {
+                        // if the opposite side matches the parent model, it means we currently in a creation context
+                        // that implicitly sets this fk field
+                        return;
+                    }
+                }
+            }
+
+            if (!isUnsafeMutate(model, data, this.options.modelMeta)) {
+                // if the field is a fk, and the create payload is not unsafe, we need to translate
+                // the fk field setting to a `connect` of the corresponding relation field
+                const relFieldName = fieldInfo.relationField;
+                if (!relFieldName) {
+                    throw new Error(
+                        `Field \`${fieldInfo.name}\` is a foreign key field but no corresponding relation field is found`
+                    );
+                }
+                const relationField = requireField(this.options.modelMeta, model, relFieldName);
+
+                // construct a `{ connect: { ... } }` payload
+                let connect = data[relationField.name]?.connect;
+                if (!connect) {
+                    connect = {};
+                    data[relationField.name] = { connect };
+                }
+
+                // sets the opposite fk field to value `authDefaultValue`
+                const oppositeFkFieldName = this.getOppositeFkFieldName(relationField, fieldInfo);
+                if (!oppositeFkFieldName) {
+                    throw new Error(
+                        `Cannot find opposite foreign key field for \`${fieldInfo.name}\` in relation field \`${relFieldName}\``
+                    );
+                }
+                connect[oppositeFkFieldName] = authDefaultValue;
                 return;
             }
         }
 
-        if (fieldInfo.isForeignKey && !isUnsafeMutate(model, data, this.options.modelMeta)) {
-            // if the field is a fk, and the create payload is not unsafe, we need to translate
-            // the fk field setting to a `connect` of the corresponding relation field
-            const relFieldName = fieldInfo.relationField;
-            if (!relFieldName) {
-                throw new Error(
-                    `Field \`${fieldInfo.name}\` is a foreign key field but no corresponding relation field is found`
-                );
-            }
-            const relationField = requireField(this.options.modelMeta, model, relFieldName);
-
-            // construct a `{ connect: { ... } }` payload
-            let connect = data[relationField.name]?.connect;
-            if (!connect) {
-                connect = {};
-                data[relationField.name] = { connect };
-            }
-
-            // sets the opposite fk field to value `authDefaultValue`
-            const oppositeFkFieldName = this.getOppositeFkFieldName(relationField, fieldInfo);
-            if (!oppositeFkFieldName) {
-                throw new Error(
-                    `Cannot find opposite foreign key field for \`${fieldInfo.name}\` in relation field \`${relFieldName}\``
-                );
-            }
-            connect[oppositeFkFieldName] = authDefaultValue;
-        } else {
-            // set default value directly
-            data[fieldInfo.name] = authDefaultValue;
-        }
+        // set default value directly
+        data[fieldInfo.name] = authDefaultValue;
     }
 
     private getOppositeFkFieldName(relationField: FieldInfo, fieldInfo: FieldInfo) {
