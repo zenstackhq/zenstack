@@ -549,9 +549,18 @@ export class PrismaSchemaGenerator {
                         }
                     }
 
-                    model.addAttribute('@@unique', [
+                    const uniqueConstraint = model.addAttribute('@@unique', [
                         new PrismaAttributeArg(undefined, new PrismaAttributeArgValue('Array', args)),
                     ]);
+
+                    if (this.supportNamedConstraints) {
+                        const fieldNames = args.map((arg) => (arg.value as PrismaFieldReference).field).join('_');
+                        const constraintName = this.truncate(`${model.name}_${fieldNames}_unique`);
+                        uniqueConstraint.args.push(
+                            // generate a `map` argument for unique constraint name disambiguation
+                            new PrismaAttributeArg('map', new PrismaAttributeArgValue('String', constraintName)),
+                        );
+                    }
                 }
             }
         }
