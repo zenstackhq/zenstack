@@ -27,7 +27,6 @@ import {
     LiteralExpr,
     Model,
     NumberLiteral,
-    ReferenceExpr,
     StringLiteral,
 } from '@zenstackhq/language/ast';
 import { getIdFields } from '@zenstackhq/sdk';
@@ -529,9 +528,15 @@ export class PrismaSchemaGenerator {
                 if (found) {
                     // replicate the attribute and replace the field reference with the new FK field
                     const args: PrismaAttributeArgValue[] = [];
+                    const fieldNames: string[] = [];
                     for (const arg of fields.items) {
-                        if (isReferenceExpr(arg) && arg.target.ref === origForeignKey) {
+                        if (!isReferenceExpr(arg)) {
+                            throw new PluginError(name, 'Unexpected field reference in @@unique attribute');
+                        }
+
+                        if (arg.target.ref === origForeignKey) {
                             // replace
+                            fieldNames.push(addedFkField.name);
                             args.push(
                                 new PrismaAttributeArgValue(
                                     'FieldReference',
@@ -540,17 +545,21 @@ export class PrismaSchemaGenerator {
                             );
                         } else {
                             // copy
+                            fieldNames.push(arg.target.$refText);
                             args.push(
                                 new PrismaAttributeArgValue(
                                     'FieldReference',
-                                    new PrismaFieldReference((arg as ReferenceExpr).target.$refText)
+                                    new PrismaFieldReference(arg.target.$refText)
                                 )
                             );
                         }
                     }
 
+                    const constraintName = this.truncate(`${dataModel.name}_${fieldNames.join('_')}_unique`);
+
                     model.addAttribute('@@unique', [
                         new PrismaAttributeArg(undefined, new PrismaAttributeArgValue('Array', args)),
+                        new PrismaAttributeArg('map', new PrismaAttributeArgValue('String', constraintName)),
                     ]);
                 }
             }
