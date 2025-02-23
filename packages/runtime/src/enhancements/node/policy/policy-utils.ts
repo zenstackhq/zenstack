@@ -826,6 +826,8 @@ export class PolicyUtil extends QueryUtils {
     /**
      * Given a model and a unique filter, checks the operation is allowed by policies and field validations.
      * Rejects with an error if not allowed.
+     *
+     * This method is only called by mutation operations.
      */
     async checkPolicyForUnique(
         model: string,
@@ -1365,32 +1367,68 @@ export class PolicyUtil extends QueryUtils {
         excludePasswordFields: boolean = true,
         kind: 'create' | 'update' | undefined = undefined
     ) {
+        if (!this.zodSchemas) {
+            return undefined;
+        }
+
         if (!this.hasFieldValidation(model)) {
             return undefined;
         }
-        const schemaKey = `${upperCaseFirst(model)}${kind ? 'Prisma' + upperCaseFirst(kind) : ''}Schema`;
-        let result = this.zodSchemas?.models?.[schemaKey] as ZodObject<any> | undefined;
 
-        if (result && excludePasswordFields) {
-            // fields with `@password` attribute changes at runtime, so we cannot directly use the generated
-            // zod schema to validate it, instead, the validation happens when checking the input of "create"
-            // and "update" operations
-            const modelFields = this.modelMeta.models[lowerCaseFirst(model)]?.fields;
-            if (modelFields) {
-                for (const [key, field] of Object.entries(modelFields)) {
-                    if (field.attributes?.some((attr) => attr.name === '@password')) {
-                        // override `@password` field schema with a string schema
-                        let pwFieldSchema: ZodSchema = z.string();
-                        if (field.isOptional) {
-                            pwFieldSchema = pwFieldSchema.nullish();
+        const schemaKey = `${upperCaseFirst(model)}${kind ? 'Prisma' + upperCaseFirst(kind) : ''}Schema`;
+
+        if (excludePasswordFields) {
+            // The `excludePasswordFields` mode is to handle the issue the fields marked with `@password` change at runtime,
+            // so they can only be fully validated when processing the input of "create" and "update" operations.
+            //
+            // When excluding them, we need to override them with plain string schemas. However, since the scheme is not always
+            // an `ZodObject` (this happens when there's `@@validate` refinement), we need to fetch the `ZodObject` schema before
+            // the refinement is applied, override the `@password` fields and then re-apply the refinement.
+
+            let schema: ZodObject<any> | undefined;
+
+            const overridePasswordFields = (schema: z.ZodObject<any>) => {
+                let result = schema;
+                const modelFields = this.modelMeta.models[lowerCaseFirst(model)]?.fields;
+                if (modelFields) {
+                    for (const [key, field] of Object.entries(modelFields)) {
+                        if (field.attributes?.some((attr) => attr.name === '@password')) {
+                            // override `@password` field schema with a string schema
+                            let pwFieldSchema: ZodSchema = z.string();
+                            if (field.isOptional) {
+                                pwFieldSchema = pwFieldSchema.nullish();
+                            }
+                            result = result.merge(z.object({ [key]: pwFieldSchema }));
                         }
-                        result = result?.merge(z.object({ [key]: pwFieldSchema }));
                     }
                 }
-            }
-        }
+                return result;
+            };
 
-        return result;
+            // get the schema without refinement: `[Model]WithoutRefineSchema`
+            const withoutRefineSchemaKey = `${upperCaseFirst(model)}${
+                kind ? 'Prisma' + upperCaseFirst(kind) : ''
+            }WithoutRefineSchema`;
+            schema = this.zodSchemas.models[withoutRefineSchemaKey] as ZodObject<any> | undefined;
+
+            if (schema) {
+                // the schema has refinement, need to call refine function after schema merge
+                schema = overridePasswordFields(schema);
+                // refine function: `refine[Model]`
+                const refineFuncKey = `refine${upperCaseFirst(model)}`;
+                const refineFunc = this.zodSchemas.models[refineFuncKey] as unknown as (
+                    schema: ZodObject<any>
+                ) => ZodSchema;
+                return typeof refineFunc === 'function' ? refineFunc(schema) : schema;
+            } else {
+                // otherwise, directly override the `@password` fields
+                schema = this.zodSchemas.models[schemaKey] as ZodObject<any> | undefined;
+                return schema ? overridePasswordFields(schema) : undefined;
+            }
+        } else {
+            // simply return the schema
+            return this.zodSchemas.models[schemaKey];
+        }
     }
 
     /**
