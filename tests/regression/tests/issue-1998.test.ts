@@ -32,8 +32,7 @@ describe('issue 1998', () => {
 
                 @@id([parentId, childId])
             }            
-            `,
-            { logPrismaQuery: true }
+            `
         );
 
         const db = enhance();
