@@ -2,7 +2,7 @@ import { loadSchema } from '@zenstackhq/testtools';
 
 describe('issue 1993', () => {
     it('regression', async () => {
-        await loadSchema(
+        const { zodSchemas } = await loadSchema(
             `
 enum UserType {
     UserLocal
@@ -41,5 +41,23 @@ model UserFolder {
 }            `,
             { pushDb: false, fullZod: true, compile: true, output: 'lib/zenstack' }
         );
+
+        expect(
+            zodSchemas.input.UserLocalInputSchema.create.safeParse({
+                data: {
+                    email: 'test@example.com',
+                    password: 'password',
+                },
+            })
+        ).toMatchObject({ success: true });
+
+        expect(
+            zodSchemas.input.UserFolderInputSchema.create.safeParse({
+                data: {
+                    path: '/',
+                    userId: '1',
+                },
+            })
+        ).toMatchObject({ success: true });
     });
 });

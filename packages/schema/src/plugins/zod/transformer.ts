@@ -2,6 +2,7 @@
 import { DELEGATE_AUX_RELATION_PREFIX } from '@zenstackhq/runtime';
 import {
     getForeignKeyFields,
+    getRelationBackLink,
     hasAttribute,
     indentString,
     isDelegateModel,
@@ -251,7 +252,10 @@ export default class Transformer {
                     ) {
                         // reduce concrete input types to their delegate base types
                         // e.g.: "UserCreateNestedOneWithoutDelegate_aux_PostInput" => "UserCreateWithoutAssetInput"
-                        const mappedInputType = this.mapDelegateInputType(inputType, contextDataModel);
+                        let mappedInputType = inputType;
+                        if (contextDataModel) {
+                            mappedInputType = this.mapDelegateInputType(inputType, contextDataModel, field.name);
+                        }
 
                         if (mappedInputType.type !== this.originalName && typeof mappedInputType.type === 'string') {
                             this.addSchemaImport(mappedInputType.type);
@@ -299,8 +303,23 @@ export default class Transformer {
         return [[`  ${fieldName} ${resString} `, field, true]];
     }
 
-    private mapDelegateInputType(inputType: PrismaDMMF.InputTypeRef, contextDataModel: DataModel | undefined) {
+    private mapDelegateInputType(
+        inputType: PrismaDMMF.InputTypeRef,
+        contextDataModel: DataModel,
+        contextFieldName: string
+    ) {
+        // input type mapping is only relevant for relation inherited from delegate models
+        const contextField = contextDataModel.fields.find((f) => f.name === contextFieldName);
+        if (!contextField || !isDataModel(contextField.type.reference?.ref)) {
+            return inputType;
+        }
+
+        if (!contextField.$inheritedFrom || !isDelegateModel(contextField.$inheritedFrom)) {
+            return inputType;
+        }
+
         let processedInputType = inputType;
+
         // captures: model name and operation, "Without" part that references a concrete model,
         // and the "Input" or "NestedInput" suffix
         const match = inputType.type.match(/^(\S+?)((NestedOne)?WithoutDelegate_aux\S+?)((Nested)?Input)$/);
@@ -308,12 +327,11 @@ export default class Transformer {
             let mappedInputTypeName = match[1];
 
             if (contextDataModel) {
-                // find the parent delegate model and replace the "Without" part with it
-                const delegateBase = contextDataModel.superTypes
-                    .map((t) => t.ref)
-                    .filter((t) => t && isDelegateModel(t))?.[0];
-                if (delegateBase) {
-                    mappedInputTypeName += `Without${upperCaseFirst(delegateBase.name)}`;
+                // get the opposite side of the relation field, which should be of the proper
+                // delegate base type
+                const oppositeRelationField = getRelationBackLink(contextField);
+                if (oppositeRelationField) {
+                    mappedInputTypeName += `Without${upperCaseFirst(oppositeRelationField.name)}`;
                 }
             }
 
@@ -321,7 +339,6 @@ export default class Transformer {
             mappedInputTypeName += match[4];
 
             processedInputType = { ...inputType, type: mappedInputTypeName };
-            // console.log('Replacing type', inputTyp.type, 'with', processedInputType.type);
         }
         return processedInputType;
     }

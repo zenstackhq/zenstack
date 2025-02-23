@@ -24,16 +24,15 @@ import {
     ExpressionContext,
     getAttribute,
     getAttributeArg,
-    getAttributeArgLiteral,
     getAttributeArgs,
     getAuthDecl,
     getDataModels,
     getInheritedFromDelegate,
     getLiteral,
+    getRelationBackLink,
     getRelationField,
     hasAttribute,
     isAuthInvocation,
-    isDelegateModel,
     isEnumFieldReference,
     isForeignKeyField,
     isIdField,
@@ -289,7 +288,7 @@ function writeFields(
             if (dmField) {
                 // metadata specific to DataModelField
 
-                const backlink = getBackLink(dmField);
+                const backlink = getRelationBackLink(dmField);
                 const fkMapping = generateForeignKeyMapping(dmField);
 
                 if (backlink) {
@@ -334,51 +333,6 @@ function writeFields(
         }
     });
     writer.write(',');
-}
-
-function getBackLink(field: DataModelField) {
-    if (!field.type.reference?.ref || !isDataModel(field.type.reference?.ref)) {
-        return undefined;
-    }
-
-    const relName = getRelationName(field);
-
-    let sourceModel: DataModel;
-    if (field.$inheritedFrom && isDelegateModel(field.$inheritedFrom)) {
-        // field is inherited from a delegate model, use it as the source
-        sourceModel = field.$inheritedFrom;
-    } else {
-        // otherwise use the field's container model as the source
-        sourceModel = field.$container as DataModel;
-    }
-
-    const targetModel = field.type.reference.ref as DataModel;
-
-    for (const otherField of targetModel.fields) {
-        if (otherField === field) {
-            // backlink field is never self
-            continue;
-        }
-        if (otherField.type.reference?.ref === sourceModel) {
-            if (relName) {
-                const otherRelName = getRelationName(otherField);
-                if (relName === otherRelName) {
-                    return otherField;
-                }
-            } else {
-                return otherField;
-            }
-        }
-    }
-    return undefined;
-}
-
-function getRelationName(field: DataModelField) {
-    const relAttr = getAttribute(field, '@relation');
-    if (!relAttr) {
-        return undefined;
-    }
-    return getAttributeArgLiteral(relAttr, 'name');
 }
 
 function getAttributes(target: DataModelField | DataModel | TypeDefField): RuntimeAttribute[] {
