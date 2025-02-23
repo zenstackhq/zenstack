@@ -1106,7 +1106,18 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         const entities = await db[model].findMany(findArgs);
 
         // recursively delete base entities (they all have the same id values)
-        await Promise.all(entities.map((entity) => this.doDelete(db, model, { where: entity })));
+
+        await Promise.all(
+            entities.map((entity) => {
+                let deleteFilter = entity;
+                if (Object.keys(deleteFilter).length > 1) {
+                    // if the model has compound id fields, we need to compose a compound key filter,
+                    // otherwise calling Prisma's `delete` won't work
+                    deleteFilter = this.queryUtils.composeCompoundUniqueField(model, deleteFilter);
+                }
+                return this.doDelete(db, model, { where: deleteFilter });
+            })
+        );
 
         return { count: entities.length };
     }
@@ -1114,7 +1125,13 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     private async deleteBaseRecursively(db: CrudContract, model: string, idValues: any) {
         let base = this.getBaseModel(model);
         while (base) {
-            await db[base.name].delete({ where: idValues });
+            let deleteFilter = idValues;
+            if (Object.keys(idValues).length > 1) {
+                // if the model has compound id fields, we need to compose a compound key filter,
+                // otherwise calling Prisma's `delete` won't work
+                deleteFilter = this.queryUtils.composeCompoundUniqueField(base.name, deleteFilter);
+            }
+            await db[base.name].delete({ where: deleteFilter });
             base = this.getBaseModel(base.name);
         }
     }
