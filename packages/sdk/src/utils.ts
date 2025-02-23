@@ -632,3 +632,54 @@ export function getInheritanceChain(from: DataModel, to: DataModel): DataModel[]
 
     return undefined;
 }
+
+/**
+ * Get the opposite side of a relation field.
+ */
+export function getRelationBackLink(field: DataModelField) {
+    if (!field.type.reference?.ref || !isDataModel(field.type.reference?.ref)) {
+        return undefined;
+    }
+
+    const relName = getRelationName(field);
+
+    let sourceModel: DataModel;
+    if (field.$inheritedFrom && isDelegateModel(field.$inheritedFrom)) {
+        // field is inherited from a delegate model, use it as the source
+        sourceModel = field.$inheritedFrom;
+    } else {
+        // otherwise use the field's container model as the source
+        sourceModel = field.$container as DataModel;
+    }
+
+    const targetModel = field.type.reference.ref as DataModel;
+
+    for (const otherField of targetModel.fields) {
+        if (otherField === field) {
+            // backlink field is never self
+            continue;
+        }
+        if (otherField.type.reference?.ref === sourceModel) {
+            if (relName) {
+                const otherRelName = getRelationName(otherField);
+                if (relName === otherRelName) {
+                    return otherField;
+                }
+            } else {
+                return otherField;
+            }
+        }
+    }
+    return undefined;
+}
+
+/**
+ * Get the relation name of a relation field.
+ */
+export function getRelationName(field: DataModelField) {
+    const relAttr = getAttribute(field, '@relation');
+    if (!relAttr) {
+        return undefined;
+    }
+    return getAttributeArgLiteral(relAttr, 'name');
+}
