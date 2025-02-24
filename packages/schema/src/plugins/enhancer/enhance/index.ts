@@ -266,6 +266,19 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         ...options
     }, context);
 }
+
+/**
+ * Infers the type of PrismaClient with ZenStack's enhancements.
+ * @example
+ * type EnhancedPrismaClient = Enhanced<typeof prisma>;
+ */
+export type Enhanced<Client> = 
+    Client extends _PrismaClient<infer _ClientOptions, infer _U, infer ExtArgs> ? PrismaClient :
+    Client extends DynamicClientExtensionThis<infer _TypeMap, infer _TypeMapCb, infer ExtArgs${
+        hasClientOptions ? ', infer ClientOptions' : ''
+    }> ? DynamicClientExtensionThis<Prisma.TypeMap<ExtArgs>, Prisma.TypeMapCb, ExtArgs${
+            hasClientOptions ? ', ClientOptions' : ''
+        }> : Client;
 `;
     }
 
