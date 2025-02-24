@@ -62,8 +62,6 @@ describe('issue 2000', () => {
         ).toResolveTruthy();
 
         // violating validation rules
-        await expect(
-            await db.user.update({ where: { username: 'admin' }, data: { active: true } })
-        ).toBeRejectedByPolicy();
+        await expect(db.user.update({ where: { username: 'admin' }, data: { active: true } })).toBeRejectedByPolicy();
     });
 });
