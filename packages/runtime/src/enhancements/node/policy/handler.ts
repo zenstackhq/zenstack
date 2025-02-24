@@ -284,9 +284,16 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     if (context.field?.backLink) {
                         const backLinkField = resolveField(this.modelMeta, model, context.field.backLink);
                         if (backLinkField?.isRelationOwner) {
-                            // the target side of relation owns the relation,
-                            // check if it's updatable
-                            await this.policyUtils.checkPolicyForUnique(model, args.where, 'update', db, args);
+                            // "connect" is actually "update" to foreign keys, so we need to map the "connect" payload
+                            // to "update" payload by translating pk to fks, and use that to check update policies
+                            const fieldsToUpdate = Object.values(backLinkField.foreignKeyMapping ?? {});
+                            await this.policyUtils.checkPolicyForUnique(
+                                model,
+                                args.where,
+                                'update',
+                                db,
+                                fieldsToUpdate
+                            );
                         }
                     }
 
@@ -319,9 +326,12 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                         // check existence
                         await this.policyUtils.checkExistence(db, model, args, true);
 
-                        // the target side of relation owns the relation,
-                        // check if it's updatable
-                        await this.policyUtils.checkPolicyForUnique(model, args, 'update', db, args);
+                        // the target side of relation owns the relation, check if it's updatable
+
+                        // "connect" is actually "update" to foreign keys, so we need to map the "connect" payload
+                        // to "update" payload by translating pk to fks, and use that to check update policies
+                        const fieldsToUpdate = Object.values(backLinkField.foreignKeyMapping ?? {});
+                        await this.policyUtils.checkPolicyForUnique(model, args, 'update', db, fieldsToUpdate);
                     }
                 }
             },
@@ -909,21 +919,11 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     }
 
                     // update happens on the related model, require updatable,
-                    // translate args to foreign keys so field-level policies can be checked
-                    const checkArgs: any = {};
-                    if (args && typeof args === 'object' && backLinkField.foreignKeyMapping) {
-                        for (const key of Object.keys(args)) {
-                            const fk = backLinkField.foreignKeyMapping[key];
-                            if (fk) {
-                                checkArgs[fk] = args[key];
-                            }
-                        }
-                    }
-
                     // `uniqueFilter` can be undefined if the entity to be disconnected doesn't exist
                     if (uniqueFilter) {
-                        // check for update
-                        await this.policyUtils.checkPolicyForUnique(model, uniqueFilter, 'update', db, checkArgs);
+                        // check for update, "connect" and "disconnect" are actually "update" to foreign keys
+                        const fieldsToUpdate = Object.values(backLinkField.foreignKeyMapping ?? {});
+                        await this.policyUtils.checkPolicyForUnique(model, uniqueFilter, 'update', db, fieldsToUpdate);
 
                         // register post-update check
                         await _registerPostUpdateCheck(model, uniqueFilter, uniqueFilter);
@@ -971,12 +971,18 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     this.policyUtils.tryReject(db, this.model, 'update');
 
                     // check pre-update guard
-                    await this.policyUtils.checkPolicyForUnique(model, uniqueFilter, 'update', db, args);
+                    await this.policyUtils.checkPolicyForUnique(
+                        model,
+                        uniqueFilter,
+                        'update',
+                        db,
+                        this.queryUtils.getFieldsWithDefinedValues(updatePayload)
+                    );
 
                     // handle the case where id fields are updated
                     const _args: any = args;
-                    const updatePayload = _args.data && typeof _args.data === 'object' ? _args.data : _args;
-                    const postUpdateIds = this.calculatePostUpdateIds(model, existing, updatePayload);
+                    const checkPayload = _args.data && typeof _args.data === 'object' ? _args.data : _args;
+                    const postUpdateIds = this.calculatePostUpdateIds(model, existing, checkPayload);
 
                     // register post-update check
                     await _registerPostUpdateCheck(model, existing, postUpdateIds);
@@ -1068,7 +1074,13 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     // update case
 
                     // check pre-update guard
-                    await this.policyUtils.checkPolicyForUnique(model, existing, 'update', db, args);
+                    await this.policyUtils.checkPolicyForUnique(
+                        model,
+                        existing,
+                        'update',
+                        db,
+                        this.queryUtils.getFieldsWithDefinedValues(args.update)
+                    );
 
                     // handle the case where id fields are updated
                     const postUpdateIds = this.calculatePostUpdateIds(model, existing, args.update);
@@ -1156,7 +1168,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 await this.policyUtils.checkExistence(db, model, uniqueFilter, true);
 
                 // check delete guard
-                await this.policyUtils.checkPolicyForUnique(model, uniqueFilter, 'delete', db, args);
+                await this.policyUtils.checkPolicyForUnique(model, uniqueFilter, 'delete', db, []);
             },
 
             deleteMany: async (model, args, context) => {
@@ -1526,7 +1538,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 await this.policyUtils.checkExistence(tx, this.model, args.where, true);
 
                 // inject delete guard
-                await this.policyUtils.checkPolicyForUnique(this.model, args.where, 'delete', tx, args);
+                await this.policyUtils.checkPolicyForUnique(this.model, args.where, 'delete', tx, []);
 
                 // proceed with the deletion
                 if (this.shouldLogQuery) {
@@ -1773,7 +1785,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     private async runPostWriteChecks(postWriteChecks: PostWriteCheckRecord[], db: CrudContract) {
         await Promise.all(
             postWriteChecks.map(async ({ model, operation, uniqueFilter, preValue }) =>
-                this.policyUtils.checkPolicyForUnique(model, uniqueFilter, operation, db, undefined, preValue)
+                this.policyUtils.checkPolicyForUnique(model, uniqueFilter, operation, db, [], preValue)
             )
         );
     }

@@ -253,4 +253,16 @@ export class QueryUtils {
 
         return undefined;
     }
+
+    /**
+     * Gets fields of object with defined values.
+     */
+    getFieldsWithDefinedValues(data: object) {
+        if (!data) {
+            return [];
+        }
+        return Object.entries(data)
+            .filter(([, v]) => v !== undefined)
+            .map(([k]) => k);
+    }
 }
