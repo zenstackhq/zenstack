@@ -212,6 +212,21 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
         }
     }
 
+    @check('@regex')
+    private _checkRegex(attr: AttributeApplication, accept: ValidationAcceptor) {
+        const regex = getStringLiteral(attr.args[0]?.value);
+        if (regex === undefined) {
+            accept('error', `Expecting a string literal`, { node: attr.args[0] ?? attr });
+            return;
+        }
+
+        try {
+            new RegExp(regex);
+        } catch (e) {
+            accept('error', `${e}`, { node: attr.args[0] });
+        }
+    }
+
     private rejectEncryptedFields(attr: AttributeApplication, accept: ValidationAcceptor) {
         streamAllContents(attr).forEach((node) => {
             if (isDataModelFieldReference(node) && hasAttribute(node.target.ref as DataModelField, '@encrypted')) {
