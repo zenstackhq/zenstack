@@ -451,7 +451,11 @@ export class PolicyUtil extends QueryUtils {
 
         if (operation === 'update' && args) {
             // merge field-level policy guards
-            const fieldUpdateGuard = this.getFieldUpdateGuards(db, model, args);
+            const fieldUpdateGuard = this.getFieldUpdateGuards(
+                db,
+                model,
+                this.getFieldsWithDefinedValues(args.data ?? args)
+            );
             if (fieldUpdateGuard.rejectedByField) {
                 // rejected
                 args.where = this.makeFalse();
@@ -834,7 +838,7 @@ export class PolicyUtil extends QueryUtils {
         uniqueFilter: any,
         operation: PolicyOperationKind,
         db: CrudContract,
-        args: any,
+        fieldsToUpdate: string[],
         preValue?: any
     ) {
         let guard = this.getAuthGuard(db, model, operation, preValue);
@@ -849,9 +853,9 @@ export class PolicyUtil extends QueryUtils {
 
         let entityChecker: EntityChecker | undefined;
 
-        if (operation === 'update' && args) {
+        if (operation === 'update' && fieldsToUpdate.length > 0) {
             // merge field-level policy guards
-            const fieldUpdateGuard = this.getFieldUpdateGuards(db, model, args);
+            const fieldUpdateGuard = this.getFieldUpdateGuards(db, model, fieldsToUpdate);
             if (fieldUpdateGuard.rejectedByField) {
                 // rejected
                 throw this.deniedByPolicy(
@@ -989,16 +993,12 @@ export class PolicyUtil extends QueryUtils {
         return this.and(...allFieldGuards);
     }
 
-    private getFieldUpdateGuards(db: CrudContract, model: string, args: any) {
+    private getFieldUpdateGuards(db: CrudContract, model: string, fieldsToUpdate: string[]) {
         const allFieldGuards = [];
         const allOverrideFieldGuards = [];
         let entityChecker: EntityChecker | undefined;
 
-        for (const [field, value] of Object.entries<any>(args.data ?? args)) {
-            if (typeof value === 'undefined') {
-                continue;
-            }
-
+        for (const field of fieldsToUpdate) {
             const fieldInfo = resolveField(this.modelMeta, model, field);
 
             if (fieldInfo?.isDataModel) {
