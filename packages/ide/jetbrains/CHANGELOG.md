@@ -4,6 +4,12 @@
 
 ### Added
 
+-   Validating regex patterns in ZModel.
+
+## 2.12.0
+
+### Added
+
 -   Field encryption attribute `@encrypted`.
 
 ## 2.9.3
