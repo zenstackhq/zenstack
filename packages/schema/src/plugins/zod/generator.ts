@@ -1,3 +1,4 @@
+import { DELEGATE_AUX_RELATION_PREFIX } from '@zenstackhq/runtime';
 import {
     ExpressionContext,
     PluginError,
@@ -88,12 +89,18 @@ export class ZodSchemaGenerator {
             (o) => !excludeModels.find((e) => e === o.model)
         );
 
-        // TODO: better way of filtering than string startsWith?
         const inputObjectTypes = prismaClientDmmf.schema.inputObjectTypes.prisma.filter(
-            (type) => !excludeModels.find((e) => type.name.toLowerCase().startsWith(e.toLocaleLowerCase()))
+            (type) =>
+                !excludeModels.some((e) => type.name.toLowerCase().startsWith(e.toLocaleLowerCase())) &&
+                // exclude delegate aux related types
+                !type.name.toLowerCase().includes(DELEGATE_AUX_RELATION_PREFIX)
         );
+
         const outputObjectTypes = prismaClientDmmf.schema.outputObjectTypes.prisma.filter(
-            (type) => !excludeModels.find((e) => type.name.toLowerCase().startsWith(e.toLowerCase()))
+            (type) =>
+                !excludeModels.some((e) => type.name.toLowerCase().startsWith(e.toLowerCase())) &&
+                // exclude delegate aux related types
+                !type.name.toLowerCase().includes(DELEGATE_AUX_RELATION_PREFIX)
         );
 
         const models: DMMF.Model[] = prismaClientDmmf.datamodel.models.filter(
@@ -236,7 +243,8 @@ export class ZodSchemaGenerator {
 
         const moduleNames: string[] = [];
         for (let i = 0; i < inputObjectTypes.length; i += 1) {
-            const fields = inputObjectTypes[i]?.fields;
+            // exclude delegate aux fields
+            const fields = inputObjectTypes[i]?.fields?.filter((f) => !f.name.startsWith(DELEGATE_AUX_RELATION_PREFIX));
             const name = inputObjectTypes[i]?.name;
 
             if (!generateUnchecked && name.includes('Unchecked')) {

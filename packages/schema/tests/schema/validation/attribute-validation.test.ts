@@ -1369,4 +1369,26 @@ describe('Attribute tests', () => {
         `)
         ).resolves.toContain(`attribute "@omit" cannot be used on type declaration fields`);
     });
+
+    it('validates regex', async () => {
+        await expect(
+            loadModelWithError(`
+            ${prelude}
+            model User {
+                id String @id
+                phone String @regex(id)
+            }
+        `)
+        ).resolves.toContain('Expecting a string literal');
+
+        await expect(
+            loadModelWithError(`
+            ${prelude}
+            model User {
+                id String @id
+                phone String @regex("^(\\+46|0)[0-9]{7,12}$")
+            }
+        `)
+        ).resolves.toContain('Invalid regular expression');
+    });
 });

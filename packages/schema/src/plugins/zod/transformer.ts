@@ -1,8 +1,11 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
+import { DELEGATE_AUX_RELATION_PREFIX } from '@zenstackhq/runtime';
 import {
     getForeignKeyFields,
+    getRelationBackLink,
     hasAttribute,
     indentString,
+    isDelegateModel,
     isDiscriminatorField,
     type PluginOptions,
 } from '@zenstackhq/sdk';
@@ -67,7 +70,11 @@ export default class Transformer {
             const filePath = path.join(Transformer.outputPath, `enums/${name}.schema.ts`);
             const content = `${this.generateImportZodStatement()}\n${this.generateExportSchemaStatement(
                 `${name}`,
-                `z.enum(${JSON.stringify(enumType.values)})`
+                `z.enum(${JSON.stringify(
+                    enumType.values
+                        // exclude fields generated for delegate models
+                        .filter((v) => !v.startsWith(DELEGATE_AUX_RELATION_PREFIX))
+                )})`
             )}`;
             this.sourceFiles.push(this.project.createSourceFile(filePath, content, { overwrite: true }));
             generated.push(enumType.name);
@@ -243,12 +250,19 @@ export default class Transformer {
                         !isFieldRef &&
                         (inputType.namespace === 'prisma' || isEnum)
                     ) {
-                        if (inputType.type !== this.originalName && typeof inputType.type === 'string') {
-                            this.addSchemaImport(inputType.type);
+                        // reduce concrete input types to their delegate base types
+                        // e.g.: "UserCreateNestedOneWithoutDelegate_aux_PostInput" => "UserCreateWithoutAssetInput"
+                        let mappedInputType = inputType;
+                        if (contextDataModel) {
+                            mappedInputType = this.mapDelegateInputType(inputType, contextDataModel, field.name);
+                        }
+
+                        if (mappedInputType.type !== this.originalName && typeof mappedInputType.type === 'string') {
+                            this.addSchemaImport(mappedInputType.type);
                         }
 
                         const contextField = contextDataModel?.fields.find((f) => f.name === field.name);
-                        result.push(this.generatePrismaStringLine(field, inputType, lines.length, contextField));
+                        result.push(this.generatePrismaStringLine(field, mappedInputType, lines.length, contextField));
                     }
                 }
 
@@ -287,6 +301,46 @@ export default class Transformer {
         }
 
         return [[`  ${fieldName} ${resString} `, field, true]];
+    }
+
+    private mapDelegateInputType(
+        inputType: PrismaDMMF.InputTypeRef,
+        contextDataModel: DataModel,
+        contextFieldName: string
+    ) {
+        // input type mapping is only relevant for relation inherited from delegate models
+        const contextField = contextDataModel.fields.find((f) => f.name === contextFieldName);
+        if (!contextField || !isDataModel(contextField.type.reference?.ref)) {
+            return inputType;
+        }
+
+        if (!contextField.$inheritedFrom || !isDelegateModel(contextField.$inheritedFrom)) {
+            return inputType;
+        }
+
+        let processedInputType = inputType;
+
+        // captures: model name and operation, "Without" part that references a concrete model,
+        // and the "Input" or "NestedInput" suffix
+        const match = inputType.type.match(/^(\S+?)((NestedOne)?WithoutDelegate_aux\S+?)((Nested)?Input)$/);
+        if (match) {
+            let mappedInputTypeName = match[1];
+
+            if (contextDataModel) {
+                // get the opposite side of the relation field, which should be of the proper
+                // delegate base type
+                const oppositeRelationField = getRelationBackLink(contextField);
+                if (oppositeRelationField) {
+                    mappedInputTypeName += `Without${upperCaseFirst(oppositeRelationField.name)}`;
+                }
+            }
+
+            // "Input" or "NestedInput" suffix
+            mappedInputTypeName += match[4];
+
+            processedInputType = { ...inputType, type: mappedInputTypeName };
+        }
+        return processedInputType;
     }
 
     wrapWithZodValidators(
