@@ -267,12 +267,7 @@ export function makeProxy<T extends PrismaProxyHandler>(
                 if ($extends && typeof $extends === 'function') {
                     return (...args: any[]) => {
                         const result = $extends.bind(target)(...args);
-                        if (!result[PRISMA_PROXY_ENHANCER]) {
-                            return makeProxy(result, modelMeta, makeHandler, name + '$ext', errorTransformer);
-                        } else {
-                            // avoid double wrapping
-                            return result;
-                        }
+                        return makeProxy(result, modelMeta, makeHandler, name + '$ext', errorTransformer);
                     };
                 } else {
                     return $extends;
