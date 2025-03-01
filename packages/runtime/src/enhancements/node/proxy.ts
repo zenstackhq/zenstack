@@ -289,7 +289,7 @@ export function makeProxy<T extends PrismaProxyHandler>(
                 return propVal;
             }
 
-            return createHandlerProxy(makeHandler(target, prop), propVal, prop, target, errorTransformer);
+            return createHandlerProxy(makeHandler(target, prop), propVal, prop, proxy, errorTransformer);
         },
     });
 
@@ -308,7 +308,7 @@ function createHandlerProxy<T extends PrismaProxyHandler>(
 ): T {
     return new Proxy(handler, {
         get(target, propKey) {
-            if (propKey === '$zenstack_parent') {
+            if (propKey === '$parent') {
                 return dbOrTx;
             }
 

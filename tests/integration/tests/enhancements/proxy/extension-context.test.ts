@@ -22,11 +22,19 @@ describe('Proxy Extension Context', () => {
 
         const db = enhance();
         const dbExtended = db.$extends({
+            client: {
+                $one() {
+                    return 1;
+                }
+            },
             model: {
                 $allModels: {
                     async createWithCounter(this: any, args: any) {
                         const modelName = this.$name;
-                        const dbOrTx = this.$zenstack_parent;
+                        const dbOrTx = this.$parent;
+
+                        // prisma exposes some internal properties, makes sure these are still preserved
+                        expect(dbOrTx._engine).toBeDefined();
 
                         const fn = async (tx: any) => {
                             const counter = await tx.counter.findUnique({
@@ -35,8 +43,8 @@ describe('Proxy Extension Context', () => {
 
                             await tx.counter.upsert({
                                 where: { model: modelName },
-                                update: { value: (counter?.value ?? 0) + 1 },
-                                create: { model: modelName, value: 1 },
+                                update: { value: (counter?.value ?? 0) + tx.$one() },
+                                create: { model: modelName, value: tx.$one() },
                             });
 
                             return tx[modelName].create(args);
@@ -62,7 +70,6 @@ describe('Proxy Extension Context', () => {
             ),
         ]);
 
-        // expecting object
         await expect(dbExtended.counter.findUniqueOrThrow({ where: { model: 'Address' } })).resolves.toMatchObject({
             model: 'Address',
             value: cities.length * 2,
