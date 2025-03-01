@@ -126,7 +126,7 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
                 return;
             }
 
-            if (context.field?.backLink && context.nestingPath.length > 1) {
+            if (context.field?.backLink) {
                 // if the fk field is in a creation context where its implied by the parent,
                 // we should not set the default value, e.g.:
                 //
@@ -134,23 +134,16 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
                 // parent.create({ data: { child: { create: {} } } })
                 // ```
                 //
-                // event if child's fk to parent has a default value, we should not set default
+                // even if child's fk to parent has a default value, we should not set default
                 // value here
 
-                // fetch parent model from the parent context
-                const parentModel = getModelInfo(
-                    this.options.modelMeta,
-                    context.nestingPath[context.nestingPath.length - 2].model
-                );
-
-                if (parentModel) {
-                    // get the opposite side of the relation for the current create context
-                    const oppositeRelationField = requireField(this.options.modelMeta, model, context.field.backLink);
-                    if (parentModel.name === oppositeRelationField.type) {
-                        // if the opposite side matches the parent model, it means we currently in a creation context
-                        // that implicitly sets this fk field
-                        return;
-                    }
+                // get the opposite side of the relation for the current create context
+                const oppositeRelationField = requireField(this.options.modelMeta, model, context.field.backLink);
+                if (
+                    oppositeRelationField.foreignKeyMapping &&
+                    Object.values(oppositeRelationField.foreignKeyMapping).includes(fieldInfo.name)
+                ) {
+                    return;
                 }
             }
 
