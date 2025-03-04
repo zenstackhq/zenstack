@@ -267,12 +267,7 @@ export function makeProxy<T extends PrismaProxyHandler>(
                 if ($extends && typeof $extends === 'function') {
                     return (...args: any[]) => {
                         const result = $extends.bind(target)(...args);
-                        if (!result[PRISMA_PROXY_ENHANCER]) {
-                            return makeProxy(result, modelMeta, makeHandler, name + '$ext', errorTransformer);
-                        } else {
-                            // avoid double wrapping
-                            return result;
-                        }
+                        return makeProxy(result, modelMeta, makeHandler, name + '$ext', errorTransformer);
                     };
                 } else {
                     return $extends;
@@ -289,7 +284,7 @@ export function makeProxy<T extends PrismaProxyHandler>(
                 return propVal;
             }
 
-            return createHandlerProxy(makeHandler(target, prop), propVal, prop, errorTransformer);
+            return createHandlerProxy(makeHandler(target, prop), propVal, prop, proxy, errorTransformer);
         },
     });
 
@@ -303,10 +298,15 @@ function createHandlerProxy<T extends PrismaProxyHandler>(
     handler: T,
     origTarget: any,
     model: string,
+    dbOrTx: any,
     errorTransformer?: ErrorTransformer
 ): T {
     return new Proxy(handler, {
         get(target, propKey) {
+            if (propKey === '$parent') {
+                return dbOrTx;
+            }
+
             const prop = target[propKey as keyof T];
             if (typeof prop !== 'function') {
                 // the proxy handler doesn't have this method, fall back to the original target

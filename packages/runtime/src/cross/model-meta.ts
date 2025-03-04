@@ -86,8 +86,7 @@ export type FieldInfo = {
     relationField?: string;
 
     /**
-     * Mapping from foreign key field names to relation field names.
-     * Only available on relation fields.
+     * Mapping from relation's pk to fk. Only available on relation fields.
      */
     foreignKeyMapping?: Record<string, string>;
 
