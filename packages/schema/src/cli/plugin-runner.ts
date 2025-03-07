@@ -108,8 +108,14 @@ export class PluginRunner {
             });
         }
 
+        const preprocessorPlugins = plugins.filter((p) => p.options.preprocessor);
+        const otherPlugins = plugins.filter((p) => !p.options.preprocessor);
+
         // calculate all plugins (including core plugins implicitly enabled)
-        const { corePlugins, userPlugins } = this.calculateAllPlugins(runnerOptions, plugins);
+        const { corePlugins, userPlugins } = this.calculateAllPlugins(
+            runnerOptions,
+            otherPlugins,
+        );
         const allPlugins = [...corePlugins, ...userPlugins];
 
         // check dependencies
@@ -139,6 +145,28 @@ export class PluginRunner {
         let prismaClientDtsPath: string | undefined = undefined;
 
         const project = createProject();
+
+        const runUserPlugins = async (plugins: PluginInfo[]) => {
+            for (const { name, description, run, options: pluginOptions } of plugins) {
+                const options = { ...pluginOptions, prismaClientPath, prismaClientDtsPath };
+                const r = await this.runPlugin(
+                    name,
+                    description,
+                    run,
+                    runnerOptions,
+                    options as PluginOptions,
+                    dmmf,
+                    shortNameMap,
+                    project,
+                    false
+                );
+                warnings.push(...(r?.warnings ?? [])); // the null-check is for backward compatibility
+            }
+        };
+
+        // run preprocessor plugins
+        await runUserPlugins(preprocessorPlugins);
+
         for (const { name, description, run, options: pluginOptions } of corePlugins) {
             const options = { ...pluginOptions, prismaClientPath };
             const r = await this.runPlugin(
@@ -175,21 +203,7 @@ export class PluginRunner {
         await compileProject(project, runnerOptions);
 
         // run user plugins
-        for (const { name, description, run, options: pluginOptions } of userPlugins) {
-            const options = { ...pluginOptions, prismaClientPath, prismaClientDtsPath };
-            const r = await this.runPlugin(
-                name,
-                description,
-                run,
-                runnerOptions,
-                options as PluginOptions,
-                dmmf,
-                shortNameMap,
-                project,
-                false
-            );
-            warnings.push(...(r?.warnings ?? [])); // the null-check is for backward compatibility
-        }
+        await runUserPlugins(userPlugins);
 
         console.log(colors.green(colors.bold('\n👻 All plugins completed successfully!')));
         warnings.forEach((w) => console.warn(colors.yellow(w)));
