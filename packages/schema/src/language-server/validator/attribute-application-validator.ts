@@ -137,7 +137,7 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
             accept('error', `expects a string literal`, { node: attr.args[0] });
             return;
         }
-        this.validatePolicyKinds(kind, ['create', 'read', 'update', 'delete', 'all'], attr, accept);
+        this.validatePolicyKinds(kind, ['create', 'read', 'update', 'delete', 'all', 'list'], attr, accept);
 
         // @encrypted fields cannot be used in policy rules
         this.rejectEncryptedFields(attr, accept);
