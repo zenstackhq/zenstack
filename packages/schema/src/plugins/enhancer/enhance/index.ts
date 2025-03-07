@@ -565,10 +565,10 @@ export type Enhanced<Client> =
         const structure = iface.getStructure();
 
         // filter out aux fields
-        structure.properties = structure.properties?.filter((p) => !p.name.startsWith(DELEGATE_AUX_RELATION_PREFIX));
+        structure.properties = structure.properties?.filter((p) => !p.name.includes(DELEGATE_AUX_RELATION_PREFIX));
 
         // filter out aux methods
-        structure.methods = structure.methods?.filter((m) => !m.name.startsWith(DELEGATE_AUX_RELATION_PREFIX));
+        structure.methods = structure.methods?.filter((m) => !m.name.includes(DELEGATE_AUX_RELATION_PREFIX));
 
         if (delegateInfo.some(([delegate]) => `${delegate.name}Delegate` === iface.getName())) {
             // delegate models cannot be created directly, remove create/createMany/upsert
@@ -850,7 +850,7 @@ export type Enhanced<Client> =
     private findAuxDecls(node: Node) {
         return node
             .getDescendantsOfKind(SyntaxKind.PropertySignature)
-            .filter((n) => n.getName().startsWith(DELEGATE_AUX_RELATION_PREFIX));
+            .filter((n) => n.getName().includes(DELEGATE_AUX_RELATION_PREFIX));
     }
 
     private saveSourceFile(sf: SourceFile) {

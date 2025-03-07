@@ -244,7 +244,7 @@ export class ZodSchemaGenerator {
         const moduleNames: string[] = [];
         for (let i = 0; i < inputObjectTypes.length; i += 1) {
             // exclude delegate aux fields
-            const fields = inputObjectTypes[i]?.fields?.filter((f) => !f.name.startsWith(DELEGATE_AUX_RELATION_PREFIX));
+            const fields = inputObjectTypes[i]?.fields?.filter((f) => !f.name.includes(DELEGATE_AUX_RELATION_PREFIX));
             const name = inputObjectTypes[i]?.name;
 
             if (!generateUnchecked && name.includes('Unchecked')) {
