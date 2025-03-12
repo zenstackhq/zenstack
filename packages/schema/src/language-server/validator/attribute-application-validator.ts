@@ -267,6 +267,12 @@ function assignableToAttributeParam(arg: AttributeArg, param: AttributeParam, at
     if (dstType === 'ContextType') {
         // ContextType is inferred from the attribute's container's type
         if (isDataModelField(attr.$container)) {
+            // If the field is Typed JSON, and the param is @default, the argument must be a string
+            const dstIsTypedJson = attr.$container.attributes.find((attr) => attr.decl.ref?.name === '@json');
+            if (dstIsTypedJson && param.default) {
+                return argResolvedType.decl === 'String';
+            }
+
             dstIsArray = attr.$container.type.array;
         }
     }
@@ -327,6 +333,7 @@ function assignableToAttributeParam(arg: AttributeArg, param: AttributeParam, at
                 if (!attr.$container?.type?.type) {
                     return false;
                 }
+
                 dstType = mapBuiltinTypeToExpressionType(attr.$container.type.type);
                 dstIsArray = attr.$container.type.array;
             } else {

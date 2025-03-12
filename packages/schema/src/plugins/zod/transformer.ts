@@ -197,7 +197,9 @@ export default class Transformer {
         if (replaceJsonWithTypeDef) {
             const dmField = contextDataModel?.fields.find((f) => f.name === field.name);
             if (isTypeDef(dmField?.type.reference?.ref)) {
-                alternatives = [`z.lazy(() => ${upperCaseFirst(dmField?.type.reference!.$refText)}Schema)`];
+                const isList = dmField.type.array;
+                const lazyStr = `z.lazy(() => ${upperCaseFirst(dmField.type.reference!.$refText)}Schema)`;
+                alternatives = [isList ? `${lazyStr}.array()` : lazyStr];
             }
         }
 
