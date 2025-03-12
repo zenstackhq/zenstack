@@ -237,8 +237,9 @@ export type { PrismaClient };
     private createLogicalPrismaEnhanceFunction(authTypeParam: string) {
         const prismaVersion = getPrismaVersion();
 
-        // Prisma 5.16.0 introduced a new generic parameter to `DynamicClientExtensionThis`
-        const hasClientOptions = prismaVersion && semver.gte(prismaVersion, '5.16.0');
+        // Prisma 5.16.0...6.5.0 introduced a new generic parameter to `DynamicClientExtensionThis`
+        const hasClientOptions =
+            prismaVersion && semver.gte(prismaVersion, '5.16.0') && semver.lt(prismaVersion, '6.5.0');
 
         return `
 // overload for plain PrismaClient
