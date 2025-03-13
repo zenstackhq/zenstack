@@ -282,20 +282,22 @@ export default class Transformer {
 
         const fieldName = alternatives.some((alt) => alt.includes(':')) ? '' : `  ${field.name}:`;
 
-        const opt = !field.isRequired ? '.optional()' : '';
-
         let resString: string;
 
         if (alternatives.length === 1) {
-            resString = alternatives.join(',\r\n');
+            resString = alternatives[0];
         } else {
             if (alternatives.some((alt) => alt.includes('Unchecked'))) {
                 // if the union is for combining checked and unchecked input types, use `smartUnion`
                 // to parse with the best candidate at runtime
-                resString = this.wrapWithSmartUnion(...alternatives) + `${opt}`;
+                resString = this.wrapWithSmartUnion(...alternatives);
             } else {
-                resString = `z.union([${alternatives.join(',\r\n')}])${opt}`;
+                resString = `z.union([${alternatives.join(',\r\n')}])`;
             }
+        }
+
+        if (!field.isRequired) {
+            resString += '.optional()';
         }
 
         if (field.isNullable) {

@@ -1097,4 +1097,28 @@ describe('Zod plugin tests', () => {
         expect(schemas.UserSchema.safeParse({ id: 1, email: 'a@b.com' }).success).toBeTruthy();
         expect(schemas.UserPrismaCreateSchema.safeParse({ email: 'a@b.com' }).success).toBeTruthy();
     });
+
+    it('@json fields with @default should be optional', async () => {
+        const { zodSchemas } = await loadSchema(
+            `
+            type Foo {
+                a String
+            }
+
+            model Bar {
+                id         Int   @id   @default(autoincrement())
+                foo        Foo      @json @default("{ \\"a\\": \\"a\\" }")
+                fooList    Foo[]    @json @default("[]")
+            }
+            `,
+            {
+                fullZod: true,
+                provider: 'postgresql',
+                pushDb: false,
+            }
+        );
+
+        // Ensure Zod Schemas correctly mark @default fields as optional
+        expect(zodSchemas.objects.BarCreateInputObjectSchema.safeParse({}).success).toBeTruthy();
+    });
 });
