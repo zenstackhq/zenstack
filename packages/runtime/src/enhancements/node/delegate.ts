@@ -959,7 +959,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                     this.injectWhereHierarchy(model, (args as any)?.where);
                     this.doProcessUpdatePayload(model, (args as any)?.data);
                 } else {
-                    const where = this.queryUtils.buildReversedQuery(context, false, false);
+                    const where = await this.queryUtils.buildReversedQuery(db, context, false, false);
                     await this.queryUtils.transaction(db, async (tx) => {
                         await this.doUpdateMany(tx, model, { ...args, where }, simpleUpdateMany);
                     });
@@ -1022,7 +1022,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             },
 
             delete: async (model, _args, context) => {
-                const where = this.queryUtils.buildReversedQuery(context, false, false);
+                const where = await this.queryUtils.buildReversedQuery(db, context, false, false);
                 await this.queryUtils.transaction(db, async (tx) => {
                     await this.doDelete(tx, model, { where });
                 });
@@ -1030,7 +1030,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             },
 
             deleteMany: async (model, _args, context) => {
-                const where = this.queryUtils.buildReversedQuery(context, false, false);
+                const where = await this.queryUtils.buildReversedQuery(db, context, false, false);
                 await this.queryUtils.transaction(db, async (tx) => {
                     await this.doDeleteMany(tx, model, where);
                 });

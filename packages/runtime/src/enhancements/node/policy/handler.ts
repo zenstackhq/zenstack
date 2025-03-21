@@ -809,7 +809,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 const unsafe = isUnsafeMutate(model, args, this.modelMeta);
 
                 // handles the connection to upstream entity
-                const reversedQuery = this.policyUtils.buildReversedQuery(context, true, unsafe);
+                const reversedQuery = await this.policyUtils.buildReversedQuery(db, context, true, unsafe);
                 if ((!unsafe || context.field.isRelationOwner) && reversedQuery[context.field.backLink]) {
                     // if mutation is safe, or current field owns the relation (so the other side has no fk),
                     // and the reverse query contains the back link, then we can build a "connect" with it
@@ -885,7 +885,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 if (args.skipDuplicates) {
                     // get a reversed query to include fields inherited from upstream mutation,
                     // it'll be merged with the create payload for unique constraint checking
-                    const upstreamQuery = this.policyUtils.buildReversedQuery(context);
+                    const upstreamQuery = await this.policyUtils.buildReversedQuery(db, context);
                     if (await this.hasDuplicatedUniqueConstraint(model, item, upstreamQuery, db)) {
                         if (this.shouldLogQuery) {
                             this.logger.info(`[policy] \`createMany\` skipping duplicate ${formatObject(item)}`);
@@ -910,7 +910,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     if (operation === 'disconnect') {
                         // disconnect filter is not unique, need to build a reversed query to
                         // locate the entity and use its id fields as unique filter
-                        const reversedQuery = this.policyUtils.buildReversedQuery(context);
+                        const reversedQuery = await this.policyUtils.buildReversedQuery(db, context);
                         const found = await db[model].findUnique({
                             where: reversedQuery,
                             select: this.policyUtils.makeIdSelection(model),
@@ -936,7 +936,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         const visitor = new NestedWriteVisitor(this.modelMeta, {
             update: async (model, args, context) => {
                 // build a unique query including upstream conditions
-                const uniqueFilter = this.policyUtils.buildReversedQuery(context);
+                const uniqueFilter = await this.policyUtils.buildReversedQuery(db, context);
 
                 // handle not-found
                 const existing = await this.policyUtils.checkExistence(db, model, uniqueFilter, true);
@@ -997,7 +997,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     if (preValueSelect) {
                         select = { ...select, ...preValueSelect };
                     }
-                    const reversedQuery = this.policyUtils.buildReversedQuery(context);
+                    const reversedQuery = await this.policyUtils.buildReversedQuery(db, context);
                     const currentSetQuery = { select, where: reversedQuery };
                     this.policyUtils.injectAuthGuardAsWhere(db, currentSetQuery, model, 'read');
 
@@ -1027,7 +1027,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 } else {
                     // we have to process `updateMany` separately because the guard may contain
                     // filters using relation fields which are not allowed in nested `updateMany`
-                    const reversedQuery = this.policyUtils.buildReversedQuery(context);
+                    const reversedQuery = await this.policyUtils.buildReversedQuery(db, context);
                     const updateWhere = this.policyUtils.and(reversedQuery, updateGuard);
                     if (this.shouldLogQuery) {
                         this.logger.info(
@@ -1066,7 +1066,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
             upsert: async (model, args, context) => {
                 // build a unique query including upstream conditions
-                const uniqueFilter = this.policyUtils.buildReversedQuery(context);
+                const uniqueFilter = await this.policyUtils.buildReversedQuery(db, context);
 
                 // branch based on if the update target exists
                 const existing = await this.policyUtils.checkExistence(db, model, uniqueFilter);
@@ -1143,7 +1143,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
             set: async (model, args, context) => {
                 // find the set of items to be replaced
-                const reversedQuery = this.policyUtils.buildReversedQuery(context);
+                const reversedQuery = await this.policyUtils.buildReversedQuery(db, context);
                 const findCurrSetArgs = {
                     select: this.policyUtils.makeIdSelection(model),
                     where: reversedQuery,
@@ -1162,7 +1162,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
             delete: async (model, args, context) => {
                 // build a unique query including upstream conditions
-                const uniqueFilter = this.policyUtils.buildReversedQuery(context);
+                const uniqueFilter = await this.policyUtils.buildReversedQuery(db, context);
 
                 // handle not-found
                 await this.policyUtils.checkExistence(db, model, uniqueFilter, true);
@@ -1179,7 +1179,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 } else {
                     // we have to process `deleteMany` separately because the guard may contain
                     // filters using relation fields which are not allowed in nested `deleteMany`
-                    const reversedQuery = this.policyUtils.buildReversedQuery(context);
+                    const reversedQuery = await this.policyUtils.buildReversedQuery(db, context);
                     const deleteWhere = this.policyUtils.and(reversedQuery, guard);
                     if (this.shouldLogQuery) {
                         this.logger.info(`[policy] \`deleteMany\` ${model}:\n${formatObject({ where: deleteWhere })}`);
