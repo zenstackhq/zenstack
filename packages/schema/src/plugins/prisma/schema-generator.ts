@@ -893,7 +893,7 @@ export class PrismaSchemaGenerator {
         const dummyDefaultValue = match(field.type.type)
             .with('String', () => new AttributeArgValue('String', ''))
             .with(P.union('Int', 'BigInt', 'Float', 'Decimal'), () => new AttributeArgValue('Number', '0'))
-            .with('Boolean', () => new AttributeArgValue('Boolean', 'false'))
+            .with('Boolean', () => new AttributeArgValue('Boolean', false))
             .with('DateTime', () => new AttributeArgValue('FunctionCall', new PrismaFunctionCall('now')))
             .with('Json', () => new AttributeArgValue('String', '{}'))
             .with('Bytes', () => new AttributeArgValue('String', ''))
