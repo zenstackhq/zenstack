@@ -31,7 +31,6 @@ model Post {
             `,
             {
                 previewFeatures: ['strictUndefinedChecks'],
-                logPrismaQuery: true,
             }
         );
 
@@ -89,7 +88,6 @@ model Address {
             `,
             {
                 previewFeatures: ['strictUndefinedChecks'],
-                logPrismaQuery: true,
             }
         );
 
