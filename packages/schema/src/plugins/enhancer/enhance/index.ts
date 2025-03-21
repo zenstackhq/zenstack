@@ -207,6 +207,13 @@ ${
         return `import { Prisma, type PrismaClient } from '${prismaImport}';
 import type * as _P from '${prismaImport}';
 export type { PrismaClient };
+
+/**
+ * Infers the type of PrismaClient with ZenStack's enhancements.
+ * @example
+ * type EnhancedPrismaClient = Enhanced<typeof prisma>;
+ */
+export type Enhanced<Client> = Client;
         `;
     }
 
