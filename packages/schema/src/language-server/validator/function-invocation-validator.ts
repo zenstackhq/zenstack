@@ -11,6 +11,7 @@ import {
     isDataModel,
     isDataModelAttribute,
     isDataModelFieldAttribute,
+    isInvocationExpr,
     isLiteralExpr,
 } from '@zenstackhq/language/ast';
 import {
@@ -21,6 +22,7 @@ import {
     isDataModelFieldReference,
     isEnumFieldReference,
     isFromStdlib,
+    isValidationAttribute,
 } from '@zenstackhq/sdk';
 import { AstNode, streamAst, ValidationAcceptor } from 'langium';
 import { match, P } from 'ts-pattern';
@@ -70,20 +72,21 @@ export default class FunctionInvocationValidator implements AstValidator<Express
             }
 
             // validate the context allowed for the function
-            const exprContext = match(containerAttribute?.decl.$refText)
-                .with('@default', () => ExpressionContext.DefaultValue)
-                .with(P.union('@@allow', '@@deny', '@allow', '@deny'), () => ExpressionContext.AccessPolicy)
-                .with('@@validate', () => ExpressionContext.ValidationRule)
-                .with('@@index', () => ExpressionContext.Index)
-                .otherwise(() => undefined);
+            const exprContext = this.getExpressionContext(containerAttribute);
 
             // get the context allowed for the function
             const funcAllowedContext = getFunctionExpressionContext(funcDecl);
 
-            if (exprContext && !funcAllowedContext.includes(exprContext)) {
-                accept('error', `function "${funcDecl.name}" is not allowed in the current context: ${exprContext}`, {
-                    node: expr,
-                });
+            if (funcAllowedContext.length > 0 && (!exprContext || !funcAllowedContext.includes(exprContext))) {
+                accept(
+                    'error',
+                    `function "${funcDecl.name}" is not allowed in the current context${
+                        exprContext ? ': ' + exprContext : ''
+                    }`,
+                    {
+                        node: expr,
+                    }
+                );
                 return;
             }
 
@@ -121,6 +124,8 @@ export default class FunctionInvocationValidator implements AstValidator<Express
                     !isEnumFieldReference(secondArg) &&
                     // `auth()...` expression
                     !isAuthOrAuthMemberAccess(secondArg) &&
+                    // static function calls that are runtime constants: `currentModel`, `currentOperation`
+                    !this.isStaticFunctionCall(secondArg) &&
                     // array of literal/enum
                     !(
                         isArrayExpr(secondArg) &&
@@ -146,6 +151,24 @@ export default class FunctionInvocationValidator implements AstValidator<Express
         if (checker) {
             checker.value.call(this, expr, accept);
         }
+    }
+
+    private getExpressionContext(containerAttribute: DataModelAttribute | DataModelFieldAttribute | undefined) {
+        if (!containerAttribute) {
+            return undefined;
+        }
+        if (isValidationAttribute(containerAttribute)) {
+            return ExpressionContext.ValidationRule;
+        }
+        return match(containerAttribute?.decl.$refText)
+            .with('@default', () => ExpressionContext.DefaultValue)
+            .with(P.union('@@allow', '@@deny', '@allow', '@deny'), () => ExpressionContext.AccessPolicy)
+            .with('@@index', () => ExpressionContext.Index)
+            .otherwise(() => undefined);
+    }
+
+    private isStaticFunctionCall(expr: Expression) {
+        return isInvocationExpr(expr) && ['currentModel', 'currentOperation'].includes(expr.function.$refText);
     }
 
     private validateArgs(funcDecl: FunctionDecl, args: Argument[], accept: ValidationAcceptor) {
