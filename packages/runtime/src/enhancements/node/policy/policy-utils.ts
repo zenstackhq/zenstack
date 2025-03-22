@@ -30,7 +30,6 @@ import {
 } from '../../../types';
 import { getVersion } from '../../../version';
 import type { InternalEnhancementOptions } from '../create-enhancement';
-import { Logger } from '../logger';
 import { QueryUtils } from '../query-utils';
 import type {
     DelegateConstraint,
@@ -47,7 +46,6 @@ import { formatObject, prismaClientKnownRequestError } from '../utils';
  * Access policy enforcement utilities
  */
 export class PolicyUtil extends QueryUtils {
-    private readonly logger: Logger;
     private readonly modelMeta: ModelMeta;
     private readonly policy: PolicyDef;
     private readonly zodSchemas?: ZodSchemas;
@@ -62,7 +60,6 @@ export class PolicyUtil extends QueryUtils {
     ) {
         super(db, options);
 
-        this.logger = new Logger(db);
         this.user = context?.user;
 
         ({

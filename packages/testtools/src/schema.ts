@@ -96,7 +96,11 @@ datasource db {
 
 generator js {
     provider = 'prisma-client-js'
-    ${options.previewFeatures ? `previewFeatures = ${JSON.stringify(options.previewFeatures)}` : ''}
+    ${
+        options.previewFeatures
+            ? `previewFeatures = ${JSON.stringify(options.previewFeatures)}`
+            : 'previewFeatures = ["strictUndefinedChecks"]'
+    }
 }
 
 plugin enhancer {

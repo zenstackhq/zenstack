@@ -10,11 +10,17 @@ import {
 } from '../../cross';
 import type { CrudContract, DbClientContract } from '../../types';
 import { getVersion } from '../../version';
+import { formatObject } from '../edge';
 import { InternalEnhancementOptions } from './create-enhancement';
+import { Logger } from './logger';
 import { prismaClientUnknownRequestError, prismaClientValidationError } from './utils';
 
 export class QueryUtils {
-    constructor(private readonly prisma: DbClientContract, protected readonly options: InternalEnhancementOptions) {}
+    protected readonly logger: Logger;
+
+    constructor(private readonly prisma: DbClientContract, protected readonly options: InternalEnhancementOptions) {
+        this.logger = new Logger(prisma);
+    }
 
     getIdFields(model: string) {
         return getIdFields(this.options.modelMeta, model, true);
@@ -60,7 +66,12 @@ export class QueryUtils {
     /**
      * Builds a reversed query for the given nested path.
      */
-    buildReversedQuery(context: NestedWriteVisitorContext, forMutationPayload = false, unsafeOperation = false) {
+    async buildReversedQuery(
+        db: CrudContract,
+        context: NestedWriteVisitorContext,
+        forMutationPayload = false,
+        uncheckedOperation = false
+    ) {
         let result, currQuery: any;
         let currField: FieldInfo | undefined;
 
@@ -102,8 +113,8 @@ export class QueryUtils {
                     const shouldPreserveRelationCondition =
                         // doing a mutation
                         forMutationPayload &&
-                        // and it's a safe mutate
-                        !unsafeOperation &&
+                        // and it's not an unchecked mutate
+                        !uncheckedOperation &&
                         // and the current segment is the direct parent (the last one is the mutate itself),
                         // the relation condition should be preserved and will be converted to a "connect" later
                         i === context.nestingPath.length - 2;
@@ -111,8 +122,26 @@ export class QueryUtils {
                     if (fkMapping && !shouldPreserveRelationCondition) {
                         // turn relation condition into foreign key condition, e.g.:
                         //     { user: { id: 1 } } => { userId: 1 }
+
+                        let parentPk = visitWhere;
+                        if (Object.keys(fkMapping).some((k) => !(k in parentPk) || parentPk[k] === undefined)) {
+                            // it can happen that the parent condition actually doesn't contain all id fields
+                            // （when the parent condition is not a primary key but unique constraints)
+                            // and in such case we need to load it to get the pks
+
+                            if (this.options.logPrismaQuery && this.logger.enabled('info')) {
+                                this.logger.info(
+                                    `[reverseLookup] \`findUniqueOrThrow\` ${model}: ${formatObject(where)}`
+                                );
+                            }
+                            parentPk = await db[model].findUniqueOrThrow({
+                                where,
+                                select: this.makeIdSelection(model),
+                            });
+                        }
+
                         for (const [r, fk] of Object.entries<string>(fkMapping)) {
-                            currQuery[fk] = visitWhere[r];
+                            currQuery[fk] = parentPk[r];
                         }
 
                         if (i > 0) {

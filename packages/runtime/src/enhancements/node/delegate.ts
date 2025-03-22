@@ -902,7 +902,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         } else {
             // translate to plain `update` for nested write into base fields
             const findArgs = {
-                where: clone(args.where),
+                where: clone(args.where ?? {}),
                 select: this.queryUtils.makeIdSelection(model),
             };
             await this.injectUpdateHierarchy(db, model, findArgs);
@@ -959,7 +959,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                     this.injectWhereHierarchy(model, (args as any)?.where);
                     this.doProcessUpdatePayload(model, (args as any)?.data);
                 } else {
-                    const where = this.queryUtils.buildReversedQuery(context, false, false);
+                    const where = await this.queryUtils.buildReversedQuery(db, context, false, false);
                     await this.queryUtils.transaction(db, async (tx) => {
                         await this.doUpdateMany(tx, model, { ...args, where }, simpleUpdateMany);
                     });
@@ -1022,7 +1022,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             },
 
             delete: async (model, _args, context) => {
-                const where = this.queryUtils.buildReversedQuery(context, false, false);
+                const where = await this.queryUtils.buildReversedQuery(db, context, false, false);
                 await this.queryUtils.transaction(db, async (tx) => {
                     await this.doDelete(tx, model, { where });
                 });
@@ -1030,7 +1030,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             },
 
             deleteMany: async (model, _args, context) => {
-                const where = this.queryUtils.buildReversedQuery(context, false, false);
+                const where = await this.queryUtils.buildReversedQuery(db, context, false, false);
                 await this.queryUtils.transaction(db, async (tx) => {
                     await this.doDeleteMany(tx, model, where);
                 });
@@ -1095,7 +1095,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     private async doDeleteMany(db: CrudContract, model: string, where: any): Promise<{ count: number }> {
         // query existing entities with id
         const idSelection = this.queryUtils.makeIdSelection(model);
-        const findArgs = { where: clone(where), select: idSelection };
+        const findArgs = { where: clone(where ?? {}), select: idSelection };
         this.injectWhereHierarchy(model, findArgs.where);
 
         if (this.options.logPrismaQuery) {
