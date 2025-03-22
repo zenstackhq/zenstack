@@ -16,7 +16,7 @@ import { Logger } from './logger';
 import { prismaClientUnknownRequestError, prismaClientValidationError } from './utils';
 
 export class QueryUtils {
-    private readonly logger: Logger;
+    protected readonly logger: Logger;
 
     constructor(private readonly prisma: DbClientContract, protected readonly options: InternalEnhancementOptions) {
         this.logger = new Logger(prisma);
