@@ -1090,7 +1090,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
                     // convert upsert to update
                     const convertedUpdate = {
-                        where: args.where,
+                        where: args.where ?? {},
                         data: this.validateUpdateInputSchema(model, args.update),
                     };
                     this.mergeToParent(context.parent, 'update', convertedUpdate);

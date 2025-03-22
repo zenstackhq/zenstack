@@ -902,7 +902,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         } else {
             // translate to plain `update` for nested write into base fields
             const findArgs = {
-                where: clone(args.where),
+                where: clone(args.where ?? {}),
                 select: this.queryUtils.makeIdSelection(model),
             };
             await this.injectUpdateHierarchy(db, model, findArgs);
@@ -1095,7 +1095,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     private async doDeleteMany(db: CrudContract, model: string, where: any): Promise<{ count: number }> {
         // query existing entities with id
         const idSelection = this.queryUtils.makeIdSelection(model);
-        const findArgs = { where: clone(where), select: idSelection };
+        const findArgs = { where: clone(where ?? {}), select: idSelection };
         this.injectWhereHierarchy(model, findArgs.where);
 
         if (this.options.logPrismaQuery) {
