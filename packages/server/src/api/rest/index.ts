@@ -678,7 +678,7 @@ class RequestHandler extends APIHandlerBase {
             args.take = limit;
             const [entities, count] = await Promise.all([
                 prisma[type].findMany(args),
-                prisma[type].count({ where: args.where }),
+                prisma[type].count({ where: args.where ?? {} }),
             ]);
             const total = count as number;
 

@@ -1579,12 +1579,15 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     if (this.shouldLogQuery) {
                         this.logger.info(
                             `[policy] \`findMany\` ${this.model}: ${formatObject({
-                                where: args.where,
+                                where: args.where ?? {},
                                 select: candidateSelect,
                             })}`
                         );
                     }
-                    const candidates = await tx[this.model].findMany({ where: args.where, select: candidateSelect });
+                    const candidates = await tx[this.model].findMany({
+                        where: args.where ?? {},
+                        select: candidateSelect,
+                    });
 
                     // build a ID filter based on id values filtered by the additional checker
                     const { idFilter } = this.buildIdFilterWithEntityChecker(candidates, entityChecker.func);
