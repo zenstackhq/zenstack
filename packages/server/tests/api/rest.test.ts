@@ -633,6 +633,26 @@ describe('REST server tests', () => {
                         prisma,
                     });
                     expect(r.body.data).toHaveLength(0);
+                    r = await handler({
+                        method: 'get',
+                        path: '/post',
+                        query: {
+                            ['filter[author][email]']: 'user1@abc.com',
+                            ['filter[title]']: 'Post1',
+                        },
+                        prisma,
+                    });
+                    expect(r.body.data).toHaveLength(1);
+                    r = await handler({
+                        method: 'get',
+                        path: '/post',
+                        query: {
+                            ['filter[author][email]']: 'user1@abc.com',
+                            ['filter[title]']: 'Post2',
+                        },
+                        prisma,
+                    });
+                    expect(r.body.data).toHaveLength(0);
 
                     // to-one relation filter
                     r = await handler({
