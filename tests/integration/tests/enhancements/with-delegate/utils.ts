@@ -1,6 +1,7 @@
 export const POLYMORPHIC_SCHEMA = `
 model User {
     id Int @id @default(autoincrement())
+    email String? @unique
     level Int @default(0)
     assets Asset[]
     ratedVideos RatedVideo[] @relation('direct')
