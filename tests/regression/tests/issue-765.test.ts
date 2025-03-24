@@ -21,7 +21,10 @@ describe('Regression: issue 765', () => {
               
                 @@allow('all', true)
             }
-            `
+            `,
+            {
+                previewFeatures: [],
+            }
         );
 
         const db = enhance();

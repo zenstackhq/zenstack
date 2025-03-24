@@ -591,24 +591,58 @@ describe('Polymorphism Test', () => {
     });
 
     it('update nested updateMany', async () => {
-        const { db, videoWithOwner: video, user } = await setup();
+        const { db } = await setup();
 
-        // updateMany
-        await db.user.update({
-            where: { id: user.id },
+        const user = await db.user.create({
             data: {
+                email: 'a@b.com',
                 ratedVideos: {
-                    create: { url: 'xyz', duration: 111, rating: 222, owner: { connect: { id: user.id } } },
+                    create: { id: 10, url: 'xyz', duration: 1, rating: 111 },
                 },
             },
         });
+
+        // create another user and video
+        await db.user.create({
+            data: {
+                email: 'b@c.com',
+                ratedVideos: {
+                    create: { id: 20, url: 'abc', duration: 2, rating: 222 },
+                },
+            },
+        });
+
+        // updateMany with filter
         await expect(
             db.user.update({
                 where: { id: user.id },
-                data: { ratedVideos: { updateMany: { where: { duration: 111 }, data: { rating: 333 } } } },
+                data: {
+                    ratedVideos: { updateMany: { where: { duration: 1 }, data: { rating: 333 } } },
+                },
                 include: { ratedVideos: true },
             })
-        ).resolves.toMatchObject({ ratedVideos: expect.arrayContaining([expect.objectContaining({ rating: 333 })]) });
+        ).resolves.toMatchObject({
+            ratedVideos: expect.arrayContaining([expect.objectContaining({ rating: 333 })]),
+        });
+
+        // updateMany without filter
+        await expect(
+            db.user.update({
+                where: { email: 'a@b.com' },
+                data: {
+                    ratedVideos: { updateMany: { data: { duration: 3 } } },
+                },
+                include: { ratedVideos: true },
+            })
+        ).resolves.toMatchObject({
+            ratedVideos: expect.arrayContaining([expect.objectContaining({ duration: 3 })]),
+        });
+
+        // user2's video should not be updated
+        await expect(db.ratedVideo.findUnique({ where: { id: 20 } })).resolves.toMatchObject({
+            duration: 2,
+            rating: 222,
+        });
     });
 
     it('update nested deleteOne', async () => {

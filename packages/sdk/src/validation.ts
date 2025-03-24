@@ -7,7 +7,7 @@ import {
     type TypeDef,
 } from './ast';
 
-function isValidationAttribute(attr: DataModelAttribute | DataModelFieldAttribute) {
+export function isValidationAttribute(attr: DataModelAttribute | DataModelFieldAttribute) {
     return attr.decl.ref?.attributes.some((attr) => attr.decl.$refText === '@@@validation');
 }
 

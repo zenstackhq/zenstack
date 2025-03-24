@@ -70,6 +70,9 @@ export class EnhancerGenerator {
     // Regex patterns for matching input/output types for models with JSON type fields
     private readonly modelsWithJsonTypeFieldsInputOutputPattern: RegExp[];
 
+    // a mapping from shortened names to full names
+    private reversedShortNameMap = new Map<string, string>();
+
     constructor(
         private readonly model: Model,
         private readonly options: PluginOptions,
@@ -207,6 +210,13 @@ ${
         return `import { Prisma, type PrismaClient } from '${prismaImport}';
 import type * as _P from '${prismaImport}';
 export type { PrismaClient };
+
+/**
+ * Infers the type of PrismaClient with ZenStack's enhancements.
+ * @example
+ * type EnhancedPrismaClient = Enhanced<typeof prisma>;
+ */
+export type Enhanced<Client> = Client;
         `;
     }
 
@@ -315,7 +325,7 @@ export type Enhanced<Client> =
 
         // calculate a relative output path to output the logical prisma client into enhancer's output dir
         const prismaClientOutDir = path.join(path.relative(zmodelDir, this.outDir), LOGICAL_CLIENT_GENERATION_PATH);
-        await prismaGenerator.generate({
+        const generateResult = await prismaGenerator.generate({
             provider: '@internal', // doesn't matter
             schemaPath: this.options.schemaPath,
             output: logicalPrismaFile,
@@ -323,6 +333,11 @@ export type Enhanced<Client> =
             mode: 'logical',
             customAttributesAsComments: true,
         });
+
+        // reverse direction of shortNameMap and store for future lookup
+        this.reversedShortNameMap = new Map<string, string>(
+            Array.from(generateResult.shortNameMap.entries()).map(([key, value]) => [value, key])
+        );
 
         // generate the prisma client
 
@@ -383,7 +398,7 @@ export type Enhanced<Client> =
         const createInputPattern = new RegExp(`^(.+?)(Unchecked)?Create.*Input$`);
         for (const inputType of dmmf.schema.inputObjectTypes.prisma) {
             const match = inputType.name.match(createInputPattern);
-            const modelName = match?.[1];
+            const modelName = this.resolveName(match?.[1]);
             if (modelName) {
                 const dataModel = this.model.declarations.find(
                     (d): d is DataModel => isDataModel(d) && d.name === modelName
@@ -666,7 +681,7 @@ export type Enhanced<Client> =
 
         const match = typeName.match(concreteCreateUpdateInputRegex);
         if (match) {
-            const modelName = match[1];
+            const modelName = this.resolveName(match[1]);
             const dataModel = this.model.declarations.find(
                 (d): d is DataModel => isDataModel(d) && d.name === modelName
             );
@@ -717,8 +732,9 @@ export type Enhanced<Client> =
             return source;
         }
 
-        const nameTuple = match[3]; // [modelName]_[relationFieldName]_[concreteModelName]
-        const [modelName, relationFieldName, _] = nameTuple.split('_');
+        // [modelName]_[relationFieldName]_[concreteModelName]
+        const nameTuple = this.resolveName(match[3], true);
+        const [modelName, relationFieldName, _] = nameTuple!.split('_');
 
         const fieldDef = this.findNamedProperty(typeAlias, relationFieldName);
         if (fieldDef) {
@@ -762,13 +778,28 @@ export type Enhanced<Client> =
         return source;
     }
 
+    // resolves a potentially shortened name back to the original
+    private resolveName(name: string | undefined, withDelegateAuxPrefix = false) {
+        if (!name) {
+            return name;
+        }
+        const shortNameLookupKey = withDelegateAuxPrefix ? `${DELEGATE_AUX_RELATION_PREFIX}_${name}` : name;
+        if (this.reversedShortNameMap.has(shortNameLookupKey)) {
+            name = this.reversedShortNameMap.get(shortNameLookupKey)!;
+            if (withDelegateAuxPrefix) {
+                name = name.substring(DELEGATE_AUX_RELATION_PREFIX.length + 1);
+            }
+        }
+        return name;
+    }
+
     private fixDefaultAuthType(typeAlias: TypeAliasDeclaration, source: string) {
         const match = typeAlias.getName().match(this.modelsWithAuthInDefaultCreateInputPattern);
         if (!match) {
             return source;
         }
 
-        const modelName = match[1];
+        const modelName = this.resolveName(match[1]);
         const dataModel = this.model.declarations.find((d): d is DataModel => isDataModel(d) && d.name === modelName);
         if (dataModel) {
             for (const fkField of dataModel.fields.filter((f) => f.attributes.some(isDefaultWithAuth))) {
@@ -824,7 +855,7 @@ export type Enhanced<Client> =
                 continue;
             }
             // first capture group is the model name
-            const modelName = match[1];
+            const modelName = this.resolveName(match[1]);
             const model = this.modelsWithJsonTypeFields.find((m) => m.name === modelName);
             const fieldsToFix = getTypedJsonFields(model!);
             for (const field of fieldsToFix) {
