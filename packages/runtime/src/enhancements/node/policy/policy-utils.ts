@@ -274,6 +274,7 @@ export class PolicyUtil extends QueryUtils {
             create: { guard: true, inputChecker: true },
             update: { guard: true },
             delete: { guard: true },
+            list: { guard: true },
             postUpdate: { guard: true },
         },
     };
@@ -604,10 +605,15 @@ export class PolicyUtil extends QueryUtils {
     /**
      * Injects auth guard for read operations.
      */
-    injectForRead(db: CrudContract, model: string, args: any) {
+    injectForReadOrList(db: CrudContract, model: string, args: any, isList: boolean) {
         // make select and include visible to the injection
         const injected: any = { select: args.select, include: args.include };
         if (!this.injectAuthGuardAsWhere(db, injected, model, 'read')) {
+            args.where = this.makeFalse();
+            return false;
+        }
+
+        if (!this.injectAuthGuardAsWhere(db, injected, model, 'list')) {
             args.where = this.makeFalse();
             return false;
         }
@@ -1133,7 +1139,7 @@ export class PolicyUtil extends QueryUtils {
             CrudFailureReason.RESULT_NOT_READABLE
         );
 
-        const injectResult = this.injectForRead(db, model, readArgs);
+        const injectResult = this.injectForReadOrList(db, model, readArgs, false);
         if (!injectResult) {
             return { error, result: undefined };
         }
