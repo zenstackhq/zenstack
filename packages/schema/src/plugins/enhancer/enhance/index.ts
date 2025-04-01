@@ -824,12 +824,21 @@ export type Enhanced<Client> =
         };
 
         const replacePrismaJson = (source: string, field: DataModelField) => {
-            return source.replace(
-                new RegExp(`(${field.name}\\??\\s*):[^\\n]+`),
-                `$1: ${field.type.reference!.$refText}${field.type.array ? '[]' : ''}${
-                    field.type.optional ? ' | null' : ''
-                }`
-            );
+            let replaceValue = `$1: ${field.type.reference!.$refText}`;
+            if (field.type.array) {
+                replaceValue += '[]';
+            }
+            if (field.type.optional) {
+                replaceValue += ' | null';
+            }
+
+            // Check if the field in the source is optional (has a `?`)
+            const isOptionalInSource = new RegExp(`(${field.name}\\?\\s*):`).test(source);
+            if (isOptionalInSource) {
+                replaceValue += ' | $Types.Skip';
+            }
+
+            return source.replace(new RegExp(`(${field.name}\\??\\s*):[^\\n]+`), replaceValue);
         };
 
         // fix "$[Model]Payload" type
