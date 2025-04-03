@@ -151,8 +151,8 @@ ${
 
 ${
     prismaTypesFixed
-        ? this.createLogicalPrismaImports(prismaImport, resultPrismaImport)
-        : this.createSimplePrismaImports(prismaImport)
+        ? this.createLogicalPrismaImports(prismaImport, resultPrismaImport, target)
+        : this.createSimplePrismaImports(prismaImport, target)
 }
 
 ${authTypes}
@@ -206,8 +206,10 @@ ${
         return normalizedRelative(this.outDir, zodAbsPath);
     }
 
-    private createSimplePrismaImports(prismaImport: string) {
-        return `import { Prisma, type PrismaClient } from '${prismaImport}';
+    private createSimplePrismaImports(prismaImport: string, target: string) {
+        const prismaTargetImport = target === 'edge' ? `${prismaImport}/edge` : prismaImport;
+
+        return `import { Prisma, type PrismaClient } from '${prismaTargetImport}';
 import type * as _P from '${prismaImport}';
 export type { PrismaClient };
 
@@ -235,8 +237,9 @@ export function enhance<DbClient extends object>(prisma: DbClient, context?: Enh
             `;
     }
 
-    private createLogicalPrismaImports(prismaImport: string, prismaClientImport: string) {
-        return `import { Prisma as _Prisma, PrismaClient as _PrismaClient } from '${prismaImport}';
+    private createLogicalPrismaImports(prismaImport: string, prismaClientImport: string, target: string) {
+        const prismaTargetImport = target === 'edge' ? `${prismaImport}/edge` : prismaImport;
+        return `import { Prisma as _Prisma, PrismaClient as _PrismaClient } from '${prismaTargetImport}';
 import type { InternalArgs, DynamicClientExtensionThis } from '${prismaImport}/runtime/library';
 import type * as _P from '${prismaClientImport}';
 import type { Prisma, PrismaClient } from '${prismaClientImport}';
