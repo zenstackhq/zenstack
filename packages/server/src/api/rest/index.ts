@@ -1528,7 +1528,6 @@ class RequestHandler extends APIHandlerBase {
         }
 
         const items: any[] = [];
-        let currType = typeInfo;
 
         for (const [key, value] of Object.entries(query)) {
             if (!value) {
@@ -1554,6 +1553,7 @@ class RequestHandler extends APIHandlerBase {
 
             const item: any = {};
             let curr = item;
+            let currType = typeInfo;
 
             for (const filterValue of enumerate(value)) {
                 for (let i = 0; i < filterKeys.length; i++) {
