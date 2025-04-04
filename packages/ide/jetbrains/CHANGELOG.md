@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+-  Support `@default` for `@json` fields.
+
+### Fixed
+
+## 2.12.1
+
 ### Added
 
 -   Validating regex patterns in ZModel.
