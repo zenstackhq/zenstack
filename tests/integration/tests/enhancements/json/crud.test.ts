@@ -429,4 +429,66 @@ describe('Json field CRUD', () => {
 
         await expect(post.content.content[0].content[0].text).toBe('hello');
     });
+
+    it('works with Prisma.skip', async () => {
+        const params = await loadSchema(
+            `
+            type Profile {
+                foo Int
+                bar String
+            }
+            
+            model User {
+                id Int @id @default(autoincrement())
+                name String
+                profile Profile @json
+                @@allow('all', true)
+            }
+            `,
+            {
+                provider: 'postgresql',
+                dbUrl,
+                compile: true,
+                extraSourceFiles: [
+                    {
+                        name: 'main.ts',
+                        content: `
+import { enhance } from '.zenstack/enhance';
+import { Prisma, PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
+const db = enhance(prisma);
+
+async function main() {
+    // @ts-expect-error Non optional JSON fields should not be skippable in the create call
+    db.user.create({ data: { name: 'test', profile: Prisma.skip } });
+
+    const u = await db.user.create({ data: { name: 'test', profile: { foo: 18, bar: 'test' } } });
+    await db.user.update({ where: { id: u.id }, data: { profile: Prisma.skip } });
+}
+                        `,
+                    },
+                ],
+            }
+        );
+
+        prisma = params.prisma;
+        const skip = params.prismaModule.Prisma.skip;
+        const db = params.enhance();
+
+        const user = await db.user.create({ data: { name: 'test', profile: { foo: 18, bar: 'test' } } });
+
+        await expect(
+            db.user.update({
+                where: { id: user.id },
+                data: { profile: skip },
+            })
+        ).resolves.toMatchObject({
+            id: user.id,
+            name: 'test',
+            profile: {
+                foo: 18,
+                bar: 'test',
+            },
+        });
+    });
 });
