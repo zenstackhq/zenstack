@@ -365,7 +365,7 @@ export const ${typeDef.name}Schema = ${refineFuncName}(${noRefineSchema});
         }
         if (importEnums.size > 0) {
             const prismaImport = computePrismaClientImport(path.join(output, 'models'), this.options);
-            writer.writeLine(`import { ${[...importEnums].join(', ')} } from '${prismaImport}';`);
+            writer.writeLine(`import type { ${[...importEnums].join(', ')} } from '${prismaImport}';`);
         }
 
         // import enum schemas
