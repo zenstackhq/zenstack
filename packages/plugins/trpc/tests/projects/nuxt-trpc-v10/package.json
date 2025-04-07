@@ -13,7 +13,7 @@
         "@prisma/client": "6.5.x",
         "@trpc/client": "^10.45.2",
         "@trpc/server": "^10.45.2",
-        "nuxt": "^3.14.1592",
+        "nuxt": "^3.16.0",
         "trpc-nuxt": "^0.10.22",
         "vue": "latest",
         "vue-router": "latest",
