@@ -110,22 +110,25 @@ export class EnhancerGenerator {
 
         const prismaImport = getPrismaClientImportSpec(this.outDir, this.options);
         let prismaTypesFixed = false;
-        let resultPrismaImport = prismaImport;
+        let resultPrismaTypeImport = prismaImport;
 
         if (this.needsLogicalClient) {
             prismaTypesFixed = true;
-            resultPrismaImport = `${LOGICAL_CLIENT_GENERATION_PATH}/index-fixed`;
+            resultPrismaTypeImport = `${LOGICAL_CLIENT_GENERATION_PATH}/index-fixed`;
             const result = await this.generateLogicalPrisma();
             dmmf = result.dmmf;
         }
 
         // reexport PrismaClient types (original or fixed)
-        const prismaDts = this.project.createSourceFile(
+        const modelsDts = this.project.createSourceFile(
             path.join(this.outDir, 'models.d.ts'),
-            `export type * from '${resultPrismaImport}';`,
+            `export type * from '${resultPrismaTypeImport}';`,
             { overwrite: true }
         );
-        await prismaDts.save();
+        await modelsDts.save();
+
+        // reexport values from the original PrismaClient (enums, etc.)
+        fs.writeFileSync(path.join(this.outDir, 'models.js'), `module.exports = require('${prismaImport}');`);
 
         const authDecl = getAuthDecl(getDataModelAndTypeDefs(this.model));
         const authTypes = authDecl ? generateAuthType(this.model, authDecl) : '';
@@ -151,7 +154,7 @@ ${
 
 ${
     prismaTypesFixed
-        ? this.createLogicalPrismaImports(prismaImport, resultPrismaImport, target)
+        ? this.createLogicalPrismaImports(prismaImport, resultPrismaTypeImport, target)
         : this.createSimplePrismaImports(prismaImport, target)
 }
 
