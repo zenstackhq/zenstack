@@ -74,7 +74,8 @@
             "default": "./model-meta.js"
         },
         "./models": {
-            "types": "./models.d.ts"
+            "types": "./models.d.ts",
+            "default": "./models.js"
         },
         "./zod-utils": {
             "types": "./zod-utils.d.ts",
