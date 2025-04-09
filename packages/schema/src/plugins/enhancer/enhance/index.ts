@@ -122,7 +122,7 @@ export class EnhancerGenerator {
         // reexport PrismaClient types (original or fixed)
         const modelsDts = this.project.createSourceFile(
             path.join(this.outDir, 'models.d.ts'),
-            `export type * from '${resultPrismaTypeImport}';`,
+            `export * from '${resultPrismaTypeImport}';`,
             { overwrite: true }
         );
         await modelsDts.save();
