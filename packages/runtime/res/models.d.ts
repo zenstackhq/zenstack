@@ -1,1 +1,1 @@
-export type * from '.zenstack/models';
+export * from '.zenstack/models';
