@@ -27,7 +27,7 @@
             "request": "attach",
             "skipFiles": ["<node_internals>/**"],
             "sourceMaps": true,
-            "outFiles": ["${workspaceFolder}/packages/schema/bundle/**/*.js"]
+            "outFiles": ["${workspaceFolder}/packages/schema/dist/**/*.js"]
         }
     ]
 }
