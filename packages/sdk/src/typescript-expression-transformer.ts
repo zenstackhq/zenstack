@@ -38,7 +38,7 @@ type Options = {
     thisExprContext?: string;
     futureRefContext?: string;
     context: ExpressionContext;
-    operationContext?: 'read' | 'create' | 'update' | 'postUpdate' | 'delete';
+    operationContext?: 'read' | 'create' | 'update' | 'postUpdate' | 'delete' | 'list';
 };
 
 type Casing = 'original' | 'upper' | 'lower' | 'capitalize' | 'uncapitalize';
