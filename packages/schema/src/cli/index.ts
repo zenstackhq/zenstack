@@ -125,6 +125,7 @@ export function createProgram() {
         .addOption(new Option('--without-plugins <plugins...>', 'exclude specific plugins'))
         .addOption(new Option('--no-default-plugins', 'do not run default plugins'))
         .addOption(new Option('--no-compile', 'do not compile the output of core plugins'))
+        .addOption(new Option('--esm', 'generate output for ESM instead of CommonJS'))
         .addOption(noVersionCheckOption)
         .addOption(noDependencyCheckOption)
         .addOption(offlineOption)
