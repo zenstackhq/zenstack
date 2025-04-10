@@ -42,6 +42,10 @@ export type PluginOptions = {
      * @private
      */
     shortNameMap?: Map<string, string>;
+    /**
+     * Is the plugin generating into an ESM project?
+     */
+    esm?: boolean;
 } & PluginDeclaredOptions;
 
 /**

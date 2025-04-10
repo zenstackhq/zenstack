@@ -128,7 +128,12 @@ export class EnhancerGenerator {
         await modelsDts.save();
 
         // reexport values from the original PrismaClient (enums, etc.)
-        fs.writeFileSync(path.join(this.outDir, 'models.js'), `module.exports = require('${prismaImport}');`);
+        const modelsBody =
+            this.options.esm ?? false
+                ? `export * from '${prismaImport}';`
+                : `module.exports = require('${prismaImport}');`;
+
+        fs.writeFileSync(path.join(this.outDir, 'models.js'), modelsBody);
 
         const authDecl = getAuthDecl(getDataModelAndTypeDefs(this.model));
         const authTypes = authDecl ? generateAuthType(this.model, authDecl) : '';
@@ -338,6 +343,7 @@ export type Enhanced<Client> =
             overrideClientGenerationPath: prismaClientOutDir,
             mode: 'logical',
             customAttributesAsComments: true,
+            isEsm: this.options.isEsm,
         });
 
         // reverse direction of shortNameMap and store for future lookup
