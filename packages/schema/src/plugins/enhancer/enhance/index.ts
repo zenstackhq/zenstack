@@ -114,21 +114,18 @@ export class EnhancerGenerator {
 
         if (this.needsLogicalClient) {
             prismaTypesFixed = true;
-            resultPrismaTypeImport = `${LOGICAL_CLIENT_GENERATION_PATH}/index-fixed`;
+            resultPrismaTypeImport = LOGICAL_CLIENT_GENERATION_PATH;
             const result = await this.generateLogicalPrisma();
             dmmf = result.dmmf;
         }
 
         // reexport PrismaClient types (original or fixed)
-        const modelsDts = this.project.createSourceFile(
-            path.join(this.outDir, 'models.d.ts'),
+        const modelsTs = this.project.createSourceFile(
+            path.join(this.outDir, 'models.ts'),
             `export * from '${resultPrismaTypeImport}';`,
             { overwrite: true }
         );
-        await modelsDts.save();
-
-        // reexport values from the original PrismaClient (enums, etc.)
-        fs.writeFileSync(path.join(this.outDir, 'models.js'), `module.exports = require('${prismaImport}');`);
+        this.saveSourceFile(modelsTs);
 
         const authDecl = getAuthDecl(getDataModelAndTypeDefs(this.model));
         const authTypes = authDecl ? generateAuthType(this.model, authDecl) : '';
@@ -177,7 +174,7 @@ ${
         return {
             dmmf,
             newPrismaClientDtsPath: prismaTypesFixed
-                ? path.resolve(this.outDir, LOGICAL_CLIENT_GENERATION_PATH, 'index-fixed.d.ts')
+                ? path.resolve(this.outDir, LOGICAL_CLIENT_GENERATION_PATH, 'index.d.ts')
                 : undefined,
         };
     }
@@ -457,7 +454,7 @@ export type Enhanced<Client> =
     }
 
     private async processClientTypes(prismaClientDir: string) {
-        // make necessary updates to the generated `index.d.ts` file and save it as `index-fixed.d.ts`
+        // make necessary updates to the generated `index.d.ts` file and overwrite it
         const project = new Project();
         const sf = project.addSourceFileAtPath(path.join(prismaClientDir, 'index.d.ts'));
 
@@ -472,8 +469,7 @@ export type Enhanced<Client> =
                 }
             });
 
-        // transform index.d.ts and save it into a new file (better perf than in-line editing)
-
+        // transform index.d.ts and write it into a new file (better perf than in-line editing)
         const sfNew = project.createSourceFile(path.join(prismaClientDir, 'index-fixed.d.ts'), undefined, {
             overwrite: true,
         });
@@ -483,6 +479,9 @@ export type Enhanced<Client> =
         this.generateExtraTypes(sfNew);
 
         sfNew.formatText();
+
+        // Save the transformed file over the original
+        await sfNew.move(sf.getFilePath(), { overwrite: true });
         await sfNew.save();
     }
 
