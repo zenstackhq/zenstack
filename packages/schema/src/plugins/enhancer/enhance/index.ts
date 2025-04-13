@@ -1,4 +1,3 @@
-import { ReadonlyDeep } from '@prisma/generator-helper';
 import { DELEGATE_AUX_RELATION_PREFIX } from '@zenstackhq/runtime';
 import {
     PluginError,
@@ -422,7 +421,7 @@ export type Enhanced<Client> =
         return dmmf;
     }
 
-    private shouldBeOptional(field: ReadonlyDeep<DMMF.SchemaArg>, dataModel: DataModel) {
+    private shouldBeOptional(field: DMMF.SchemaArg, dataModel: DataModel) {
         const dmField = dataModel.fields.find((f) => f.name === field.name);
         if (!dmField) {
             return false;
