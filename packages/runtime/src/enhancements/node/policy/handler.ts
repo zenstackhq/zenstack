@@ -116,7 +116,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     }
 
     findMany(args?: any) {
-        return createDeferredPromise<unknown[]>(() => this.doFind(args, 'findMany', () => []));
+        return createDeferredPromise<unknown[]>(() => this.doFind(args, 'findMany', () => [], true));
     }
 
     // make a find query promise with fluent API call stubs installed
@@ -130,10 +130,10 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         );
     }
 
-    private async doFind(args: any, actionName: FindOperations, handleRejection: () => any) {
+    private async doFind(args: any, actionName: FindOperations, handleRejection: () => any, isList: boolean = false) {
         const origArgs = args;
         const _args = this.policyUtils.safeClone(args);
-        if (!this.policyUtils.injectForRead(this.prisma, this.model, _args)) {
+        if (!this.policyUtils.injectForReadOrList(this.prisma, this.model, _args, isList)) {
             if (this.shouldLogQuery) {
                 this.logger.info(`[policy] \`${actionName}\` ${this.model}: unconditionally denied`);
             }
@@ -1695,7 +1695,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             // "update" has an extra layer of "after"
             const payload = key === 'update' ? args[key].after : args[key];
             const toInject = { where: payload };
-            this.policyUtils.injectForRead(this.prisma, this.model, toInject);
+            this.policyUtils.injectForReadOrList(this.prisma, this.model, toInject, false);
             if (key === 'update') {
                 // "update" has an extra layer of "after"
                 args[key].after = toInject.where;

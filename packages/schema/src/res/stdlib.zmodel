@@ -533,7 +533,7 @@ attribute @@schema(_ name: String) @@@prisma
  * @param operation: comma-separated list of "create", "read", "update", "delete". Use "all" to denote all operations.
  * @param condition: a boolean expression that controls if the operation should be allowed.
  */
-attribute @@allow(_ operation: String @@@completionHint(["'create'", "'read'", "'update'", "'delete'", "'all'"]), _ condition: Boolean)
+attribute @@allow(_ operation: String @@@completionHint(["'create'", "'read'", "'update'", "'delete'", "'list'", "'all'"]), _ condition: Boolean)
 
 /**
  * Defines an access policy that allows the annotated field to be read or updated.
@@ -551,7 +551,7 @@ attribute @allow(_ operation: String @@@completionHint(["'create'", "'read'", "'
  * @param operation: comma-separated list of "create", "read", "update", "delete". Use "all" to denote all operations.
  * @param condition: a boolean expression that controls if the operation should be denied.
  */
-attribute @@deny(_ operation: String @@@completionHint(["'create'", "'read'", "'update'", "'delete'", "'all'"]), _ condition: Boolean)
+attribute @@deny(_ operation: String @@@completionHint(["'create'", "'read'", "'update'", "'delete'", "'list'", "'all'"]), _ condition: Boolean)
 
 /**
  * Defines an access policy that denies the annotated field to be read or updated.

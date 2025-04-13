@@ -271,4 +271,38 @@ describe('With Policy: toplevel operations', () => {
 
         expect(await db.model.deleteMany()).toEqual(expect.objectContaining({ count: 0 }));
     });
+
+    it('list tests', async () => {
+        const { enhance, prisma } = await loadSchema(
+            `
+        model Model {
+            id String @id @default(uuid())
+            value Int
+        
+            @@allow('create', true)
+            @@allow('read', true)
+            @@allow('list', false)
+        }
+        `
+        );
+
+        const db = enhance();
+
+        // Create some items
+        await db.model.createMany({
+            data: [{ value: 1 }, { value: 2 }, { value: 3 }, { value: 4 }],
+        });
+
+        const fromPrisma = await prisma.model.findMany();
+        expect(fromPrisma).toHaveLength(4);
+
+        const fromDb = await db.model.findMany();
+        console.log(fromDb);
+        // const firstItem = await db.model.findFirst();
+
+        // expect(firstItem).toBeTruthy();
+
+        // listing denied
+        // expect(fromDb).toHaveLength(0);
+    });
 });
