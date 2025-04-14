@@ -70,3 +70,60 @@ export async function emitProject(project: Project) {
         throw new PluginError('', `Error emitting generated code`);
     }
 }
+
+/*
+ * Abstraction for source code writer.
+ */
+export interface CodeWriter {
+    block(callback: () => void): void;
+    inlineBlock(callback: () => void): void;
+    write(text: string): void;
+    writeLine(text: string): void;
+    conditionalWrite(condition: boolean, text: string): void;
+}
+
+/**
+ * A fast code writer.
+ */
+export class FastWriter implements CodeWriter {
+    private content = '';
+    private indentLevel = 0;
+
+    constructor(private readonly indentSize = 4) {}
+
+    get result() {
+        return this.content;
+    }
+
+    block(callback: () => void) {
+        this.content += '{\n';
+        this.indentLevel++;
+        callback();
+        this.indentLevel--;
+        this.content += '\n}';
+    }
+
+    inlineBlock(callback: () => void) {
+        this.content += '{';
+        callback();
+        this.content += '}';
+    }
+
+    write(text: string) {
+        this.content += this.indent(text);
+    }
+
+    writeLine(text: string) {
+        this.content += `${this.indent(text)}\n`;
+    }
+
+    conditionalWrite(condition: boolean, text: string) {
+        if (condition) {
+            this.write(text);
+        }
+    }
+
+    private indent(text: string) {
+        return ' '.repeat(this.indentLevel * this.indentSize) + text;
+    }
+}
