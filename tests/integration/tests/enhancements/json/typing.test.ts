@@ -1,6 +1,6 @@
 import { loadSchema } from '@zenstackhq/testtools';
 
-describe('JSON field typing', () => {
+describe.each(['sqlite' as const, 'postgresql' as const])('JSON field typing - %p', (provider) => {
     it('works with simple field', async () => {
         await loadSchema(
             `
@@ -23,7 +23,7 @@ describe('JSON field typing', () => {
             }
             `,
             {
-                provider: 'postgresql',
+                provider,
                 pushDb: false,
                 compile: true,
                 extraSourceFiles: [
@@ -64,7 +64,7 @@ async function main() {
             }
             `,
             {
-                provider: 'postgresql',
+                provider,
                 pushDb: false,
                 compile: true,
                 extraSourceFiles: [
@@ -105,7 +105,7 @@ async function main() {
             }
             `,
             {
-                provider: 'postgresql',
+                provider,
                 pushDb: false,
                 compile: true,
                 extraSourceFiles: [
@@ -151,7 +151,7 @@ async function main() {
             }
             `,
             {
-                provider: 'postgresql',
+                provider,
                 pushDb: false,
                 compile: true,
                 extraSourceFiles: [
@@ -203,7 +203,7 @@ async function main() {
             }
             `,
             {
-                provider: 'postgresql',
+                provider,
                 pushDb: false,
                 compile: true,
                 extraSourceFiles: [
@@ -252,7 +252,7 @@ async function main() {
             }
             `,
             {
-                provider: 'postgresql',
+                provider,
                 pushDb: false,
                 compile: true,
                 extraSourceFiles: [
@@ -303,7 +303,7 @@ async function main() {
             }
             `,
             {
-                provider: 'postgresql',
+                provider,
                 pushDb: false,
                 compile: true,
                 extraSourceFiles: [
@@ -348,7 +348,7 @@ async function main() {
             }
             `,
             {
-                provider: 'postgresql',
+                provider,
                 pushDb: false,
                 compile: true,
                 extraSourceFiles: [
