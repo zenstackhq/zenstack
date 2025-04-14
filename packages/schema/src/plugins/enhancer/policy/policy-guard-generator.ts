@@ -15,7 +15,9 @@ import {
 } from '@zenstackhq/language/ast';
 import { PolicyCrudKind, type PolicyOperationKind } from '@zenstackhq/runtime';
 import {
+    type CodeWriter,
     ExpressionContext,
+    FastWriter,
     PluginOptions,
     PolicyAnalysisResult,
     RUNTIME_PACKAGE,
@@ -32,14 +34,7 @@ import { getPrismaClientImportSpec } from '@zenstackhq/sdk/prisma';
 import { streamAst } from 'langium';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
-import {
-    CodeBlockWriter,
-    FunctionDeclaration,
-    Project,
-    SourceFile,
-    VariableDeclarationKind,
-    WriterFunction,
-} from 'ts-morph';
+import { FunctionDeclarationStructure, OptionalKind, Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import { isCheckInvocation } from '../../../utils/ast-utils';
 import { ConstraintTransformer } from './constraint-transformer';
 import {
@@ -56,6 +51,8 @@ import {
  * Generates source file that contains Prisma query guard objects used for injecting database queries
  */
 export class PolicyGenerator {
+    private extraFunctions: OptionalKind<FunctionDeclarationStructure>[] = [];
+
     constructor(private options: PluginOptions) {}
 
     generate(project: Project, model: Model, output: string) {
@@ -65,22 +62,27 @@ export class PolicyGenerator {
 
         const models = getDataModels(model);
 
+        const writer = new FastWriter();
+        writer.block(() => {
+            this.writePolicy(writer, models);
+            this.writeValidationMeta(writer, models);
+            this.writeAuthSelector(models, writer);
+        });
+
         sf.addVariableStatement({
             declarationKind: VariableDeclarationKind.Const,
             declarations: [
                 {
                     name: 'policy',
                     type: 'PolicyDef',
-                    initializer: (writer) => {
-                        writer.block(() => {
-                            this.writePolicy(writer, models, sf);
-                            this.writeValidationMeta(writer, models);
-                            this.writeAuthSelector(models, writer);
-                        });
-                    },
+                    initializer: writer.result,
                 },
             ],
         });
+
+        if (this.extraFunctions.length > 0) {
+            sf.addFunctions(this.extraFunctions);
+        }
 
         sf.addStatements('export default policy');
 
@@ -121,7 +123,7 @@ export class PolicyGenerator {
         }
     }
 
-    private writePolicy(writer: CodeBlockWriter, models: DataModel[], sourceFile: SourceFile) {
+    private writePolicy(writer: CodeWriter, models: DataModel[]) {
         writer.write('policy:');
         writer.inlineBlock(() => {
             for (const model of models) {
@@ -129,10 +131,10 @@ export class PolicyGenerator {
 
                 writer.block(() => {
                     // model-level guards
-                    this.writeModelLevelDefs(model, writer, sourceFile);
+                    this.writeModelLevelDefs(model, writer);
 
                     // field-level guards
-                    this.writeFieldLevelDefs(model, writer, sourceFile);
+                    this.writeFieldLevelDefs(model, writer);
                 });
 
                 writer.writeLine(',');
@@ -145,55 +147,45 @@ export class PolicyGenerator {
 
     // writes model-level policy def for each operation kind for a model
     // `[modelName]: { [operationKind]: [funcName] },`
-    private writeModelLevelDefs(model: DataModel, writer: CodeBlockWriter, sourceFile: SourceFile) {
+    private writeModelLevelDefs(model: DataModel, writer: CodeWriter) {
         const policies = analyzePolicies(model);
         writer.write('modelLevel:');
         writer.inlineBlock(() => {
-            this.writeModelReadDef(model, policies, writer, sourceFile);
-            this.writeModelCreateDef(model, policies, writer, sourceFile);
-            this.writeModelUpdateDef(model, policies, writer, sourceFile);
-            this.writeModelPostUpdateDef(model, policies, writer, sourceFile);
-            this.writeModelDeleteDef(model, policies, writer, sourceFile);
+            this.writeModelReadDef(model, policies, writer);
+            this.writeModelCreateDef(model, policies, writer);
+            this.writeModelUpdateDef(model, policies, writer);
+            this.writeModelPostUpdateDef(model, policies, writer);
+            this.writeModelDeleteDef(model, policies, writer);
         });
         writer.writeLine(',');
     }
 
     // writes `read: ...` for a given model
-    private writeModelReadDef(
-        model: DataModel,
-        policies: PolicyAnalysisResult,
-        writer: CodeBlockWriter,
-        sourceFile: SourceFile
-    ) {
+    private writeModelReadDef(model: DataModel, policies: PolicyAnalysisResult, writer: CodeWriter) {
         writer.write(`read:`);
         writer.inlineBlock(() => {
-            this.writeCommonModelDef(model, 'read', policies, writer, sourceFile);
+            this.writeCommonModelDef(model, 'read', policies, writer);
         });
         writer.writeLine(',');
     }
 
     // writes `create: ...` for a given model
-    private writeModelCreateDef(
-        model: DataModel,
-        policies: PolicyAnalysisResult,
-        writer: CodeBlockWriter,
-        sourceFile: SourceFile
-    ) {
+    private writeModelCreateDef(model: DataModel, policies: PolicyAnalysisResult, writer: CodeWriter) {
         writer.write(`create:`);
         writer.inlineBlock(() => {
-            this.writeCommonModelDef(model, 'create', policies, writer, sourceFile);
+            this.writeCommonModelDef(model, 'create', policies, writer);
 
             // create policy has an additional input checker for validating the payload
-            this.writeCreateInputChecker(model, writer, sourceFile);
+            this.writeCreateInputChecker(model, writer);
         });
         writer.writeLine(',');
     }
 
     // writes `inputChecker: [funcName]` for a given model
-    private writeCreateInputChecker(model: DataModel, writer: CodeBlockWriter, sourceFile: SourceFile) {
+    private writeCreateInputChecker(model: DataModel, writer: CodeWriter) {
         if (this.canCheckCreateBasedOnInput(model)) {
-            const inputCheckFunc = this.generateCreateInputCheckerFunction(model, sourceFile);
-            writer.write(`inputChecker: ${inputCheckFunc.getName()!},`);
+            const inputCheckFuncName = this.generateCreateInputCheckerFunction(model);
+            writer.write(`inputChecker: ${inputCheckFuncName},`);
         }
     }
 
@@ -237,19 +229,18 @@ export class PolicyGenerator {
     }
 
     // generates a function for checking "create" input
-    private generateCreateInputCheckerFunction(model: DataModel, sourceFile: SourceFile) {
-        const statements: (string | WriterFunction)[] = [];
+    private generateCreateInputCheckerFunction(model: DataModel) {
+        const statements: string[] = [];
         const allows = getPolicyExpressions(model, 'allow', 'create');
         const denies = getPolicyExpressions(model, 'deny', 'create');
 
         generateNormalizedAuthRef(model, allows, denies, statements);
 
-        statements.push((writer) => {
-            if (allows.length === 0) {
-                writer.write('return false;');
-                return;
-            }
-
+        // write allow and deny rules
+        const writer = new FastWriter();
+        if (allows.length === 0) {
+            writer.write('return false;');
+        } else {
             const transformer = new TypeScriptExpressionTransformer({
                 context: ExpressionContext.AccessPolicy,
                 fieldReferenceContext: 'input',
@@ -275,10 +266,12 @@ export class PolicyGenerator {
 
             expr = expr ? `${expr} && (${allowStmt})` : allowStmt;
             writer.write('return ' + expr);
-        });
+        }
+        statements.push(writer.result);
 
-        const func = sourceFile.addFunction({
-            name: model.name + '_create_input',
+        const funcName = model.name + '_create_input';
+        this.extraFunctions.push({
+            name: funcName,
             returnType: 'boolean',
             parameters: [
                 {
@@ -293,33 +286,23 @@ export class PolicyGenerator {
             statements,
         });
 
-        return func;
+        return funcName;
     }
 
     // writes `update: ...` for a given model
-    private writeModelUpdateDef(
-        model: DataModel,
-        policies: PolicyAnalysisResult,
-        writer: CodeBlockWriter,
-        sourceFile: SourceFile
-    ) {
+    private writeModelUpdateDef(model: DataModel, policies: PolicyAnalysisResult, writer: CodeWriter) {
         writer.write(`update:`);
         writer.inlineBlock(() => {
-            this.writeCommonModelDef(model, 'update', policies, writer, sourceFile);
+            this.writeCommonModelDef(model, 'update', policies, writer);
         });
         writer.writeLine(',');
     }
 
     // writes `postUpdate: ...` for a given model
-    private writeModelPostUpdateDef(
-        model: DataModel,
-        policies: PolicyAnalysisResult,
-        writer: CodeBlockWriter,
-        sourceFile: SourceFile
-    ) {
+    private writeModelPostUpdateDef(model: DataModel, policies: PolicyAnalysisResult, writer: CodeWriter) {
         writer.write(`postUpdate:`);
         writer.inlineBlock(() => {
-            this.writeCommonModelDef(model, 'postUpdate', policies, writer, sourceFile);
+            this.writeCommonModelDef(model, 'postUpdate', policies, writer);
 
             // post-update policy has an additional selector for reading the pre-update entity data
             this.writePostUpdatePreValueSelector(model, writer);
@@ -327,7 +310,7 @@ export class PolicyGenerator {
         writer.writeLine(',');
     }
 
-    private writePostUpdatePreValueSelector(model: DataModel, writer: CodeBlockWriter) {
+    private writePostUpdatePreValueSelector(model: DataModel, writer: CodeWriter) {
         const allows = getPolicyExpressions(model, 'allow', 'postUpdate');
         const denies = getPolicyExpressions(model, 'deny', 'postUpdate');
         const preValueSelect = generateSelectForRules([...allows, ...denies], 'postUpdate');
@@ -337,15 +320,10 @@ export class PolicyGenerator {
     }
 
     // writes `delete: ...` for a given model
-    private writeModelDeleteDef(
-        model: DataModel,
-        policies: PolicyAnalysisResult,
-        writer: CodeBlockWriter,
-        sourceFile: SourceFile
-    ) {
+    private writeModelDeleteDef(model: DataModel, policies: PolicyAnalysisResult, writer: CodeWriter) {
         writer.write(`delete:`);
         writer.inlineBlock(() => {
-            this.writeCommonModelDef(model, 'delete', policies, writer, sourceFile);
+            this.writeCommonModelDef(model, 'delete', policies, writer);
         });
     }
 
@@ -354,23 +332,22 @@ export class PolicyGenerator {
         model: DataModel,
         kind: PolicyOperationKind,
         policies: PolicyAnalysisResult,
-        writer: CodeBlockWriter,
-        sourceFile: SourceFile
+        writer: CodeWriter
     ) {
         const allows = getPolicyExpressions(model, 'allow', kind);
         const denies = getPolicyExpressions(model, 'deny', kind);
 
         // policy guard
-        this.writePolicyGuard(model, kind, policies, allows, denies, writer, sourceFile);
+        this.writePolicyGuard(model, kind, policies, allows, denies, writer);
 
         // permission checker
         if (kind !== 'postUpdate') {
-            this.writePermissionChecker(model, kind, policies, allows, denies, writer, sourceFile);
+            this.writePermissionChecker(model, kind, policies, allows, denies, writer);
         }
 
         // write cross-model comparison rules as entity checker functions
         // because they cannot be checked inside Prisma
-        const { functionName, selector } = this.writeEntityChecker(model, kind, sourceFile, false);
+        const { functionName, selector } = this.writeEntityChecker(model, kind, false);
 
         if (this.shouldUseEntityChecker(model, kind, true, false)) {
             writer.write(`entityChecker: { func: ${functionName}, selector: ${JSON.stringify(selector)} },`);
@@ -420,18 +397,12 @@ export class PolicyGenerator {
         });
     }
 
-    private writeEntityChecker(
-        target: DataModel | DataModelField,
-        kind: PolicyOperationKind,
-        sourceFile: SourceFile,
-        forOverride: boolean
-    ) {
+    private writeEntityChecker(target: DataModel | DataModelField, kind: PolicyOperationKind, forOverride: boolean) {
         const allows = getPolicyExpressions(target, 'allow', kind, forOverride, 'all');
         const denies = getPolicyExpressions(target, 'deny', kind, forOverride, 'all');
 
         const model = isDataModel(target) ? target : (target.$container as DataModel);
         const func = generateEntityCheckerFunction(
-            sourceFile,
             model,
             kind,
             allows,
@@ -439,9 +410,10 @@ export class PolicyGenerator {
             isDataModelField(target) ? target : undefined,
             forOverride
         );
+        this.extraFunctions.push(func);
         const selector = generateSelectForRules([...allows, ...denies], kind, false, kind !== 'postUpdate') ?? {};
 
-        return { functionName: func.getName()!, selector };
+        return { functionName: func.name, selector };
     }
 
     // writes `guard: ...` for a given policy operation kind
@@ -451,46 +423,48 @@ export class PolicyGenerator {
         policies: ReturnType<typeof analyzePolicies>,
         allows: Expression[],
         denies: Expression[],
-        writer: CodeBlockWriter,
-        sourceFile: SourceFile
+        writer: CodeWriter
     ) {
         // first handle several cases where a constant function can be used
 
         if (kind === 'update' && allows.length === 0) {
             // no allow rule for 'update', policy is constant based on if there's
             // post-update counterpart
-            let func: FunctionDeclaration;
+            let func: OptionalKind<FunctionDeclarationStructure>;
             if (getPolicyExpressions(model, 'allow', 'postUpdate').length === 0) {
-                func = generateConstantQueryGuardFunction(sourceFile, model, kind, false);
+                func = generateConstantQueryGuardFunction(model, kind, false);
             } else {
-                func = generateConstantQueryGuardFunction(sourceFile, model, kind, true);
+                func = generateConstantQueryGuardFunction(model, kind, true);
             }
-            writer.write(`guard: ${func.getName()!},`);
+            this.extraFunctions.push(func);
+            writer.write(`guard: ${func.name},`);
             return;
         }
 
         if (kind === 'postUpdate' && allows.length === 0 && denies.length === 0) {
             // no 'postUpdate' rule, always allow
-            const func = generateConstantQueryGuardFunction(sourceFile, model, kind, true);
-            writer.write(`guard: ${func.getName()},`);
+            const func = generateConstantQueryGuardFunction(model, kind, true);
+            this.extraFunctions.push(func);
+            writer.write(`guard: ${func.name},`);
             return;
         }
 
         if (kind in policies && typeof policies[kind as keyof typeof policies] === 'boolean') {
             // constant policy
             const func = generateConstantQueryGuardFunction(
-                sourceFile,
                 model,
                 kind,
                 policies[kind as keyof typeof policies] as boolean
             );
-            writer.write(`guard: ${func.getName()!},`);
+            this.extraFunctions.push(func);
+            writer.write(`guard: ${func.name},`);
             return;
         }
 
         // generate a policy function that evaluates a partial prisma query
-        const guardFunc = generateQueryGuardFunction(sourceFile, model, kind, allows, denies);
-        writer.write(`guard: ${guardFunc.getName()!},`);
+        const guardFunc = generateQueryGuardFunction(model, kind, allows, denies);
+        this.extraFunctions.push(guardFunc);
+        writer.write(`guard: ${guardFunc.name},`);
     }
 
     // writes `permissionChecker: ...` for a given policy operation kind
@@ -500,8 +474,7 @@ export class PolicyGenerator {
         policies: PolicyAnalysisResult,
         allows: Expression[],
         denies: Expression[],
-        writer: CodeBlockWriter,
-        sourceFile: SourceFile
+        writer: CodeWriter
     ) {
         if (this.options.generatePermissionChecker !== true) {
             return;
@@ -524,16 +497,15 @@ export class PolicyGenerator {
             return;
         }
 
-        const guardFunc = this.generatePermissionCheckerFunction(model, kind, allows, denies, sourceFile);
-        writer.write(`permissionChecker: ${guardFunc.getName()!},`);
+        const guardFuncName = this.generatePermissionCheckerFunction(model, kind, allows, denies);
+        writer.write(`permissionChecker: ${guardFuncName},`);
     }
 
     private generatePermissionCheckerFunction(
         model: DataModel,
         kind: string,
         allows: Expression[],
-        denies: Expression[],
-        sourceFile: SourceFile
+        denies: Expression[]
     ) {
         const statements: string[] = [];
 
@@ -545,8 +517,9 @@ export class PolicyGenerator {
 
         statements.push(`return ${transformed};`);
 
-        const func = sourceFile.addFunction({
-            name: `${model.name}$checker$${kind}`,
+        const funcName = `${model.name}$checker$${kind}`;
+        this.extraFunctions.push({
+            name: funcName,
             returnType: 'PermissionCheckerConstraint',
             parameters: [
                 {
@@ -557,23 +530,23 @@ export class PolicyGenerator {
             statements,
         });
 
-        return func;
+        return funcName;
     }
 
     // #endregion
 
     // #region Field-level definitions
 
-    private writeFieldLevelDefs(model: DataModel, writer: CodeBlockWriter, sf: SourceFile) {
+    private writeFieldLevelDefs(model: DataModel, writer: CodeWriter) {
         writer.write('fieldLevel:');
         writer.inlineBlock(() => {
-            this.writeFieldReadDef(model, writer, sf);
-            this.writeFieldUpdateDef(model, writer, sf);
+            this.writeFieldReadDef(model, writer);
+            this.writeFieldUpdateDef(model, writer);
         });
         writer.writeLine(',');
     }
 
-    private writeFieldReadDef(model: DataModel, writer: CodeBlockWriter, sourceFile: SourceFile) {
+    private writeFieldReadDef(model: DataModel, writer: CodeWriter) {
         writer.writeLine('read:');
         writer.block(() => {
             for (const field of model.fields) {
@@ -589,12 +562,13 @@ export class PolicyGenerator {
 
                 writer.block(() => {
                     // guard
-                    const guardFunc = generateQueryGuardFunction(sourceFile, model, 'read', allows, denies, field);
-                    writer.write(`guard: ${guardFunc.getName()},`);
+                    const guardFunc = generateQueryGuardFunction(model, 'read', allows, denies, field);
+                    this.extraFunctions.push(guardFunc);
+                    writer.write(`guard: ${guardFunc.name},`);
 
                     // checker function
                     // write all field-level rules as entity checker function
-                    const { functionName, selector } = this.writeEntityChecker(field, 'read', sourceFile, false);
+                    const { functionName, selector } = this.writeEntityChecker(field, 'read', false);
 
                     if (this.shouldUseEntityChecker(field, 'read', false, false)) {
                         writer.write(
@@ -606,7 +580,6 @@ export class PolicyGenerator {
                         // override guard function
                         const denies = getPolicyExpressions(field, 'deny', 'read');
                         const overrideGuardFunc = generateQueryGuardFunction(
-                            sourceFile,
                             model,
                             'read',
                             overrideAllows,
@@ -614,10 +587,11 @@ export class PolicyGenerator {
                             field,
                             true
                         );
-                        writer.write(`overrideGuard: ${overrideGuardFunc.getName()},`);
+                        this.extraFunctions.push(overrideGuardFunc);
+                        writer.write(`overrideGuard: ${overrideGuardFunc.name},`);
 
                         // additional entity checker for override
-                        const { functionName, selector } = this.writeEntityChecker(field, 'read', sourceFile, true);
+                        const { functionName, selector } = this.writeEntityChecker(field, 'read', true);
                         if (this.shouldUseEntityChecker(field, 'read', false, true)) {
                             writer.write(
                                 `overrideEntityChecker: { func: ${functionName}, selector: ${JSON.stringify(
@@ -633,7 +607,7 @@ export class PolicyGenerator {
         writer.writeLine(',');
     }
 
-    private writeFieldUpdateDef(model: DataModel, writer: CodeBlockWriter, sourceFile: SourceFile) {
+    private writeFieldUpdateDef(model: DataModel, writer: CodeWriter) {
         writer.writeLine('update:');
         writer.block(() => {
             for (const field of model.fields) {
@@ -649,12 +623,13 @@ export class PolicyGenerator {
 
                 writer.block(() => {
                     // guard
-                    const guardFunc = generateQueryGuardFunction(sourceFile, model, 'update', allows, denies, field);
-                    writer.write(`guard: ${guardFunc.getName()},`);
+                    const guardFunc = generateQueryGuardFunction(model, 'update', allows, denies, field);
+                    this.extraFunctions.push(guardFunc);
+                    writer.write(`guard: ${guardFunc.name},`);
 
                     // write cross-model comparison rules as entity checker functions
                     // because they cannot be checked inside Prisma
-                    const { functionName, selector } = this.writeEntityChecker(field, 'update', sourceFile, false);
+                    const { functionName, selector } = this.writeEntityChecker(field, 'update', false);
                     if (this.shouldUseEntityChecker(field, 'update', true, false)) {
                         writer.write(
                             `entityChecker: { func: ${functionName}, selector: ${JSON.stringify(selector)} },`
@@ -664,7 +639,6 @@ export class PolicyGenerator {
                     if (overrideAllows.length > 0) {
                         // override guard
                         const overrideGuardFunc = generateQueryGuardFunction(
-                            sourceFile,
                             model,
                             'update',
                             overrideAllows,
@@ -672,11 +646,12 @@ export class PolicyGenerator {
                             field,
                             true
                         );
-                        writer.write(`overrideGuard: ${overrideGuardFunc.getName()},`);
+                        this.extraFunctions.push(overrideGuardFunc);
+                        writer.write(`overrideGuard: ${overrideGuardFunc.name},`);
 
                         // write cross-model comparison override rules as entity checker functions
                         // because they cannot be checked inside Prisma
-                        const { functionName, selector } = this.writeEntityChecker(field, 'update', sourceFile, true);
+                        const { functionName, selector } = this.writeEntityChecker(field, 'update', true);
                         if (this.shouldUseEntityChecker(field, 'update', true, true)) {
                             writer.write(
                                 `overrideEntityChecker: { func: ${functionName}, selector: ${JSON.stringify(
@@ -696,7 +671,7 @@ export class PolicyGenerator {
 
     //#region Auth selector
 
-    private writeAuthSelector(models: DataModel[], writer: CodeBlockWriter) {
+    private writeAuthSelector(models: DataModel[], writer: CodeWriter) {
         const authSelector = this.generateAuthSelector(models);
         if (authSelector) {
             writer.write(`authSelector: ${JSON.stringify(authSelector)},`);
@@ -744,7 +719,7 @@ export class PolicyGenerator {
 
     // #region Validation meta
 
-    private writeValidationMeta(writer: CodeBlockWriter, models: DataModel[]) {
+    private writeValidationMeta(writer: CodeWriter, models: DataModel[]) {
         writer.write('validation:');
         writer.inlineBlock(() => {
             for (const model of models) {
