@@ -306,6 +306,10 @@ plugin openapi {
     specVersion = '${specVersion}'
 }
 
+type Meta {
+    something String
+}
+
 model Foo {
     id String @id @default(cuid())
     
@@ -317,6 +321,8 @@ model Foo {
     decimal Decimal
     boolean Boolean
     bytes Bytes
+    json Meta? @json
+    plainJson Json
 
     @@allow('all', true)
 }
