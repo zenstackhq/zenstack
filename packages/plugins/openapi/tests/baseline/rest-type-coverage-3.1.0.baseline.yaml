@@ -306,6 +306,24 @@ paths:
                       type: string
                       format: byte
                       description: Base64 encoded byte array
+                - name: filter[json]
+                  required: false
+                  description: Equality filter for "json"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: json
+                - name: filter[plainJson]
+                  required: false
+                  description: Equality filter for "plainJson"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: json
             responses:
                 '200':
                     description: Successful operation
@@ -614,6 +632,17 @@ components:
                     type: string
                 attributes:
                     type: object
+                    required:
+                        - string
+                        - int
+                        - bigInt
+                        - date
+                        - float
+                        - decimal
+                        - boolean
+                        - bytes
+                        - json
+                        - plainJson
                     properties:
                         string:
                             type: string
@@ -636,6 +665,11 @@ components:
                             type: string
                             format: byte
                             description: Base64 encoded byte array
+                        json:
+                            oneOf:
+                                - type: 'null'
+                                - $ref: '#/components/schemas/Meta'
+                        plainJson: {}
         FooCreateRequest:
             type: object
             description: Input for creating a "Foo"
@@ -662,6 +696,7 @@ components:
                                 - decimal
                                 - boolean
                                 - bytes
+                                - plainJson
                             properties:
                                 string:
                                     type: string
@@ -684,6 +719,11 @@ components:
                                     type: string
                                     format: byte
                                     description: Base64 encoded byte array
+                                json:
+                                    oneOf:
+                                        - type: 'null'
+                                        - $ref: '#/components/schemas/Meta'
+                                plainJson: {}
                 meta:
                     $ref: '#/components/schemas/_meta'
         FooUpdateRequest:
@@ -728,6 +768,11 @@ components:
                                     type: string
                                     format: byte
                                     description: Base64 encoded byte array
+                                json:
+                                    oneOf:
+                                        - type: 'null'
+                                        - $ref: '#/components/schemas/Meta'
+                                plainJson: {}
                 meta:
                     $ref: '#/components/schemas/_meta'
         FooResponse:
@@ -783,6 +828,12 @@ components:
                     allOf:
                         - $ref: '#/components/schemas/_links'
                         - $ref: '#/components/schemas/_pagination'
+        Meta:
+            type: object
+            description: The "Meta" TypeDef
+            properties:
+                something:
+                    type: string
     parameters:
         id:
             name: id

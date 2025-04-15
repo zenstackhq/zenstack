@@ -12,7 +12,19 @@ import {
     requireOption,
     resolvePath,
 } from '@zenstackhq/sdk';
-import { DataModel, DataModelField, DataModelFieldType, Enum, isDataModel, isEnum, Model } from '@zenstackhq/sdk/ast';
+import {
+    DataModel,
+    DataModelField,
+    DataModelFieldType,
+    Enum,
+    isDataModel,
+    isEnum,
+    isTypeDef,
+    Model,
+    TypeDef,
+    TypeDefField,
+    TypeDefFieldType,
+} from '@zenstackhq/sdk/ast';
 import type { DMMF } from '@zenstackhq/sdk/prisma';
 import fs from 'fs';
 import { lowerCaseFirst } from 'lower-case-first';
@@ -494,6 +506,8 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 schema = this.ref(fieldDecl.name);
             } else if (isDataModel(fieldDecl)) {
                 schema = { type: 'string' };
+            } else if (isTypeDef(fieldDecl) || field.type.type === 'Json') {
+                schema = { type: 'string', format: 'json' };
             } else {
                 invariant(field.type.type);
                 schema = this.fieldTypeToOpenAPISchema(field.type);
@@ -538,6 +552,11 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             for (const [name, value] of Object.entries(this.generateDataModelComponents(model))) {
                 schemas[name] = value;
             }
+        }
+
+        // type defs
+        for (const typeDef of this.model.declarations.filter(isTypeDef)) {
+            schemas[typeDef.name] = this.generateTypeDefComponent(typeDef);
         }
 
         return components;
@@ -771,11 +790,23 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         };
     }
 
-    private generateEnumComponent(_enum: Enum): OAPI.SchemaObject {
+    private generateEnumComponent(_enum: Enum) {
         const schema: OAPI.SchemaObject = {
             type: 'string',
             description: `The "${_enum.name}" Enum`,
             enum: _enum.fields.map((f) => f.name),
+        };
+        return schema;
+    }
+
+    private generateTypeDefComponent(typeDef: TypeDef) {
+        const schema: OAPI.SchemaObject = {
+            type: 'object',
+            description: `The "${typeDef.name}" TypeDef`,
+            properties: typeDef.fields.reduce((acc, field) => {
+                acc[field.name] = this.generateField(field);
+                return acc;
+            }, {} as Record<string, OAPI.SchemaObject>),
         };
         return schema;
     }
@@ -945,14 +976,16 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         return result;
     }
 
-    private generateField(field: DataModelField) {
+    private generateField(field: DataModelField | TypeDefField) {
         return this.wrapArray(
             this.wrapNullable(this.fieldTypeToOpenAPISchema(field.type), field.type.optional),
             field.type.array
         );
     }
 
-    private fieldTypeToOpenAPISchema(type: DataModelFieldType): OAPI.ReferenceObject | OAPI.SchemaObject {
+    private fieldTypeToOpenAPISchema(
+        type: DataModelFieldType | TypeDefFieldType
+    ): OAPI.ReferenceObject | OAPI.SchemaObject {
         return match(type.type)
             .with('String', () => ({ type: 'string' }))
             .with(P.union('Int', 'BigInt'), () => ({ type: 'integer' }))
