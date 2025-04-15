@@ -1750,7 +1750,12 @@ class RequestHandler extends APIHandlerBase {
                         : this.makePrismaIdFilter(info.idFields, value, false);
                 return { some: filterValue };
             } else {
-                return { is: this.makePrismaIdFilter(info.idFields, value, false) };
+                const values = value.split(',').filter((i) => i);
+                if (values.length > 1) {
+                    return { OR: values.map((v) => this.makePrismaIdFilter(info.idFields, v, false)) };
+                } else {
+                    return { is: this.makePrismaIdFilter(info.idFields, value, false) };
+                }
             }
         } else {
             const coerced = this.coerce(fieldInfo.type, value);

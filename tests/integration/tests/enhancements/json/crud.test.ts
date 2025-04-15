@@ -1,18 +1,22 @@
 import { createPostgresDb, dropPostgresDb, loadSchema } from '@zenstackhq/testtools';
 
-describe('Json field CRUD', () => {
+describe.each(['sqlite' as const, 'postgresql' as const])('Json field CRUD - %p', (provider) => {
     let dbUrl: string;
     let prisma: any;
 
     beforeEach(async () => {
-        dbUrl = await createPostgresDb('json-field-typing');
+        if (provider === 'postgresql') {
+            dbUrl = await createPostgresDb('json-field-typing');
+        }
     });
 
     afterEach(async () => {
-        if (prisma) {
-            await prisma.$disconnect();
+        if (provider === 'postgresql') {
+            if (prisma) {
+                await prisma.$disconnect();
+            }
+            await dropPostgresDb(dbUrl);
         }
-        await dropPostgresDb(dbUrl);
     });
 
     it('works with simple cases', async () => {
@@ -41,7 +45,7 @@ describe('Json field CRUD', () => {
             }
             `,
             {
-                provider: 'postgresql',
+                provider,
                 dbUrl,
                 enhancements: ['validation'],
             }
@@ -90,7 +94,7 @@ describe('Json field CRUD', () => {
             }
             `,
             {
-                provider: 'postgresql',
+                provider,
                 dbUrl,
             }
         );
@@ -137,7 +141,7 @@ describe('Json field CRUD', () => {
             }
             `,
             {
-                provider: 'postgresql',
+                provider,
                 dbUrl,
             }
         );
@@ -211,7 +215,7 @@ describe('Json field CRUD', () => {
             }
             `,
             {
-                provider: 'postgresql',
+                provider,
                 dbUrl,
             }
         );
@@ -255,7 +259,7 @@ describe('Json field CRUD', () => {
             }
             `,
             {
-                provider: 'postgresql',
+                provider,
                 dbUrl,
             }
         );
@@ -291,7 +295,7 @@ describe('Json field CRUD', () => {
             }
             `,
             {
-                provider: 'postgresql',
+                provider,
                 dbUrl,
             }
         );
@@ -328,7 +332,7 @@ describe('Json field CRUD', () => {
             }
             `,
             {
-                provider: 'postgresql',
+                provider,
                 dbUrl,
             }
         );
@@ -368,7 +372,7 @@ describe('Json field CRUD', () => {
             }
             `,
             {
-                provider: 'postgresql',
+                provider,
                 dbUrl,
             }
         );
@@ -401,7 +405,7 @@ describe('Json field CRUD', () => {
             }
             `,
             {
-                provider: 'postgresql',
+                provider,
                 dbUrl,
             }
         );
@@ -446,7 +450,7 @@ describe('Json field CRUD', () => {
             }
             `,
             {
-                provider: 'postgresql',
+                provider,
                 dbUrl,
                 compile: true,
                 extraSourceFiles: [

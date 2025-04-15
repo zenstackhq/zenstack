@@ -67,6 +67,7 @@ export function ensureDefaultOutputFolder(options: PluginRunnerOptions) {
                     },
                     './models': {
                         types: './models.d.ts',
+                        default: './models.js',
                     },
                 },
             };

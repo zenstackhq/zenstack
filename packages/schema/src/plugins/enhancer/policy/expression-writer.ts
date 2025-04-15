@@ -21,6 +21,7 @@ import {
 } from '@zenstackhq/language/ast';
 import { DELEGATE_AUX_RELATION_PREFIX, PolicyOperationKind } from '@zenstackhq/runtime';
 import {
+    CodeWriter,
     ExpressionContext,
     getFunctionExpressionContext,
     getIdFields,
@@ -37,7 +38,6 @@ import {
 } from '@zenstackhq/sdk';
 import { lowerCaseFirst } from 'lower-case-first';
 import invariant from 'tiny-invariant';
-import { CodeBlockWriter } from 'ts-morph';
 import { name } from '..';
 import { isCheckInvocation } from '../../../utils/ast-utils';
 
@@ -77,7 +77,7 @@ export class ExpressionWriter {
     /**
      * Constructs a new ExpressionWriter
      */
-    constructor(private readonly writer: CodeBlockWriter, private readonly options: ExpressionWriterOptions) {
+    constructor(private readonly writer: CodeWriter, private readonly options: ExpressionWriterOptions) {
         this.plainExprBuilder = new TypeScriptExpressionTransformer({
             context: ExpressionContext.AccessPolicy,
             isPostGuard: this.options.isPostGuard,

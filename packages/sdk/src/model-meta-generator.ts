@@ -19,9 +19,11 @@ import {
 import type { RuntimeAttribute } from '@zenstackhq/runtime';
 import { streamAst } from 'langium';
 import { lowerCaseFirst } from 'lower-case-first';
-import { CodeBlockWriter, Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
+import { FunctionDeclarationStructure, OptionalKind, Project, VariableDeclarationKind } from 'ts-morph';
 import {
+    CodeWriter,
     ExpressionContext,
+    FastWriter,
     getAttribute,
     getAttributeArg,
     getAttributeArgs,
@@ -73,12 +75,20 @@ export function generate(
     options: ModelMetaGeneratorOptions
 ) {
     const sf = project.createSourceFile(options.output, undefined, { overwrite: true });
+
+    const writer = new FastWriter();
+    const extraFunctions: OptionalKind<FunctionDeclarationStructure>[] = [];
+    generateModelMetadata(models, typeDefs, writer, options, extraFunctions);
+
     sf.addVariableStatement({
         declarationKind: VariableDeclarationKind.Const,
-        declarations: [
-            { name: 'metadata', initializer: (writer) => generateModelMetadata(models, typeDefs, sf, writer, options) },
-        ],
+        declarations: [{ name: 'metadata', initializer: writer.result }],
     });
+
+    if (extraFunctions.length > 0) {
+        sf.addFunctions(extraFunctions);
+    }
+
     sf.addStatements('export default metadata;');
 
     if (options.preserveTsFiles) {
@@ -91,13 +101,13 @@ export function generate(
 function generateModelMetadata(
     dataModels: DataModel[],
     typeDefs: TypeDef[],
-    sourceFile: SourceFile,
-    writer: CodeBlockWriter,
-    options: ModelMetaGeneratorOptions
+    writer: CodeWriter,
+    options: ModelMetaGeneratorOptions,
+    extraFunctions: OptionalKind<FunctionDeclarationStructure>[]
 ) {
     writer.block(() => {
-        writeModels(sourceFile, writer, dataModels, options);
-        writeTypeDefs(sourceFile, writer, typeDefs, options);
+        writeModels(writer, dataModels, options, extraFunctions);
+        writeTypeDefs(writer, typeDefs, options, extraFunctions);
         writeDeleteCascade(writer, dataModels);
         writeShortNameMap(options, writer);
         writeAuthModel(writer, dataModels, typeDefs);
@@ -105,10 +115,10 @@ function generateModelMetadata(
 }
 
 function writeModels(
-    sourceFile: SourceFile,
-    writer: CodeBlockWriter,
+    writer: CodeWriter,
     dataModels: DataModel[],
-    options: ModelMetaGeneratorOptions
+    options: ModelMetaGeneratorOptions,
+    extraFunctions: OptionalKind<FunctionDeclarationStructure>[]
 ) {
     writer.write('models:');
     writer.block(() => {
@@ -117,7 +127,7 @@ function writeModels(
             writer.block(() => {
                 writer.write(`name: '${model.name}',`);
                 writeBaseTypes(writer, model);
-                writeFields(sourceFile, writer, model, options);
+                writeFields(writer, model, options, extraFunctions);
                 writeUniqueConstraints(writer, model);
                 if (options.generateAttributes) {
                     writeModelAttributes(writer, model);
@@ -131,10 +141,10 @@ function writeModels(
 }
 
 function writeTypeDefs(
-    sourceFile: SourceFile,
-    writer: CodeBlockWriter,
+    writer: CodeWriter,
     typedDefs: TypeDef[],
-    options: ModelMetaGeneratorOptions
+    options: ModelMetaGeneratorOptions,
+    extraFunctions: OptionalKind<FunctionDeclarationStructure>[]
 ) {
     if (typedDefs.length === 0) {
         return;
@@ -145,7 +155,7 @@ function writeTypeDefs(
             writer.write(`${lowerCaseFirst(typeDef.name)}:`);
             writer.block(() => {
                 writer.write(`name: '${typeDef.name}',`);
-                writeFields(sourceFile, writer, typeDef, options);
+                writeFields(writer, typeDef, options, extraFunctions);
             });
             writer.writeLine(',');
         }
@@ -153,7 +163,7 @@ function writeTypeDefs(
     writer.writeLine(',');
 }
 
-function writeBaseTypes(writer: CodeBlockWriter, model: DataModel) {
+function writeBaseTypes(writer: CodeWriter, model: DataModel) {
     if (model.superTypes.length > 0) {
         writer.write('baseTypes: [');
         writer.write(model.superTypes.map((t) => `'${t.ref?.name}'`).join(', '));
@@ -161,14 +171,14 @@ function writeBaseTypes(writer: CodeBlockWriter, model: DataModel) {
     }
 }
 
-function writeAuthModel(writer: CodeBlockWriter, dataModels: DataModel[], typeDefs: TypeDef[]) {
+function writeAuthModel(writer: CodeWriter, dataModels: DataModel[], typeDefs: TypeDef[]) {
     const authModel = getAuthDecl([...dataModels, ...typeDefs]);
     if (authModel) {
         writer.writeLine(`authModel: '${authModel.name}'`);
     }
 }
 
-function writeDeleteCascade(writer: CodeBlockWriter, dataModels: DataModel[]) {
+function writeDeleteCascade(writer: CodeWriter, dataModels: DataModel[]) {
     writer.write('deleteCascade:');
     writer.block(() => {
         for (const model of dataModels) {
@@ -181,7 +191,7 @@ function writeDeleteCascade(writer: CodeBlockWriter, dataModels: DataModel[]) {
     writer.writeLine(',');
 }
 
-function writeUniqueConstraints(writer: CodeBlockWriter, model: DataModel) {
+function writeUniqueConstraints(writer: CodeWriter, model: DataModel) {
     const constraints = getUniqueConstraints(model);
     if (constraints.length > 0) {
         writer.write('uniqueConstraints:');
@@ -197,7 +207,7 @@ function writeUniqueConstraints(writer: CodeBlockWriter, model: DataModel) {
     }
 }
 
-function writeModelAttributes(writer: CodeBlockWriter, model: DataModel) {
+function writeModelAttributes(writer: CodeWriter, model: DataModel) {
     const attrs = getAttributes(model);
     if (attrs.length > 0) {
         writer.write(`
@@ -205,7 +215,7 @@ attributes: ${JSON.stringify(attrs)},`);
     }
 }
 
-function writeDiscriminator(writer: CodeBlockWriter, model: DataModel) {
+function writeDiscriminator(writer: CodeWriter, model: DataModel) {
     const delegateAttr = getAttribute(model, '@@delegate');
     if (!delegateAttr) {
         return;
@@ -220,10 +230,10 @@ function writeDiscriminator(writer: CodeBlockWriter, model: DataModel) {
 }
 
 function writeFields(
-    sourceFile: SourceFile,
-    writer: CodeBlockWriter,
+    writer: CodeWriter,
     container: DataModel | TypeDef,
-    options: ModelMetaGeneratorOptions
+    options: ModelMetaGeneratorOptions,
+    extraFunctions: OptionalKind<FunctionDeclarationStructure>[]
 ) {
     writer.write('fields:');
     writer.block(() => {
@@ -279,7 +289,7 @@ function writeFields(
                 }
             }
 
-            const defaultValueProvider = generateDefaultValueProvider(f, sourceFile);
+            const defaultValueProvider = generateDefaultValueProvider(f, extraFunctions);
             if (defaultValueProvider) {
                 writer.write(`
             defaultValueProvider: ${defaultValueProvider},`);
@@ -496,7 +506,10 @@ function getDeleteCascades(model: DataModel): string[] {
         .map((m) => m.name);
 }
 
-function generateDefaultValueProvider(field: DataModelField | TypeDefField, sourceFile: SourceFile) {
+function generateDefaultValueProvider(
+    field: DataModelField | TypeDefField,
+    extraFunctions: OptionalKind<FunctionDeclarationStructure>[]
+) {
     const defaultAttr = getAttribute(field, '@default');
     if (!defaultAttr) {
         return undefined;
@@ -515,8 +528,9 @@ function generateDefaultValueProvider(field: DataModelField | TypeDefField, sour
 
     // generates a provider function like:
     //     function $default$Model$field(user: any) { ... }
-    const func = sourceFile.addFunction({
-        name: `$default$${field.$container.name}$${field.name}`,
+    const funcName = `$default$${field.$container.name}$${field.name}`;
+    extraFunctions.push({
+        name: funcName,
         parameters: [{ name: 'user', type: 'any' }],
         returnType: 'unknown',
         statements: (writer) => {
@@ -526,7 +540,7 @@ function generateDefaultValueProvider(field: DataModelField | TypeDefField, sour
         },
     });
 
-    return func.getName();
+    return funcName;
 }
 
 function isAutoIncrement(field: DataModelField) {
@@ -543,7 +557,7 @@ function isAutoIncrement(field: DataModelField) {
     return isInvocationExpr(arg) && arg.function.$refText === 'autoincrement';
 }
 
-function writeShortNameMap(options: ModelMetaGeneratorOptions, writer: CodeBlockWriter) {
+function writeShortNameMap(options: ModelMetaGeneratorOptions, writer: CodeWriter) {
     if (options.shortNameMap && options.shortNameMap.size > 0) {
         writer.write('shortNameMap:');
         writer.block(() => {
