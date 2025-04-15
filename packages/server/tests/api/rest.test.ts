@@ -22,6 +22,10 @@ describe('REST server tests', () => {
 
     describe('REST server tests - regular prisma', () => {
         const schema = `
+    type Address {
+        city String
+    }
+
     model User {
         myId String @id @default(cuid())
         createdAt DateTime @default (now())
@@ -30,6 +34,8 @@ describe('REST server tests', () => {
         posts Post[]
         likes PostLike[]
         profile Profile?
+        address Address? @json
+        someJson Json?
     }
     
     model Profile {
@@ -428,6 +434,8 @@ describe('REST server tests', () => {
                         data: {
                             myId: 'user1',
                             email: 'user1@abc.com',
+                            address: { city: 'Seattle' },
+                            someJson: 'foo',
                             posts: {
                                 create: { id: 1, title: 'Post1' },
                             },
@@ -711,6 +719,55 @@ describe('REST server tests', () => {
                                 status: 400,
                                 code: 'invalid-filter',
                                 title: 'Invalid filter',
+                            },
+                        ],
+                    });
+
+                    // typedef equality filter
+                    r = await handler({
+                        method: 'get',
+                        path: '/user',
+                        query: { ['filter[address]']: JSON.stringify({ city: 'Seattle' }) },
+                        prisma,
+                    });
+                    expect(r.body.data).toHaveLength(1);
+                    r = await handler({
+                        method: 'get',
+                        path: '/user',
+                        query: { ['filter[address]']: JSON.stringify({ city: 'Tokyo' }) },
+                        prisma,
+                    });
+                    expect(r.body.data).toHaveLength(0);
+
+                    // plain json equality filter
+                    r = await handler({
+                        method: 'get',
+                        path: '/user',
+                        query: { ['filter[someJson]']: JSON.stringify('foo') },
+                        prisma,
+                    });
+                    expect(r.body.data).toHaveLength(1);
+                    r = await handler({
+                        method: 'get',
+                        path: '/user',
+                        query: { ['filter[someJson]']: JSON.stringify('bar') },
+                        prisma,
+                    });
+                    expect(r.body.data).toHaveLength(0);
+
+                    // invalid json
+                    r = await handler({
+                        method: 'get',
+                        path: '/user',
+                        query: { ['filter[someJson]']: '{ hello: world }' },
+                        prisma,
+                    });
+                    expect(r.body).toMatchObject({
+                        errors: [
+                            {
+                                status: 400,
+                                code: 'invalid-value',
+                                title: 'Invalid value for type',
                             },
                         ],
                     });

@@ -1349,14 +1349,14 @@ class RequestHandler extends APIHandlerBase {
     private makePrismaIdFilter(idFields: FieldInfo[], resourceId: string, nested: boolean = true) {
         const decodedId = decodeURIComponent(resourceId);
         if (idFields.length === 1) {
-            return { [idFields[0].name]: this.coerce(idFields[0].type, decodedId) };
+            return { [idFields[0].name]: this.coerce(idFields[0], decodedId) };
         } else if (nested) {
             return {
                 // TODO: support `@@id` with custom name
                 [idFields.map((idf) => idf.name).join(prismaIdDivider)]: idFields.reduce(
                     (acc, curr, idx) => ({
                         ...acc,
-                        [curr.name]: this.coerce(curr.type, decodedId.split(this.idDivider)[idx]),
+                        [curr.name]: this.coerce(curr, decodedId.split(this.idDivider)[idx]),
                     }),
                     {}
                 ),
@@ -1365,7 +1365,7 @@ class RequestHandler extends APIHandlerBase {
             return idFields.reduce(
                 (acc, curr, idx) => ({
                     ...acc,
-                    [curr.name]: this.coerce(curr.type, decodedId.split(this.idDivider)[idx]),
+                    [curr.name]: this.coerce(curr, decodedId.split(this.idDivider)[idx]),
                 }),
                 {}
             );
@@ -1381,13 +1381,13 @@ class RequestHandler extends APIHandlerBase {
 
     private makeIdConnect(idFields: FieldInfo[], id: string | number) {
         if (idFields.length === 1) {
-            return { [idFields[0].name]: this.coerce(idFields[0].type, id) };
+            return { [idFields[0].name]: this.coerce(idFields[0], id) };
         } else {
             return {
                 [this.makePrismaIdKey(idFields)]: idFields.reduce(
                     (acc, curr, idx) => ({
                         ...acc,
-                        [curr.name]: this.coerce(curr.type, `${id}`.split(this.idDivider)[idx]),
+                        [curr.name]: this.coerce(curr, `${id}`.split(this.idDivider)[idx]),
                     }),
                     {}
                 ),
@@ -1436,8 +1436,17 @@ class RequestHandler extends APIHandlerBase {
         }
     }
 
-    private coerce(type: string, value: any) {
+    private coerce(fieldInfo: FieldInfo, value: any) {
         if (typeof value === 'string') {
+            if (fieldInfo.isTypeDef || fieldInfo.type === 'Json') {
+                try {
+                    return JSON.parse(value);
+                } catch {
+                    throw new InvalidValueError(`invalid JSON value: ${value}`);
+                }
+            }
+
+            const type = fieldInfo.type;
             if (type === 'Int' || type === 'BigInt') {
                 const parsed = parseInt(value);
                 if (isNaN(parsed)) {
@@ -1738,6 +1747,7 @@ class RequestHandler extends APIHandlerBase {
     }
 
     private makeFilterValue(fieldInfo: FieldInfo, value: string, op: FilterOperationType): any {
+        // TODO: inequality filters?
         if (fieldInfo.isDataModel) {
             // relation filter is converted to an ID filter
             const info = this.typeMap[lowerCaseFirst(fieldInfo.type)];
@@ -1753,7 +1763,7 @@ class RequestHandler extends APIHandlerBase {
                 return { is: this.makePrismaIdFilter(info.idFields, value, false) };
             }
         } else {
-            const coerced = this.coerce(fieldInfo.type, value);
+            const coerced = this.coerce(fieldInfo, value);
             switch (op) {
                 case 'icontains':
                     return { contains: coerced, mode: 'insensitive' };
@@ -1762,7 +1772,7 @@ class RequestHandler extends APIHandlerBase {
                     const values = value
                         .split(',')
                         .filter((i) => i)
-                        .map((v) => this.coerce(fieldInfo.type, v));
+                        .map((v) => this.coerce(fieldInfo, v));
                     return { [op]: values };
                 }
                 case 'isEmpty':
@@ -1772,11 +1782,16 @@ class RequestHandler extends APIHandlerBase {
                     return { isEmpty: value === 'true' ? true : false };
                 default:
                     if (op === undefined) {
+                        if (fieldInfo.isTypeDef || fieldInfo.type === 'Json') {
+                            // handle JSON value equality filter
+                            return { equals: coerced };
+                        }
+
                         // regular filter, split value by comma
                         const values = value
                             .split(',')
                             .filter((i) => i)
-                            .map((v) => this.coerce(fieldInfo.type, v));
+                            .map((v) => this.coerce(fieldInfo, v));
                         return values.length > 1 ? { in: values } : { equals: values[0] };
                     } else {
                         return { [op]: coerced };
