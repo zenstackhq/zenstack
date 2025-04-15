@@ -664,6 +664,15 @@ describe('REST server tests', () => {
                     expect(r.body.data).toHaveLength(1);
                     expect(r.body.data[0]).toMatchObject({ id: 1 });
 
+                    // relation filter with multiple values
+                    r = await handler({
+                        method: 'get',
+                        path: '/post',
+                        query: { ['filter[author]']: 'user1,user2' },
+                        prisma,
+                    });
+                    expect(r.body.data).toHaveLength(2);
+
                     // invalid filter field
                     r = await handler({
                         method: 'get',
