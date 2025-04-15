@@ -79,6 +79,9 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             security,
         };
 
+        // ensure output folder exists
+        fs.mkdirSync(path.dirname(output), { recursive: true });
+
         const ext = path.extname(output);
         if (ext && (ext.toLowerCase() === '.yaml' || ext.toLowerCase() === '.yml')) {
             fs.writeFileSync(output, YAML.stringify(openapi));
