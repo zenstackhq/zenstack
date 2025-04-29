@@ -7,7 +7,7 @@ export interface ZenStackModuleOptions {
     /**
      * A callback for getting an enhanced `PrismaClient`.
      */
-    getEnhancedPrisma: (model?: string | symbol ) => unknown;
+    getEnhancedPrisma: (model?: string | symbol) => unknown;
 }
 
 /**

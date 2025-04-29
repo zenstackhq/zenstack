@@ -1,6 +1,6 @@
 import { DbClientContract } from '@zenstackhq/runtime';
-import { HttpException, Inject, Injectable, Scope,  } from "@nestjs/common";
-import { HttpAdapterHost, REQUEST,  } from "@nestjs/core";
+import { HttpException, Inject, Injectable, Scope } from "@nestjs/common";
+import { HttpAdapterHost, REQUEST } from "@nestjs/core";
 import { loadAssets } from "../shared";
 import { RPCApiHandler } from '../api/rpc';
 import { ENHANCED_PRISMA } from "./zenstack.constants";
@@ -11,9 +11,13 @@ import { ApiHandlerOptions } from './interfaces';
  * and forward them to the ZenStack API handler. It is platform agnostic and can be used
  * with any HTTP adapter.
  */
-@Injectable({scope: Scope.REQUEST})
+@Injectable({ scope: Scope.REQUEST })
 export class ApiHandlerService {
-    constructor(private readonly httpAdapterHost: HttpAdapterHost, @Inject(ENHANCED_PRISMA) private readonly prisma: DbClientContract, @Inject(REQUEST) private readonly request: unknown) {}
+    constructor(
+        private readonly httpAdapterHost: HttpAdapterHost,
+        @Inject(ENHANCED_PRISMA) private readonly prisma: DbClientContract,
+        @Inject(REQUEST) private readonly request: unknown
+    ) { }
 
     async handleRequest(options?: ApiHandlerOptions): Promise<unknown> {
         const { modelMeta, zodSchemas } = loadAssets(options || {});
@@ -26,9 +30,9 @@ export class ApiHandlerService {
         const path = options?.baseUrl && url.pathname.startsWith(options.baseUrl) ? url.pathname.slice(options.baseUrl.length) : url.pathname;
         const searchParams = url.searchParams;
         const query = Object.fromEntries(searchParams);
-        const requestBody = (this.request as {body: unknown}).body;
+        const requestBody = (this.request as { body: unknown }).body;
 
-        const response =  await requestHandler({
+        const response = await requestHandler({
             method,
             path,
             query,
