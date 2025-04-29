@@ -1,7 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { loadSchema } from '@zenstackhq/testtools';
-import { ZenStackModule } from '../../src/nestjs';
-import { ENHANCED_PRISMA } from '../../src/nestjs/zenstack.module';
+import { ZenStackModule, ENHANCED_PRISMA } from '../../src/nestjs';
 
 describe('NestJS adapter tests', () => {
     const schema = `
