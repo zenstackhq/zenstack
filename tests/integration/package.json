@@ -23,7 +23,7 @@
         "@zenstackhq/trpc": "workspace:*",
         "fs-extra": "^11.1.0",
         "jest-fetch-mock": "^3.0.3",
-        "next": "14.2.4",
+        "next": "15.2.3",
         "tmp": "^0.2.1",
         "uuid": "^10.0.0",
         "zenstack": "workspace: *"

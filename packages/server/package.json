@@ -54,8 +54,8 @@
         "h3": "^1.8.2",
         "hono": "^4.6.3",
         "isomorphic-fetch": "^3.0.0",
-        "next": "14.2.4",
-        "nuxt": "^3.7.4",
+        "next": "15.2.3",
+        "nuxt": "^3.16.0",
         "reflect-metadata": "^0.2.2",
         "supertest": "^6.3.3"
     },
