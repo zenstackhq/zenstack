@@ -12,11 +12,15 @@ export interface ElysiaOptions extends AdapterBaseOptions {
      * Callback method for getting a Prisma instance for the given request context.
      */
     getPrisma: (context: ElysiaContext) => Promise<unknown> | unknown;
+    /**
+     * Optional base path to strip from the request path before passing to the API handler.
+     */
+    basePath?: string;
 }
 
 /**
  * Creates an Elysia middleware handler for ZenStack.
- * This handler provides RPC API functionality through Elysia's routing system.
+ * This handler provides automatic CRUD APIs through Elysia's routing system.
  */
 export function createElysiaHandler(options: ElysiaOptions) {
     const { modelMeta, zodSchemas } = loadAssets(options);
@@ -28,18 +32,25 @@ export function createElysiaHandler(options: ElysiaOptions) {
             if (!prisma) {
                 set.status = 500;
                 return {
-                    message: 'unable to get prisma from request context'
+                    message: 'unable to get prisma from request context',
                 };
             }
 
             const url = new URL(request.url);
             const query = Object.fromEntries(url.searchParams);
-            const path = url.pathname;
+            let path = url.pathname;
+
+            if (options.basePath && path.startsWith(options.basePath)) {
+                path = path.slice(options.basePath.length);
+                if (!path.startsWith('/')) {
+                    path = '/' + path;
+                }
+            }
 
             if (!path) {
                 set.status = 400;
                 return {
-                    message: 'missing path parameter'
+                    message: 'missing path parameter',
                 };
             }
 
@@ -60,11 +71,11 @@ export function createElysiaHandler(options: ElysiaOptions) {
             } catch (err) {
                 set.status = 500;
                 return {
-                    message: `An unhandled error occurred: ${err}`
+                    message: 'An internal server error occurred',
                 };
             }
         });
 
         return app;
     };
-} 
+}

@@ -21,7 +21,8 @@
         "express",
         "nextjs",
         "sveltekit",
-        "nuxtjs"
+        "nuxtjs",
+        "elysia"
     ],
     "author": "ZenStack Team",
     "license": "MIT",
