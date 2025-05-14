@@ -27,8 +27,9 @@ export function createElysiaHandler(options: ElysiaOptions) {
     const requestHandler = options.handler ?? RPCApiHandler();
 
     return async (app: Elysia) => {
-        app.all('/*', async ({ request, body, set }: ElysiaContext) => {
-            const prisma = (await options.getPrisma({ request, body, set } as ElysiaContext)) as DbClientContract;
+        app.all('/*', async (ctx: ElysiaContext) => {
+            const { request, body, set } = ctx;
+            const prisma = (await options.getPrisma(ctx)) as DbClientContract;
             if (!prisma) {
                 set.status = 500;
                 return {
@@ -47,7 +48,7 @@ export function createElysiaHandler(options: ElysiaOptions) {
                 }
             }
 
-            if (!path) {
+            if (!path || path === '/') {
                 set.status = 400;
                 return {
                     message: 'missing path parameter',
