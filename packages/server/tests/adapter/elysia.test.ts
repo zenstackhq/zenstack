@@ -14,7 +14,9 @@ describe('Elysia adapter tests - rpc handler', () => {
     it('run hooks regular json', async () => {
         const { prisma, zodSchemas } = await loadSchema(schema);
 
-        const handler = await createElysiaApp(createElysiaHandler({ getPrisma: () => prisma, zodSchemas }));
+        const handler = await createElysiaApp(
+            createElysiaHandler({ getPrisma: () => prisma, zodSchemas, basePath: '/api' })
+        );
 
         let r = await handler(makeRequest('GET', makeUrl('/api/post/findMany', { where: { id: { equals: '1' } } })));
         expect(r.status).toBe(200);
@@ -88,6 +90,7 @@ describe('Elysia adapter tests - rpc handler', () => {
         const handler = await createElysiaApp(
             createElysiaHandler({
                 getPrisma: () => prisma,
+                basePath: '/api',
                 modelMeta: require(path.join(projectDir, './zen/model-meta')).default,
                 zodSchemas: require(path.join(projectDir, './zen/zod')),
             })
@@ -119,6 +122,7 @@ describe('Elysia adapter tests - rest handler', () => {
         const handler = await createElysiaApp(
             createElysiaHandler({
                 getPrisma: () => prisma,
+                basePath: '/api',
                 handler: Rest({ endpoint: 'http://localhost/api' }),
                 modelMeta,
                 zodSchemas,
@@ -173,8 +177,15 @@ describe('Elysia adapter tests - rest handler', () => {
 });
 
 function makeRequest(method: string, path: string, body?: any) {
-    const payload = body ? JSON.stringify(body) : undefined;
-    return new Request(`http://localhost${path}`, { method, body: payload });
+    if (body) {
+        return new Request(`http://localhost${path}`, {
+            method,
+            body: JSON.stringify(body),
+            headers: { 'Content-Type': 'application/json' },
+        });
+    } else {
+        return new Request(`http://localhost${path}`, { method });
+    }
 }
 
 async function unmarshal(r: Response, useSuperJson = false) {
@@ -186,4 +197,4 @@ async function createElysiaApp(middleware: (app: Elysia) => Promise<Elysia>) {
     const app = new Elysia();
     await middleware(app);
     return app.handle;
-} 
+}
