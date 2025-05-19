@@ -1160,19 +1160,88 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         }
     }
 
-    private async doDelete(db: CrudContract, model: string, args: any): Promise<unknown> {
+    private async doDelete(db: CrudContract, model: string, args: any, readBack = true): Promise<unknown> {
         this.injectWhereHierarchy(model, args.where);
         await this.injectSelectIncludeHierarchy(model, args);
+
+        // read relation entities that need to be cascade deleted before deleting the main entity
+        const cascadeDeletes = await this.getRelationDelegateEntitiesForCascadeDelete(db, model, args.where);
+
+        let result: unknown = undefined;
+        if (cascadeDeletes.length > 0) {
+            // we'll need to do cascade deletes of relations, so first
+            // read the current entity before anything changes
+            if (readBack) {
+                result = await this.doFind(db, model, 'findUnique', args);
+            }
+
+            // process cascade deletes of relations, this ensure their delegate base
+            // entities are deleted as well
+            await Promise.all(
+                cascadeDeletes.map(async ({ model, entity }) => this.doDelete(db, model, { where: entity }, false))
+            );
+        }
 
         if (this.options.logPrismaQuery) {
             this.logger.info(`[delegate] \`delete\` ${this.getModelName(model)}: ${formatObject(args)}`);
         }
-        const result = await db[model].delete(args);
-        const idValues = this.queryUtils.getEntityIds(model, result);
+
+        const deleteResult = await db[model].delete(args);
+        if (!result) {
+            result = this.assembleHierarchy(model, deleteResult);
+        }
 
         // recursively delete base entities (they all have the same id values)
+        const idValues = this.queryUtils.getEntityIds(model, deleteResult);
         await this.deleteBaseRecursively(db, model, idValues);
-        return this.assembleHierarchy(model, result);
+
+        return result;
+    }
+
+    private async getRelationDelegateEntitiesForCascadeDelete(db: CrudContract, model: string, where: any) {
+        if (!where || Object.keys(where).length === 0) {
+            throw new Error('where clause is required for cascade delete');
+        }
+
+        const cascadeDeletes: Array<{ model: string; entity: any }> = [];
+        const fields = getFields(this.options.modelMeta, model);
+        for (const fieldInfo of Object.values(fields)) {
+            if (!fieldInfo.isDataModel) {
+                continue;
+            }
+
+            if (fieldInfo.isRelationOwner) {
+                // this side of the relation owns the foreign key,
+                // so it won't cause cascade delete to the other side
+                continue;
+            }
+
+            if (fieldInfo.backLink) {
+                // get the opposite side of the relation
+                const backLinkField = this.queryUtils.getModelField(fieldInfo.type, fieldInfo.backLink);
+
+                if (backLinkField?.isRelationOwner && this.isFieldCascadeDelete(backLinkField)) {
+                    // if the opposite side of the relation is to be cascade deleted,
+                    // recursively delete the delegate base entities
+                    const relationModel = getModelInfo(this.options.modelMeta, fieldInfo.type);
+                    if (relationModel?.baseTypes && relationModel.baseTypes.length > 0) {
+                        // the relation model has delegate base, cascade the delete to the base
+                        const relationEntities = await db[relationModel.name].findMany({
+                            where: { [backLinkField.name]: where },
+                            select: this.queryUtils.makeIdSelection(relationModel.name),
+                        });
+                        relationEntities.forEach((entity) => {
+                            cascadeDeletes.push({ model: fieldInfo.type, entity });
+                        });
+                    }
+                }
+            }
+        }
+        return cascadeDeletes;
+    }
+
+    private isFieldCascadeDelete(fieldInfo: FieldInfo) {
+        return fieldInfo.onDeleteAction === 'Cascade';
     }
 
     // #endregion

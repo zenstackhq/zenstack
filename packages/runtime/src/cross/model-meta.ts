@@ -21,6 +21,11 @@ export type RuntimeAttribute = {
 export type FieldDefaultValueProvider = (userContext: unknown) => unknown;
 
 /**
+ * Action to take when the related model is deleted or updated
+ */
+export type RelationAction = 'Cascade' | 'Restrict' | 'NoAction' | 'SetNull' | 'SetDefault';
+
+/**
  * Runtime information of a data model field
  */
 export type FieldInfo = {
@@ -73,6 +78,16 @@ export type FieldInfo = {
      * If the field is the owner side of a relation
      */
     isRelationOwner?: boolean;
+
+    /**
+     * Action to take when the related model is deleted.
+     */
+    onDeleteAction?: RelationAction;
+
+    /**
+     * Action to take when the related model is updated.
+     */
+    onUpdateAction?: RelationAction;
 
     /**
      * If the field is a foreign key field
