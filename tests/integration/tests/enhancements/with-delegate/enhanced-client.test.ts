@@ -1057,7 +1057,7 @@ describe('Polymorphism Test', () => {
         expect(created.duration).toBe(300);
     });
 
-    it('delete', async () => {
+    it('delete simple', async () => {
         let { db, user, video: ratedVideo } = await setup();
 
         let deleted = await db.ratedVideo.delete({
@@ -1104,6 +1104,55 @@ describe('Polymorphism Test', () => {
         await expect(db.ratedVideo.findUnique({ where: { id: ratedVideo.id } })).resolves.toBeNull();
         await expect(db.video.findUnique({ where: { id: ratedVideo.id } })).resolves.toBeNull();
         await expect(db.asset.findUnique({ where: { id: ratedVideo.id } })).resolves.toBeNull();
+    });
+
+    it('delete cascade', async () => {
+        const { prisma, enhance } = await loadSchema(
+            `
+    model Base {
+        id Int @id @default(autoincrement())
+        type String
+        @@delegate(type)
+    }
+
+    model List extends Base {
+        name String
+        items Item[]
+    }
+
+    model Item extends Base {
+        name String
+        list List @relation(fields: [listId], references: [id], onDelete: Cascade)
+        listId Int
+        content ItemContent?
+    }
+
+    model ItemContent extends Base {
+        name String
+        item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+        itemId Int @unique
+    }
+`,
+            { enhancements: ['delegate'], logPrismaQuery: true }
+        );
+
+        const db = enhance();
+        await db.list.create({
+            data: {
+                id: 1,
+                name: 'list',
+                items: {
+                    create: [{ id: 2, name: 'item1', content: { create: { id: 3, name: 'content1' } } }],
+                },
+            },
+        });
+
+        const r = await db.list.delete({ where: { id: 1 }, include: { items: { include: { content: true } } } });
+        expect(r).toMatchObject({ items: [{ id: 2 }] });
+        await expect(db.item.findUnique({ where: { id: 2 } })).toResolveNull();
+        await expect(prisma.base.findUnique({ where: { id: 2 } })).toResolveNull();
+        await expect(db.itemContent.findUnique({ where: { id: 3 } })).toResolveNull();
+        await expect(prisma.base.findUnique({ where: { id: 3 } })).toResolveNull();
     });
 
     it('deleteMany', async () => {

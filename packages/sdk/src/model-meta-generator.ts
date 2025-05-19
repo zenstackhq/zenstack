@@ -311,6 +311,18 @@ function writeFields(
         isRelationOwner: true,`);
                 }
 
+                const onDeleteAction = getOnDeleteAction(dmField);
+                if (onDeleteAction) {
+                    writer.write(`
+        onDeleteAction: '${onDeleteAction}',`);
+                }
+
+                const onUpdateAction = getOnUpdateAction(dmField);
+                if (onUpdateAction) {
+                    writer.write(`
+        onUpdateAction: '${onUpdateAction}',`);
+                }
+
                 if (isForeignKeyField(dmField)) {
                     writer.write(`
         isForeignKey: true,`);
@@ -567,4 +579,26 @@ function writeShortNameMap(options: ModelMetaGeneratorOptions, writer: CodeWrite
         });
         writer.write(',');
     }
+}
+
+function getOnDeleteAction(fieldInfo: DataModelField) {
+    const relationAttr = getAttribute(fieldInfo, '@relation');
+    if (relationAttr) {
+        const onDelete = getAttributeArg(relationAttr, 'onDelete');
+        if (onDelete && isEnumFieldReference(onDelete)) {
+            return onDelete.target.ref?.name;
+        }
+    }
+    return undefined;
+}
+
+function getOnUpdateAction(fieldInfo: DataModelField) {
+    const relationAttr = getAttribute(fieldInfo, '@relation');
+    if (relationAttr) {
+        const onUpdate = getAttributeArg(relationAttr, 'onUpdate');
+        if (onUpdate && isEnumFieldReference(onUpdate)) {
+            return onUpdate.target.ref?.name;
+        }
+    }
+    return undefined;
 }
