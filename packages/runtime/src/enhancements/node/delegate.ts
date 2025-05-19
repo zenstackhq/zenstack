@@ -1205,34 +1205,36 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
 
         const cascadeDeletes: Array<{ model: string; entity: any }> = [];
         const fields = getFields(this.options.modelMeta, model);
-        for (const fieldInfo of Object.values(fields)) {
-            if (!fieldInfo.isDataModel) {
-                continue;
-            }
+        if (fields) {
+            for (const fieldInfo of Object.values(fields)) {
+                if (!fieldInfo.isDataModel) {
+                    continue;
+                }
 
-            if (fieldInfo.isRelationOwner) {
-                // this side of the relation owns the foreign key,
-                // so it won't cause cascade delete to the other side
-                continue;
-            }
+                if (fieldInfo.isRelationOwner) {
+                    // this side of the relation owns the foreign key,
+                    // so it won't cause cascade delete to the other side
+                    continue;
+                }
 
-            if (fieldInfo.backLink) {
-                // get the opposite side of the relation
-                const backLinkField = this.queryUtils.getModelField(fieldInfo.type, fieldInfo.backLink);
+                if (fieldInfo.backLink) {
+                    // get the opposite side of the relation
+                    const backLinkField = this.queryUtils.getModelField(fieldInfo.type, fieldInfo.backLink);
 
-                if (backLinkField?.isRelationOwner && this.isFieldCascadeDelete(backLinkField)) {
-                    // if the opposite side of the relation is to be cascade deleted,
-                    // recursively delete the delegate base entities
-                    const relationModel = getModelInfo(this.options.modelMeta, fieldInfo.type);
-                    if (relationModel?.baseTypes && relationModel.baseTypes.length > 0) {
-                        // the relation model has delegate base, cascade the delete to the base
-                        const relationEntities = await db[relationModel.name].findMany({
-                            where: { [backLinkField.name]: where },
-                            select: this.queryUtils.makeIdSelection(relationModel.name),
-                        });
-                        relationEntities.forEach((entity) => {
-                            cascadeDeletes.push({ model: fieldInfo.type, entity });
-                        });
+                    if (backLinkField?.isRelationOwner && this.isFieldCascadeDelete(backLinkField)) {
+                        // if the opposite side of the relation is to be cascade deleted,
+                        // recursively delete the delegate base entities
+                        const relationModel = getModelInfo(this.options.modelMeta, fieldInfo.type);
+                        if (relationModel?.baseTypes && relationModel.baseTypes.length > 0) {
+                            // the relation model has delegate base, cascade the delete to the base
+                            const relationEntities = await db[relationModel.name].findMany({
+                                where: { [backLinkField.name]: where },
+                                select: this.queryUtils.makeIdSelection(relationModel.name),
+                            });
+                            relationEntities.forEach((entity) => {
+                                cascadeDeletes.push({ model: fieldInfo.type, entity });
+                            });
+                        }
                     }
                 }
             }
