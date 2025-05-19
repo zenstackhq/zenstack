@@ -10,6 +10,7 @@ import {
     NestedWriteVisitor,
     clone,
     enumerate,
+    getFields,
     getIdFields,
     getModelInfo,
     isDelegateModel,
@@ -1051,6 +1052,21 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             if (fieldInfo?.inheritedFrom) {
                 this.injectBaseFieldData(model, fieldInfo, value, data, 'update');
                 delete data[field];
+            }
+        }
+
+        // if we're updating any field, we need to take care of updating `@updatedAt`
+        // fields inherited from delegate base models
+        if (Object.keys(data).length > 0) {
+            const modelFields = getFields(this.options.modelMeta, model);
+            for (const fieldInfo of Object.values(modelFields)) {
+                if (
+                    fieldInfo.attributes?.some((attr) => attr.name === '@updatedAt') &&
+                    fieldInfo.inheritedFrom &&
+                    isDelegateModel(this.options.modelMeta, fieldInfo.inheritedFrom)
+                ) {
+                    this.injectBaseFieldData(model, fieldInfo, new Date(), data, 'update');
+                }
             }
         }
     }

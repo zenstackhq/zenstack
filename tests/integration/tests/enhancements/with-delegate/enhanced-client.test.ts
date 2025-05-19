@@ -476,6 +476,8 @@ describe('Polymorphism Test', () => {
     it('update simple', async () => {
         const { db, videoWithOwner: video } = await setup();
 
+        const read = await db.ratedVideo.findUnique({ where: { id: video.id } });
+
         // update with concrete
         let updated = await db.ratedVideo.update({
             where: { id: video.id },
@@ -484,6 +486,7 @@ describe('Polymorphism Test', () => {
         });
         expect(updated.rating).toBe(200);
         expect(updated.owner).toBeTruthy();
+        expect(updated.updatedAt.getTime()).toBeGreaterThan(read.updatedAt.getTime());
 
         // update with base
         updated = await db.video.update({
@@ -613,17 +616,18 @@ describe('Polymorphism Test', () => {
         });
 
         // updateMany with filter
-        await expect(
-            db.user.update({
-                where: { id: user.id },
-                data: {
-                    ratedVideos: { updateMany: { where: { duration: 1 }, data: { rating: 333 } } },
-                },
-                include: { ratedVideos: true },
-            })
-        ).resolves.toMatchObject({
+        const read = await db.ratedVideo.findFirst({ where: { duration: 1 } });
+        const r = await db.user.update({
+            where: { id: user.id },
+            data: {
+                ratedVideos: { updateMany: { where: { duration: 1 }, data: { rating: 333 } } },
+            },
+            include: { ratedVideos: true },
+        });
+        expect(r).toMatchObject({
             ratedVideos: expect.arrayContaining([expect.objectContaining({ rating: 333 })]),
         });
+        expect(r.ratedVideos[0].updatedAt.getTime()).toBeGreaterThan(read.updatedAt.getTime());
 
         // updateMany without filter
         await expect(
@@ -1025,22 +1029,23 @@ describe('Polymorphism Test', () => {
         ).rejects.toThrow('is a delegate');
 
         // update
-        await expect(
-            db.ratedVideo.upsert({
-                where: { id: video.id },
-                create: {
-                    viewCount: 1,
-                    duration: 300,
-                    url: 'xyz',
-                    rating: 100,
-                    owner: { connect: { id: user.id } },
-                },
-                update: { duration: 200 },
-            })
-        ).resolves.toMatchObject({
+        const read = await db.ratedVideo.findUnique({ where: { id: video.id } });
+        const r = await db.ratedVideo.upsert({
+            where: { id: video.id },
+            create: {
+                viewCount: 1,
+                duration: 300,
+                url: 'xyz',
+                rating: 100,
+                owner: { connect: { id: user.id } },
+            },
+            update: { duration: 200 },
+        });
+        expect(r).toMatchObject({
             id: video.id,
             duration: 200,
         });
+        expect(r.updatedAt.getTime()).toBeGreaterThan(read.updatedAt.getTime());
 
         // create
         const created = await db.ratedVideo.upsert({
