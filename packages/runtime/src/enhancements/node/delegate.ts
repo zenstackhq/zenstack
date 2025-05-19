@@ -817,11 +817,18 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             return super.updateMany(args);
         }
 
-        const simpleUpdateMany = Object.keys(args.data).every((key) => {
+        let simpleUpdateMany = Object.keys(args.data).every((key) => {
             // check if the `data` clause involves base fields
             const fieldInfo = resolveField(this.options.modelMeta, this.model, key);
             return !fieldInfo?.inheritedFrom;
         });
+
+        // check if there are any `@updatedAt` fields from delegate base models
+        if (simpleUpdateMany) {
+            if (this.getUpdatedAtFromDelegateBases(this.model).length > 0) {
+                simpleUpdateMany = false;
+            }
+        }
 
         return this.queryUtils.transaction(this.prisma, (tx) =>
             this.doUpdateMany(tx, this.model, args, simpleUpdateMany)
@@ -948,6 +955,13 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                     return !fieldInfo?.inheritedFrom;
                 });
 
+                // check if there are any `@updatedAt` fields from delegate base models
+                if (simpleUpdateMany) {
+                    if (this.getUpdatedAtFromDelegateBases(model).length > 0) {
+                        simpleUpdateMany = false;
+                    }
+                }
+
                 if (simpleUpdateMany) {
                     // check if the `where` clause involves base fields
                     simpleUpdateMany = Object.keys(args.where || {}).every((key) => {
@@ -1058,15 +1072,9 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         // if we're updating any field, we need to take care of updating `@updatedAt`
         // fields inherited from delegate base models
         if (Object.keys(data).length > 0) {
-            const modelFields = getFields(this.options.modelMeta, model);
-            for (const fieldInfo of Object.values(modelFields)) {
-                if (
-                    fieldInfo.attributes?.some((attr) => attr.name === '@updatedAt') &&
-                    fieldInfo.inheritedFrom &&
-                    isDelegateModel(this.options.modelMeta, fieldInfo.inheritedFrom)
-                ) {
-                    this.injectBaseFieldData(model, fieldInfo, new Date(), data, 'update');
-                }
+            const updatedAtFields = this.getUpdatedAtFromDelegateBases(model);
+            for (const fieldInfo of updatedAtFields) {
+                this.injectBaseFieldData(model, fieldInfo, new Date(), data, 'update');
             }
         }
     }
@@ -1490,6 +1498,21 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             }
         }
 
+        return result;
+    }
+
+    private getUpdatedAtFromDelegateBases(model: string) {
+        const result: FieldInfo[] = [];
+        const modelFields = getFields(this.options.modelMeta, model);
+        for (const fieldInfo of Object.values(modelFields)) {
+            if (
+                fieldInfo.attributes?.some((attr) => attr.name === '@updatedAt') &&
+                fieldInfo.inheritedFrom &&
+                isDelegateModel(this.options.modelMeta, fieldInfo.inheritedFrom)
+            ) {
+                result.push(fieldInfo);
+            }
+        }
         return result;
     }
 
