@@ -1178,7 +1178,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             // process cascade deletes of relations, this ensure their delegate base
             // entities are deleted as well
             await Promise.all(
-                cascadeDeletes.map(async ({ model, entity }) => this.doDelete(db, model, { where: entity }, false))
+                cascadeDeletes.map(({ model, entity }) => this.doDelete(db, model, { where: entity }, false))
             );
         }
 
