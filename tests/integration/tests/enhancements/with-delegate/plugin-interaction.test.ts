@@ -65,6 +65,7 @@ describe('Polymorphic Plugin Interaction Test', () => {
                 id: 1,
                 assetType: 'video',
                 createdAt: new Date(),
+                updatedAt: new Date(),
                 viewCount: 100,
             })
         ).toBeTruthy();
@@ -74,6 +75,7 @@ describe('Polymorphic Plugin Interaction Test', () => {
                 id: 1,
                 assetType: 'video',
                 createdAt: new Date(),
+                updatedAt: new Date(),
                 viewCount: 100,
                 videoType: 'ratedVideo', // should be stripped
             }).videoType
@@ -87,6 +89,7 @@ describe('Polymorphic Plugin Interaction Test', () => {
                 duration: 100,
                 url: 'http://example.com',
                 createdAt: new Date(),
+                updatedAt: new Date(),
                 viewCount: 100,
             })
         ).toBeTruthy();
@@ -98,6 +101,7 @@ describe('Polymorphic Plugin Interaction Test', () => {
                 videoType: 'ratedVideo',
                 url: 'http://example.com',
                 createdAt: new Date(),
+                updatedAt: new Date(),
                 viewCount: 100,
             })
         ).toThrow('duration');
