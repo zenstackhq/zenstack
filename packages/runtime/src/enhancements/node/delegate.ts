@@ -10,6 +10,7 @@ import {
     NestedWriteVisitor,
     clone,
     enumerate,
+    getFields,
     getIdFields,
     getModelInfo,
     isDelegateModel,
@@ -816,11 +817,18 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             return super.updateMany(args);
         }
 
-        const simpleUpdateMany = Object.keys(args.data).every((key) => {
+        let simpleUpdateMany = Object.keys(args.data).every((key) => {
             // check if the `data` clause involves base fields
             const fieldInfo = resolveField(this.options.modelMeta, this.model, key);
             return !fieldInfo?.inheritedFrom;
         });
+
+        // check if there are any `@updatedAt` fields from delegate base models
+        if (simpleUpdateMany) {
+            if (this.getUpdatedAtFromDelegateBases(this.model).length > 0) {
+                simpleUpdateMany = false;
+            }
+        }
 
         return this.queryUtils.transaction(this.prisma, (tx) =>
             this.doUpdateMany(tx, this.model, args, simpleUpdateMany)
@@ -947,6 +955,13 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                     return !fieldInfo?.inheritedFrom;
                 });
 
+                // check if there are any `@updatedAt` fields from delegate base models
+                if (simpleUpdateMany) {
+                    if (this.getUpdatedAtFromDelegateBases(model).length > 0) {
+                        simpleUpdateMany = false;
+                    }
+                }
+
                 if (simpleUpdateMany) {
                     // check if the `where` clause involves base fields
                     simpleUpdateMany = Object.keys(args.where || {}).every((key) => {
@@ -1053,6 +1068,15 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                 delete data[field];
             }
         }
+
+        // if we're updating any field, we need to take care of updating `@updatedAt`
+        // fields inherited from delegate base models
+        if (Object.keys(data).length > 0) {
+            const updatedAtFields = this.getUpdatedAtFromDelegateBases(model);
+            for (const fieldInfo of updatedAtFields) {
+                this.injectBaseFieldData(model, fieldInfo, new Date(), data, 'update');
+            }
+        }
     }
 
     // #endregion
@@ -1136,19 +1160,90 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         }
     }
 
-    private async doDelete(db: CrudContract, model: string, args: any): Promise<unknown> {
+    private async doDelete(db: CrudContract, model: string, args: any, readBack = true): Promise<unknown> {
         this.injectWhereHierarchy(model, args.where);
         await this.injectSelectIncludeHierarchy(model, args);
+
+        // read relation entities that need to be cascade deleted before deleting the main entity
+        const cascadeDeletes = await this.getRelationDelegateEntitiesForCascadeDelete(db, model, args.where);
+
+        let result: unknown = undefined;
+        if (cascadeDeletes.length > 0) {
+            // we'll need to do cascade deletes of relations, so first
+            // read the current entity before anything changes
+            if (readBack) {
+                result = await this.doFind(db, model, 'findUnique', args);
+            }
+
+            // process cascade deletes of relations, this ensure their delegate base
+            // entities are deleted as well
+            await Promise.all(
+                cascadeDeletes.map(({ model, entity }) => this.doDelete(db, model, { where: entity }, false))
+            );
+        }
 
         if (this.options.logPrismaQuery) {
             this.logger.info(`[delegate] \`delete\` ${this.getModelName(model)}: ${formatObject(args)}`);
         }
-        const result = await db[model].delete(args);
-        const idValues = this.queryUtils.getEntityIds(model, result);
+
+        const deleteResult = await db[model].delete(args);
+        if (!result) {
+            result = this.assembleHierarchy(model, deleteResult);
+        }
 
         // recursively delete base entities (they all have the same id values)
+        const idValues = this.queryUtils.getEntityIds(model, deleteResult);
         await this.deleteBaseRecursively(db, model, idValues);
-        return this.assembleHierarchy(model, result);
+
+        return result;
+    }
+
+    private async getRelationDelegateEntitiesForCascadeDelete(db: CrudContract, model: string, where: any) {
+        if (!where || Object.keys(where).length === 0) {
+            throw new Error('where clause is required for cascade delete');
+        }
+
+        const cascadeDeletes: Array<{ model: string; entity: any }> = [];
+        const fields = getFields(this.options.modelMeta, model);
+        if (fields) {
+            for (const fieldInfo of Object.values(fields)) {
+                if (!fieldInfo.isDataModel) {
+                    continue;
+                }
+
+                if (fieldInfo.isRelationOwner) {
+                    // this side of the relation owns the foreign key,
+                    // so it won't cause cascade delete to the other side
+                    continue;
+                }
+
+                if (fieldInfo.backLink) {
+                    // get the opposite side of the relation
+                    const backLinkField = this.queryUtils.getModelField(fieldInfo.type, fieldInfo.backLink);
+
+                    if (backLinkField?.isRelationOwner && this.isFieldCascadeDelete(backLinkField)) {
+                        // if the opposite side of the relation is to be cascade deleted,
+                        // recursively delete the delegate base entities
+                        const relationModel = getModelInfo(this.options.modelMeta, fieldInfo.type);
+                        if (relationModel?.baseTypes && relationModel.baseTypes.length > 0) {
+                            // the relation model has delegate base, cascade the delete to the base
+                            const relationEntities = await db[relationModel.name].findMany({
+                                where: { [backLinkField.name]: where },
+                                select: this.queryUtils.makeIdSelection(relationModel.name),
+                            });
+                            relationEntities.forEach((entity) => {
+                                cascadeDeletes.push({ model: fieldInfo.type, entity });
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        return cascadeDeletes;
+    }
+
+    private isFieldCascadeDelete(fieldInfo: FieldInfo) {
+        return fieldInfo.onDeleteAction === 'Cascade';
     }
 
     // #endregion
@@ -1474,6 +1569,24 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             }
         }
 
+        return result;
+    }
+
+    private getUpdatedAtFromDelegateBases(model: string) {
+        const result: FieldInfo[] = [];
+        const modelFields = getFields(this.options.modelMeta, model);
+        if (!modelFields) {
+            return result;
+        }
+        for (const fieldInfo of Object.values(modelFields)) {
+            if (
+                fieldInfo.attributes?.some((attr) => attr.name === '@updatedAt') &&
+                fieldInfo.inheritedFrom &&
+                isDelegateModel(this.options.modelMeta, fieldInfo.inheritedFrom)
+            ) {
+                result.push(fieldInfo);
+            }
+        }
         return result;
     }
 

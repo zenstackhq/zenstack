@@ -6,15 +6,17 @@ import 'isomorphic-fetch';
 import path from 'path';
 import superjson from 'superjson';
 import Rest from '../../src/api/rest';
-import { createHonoHandler } from '../../src/hono';
+import { createElysiaHandler } from '../../src/elysia';
 import { makeUrl, schema } from '../utils';
-import { Hono, MiddlewareHandler } from 'hono';
+import { Elysia } from 'elysia';
 
-describe('Hono adapter tests - rpc handler', () => {
+describe('Elysia adapter tests - rpc handler', () => {
     it('run hooks regular json', async () => {
         const { prisma, zodSchemas } = await loadSchema(schema);
 
-        const handler = await createHonoApp(createHonoHandler({ getPrisma: () => prisma, zodSchemas }));
+        const handler = await createElysiaApp(
+            createElysiaHandler({ getPrisma: () => prisma, zodSchemas, basePath: '/api' })
+        );
 
         let r = await handler(makeRequest('GET', makeUrl('/api/post/findMany', { where: { id: { equals: '1' } } })));
         expect(r.status).toBe(200);
@@ -85,9 +87,10 @@ describe('Hono adapter tests - rpc handler', () => {
     it('custom load path', async () => {
         const { prisma, projectDir } = await loadSchema(schema, { output: './zen' });
 
-        const handler = await createHonoApp(
-            createHonoHandler({
+        const handler = await createElysiaApp(
+            createElysiaHandler({
                 getPrisma: () => prisma,
+                basePath: '/api',
                 modelMeta: require(path.join(projectDir, './zen/model-meta')).default,
                 zodSchemas: require(path.join(projectDir, './zen/zod')),
             })
@@ -112,13 +115,14 @@ describe('Hono adapter tests - rpc handler', () => {
     });
 });
 
-describe('Hono adapter tests - rest handler', () => {
+describe('Elysia adapter tests - rest handler', () => {
     it('run hooks', async () => {
         const { prisma, modelMeta, zodSchemas } = await loadSchema(schema);
 
-        const handler = await createHonoApp(
-            createHonoHandler({
+        const handler = await createElysiaApp(
+            createElysiaHandler({
                 getPrisma: () => prisma,
+                basePath: '/api',
                 handler: Rest({ endpoint: 'http://localhost/api' }),
                 modelMeta,
                 zodSchemas,
@@ -173,8 +177,15 @@ describe('Hono adapter tests - rest handler', () => {
 });
 
 function makeRequest(method: string, path: string, body?: any) {
-    const payload = body ? JSON.stringify(body) : undefined;
-    return new Request(`http://localhost${path}`, { method, body: payload });
+    if (body) {
+        return new Request(`http://localhost${path}`, {
+            method,
+            body: JSON.stringify(body),
+            headers: { 'Content-Type': 'application/json' },
+        });
+    } else {
+        return new Request(`http://localhost${path}`, { method });
+    }
 }
 
 async function unmarshal(r: Response, useSuperJson = false) {
@@ -182,10 +193,8 @@ async function unmarshal(r: Response, useSuperJson = false) {
     return (useSuperJson ? superjson.parse(text) : JSON.parse(text)) as any;
 }
 
-async function createHonoApp(middleware: MiddlewareHandler) {
-    const app = new Hono();
-
-    app.use('/api/*', middleware);
-
-    return app.fetch;
+async function createElysiaApp(middleware: (app: Elysia) => Promise<Elysia>) {
+    const app = new Elysia();
+    await middleware(app);
+    return app.handle;
 }

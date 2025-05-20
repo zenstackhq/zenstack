@@ -1204,47 +1204,42 @@ export class PolicyUtil extends QueryUtils {
             return;
         }
 
-        let target: any; // injection target
-        let isInclude = false; // if the target is include or select
-
-        if (args.select) {
-            target = args.select;
-            isInclude = false;
-        } else if (args.include) {
-            target = args.include;
-            isInclude = true;
-        } else {
-            target = args.select = this.makeAllScalarFieldSelect(model);
-            isInclude = false;
-        }
-
-        if (!isInclude) {
-            // merge selects
-            for (const [k, v] of Object.entries(input.select)) {
-                if (v === true) {
-                    if (!target[k]) {
-                        target[k] = true;
-                    }
+        // process scalar field selections first
+        for (const [k, v] of Object.entries<any>(input.select)) {
+            const field = resolveField(this.modelMeta, model, k);
+            if (!field || field.isDataModel) {
+                continue;
+            }
+            if (v === true) {
+                if (!args.select) {
+                    // do nothing since all scalar fields are selected by default
+                } else if (args.include) {
+                    // do nothing since include implies selecting all scalar fields
+                } else {
+                    args.select[k] = true;
                 }
             }
         }
 
-        // recurse into nested selects (relation fields)
+        // process relation selections
         for (const [k, v] of Object.entries<any>(input.select)) {
-            if (typeof v === 'object' && v?.select) {
-                const field = resolveField(this.modelMeta, model, k);
-                if (field?.isDataModel) {
-                    // recurse into relation
-                    if (isInclude && target[k] === true) {
-                        // select all fields for the relation
-                        target[k] = { select: this.makeAllScalarFieldSelect(field.type) };
-                    } else if (!target[k]) {
-                        // ensure an empty select clause
-                        target[k] = { select: {} };
-                    }
-                    // recurse
-                    this.doInjectReadCheckSelect(field.type, target[k], v);
-                }
+            const field = resolveField(this.modelMeta, model, k);
+            if (!field || !field.isDataModel) {
+                continue;
+            }
+
+            // prepare the next level of args
+            let nextArgs = args.select ?? args.include;
+            if (!nextArgs) {
+                nextArgs = args.include = {};
+            }
+            if (!nextArgs[k] || typeof nextArgs[k] !== 'object') {
+                nextArgs[k] = {};
+            }
+
+            if (v && typeof v === 'object') {
+                // recurse into relation
+                this.doInjectReadCheckSelect(field.type, nextArgs[k], v);
             }
         }
     }

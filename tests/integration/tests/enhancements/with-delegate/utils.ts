@@ -12,6 +12,7 @@ model User {
 model Asset {
     id Int @id @default(autoincrement())
     createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
     viewCount Int @default(0)
     owner User? @relation(fields: [ownerId], references: [id])
     ownerId Int?
