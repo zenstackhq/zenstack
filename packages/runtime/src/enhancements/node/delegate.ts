@@ -1575,6 +1575,9 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     private getUpdatedAtFromDelegateBases(model: string) {
         const result: FieldInfo[] = [];
         const modelFields = getFields(this.options.modelMeta, model);
+        if (!modelFields) {
+            return result;
+        }
         for (const fieldInfo of Object.values(modelFields)) {
             if (
                 fieldInfo.attributes?.some((attr) => attr.name === '@updatedAt') &&
