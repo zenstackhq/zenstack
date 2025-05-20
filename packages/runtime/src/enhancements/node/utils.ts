@@ -7,7 +7,7 @@ import type { DbClientContract } from '../../types';
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function formatObject(value: any, multiLine = true) {
-    return multiLine ? safeJsonStringify(value, undefined, 2) : safeJsonStringify(value);
+    return safeJsonStringify(value, (_, v) => (typeof v === 'bigint' ? v.toString() : v), multiLine ? 2 : undefined);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
