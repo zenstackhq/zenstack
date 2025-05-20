@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/sdk",
-    "version": "2.14.2",
+    "version": "2.15.0",
     "description": "ZenStack plugin development SDK",
     "main": "index.js",
     "scripts": {
