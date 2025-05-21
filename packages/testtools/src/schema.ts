@@ -52,6 +52,16 @@ export function run(cmd: string, env?: Record<string, string>, cwd?: string) {
         });
     } catch (err) {
         console.error('Command failed:', cmd, err);
+        try {
+            execSync(cmd, {
+                stdio: 'inherit',
+                encoding: 'utf-8',
+                env: { ...process.env, DO_NOT_TRACK: '1', ...env },
+                cwd,
+            });
+        } catch {
+            // noop
+        }
         throw err;
     }
 }
