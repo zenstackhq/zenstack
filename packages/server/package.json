@@ -75,6 +75,7 @@
         "./nuxt": "./nuxt/index.js",
         "./nestjs": "./nestjs/index.js",
         "./hono": "./hono/index.js",
+        "./elysia": "./elysia/index.js",
         "./types": "./types.js"
     }
 }
