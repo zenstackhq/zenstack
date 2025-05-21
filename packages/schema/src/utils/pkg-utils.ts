@@ -67,7 +67,7 @@ export function findNodeModulesFile(name: string, cwd: string = process.cwd()) {
 }
 
 export function getPackageManager(searchStartPath = '.') {
-    const lockFile = findUp(['yarn.lock', 'pnpm-lock.yaml', 'package-lock.json'], searchStartPath);
+    const lockFile = findUp(['yarn.lock', 'bun.lock', 'pnpm-lock.yaml', 'package-lock.json'], searchStartPath);
 
     if (!lockFile) {
         // default use npm
@@ -77,6 +77,7 @@ export function getPackageManager(searchStartPath = '.') {
     const packageManager = match(path.basename(lockFile))
         .with('yarn.lock', () => 'yarn')
         .with('pnpm-lock.yaml', () => 'pnpm')
+        .with('bun.lock', () => 'bun')
         .otherwise(() => 'npm');
 
     return { packageManager, lockFile, projectRoot: path.dirname(lockFile) };
@@ -96,6 +97,14 @@ export function installPackage(
         case 'yarn':
             execSync(
                 `yarn --cwd "${projectPath}" add ${exactVersion ? '--exact' : ''} ${pkg}@${tag} ${dev ? ' --dev' : ''}`
+            );
+            break;
+
+        case 'bun':
+            execSync(
+                `bun install --cwd "${projectPath}" ${exactVersion ? '--exact' : ''} ${
+                    dev ? ' --dev' : ''
+                } ${pkg}@${tag}`
             );
             break;
 
