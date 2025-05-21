@@ -15,6 +15,8 @@ export function createProject(options?: CompilerOptions) {
             skipLibCheck: true,
             noEmitOnError: true,
             noImplicitAny: false,
+            skipDefaultLibCheck: true,
+            types: [],
             ...options,
         },
     });
