@@ -12,4 +12,3 @@ jobs:
               with:
                   webhook_url: ${{ secrets.RELEASE_TO_DISCORD_WEBHOOK_URL }}
                   avatar_url: 'https://cdn.discordapp.com/avatars/1297059323314176051/df91181b3f1cf0ef1592fbe18e0962d7.webp?size=160'
-                  reduce_headings: true
