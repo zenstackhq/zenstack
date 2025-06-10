@@ -133,7 +133,7 @@ model List {
     // require login
     @@deny('all', auth() == null)
 
-    // can be read by owner or space members (only if not private) 
+    // can be read by owner or space members (only if not private)
     @@allow('read', owner == auth() || (space.members?[user == auth()] && !private))
 
     // when create, owner must be set to current user, and user must be in the space

@@ -1,4 +1,4 @@
-import { lowerCaseFirst } from 'lower-case-first';
+import { lowerCaseFirst } from '../local-helpers';
 import { requireField, type ModelInfo, type ModelMeta, type TypeDefInfo } from '.';
 
 /**

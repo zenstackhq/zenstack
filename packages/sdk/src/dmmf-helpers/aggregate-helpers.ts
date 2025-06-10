@@ -1,4 +1,4 @@
-import { upperCaseFirst } from 'upper-case-first';
+import { upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import type { DMMF } from '../prisma';
 import { AggregateOperationSupport } from './types';
 

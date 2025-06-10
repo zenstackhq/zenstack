@@ -26,10 +26,10 @@ import {
 import { DataModel, EnumField, Model, TypeDef, isArrayExpr, isDataModel, isEnum, isTypeDef } from '@zenstackhq/sdk/ast';
 import { addMissingInputObjectTypes, resolveAggregateOperationSupport } from '@zenstackhq/sdk/dmmf-helpers';
 import { getPrismaClientImportSpec, supportCreateMany, type DMMF } from '@zenstackhq/sdk/prisma';
+import { upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import { streamAllContents } from 'langium';
 import path from 'path';
 import type { CodeBlockWriter, SourceFile } from 'ts-morph';
-import { upperCaseFirst } from 'upper-case-first';
 import { name } from '.';
 import { getDefaultOutputFolder } from '../plugin-utils';
 import Transformer from './transformer';

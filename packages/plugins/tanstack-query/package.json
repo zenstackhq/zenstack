@@ -82,13 +82,10 @@
     "dependencies": {
         "@zenstackhq/runtime": "workspace:*",
         "@zenstackhq/sdk": "workspace:*",
-        "change-case": "^4.1.2",
         "cross-fetch": "^4.0.0",
-        "lower-case-first": "^2.0.2",
         "semver": "^7.5.2",
         "ts-morph": "^16.0.0",
-        "ts-pattern": "^4.3.0",
-        "upper-case-first": "^2.0.2"
+        "ts-pattern": "^4.3.0"
     },
     "devDependencies": {
         "@tanstack/react-query": "^4.29.7",
@@ -101,11 +98,11 @@
         "@types/semver": "^7.3.13",
         "@types/tmp": "^0.2.3",
         "@zenstackhq/testtools": "workspace:*",
+        "glob": "^8.1.0",
         "jest-environment-jsdom": "^29.7.0",
         "nock": "^13.3.6",
         "react": "18.2.0",
         "react-test-renderer": "^18.2.0",
-        "replace-in-file": "^7.0.1",
         "svelte": "^4.2.1",
         "swr": "^2.0.3",
         "tmp": "^0.2.3",

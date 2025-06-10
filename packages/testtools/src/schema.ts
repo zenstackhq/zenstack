@@ -18,7 +18,7 @@ import tmp from 'tmp';
 import { loadDocument } from 'zenstack/cli/cli-util';
 import prismaPlugin from 'zenstack/plugins/prisma';
 
-/** 
+/**
  * Use it to represent multiple files in a single string like this
    `schema.zmodel
     import "user"

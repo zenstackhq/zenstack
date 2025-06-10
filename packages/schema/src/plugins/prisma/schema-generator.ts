@@ -29,16 +29,12 @@ import {
     NumberLiteral,
     StringLiteral,
 } from '@zenstackhq/language/ast';
-import { getIdFields } from '@zenstackhq/sdk';
-import { getPrismaVersion } from '@zenstackhq/sdk/prisma';
-import { match, P } from 'ts-pattern';
-
-import { DELEGATE_AUX_RELATION_PREFIX, PRISMA_MINIMUM_VERSION } from '@zenstackhq/runtime';
 import {
     getAttribute,
     getAttributeArg,
     getAttributeArgLiteral,
     getDataSourceProvider,
+    getIdFields,
     getInheritedFromDelegate,
     getLiteral,
     getRelationKeyPairs,
@@ -49,11 +45,14 @@ import {
     resolved,
     ZModelCodeGenerator,
 } from '@zenstackhq/sdk';
+import { getPrismaVersion } from '@zenstackhq/sdk/prisma';
+import { DELEGATE_AUX_RELATION_PREFIX, PRISMA_MINIMUM_VERSION } from '@zenstackhq/runtime';
+import { lowerCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import fs from 'fs';
 import { writeFile } from 'fs/promises';
-import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import semver from 'semver';
+import { match, P } from 'ts-pattern';
 import { name } from '.';
 import { getStringLiteral } from '../../language-server/validator/utils';
 import { getConcreteModels } from '../../utils/ast-utils';

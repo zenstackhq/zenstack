@@ -164,7 +164,7 @@ Argument:
 DataModel:
     (comments+=TRIPLE_SLASH_COMMENT)*
     (
-        ((isAbstract?='abstract')? 'model' name=RegularID  
+        ((isAbstract?='abstract')? 'model' name=RegularID
             ('extends' superTypes+=[DataModel] (',' superTypes+=[DataModel])*)?) |
         ((isView?='view') name=RegularID)
     )
@@ -193,7 +193,7 @@ TypeDef:
 type TypeDefFieldTypes = TypeDef | Enum;
 
 TypeDefField:
-    (comments+=TRIPLE_SLASH_COMMENT)*   
+    (comments+=TRIPLE_SLASH_COMMENT)*
     name=RegularIDWithTypeNames type=TypeDefFieldType (attributes+=DataModelFieldAttribute)*;
 
 TypeDefFieldType:
@@ -208,7 +208,7 @@ Enum:
     'enum' name=RegularID '{' (
            fields+=EnumField
            | attributes+=DataModelAttribute
-        )+ 
+        )+
     '}';
 
 EnumField:

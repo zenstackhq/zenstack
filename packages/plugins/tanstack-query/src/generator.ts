@@ -13,13 +13,11 @@ import {
 } from '@zenstackhq/sdk';
 import { DataModel, DataModelFieldType, Model, isEnum, isTypeDef } from '@zenstackhq/sdk/ast';
 import { getPrismaClientImportSpec, supportCreateMany, type DMMF } from '@zenstackhq/sdk/prisma';
-import { paramCase } from 'change-case';
+import { lowerCaseFirst, upperCaseFirst, paramCase } from '@zenstackhq/runtime/local-helpers';
 import fs from 'fs';
-import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import { P, match } from 'ts-pattern';
-import { upperCaseFirst } from 'upper-case-first';
 import { name } from '.';
 
 const supportedTargets = ['react', 'vue', 'svelte'];

@@ -1,10 +1,10 @@
 import { createId } from '@paralleldrive/cuid2';
 import { getPrismaVersion } from '@zenstackhq/sdk/prisma';
+import { sleep } from '@zenstackhq/runtime/local-helpers';
 import exitHook from 'async-exit-hook';
 import { CommanderError } from 'commander';
 import { init, Mixpanel } from 'mixpanel';
 import * as os from 'os';
-import sleep from 'sleep-promise';
 import { CliError } from './cli/cli-error';
 import { TELEMETRY_TRACKING_TOKEN } from './constants';
 import isDocker from './utils/is-docker';

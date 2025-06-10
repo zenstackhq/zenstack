@@ -85,9 +85,9 @@ changelog {
     introduction.set(
             """
         [ZenStack](https://zenstack.dev) is a toolkit that simplifies the development of a web app's backend. This plugin provides code editing experiences for its ZModel schema language.
-        
+
         ## Features
-        
+
         - Syntax highlighting
         - Error highlighting
         - Go to definition

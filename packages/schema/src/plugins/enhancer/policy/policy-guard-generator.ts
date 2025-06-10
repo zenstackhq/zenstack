@@ -31,8 +31,8 @@ import {
     saveSourceFile,
 } from '@zenstackhq/sdk';
 import { getPrismaClientImportSpec } from '@zenstackhq/sdk/prisma';
+import { lowerCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import { streamAst } from 'langium';
-import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import { FunctionDeclarationStructure, OptionalKind, Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import { isCheckInvocation } from '../../../utils/ast-utils';

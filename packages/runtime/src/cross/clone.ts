@@ -1,4 +1,4 @@
-import { isPlainObject } from 'is-plain-object';
+import { isPlainObject } from '../local-helpers';
 
 /**
  * Clones the given object. Only arrays and plain objects are cloned. Other values are returned as is.

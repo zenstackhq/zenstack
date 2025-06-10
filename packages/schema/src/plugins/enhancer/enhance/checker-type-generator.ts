@@ -1,6 +1,6 @@
 import { getDataModels } from '@zenstackhq/sdk';
 import type { DataModel, DataModelField, Model } from '@zenstackhq/sdk/ast';
-import { lowerCaseFirst } from 'lower-case-first';
+import { lowerCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import { P, match } from 'ts-pattern';
 
 /**

@@ -7,9 +7,9 @@ const HOST = process.env.ZENSTACK_TEST_DB_HOST || 'localhost';
 const PORT = (process.env.ZENSTACK_TEST_DB_PORT ? parseInt(process.env.ZENSTACK_TEST_DB_PORT) : null) || 5432;
 
 function connect() {
-    return new Pool({ 
-        user: USERNAME, 
-        password: PASSWORD, 
+    return new Pool({
+        user: USERNAME,
+        password: PASSWORD,
         database: CONNECTION_DB,
         host: HOST,
         port: PORT

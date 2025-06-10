@@ -1,7 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import deepmerge, { type ArrayMergeOptions } from 'deepmerge';
-import { isPlainObject } from 'is-plain-object';
-import { lowerCaseFirst } from 'lower-case-first';
 import traverse from 'traverse';
 import { DELEGATE_AUX_RELATION_PREFIX } from '../../constants';
 import {
@@ -16,6 +14,7 @@ import {
     isDelegateModel,
     resolveField,
 } from '../../cross';
+import { isPlainObject, lowerCaseFirst } from '../../local-helpers';
 import type { CrudContract, DbClientContract, EnhancementContext } from '../../types';
 import type { InternalEnhancementOptions } from './create-enhancement';
 import { Logger } from './logger';

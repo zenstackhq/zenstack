@@ -15,10 +15,10 @@ model User {
     id String @id @default(cuid())
     email String @unique
     orders Order[]
-    
+
     // everybody can signup
     @@allow('create', true)
-    
+
     // user profile is publicly readable
     @@allow('read', true)
 }
@@ -31,10 +31,10 @@ model Pet {
     category String
     order Order? @relation(fields: [orderId], references: [id])
     orderId String?
-    
+
     // unsold pets are readable to all; sold ones are readable to buyers only
     @@allow('read', orderId == null || order.user == auth())
-    
+
     // only allow update to 'orderId' field if it's not set yet (unsold)
     @@allow('update', name == future().name && category == future().category && orderId == null )
 }
@@ -46,7 +46,7 @@ model Order {
     pets Pet[]
     user User @relation(fields: [userId], references: [id])
     userId String
-    
+
     // users can read their orders
     @@allow('read,create', auth() == user)
 }

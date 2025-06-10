@@ -26,12 +26,11 @@ import {
     TypeDefFieldType,
 } from '@zenstackhq/sdk/ast';
 import type { DMMF } from '@zenstackhq/sdk/prisma';
+import { invariant, lowerCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import fs from 'fs';
-import { lowerCaseFirst } from 'lower-case-first';
 import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
 import path from 'path';
 import pluralize from 'pluralize';
-import invariant from 'tiny-invariant';
 import { match, P } from 'ts-pattern';
 import YAML from 'yaml';
 import { name } from '.';
