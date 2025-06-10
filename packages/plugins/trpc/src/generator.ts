@@ -169,12 +169,12 @@ function createAppRouter(
         >(
             procedures: ProcRouterRecord
         ) => CreateRouterInner<Config, ProcRouterRecord>;
-            
+
         export type UnsetMarker = typeof unsetMarker;
 
         export type ProcBuilder<Config extends BaseConfig> = ProcedureBuilder<
             ProcedureParams<Config, any, any, any, UnsetMarker, UnsetMarker, any>
-        >;            
+        >;
         `);
     } else {
         appRouter.addImportDeclaration({

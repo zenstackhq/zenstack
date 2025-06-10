@@ -10,7 +10,7 @@ tags:
     - name: post_Item
       description: Post-related operations
     - name: postLike
-      description: PostLike operations 
+      description: PostLike operations
 paths:
     /user:
         get:

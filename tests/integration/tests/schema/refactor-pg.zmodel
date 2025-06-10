@@ -10,7 +10,7 @@ model User {
     profile Profile?
     posts Post[]
     comments Comment[]
-    
+
     // everybody can signup
     @@allow('create', true)
 
@@ -30,10 +30,10 @@ model Profile {
 
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId Int @unique
-    
+
     // user profile is publicly readable
     @@allow('read', auth() != null && !private)
-    
+
     // user profile is only updatable by the user
     @@allow('all', auth() == user || auth().role == ADMIN)
 }
@@ -60,7 +60,7 @@ model Post {
 
     // posts are readable by all
     @@allow('read', published)
-    
+
     // posts are updatable by the author
     @@allow('all', auth() == author || auth().role == ADMIN)
 }
@@ -76,7 +76,7 @@ model Comment {
     postId Int
 
     images Image[]
-    
+
     // comments are readable by all
     @@allow('read', post.published)
 
@@ -85,7 +85,7 @@ model Comment {
     @@allow('update', auth() == author && future().author == auth())
 
     @@allow('delete', auth() == author || auth() == post.author)
-    
+
     // comments are updatable by the author
     @@allow('all', auth().role == ADMIN)
 }

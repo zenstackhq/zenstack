@@ -25,7 +25,7 @@ enum ReferentialAction {
      * Used with "onUpdate": when updating the identifier of a referenced object, the scalar fields of the referencing objects will be set to NULL.
      */
     SetNull
-    
+
     /**
      * Used with "onDelete": the scalar field of the referencing object will be set to the fields default value.
      * Used with "onUpdate": the scalar field of the referencing object will be set to the fields default value.
@@ -110,7 +110,7 @@ function ulid(): String {
 } @@@expressionContext([DefaultValue])
 
 /**
- * Creates a sequence of integers in the underlying database and assign the incremented 
+ * Creates a sequence of integers in the underlying database and assign the incremented
  * values to the ID values of the created records based on the sequence.
  */
 function autoincrement(): Int {
@@ -180,9 +180,9 @@ function isEmpty(field: Any[]): Boolean {
 /**
  * The name of the model for which the policy rule is defined. If the rule is
  * inherited to a sub model, this function returns the name of the sub model.
- * 
+ *
  * @param optional parameter to control the casing of the returned value. Valid
- * values are "original", "upper", "lower", "capitalize", "uncapitalize". Defaults 
+ * values are "original", "upper", "lower", "capitalize", "uncapitalize". Defaults
  * to "original".
  */
 function currentModel(casing: String?): String {
@@ -537,7 +537,7 @@ attribute @@allow(_ operation: String @@@completionHint(["'create'", "'read'", "
 
 /**
  * Defines an access policy that allows the annotated field to be read or updated.
- * You can pass a thrid argument as `true` to make it override the model-level policies. 
+ * You can pass a thrid argument as `true` to make it override the model-level policies.
  * 
  * @param operation: comma-separated list of "create", "read", "update", "delete". Use "all" to denote all operations.
  * @param condition: a boolean expression that controls if the operation should be allowed.
@@ -585,7 +585,7 @@ attribute @password(saltLength: Int?, salt: String?) @@@targetField([StringField
 /**
  * Indicates that the field is encrypted when storing in the DB and should be decrypted when read
  * 
- * ZenStack uses the Web Crypto API to encrypt and decrypt the field. 
+ * ZenStack uses the Web Crypto API to encrypt and decrypt the field.
  */
 attribute @encrypted() @@@targetField([StringField])
 
@@ -713,7 +713,7 @@ function url(field: String): Boolean {
  * Checks if the current user can perform the given operation on the given field.
  * 
  * @param field: The field to check access for
- * @param operation: The operation to check access for. Can be "read", "create", "update", or "delete". If the operation is not provided, 
+ * @param operation: The operation to check access for. Can be "read", "create", "update", or "delete". If the operation is not provided,
  * it defaults the operation of the containing policy rule.
  */
 function check(field: Any, operation: String?): Boolean {
