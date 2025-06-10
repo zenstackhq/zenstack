@@ -12,10 +12,9 @@ import {
 } from '@zenstackhq/sdk';
 import { DataModel, isDataModel, Model } from '@zenstackhq/sdk/ast';
 import { getPrismaClientImportSpec, supportCreateMany, type DMMF } from '@zenstackhq/sdk/prisma';
-import { lowerCaseFirst } from 'lower-case-first';
+import { lowerCaseFirst, upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import path from 'path';
 import { Project } from 'ts-morph';
-import { upperCaseFirst } from 'upper-case-first';
 import { name } from '.';
 import { createClientHelperEntries, generateClientTypingForModel } from './client-helper';
 import { project } from './project';

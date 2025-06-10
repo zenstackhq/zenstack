@@ -1,7 +1,7 @@
 import { PluginError, type PluginOptions } from '@zenstackhq/sdk';
 import { getPrismaClientImportSpec } from '@zenstackhq/sdk/prisma';
+import { lowerCaseFirst, upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import fs from 'fs';
-import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import {
     InterfaceDeclarationStructure,
@@ -10,7 +10,6 @@ import {
     SourceFile,
     StructureKind,
 } from 'ts-morph';
-import { upperCaseFirst } from 'upper-case-first';
 import { name } from '..';
 import { SupportedClientHelpers } from '../utils';
 import * as NextHelpers from './next';

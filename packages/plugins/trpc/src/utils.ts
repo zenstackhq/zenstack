@@ -1,7 +1,6 @@
 import { type DMMF } from '@zenstackhq/sdk/prisma';
-import { lowerCaseFirst } from 'lower-case-first';
+import { lowerCaseFirst, upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import { CodeBlockWriter, SourceFile } from 'ts-morph';
-import { upperCaseFirst } from 'upper-case-first';
 
 /**
  * Supported client helper types
