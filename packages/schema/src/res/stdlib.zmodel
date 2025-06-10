@@ -537,7 +537,7 @@ attribute @@allow(_ operation: String @@@completionHint(["'create'", "'read'", "
 
 /**
  * Defines an access policy that allows the annotated field to be read or updated.
- * You can pass a thrid argument as `true` to make it override the model-level policies. 
+ * You can pass a third argument as `true` to make it override the model-level policies. 
  * 
  * @param operation: comma-separated list of "create", "read", "update", "delete". Use "all" to denote all operations.
  * @param condition: a boolean expression that controls if the operation should be allowed.
