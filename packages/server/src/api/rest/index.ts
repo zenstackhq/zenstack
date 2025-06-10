@@ -10,11 +10,9 @@ import {
     getIdFields,
     isPrismaClientKnownRequestError,
 } from '@zenstackhq/runtime';
-import { paramCase } from 'change-case';
-import { lowerCaseFirst } from 'lower-case-first';
+import { lowerCaseFirst, upperCaseFirst, paramCase } from '@zenstackhq/runtime/local-helpers';
 import SuperJSON from 'superjson';
 import { Linker, Paginator, Relator, Serializer, SerializerOptions } from 'ts-japi';
-import { upperCaseFirst } from 'upper-case-first';
 import UrlPattern from 'url-pattern';
 import z, { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
