@@ -1,4 +1,4 @@
-import { lowerCaseFirst } from 'lower-case-first';
+import { lowerCaseFirst } from '../local-helpers';
 
 /**
  * Runtime information of a data model or field attribute
