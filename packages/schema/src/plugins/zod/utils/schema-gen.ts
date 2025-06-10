@@ -11,7 +11,7 @@ import {
     isTypeDef,
     TypeDefField,
 } from '@zenstackhq/sdk/ast';
-import { upperCaseFirst } from 'upper-case-first';
+import { upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import { isDefaultWithAuth } from '../../enhancer/enhancer-utils';
 
 export function makeFieldSchema(field: DataModelField | TypeDefField) {

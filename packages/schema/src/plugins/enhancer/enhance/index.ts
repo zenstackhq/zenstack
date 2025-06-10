@@ -27,6 +27,7 @@ import {
     type Model,
 } from '@zenstackhq/sdk/ast';
 import { getDMMF, getPrismaClientImportSpec, getPrismaVersion, type DMMF } from '@zenstackhq/sdk/prisma';
+import { upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import fs from 'fs';
 import path from 'path';
 import semver from 'semver';
@@ -41,7 +42,6 @@ import {
     TypeAliasDeclaration,
     VariableStatement,
 } from 'ts-morph';
-import { upperCaseFirst } from 'upper-case-first';
 import { name } from '..';
 import { getConcreteModels, getDiscriminatorField } from '../../../utils/ast-utils';
 import { execPackage } from '../../../utils/exec-utils';
