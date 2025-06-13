@@ -1,6 +1,7 @@
 import { isPlugin, Model } from '@zenstackhq/language/ast';
 import { getLiteral } from '@zenstackhq/sdk';
 import { DefaultWorkspaceManager, interruptAndCheck, LangiumDocument } from 'langium';
+import fs from 'fs';
 import path from 'path';
 import { CancellationToken, WorkspaceFolder } from 'vscode-languageserver';
 import { URI, Utils } from 'vscode-uri';
@@ -17,7 +18,43 @@ export class ZModelWorkspaceManager extends DefaultWorkspaceManager {
         _collector: (document: LangiumDocument) => void
     ): Promise<void> {
         await super.loadAdditionalDocuments(_folders, _collector);
-        const stdLibUri = URI.file(path.join(__dirname, '../res', STD_LIB_MODULE_NAME));
+        
+        let stdLibPath: string;        
+        // First, try to find the stdlib from an installed zenstack package
+        // in the project's node_modules
+        let installedStdlibPath: string | undefined;
+        for (const folder of _folders) {
+            const folderPath = URI.parse(folder.uri).fsPath;
+            try {
+                // Try to resolve zenstack from the workspace folder
+                const languagePackagePath = require.resolve('zenstack/package.json', { 
+                    paths: [folderPath] 
+                });
+                const languagePackageDir = path.dirname(languagePackagePath);
+                const candidateStdlibPath = path.join(languagePackageDir, 'res', STD_LIB_MODULE_NAME);
+                
+                // Check if the stdlib file exists in the installed package
+                if (fs.existsSync(candidateStdlibPath)) {
+                    installedStdlibPath = candidateStdlibPath;
+                    console.log(`Found installed zenstack package stdlib at ${installedStdlibPath}`);
+                    break;
+                } 
+            } catch (error) {
+                // Package not found or other error, continue to next folder
+                console.error(`error happen when trying to find stdlib in folder ${folder.uri}:`, error);
+                continue;
+            }
+        }
+        
+        if (installedStdlibPath) {
+            stdLibPath = installedStdlibPath;
+        } else {
+            // Fallback to bundled stdlib
+            stdLibPath = path.join(__dirname, '../res', STD_LIB_MODULE_NAME);
+            console.log(`Using bundled stdlib in extension`);
+        }
+        
+        const stdLibUri = URI.file(stdLibPath);
         console.log(`Adding stdlib document from ${stdLibUri}`);
         const stdlib = this.langiumDocuments.getOrCreateDocument(stdLibUri);
         _collector(stdlib);
