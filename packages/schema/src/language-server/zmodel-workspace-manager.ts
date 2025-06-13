@@ -24,7 +24,7 @@ export class ZModelWorkspaceManager extends DefaultWorkspaceManager {
         // in the project's node_modules
         let installedStdlibPath: string | undefined;
         for (const folder of _folders) {
-            const folderPath = URI.parse(folder.uri).fsPath;
+            const folderPath = this.getRootFolder(folder).fsPath;
             try {
                 // Try to resolve zenstack from the workspace folder
                 const languagePackagePath = require.resolve('zenstack/package.json', { 
@@ -41,7 +41,6 @@ export class ZModelWorkspaceManager extends DefaultWorkspaceManager {
                 } 
             } catch (error) {
                 // Package not found or other error, continue to next folder
-                console.error(`error happen when trying to find stdlib in folder ${folder.uri}:`, error);
                 continue;
             }
         }
