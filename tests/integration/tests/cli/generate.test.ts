@@ -68,8 +68,10 @@ model Post {
         const program = createProgram();
         await program.parseAsync(['generate', '--no-dependency-check', '-o', 'out'], { from: 'user' });
         expect(fs.existsSync('./node_modules/.zenstack')).toBeFalsy();
-        expect(fs.existsSync('./out/policy.js')).toBeTruthy();
-        expect(fs.existsSync('./out/model-meta.js')).toBeTruthy();
+        expect(fs.existsSync('./out/policy.ts')).toBeTruthy();
+        expect(fs.existsSync('./out/model-meta.ts')).toBeTruthy();
+        expect(fs.existsSync('./out/policy.js')).toBeFalsy();
+        expect(fs.existsSync('./out/model-meta.js')).toBeFalsy();
         expect(fs.existsSync('./out/zod')).toBeTruthy();
     });
 
