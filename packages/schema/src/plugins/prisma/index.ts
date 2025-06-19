@@ -2,11 +2,10 @@ import {
     PluginError,
     type PluginFunction,
     type PluginOptions,
-    getLiteral,
+    getPrismaClientGenerator,
     normalizedRelative,
     resolvePath,
 } from '@zenstackhq/sdk';
-import { GeneratorDecl, isGeneratorDecl } from '@zenstackhq/sdk/ast';
 import { getDMMF } from '@zenstackhq/sdk/prisma';
 import colors from 'colors';
 import fs from 'fs';
@@ -58,13 +57,9 @@ const run: PluginFunction = async (model, options, _dmmf, _globalOptions) => {
         }
 
         // extract user-provided prisma client output path
-        const generator = model.declarations.find(
-            (d): d is GeneratorDecl =>
-                isGeneratorDecl(d) &&
-                d.fields.some((f) => f.name === 'provider' && getLiteral(f.value) === 'prisma-client-js')
-        );
-        const clientOutputField = generator?.fields.find((f) => f.name === 'output');
-        const clientOutput = getLiteral<string>(clientOutputField?.value);
+        const gen = getPrismaClientGenerator(model);
+        const clientOutput = gen?.output;
+        const newGenerator = !!gen?.isNewGenerator;
 
         if (clientOutput) {
             if (path.isAbsolute(clientOutput)) {
@@ -81,6 +76,11 @@ const run: PluginFunction = async (model, options, _dmmf, _globalOptions) => {
             clientOutputDir = prismaClientPath;
         }
 
+        if (newGenerator) {
+            // "prisma-client" generator requires an extra "/client" import suffix
+            prismaClientPath = `${prismaClientPath}/client`;
+        }
+
         // get PrismaClient dts path
 
         if (clientOutput) {
@@ -89,7 +89,7 @@ const run: PluginFunction = async (model, options, _dmmf, _globalOptions) => {
             prismaClientDtsPath = path.resolve(path.dirname(options.schemaPath), clientOutputDir, 'index.d.ts');
         }
 
-        if (!prismaClientDtsPath || !fs.existsSync(prismaClientDtsPath)) {
+        if (!newGenerator && (!prismaClientDtsPath || !fs.existsSync(prismaClientDtsPath))) {
             // if the file does not exist, try node module resolution
             try {
                 // the resolution is relative to the schema path by default
