@@ -468,8 +468,9 @@ export function getPreviewFeatures(model: Model) {
             isGeneratorDecl(d) &&
             d.fields.some(
                 (f) =>
-                    (f.name === 'provider' && getLiteral<string>(f.value) === 'prisma-client-js') ||
-                    getLiteral<string>(f.value) === 'prisma-client'
+                    f.name === 'provider' &&
+                    (getLiteral<string>(f.value) === 'prisma-client-js' ||
+                        getLiteral<string>(f.value) === 'prisma-client')
             )
     ) as GeneratorDecl | undefined;
 
