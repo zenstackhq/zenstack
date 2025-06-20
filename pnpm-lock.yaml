@@ -358,6 +358,9 @@ importers:
       buffer:
         specifier: ^6.0.3
         version: 6.0.3
+      decimal.js-light:
+        specifier: ^2.5.1
+        version: 2.5.1
       deepmerge:
         specifier: ^4.3.1
         version: 4.3.1
@@ -373,6 +376,9 @@ importers:
       semver:
         specifier: ^7.5.2
         version: 7.6.2
+      superjson:
+        specifier: ^1.13.0
+        version: 1.13.3
       traverse:
         specifier: ^0.6.10
         version: 0.6.10
@@ -382,6 +388,9 @@ importers:
       tslib:
         specifier: ^2.4.1
         version: 2.6.3
+      uuid:
+        specifier: ^9.0.0
+        version: 9.0.1
       zod:
         specifier: ^3.22.4
         version: 3.23.8
@@ -407,15 +416,6 @@ importers:
       '@types/uuid':
         specifier: ^8.3.4
         version: 8.3.4
-      decimal.js-light:
-        specifier: ^2.5.1
-        version: 2.5.1
-      superjson:
-        specifier: ^1.13.0
-        version: 1.13.3
-      uuid:
-        specifier: ^9.0.0
-        version: 9.0.1
     publishDirectory: dist
 
   packages/schema:
