@@ -6,6 +6,7 @@ import {
     ensureEmptyDir,
     generateModelMeta,
     getDataModels,
+    getPrismaClientGenerator,
     isDelegateModel,
     requireOption,
     resolvePath,
@@ -50,7 +51,6 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
             `Invalid value for "portable" option: ${options.portable}, a boolean value is expected`
         );
     }
-    const portable = options.portable ?? false;
 
     await generateModelMeta(project, models, typeDefs, {
         output: path.join(outDir, '__model_meta.ts'),
@@ -68,8 +68,13 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
         generateModelHooks(target, version, project, outDir, dataModel, mapping, options);
     });
 
-    if (portable) {
-        generateBundledTypes(project, outDir, options);
+    if (options.portable) {
+        const gen = getPrismaClientGenerator(model);
+        if (gen?.isNewGenerator) {
+            warnings.push(`The "portable" option is not supported with the "prisma-client" generator and is ignored.`);
+        } else {
+            generateBundledTypes(project, outDir, options);
+        }
     }
 
     await saveProject(project);

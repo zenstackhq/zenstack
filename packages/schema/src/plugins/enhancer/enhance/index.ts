@@ -7,7 +7,7 @@ import {
     getDataModelAndTypeDefs,
     getDataModels,
     getForeignKeyFields,
-    getLiteral,
+    getPrismaClientGenerator,
     getRelationField,
     hasAttribute,
     isDelegateModel,
@@ -22,7 +22,6 @@ import {
     ReferenceExpr,
     isArrayExpr,
     isDataModel,
-    isGeneratorDecl,
     isTypeDef,
     type Model,
 } from '@zenstackhq/sdk/ast';
@@ -56,7 +55,7 @@ import { generateTypeDefType } from './model-typedef-generator';
 // information of delegate models and their sub models
 type DelegateInfo = [DataModel, DataModel[]][];
 
-const LOGICAL_CLIENT_GENERATION_PATH = './.logical-prisma-client';
+const LOGICAL_CLIENT_GENERATION_PATH = './logical-prisma-client';
 
 export class EnhancerGenerator {
     // regex for matching "ModelCreateXXXInput" and "ModelUncheckedCreateXXXInput" type
@@ -114,6 +113,9 @@ export class EnhancerGenerator {
         if (this.needsLogicalClient) {
             prismaTypesFixed = true;
             resultPrismaTypeImport = LOGICAL_CLIENT_GENERATION_PATH;
+            if (this.isNewPrismaClientGenerator) {
+                resultPrismaTypeImport += '/client';
+            }
             const result = await this.generateLogicalPrisma();
             dmmf = result.dmmf;
         }
@@ -440,23 +442,14 @@ export type Enhanced<Client> =
     }
 
     private getPrismaClientGeneratorName(model: Model) {
-        for (const generator of model.declarations.filter(isGeneratorDecl)) {
-            if (
-                generator.fields.some(
-                    (f) => f.name === 'provider' && getLiteral<string>(f.value) === 'prisma-client-js'
-                )
-            ) {
-                return generator.name;
-            }
+        const gen = getPrismaClientGenerator(model);
+        if (!gen) {
+            throw new PluginError(name, `Cannot find "prisma-client-js" or "prisma-client" generator in the schema`);
         }
-        throw new PluginError(name, `Cannot find prisma-client-js generator in the schema`);
+        return gen.name;
     }
 
     private async processClientTypes(prismaClientDir: string) {
-        // make necessary updates to the generated `index.d.ts` file and overwrite it
-        const project = new Project();
-        const sf = project.addSourceFileAtPath(path.join(prismaClientDir, 'index.d.ts'));
-
         // build a map of delegate models and their sub models
         const delegateInfo: DelegateInfo = [];
         this.model.declarations
@@ -467,6 +460,16 @@ export type Enhanced<Client> =
                     delegateInfo.push([dm, concreteModels]);
                 }
             });
+
+        if (this.isNewPrismaClientGenerator) {
+            await this.processClientTypesNewPrismaGenerator(prismaClientDir, delegateInfo);
+        } else {
+            await this.processClientTypesLegacyPrismaGenerator(prismaClientDir, delegateInfo);
+        }
+    }
+    private async processClientTypesLegacyPrismaGenerator(prismaClientDir: string, delegateInfo: DelegateInfo) {
+        const project = new Project();
+        const sf = project.addSourceFileAtPath(path.join(prismaClientDir, 'index.d.ts'));
 
         // transform index.d.ts and write it into a new file (better perf than in-line editing)
         const sfNew = project.createSourceFile(path.join(prismaClientDir, 'index-fixed.d.ts'), undefined, {
@@ -482,6 +485,36 @@ export type Enhanced<Client> =
         // Save the transformed file over the original
         await sfNew.move(sf.getFilePath(), { overwrite: true });
         await sfNew.save();
+    }
+
+    private async processClientTypesNewPrismaGenerator(prismaClientDir: string, delegateInfo: DelegateInfo) {
+        const project = new Project();
+
+        for (const d of this.model.declarations.filter(isDataModel)) {
+            const fileName = `${prismaClientDir}/models/${d.name}.ts`;
+            const sf = project.addSourceFileAtPath(fileName);
+            const sfNew = project.createSourceFile(`${prismaClientDir}/models/${d.name}-fixed.ts`, undefined, {
+                overwrite: true,
+            });
+
+            const syntaxList = sf.getChildren()[0];
+            if (!Node.isSyntaxList(syntaxList)) {
+                throw new PluginError(name, `Unexpected syntax list structure in ${fileName}`);
+            }
+
+            syntaxList.getChildren().forEach((node) => {
+                if (Node.isInterfaceDeclaration(node)) {
+                    sfNew.addInterface(this.transformInterface(node, delegateInfo));
+                } else if (Node.isTypeAliasDeclaration(node)) {
+                    sfNew.addTypeAlias(this.transformTypeAlias(node, delegateInfo));
+                } else {
+                    sfNew.addStatements(node.getText());
+                }
+            });
+
+            await sfNew.move(sf.getFilePath(), { overwrite: true });
+            await sfNew.save();
+        }
     }
 
     private transformPrismaTypes(sf: SourceFile, sfNew: SourceFile, delegateInfo: DelegateInfo) {
@@ -639,7 +672,7 @@ export type Enhanced<Client> =
                 source = `${payloadRecord[1]
                     .map(
                         (concrete) =>
-                            `($${concrete.name}Payload<ExtArgs> & { scalars: { ${discriminatorDecl.name}: '${concrete.name}' } })`
+                            `(Prisma.$${concrete.name}Payload<ExtArgs> & { scalars: { ${discriminatorDecl.name}: '${concrete.name}' } })`
                     )
                     .join(' | ')}`;
             }
@@ -915,5 +948,10 @@ export type Enhanced<Client> =
 
     private trimEmptyLines(source: string): string {
         return source.replace(/^\s*[\r\n]/gm, '');
+    }
+
+    private get isNewPrismaClientGenerator() {
+        const gen = getPrismaClientGenerator(this.model);
+        return !!gen?.isNewGenerator;
     }
 }

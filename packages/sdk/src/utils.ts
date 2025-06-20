@@ -466,7 +466,11 @@ export function getPreviewFeatures(model: Model) {
     const jsGenerator = model.declarations.find(
         (d) =>
             isGeneratorDecl(d) &&
-            d.fields.some((f) => f.name === 'provider' && getLiteral<string>(f.value) === 'prisma-client-js')
+            d.fields.some(
+                (f) =>
+                    (f.name === 'provider' && getLiteral<string>(f.value) === 'prisma-client-js') ||
+                    getLiteral<string>(f.value) === 'prisma-client'
+            )
     ) as GeneratorDecl | undefined;
 
     if (jsGenerator) {
@@ -682,4 +686,29 @@ export function getRelationName(field: DataModelField) {
         return undefined;
     }
     return getAttributeArgLiteral(relAttr, 'name');
+}
+
+export function getPrismaClientGenerator(model: Model) {
+    const decl = model.declarations.find(
+        (d): d is GeneratorDecl =>
+            isGeneratorDecl(d) &&
+            d.fields.some(
+                (f) =>
+                    f.name === 'provider' &&
+                    (getLiteral<string>(f.value) === 'prisma-client-js' ||
+                        getLiteral<string>(f.value) === 'prisma-client')
+            )
+    );
+    if (!decl) {
+        return undefined;
+    }
+
+    const provider = getLiteral<string>(decl.fields.find((f) => f.name === 'provider')?.value);
+    return {
+        name: decl.name,
+        output: getLiteral<string>(decl.fields.find((f) => f.name === 'output')?.value),
+        previewFeatures: getLiteralArray<string>(decl.fields.find((f) => f.name === 'previewFeatures')?.value),
+        provider,
+        isNewGenerator: provider === 'prisma-client',
+    };
 }
