@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { lowerCaseFirst } from 'lower-case-first';
+import { lowerCaseFirst } from '../local-helpers';
 import type { ModelMeta } from './model-meta';
 import { NestedReadVisitor } from './nested-read-visitor';
 import { NestedWriteVisitor } from './nested-write-visitor';

@@ -12,9 +12,9 @@ import {
 import { DataModel, DataModelField, Enum, isDataModel, isEnum, isTypeDef, type Model } from '@zenstackhq/sdk/ast';
 import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
 import { supportCreateMany, type DMMF as PrismaDMMF } from '@zenstackhq/sdk/prisma';
+import { upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import path from 'path';
 import type { Project, SourceFile } from 'ts-morph';
-import { upperCaseFirst } from 'upper-case-first';
 import { computePrismaClientImport } from './generator';
 import { AggregateOperationSupport, ObjectMode, TransformerParams } from './types';
 

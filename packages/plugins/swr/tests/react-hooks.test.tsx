@@ -7,7 +7,7 @@
 /// <reference types="@types/jest" />
 
 import { renderHook, waitFor } from '@testing-library/react';
-import { lowerCaseFirst } from 'lower-case-first';
+import { lowerCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import nock from 'nock';
 import { SWRConfig, useSWRConfig } from 'swr';
 import {

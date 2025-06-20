@@ -7,7 +7,7 @@ import {
     type ModelMeta,
     type PrismaWriteActionType,
 } from '@zenstackhq/runtime/cross';
-import { lowerCaseFirst } from 'lower-case-first';
+import { lowerCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import { createContext, useContext } from 'react';
 import type { Cache, Fetcher, SWRConfiguration, SWRResponse } from 'swr';
 import useSWR, { useSWRConfig } from 'swr';

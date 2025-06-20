@@ -1,5 +1,5 @@
 import { PluginFunction } from '@zenstackhq/sdk';
-import invariant from 'tiny-invariant';
+import { invariant } from '@zenstackhq/runtime/local-helpers';
 import { ZodSchemaGenerator } from './generator';
 
 export const name = 'Zod';
