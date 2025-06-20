@@ -22,8 +22,8 @@
             "default": "./index.js"
         },
         "./local-helpers": {
-            "types": "./local-helpers.d.ts",
-            "default": "./local-helpers.js"
+            "types": "./local-helpers/index.d.ts",
+            "default": "./local-helpers/index.js"
         },
         "./edge": {
             "types": "./edge.d.ts",
