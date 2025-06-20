@@ -140,6 +140,11 @@ export type EnhancementOptions = {
      * The encryption options for using the `encrypted` enhancement.
      */
     encryption?: SimpleEncryption | CustomEncryption;
+
+    /**
+     * Options for data validation.
+     */
+    validation?: ValidationOptions;
 };
 
 /**
@@ -208,4 +213,21 @@ export type CustomEncryption = {
      * Decryption function
      */
     decrypt: (model: string, field: FieldInfo, cipher: string) => Promise<string>;
+};
+
+/**
+ * Options for data validation.
+ */
+export type ValidationOptions = {
+    /**
+     * Whether to validate "update" operations based only on the input data. By default, ZenStack
+     * validates the entity after a update operation completes (inside a transaction), and rejects
+     * the operation if validation fails. This implies the entire entity needs to satisfy the
+     * validation rules, even for fields that are not part of the update input data.
+     *
+     * You can use this option to toggle the behavior to only validate the input data.
+     *
+     * Default is `false`.
+     */
+    inputOnlyValidationForUpdate?: boolean;
 };
