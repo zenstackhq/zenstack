@@ -234,7 +234,10 @@ export class PrismaSchemaGenerator {
 
         // deal with configuring PrismaClient preview features
         const provider = generator.fields.find((f) => f.name === 'provider');
-        if (provider?.text === JSON.stringify('prisma-client-js')) {
+        if (
+            provider?.text === JSON.stringify('prisma-client-js') ||
+            provider?.text === JSON.stringify('prisma-client')
+        ) {
             const prismaVersion = getPrismaVersion();
             if (prismaVersion) {
                 const previewFeatures = JSON.parse(
