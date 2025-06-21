@@ -9,7 +9,7 @@ type Cb = (
     }
 ) => void;
 
-function walk<T>(root: T, cb: Cb) {
+export function simpleTraverse<T>(root: T, cb: Cb) {
     const path: string[] = [];
     const parents: any[] = [];
 
@@ -58,9 +58,3 @@ function walk<T>(root: T, cb: Cb) {
 
     return walker(root);
 }
-
-function traverse<T>(obj: T, cb: Cb) {
-    return walk(obj, cb);
-}
-
-module.exports = traverse;
