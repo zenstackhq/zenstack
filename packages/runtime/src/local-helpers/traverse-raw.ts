@@ -1,55 +1,51 @@
-/* eslint-disable */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-type Cb = Function;
+type Cb = (
+	data: {
+		path: readonly string[];
+		key: string;
+		value: any;
+		update: (nextValue: any) => void;
+	}
+) => void;
 
 function walk<T>(root: T, cb: Cb) {
 	const path: string[] = [];
 	const parents: any[] = [];
 
 	function walker(node: any) {
+		const isObject = typeof node === 'object' && node !== null;
+		const isCircular = isObject && parents.some((p) => p === node);
+		const key = path[path.length - 1];
+
 		let keepGoing = true;
 
-		const state = {
-			node: node,
-			path: [...path],
-			parent: parents[parents.length - 1],
-			parents: parents,
-			key: path[path.length - 1],
-			isRoot: path.length === 0,
-			circular: null,
-			update: function (x: any) {
-				if (!state.isRoot) {
-					state.parent.node[state.key] = x;
-				}
-				state.node = x;
-				keepGoing = false;
-			},
-		};
-
-		if (typeof state.node === 'object' && state.node !== null) {
-			for (let i = 0; i < parents.length; i++) {
-				if (parents[i].node === state.node) {
-					state.circular = parents[i];
-					break;
-				}
+		function update(nextValue: any) {
+			if (path.length) {
+				const parent = parents[parents.length - 1];
+				parent[key] = nextValue;
+				node = nextValue;
 			}
+
+			keepGoing = false;
 		}
 
-		cb.call(state, state.node);
+		cb({
+			path: [...path],
+			key,
+			value: node,
+			update,
+		});
 
-		if (!keepGoing) { return state; }
+		if (!keepGoing) return node;
 
-		if (
-			typeof state.node === 'object'
-			&& state.node !== null
-			&& !state.circular
-		) {
-			parents[parents.length] = state;
+		if (isObject && !isCircular) {
+			parents.push(node);
 
-			Object.keys(state.node).forEach((key) => {
-				path[path.length] = key;
+			Object.keys(node).forEach((key) => {
+				path.push(key);
 
-				walker(state.node[key]);
+				walker(node[key]);
 
 				path.pop();
 			});
@@ -57,10 +53,10 @@ function walk<T>(root: T, cb: Cb) {
 			parents.pop();
 		}
 
-		return state;
+		return node;
 	}
 
-	return walker(root).node;
+	return walker(root);
 }
 
 function traverse<T>(obj: T, cb: Cb) {
