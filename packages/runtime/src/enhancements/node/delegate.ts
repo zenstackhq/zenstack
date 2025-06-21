@@ -487,7 +487,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         const prisma = this.prisma;
         const prismaModule = this.options.prismaModule;
         simpleTraverse(data, ({ key }) => {
-            if (key.startsWith(DELEGATE_AUX_RELATION_PREFIX)) {
+            if (key?.startsWith(DELEGATE_AUX_RELATION_PREFIX)) {
                 throw prismaClientValidationError(
                     prisma,
                     prismaModule,

@@ -3,7 +3,7 @@
 type Cb = (
     data: {
         path: readonly string[];
-        key: string;
+        key: string | undefined;
         value: any;
         update: (nextValue: any) => void;
     }
@@ -16,13 +16,13 @@ export function simpleTraverse<T>(root: T, cb: Cb) {
     function walker(node: any) {
         const isObject = typeof node === 'object' && node !== null;
         const isCircular = isObject && parents.some((p) => p === node);
-        const key = path[path.length - 1];
 
         let keepGoing = true;
 
         function update(nextValue: any) {
             if (path.length) {
                 const parent = parents[parents.length - 1];
+                const key = path[path.length - 1];
                 parent[key] = nextValue;
                 node = nextValue;
             }
@@ -32,7 +32,7 @@ export function simpleTraverse<T>(root: T, cb: Cb) {
 
         cb({
             path: [...path],
-            key,
+            key: path[path.length - 1],
             value: node,
             update,
         });
