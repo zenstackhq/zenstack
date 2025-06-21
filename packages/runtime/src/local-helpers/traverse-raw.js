@@ -2,17 +2,14 @@
 'use strict';
 
 function walk(root, cb) {
-	var path = [];
-	var parents = [];
+	const path = [];
+	const parents = [];
 
-	function walker(node_) {
-		var node = node_;
+	function walker(node) {
+		let keepGoing = true;
 
-		var keepGoing = true;
-
-		var state = {
+		const state = {
 			node: node,
-			node_: node_,
 			path: [].concat(path),
 			parent: parents[parents.length - 1],
 			parents: parents,
@@ -26,33 +23,16 @@ function walk(root, cb) {
 				state.node = x;
 				keepGoing = false;
 			},
-			keys: null,
 		};
 
-		function updateState() {
-			if (typeof state.node === 'object' && state.node !== null) {
-				if (!state.keys || state.node_ !== state.node) {
-					state.keys = Object.keys(state.node);
+		if (typeof state.node === 'object' && state.node !== null) {
+			for (let i = 0; i < parents.length; i++) {
+				if (parents[i].node === state.node) {
+					state.circular = parents[i];
+					break;
 				}
-
-				state.isLeaf = state.keys.length === 0;
-
-				for (var i = 0; i < parents.length; i++) {
-					if (parents[i].node_ === node_) {
-						state.circular = parents[i];
-						break; // eslint-disable-line no-restricted-syntax
-					}
-				}
-			} else {
-				state.isLeaf = true;
-				state.keys = null;
 			}
-
-			state.notLeaf = !state.isLeaf;
-			state.notRoot = !state.isRoot;
 		}
-
-		updateState();
 
 		cb.call(state, state.node);
 
@@ -65,18 +45,14 @@ function walk(root, cb) {
 		) {
 			parents[parents.length] = state;
 
-			updateState();
+			Object.keys(state.node).forEach((key) => {
+				path[path.length] = key;
 
-			state.keys.forEach(function (key, i) {
-				path[path.length] = (key);
-
-				var child = walker(state.node[key]);
-
-				child.isLast = i === state.keys.length - 1;
-				child.isFirst = i === 0;
+				walker(state.node[key]);
 
 				path.pop();
 			});
+
 			parents.pop();
 		}
 
