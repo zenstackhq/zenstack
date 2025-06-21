@@ -1,3 +1,4 @@
+export * from './simple-traverse';
 export * from './sleep';
 export * from './is-plain-object';
 export * from './lower-case-first';
