@@ -1,22 +1,23 @@
 /* eslint-disable */
-'use strict';
 
-function walk(root, cb) {
-	const path = [];
-	const parents = [];
+type Cb = Function;
 
-	function walker(node) {
+function walk<T>(root: T, cb: Cb) {
+	const path: string[] = [];
+	const parents: any[] = [];
+
+	function walker(node: any) {
 		let keepGoing = true;
 
 		const state = {
 			node: node,
-			path: [].concat(path),
+			path: [...path],
 			parent: parents[parents.length - 1],
 			parents: parents,
 			key: path[path.length - 1],
 			isRoot: path.length === 0,
 			circular: null,
-			update: function (x) {
+			update: function (x: any) {
 				if (!state.isRoot) {
 					state.parent.node[state.key] = x;
 				}
@@ -62,7 +63,7 @@ function walk(root, cb) {
 	return walker(root).node;
 }
 
-function traverse(obj, cb) {
+function traverse<T>(obj: T, cb: Cb) {
 	return walk(obj, cb);
 }
 
