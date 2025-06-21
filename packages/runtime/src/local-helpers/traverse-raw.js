@@ -5,7 +5,7 @@ function walk(root, cb) {
 	var path = [];
 	var parents = [];
 
-	return (function walker(node_) {
+	function walker(node_) {
 		var node = node_;
 
 		var keepGoing = true;
@@ -81,24 +81,13 @@ function walk(root, cb) {
 		}
 
 		return state;
-	}(root)).node;
+	}
+
+	return walker(root).node;
 }
 
-function Traverse(obj) {
-	this.value = obj;
-}
-
-Traverse.prototype.map = function (cb) {
-	return walk(this.value, cb);
-};
-
-Traverse.prototype.forEach = function (cb) {
-	this.value = walk(this.value, cb);
-	return this.value;
-};
-
-function traverse(obj) {
-	return new Traverse(obj);
+function traverse(obj, cb) {
+	return walk(obj, cb);
 }
 
 module.exports = traverse;
