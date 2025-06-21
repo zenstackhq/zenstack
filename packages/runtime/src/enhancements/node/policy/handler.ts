@@ -1,9 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import deepmerge from 'deepmerge';
-import { lowerCaseFirst } from 'lower-case-first';
-import invariant from 'tiny-invariant';
-import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
 import { CrudFailureReason } from '../../../constants';
 import {
@@ -18,6 +15,7 @@ import {
     type FieldInfo,
     type ModelMeta,
 } from '../../../cross';
+import { lowerCaseFirst, upperCaseFirst, invariant } from '../../../local-helpers';
 import { EnhancementContext, PolicyOperationKind, type CrudContract, type DbClientContract } from '../../../types';
 import type { InternalEnhancementOptions } from '../create-enhancement';
 import { Logger } from '../logger';

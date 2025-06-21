@@ -1,10 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import deepmerge from 'deepmerge';
-import { isPlainObject } from 'is-plain-object';
-import { lowerCaseFirst } from 'lower-case-first';
 import traverse from 'traverse';
-import { upperCaseFirst } from 'upper-case-first';
 import { z, type ZodError, type ZodObject, type ZodSchema } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { CrudFailureReason, PrismaErrorCode } from '../../../constants';
@@ -18,6 +15,7 @@ import {
     type FieldInfo,
     type ModelMeta,
 } from '../../../cross';
+import { isPlainObject, lowerCaseFirst, upperCaseFirst } from '../../../local-helpers';
 import {
     AuthUser,
     CrudContract,
@@ -939,7 +937,7 @@ export class PolicyUtil extends QueryUtils {
             }
         }
 
-        if (schema) {
+        if (schema && !this.options.validation?.inputOnlyValidationForUpdate) {
             // TODO: push down schema check to the database
             this.validateZodSchema(model, undefined, result, true, (err) => {
                 throw this.deniedByPolicy(

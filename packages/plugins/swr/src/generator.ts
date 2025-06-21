@@ -12,11 +12,10 @@ import {
 } from '@zenstackhq/sdk';
 import { DataModel, DataModelFieldType, Model, isEnum, isTypeDef } from '@zenstackhq/sdk/ast';
 import { getPrismaClientImportSpec, supportCreateMany, type DMMF } from '@zenstackhq/sdk/prisma';
-import { paramCase } from 'change-case';
+import { upperCaseFirst, paramCase } from '@zenstackhq/runtime/local-helpers';
 import path from 'path';
 import type { OptionalKind, ParameterDeclarationStructure, Project, SourceFile } from 'ts-morph';
 import { P, match } from 'ts-pattern';
-import { upperCaseFirst } from 'upper-case-first';
 import { name } from '.';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {

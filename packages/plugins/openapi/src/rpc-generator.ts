@@ -11,13 +11,11 @@ import {
     resolveAggregateOperationSupport,
 } from '@zenstackhq/sdk/dmmf-helpers';
 import { supportCreateMany, type DMMF } from '@zenstackhq/sdk/prisma';
+import { lowerCaseFirst, upperCaseFirst, invariant } from '@zenstackhq/runtime/local-helpers';
 import * as fs from 'fs';
-import { lowerCaseFirst } from 'lower-case-first';
 import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
 import * as path from 'path';
-import invariant from 'tiny-invariant';
 import { P, match } from 'ts-pattern';
-import { upperCaseFirst } from 'upper-case-first';
 import YAML from 'yaml';
 import { name } from '.';
 import { OpenAPIGeneratorBase } from './generator-base';

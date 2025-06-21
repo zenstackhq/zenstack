@@ -36,8 +36,7 @@ import {
     TypeScriptExpressionTransformer,
     TypeScriptExpressionTransformerError,
 } from '@zenstackhq/sdk';
-import { lowerCaseFirst } from 'lower-case-first';
-import invariant from 'tiny-invariant';
+import { lowerCaseFirst, invariant } from '@zenstackhq/runtime/local-helpers';
 import { name } from '..';
 import { isCheckInvocation } from '../../../utils/ast-utils';
 

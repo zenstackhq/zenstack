@@ -7,8 +7,8 @@ import {
     isPrismaClientUnknownRequestError,
     isPrismaClientValidationError,
 } from '@zenstackhq/runtime';
+import { upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import SuperJSON from 'superjson';
-import { upperCaseFirst } from 'upper-case-first';
 import { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { Response } from '../../types';

@@ -112,10 +112,7 @@ export class PluginRunner {
         const otherPlugins = plugins.filter((p) => !p.options.preprocessor);
 
         // calculate all plugins (including core plugins implicitly enabled)
-        const { corePlugins, userPlugins } = this.calculateAllPlugins(
-            runnerOptions,
-            otherPlugins,
-        );
+        const { corePlugins, userPlugins } = this.calculateAllPlugins(runnerOptions, otherPlugins);
         const allPlugins = [...corePlugins, ...userPlugins];
 
         // check dependencies
@@ -448,7 +445,7 @@ export class PluginRunner {
 }
 
 async function compileProject(project: Project, runnerOptions: PluginRunnerOptions) {
-    if (runnerOptions.compile !== false) {
+    if (!runnerOptions.output && runnerOptions.compile !== false) {
         // emit
         await emitProject(project);
     } else {

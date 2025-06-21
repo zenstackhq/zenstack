@@ -1,4 +1,4 @@
-import { PluginError } from '@zenstackhq/sdk';
+import { getPrismaClientGenerator, PluginError } from '@zenstackhq/sdk';
 import { isPlugin } from '@zenstackhq/sdk/ast';
 import colors from 'colors';
 import path from 'path';
@@ -69,6 +69,18 @@ async function runPlugins(options: Options) {
     const schema = options.schema ?? getDefaultSchemaLocation();
 
     const model = await loadDocument(schema);
+
+    const gen = getPrismaClientGenerator(model);
+    if (gen?.isNewGenerator && !options.output) {
+        console.error(
+            colors.red(
+                'When using the "prisma-client" generator, you must provide an explicit output path with the "--output" CLI parameter.'
+            )
+        );
+        throw new CliError(
+            'When using with the "prisma-client" generator, you must provide an explicit output path with the "--output" CLI parameter.'
+        );
+    }
 
     for (const name of [...(options.withPlugins ?? []), ...(options.withoutPlugins ?? [])]) {
         const pluginDecl = model.declarations.find((d) => isPlugin(d) && d.name === name);

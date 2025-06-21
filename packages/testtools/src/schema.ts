@@ -18,7 +18,7 @@ import tmp from 'tmp';
 import { loadDocument } from 'zenstack/cli/cli-util';
 import prismaPlugin from 'zenstack/plugins/prisma';
 
-/** 
+/**
  * Use it to represent multiple files in a single string like this
    `schema.zmodel
     import "user"
@@ -278,27 +278,6 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         fs.cpSync(dep, path.join(projectDir, 'node_modules', pkgJson.name), { recursive: true, force: true });
     });
 
-    const prismaLoadPath = options?.prismaLoadPath
-        ? path.isAbsolute(options.prismaLoadPath)
-            ? options.prismaLoadPath
-            : path.join(projectDir, options.prismaLoadPath)
-        : path.join(projectDir, 'node_modules/.prisma/client');
-    const prismaModule = require(prismaLoadPath);
-    const PrismaClient = prismaModule.PrismaClient;
-
-    let clientOptions: object = { log: ['info', 'warn', 'error'] };
-    if (options?.prismaClientOptions) {
-        clientOptions = { ...clientOptions, ...options.prismaClientOptions };
-    }
-    let prisma = new PrismaClient(clientOptions);
-    // https://github.com/prisma/prisma/issues/18292
-    prisma[Symbol.for('nodejs.util.inspect.custom')] = 'PrismaClient';
-
-    if (opt.pulseApiKey) {
-        const withPulse = loadModule('@prisma/extension-pulse/node', projectDir).withPulse;
-        prisma = prisma.$extends(withPulse({ apiKey: opt.pulseApiKey }));
-    }
-
     opt.extraSourceFiles?.forEach(({ name, content }) => {
         fs.writeFileSync(path.join(projectDir, name), content);
     });
@@ -323,6 +302,27 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         tsconfig.exclude = ['node_modules'];
         fs.writeFileSync(path.join(projectDir, './tsconfig.json'), JSON.stringify(tsconfig, null, 2));
         run('npx tsc --project tsconfig.json');
+    }
+
+    const prismaLoadPath = options?.prismaLoadPath
+        ? path.isAbsolute(options.prismaLoadPath)
+            ? options.prismaLoadPath
+            : path.join(projectDir, options.prismaLoadPath)
+        : path.join(projectDir, 'node_modules/.prisma/client');
+    const prismaModule = require(prismaLoadPath);
+    const PrismaClient = prismaModule.PrismaClient;
+
+    let clientOptions: object = { log: ['info', 'warn', 'error'] };
+    if (options?.prismaClientOptions) {
+        clientOptions = { ...clientOptions, ...options.prismaClientOptions };
+    }
+    let prisma = new PrismaClient(clientOptions);
+    // https://github.com/prisma/prisma/issues/18292
+    prisma[Symbol.for('nodejs.util.inspect.custom')] = 'PrismaClient';
+
+    if (opt.pulseApiKey) {
+        const withPulse = loadModule('@prisma/extension-pulse/node', projectDir).withPulse;
+        prisma = prisma.$extends(withPulse({ apiKey: opt.pulseApiKey }));
     }
 
     if (options?.getPrismaOnly) {

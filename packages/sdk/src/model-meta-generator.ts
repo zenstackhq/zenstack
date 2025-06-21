@@ -17,8 +17,8 @@ import {
     TypeDefField,
 } from '@zenstackhq/language/ast';
 import type { RuntimeAttribute } from '@zenstackhq/runtime';
+import { lowerCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import { streamAst } from 'langium';
-import { lowerCaseFirst } from 'lower-case-first';
 import { FunctionDeclarationStructure, OptionalKind, Project, VariableDeclarationKind } from 'ts-morph';
 import {
     CodeWriter,
