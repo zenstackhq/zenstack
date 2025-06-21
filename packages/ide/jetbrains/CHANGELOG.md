@@ -2,7 +2,15 @@
 
 ## [Unreleased]
 
--  Support `@default` for `@json` fields.
+### Fixed
+
+-   Prefer to use "stdlib.zmodel" from user's node_modules folder.
+
+## 2.13.0
+
+### Added
+
+-   Support `@default` for `@json` fields.
 
 ### Fixed
 
