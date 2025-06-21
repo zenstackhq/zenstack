@@ -24,8 +24,9 @@ export function simpleTraverse<T>(root: T, cb: Cb) {
                 const parent = parents[parents.length - 1];
                 const key = path[path.length - 1];
                 parent[key] = nextValue;
-                node = nextValue;
             }
+
+            node = nextValue;
 
             keepGoing = false;
         }
