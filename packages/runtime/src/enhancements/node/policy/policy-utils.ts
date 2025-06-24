@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import deepmerge from 'deepmerge';
-import traverse from 'traverse';
 import { z, type ZodError, type ZodObject, type ZodSchema } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { CrudFailureReason, PrismaErrorCode } from '../../../constants';
@@ -15,7 +14,7 @@ import {
     type FieldInfo,
     type ModelMeta,
 } from '../../../cross';
-import { isPlainObject, lowerCaseFirst, upperCaseFirst } from '../../../local-helpers';
+import { isPlainObject, simpleTraverse, lowerCaseFirst, upperCaseFirst } from '../../../local-helpers';
 import {
     AuthUser,
     CrudContract,
@@ -691,27 +690,24 @@ export class PolicyUtil extends QueryUtils {
         // here we prefix the constraint variables coming from delegated checkers
         // with the relation field name to avoid conflicts
         const prefixConstraintVariables = (constraint: unknown, prefix: string) => {
-            return traverse(constraint).map(function (value) {
+            return simpleTraverse(constraint, ({ value, update }) => {
                 if (isVariableConstraint(value)) {
-                    this.update(
+                    update(
                         {
                             ...value,
                             name: `${prefix}${value.name}`,
-                        },
-                        true
+                        }
                     );
                 }
             });
         };
 
-        // eslint-disable-next-line @typescript-eslint/no-this-alias
-        const that = this;
-        result = traverse(result).forEach(function (value) {
+        result = simpleTraverse(result, ({ value, update }) => {
             if (isDelegateConstraint(value)) {
                 const { model: delegateModel, relation, operation: delegateOp } = value;
-                let newValue = that.getCheckerConstraint(delegateModel, delegateOp ?? operation);
+                let newValue = this.getCheckerConstraint(delegateModel, delegateOp ?? operation);
                 newValue = prefixConstraintVariables(newValue, `${relation}.`);
-                this.update(newValue, true);
+                update(newValue);
             }
         });
 

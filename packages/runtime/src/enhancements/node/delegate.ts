@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import deepmerge, { type ArrayMergeOptions } from 'deepmerge';
-import traverse from 'traverse';
 import { DELEGATE_AUX_RELATION_PREFIX } from '../../constants';
 import {
     FieldInfo,
@@ -14,7 +13,7 @@ import {
     isDelegateModel,
     resolveField,
 } from '../../cross';
-import { isPlainObject, lowerCaseFirst } from '../../local-helpers';
+import { isPlainObject, simpleTraverse, lowerCaseFirst } from '../../local-helpers';
 import type { CrudContract, DbClientContract, EnhancementContext } from '../../types';
 import type { InternalEnhancementOptions } from './create-enhancement';
 import { Logger } from './logger';
@@ -487,12 +486,12 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
 
         const prisma = this.prisma;
         const prismaModule = this.options.prismaModule;
-        traverse(data).forEach(function () {
-            if (this.key?.startsWith(DELEGATE_AUX_RELATION_PREFIX)) {
+        simpleTraverse(data, ({ key }) => {
+            if (key?.startsWith(DELEGATE_AUX_RELATION_PREFIX)) {
                 throw prismaClientValidationError(
                     prisma,
                     prismaModule,
-                    `Auxiliary relation field "${this.key}" cannot be set directly`
+                    `Auxiliary relation field "${key}" cannot be set directly`
                 );
             }
         });
