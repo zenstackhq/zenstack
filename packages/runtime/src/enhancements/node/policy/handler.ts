@@ -1654,7 +1654,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     }
 
     count(args: any) {
-        return createDeferredPromise<unknown[]>(() => this.doFind(args, 'findMany', () => []));
+        return createDeferredPromise<unknown[]>(() => this.doFind(args, 'count', () => []));
     }
 
     //#endregion
