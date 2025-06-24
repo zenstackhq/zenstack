@@ -35,7 +35,7 @@ type PostWriteCheckRecord = {
     preValue?: any;
 };
 
-type FindOperations = 'findUnique' | 'findUniqueOrThrow' | 'findFirst' | 'findFirstOrThrow' | 'findMany';
+type FindOperations = 'findUnique' | 'findUniqueOrThrow' | 'findFirst' | 'findFirstOrThrow' | 'findMany' | 'count';
 
 /**
  * Prisma proxy handler for injecting access policy check.
@@ -142,6 +142,10 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
         if (this.shouldLogQuery) {
             this.logger.info(`[policy] \`${actionName}\` ${this.model}:\n${formatObject(_args)}`);
+        }
+
+        if (actionName === 'count') {
+            _args.select = true;
         }
 
         const result = await this.modelClient[actionName](_args);
@@ -1650,16 +1654,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     }
 
     count(args: any) {
-        return createDeferredPromise(() => {
-            // inject policy conditions
-            args = args ? this.policyUtils.safeClone(args) : {};
-            this.policyUtils.injectAuthGuardAsWhere(this.prisma, args, this.model, 'read');
-
-            if (this.shouldLogQuery) {
-                this.logger.info(`[policy] \`count\` ${this.model}:\n${formatObject(args)}`);
-            }
-            return this.modelClient.count(args);
-        });
+        return createDeferredPromise<unknown[]>(() => this.doFind(args, 'findMany', () => []));
     }
 
     //#endregion
