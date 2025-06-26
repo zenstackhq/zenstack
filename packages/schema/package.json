@@ -129,7 +129,7 @@
         "@types/tmp": "^0.2.3",
         "@types/uuid": "^8.3.4",
         "@types/vscode": "^1.56.0",
-        "@vscode/vsce": "^2.19.0",
+        "@vscode/vsce": "^3.5.0",
         "@zenstackhq/runtime": "workspace:*",
         "dotenv": "^16.0.3",
         "esbuild": "^0.24.0",
