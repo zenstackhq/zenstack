@@ -14,7 +14,7 @@ import {
     type FieldInfo,
     type ModelMeta,
 } from '../../../cross';
-import { isPlainObject, simpleTraverse, lowerCaseFirst, upperCaseFirst } from '../../../local-helpers';
+import { isPlainObject, lowerCaseFirst, simpleTraverse, upperCaseFirst } from '../../../local-helpers';
 import {
     AuthUser,
     CrudContract,
@@ -469,7 +469,7 @@ export class PolicyUtil extends QueryUtils {
 
         if (operation === 'read') {
             // merge field-level read override guards
-            const fieldReadOverrideGuard = this.getFieldReadGuards(db, model, args);
+            const fieldReadOverrideGuard = this.getCombinedFieldOverrideReadGuards(db, model, args);
             if (fieldReadOverrideGuard) {
                 guard = this.or(guard, fieldReadOverrideGuard);
             }
@@ -610,10 +610,8 @@ export class PolicyUtil extends QueryUtils {
         }
 
         if (args.where) {
-            // inject into fields:
-            //   to-many: some/none/every
-            //   to-one: direct-conditions/is/isNot
-            //   regular fields
+            // visit fields accessed in where clause and merge field-level policies,
+            // fields are only allowed in where if they satisfy field-level read policies.
             const mergedGuard = this.buildReadGuardForFields(db, model, args.where, {});
             args.where = this.mergeWhereClause(args.where, mergedGuard);
         }
@@ -692,12 +690,10 @@ export class PolicyUtil extends QueryUtils {
         const prefixConstraintVariables = (constraint: unknown, prefix: string) => {
             return simpleTraverse(constraint, ({ value, update }) => {
                 if (isVariableConstraint(value)) {
-                    update(
-                        {
-                            ...value,
-                            name: `${prefix}${value.name}`,
-                        }
-                    );
+                    update({
+                        ...value,
+                        name: `${prefix}${value.name}`,
+                    });
                 }
             });
         };
@@ -961,7 +957,8 @@ export class PolicyUtil extends QueryUtils {
         return def.fieldLevel?.update?.[field]?.overrideEntityChecker;
     }
 
-    private getFieldReadGuards(db: CrudContract, model: string, args: { select?: any; include?: any }) {
+    // visit fields referenced in select/include and return a combined field-level override read guard
+    private getCombinedFieldOverrideReadGuards(db: CrudContract, model: string, args: { select?: any; include?: any }) {
         const allFields = Object.values(getFields(this.modelMeta, model));
 
         // all scalar fields by default
