@@ -122,14 +122,12 @@ export class EnhancerGenerator {
 
         // reexport PrismaClient types (original or fixed)
         const modelsTsContent = `export * from '${resultPrismaTypeImport}';${
-            this.isNewPrismaClientGenerator ? '\nexport * from \'./json-fields\';' : ''
+            this.isNewPrismaClientGenerator ? "\nexport * from './json-fields';" : ''
         }`;
-        
-        const modelsTs = this.project.createSourceFile(
-            path.join(this.outDir, 'models.ts'),
-            modelsTsContent,
-            { overwrite: true }
-        );
+
+        const modelsTs = this.project.createSourceFile(path.join(this.outDir, 'models.ts'), modelsTsContent, {
+            overwrite: true,
+        });
         this.saveSourceFile(modelsTs);
 
         const authDecl = getAuthDecl(getDataModelAndTypeDefs(this.model));
@@ -520,28 +518,7 @@ export type Enhanced<Client> =
                 throw new PluginError(name, `Unexpected syntax list structure in ${fileName}`);
             }
 
-            // Check if $Types is used in any type aliases (before and after transformation)
-            let needsTypesImport = false;
-            syntaxList.getChildren().forEach((node) => {
-                if (Node.isTypeAliasDeclaration(node)) {
-                    // Check original type
-                    const typeText = node.getType().getText();
-                    if (typeText.includes('$Types')) {
-                        needsTypesImport = true;
-                    }
-
-                    // Check if transformation would add $Types
-                    const structure = this.transformTypeAlias(node, delegateInfo);
-                    if (structure.type && typeof structure.type === 'string' && structure.type.includes('$Types')) {
-                        needsTypesImport = true;
-                    }
-                }
-            });
-
-            // Add $Types import if needed
-            if (needsTypesImport) {
-                sfNew.addStatements('import $Types = runtime.Types;');
-            }
+            sfNew.addStatements('import $Types = runtime.Types;');
 
             // Add import for json-fields if this model has JSON type fields
             const modelWithJsonFields = this.modelsWithJsonTypeFields.find((m) => m.name === d.name);
@@ -551,8 +528,8 @@ export type Enhanced<Client> =
                     return model.fields.filter((f) => isTypeDef(f.type.reference?.ref));
                 };
                 const jsonFieldTypes = getTypedJsonFields(modelWithJsonFields);
-                const typeNames = jsonFieldTypes.map(field => field.type.reference!.$refText);
-                
+                const typeNames = jsonFieldTypes.map((field) => field.type.reference!.$refText);
+
                 if (typeNames.length > 0) {
                     sfNew.addStatements(`import type { ${typeNames.join(', ')} } from "../../json-fields";`);
                 }
