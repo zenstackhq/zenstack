@@ -493,7 +493,7 @@ export type Enhanced<Client> =
         const project = new Project();
 
         // Create a shared file for all JSON fields type definitions
-        const jsonFieldsFile = project.createSourceFile(path.join(this.outDir, 'json-fields.d.ts'), undefined, {
+        const jsonFieldsFile = project.createSourceFile(path.join(this.outDir, 'json-fields.ts'), undefined, {
             overwrite: true,
         });
 
