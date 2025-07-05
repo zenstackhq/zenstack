@@ -492,18 +492,12 @@ export type Enhanced<Client> =
     private async processClientTypesNewPrismaGenerator(prismaClientDir: string, delegateInfo: DelegateInfo) {
         const project = new Project();
 
-        // Create a shared json-fields.ts file for all JSON fields type definitions
-        const jsonFieldsFile = project.createSourceFile(path.join(this.outDir, 'json-fields.ts'), undefined, {
+        // Create a shared file for all JSON fields type definitions
+        const jsonFieldsFile = project.createSourceFile(path.join(this.outDir, 'json-fields.d.ts'), undefined, {
             overwrite: true,
         });
 
-        // Generate all JSON fields type definitions in the shared file
-        for (const decl of this.model.declarations) {
-            if (isTypeDef(decl)) {
-                generateTypeDefType(jsonFieldsFile, decl);
-            }
-        }
-
+        await this.generateExtraTypes(jsonFieldsFile);
         await jsonFieldsFile.save();
 
         for (const d of this.model.declarations.filter(isDataModel)) {
