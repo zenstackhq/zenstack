@@ -528,7 +528,7 @@ export type Enhanced<Client> =
                     return model.fields.filter((f) => isTypeDef(f.type.reference?.ref));
                 };
                 const jsonFieldTypes = getTypedJsonFields(modelWithJsonFields);
-                const typeNames = jsonFieldTypes.map((field) => field.type.reference!.$refText);
+                const typeNames = [...new Set(jsonFieldTypes.map((field) => field.type.reference!.$refText))];
 
                 if (typeNames.length > 0) {
                     sfNew.addStatements(`import type { ${typeNames.join(', ')} } from "../../json-fields";`);
