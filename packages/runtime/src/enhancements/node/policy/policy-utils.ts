@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import deepmerge from 'deepmerge';
-import traverse from 'traverse';
 import { z, type ZodError, type ZodObject, type ZodSchema } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { CrudFailureReason, PrismaErrorCode } from '../../../constants';
@@ -15,7 +14,7 @@ import {
     type FieldInfo,
     type ModelMeta,
 } from '../../../cross';
-import { isPlainObject, lowerCaseFirst, upperCaseFirst } from '../../../local-helpers';
+import { isPlainObject, lowerCaseFirst, simpleTraverse, upperCaseFirst } from '../../../local-helpers';
 import {
     AuthUser,
     CrudContract,
@@ -470,7 +469,7 @@ export class PolicyUtil extends QueryUtils {
 
         if (operation === 'read') {
             // merge field-level read override guards
-            const fieldReadOverrideGuard = this.getFieldReadGuards(db, model, args);
+            const fieldReadOverrideGuard = this.getCombinedFieldOverrideReadGuards(db, model, args);
             if (fieldReadOverrideGuard) {
                 guard = this.or(guard, fieldReadOverrideGuard);
             }
@@ -611,10 +610,8 @@ export class PolicyUtil extends QueryUtils {
         }
 
         if (args.where) {
-            // inject into fields:
-            //   to-many: some/none/every
-            //   to-one: direct-conditions/is/isNot
-            //   regular fields
+            // visit fields accessed in where clause and merge field-level policies,
+            // fields are only allowed in where if they satisfy field-level read policies.
             const mergedGuard = this.buildReadGuardForFields(db, model, args.where, {});
             args.where = this.mergeWhereClause(args.where, mergedGuard);
         }
@@ -691,27 +688,22 @@ export class PolicyUtil extends QueryUtils {
         // here we prefix the constraint variables coming from delegated checkers
         // with the relation field name to avoid conflicts
         const prefixConstraintVariables = (constraint: unknown, prefix: string) => {
-            return traverse(constraint).map(function (value) {
+            return simpleTraverse(constraint, ({ value, update }) => {
                 if (isVariableConstraint(value)) {
-                    this.update(
-                        {
-                            ...value,
-                            name: `${prefix}${value.name}`,
-                        },
-                        true
-                    );
+                    update({
+                        ...value,
+                        name: `${prefix}${value.name}`,
+                    });
                 }
             });
         };
 
-        // eslint-disable-next-line @typescript-eslint/no-this-alias
-        const that = this;
-        result = traverse(result).forEach(function (value) {
+        result = simpleTraverse(result, ({ value, update }) => {
             if (isDelegateConstraint(value)) {
                 const { model: delegateModel, relation, operation: delegateOp } = value;
-                let newValue = that.getCheckerConstraint(delegateModel, delegateOp ?? operation);
+                let newValue = this.getCheckerConstraint(delegateModel, delegateOp ?? operation);
                 newValue = prefixConstraintVariables(newValue, `${relation}.`);
-                this.update(newValue, true);
+                update(newValue);
             }
         });
 
@@ -965,7 +957,8 @@ export class PolicyUtil extends QueryUtils {
         return def.fieldLevel?.update?.[field]?.overrideEntityChecker;
     }
 
-    private getFieldReadGuards(db: CrudContract, model: string, args: { select?: any; include?: any }) {
+    // visit fields referenced in select/include and return a combined field-level override read guard
+    private getCombinedFieldOverrideReadGuards(db: CrudContract, model: string, args: { select?: any; include?: any }) {
         const allFields = Object.values(getFields(this.modelMeta, model));
 
         // all scalar fields by default
