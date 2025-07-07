@@ -8,6 +8,7 @@ import * as os from 'os';
 import { CliError } from './cli/cli-error';
 import { TELEMETRY_TRACKING_TOKEN } from './constants';
 import isDocker from './utils/is-docker';
+import { isWsl } from './utils/is-wsl';
 import { getMachineId } from './utils/machine-id-utils';
 import { getVersion } from './utils/version-utils';
 
@@ -42,6 +43,7 @@ export class Telemetry {
     private readonly version = getVersion();
     private readonly prismaVersion = getPrismaVersion();
     private readonly isDocker = isDocker();
+    private readonly isWsl = isWsl();
     private exitWait = 200;
 
     constructor() {
@@ -105,6 +107,7 @@ export class Telemetry {
                 version: this.version,
                 prismaVersion: this.prismaVersion,
                 isDocker: this.isDocker,
+                isWsl: this.isWsl,
                 ...properties,
             };
             this.mixpanel.track(event, payload);
