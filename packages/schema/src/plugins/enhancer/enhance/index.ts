@@ -122,7 +122,7 @@ export class EnhancerGenerator {
 
         // reexport PrismaClient types (original or fixed)
         const modelsTsContent = `export * from '${resultPrismaTypeImport}';${
-            this.isNewPrismaClientGenerator ? "\nexport * from './json-fields';" : ''
+            this.isNewPrismaClientGenerator ? "\nexport * from './json-types';" : ''
         }`;
 
         const modelsTs = this.project.createSourceFile(path.join(this.outDir, 'models.ts'), modelsTsContent, {
@@ -243,7 +243,7 @@ export function enhance<DbClient extends object>(prisma: DbClient, context?: Enh
     private createLogicalPrismaImports(prismaImport: string, prismaClientImport: string, target: string) {
         const prismaTargetImport = target === 'edge' ? `${prismaImport}/edge` : prismaImport;
         return `import { Prisma as _Prisma, PrismaClient as _PrismaClient } from '${prismaTargetImport}';
-import type { InternalArgs, DynamicClientExtensionThis } from '${prismaImport}/runtime/library';
+import type { InternalArgs, DynamicClientExtensionThis } from '@prisma/client/runtime/library';
 import type * as _P from '${prismaClientImport}';
 import type { Prisma, PrismaClient } from '${prismaClientImport}';
 export type { PrismaClient };
@@ -493,12 +493,12 @@ export type Enhanced<Client> =
         const project = new Project();
 
         // Create a shared file for all JSON fields type definitions
-        const jsonFieldsFile = project.createSourceFile(path.join(this.outDir, 'json-fields.ts'), undefined, {
+        const jsonFieldsFile = project.createSourceFile(path.join(this.outDir, 'json-types.ts'), undefined, {
             overwrite: true,
         });
 
-        await this.generateExtraTypes(jsonFieldsFile);
-        await jsonFieldsFile.save();
+        this.generateExtraTypes(jsonFieldsFile);
+        await saveSourceFile(jsonFieldsFile);
 
         for (const d of this.model.declarations.filter(isDataModel)) {
             const fileName = `${prismaClientDir}/models/${d.name}.ts`;
@@ -514,7 +514,7 @@ export type Enhanced<Client> =
 
             sfNew.addStatements('import $Types = runtime.Types;');
 
-            // Add import for json-fields if this model has JSON type fields
+            // Add import for json-types if this model has JSON type fields
             const modelWithJsonFields = this.modelsWithJsonTypeFields.find((m) => m.name === d.name);
             if (modelWithJsonFields) {
                 // Get the specific types that are used in this model
@@ -525,7 +525,7 @@ export type Enhanced<Client> =
                 const typeNames = [...new Set(jsonFieldTypes.map((field) => field.type.reference!.$refText))];
 
                 if (typeNames.length > 0) {
-                    sfNew.addStatements(`import type { ${typeNames.join(', ')} } from "../../json-fields";`);
+                    sfNew.addStatements(`import type { ${typeNames.join(', ')} } from "../../json-types";`);
                 }
             }
 
@@ -940,7 +940,7 @@ export type Enhanced<Client> =
         return source;
     }
 
-    private async generateExtraTypes(sf: SourceFile) {
+    private generateExtraTypes(sf: SourceFile) {
         for (const decl of this.model.declarations) {
             if (isTypeDef(decl)) {
                 generateTypeDefType(sf, decl);
