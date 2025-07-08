@@ -503,16 +503,13 @@ export type Enhanced<Client> =
         for (const d of this.model.declarations.filter(isDataModel)) {
             const fileName = `${prismaClientDir}/models/${d.name}.ts`;
             const sf = project.addSourceFileAtPath(fileName);
-            const sfNew = project.createSourceFile(`${prismaClientDir}/models/${d.name}-fixed.ts`, undefined, {
-                overwrite: true,
-            });
 
             const syntaxList = sf.getChildren()[0];
             if (!Node.isSyntaxList(syntaxList)) {
                 throw new PluginError(name, `Unexpected syntax list structure in ${fileName}`);
             }
 
-            sfNew.addStatements('import $Types = runtime.Types;');
+            const statements = ['import $Types = runtime.Types;'];
 
             // Add import for json-types if this model has JSON type fields
             const modelWithJsonFields = this.modelsWithJsonTypeFields.find((m) => m.name === d.name);
@@ -525,22 +522,34 @@ export type Enhanced<Client> =
                 const typeNames = [...new Set(jsonFieldTypes.map((field) => field.type.reference!.$refText))];
 
                 if (typeNames.length > 0) {
-                    sfNew.addStatements(`import type { ${typeNames.join(', ')} } from "../../json-types";`);
+                    statements.push(`import type { ${typeNames.join(', ')} } from "../../json-types";`);
                 }
             }
 
             syntaxList.getChildren().forEach((node) => {
                 if (Node.isInterfaceDeclaration(node)) {
-                    sfNew.addInterface(this.transformInterface(node, delegateInfo));
+                    statements.push(this.transformInterface(node, delegateInfo));
                 } else if (Node.isTypeAliasDeclaration(node)) {
-                    sfNew.addTypeAlias(this.transformTypeAlias(node, delegateInfo));
+                    statements.push(this.transformTypeAlias(node, delegateInfo));
                 } else {
-                    sfNew.addStatements(node.getText());
+                    statements.push(node.getText());
                 }
             });
 
-            await sfNew.move(sf.getFilePath(), { overwrite: true });
+            const structure = sf.getStructure();
+            structure.statements = statements;
+
+            const sfNew = project.createSourceFile(`${prismaClientDir}/models/${d.name}-fixed.ts`, structure, {
+                overwrite: true,
+            });
             await sfNew.save();
+        }
+
+        for (const d of this.model.declarations.filter(isDataModel)) {
+            const fixedFileName = `${prismaClientDir}/models/${d.name}-fixed.ts`;
+            const fileName = `${prismaClientDir}/models/${d.name}.ts`;
+
+            fs.renameSync(fixedFileName, fileName);
         }
     }
 
