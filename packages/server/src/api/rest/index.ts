@@ -52,7 +52,6 @@ export type Options = {
     urlSegmentCharset?: string;
 
     modelNameMapping?: Record<string, string>;
-    prefix?: string;
 };
 
 type RelationshipInfo = {
@@ -239,14 +238,12 @@ class RequestHandler extends APIHandlerBase {
     private urlPatternMap: Record<UrlPatterns, UrlPattern>;
     private modelNameMapping: Record<string, string>;
     private reverseModelNameMapping: Record<string, string>;
-    private prefix: string | undefined;
 
     constructor(private readonly options: Options) {
         super();
         this.idDivider = options.idDivider ?? prismaIdDivider;
         const segmentCharset = options.urlSegmentCharset ?? 'a-zA-Z0-9-_~ %';
 
-        this.prefix = options.prefix;
         this.modelNameMapping = options.modelNameMapping ?? {};
         this.reverseModelNameMapping = Object.fromEntries(
             Object.entries(this.modelNameMapping).map(([k, v]) => [v, k])
@@ -258,7 +255,7 @@ class RequestHandler extends APIHandlerBase {
         const options = { segmentValueCharset: urlSegmentNameCharset };
 
         const buildPath = (segments: string[]) => {
-            return (this.prefix ?? '') + '/' + segments.join('/');
+            return '/' + segments.join('/');
         };
 
         return {
@@ -285,7 +282,6 @@ class RequestHandler extends APIHandlerBase {
         const match = pattern.match(path);
         if (match) {
             match.type = this.modelNameMapping[match.type] ?? match.type;
-            match.relationship = this.modelNameMapping[match.relationship] ?? match.relationship;
         }
         return match;
     }
@@ -574,12 +570,11 @@ class RequestHandler extends APIHandlerBase {
 
         if (entity?.[relationship]) {
             const mappedType = this.reverseModelNameMap(type);
-            const mappedRelationship = this.reverseModelNameMap(relationship);
             return {
                 status: 200,
                 body: await this.serializeItems(relationInfo.type, entity[relationship], {
                     linkers: {
-                        document: new Linker(() => this.makeLinkUrl(`/${mappedType}/${resourceId}/${mappedRelationship}`)),
+                        document: new Linker(() => this.makeLinkUrl(`/${mappedType}/${resourceId}/${relationship}`)),
                         paginator,
                     },
                     include,
@@ -627,12 +622,11 @@ class RequestHandler extends APIHandlerBase {
 
         const entity: any = await prisma[type].findUnique(args);
         const mappedType = this.reverseModelNameMap(type);
-        const mappedRelationship = this.reverseModelNameMap(relationship);
 
         if (entity?._count?.[relationship] !== undefined) {
             // build up paginator
             const total = entity?._count?.[relationship] as number;
-            const url = this.makeNormalizedUrl(`/${mappedType}/${resourceId}/relationships/${mappedRelationship}`, query);
+            const url = this.makeNormalizedUrl(`/${mappedType}/${resourceId}/relationships/${relationship}`, query);
             const { offset, limit } = this.getPagination(query);
             paginator = this.makePaginator(url, offset, limit, total);
         }
@@ -641,7 +635,7 @@ class RequestHandler extends APIHandlerBase {
             const serialized: any = await this.serializeItems(relationInfo.type, entity[relationship], {
                 linkers: {
                     document: new Linker(() =>
-                        this.makeLinkUrl(`/${mappedType}/${resourceId}/relationships/${mappedRelationship}`)
+                        this.makeLinkUrl(`/${mappedType}/${resourceId}/relationships/${relationship}`)
                     ),
                     paginator,
                 },
@@ -1057,11 +1051,12 @@ class RequestHandler extends APIHandlerBase {
         const entity: any = await prisma[type].update(updateArgs);
 
         const mappedType = this.reverseModelNameMap(type);
-        const mappedRelationship = this.reverseModelNameMap(relationship);
 
         const serialized: any = await this.serializeItems(relationInfo.type, entity[relationship], {
             linkers: {
-                document: new Linker(() => this.makeLinkUrl(`/${mappedType}/${resourceId}/relationships/${mappedRelationship}`)),
+                document: new Linker(() =>
+                    this.makeLinkUrl(`/${mappedType}/${resourceId}/relationships/${relationship}`)
+                ),
             },
             onlyIdentifier: true,
         });
@@ -1197,7 +1192,7 @@ class RequestHandler extends APIHandlerBase {
     }
 
     private makeLinkUrl(path: string) {
-        return `${this.options.endpoint}${this.prefix}${path}`;
+        return `${this.options.endpoint}${path}`;
     }
 
     private buildSerializers(modelMeta: ModelMeta) {
@@ -1260,7 +1255,6 @@ class RequestHandler extends APIHandlerBase {
                 const fieldIds = getIdFields(modelMeta, fieldMeta.type);
                 if (fieldIds.length > 0) {
                     const mappedModel = this.reverseModelNameMap(model);
-                    const mappedField = this.reverseModelNameMap(field);
 
                     const relator = new Relator(
                         async (data) => {
@@ -1272,7 +1266,7 @@ class RequestHandler extends APIHandlerBase {
                             linkers: {
                                 related: new Linker((primary) =>
                                     this.makeLinkUrl(
-                                        `/${lowerCaseFirst(mappedModel)}/${this.getId(model, primary, modelMeta)}/${mappedField}`
+                                        `/${lowerCaseFirst(model)}/${this.getId(model, primary, modelMeta)}/${field}`
                                     )
                                 ),
                                 relationship: new Linker((primary) =>
@@ -1281,7 +1275,7 @@ class RequestHandler extends APIHandlerBase {
                                             model,
                                             primary,
                                             modelMeta
-                                        )}/relationships/${mappedField}`
+                                        )}/relationships/${field}`
                                     )
                                 ),
                             },
