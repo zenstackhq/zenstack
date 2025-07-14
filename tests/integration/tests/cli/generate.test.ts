@@ -45,7 +45,7 @@ model Post {
         // set up project
         fs.writeFileSync('package.json', JSON.stringify({ name: 'my app', version: '1.0.0' }));
         createNpmrc();
-        installPackage('prisma @prisma/client zod');
+        installPackage('prisma @prisma/client zod@3');
         installPackage(path.join(__dirname, '../../../../packages/runtime/dist'));
 
         // set up schema

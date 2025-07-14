@@ -26,7 +26,7 @@ import {
     type Model,
 } from '@zenstackhq/sdk/ast';
 import { getDMMF, getPrismaClientImportSpec, getPrismaVersion, type DMMF } from '@zenstackhq/sdk/prisma';
-import { upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
+import { invariant, upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import fs from 'fs';
 import path from 'path';
 import semver from 'semver';
@@ -40,6 +40,7 @@ import {
     SyntaxKind,
     TypeAliasDeclaration,
     VariableStatement,
+    type StatementStructures,
 } from 'ts-morph';
 import { name } from '..';
 import { getConcreteModels, getDiscriminatorField } from '../../../utils/ast-utils';
@@ -503,16 +504,13 @@ export type Enhanced<Client> =
         for (const d of this.model.declarations.filter(isDataModel)) {
             const fileName = `${prismaClientDir}/models/${d.name}.ts`;
             const sf = project.addSourceFileAtPath(fileName);
-            const sfNew = project.createSourceFile(`${prismaClientDir}/models/${d.name}-fixed.ts`, undefined, {
-                overwrite: true,
-            });
 
             const syntaxList = sf.getChildren()[0];
             if (!Node.isSyntaxList(syntaxList)) {
                 throw new PluginError(name, `Unexpected syntax list structure in ${fileName}`);
             }
 
-            sfNew.addStatements('import $Types = runtime.Types;');
+            const statements: (string | StatementStructures)[] = ['import $Types = runtime.Types;'];
 
             // Add import for json-types if this model has JSON type fields
             const modelWithJsonFields = this.modelsWithJsonTypeFields.find((m) => m.name === d.name);
@@ -525,22 +523,34 @@ export type Enhanced<Client> =
                 const typeNames = [...new Set(jsonFieldTypes.map((field) => field.type.reference!.$refText))];
 
                 if (typeNames.length > 0) {
-                    sfNew.addStatements(`import type { ${typeNames.join(', ')} } from "../../json-types";`);
+                    statements.push(`import type { ${typeNames.join(', ')} } from "../../json-types";`);
                 }
             }
 
             syntaxList.getChildren().forEach((node) => {
                 if (Node.isInterfaceDeclaration(node)) {
-                    sfNew.addInterface(this.transformInterface(node, delegateInfo));
+                    statements.push(this.transformInterface(node, delegateInfo));
                 } else if (Node.isTypeAliasDeclaration(node)) {
-                    sfNew.addTypeAlias(this.transformTypeAlias(node, delegateInfo));
+                    statements.push(this.transformTypeAlias(node, delegateInfo));
                 } else {
-                    sfNew.addStatements(node.getText());
+                    statements.push(node.getText());
                 }
             });
 
-            await sfNew.move(sf.getFilePath(), { overwrite: true });
+            const structure = sf.getStructure();
+            structure.statements = statements;
+
+            const sfNew = project.createSourceFile(`${prismaClientDir}/models/${d.name}-fixed.ts`, structure, {
+                overwrite: true,
+            });
             await sfNew.save();
+        }
+
+        for (const d of this.model.declarations.filter(isDataModel)) {
+            const fixedFileName = `${prismaClientDir}/models/${d.name}-fixed.ts`;
+            const fileName = `${prismaClientDir}/models/${d.name}.ts`;
+
+            fs.renameSync(fixedFileName, fileName);
         }
     }
 
@@ -634,6 +644,27 @@ export type Enhanced<Client> =
                         source = this.removeFromSource(source, f.getText());
                     });
                     variable.type = source;
+                }
+            });
+        }
+
+        return structure;
+    }
+
+    private transformVariableStatementProps(variable: VariableStatement) {
+        const structure = variable.getStructure();
+
+        // remove `delegate_aux_*` fields from the variable's initializer
+        const auxFields = this.findAuxProps(variable);
+        if (auxFields.length > 0) {
+            structure.declarations.forEach((variable) => {
+                if (variable.initializer) {
+                    let source = variable.initializer;
+                    auxFields.forEach((f) => {
+                        invariant(typeof source === 'string');
+                        source = this.removeFromSource(source, f.getText());
+                    });
+                    variable.initializer = source;
                 }
             });
         }
@@ -958,6 +989,12 @@ export type Enhanced<Client> =
             .filter((n) => n.getName().includes(DELEGATE_AUX_RELATION_PREFIX));
     }
 
+    private findAuxProps(node: Node) {
+        return node
+            .getDescendantsOfKind(SyntaxKind.PropertyAssignment)
+            .filter((n) => n.getName().includes(DELEGATE_AUX_RELATION_PREFIX));
+    }
+
     private saveSourceFile(sf: SourceFile) {
         if (this.options.preserveTsFiles) {
             saveSourceFile(sf);
@@ -974,7 +1011,7 @@ export type Enhanced<Client> =
     }
 
     private trimEmptyLines(source: string): string {
-        return source.replace(/^\s*[\r\n]/gm, '');
+        return source.replace(/^\s*,?[\r\n]/gm, '');
     }
 
     private get isNewPrismaClientGenerator() {
