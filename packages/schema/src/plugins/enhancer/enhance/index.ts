@@ -243,8 +243,14 @@ export function enhance<DbClient extends object>(prisma: DbClient, context?: Enh
 
     private createLogicalPrismaImports(prismaImport: string, prismaClientImport: string, target: string) {
         const prismaTargetImport = target === 'edge' ? `${prismaImport}/edge` : prismaImport;
+        const runtimeLibraryImport = this.isNewPrismaClientGenerator
+            ? // new generator has these typed only in "@prisma/client"
+              '@prisma/client/runtime/library'
+            : // old generator has these types generated with the client
+              `${prismaImport}/runtime/library`;
+
         return `import { Prisma as _Prisma, PrismaClient as _PrismaClient } from '${prismaTargetImport}';
-import type { InternalArgs, DynamicClientExtensionThis } from '@prisma/client/runtime/library';
+import type { InternalArgs, DynamicClientExtensionThis } from '${runtimeLibraryImport}';
 import type * as _P from '${prismaClientImport}';
 import type { Prisma, PrismaClient } from '${prismaClientImport}';
 export type { PrismaClient };
