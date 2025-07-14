@@ -350,8 +350,8 @@ importers:
   packages/runtime:
     dependencies:
       '@prisma/client':
-        specifier: 5.0.0 - 6.10.x
-        version: 6.10.0(prisma@6.0.0)(typescript@5.5.2)
+        specifier: 5.0.0 - 6.11.x
+        version: 6.11.1(prisma@6.0.0)(typescript@5.5.2)
       bcryptjs:
         specifier: ^2.4.3
         version: 2.4.3
@@ -454,7 +454,7 @@ importers:
         specifier: ^4.0.0
         version: 4.0.1
       prisma:
-        specifier: 5.0.0 - 6.10.x
+        specifier: 5.0.0 - 6.11.x
         version: 6.0.0
       semver:
         specifier: ^7.5.2
@@ -497,8 +497,8 @@ importers:
         version: 1.5.0(zod@3.23.8)
     devDependencies:
       '@prisma/client':
-        specifier: 6.10.x
-        version: 6.10.0(prisma@6.0.0)(typescript@5.5.2)
+        specifier: 6.11.x
+        version: 6.11.1(prisma@6.0.0)(typescript@5.5.2)
       '@types/async-exit-hook':
         specifier: ^2.0.0
         version: 2.0.2
@@ -2486,8 +2486,8 @@ packages:
       prisma:
         optional: true
 
-  '@prisma/client@6.10.0':
-    resolution: {integrity: sha512-C+3A6sPt8EwUlNwsbT22IoUq0O+wXXA4Sw39UmCATlfa8HVP5r0X/l9xGyELhfSmmO0sjgSAl7qmlCHS6Dkekw==}
+  '@prisma/client@6.11.1':
+    resolution: {integrity: sha512-5CLFh8QP6KxRm83pJ84jaVCeSVPQr8k0L2SEtOJHwdkS57/VQDcI/wQpGmdyOZi+D9gdNabdo8tj1Uk+w+upsQ==}
     engines: {node: '>=18.18'}
     peerDependencies:
       prisma: '*'
@@ -10756,7 +10756,7 @@ snapshots:
     optionalDependencies:
       prisma: 6.0.0
 
-  '@prisma/client@6.10.0(prisma@6.0.0)(typescript@5.5.2)':
+  '@prisma/client@6.11.1(prisma@6.0.0)(typescript@5.5.2)':
     optionalDependencies:
       prisma: 6.0.0
       typescript: 5.5.2
