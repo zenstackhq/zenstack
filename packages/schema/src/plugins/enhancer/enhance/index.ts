@@ -110,10 +110,14 @@ export class EnhancerGenerator {
         const prismaImport = getPrismaClientImportSpec(this.outDir, this.options);
         let prismaTypesFixed = false;
         let resultPrismaBaseImport = prismaImport;
+        let resultPrismaClientImport = prismaImport;
 
         if (this.needsLogicalClient) {
             prismaTypesFixed = true;
             resultPrismaBaseImport = LOGICAL_CLIENT_GENERATION_PATH;
+            if (this.isNewPrismaClientGenerator) {
+                resultPrismaClientImport = `${LOGICAL_CLIENT_GENERATION_PATH}/client`;
+            }
             const result = await this.generateLogicalPrisma();
             dmmf = result.dmmf;
         }
@@ -133,7 +137,7 @@ export class EnhancerGenerator {
             });
             this.saveSourceFile(enumsTs);
 
-            const clientTs = this.project.createSourceFile(path.join(this.outDir, 'client.ts'), `export * from '${resultPrismaBaseImport}/client';`, {
+            const clientTs = this.project.createSourceFile(path.join(this.outDir, 'client.ts'), `export * from '${resultPrismaClientImport}';`, {
                 overwrite: true,
             });
             this.saveSourceFile(clientTs);
@@ -163,7 +167,7 @@ ${
 
 ${
     prismaTypesFixed
-        ? this.createLogicalPrismaImports(prismaImport, resultPrismaTypeImport, target)
+        ? this.createLogicalPrismaImports(prismaImport, resultPrismaClientImport, target)
         : this.createSimplePrismaImports(prismaImport, target)
 }
 
