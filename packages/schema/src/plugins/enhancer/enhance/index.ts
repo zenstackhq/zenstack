@@ -109,27 +109,35 @@ export class EnhancerGenerator {
 
         const prismaImport = getPrismaClientImportSpec(this.outDir, this.options);
         let prismaTypesFixed = false;
-        let resultPrismaTypeImport = prismaImport;
+        let resultPrismaBaseImport = prismaImport;
 
         if (this.needsLogicalClient) {
             prismaTypesFixed = true;
-            resultPrismaTypeImport = LOGICAL_CLIENT_GENERATION_PATH;
-            if (this.isNewPrismaClientGenerator) {
-                resultPrismaTypeImport += '/client';
-            }
+            resultPrismaBaseImport = LOGICAL_CLIENT_GENERATION_PATH;
             const result = await this.generateLogicalPrisma();
             dmmf = result.dmmf;
         }
 
-        // reexport PrismaClient types (original or fixed)
-        const modelsTsContent = `export * from '${resultPrismaTypeImport}';${
-            this.isNewPrismaClientGenerator ? "\nexport * from './json-types';" : ''
-        }`;
+        const modelsTsContent = this.isNewPrismaClientGenerator
+            ? `export * from '${resultPrismaBaseImport}/models';\nexport * from './json-types';`
+            : `export * from '${resultPrismaBaseImport}';`;
 
         const modelsTs = this.project.createSourceFile(path.join(this.outDir, 'models.ts'), modelsTsContent, {
             overwrite: true,
         });
         this.saveSourceFile(modelsTs);
+
+        if (this.isNewPrismaClientGenerator) {
+            const enumsTs = this.project.createSourceFile(path.join(this.outDir, 'enums.ts'), `export * from '${resultPrismaBaseImport}/enums';`, {
+                overwrite: true,
+            });
+            this.saveSourceFile(enumsTs);
+
+            const clientTs = this.project.createSourceFile(path.join(this.outDir, 'client.ts'), `export * from '${resultPrismaBaseImport}/client';`, {
+                overwrite: true,
+            });
+            this.saveSourceFile(clientTs);
+        }
 
         const authDecl = getAuthDecl(getDataModelAndTypeDefs(this.model));
         const authTypes = authDecl ? generateAuthType(this.model, authDecl) : '';
