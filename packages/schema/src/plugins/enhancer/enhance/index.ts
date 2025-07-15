@@ -1,4 +1,5 @@
 import { DELEGATE_AUX_RELATION_PREFIX } from '@zenstackhq/runtime';
+import { invariant, upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import {
     PluginError,
     getAttribute,
@@ -26,7 +27,6 @@ import {
     type Model,
 } from '@zenstackhq/sdk/ast';
 import { getDMMF, getPrismaClientImportSpec, getPrismaVersion, type DMMF } from '@zenstackhq/sdk/prisma';
-import { invariant, upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import fs from 'fs';
 import path from 'path';
 import semver from 'semver';
@@ -105,44 +105,122 @@ export class EnhancerGenerator {
     }
 
     async generate(): Promise<{ dmmf: DMMF.Document | undefined; newPrismaClientDtsPath: string | undefined }> {
+        if (this.isNewPrismaClientGenerator) {
+            // "prisma-client" generator
+            return this.generateForNewClientGenerator();
+        } else {
+            // "prisma-client-js" generator
+            return this.generateForOldClientGenerator();
+        }
+    }
+
+    // logic for "prisma-client" generator
+    private async generateForNewClientGenerator() {
+        const needsLogicalClient = this.needsLogicalClient;
+        const prismaImport = getPrismaClientImportSpec(this.outDir, this.options);
+        let resultPrismaBaseImport = path.dirname(prismaImport); // get to the parent folder of "client"
         let dmmf: DMMF.Document | undefined;
 
-        const prismaImport = getPrismaClientImportSpec(this.outDir, this.options);
-        let prismaTypesFixed = false;
-        let resultPrismaTypeImport = prismaImport;
-
-        if (this.needsLogicalClient) {
-            prismaTypesFixed = true;
-            resultPrismaTypeImport = LOGICAL_CLIENT_GENERATION_PATH;
-            if (this.isNewPrismaClientGenerator) {
-                resultPrismaTypeImport += '/client';
-            }
+        if (needsLogicalClient) {
+            // use logical client, note we use the parent of "client" folder here too
+            resultPrismaBaseImport = LOGICAL_CLIENT_GENERATION_PATH;
             const result = await this.generateLogicalPrisma();
             dmmf = result.dmmf;
         }
 
-        // reexport PrismaClient types (original or fixed)
-        const modelsTsContent = `export * from '${resultPrismaTypeImport}';${
-            this.isNewPrismaClientGenerator ? "\nexport * from './json-types';" : ''
-        }`;
-
+        // `models.ts` for exporting model types
+        const modelsTsContent = [
+            `export * from '${resultPrismaBaseImport}/models';`,
+            `export * from './json-types';`,
+        ].join('\n');
         const modelsTs = this.project.createSourceFile(path.join(this.outDir, 'models.ts'), modelsTsContent, {
             overwrite: true,
         });
         this.saveSourceFile(modelsTs);
 
+        // `enums.ts` for exporting enums
+        const enumsTs = this.project.createSourceFile(
+            path.join(this.outDir, 'enums.ts'),
+            `export * from '${resultPrismaBaseImport}/enums';`,
+            {
+                overwrite: true,
+            }
+        );
+        this.saveSourceFile(enumsTs);
+
+        // `client.ts` for exporting `PrismaClient` and `Prisma` namespace
+        const clientTs = this.project.createSourceFile(
+            path.join(this.outDir, 'client.ts'),
+            `export * from '${resultPrismaBaseImport}/client';`,
+            {
+                overwrite: true,
+            }
+        );
+        this.saveSourceFile(clientTs);
+
+        // `enhance.ts` and `enhance-edge.ts`
+        for (const target of ['node', 'edge'] as const) {
+            this.generateEnhance(prismaImport, `${resultPrismaBaseImport}/client`, needsLogicalClient, target);
+        }
+
+        return {
+            // logical dmmf if there is one
+            dmmf,
+            // new client generator doesn't have a barrel .d.ts file
+            newPrismaClientDtsPath: undefined,
+        };
+    }
+
+    // logic for "prisma-client-js" generator
+    private async generateForOldClientGenerator() {
+        const needsLogicalClient = this.needsLogicalClient;
+        const prismaImport = getPrismaClientImportSpec(this.outDir, this.options);
+        let resultPrismaClientImport = prismaImport;
+        let dmmf: DMMF.Document | undefined;
+
+        if (needsLogicalClient) {
+            // redirect `PrismaClient` import to the logical client
+            resultPrismaClientImport = LOGICAL_CLIENT_GENERATION_PATH;
+            const result = await this.generateLogicalPrisma();
+            dmmf = result.dmmf;
+        }
+
+        // `models.ts` for exporting model types
+        const modelsTsContent = `export * from '${resultPrismaClientImport}';`;
+        const modelsTs = this.project.createSourceFile(path.join(this.outDir, 'models.ts'), modelsTsContent, {
+            overwrite: true,
+        });
+        this.saveSourceFile(modelsTs);
+
+        // `enhance.ts` and `enhance-edge.ts`
+        for (const target of ['node', 'edge'] as const) {
+            this.generateEnhance(prismaImport, resultPrismaClientImport, needsLogicalClient, target);
+        }
+
+        return {
+            // logical dmmf if there is one
+            dmmf,
+            newPrismaClientDtsPath: needsLogicalClient
+                ? path.resolve(this.outDir, LOGICAL_CLIENT_GENERATION_PATH, 'index.d.ts')
+                : undefined,
+        };
+    }
+
+    private generateEnhance(
+        prismaImport: string,
+        prismaClientImport: string,
+        needsLogicalClient: boolean,
+        target: 'node' | 'edge'
+    ) {
         const authDecl = getAuthDecl(getDataModelAndTypeDefs(this.model));
         const authTypes = authDecl ? generateAuthType(this.model, authDecl) : '';
         const authTypeParam = authDecl ? `auth.${authDecl.name}` : 'AuthUser';
-
         const checkerTypes = this.generatePermissionChecker ? generateCheckerType(this.model) : '';
 
-        for (const target of ['node', 'edge']) {
-            // generate separate `enhance()` for node and edge runtime
-            const outFile = target === 'node' ? 'enhance.ts' : 'enhance-edge.ts';
-            const enhanceTs = this.project.createSourceFile(
-                path.join(this.outDir, outFile),
-                `/* eslint-disable */
+        const outFile = target === 'node' ? 'enhance.ts' : 'enhance-edge.ts';
+        const enhanceTs = this.project.createSourceFile(
+            path.join(this.outDir, outFile),
+            `/* eslint-disable */
 import { type EnhancementContext, type EnhancementOptions, type ZodSchemas, type AuthUser } from '@zenstackhq/runtime';
 import { createEnhancement } from '@zenstackhq/runtime/enhancements/${target}';
 import modelMeta from './model-meta';
@@ -154,8 +232,8 @@ ${
 }
 
 ${
-    prismaTypesFixed
-        ? this.createLogicalPrismaImports(prismaImport, resultPrismaTypeImport, target)
+    needsLogicalClient
+        ? this.createLogicalPrismaImports(prismaImport, prismaClientImport, target)
         : this.createSimplePrismaImports(prismaImport, target)
 }
 
@@ -164,23 +242,15 @@ ${authTypes}
 ${checkerTypes}
 
 ${
-    prismaTypesFixed
+    needsLogicalClient
         ? this.createLogicalPrismaEnhanceFunction(authTypeParam)
         : this.createSimplePrismaEnhanceFunction(authTypeParam)
 }
     `,
-                { overwrite: true }
-            );
+            { overwrite: true }
+        );
 
-            this.saveSourceFile(enhanceTs);
-        }
-
-        return {
-            dmmf,
-            newPrismaClientDtsPath: prismaTypesFixed
-                ? path.resolve(this.outDir, LOGICAL_CLIENT_GENERATION_PATH, 'index.d.ts')
-                : undefined,
-        };
+        this.saveSourceFile(enhanceTs);
     }
 
     private getZodImport() {
@@ -210,7 +280,7 @@ ${
         return normalizedRelative(this.outDir, zodAbsPath);
     }
 
-    private createSimplePrismaImports(prismaImport: string, target: string) {
+    private createSimplePrismaImports(prismaImport: string, target: string | undefined) {
         const prismaTargetImport = target === 'edge' ? `${prismaImport}/edge` : prismaImport;
 
         return `import { Prisma, type PrismaClient } from '${prismaTargetImport}';
@@ -241,10 +311,10 @@ export function enhance<DbClient extends object>(prisma: DbClient, context?: Enh
             `;
     }
 
-    private createLogicalPrismaImports(prismaImport: string, prismaClientImport: string, target: string) {
+    private createLogicalPrismaImports(prismaImport: string, prismaClientImport: string, target: string | undefined) {
         const prismaTargetImport = target === 'edge' ? `${prismaImport}/edge` : prismaImport;
         const runtimeLibraryImport = this.isNewPrismaClientGenerator
-            ? // new generator has these typed only in "@prisma/client"
+            ? // new generator has these types only in "@prisma/client"
               '@prisma/client/runtime/library'
             : // old generator has these types generated with the client
               `${prismaImport}/runtime/library`;
