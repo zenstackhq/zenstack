@@ -748,3 +748,14 @@ function raw(value: String): Any {
  * Marks a field to be strong-typed JSON.
  */
 attribute @json() @@@targetField([TypeDefField])
+
+
+/**
+ * Attaches arbitrary metadata to a model or type def.
+ */
+attribute @@meta(_ name: String, _ value: Any)
+
+/**
+ * Attaches arbitrary metadata to a field.
+ */
+attribute @meta(_ name: String, _ value: Any)
