@@ -245,9 +245,7 @@ class RequestHandler extends APIHandlerBase {
         const segmentCharset = options.urlSegmentCharset ?? 'a-zA-Z0-9-_~ %';
 
         this.modelNameMapping = options.modelNameMapping ?? {};
-        this.reverseModelNameMapping = Object.fromEntries(
-            Object.entries(this.modelNameMapping).map(([k, v]) => [v, k])
-        );
+        this.reverseModelNameMapping = Object.fromEntries(Object.entries(this.modelNameMapping).map(([k, v]) => [v, k]));
         this.urlPatternMap = this.buildUrlPatternMap(segmentCharset);
     }
 
@@ -269,8 +267,8 @@ class RequestHandler extends APIHandlerBase {
         };
     }
 
-    private reverseModelNameMap(type: string): string {
-        return this.reverseModelNameMapping[type] ?? type;
+    private mapModelName(modelName: string): string {
+        return this.modelNameMapping[modelName] ?? modelName;
     }
 
     private matchUrlPattern(path: string, routeType: UrlPatterns): Match {
@@ -281,7 +279,7 @@ class RequestHandler extends APIHandlerBase {
 
         const match = pattern.match(path);
         if (match) {
-            match.type = this.modelNameMapping[match.type] ?? match.type;
+            match.type = this.reverseModelNameMapping[match.type] ?? match.type;
         }
         return match;
     }
@@ -569,7 +567,7 @@ class RequestHandler extends APIHandlerBase {
         }
 
         if (entity?.[relationship]) {
-            const mappedType = this.reverseModelNameMap(type);
+            const mappedType = this.mapModelName(type);
             return {
                 status: 200,
                 body: await this.serializeItems(relationInfo.type, entity[relationship], {
@@ -621,7 +619,7 @@ class RequestHandler extends APIHandlerBase {
         }
 
         const entity: any = await prisma[type].findUnique(args);
-        const mappedType = this.reverseModelNameMap(type);
+        const mappedType = this.mapModelName(type);
 
         if (entity?._count?.[relationship] !== undefined) {
             // build up paginator
@@ -720,7 +718,7 @@ class RequestHandler extends APIHandlerBase {
             ]);
             const total = count as number;
 
-            const mappedType = this.reverseModelNameMap(type);
+            const mappedType = this.mapModelName(type);
             const url = this.makeNormalizedUrl(`/${mappedType}`, query);
             const options: Partial<SerializerOptions> = {
                 include,
@@ -1050,7 +1048,7 @@ class RequestHandler extends APIHandlerBase {
 
         const entity: any = await prisma[type].update(updateArgs);
 
-        const mappedType = this.reverseModelNameMap(type);
+        const mappedType = this.mapModelName(type);
 
         const serialized: any = await this.serializeItems(relationInfo.type, entity[relationship], {
             linkers: {
@@ -1201,7 +1199,7 @@ class RequestHandler extends APIHandlerBase {
 
         for (const model of Object.keys(modelMeta.models)) {
             const ids = getIdFields(modelMeta, model);
-            const mappedModel = this.reverseModelNameMap(model);
+            const mappedModel = this.mapModelName(model);
 
             if (ids.length < 1) {
                 continue;
@@ -1254,7 +1252,7 @@ class RequestHandler extends APIHandlerBase {
                 }
                 const fieldIds = getIdFields(modelMeta, fieldMeta.type);
                 if (fieldIds.length > 0) {
-                    const mappedModel = this.reverseModelNameMap(model);
+                    const mappedModel = this.mapModelName(model);
 
                     const relator = new Relator(
                         async (data) => {
