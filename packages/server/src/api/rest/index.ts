@@ -245,7 +245,12 @@ class RequestHandler extends APIHandlerBase {
         const segmentCharset = options.urlSegmentCharset ?? 'a-zA-Z0-9-_~ %';
 
         this.modelNameMapping = options.modelNameMapping ?? {};
-        this.reverseModelNameMapping = Object.fromEntries(Object.entries(this.modelNameMapping).map(([k, v]) => [v, k]));
+        this.modelNameMapping = Object.fromEntries(
+            Object.entries(this.modelNameMapping).map(([k, v]) => [lowerCaseFirst(k), v])
+        );
+        this.reverseModelNameMapping = Object.fromEntries(
+            Object.entries(this.modelNameMapping).map(([k, v]) => [v, k])
+        );
         this.urlPatternMap = this.buildUrlPatternMap(segmentCharset);
     }
 
