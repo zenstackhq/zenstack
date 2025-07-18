@@ -44,6 +44,7 @@ type Policies = ReturnType<typeof analyzePolicies>;
  */
 export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
     private warnings: string[] = [];
+    private modelNameMapping: Record<string, string>;
 
     constructor(protected model: Model, protected options: PluginOptions, protected dmmf: DMMF.Document) {
         super(model, options, dmmf);
@@ -51,6 +52,8 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         if (this.options.omitInputDetails !== undefined) {
             throw new PluginError(name, '"omitInputDetails" option is not supported for "rest" flavor');
         }
+
+        this.modelNameMapping = this.getOption('modelNameMapping', {} as Record<string, string>);
     }
 
     generate() {
@@ -126,6 +129,10 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         return result;
     }
 
+    private mapModelName(modelName: string): string {
+        return this.modelNameMapping[modelName] ?? modelName;
+    }
+
     private generatePathsForModel(model: DMMF.Model, zmodel: DataModel): OAPI.PathItemObject | undefined {
         const result: Record<string, OAPI.PathItemObject> = {};
 
@@ -139,9 +146,11 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
 
         const resourceMeta = getModelResourceMeta(zmodel);
 
+        const modelName = this.mapModelName(model.name);
+
         // GET /resource
         // POST /resource
-        result[`${prefix}/${lowerCaseFirst(model.name)}`] = {
+        result[`${prefix}/${lowerCaseFirst(modelName)}`] = {
             get: this.makeResourceList(zmodel, policies, resourceMeta),
             post: this.makeResourceCreate(zmodel, policies, resourceMeta),
         };
@@ -150,10 +159,10 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         // PUT /resource/{id}
         // PATCH /resource/{id}
         // DELETE /resource/{id}
-        result[`${prefix}/${lowerCaseFirst(model.name)}/{id}`] = {
+        result[`${prefix}/${lowerCaseFirst(modelName)}/{id}`] = {
             get: this.makeResourceFetch(zmodel, policies, resourceMeta),
-            put: this.makeResourceUpdate(zmodel, policies, `update-${model.name}-put`, resourceMeta),
-            patch: this.makeResourceUpdate(zmodel, policies, `update-${model.name}-patch`, resourceMeta),
+            put: this.makeResourceUpdate(zmodel, policies, `update-${modelName}-put`, resourceMeta),
+            patch: this.makeResourceUpdate(zmodel, policies, `update-${modelName}-patch`, resourceMeta),
             delete: this.makeResourceDelete(zmodel, policies, resourceMeta),
         };
 
@@ -165,14 +174,14 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             }
 
             // GET /resource/{id}/{relationship}
-            const relatedDataPath = `${prefix}/${lowerCaseFirst(model.name)}/{id}/${field.name}`;
+            const relatedDataPath = `${prefix}/${lowerCaseFirst(modelName)}/{id}/${field.name}`;
             let container = result[relatedDataPath];
             if (!container) {
                 container = result[relatedDataPath] = {};
             }
             container.get = this.makeRelatedFetch(zmodel, field, relationDecl, resourceMeta);
 
-            const relationshipPath = `${prefix}/${lowerCaseFirst(model.name)}/{id}/relationships/${field.name}`;
+            const relationshipPath = `${prefix}/${lowerCaseFirst(modelName)}/{id}/relationships/${field.name}`;
             container = result[relationshipPath];
             if (!container) {
                 container = result[relationshipPath] = {};

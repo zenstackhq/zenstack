@@ -50,6 +50,8 @@ export type Options = {
      * it should be included in the charset.
      */
     urlSegmentCharset?: string;
+
+    modelNameMapping?: Record<string, string>;
 };
 
 type RelationshipInfo = {
@@ -64,6 +66,19 @@ type ModelInfo = {
     fields: Record<string, FieldInfo>;
     relationships: Record<string, RelationshipInfo>;
 };
+
+type Match = {
+    type: string;
+    id: string;
+    relationship: string;
+};
+
+enum UrlPatterns {
+    SINGLE = 'single',
+    FETCH_RELATIONSHIP = 'fetchRelationship',
+    RELATIONSHIP = 'relationship',
+    COLLECTION = 'collection',
+}
 
 class InvalidValueError extends Error {
     constructor(public readonly message: string) {
@@ -220,27 +235,69 @@ class RequestHandler extends APIHandlerBase {
     // divider used to separate compound ID fields
     private idDivider;
 
-    private urlPatterns;
+    private urlPatternMap: Record<UrlPatterns, UrlPattern>;
+    private modelNameMapping: Record<string, string>;
+    private reverseModelNameMapping: Record<string, string>;
 
     constructor(private readonly options: Options) {
         super();
         this.idDivider = options.idDivider ?? prismaIdDivider;
         const segmentCharset = options.urlSegmentCharset ?? 'a-zA-Z0-9-_~ %';
-        this.urlPatterns = this.buildUrlPatterns(this.idDivider, segmentCharset);
+
+        this.modelNameMapping = options.modelNameMapping ?? {};
+        this.modelNameMapping = Object.fromEntries(
+            Object.entries(this.modelNameMapping).map(([k, v]) => [lowerCaseFirst(k), v])
+        );
+        this.reverseModelNameMapping = Object.fromEntries(
+            Object.entries(this.modelNameMapping).map(([k, v]) => [v, k])
+        );
+        this.urlPatternMap = this.buildUrlPatternMap(segmentCharset);
     }
 
-    buildUrlPatterns(idDivider: string, urlSegmentNameCharset: string) {
+    private buildUrlPatternMap(urlSegmentNameCharset: string): Record<UrlPatterns, UrlPattern> {
         const options = { segmentValueCharset: urlSegmentNameCharset };
-        return {
-            // collection operations
-            collection: new UrlPattern('/:type', options),
-            // single resource operations
-            single: new UrlPattern('/:type/:id', options),
-            // related entity fetching
-            fetchRelationship: new UrlPattern('/:type/:id/:relationship', options),
-            // relationship operations
-            relationship: new UrlPattern('/:type/:id/relationships/:relationship', options),
+
+        const buildPath = (segments: string[]) => {
+            return '/' + segments.join('/');
         };
+
+        return {
+            [UrlPatterns.SINGLE]: new UrlPattern(buildPath([':type', ':id']), options),
+            [UrlPatterns.FETCH_RELATIONSHIP]: new UrlPattern(buildPath([':type', ':id', ':relationship']), options),
+            [UrlPatterns.RELATIONSHIP]: new UrlPattern(
+                buildPath([':type', ':id', 'relationships', ':relationship']),
+                options
+            ),
+            [UrlPatterns.COLLECTION]: new UrlPattern(buildPath([':type']), options),
+        };
+    }
+
+    private mapModelName(modelName: string): string {
+        return this.modelNameMapping[modelName] ?? modelName;
+    }
+
+    private matchUrlPattern(path: string, routeType: UrlPatterns): Match | undefined {
+        const pattern = this.urlPatternMap[routeType];
+        if (!pattern) {
+            throw new InvalidValueError(`Unknown route type: ${routeType}`);
+        }
+
+        const match = pattern.match(path);
+        if (!match) {
+            return;
+        }
+
+        if (match.type in this.modelNameMapping) {
+            throw new InvalidValueError(
+                `use the mapped model name: ${this.modelNameMapping[match.type]} and not ${match.type}`
+            );
+        }
+
+        if (match.type in this.reverseModelNameMapping) {
+            match.type = this.reverseModelNameMapping[match.type];
+        }
+
+        return match;
     }
 
     async handleRequest({
@@ -274,19 +331,18 @@ class RequestHandler extends APIHandlerBase {
         try {
             switch (method) {
                 case 'GET': {
-                    let match = this.urlPatterns.single.match(path);
+                    let match = this.matchUrlPattern(path, UrlPatterns.SINGLE);
                     if (match) {
                         // single resource read
                         return await this.processSingleRead(prisma, match.type, match.id, query);
                     }
-
-                    match = this.urlPatterns.fetchRelationship.match(path);
+                    match = this.matchUrlPattern(path, UrlPatterns.FETCH_RELATIONSHIP);
                     if (match) {
                         // fetch related resource(s)
                         return await this.processFetchRelated(prisma, match.type, match.id, match.relationship, query);
                     }
 
-                    match = this.urlPatterns.relationship.match(path);
+                    match = this.matchUrlPattern(path, UrlPatterns.RELATIONSHIP);
                     if (match) {
                         // read relationship
                         return await this.processReadRelationship(
@@ -298,7 +354,7 @@ class RequestHandler extends APIHandlerBase {
                         );
                     }
 
-                    match = this.urlPatterns.collection.match(path);
+                    match = this.matchUrlPattern(path, UrlPatterns.COLLECTION);
                     if (match) {
                         // collection read
                         return await this.processCollectionRead(prisma, match.type, query);
@@ -311,8 +367,7 @@ class RequestHandler extends APIHandlerBase {
                     if (!requestBody) {
                         return this.makeError('invalidPayload');
                     }
-
-                    let match = this.urlPatterns.collection.match(path);
+                    let match = this.matchUrlPattern(path, UrlPatterns.COLLECTION);
                     if (match) {
                         const body = requestBody as any;
                         const upsertMeta = this.upsertMetaSchema.safeParse(body);
@@ -338,8 +393,7 @@ class RequestHandler extends APIHandlerBase {
                             );
                         }
                     }
-
-                    match = this.urlPatterns.relationship.match(path);
+                    match = this.matchUrlPattern(path, UrlPatterns.RELATIONSHIP);
                     if (match) {
                         // relationship creation (collection relationship only)
                         return await this.processRelationshipCRUD(
@@ -362,8 +416,7 @@ class RequestHandler extends APIHandlerBase {
                     if (!requestBody) {
                         return this.makeError('invalidPayload');
                     }
-
-                    let match = this.urlPatterns.single.match(path);
+                    let match = this.matchUrlPattern(path, UrlPatterns.SINGLE);
                     if (match) {
                         // resource update
                         return await this.processUpdate(
@@ -376,8 +429,7 @@ class RequestHandler extends APIHandlerBase {
                             zodSchemas
                         );
                     }
-
-                    match = this.urlPatterns.relationship.match(path);
+                    match = this.matchUrlPattern(path, UrlPatterns.RELATIONSHIP);
                     if (match) {
                         // relationship update
                         return await this.processRelationshipCRUD(
@@ -395,13 +447,13 @@ class RequestHandler extends APIHandlerBase {
                 }
 
                 case 'DELETE': {
-                    let match = this.urlPatterns.single.match(path);
+                    let match = this.matchUrlPattern(path, UrlPatterns.SINGLE);
                     if (match) {
                         // resource deletion
                         return await this.processDelete(prisma, match.type, match.id);
                     }
 
-                    match = this.urlPatterns.relationship.match(path);
+                    match = this.matchUrlPattern(path, UrlPatterns.RELATIONSHIP);
                     if (match) {
                         // relationship deletion (collection relationship only)
                         return await this.processRelationshipCRUD(
@@ -531,11 +583,12 @@ class RequestHandler extends APIHandlerBase {
         }
 
         if (entity?.[relationship]) {
+            const mappedType = this.mapModelName(type);
             return {
                 status: 200,
                 body: await this.serializeItems(relationInfo.type, entity[relationship], {
                     linkers: {
-                        document: new Linker(() => this.makeLinkUrl(`/${type}/${resourceId}/${relationship}`)),
+                        document: new Linker(() => this.makeLinkUrl(`/${mappedType}/${resourceId}/${relationship}`)),
                         paginator,
                     },
                     include,
@@ -582,11 +635,12 @@ class RequestHandler extends APIHandlerBase {
         }
 
         const entity: any = await prisma[type].findUnique(args);
+        const mappedType = this.mapModelName(type);
 
         if (entity?._count?.[relationship] !== undefined) {
             // build up paginator
             const total = entity?._count?.[relationship] as number;
-            const url = this.makeNormalizedUrl(`/${type}/${resourceId}/relationships/${relationship}`, query);
+            const url = this.makeNormalizedUrl(`/${mappedType}/${resourceId}/relationships/${relationship}`, query);
             const { offset, limit } = this.getPagination(query);
             paginator = this.makePaginator(url, offset, limit, total);
         }
@@ -595,7 +649,7 @@ class RequestHandler extends APIHandlerBase {
             const serialized: any = await this.serializeItems(relationInfo.type, entity[relationship], {
                 linkers: {
                     document: new Linker(() =>
-                        this.makeLinkUrl(`/${type}/${resourceId}/relationships/${relationship}`)
+                        this.makeLinkUrl(`/${mappedType}/${resourceId}/relationships/${relationship}`)
                     ),
                     paginator,
                 },
@@ -680,7 +734,8 @@ class RequestHandler extends APIHandlerBase {
             ]);
             const total = count as number;
 
-            const url = this.makeNormalizedUrl(`/${type}`, query);
+            const mappedType = this.mapModelName(type);
+            const url = this.makeNormalizedUrl(`/${mappedType}`, query);
             const options: Partial<SerializerOptions> = {
                 include,
                 linkers: {
@@ -1009,9 +1064,13 @@ class RequestHandler extends APIHandlerBase {
 
         const entity: any = await prisma[type].update(updateArgs);
 
+        const mappedType = this.mapModelName(type);
+
         const serialized: any = await this.serializeItems(relationInfo.type, entity[relationship], {
             linkers: {
-                document: new Linker(() => this.makeLinkUrl(`/${type}/${resourceId}/relationships/${relationship}`)),
+                document: new Linker(() =>
+                    this.makeLinkUrl(`/${mappedType}/${resourceId}/relationships/${relationship}`)
+                ),
             },
             onlyIdentifier: true,
         });
@@ -1156,6 +1215,7 @@ class RequestHandler extends APIHandlerBase {
 
         for (const model of Object.keys(modelMeta.models)) {
             const ids = getIdFields(modelMeta, model);
+            const mappedModel = this.mapModelName(model);
 
             if (ids.length < 1) {
                 continue;
@@ -1163,8 +1223,8 @@ class RequestHandler extends APIHandlerBase {
 
             const linker = new Linker((items) =>
                 Array.isArray(items)
-                    ? this.makeLinkUrl(`/${model}`)
-                    : this.makeLinkUrl(`/${model}/${this.getId(model, items, modelMeta)}`)
+                    ? this.makeLinkUrl(`/${mappedModel}`)
+                    : this.makeLinkUrl(`/${mappedModel}/${this.getId(model, items, modelMeta)}`)
             );
             linkers[model] = linker;
 
@@ -1208,6 +1268,8 @@ class RequestHandler extends APIHandlerBase {
                 }
                 const fieldIds = getIdFields(modelMeta, fieldMeta.type);
                 if (fieldIds.length > 0) {
+                    const mappedModel = this.mapModelName(model);
+
                     const relator = new Relator(
                         async (data) => {
                             return (data as any)[field];
@@ -1223,7 +1285,7 @@ class RequestHandler extends APIHandlerBase {
                                 ),
                                 relationship: new Linker((primary) =>
                                     this.makeLinkUrl(
-                                        `/${lowerCaseFirst(model)}/${this.getId(
+                                        `/${lowerCaseFirst(mappedModel)}/${this.getId(
                                             model,
                                             primary,
                                             modelMeta
