@@ -276,16 +276,27 @@ class RequestHandler extends APIHandlerBase {
         return this.modelNameMapping[modelName] ?? modelName;
     }
 
-    private matchUrlPattern(path: string, routeType: UrlPatterns): Match {
+    private matchUrlPattern(path: string, routeType: UrlPatterns): Match | undefined {
         const pattern = this.urlPatternMap[routeType];
         if (!pattern) {
             throw new InvalidValueError(`Unknown route type: ${routeType}`);
         }
 
         const match = pattern.match(path);
-        if (match) {
-            match.type = this.reverseModelNameMapping[match.type] ?? match.type;
+        if (!match) {
+            return;
         }
+
+        if (match.type in this.modelNameMapping) {
+            throw new InvalidValueError(
+                `use the mapped model name: ${this.modelNameMapping[match.type]} and not ${match.type}`
+            );
+        }
+
+        if (match.type in this.reverseModelNameMapping) {
+            match.type = this.reverseModelNameMapping[match.type];
+        }
+
         return match;
     }
 

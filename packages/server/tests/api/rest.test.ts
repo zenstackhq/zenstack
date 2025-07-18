@@ -3038,8 +3038,8 @@ describe('REST server tests', () => {
             const _handler = makeHandler({
                 endpoint: 'http://localhost/api',
                 modelNameMapping: {
-                    myUser: 'user',
-                    myPost: 'post',
+                    user: 'myUser',
+                    post: 'myPost',
                 },
             });
             handler = (args) =>
