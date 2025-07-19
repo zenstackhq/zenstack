@@ -3039,7 +3039,6 @@ describe('REST server tests', () => {
                 endpoint: 'http://localhost/api',
                 modelNameMapping: {
                     user: 'myUser',
-                    post: 'myPost',
                 },
             });
             handler = (args) =>
@@ -3053,7 +3052,7 @@ describe('REST server tests', () => {
                     method: 'post',
                     path: '/user',
                     query: {},
-                    requestBody: { data: { type: 'user', attributes: { name: 'User1' } } },
+                    requestBody: { data: { type: 'user', attributes: { id: '1', name: 'User1' } } },
                     prisma,
                 })
             ).resolves.toMatchObject({
@@ -3066,7 +3065,45 @@ describe('REST server tests', () => {
                     method: 'post',
                     path: '/myUser',
                     query: {},
-                    requestBody: { data: { type: 'user', attributes: { name: 'User1' } } },
+                    requestBody: { data: { type: 'user', attributes: { id: '1', name: 'User1' } } },
+                    prisma,
+                })
+            ).resolves.toMatchObject({
+                status: 201,
+                body: {
+                    links: { self: 'http://localhost/api/myUser/1' },
+                },
+            });
+
+            await expect(
+                handler({
+                    method: 'get',
+                    path: '/myUser/1',
+                    query: {},
+                    prisma,
+                })
+            ).resolves.toMatchObject({
+                status: 200,
+                body: {
+                    links: { self: 'http://localhost/api/myUser/1' },
+                },
+            });
+
+            // works with unmapped model name
+            await expect(
+                handler({
+                    method: 'post',
+                    path: '/post',
+                    query: {},
+                    requestBody: {
+                        data: {
+                            type: 'post',
+                            attributes: { id: '1', title: 'Post1' },
+                            relationships: {
+                                author: { data: { type: 'user', id: '1' } },
+                            },
+                        },
+                    },
                     prisma,
                 })
             ).resolves.toMatchObject({
