@@ -739,6 +739,11 @@ attribute @@prisma.passthrough(_ text: String)
 attribute @@delegate(_ discriminator: FieldReference)
 
 /**
+ * Specifies an external identifier for the model other than a primary key
+ */
+attribute @@externalId(_ name: String)
+
+/**
  * Used for specifying operator classes for GIN index.
  */
 function raw(value: String): Any {
