@@ -11,6 +11,8 @@ import isDocker from './utils/is-docker';
 import { isWsl } from './utils/is-wsl';
 import { getMachineId } from './utils/machine-id-utils';
 import { getVersion } from './utils/version-utils';
+import { isInCi } from './utils/is-ci';
+import { isInContainer } from './utils/is-container';
 
 /**
  * Telemetry events
@@ -44,6 +46,8 @@ export class Telemetry {
     private readonly prismaVersion = getPrismaVersion();
     private readonly isDocker = isDocker();
     private readonly isWsl = isWsl();
+    private readonly isContainer = isInContainer();
+    private readonly isCi = isInCi;
     private exitWait = 200;
 
     constructor() {
@@ -108,6 +112,8 @@ export class Telemetry {
                 prismaVersion: this.prismaVersion,
                 isDocker: this.isDocker,
                 isWsl: this.isWsl,
+                isContainer: this.isContainer,
+                isCi: this.isCi,
                 ...properties,
             };
             this.mixpanel.track(event, payload);

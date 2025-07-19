@@ -3,15 +3,18 @@ import {
     DataModel,
     DataModelAttribute,
     DataModelField,
+    Expression,
     isArrayExpr,
     isBooleanLiteral,
     isDataModel,
     isDataModelField,
     isInvocationExpr,
     isNumberLiteral,
+    isObjectExpr,
     isReferenceExpr,
     isStringLiteral,
     isTypeDef,
+    ObjectExpr,
     ReferenceExpr,
     TypeDef,
     TypeDefField,
@@ -20,6 +23,7 @@ import type { RuntimeAttribute } from '@zenstackhq/runtime';
 import { lowerCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import { streamAst } from 'langium';
 import { FunctionDeclarationStructure, OptionalKind, Project, VariableDeclarationKind } from 'ts-morph';
+import { match } from 'ts-pattern';
 import {
     CodeWriter,
     ExpressionContext,
@@ -362,20 +366,9 @@ function getAttributes(target: DataModelField | DataModel | TypeDefField): Runti
         .map((attr) => {
             const args: Array<{ name?: string; value: unknown }> = [];
             for (const arg of attr.args) {
-                if (isNumberLiteral(arg.value)) {
-                    let v = parseInt(arg.value.value);
-                    if (isNaN(v)) {
-                        v = parseFloat(arg.value.value);
-                    }
-                    if (isNaN(v)) {
-                        throw new Error(`Invalid number literal: ${arg.value.value}`);
-                    }
-                    args.push({ name: arg.name, value: v });
-                } else if (isStringLiteral(arg.value) || isBooleanLiteral(arg.value)) {
-                    args.push({ name: arg.name, value: arg.value.value });
-                } else {
-                    // non-literal args are ignored
-                }
+                const argName = arg.$resolvedParam?.name ?? arg.name;
+                const argValue = exprToValue(arg.value);
+                args.push({ name: argName, value: argValue });
             }
             return { name: resolved(attr.decl).name, args };
         })
@@ -601,4 +594,27 @@ function getOnUpdateAction(fieldInfo: DataModelField) {
         }
     }
     return undefined;
+}
+
+function exprToValue(value: Expression): unknown {
+    return match(value)
+        .when(isStringLiteral, (v) => v.value)
+        .when(isBooleanLiteral, (v) => v.value)
+        .when(isNumberLiteral, (v) => {
+            let num = parseInt(v.value);
+            if (isNaN(num)) {
+                num = parseFloat(v.value);
+            }
+            if (isNaN(num)) {
+                return undefined;
+            }
+            return num;
+        })
+        .when(isArrayExpr, (v) => v.items.map((item) => exprToValue(item)))
+        .when(isObjectExpr, (v) => exprToObject(v))
+        .otherwise(() => undefined);
+}
+
+function exprToObject(value: ObjectExpr): unknown {
+    return Object.fromEntries(value.fields.map((field) => [field.name, exprToValue(field.value)]));
 }

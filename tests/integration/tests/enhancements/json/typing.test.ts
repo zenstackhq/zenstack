@@ -385,4 +385,37 @@ async function main() {
             }
         );
     });
+
+    it('supports @db.Json and @db.JsonB', async () => {
+        await loadSchema(
+            `
+            type Profile {
+                age Int @gt(0)
+            }
+            
+            model User {
+                id Int @id @default(autoincrement())
+                profile Profile @json @db.Json
+                posts Post[]
+                @@allow('all', true)
+            }
+
+            type Meta {
+                description String
+            }
+
+            model Post {
+                id Int @id @default(autoincrement())
+                title String
+                user User @relation(fields: [userId], references: [id])
+                userId Int
+                meta Meta @json @db.JsonB
+            }
+            `,
+            {
+                provider: 'postgresql',
+                pushDb: false,
+            }
+        );
+    });
 });

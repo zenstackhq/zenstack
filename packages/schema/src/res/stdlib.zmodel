@@ -505,8 +505,8 @@ attribute @db.Timetz(_ x: Int?) @@@targetField([DateTimeField]) @@@prisma
 
 // Json type modifiers
 
-attribute @db.Json() @@@targetField([JsonField]) @@@prisma
-attribute @db.JsonB() @@@targetField([JsonField]) @@@prisma
+attribute @db.Json() @@@targetField([JsonField, TypeDefField]) @@@prisma
+attribute @db.JsonB() @@@targetField([JsonField, TypeDefField]) @@@prisma
 
 // Bytes type modifiers
 
@@ -748,3 +748,14 @@ function raw(value: String): Any {
  * Marks a field to be strong-typed JSON.
  */
 attribute @json() @@@targetField([TypeDefField])
+
+
+/**
+ * Attaches arbitrary metadata to a model or type def.
+ */
+attribute @@meta(_ name: String, _ value: Any)
+
+/**
+ * Attaches arbitrary metadata to a field.
+ */
+attribute @meta(_ name: String, _ value: Any)

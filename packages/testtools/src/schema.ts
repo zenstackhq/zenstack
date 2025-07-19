@@ -171,6 +171,84 @@ export async function loadSchemaFromFile(schemaFile: string, options?: SchemaLoa
 }
 
 export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
+    const { projectDir, options: mergedOptions } = createProjectAndCompile(schema, options);
+
+    const prismaLoadPath =
+        mergedOptions?.prismaLoadPath && mergedOptions.prismaLoadPath !== '@prisma/client'
+            ? path.isAbsolute(mergedOptions.prismaLoadPath)
+                ? mergedOptions.prismaLoadPath
+                : path.join(projectDir, mergedOptions.prismaLoadPath)
+            : path.join(projectDir, 'node_modules/.prisma/client');
+    const prismaModule = require(prismaLoadPath);
+    const PrismaClient = prismaModule.PrismaClient;
+
+    let clientOptions: object = { log: ['info', 'warn', 'error'] };
+    if (mergedOptions?.prismaClientOptions) {
+        clientOptions = { ...clientOptions, ...mergedOptions.prismaClientOptions };
+    }
+    let prisma = new PrismaClient(clientOptions);
+    // https://github.com/prisma/prisma/issues/18292
+    prisma[Symbol.for('nodejs.util.inspect.custom')] = 'PrismaClient';
+
+    if (mergedOptions.pulseApiKey) {
+        const withPulse = loadModule('@prisma/extension-pulse/node', projectDir).withPulse;
+        prisma = prisma.$extends(withPulse({ apiKey: mergedOptions.pulseApiKey }));
+    }
+
+    if (mergedOptions?.getPrismaOnly) {
+        return {
+            prisma,
+            prismaModule,
+            projectDir,
+            enhance: undefined as any,
+            enhanceRaw: undefined as any,
+            policy: undefined as unknown as PolicyDef,
+            modelMeta: undefined as any,
+            zodSchemas: undefined as any,
+        };
+    }
+
+    const outputPath = mergedOptions.output
+        ? path.isAbsolute(mergedOptions.output)
+            ? mergedOptions.output
+            : path.join(projectDir, mergedOptions.output)
+        : path.join(projectDir, 'node_modules', DEFAULT_RUNTIME_LOAD_PATH);
+
+    const policy: PolicyDef = require(path.join(outputPath, 'policy')).default;
+    const modelMeta = require(path.join(outputPath, 'model-meta')).default;
+
+    let zodSchemas: any;
+    try {
+        zodSchemas = require(path.join(outputPath, 'zod'));
+    } catch {
+        /* noop */
+    }
+
+    const enhance = require(path.join(outputPath, 'enhance')).enhance;
+
+    return {
+        projectDir: projectDir,
+        prisma,
+        enhance: (user?: AuthUser, options?: EnhancementOptions): FullDbClientContract =>
+            enhance(
+                prisma,
+                { user },
+                {
+                    logPrismaQuery: mergedOptions.logPrismaQuery,
+                    transactionTimeout: 1000000,
+                    kinds: mergedOptions.enhancements,
+                    ...(options ?? mergedOptions.enhanceOptions),
+                }
+            ),
+        enhanceRaw: enhance,
+        policy,
+        modelMeta,
+        zodSchemas,
+        prismaModule,
+    };
+}
+
+export function createProjectAndCompile(schema: string, options: SchemaLoadOptions | undefined) {
     const opt = { ...defaultOptions, ...options };
 
     let projectDir = opt.projectDir;
@@ -282,11 +360,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         fs.writeFileSync(path.join(projectDir, name), content);
     });
 
-    if (opt.extraSourceFiles && opt.extraSourceFiles.length > 0 && !opt.compile) {
-        console.warn('`extraSourceFiles` is true but `compile` is false.');
-    }
-
-    if (opt.compile) {
+    if (opt.compile || opt.extraSourceFiles) {
         console.log('Compiling...');
 
         run('npx tsc --init');
@@ -303,79 +377,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         fs.writeFileSync(path.join(projectDir, './tsconfig.json'), JSON.stringify(tsconfig, null, 2));
         run('npx tsc --project tsconfig.json');
     }
-
-    const prismaLoadPath = options?.prismaLoadPath
-        ? path.isAbsolute(options.prismaLoadPath)
-            ? options.prismaLoadPath
-            : path.join(projectDir, options.prismaLoadPath)
-        : path.join(projectDir, 'node_modules/.prisma/client');
-    const prismaModule = require(prismaLoadPath);
-    const PrismaClient = prismaModule.PrismaClient;
-
-    let clientOptions: object = { log: ['info', 'warn', 'error'] };
-    if (options?.prismaClientOptions) {
-        clientOptions = { ...clientOptions, ...options.prismaClientOptions };
-    }
-    let prisma = new PrismaClient(clientOptions);
-    // https://github.com/prisma/prisma/issues/18292
-    prisma[Symbol.for('nodejs.util.inspect.custom')] = 'PrismaClient';
-
-    if (opt.pulseApiKey) {
-        const withPulse = loadModule('@prisma/extension-pulse/node', projectDir).withPulse;
-        prisma = prisma.$extends(withPulse({ apiKey: opt.pulseApiKey }));
-    }
-
-    if (options?.getPrismaOnly) {
-        return {
-            prisma,
-            prismaModule,
-            projectDir,
-            enhance: undefined as any,
-            enhanceRaw: undefined as any,
-            policy: undefined as unknown as PolicyDef,
-            modelMeta: undefined as any,
-            zodSchemas: undefined as any,
-        };
-    }
-
-    const outputPath = opt.output
-        ? path.isAbsolute(opt.output)
-            ? opt.output
-            : path.join(projectDir, opt.output)
-        : path.join(projectDir, 'node_modules', DEFAULT_RUNTIME_LOAD_PATH);
-
-    const policy: PolicyDef = require(path.join(outputPath, 'policy')).default;
-    const modelMeta = require(path.join(outputPath, 'model-meta')).default;
-
-    let zodSchemas: any;
-    try {
-        zodSchemas = require(path.join(outputPath, 'zod'));
-    } catch {
-        /* noop */
-    }
-
-    const enhance = require(path.join(outputPath, 'enhance')).enhance;
-
-    return {
-        projectDir: projectDir,
-        prisma,
-        enhance: (user?: AuthUser, options?: EnhancementOptions): FullDbClientContract =>
-            enhance(
-                prisma,
-                { user },
-                {
-                    logPrismaQuery: opt.logPrismaQuery,
-                    transactionTimeout: 1000000,
-                    kinds: opt.enhancements,
-                    ...(options ?? opt.enhanceOptions),
-                }
-            ),
-        enhanceRaw: enhance,
-        policy,
-        modelMeta,
-        zodSchemas,
-        prismaModule,
-    };
+    return { projectDir, options: opt };
 }
 
 /**

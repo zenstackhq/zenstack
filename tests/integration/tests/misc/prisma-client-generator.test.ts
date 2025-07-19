@@ -1,19 +1,239 @@
-import { loadSchema } from '@zenstackhq/testtools';
+import { createProjectAndCompile, loadSchema } from '@zenstackhq/testtools';
 
-describe('New prisma-client generator tests', () => {
-    it('works with `auth` in `@default`', async () => {
-        const { enhance, prisma } = await loadSchema(
-            `
-            datasource db {
-                provider = "sqlite"
-                url = "file:./dev.db"
+const PRISMA_CLIENT_JS_GENERATOR = `
+datasource db {
+    provider = "sqlite"
+    url = "file:./dev.db"
+}
+
+generator client {
+    provider = "prisma-client-js"
+}
+`;
+
+const PRISMA_CLIENT_GENERATOR = `
+datasource db {
+    provider = "sqlite"
+    url = "file:./dev.db"
+}
+
+generator client {
+    provider = "prisma-client"
+    output = "../generated/prisma"
+    moduleFormat = "cjs"
+}
+`;
+
+describe.each([
+    {
+        isNewGenerator: false,
+        generator: PRISMA_CLIENT_JS_GENERATOR,
+        prismaLoadPath: '@prisma/client',
+        clientLoadPath: '@prisma/client',
+        modelsLoadPath: '@prisma/client',
+        enumsLoadPath: '@prisma/client',
+        enhanceLoadPath: '.zenstack/enhance',
+        output: undefined,
+    },
+    {
+        isNewGenerator: true,
+        generator: PRISMA_CLIENT_GENERATOR,
+        prismaLoadPath: './generated/prisma/client',
+        clientLoadPath: './generated/zenstack/client',
+        modelsLoadPath: './generated/zenstack/models',
+        enumsLoadPath: './generated/zenstack/enums',
+        enhanceLoadPath: './generated/zenstack/enhance',
+        output: './generated/zenstack',
+    },
+])('Prisma-client generator tests', (config) => {
+    describe('regular client', () => {
+        it('exports expected modules', async () => {
+            await createProjectAndCompile(
+                `
+            ${config.generator}
+
+            enum Role {
+                USER
+                ADMIN
             }
 
-            generator client {
-                provider = "prisma-client"
-                output = "./prisma-generated"
-                moduleFormat = "cjs"
+            model User {
+                id Int @id
+                name String
+                role Role
             }
+            `,
+                {
+                    addPrelude: false,
+                    output: config.output,
+                    prismaLoadPath: config.prismaLoadPath,
+                    extraSourceFiles: [
+                        {
+                            name: 'main.ts',
+                            content: `
+import { Prisma, type User } from '${config.clientLoadPath}';
+${config.isNewGenerator ? "import type { UserModel } from '" + config.modelsLoadPath + "';" : ''}
+import { Role } from '${config.enumsLoadPath}';
+
+const user: User = { id: 1, name: 'Alice', role: Role.USER };
+console.log(user);
+
+${config.isNewGenerator ? "const user1: UserModel = { id: 1, name: 'Alice', role: 'USER' };\nconsole.log(user1);" : ''}
+
+const role = Role.USER;
+console.log(role);
+                        `,
+                        },
+                    ],
+                }
+            );
+        });
+
+        it('works with client extension', async () => {
+            await createProjectAndCompile(
+                `
+            ${config.generator}
+            model User {
+                id Int @id @default(autoincrement())
+                email String
+            }
+            `,
+                {
+                    addPrelude: false,
+                    output: config.output,
+                    prismaLoadPath: config.prismaLoadPath,
+                    extraSourceFiles: [
+                        {
+                            name: 'main.ts',
+                            content: `
+import { Prisma } from '${config.clientLoadPath}';
+import { PrismaClient } from '${config.prismaLoadPath}';
+import { enhance } from '${config.enhanceLoadPath}';
+
+const prisma = new PrismaClient().$extends({
+    model: {
+        user: {
+            async signUp(email: string) {
+                return prisma.user.create({ data: { email } });
+            },
+        },
+    },
+});
+
+async function main() {
+    const db = enhance(prisma);
+    const newUser = await db.user.signUp('user@test.com')
+}
+
+main()
+                        `,
+                        },
+                    ],
+                }
+            );
+        });
+    });
+
+    describe('logical client', () => {
+        it('exports expected modules', async () => {
+            await createProjectAndCompile(
+                `
+            ${config.generator}
+
+            enum Role {
+                USER
+                ADMIN
+            }
+
+            model User {
+                id Int @id
+                name String
+                role Role
+            }
+
+            model Post {
+                id Int @id
+                authorId Int @default(auth().id)
+            }
+            `,
+                {
+                    addPrelude: false,
+                    output: config.output,
+                    prismaLoadPath: config.prismaLoadPath,
+                    extraSourceFiles: [
+                        {
+                            name: 'main.ts',
+                            content: `
+import { Prisma, type User } from '${config.clientLoadPath}';
+${config.isNewGenerator ? "import type { UserModel } from '" + config.modelsLoadPath + "';" : ''}
+import { Role } from '${config.enumsLoadPath}';
+
+const user: User = { id: 1, name: 'Alice', role: Role.USER };
+console.log(user);
+
+${config.isNewGenerator ? "const user1: UserModel = { id: 1, name: 'Alice', role: 'USER' };\nconsole.log(user1);" : ''}
+
+const role = Role.USER;
+console.log(role);
+                        `,
+                        },
+                    ],
+                }
+            );
+        });
+
+        it('works with client extension', async () => {
+            await createProjectAndCompile(
+                `
+            ${config.generator}
+            model User {
+                id Int @id @default(autoincrement())
+                email String
+            }
+
+            model Post {
+                id Int @id @default(autoincrement())
+                authorId Int @default(auth().id)
+            }
+            `,
+                {
+                    addPrelude: false,
+                    output: config.output,
+                    prismaLoadPath: config.prismaLoadPath,
+                    extraSourceFiles: [
+                        {
+                            name: 'main.ts',
+                            content: `
+import { PrismaClient } from '${config.prismaLoadPath}';
+import { enhance } from '${config.enhanceLoadPath}';
+
+const prisma = new PrismaClient().$extends({
+    model: {
+        user: {
+            async signUp(email: string) {
+                return prisma.user.create({ data: { email } });
+            },
+        },
+    },
+});
+
+async function main() {
+    const db = enhance(prisma);
+    const newUser = await db.user.signUp('user@test.com')
+}
+
+main()
+                        `,
+                        },
+                    ],
+                }
+            );
+        });
+
+        it('works with `auth` in `@default`', async () => {
+            const { enhance, prisma } = await loadSchema(
+                `
+            ${config.generator}
 
             model User {
                 id Int @id
@@ -29,17 +249,17 @@ describe('New prisma-client generator tests', () => {
                 @@allow('all', true)
             }
             `,
-            {
-                addPrelude: false,
-                output: './zenstack',
-                compile: true,
-                prismaLoadPath: './prisma/prisma-generated/client',
-                extraSourceFiles: [
-                    {
-                        name: 'main.ts',
-                        content: `
-import { PrismaClient } from './prisma/prisma-generated/client';
-import { enhance } from './zenstack/enhance';
+                {
+                    addPrelude: false,
+                    output: config.output,
+                    compile: true,
+                    prismaLoadPath: config.prismaLoadPath,
+                    extraSourceFiles: [
+                        {
+                            name: 'main.ts',
+                            content: `
+import { PrismaClient } from '${config.prismaLoadPath}';
+import { enhance } from '${config.enhanceLoadPath}';
 
 const prisma = new PrismaClient();
 const db = enhance(prisma);
@@ -51,31 +271,22 @@ async function main() {
 
 main();
 `,
-                    },
-                ],
-            }
-        );
+                        },
+                    ],
+                }
+            );
 
-        const user = await prisma.user.create({ data: { id: 1 } });
-        const db = enhance({ id: user.id });
-        await expect(db.post.create({ data: { id: 1, title: 'Hello World' } })).resolves.toMatchObject({
-            authorId: user.id,
+            const user = await prisma.user.create({ data: { id: 1 } });
+            const db = enhance({ id: user.id });
+            await expect(db.post.create({ data: { id: 1, title: 'Hello World' } })).resolves.toMatchObject({
+                authorId: user.id,
+            });
         });
-    });
 
-    it('works with delegate models', async () => {
-        const { enhance } = await loadSchema(
-            `
-            datasource db {
-                provider = "sqlite"
-                url = "file:./dev.db"
-            }
-
-            generator client {
-                provider = "prisma-client"
-                output = "./prisma-generated"
-                moduleFormat = "cjs"
-            }
+        it('works with delegate models', async () => {
+            const { enhance } = await loadSchema(
+                `
+            ${config.generator}
 
             model Asset {
                 id Int @id
@@ -88,18 +299,18 @@ main();
                 title String
             }
             `,
-            {
-                enhancements: ['delegate'],
-                addPrelude: false,
-                output: './zenstack',
-                compile: true,
-                prismaLoadPath: './prisma/prisma-generated/client',
-                extraSourceFiles: [
-                    {
-                        name: 'main.ts',
-                        content: `
-import { PrismaClient } from './prisma/prisma-generated/client';
-import { enhance } from './zenstack/enhance';
+                {
+                    enhancements: ['delegate'],
+                    addPrelude: false,
+                    output: config.output,
+                    compile: true,
+                    prismaLoadPath: config.prismaLoadPath,
+                    extraSourceFiles: [
+                        {
+                            name: 'main.ts',
+                            content: `
+import { PrismaClient } from '${config.prismaLoadPath}';
+import { enhance } from '${config.enhanceLoadPath}';
 
 const prisma = new PrismaClient();
 const db = enhance(prisma);
@@ -111,14 +322,15 @@ async function main() {
 
 main();
 `,
-                    },
-                ],
-            }
-        );
+                        },
+                    ],
+                }
+            );
 
-        const db = enhance();
-        await expect(
-            db.post.create({ data: { id: 1, name: 'Test Post', title: 'Hello World' } })
-        ).resolves.toMatchObject({ id: 1, name: 'Test Post', type: 'Post', title: 'Hello World' });
+            const db = enhance();
+            await expect(
+                db.post.create({ data: { id: 1, name: 'Test Post', title: 'Hello World' } })
+            ).resolves.toMatchObject({ id: 1, name: 'Test Post', type: 'Post', title: 'Hello World' });
+        });
     });
 });

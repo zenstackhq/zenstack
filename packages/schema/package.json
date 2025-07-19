@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "FullStack enhancement for Prisma ORM: seamless integration from database to UI",
-    "version": "2.16.1",
+    "version": "2.17.0",
     "author": {
         "name": "ZenStack Team"
     },
@@ -118,10 +118,10 @@
         "zod-validation-error": "^1.5.0"
     },
     "peerDependencies": {
-        "prisma": "5.0.0 - 6.10.x"
+        "prisma": "5.0.0 - 6.11.x"
     },
     "devDependencies": {
-        "@prisma/client": "6.10.x",
+        "@prisma/client": "6.11.x",
         "@types/async-exit-hook": "^2.0.0",
         "@types/pluralize": "^0.0.29",
         "@types/semver": "^7.3.13",
