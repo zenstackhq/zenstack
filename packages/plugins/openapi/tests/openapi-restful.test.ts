@@ -129,7 +129,7 @@ model Bar {
         }
     });
 
-    it('options', async () => {
+    it('common options', async () => {
         const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
 plugin openapi {
     provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
@@ -395,6 +395,39 @@ model User {
         expect(Object.keys(parsed.components.schemas.User.properties.attributes.properties)).toEqual(
             expect.arrayContaining(['role', 'company'])
         );
+    });
+
+    it('works with mapped model name', async () => {
+        const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
+plugin openapi {
+    provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
+    title = 'My Awesome API'
+    prefix = '/api'
+    modelNameMapping = {
+        User: 'myUser'
+    }
+}
+
+model User {
+    id String @id
+    posts Post[]
+}
+
+model Post {
+    id String @id
+    author User @relation(fields: [authorId], references: [id])
+    authorId String
+}
+        `);
+
+        const { name: output } = tmp.fileSync({ postfix: '.yaml' });
+        const options = buildOptions(model, modelFile, output);
+        await generate(model, options, dmmf);
+        console.log('OpenAPI specification generated:', output);
+        const api = await OpenAPIParser.validate(output);
+        expect(api.paths?.['/api/myUser']).toBeTruthy();
+        expect(api.paths?.['/api/user']).toBeFalsy();
+        expect(api.paths?.['/api/post']).toBeTruthy();
     });
 });
 
