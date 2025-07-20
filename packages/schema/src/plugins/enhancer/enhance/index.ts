@@ -727,27 +727,6 @@ export type Enhanced<Client> =
         return structure;
     }
 
-    private transformVariableStatementProps(variable: VariableStatement) {
-        const structure = variable.getStructure();
-
-        // remove `delegate_aux_*` fields from the variable's initializer
-        const auxFields = this.findAuxProps(variable);
-        if (auxFields.length > 0) {
-            structure.declarations.forEach((variable) => {
-                if (variable.initializer) {
-                    let source = variable.initializer;
-                    auxFields.forEach((f) => {
-                        invariant(typeof source === 'string');
-                        source = this.removeFromSource(source, f.getText());
-                    });
-                    variable.initializer = source;
-                }
-            });
-        }
-
-        return structure;
-    }
-
     private transformInterface(iface: InterfaceDeclaration, delegateInfo: DelegateInfo) {
         const structure = iface.getStructure();
 
