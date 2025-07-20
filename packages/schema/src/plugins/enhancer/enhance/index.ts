@@ -1,5 +1,5 @@
 import { DELEGATE_AUX_RELATION_PREFIX } from '@zenstackhq/runtime';
-import { invariant, upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
+import { upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import {
     PluginError,
     getAttribute,
