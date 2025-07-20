@@ -3013,4 +3013,102 @@ describe('REST server tests', () => {
             expect(r.body.data.attributes.enabled).toBe(false);
         });
     });
+
+    describe('REST server tests - model name mapping', () => {
+        const schema = `
+    model User {
+        id String @id @default(cuid())
+        name String
+        posts Post[]
+    }
+    
+    model Post {
+        id String @id @default(cuid())
+        title String
+        author User? @relation(fields: [authorId], references: [id])
+        authorId String?
+    }
+    `;
+        beforeAll(async () => {
+            const params = await loadSchema(schema);
+            prisma = params.prisma;
+            zodSchemas = params.zodSchemas;
+            modelMeta = params.modelMeta;
+
+            const _handler = makeHandler({
+                endpoint: 'http://localhost/api',
+                modelNameMapping: {
+                    User: 'myUser',
+                },
+            });
+            handler = (args) =>
+                _handler({ ...args, zodSchemas, modelMeta, url: new URL(`http://localhost/${args.path}`) });
+        });
+
+        it('works with name mapping', async () => {
+            // using original model name
+            await expect(
+                handler({
+                    method: 'post',
+                    path: '/user',
+                    query: {},
+                    requestBody: { data: { type: 'user', attributes: { id: '1', name: 'User1' } } },
+                    prisma,
+                })
+            ).resolves.toMatchObject({
+                status: 400,
+            });
+
+            // using mapped model name
+            await expect(
+                handler({
+                    method: 'post',
+                    path: '/myUser',
+                    query: {},
+                    requestBody: { data: { type: 'user', attributes: { id: '1', name: 'User1' } } },
+                    prisma,
+                })
+            ).resolves.toMatchObject({
+                status: 201,
+                body: {
+                    links: { self: 'http://localhost/api/myUser/1' },
+                },
+            });
+
+            await expect(
+                handler({
+                    method: 'get',
+                    path: '/myUser/1',
+                    query: {},
+                    prisma,
+                })
+            ).resolves.toMatchObject({
+                status: 200,
+                body: {
+                    links: { self: 'http://localhost/api/myUser/1' },
+                },
+            });
+
+            // works with unmapped model name
+            await expect(
+                handler({
+                    method: 'post',
+                    path: '/post',
+                    query: {},
+                    requestBody: {
+                        data: {
+                            type: 'post',
+                            attributes: { id: '1', title: 'Post1' },
+                            relationships: {
+                                author: { data: { type: 'user', id: '1' } },
+                            },
+                        },
+                    },
+                    prisma,
+                })
+            ).resolves.toMatchObject({
+                status: 201,
+            });
+        });
+    });
 });
