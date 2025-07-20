@@ -13,6 +13,7 @@ export enum ExpressionContext {
     AccessPolicy = 'AccessPolicy',
     ValidationRule = 'ValidationRule',
     Index = 'Index',
+    AliasFunction = 'AliasFunction',
 }
 
 export const STD_LIB_MODULE_NAME = 'stdlib.zmodel';

@@ -11,7 +11,14 @@ ModelImport:
     'import' path=STRING  ';'?;
 
 AbstractDeclaration:
-    DataSource | GeneratorDecl| Plugin | DataModel | TypeDef | Enum | FunctionDecl | Attribute;
+    DataSource | GeneratorDecl | Plugin | DataModel | TypeDef | Enum | FunctionDecl | AliasDecl | Attribute;
+
+// alias
+AliasDecl:
+    TRIPLE_SLASH_COMMENT* 'alias' name=RegularID '(' (params+=FunctionParam (',' params+=FunctionParam)*)? ')' '{' expression=Expression '}' (attributes+=InternalAttribute)*;
+
+// AliasExpr:
+//     function=[AliasDecl] '(' ArgumentList? ')';
 
 // datasource
 DataSource:
@@ -91,8 +98,10 @@ ObjectExpr:
 FieldInitializer:
     name=(RegularID | STRING) ':' value=(Expression);
 
+type AbstractCallable = FunctionDecl | AliasDecl;
+
 InvocationExpr:
-    function=[FunctionDecl] '(' ArgumentList? ')';
+    function=[AbstractCallable] '(' ArgumentList? ')';
 
 type MemberAccessTarget = DataModelField | TypeDefField;
 
@@ -228,7 +237,7 @@ FunctionParamType:
 // https://github.com/langium/langium/discussions/1012
 RegularID returns string:
     // include keywords that we'd like to work as ID in most places
-    ID | 'model' | 'enum' | 'attribute' | 'datasource' | 'plugin' | 'abstract' | 'in' | 'view' | 'import' | 'type';
+    ID | 'model' | 'enum' | 'attribute' | 'datasource' | 'plugin' | 'abstract' | 'in' | 'view' | 'import' | 'type' | 'alias';
 
 RegularIDWithTypeNames returns string:
     RegularID | 'String' | 'Boolean' | 'Int' | 'BigInt' | 'Float' | 'Decimal' | 'DateTime' | 'Json' | 'Bytes' | 'Null' | 'Object' | 'Any' | 'Unsupported';
@@ -245,7 +254,7 @@ AttributeParam:
 AttributeParamType:
     (type=(ExpressionType | 'FieldReference' | 'TransitiveFieldReference' | 'ContextType') | reference=[TypeDeclaration:RegularID]) (array?='[' ']')? (optional?='?')?;
 
-type TypeDeclaration = DataModel | TypeDef | Enum;
+type TypeDeclaration = DataModel | TypeDef | Enum | AliasDecl;
 DataModelFieldAttribute:
     decl=[Attribute:FIELD_ATTRIBUTE_NAME] ('(' AttributeArgList? ')')?;
 

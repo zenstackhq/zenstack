@@ -1,5 +1,7 @@
 /// <reference types="@types/jest" />
 
+import fs from 'fs';
+import path from 'path';
 import { loadSchema } from '@zenstackhq/testtools';
 
 describe('Policy plugin tests', () => {
@@ -107,5 +109,78 @@ model M {
         expect(
             (policy.policy.task.modelLevel.read.guard as Function)({ user: { cart: { tasks: [{ id: 123 }] } } })
         ).toEqual(expect.objectContaining({ AND: [{ AND: [] }, { value: { gt: 10 } }] }));
+    });
+
+    it('alias expressions', async () => {
+        const { policy, projectDir } = await loadSchema(
+            `
+            alias allowAll() {
+                true
+            }
+
+            alias defaultTitle() {
+                'Default Title'
+            }
+
+            alias currentUser() {
+                auth().id 
+            }
+
+            model Post {
+                id          Int      @id @default(autoincrement())
+                title       String   @default(defaultTitle())
+                published   Boolean  @default(allowAll())
+
+                author   User     @relation(fields: [authorId], references: [id])
+                authorId String   @default(auth().id)
+
+                @@allow('read', allowAll())
+                @@allow('create,update,delete', currentUser() == authorId && published)
+            }
+
+            model User {
+                id            String    @id @default(cuid())
+                name          String?
+                posts         Post[]
+
+                @@allow('all', allowAll())
+            }
+        `,
+            {
+                compile: false,
+                generateNoCompile: true,
+                output: 'out/',
+            }
+        );
+
+        // Test allowAll alias used in policy and default
+        expect((policy.policy.post.modelLevel.read.guard as Function)({}, undefined)).toEqual({ AND: [] });
+        expect((policy.policy.user.modelLevel.read.guard as Function)({}, undefined)).toEqual({ AND: [] });
+
+        // Test currentUser alias used in policy
+        expect(
+            (policy.policy.post.modelLevel.create.guard as Function)(
+                { user: { id: 'u1' }, authorId: 'u1', published: true },
+                undefined
+            )
+        ).toEqual({ AND: [{ authorId: { equals: 'u1' } }, { published: true }] });
+        expect(
+            (policy.policy.post.modelLevel.create.guard as Function)(
+                { user: { id: 'u2' }, authorId: 'u1', published: true },
+                undefined
+            )
+        ).toEqual({ AND: [{ authorId: { equals: 'u2' } }, { published: true }] });
+
+        const content = fs.readFileSync(path.join(projectDir, 'out/policy.ts'), 'utf-8');
+        expect(content.replace(/\s+/g, ' ')).toContain(`function allowAll(): any { return true; }`);
+        expect(content.replace(/\s+/g, ' ')).toContain(`function defaultTitle(): any { return 'Default Title'; }`);
+        expect(content.replace(/\s+/g, ' ')).toContain(
+            `function currentUser(user: PermissionCheckerContext["user"]): any { return user?.id; }`
+        );
+
+        // // Test direct alias function calls
+        // expect((allowAll as Function)()).toEqual(true);
+        // expect((defaultTitle as Function)()).toEqual('Default Title');
+        // expect((currentUser as Function)({ id: 'u1' })).toEqual('u1');
     });
 });

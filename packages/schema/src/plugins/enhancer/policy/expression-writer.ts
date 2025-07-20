@@ -5,6 +5,7 @@ import {
     DataModelField,
     Expression,
     InvocationExpr,
+    isAliasDecl,
     isDataModel,
     isDataModelField,
     isEnumField,
@@ -805,6 +806,8 @@ export class ExpressionWriter {
                     extraArgs
                 );
             });
+        } else if (isAliasDecl(funcDecl)) {
+            // noop
         } else {
             throw new PluginError(name, `Unsupported function ${funcDecl.name}`);
         }

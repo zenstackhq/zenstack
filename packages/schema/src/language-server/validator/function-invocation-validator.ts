@@ -1,12 +1,14 @@
 import {
+    AbstractCallable,
+    AliasDecl,
     Argument,
     DataModel,
     DataModelAttribute,
     DataModelFieldAttribute,
     Expression,
-    FunctionDecl,
     FunctionParam,
     InvocationExpr,
+    isAliasDecl,
     isArrayExpr,
     isDataModel,
     isDataModelAttribute,
@@ -47,24 +49,24 @@ function func(name: string) {
  */
 export default class FunctionInvocationValidator implements AstValidator<Expression> {
     validate(expr: InvocationExpr, accept: ValidationAcceptor): void {
-        const funcDecl = expr.function.ref;
-        if (!funcDecl) {
-            accept('error', 'function cannot be resolved', { node: expr });
+        const callableDecl = expr.function.ref;
+        if (!callableDecl) {
+            accept('error', 'function or alias cannot be resolved', { node: expr });
             return;
         }
 
-        if (!this.validateArgs(funcDecl, expr.args, accept)) {
+        if (!this.validateArgs(callableDecl, expr.args, accept)) {
             return;
         }
 
-        if (isFromStdlib(funcDecl)) {
+        if (isFromStdlib(callableDecl)) {
             // validate standard library functions
 
             // find the containing attribute context for the invocation
             let curr: AstNode | undefined = expr.$container;
-            let containerAttribute: DataModelAttribute | DataModelFieldAttribute | undefined;
+            let containerAttribute: DataModelAttribute | DataModelFieldAttribute | AliasDecl | undefined;
             while (curr) {
-                if (isDataModelAttribute(curr) || isDataModelFieldAttribute(curr)) {
+                if (isDataModelAttribute(curr) || isDataModelFieldAttribute(curr) || isAliasDecl(curr)) {
                     containerAttribute = curr;
                     break;
                 }
@@ -75,12 +77,12 @@ export default class FunctionInvocationValidator implements AstValidator<Express
             const exprContext = this.getExpressionContext(containerAttribute);
 
             // get the context allowed for the function
-            const funcAllowedContext = getFunctionExpressionContext(funcDecl);
+            const funcAllowedContext = getFunctionExpressionContext(callableDecl);
 
             if (funcAllowedContext.length > 0 && (!exprContext || !funcAllowedContext.includes(exprContext))) {
                 accept(
                     'error',
-                    `function "${funcDecl.name}" is not allowed in the current context${
+                    `function "${callableDecl.name}" is not allowed in the current context${
                         exprContext ? ': ' + exprContext : ''
                     }`,
                     {
@@ -93,7 +95,7 @@ export default class FunctionInvocationValidator implements AstValidator<Express
             // TODO: express function validation rules declaratively in ZModel
 
             const allCasing = ['original', 'upper', 'lower', 'capitalize', 'uncapitalize'];
-            if (['currentModel', 'currentOperation'].includes(funcDecl.name)) {
+            if (['currentModel', 'currentOperation'].includes(callableDecl.name)) {
                 const arg = getLiteral<string>(expr.args[0]?.value);
                 if (arg && !allCasing.includes(arg)) {
                     accept('error', `argument must be one of: ${allCasing.map((c) => '"' + c + '"').join(', ')}`, {
@@ -108,6 +110,12 @@ export default class FunctionInvocationValidator implements AstValidator<Express
 
                 // first argument must refer to a model field
                 const firstArg = expr.args?.[0]?.value;
+                const callableDecl = expr.function.ref;
+                if (!callableDecl) {
+                    accept('error', 'function or rule cannot be resolved', { node: expr });
+                    return;
+                }
+
                 if (firstArg) {
                     if (!getFieldReference(firstArg)) {
                         accept('error', 'first argument must be a field reference', { node: firstArg });
@@ -130,7 +138,7 @@ export default class FunctionInvocationValidator implements AstValidator<Express
                     !(
                         isArrayExpr(secondArg) &&
                         secondArg.items.every(
-                            (item) =>
+                            (item: Expression) =>
                                 isLiteralExpr(item) || isEnumFieldReference(item) || isAuthOrAuthMemberAccess(item)
                         )
                     )
@@ -144,18 +152,23 @@ export default class FunctionInvocationValidator implements AstValidator<Express
                     );
                 }
             }
-        }
 
-        // run checkers for specific functions
-        const checker = invocationCheckers.get(expr.function.$refText);
-        if (checker) {
-            checker.value.call(this, expr, accept);
+            // run checkers for specific functions
+            const checker = invocationCheckers.get(expr.function.$refText);
+            if (checker) {
+                checker.value.call(this, expr, accept);
+            }
         }
     }
 
-    private getExpressionContext(containerAttribute: DataModelAttribute | DataModelFieldAttribute | undefined) {
+    private getExpressionContext(
+        containerAttribute: DataModelAttribute | DataModelFieldAttribute | AliasDecl | undefined
+    ) {
         if (!containerAttribute) {
             return undefined;
+        }
+        if (isAliasDecl(containerAttribute)) {
+            return ExpressionContext.AliasFunction;
         }
         if (isValidationAttribute(containerAttribute)) {
             return ExpressionContext.ValidationRule;
@@ -171,7 +184,7 @@ export default class FunctionInvocationValidator implements AstValidator<Express
         return isInvocationExpr(expr) && ['currentModel', 'currentOperation'].includes(expr.function.$refText);
     }
 
-    private validateArgs(funcDecl: FunctionDecl, args: Argument[], accept: ValidationAcceptor) {
+    private validateArgs(funcDecl: AbstractCallable, args: Argument[], accept: ValidationAcceptor) {
         let success = true;
         for (let i = 0; i < funcDecl.params.length; i++) {
             const param = funcDecl.params[i];
@@ -289,7 +302,7 @@ export default class FunctionInvocationValidator implements AstValidator<Express
             }
 
             const policyAttrs = currModel.attributes.filter(
-                (attr) => attr.decl.$refText === '@@allow' || attr.decl.$refText === '@@deny'
+                (attr: DataModelAttribute) => attr.decl.$refText === '@@allow' || attr.decl.$refText === '@@deny'
             );
             for (const attr of policyAttrs) {
                 const rule = attr.args[1];

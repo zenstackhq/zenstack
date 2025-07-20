@@ -38,6 +38,7 @@ import {
     getInheritedFromDelegate,
     getLiteral,
     getRelationKeyPairs,
+    isAliasExpr,
     isDelegateModel,
     isIdField,
     PluginError,
@@ -962,6 +963,13 @@ export class PrismaSchemaGenerator {
                 )
             );
         } else if (isInvocationExpr(node)) {
+            if (isAliasExpr(node)) {
+                const expression = node.function?.ref?.expression;
+                if (!expression) {
+                    throw new PluginError(name, `Alias has no expression reference: ${this.exprToText(node)}`);
+                }
+                return this.makeAttributeArgValue(expression);
+            }
             // invocation
             return new PrismaAttributeArgValue('FunctionCall', this.makeFunctionCall(node));
         } else {

@@ -1,4 +1,5 @@
 import {
+    AliasDecl,
     ArrayExpr,
     AttributeArg,
     AttributeParam,
@@ -55,9 +56,13 @@ import {
 } from 'langium';
 import { match } from 'ts-pattern';
 import { CancellationToken } from 'vscode-jsonrpc';
-import { getAllLoadedAndReachableDataModelsAndTypeDefs, getContainingDataModel } from '../utils/ast-utils';
+import {
+    getAllLoadedAndReachableDataModelsAndTypeDefs,
+    getContainingDataModel,
+    isAliasInvocation,
+} from '../utils/ast-utils';
 import { isMemberContainer } from './utils';
-import { mapBuiltinTypeToExpressionType } from './validator/utils';
+import { mapBuiltinTypeToExpressionType, mappedRawExpressionTypeToResolvedShape } from './validator/utils';
 
 interface DefaultReference extends Reference {
     _ref?: AstNode | LinkingError;
@@ -278,8 +283,7 @@ export class ZModelLinker extends DefaultLinker {
         this.linkReference(node, 'function', document, extraScopes);
         node.args.forEach((arg) => this.resolve(arg, document, extraScopes));
         if (node.function.ref) {
-            // eslint-disable-next-line @typescript-eslint/ban-types
-            const funcDecl = node.function.ref as FunctionDecl;
+            const funcDecl = node.function.ref as FunctionDecl | AliasDecl;
             if (isAuthInvocation(node)) {
                 // auth() function is resolved against all loaded and reachable documents
 
@@ -296,8 +300,22 @@ export class ZModelLinker extends DefaultLinker {
             } else if (isFutureExpr(node)) {
                 // future() function is resolved to current model
                 node.$resolvedType = { decl: getContainingDataModel(node) };
+            } else if (isAliasInvocation(node)) {
+                // function is resolved to matching alias declaration
+
+                const expressionType = funcDecl.expression?.$type;
+                if (!expressionType) {
+                    this.createLinkingError({
+                        reference: node.function,
+                        container: node,
+                        property: 'alias',
+                    });
+                    return;
+                }
+                const mappedType = mappedRawExpressionTypeToResolvedShape(expressionType);
+                this.resolveToBuiltinTypeOrDecl(node, mappedType);
             } else {
-                this.resolveToDeclaredType(node, funcDecl.returnType);
+                this.resolveToDeclaredType(node, (funcDecl as FunctionDecl).returnType);
             }
         }
     }

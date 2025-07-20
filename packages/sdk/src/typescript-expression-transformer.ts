@@ -24,7 +24,15 @@ import { getContainerOfType } from 'langium';
 import { P, match } from 'ts-pattern';
 import { ExpressionContext } from './constants';
 import { getEntityCheckerFunctionName } from './names';
-import { getIdFields, getLiteral, isDataModelFieldReference, isFromStdlib, isFutureExpr } from './utils';
+import {
+    getIdFields,
+    getLiteral,
+    hasAuthInvocation,
+    isAliasExpr,
+    isDataModelFieldReference,
+    isFromStdlib,
+    isFutureExpr,
+} from './utils';
 
 export class TypeScriptExpressionTransformerError extends Error {
     constructor(message: string) {
@@ -142,6 +150,15 @@ export class TypeScriptExpressionTransformer {
 
         const funcName = expr.function.ref.name;
         const isStdFunc = isFromStdlib(expr.function.ref);
+        const isAlias = isAliasExpr(expr);
+
+        if (isAlias) {
+            // if the function is an alias, we need to resolve it to the actual alias declaration
+            const hasAuth = hasAuthInvocation(expr);
+            const aliasInvocation = `${expr.function.ref.name}(${hasAuth ? 'user' : ''})`;
+            // const aliasExpression = `${expr.function.ref.expression?.$cstNode?.text}`;
+            return aliasInvocation;
+        }
 
         if (!isStdFunc) {
             throw new TypeScriptExpressionTransformerError('User-defined functions are not supported yet');

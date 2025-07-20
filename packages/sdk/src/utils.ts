@@ -1,4 +1,5 @@
 import {
+    AbstractCallable,
     AstNode,
     Attribute,
     AttributeParam,
@@ -13,6 +14,7 @@ import {
     FunctionDecl,
     GeneratorDecl,
     InternalAttribute,
+    InvocationExpr,
     isArrayExpr,
     isConfigArrayExpr,
     isDataModel,
@@ -426,7 +428,7 @@ export function parseOptionAsStrings(options: PluginDeclaredOptions, optionName:
     }
 }
 
-export function getFunctionExpressionContext(funcDecl: FunctionDecl) {
+export function getFunctionExpressionContext(funcDecl: AbstractCallable) {
     const funcAllowedContext: ExpressionContext[] = [];
     const funcAttr = funcDecl.attributes.find((attr) => attr.decl.$refText === '@@@expressionContext');
     if (funcAttr) {
@@ -446,8 +448,19 @@ export function isFutureExpr(node: AstNode) {
     return isInvocationExpr(node) && node.function.ref?.name === 'future' && isFromStdlib(node.function.ref);
 }
 
+export function isAliasExpr(node: AstNode) {
+    return isInvocationExpr(node) && node.function.ref?.$type === 'AliasDecl';
+}
+
 export function isAuthInvocation(node: AstNode) {
     return isInvocationExpr(node) && node.function.ref?.name === 'auth' && isFromStdlib(node.function.ref);
+}
+
+export function hasAuthInvocation(node: AstNode) {
+    return (
+        isAuthInvocation(node) ||
+        (isAliasExpr(node) && (node as InvocationExpr).function?.ref?.expression?.$cstNode?.text.includes('auth()'))
+    );
 }
 
 export function isFromStdlib(node: AstNode) {

@@ -15,6 +15,7 @@ import {
     getLiteral,
     getQueryGuardFunctionName,
     isAuthInvocation,
+    hasAuthInvocation,
     isDataModelFieldReference,
     isEnumFieldReference,
     isFromStdlib,
@@ -506,8 +507,7 @@ export function generateNormalizedAuthRef(
     statements: string[]
 ) {
     // check if any allow or deny rule contains 'auth()' invocation
-    const hasAuthRef = [...allows, ...denies].some((rule) => streamAst(rule).some((child) => isAuthInvocation(child)));
-
+    const hasAuthRef = [...allows, ...denies].some((rule) => streamAst(rule).some((child) => hasAuthInvocation(child)));
     if (hasAuthRef) {
         const authModel = getAuthDecl(getDataModelAndTypeDefs(model.$container, true));
         if (!authModel) {

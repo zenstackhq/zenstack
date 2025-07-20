@@ -11,9 +11,11 @@ import {
     isInvocationExpr,
     isModel,
     isReferenceExpr,
+    isAliasDecl,
     isTypeDef,
     Model,
     ModelImport,
+    AliasDecl,
     TypeDef,
 } from '@zenstackhq/language/ast';
 import {
@@ -40,7 +42,7 @@ import path from 'node:path';
 import { URI, Utils } from 'vscode-uri';
 import { findNodeModulesFile } from './pkg-utils';
 
-export function extractDataModelsWithAllowRules(model: Model): DataModel[] {
+export function extractDataModelsWithAllowAliass(model: Model): DataModel[] {
     return model.declarations.filter(
         (d) => isDataModel(d) && d.attributes.some((attr) => attr.decl.ref?.name === '@@allow')
     ) as DataModel[];
@@ -167,6 +169,14 @@ export function isFutureInvocation(node: AstNode) {
 
 export function isCheckInvocation(node: AstNode) {
     return isInvocationExpr(node) && node.function.ref?.name === 'check' && isFromStdlib(node.function.ref);
+}
+
+export function isAliasInvocation(node: AstNode) {
+    // check if a matching alias exists
+    const allAlias = getContainerOfType(node, isModel)?.declarations.filter(isAliasDecl) ?? [];
+    // const aliasDecls = getAllLoadedAlias(this.langiumDocuments());
+    return isInvocationExpr(node) && allAlias.some((alias) => alias.name === node.function.$refText);
+    // (!node.function.ref || !isFromStdlib(node.function.ref)) /*  && isAliasDecl(node.function.ref) */
 }
 
 export function resolveImportUri(imp: ModelImport): URI | undefined {
@@ -310,6 +320,16 @@ export function getAllLoadedAndReachableDataModelsAndTypeDefs(
     }
 
     return allDataModels;
+}
+
+/**
+ * Gets all data models and type defs from all loaded documents
+ */
+export function getAllLoadedAlias(langiumDocuments: LangiumDocuments) {
+    return langiumDocuments.all
+        .map((doc) => doc.parseResult.value as Model)
+        .flatMap((model) => model.declarations.filter((d): d is AliasDecl => isAliasDecl(d)))
+        .toArray();
 }
 
 /**

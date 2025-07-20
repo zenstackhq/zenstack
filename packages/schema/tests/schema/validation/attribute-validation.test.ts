@@ -1391,4 +1391,57 @@ describe('Attribute tests', () => {
         `)
         ).resolves.toContain('Invalid regular expression');
     });
+
+    it('alias expressions', async () => {
+        await loadModel(`
+            ${prelude}
+
+            alias foo() {
+                true
+            }
+
+            model A {
+                id String @id
+                opened Boolean @default(foo())
+
+                @@allow('all', foo())
+            }
+        `);
+
+        await loadModel(`
+            ${prelude}
+
+            alias allowAll() {
+                true
+            }
+
+            alias currentUser() {
+                auth().id
+            }
+
+            model User {
+                id String @id
+                opened Boolean @default(allowAll())
+
+                @@allow('all', allowAll() && currentUser())
+            }
+        `);
+
+        expect(
+            await loadModelWithError(`
+                ${prelude}
+
+                alias foo() {
+                    "ok"
+                }
+
+                model A {
+                    id String @id
+                    opened Boolean @default(foo())
+
+                    @@allow('all', foo())
+                }
+            `)
+        ).toContain(`Value is not assignable to parameter`);
+    });
 });
