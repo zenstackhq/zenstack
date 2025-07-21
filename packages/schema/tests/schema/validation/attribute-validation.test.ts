@@ -406,7 +406,7 @@ describe('Attribute tests', () => {
                 id String @id @default(foo())
             }
         `)
-        ).toContain(`Could not resolve reference to FunctionDecl named 'foo'.`);
+        ).toContain(`Could not resolve reference to AbstractCallable named 'foo'.`);
 
         expect(
             await loadModelWithError(`
