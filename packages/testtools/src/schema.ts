@@ -17,6 +17,7 @@ import * as path from 'path';
 import tmp from 'tmp';
 import { loadDocument } from 'zenstack/cli/cli-util';
 import prismaPlugin from 'zenstack/plugins/prisma';
+import os from 'os';
 
 /**
  * Use it to represent multiple files in a single string like this
@@ -31,7 +32,6 @@ import prismaPlugin from 'zenstack/plugins/prisma';
 export const FILE_SPLITTER = '#FILE_SPLITTER#';
 
 const tempDirs: string[] = [];
-tmp.setGracefulCleanup();
 
 export type FullDbClientContract = CrudContract & {
     $on(eventType: any, callback: (event: any) => void): void;
@@ -427,6 +427,7 @@ function loadModule(module: string, basePath: string): any {
 }
 
 export function cleanUpTemps() {
+    process.chdir(os.tmpdir());
     tempDirs.forEach((d) => {
         console.log('Cleaning up temp dir:', d);
         if (fs.existsSync(d)) {
