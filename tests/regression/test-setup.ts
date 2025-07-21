@@ -1,3 +1,4 @@
+import { cleanUpTemps } from '@zenstackhq/testtools';
 import {
     toBeNotFound,
     toBeRejectedByPolicy,
@@ -14,4 +15,8 @@ expect.extend({
     toResolveFalsy,
     toResolveNull,
     toBeRejectedWithCode,
+});
+
+afterAll(() => {
+    cleanUpTemps();
 });

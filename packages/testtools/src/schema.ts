@@ -30,6 +30,7 @@ import prismaPlugin from 'zenstack/plugins/prisma';
 */
 export const FILE_SPLITTER = '#FILE_SPLITTER#';
 
+const tempDirs: string[] = [];
 tmp.setGracefulCleanup();
 
 export type FullDbClientContract = CrudContract & {
@@ -254,6 +255,7 @@ export function createProjectAndCompile(schema: string, options: SchemaLoadOptio
     let projectDir = opt.projectDir;
     if (!projectDir) {
         const r = tmp.dirSync({ unsafeCleanup: true });
+        tempDirs.push(r.name);
         projectDir = r.name;
     }
 
@@ -422,4 +424,18 @@ export async function loadZModelAndDmmf(
 function loadModule(module: string, basePath: string): any {
     const modulePath = require.resolve(module, { paths: [basePath] });
     return require(modulePath);
+}
+
+export function cleanUpTemps() {
+    tempDirs.forEach((d) => {
+        console.log('Cleaning up temp dir:', d);
+        if (fs.existsSync(d)) {
+            try {
+                fs.rmSync(d, { recursive: true, force: true });
+            } catch {
+                // ignore
+            }
+        }
+    });
+    tempDirs.splice(0, tempDirs.length);
 }
