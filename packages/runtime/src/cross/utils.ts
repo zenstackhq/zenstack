@@ -50,9 +50,17 @@ export function zip<T1, T2>(x: Enumerable<T1>, y: Enumerable<T2>): Array<[T1, T2
  * Gets ID fields of a model.
  */
 export function getIdFields(modelMeta: ModelMeta, model: string, throwIfNotFound = false) {
-    const uniqueConstraints = modelMeta.models[lowerCaseFirst(model)]?.uniqueConstraints ?? {};
+    const metaData = modelMeta.models[lowerCaseFirst(model)] ?? {};
+    const uniqueConstraints = metaData.uniqueConstraints ?? {};
 
-    const entries = Object.values(uniqueConstraints);
+    let entries = Object.values(uniqueConstraints);
+    if (metaData.attributes !== undefined) {
+        const externalId = metaData.attributes.find((attr) => attr.name === '@@externalId');
+        if (externalId && externalId.args[0] !== undefined) {
+            entries = entries.filter((entry) => entry.name === externalId.args[0].value);
+        }
+    }
+
     if (entries.length === 0) {
         if (throwIfNotFound) {
             throw new Error(`Model ${model} does not have any id field`);
