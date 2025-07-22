@@ -127,8 +127,7 @@ class SimpleOutlineWebviewProvider implements vscode.WebviewViewProvider {
                 this._view.webview.html = html;
 
                 try {
-                    const documentation = this.DummyZModelDocumentation;
-
+                    const documentation = await generateZModelDocumentation(editor.document);
                     html = await this.renderMarkdown(documentation);
                 } catch (error) {
                     html = this.createErrorHtml(fileName, error);
@@ -147,6 +146,26 @@ class SimpleOutlineWebviewProvider implements vscode.WebviewViewProvider {
     }
 
     public async showMarkdownPreview() {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showErrorMessage('No active editor found.');
+            return;
+        }
+
+        // Check if it's a zmodel file and generate documentation, otherwise use dummy content
+        let markdownContent = this.DummyZModelDocumentation;
+        if (editor.document.fileName.endsWith('.zmodel')) {
+            try {
+                markdownContent = await generateZModelDocumentation(editor.document);
+            } catch (error) {
+                console.error('Error generating documentation:', error);
+                vscode.window.showErrorMessage(
+                    `Failed to generate documentation: ${error instanceof Error ? error.message : String(error)}`
+                );
+                markdownContent = this.DummyZModelDocumentation; // Fallback to dummy content
+            }
+        }
+
         // Create a temporary markdown file
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         if (!workspaceFolder) {
@@ -156,7 +175,6 @@ class SimpleOutlineWebviewProvider implements vscode.WebviewViewProvider {
         const tempFile = vscode.Uri.joinPath(workspaceFolder.uri, 'temp.md');
 
         // Write your markdown content to the temp file
-        const markdownContent = this.DummyZModelDocumentation;
         await vscode.workspace.fs.writeFile(tempFile, new TextEncoder().encode(markdownContent));
 
         // Open the markdown preview
@@ -267,77 +285,6 @@ class SimpleOutlineWebviewProvider implements vscode.WebviewViewProvider {
             .replace(/<p><ul>/g, '<ul>')
             .replace(/<\/ul><\/p>/g, '</ul>')
             .replace(/<p><\/p>/g, '');
-    }
-
-    private async generateZModelDocumentation(document: vscode.TextDocument): Promise<string> {
-        try {
-            // Get available language models, preferring context7 models
-            const models = await vscode.lm.selectChatModels({
-                vendor: 'copilot',
-                family: 'gpt-4o',
-            });
-
-            if (models.length === 0) {
-                throw new Error(
-                    'No GitHub Copilot models available. Please ensure you are authenticated with GitHub Copilot.'
-                );
-            }
-
-            // Find context7 model or use the first available model
-            const selectedModel = models.find((model) => model.name.includes('context7')) || models[0];
-
-            const zmodelContent = document.getText();
-
-            // Create a comprehensive prompt for generating documentation
-            const prompt = `You are a technical documentation expert specializing in ZenStack zmodel schema files. 
-
-ZenStack extends Prisma with powerful features like access policies, field validation, and automatic API generation. 
-
-Analyze the following zmodel file and generate comprehensive markdown documentation that includes:
-
-## Analysis Requirements:
-1. **Schema Overview** - Brief description of the data model's purpose
-2. **Model Definitions** - Each model with its purpose, fields, and data types
-3. **Relationships** - How models relate to each other (one-to-many, many-to-many, etc.)
-4. **Access Policies** - Any @@allow, @@deny rules and their implications
-5. **Field Attributes** - Special attributes like @default, @unique, @relation, etc.
-6. **Enums** - Any enum definitions and their usage
-7. **Data Validation** - Field-level validation rules
-8. **Business Logic** - Derived from the schema structure and policies
-
-## Formatting Guidelines:
-- Use clear markdown headers (##, ###)
-- Include code blocks for schema snippets
-- Use bullet points for lists
-- Highlight important security/access control implications
-- Be concise but comprehensive
-
-ZModel Schema Content:
-\`\`\`zmodel
-${zmodelContent}
-\`\`\`
-
-Generate detailed markdown documentation following the requirements above:`;
-
-            const messages = [vscode.LanguageModelChatMessage.User(prompt)];
-
-            const chatRequest = await selectedModel.sendRequest(
-                messages,
-                {},
-                new vscode.CancellationTokenSource().token
-            );
-
-            let response = '';
-            for await (const fragment of chatRequest.text) {
-                response += fragment;
-            }
-
-            return response || 'No documentation generated';
-        } catch (error) {
-            console.error('Error generating documentation:', error);
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            throw new Error(`Failed to generate documentation: ${errorMessage}`);
-        }
     }
 
     private readonly DummyZModelDocumentation = `
@@ -468,6 +415,156 @@ function registerOutlineView(context: vscode.ExtensionContext, simpleOutlineProv
             await simpleOutlineProvider.showMarkdownPreview();
         })
     );
+
+    // Register the preview command for zmodel files
+    context.subscriptions.push(
+        vscode.commands.registerCommand('zenstack.preview-zmodel', async () => {
+            await previewZModelFile();
+        })
+    );
+}
+
+async function previewZModelFile(): Promise<void> {
+    const editor = vscode.window.activeTextEditor;
+
+    if (!editor) {
+        vscode.window.showErrorMessage('No active editor found.');
+        return;
+    }
+
+    const document = editor.document;
+    if (!document.fileName.endsWith('.zmodel')) {
+        vscode.window.showErrorMessage('The active file is not a ZModel file.');
+        return;
+    }
+
+    // Check GitHub authentication before proceeding
+    const session = await requireAuth();
+    if (!session) {
+        vscode.window.showWarningMessage('GitHub authentication required for ZModel preview.');
+        return;
+    }
+
+    try {
+        // Show progress indicator
+        await vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Notification,
+                title: 'Generating ZModel documentation...',
+                cancellable: false,
+            },
+            async () => {
+                const markdownContent = await generateZModelDocumentation(document);
+                await openMarkdownPreview(markdownContent, document.fileName);
+            }
+        );
+    } catch (error) {
+        console.error('Error previewing ZModel:', error);
+        vscode.window.showErrorMessage(
+            `Failed to preview ZModel: ${error instanceof Error ? error.message : String(error)}`
+        );
+    }
+}
+
+async function generateZModelDocumentation(document: vscode.TextDocument): Promise<string> {
+    try {
+        // Get available language models, preferring context7 models
+        const models = await vscode.lm.selectChatModels({
+            vendor: 'copilot',
+            family: 'gpt-4o',
+        });
+
+        if (models.length === 0) {
+            throw new Error(
+                'No GitHub Copilot models available. Please ensure you are authenticated with GitHub Copilot.'
+            );
+        }
+
+        // Find context7 model or use the first available model
+        const selectedModel = models.find((model) => model.name.includes('context7')) || models[0];
+
+        const zmodelContent = document.getText();
+
+        // Create a comprehensive prompt for generating documentation
+        const prompt = `You are a technical documentation expert specializing in ZenStack zmodel schema files. 
+
+ZenStack extends Prisma with powerful features like access policies, field validation, and automatic API generation. 
+
+Analyze the following zmodel file and generate comprehensive markdown documentation that includes:
+
+## Analysis Requirements:
+1. **Schema Overview** - Brief description of the data model's purpose
+2. **Model Definitions** - Each model with its purpose, fields, and data types
+3. **Relationships** - How models relate to each other (one-to-many, many-to-many, etc.)
+4. **Access Policies** - Any @@allow, @@deny rules and their implications
+5. **Field Attributes** - Special attributes like @default, @unique, @relation, etc.
+6. **Enums** - Any enum definitions and their usage
+7. **Data Validation** - Field-level validation rules
+8. **Business Logic** - Derived from the schema structure and policies
+
+## Formatting Guidelines:
+- Use clear markdown headers (##, ###)
+- Include code blocks for schema snippets
+- Use bullet points for lists
+- Highlight important security/access control implications
+- Be concise but comprehensive
+
+ZModel Schema Content:
+\`\`\`zmodel
+${zmodelContent}
+\`\`\`
+
+Generate detailed markdown documentation following the requirements above:`;
+
+        const messages = [vscode.LanguageModelChatMessage.User(prompt)];
+
+        const chatRequest = await selectedModel.sendRequest(messages, {}, new vscode.CancellationTokenSource().token);
+
+        let response = '';
+        for await (const fragment of chatRequest.text) {
+            response += fragment;
+        }
+
+        return response || 'No documentation generated';
+    } catch (error) {
+        console.error('Error generating documentation:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to generate documentation: ${errorMessage}`);
+    }
+}
+
+async function openMarkdownPreview(markdownContent: string, originalFileName: string): Promise<void> {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!workspaceFolder) {
+        vscode.window.showErrorMessage('No workspace folder found.');
+        return;
+    }
+
+    // Create a temporary markdown file with a descriptive name
+    const baseName = path.basename(originalFileName, '.zmodel');
+    const tempFileName = `${baseName}-preview.md`;
+    const tempFile = vscode.Uri.joinPath(workspaceFolder.uri, tempFileName);
+
+    try {
+        // Write the markdown content to the temp file
+        await vscode.workspace.fs.writeFile(tempFile, new TextEncoder().encode(markdownContent));
+
+        // Open the markdown preview side by side
+        await vscode.commands.executeCommand('markdown.showPreviewToSide', tempFile);
+
+        // Optionally clean up the temp file after a delaya
+        setTimeout(async () => {
+            try {
+                await vscode.workspace.fs.delete(tempFile);
+            } catch (error) {
+                // Ignore cleanup errors
+                console.log('Could not clean up temp file:', error);
+            }
+        }, 5000); // Clean up after 5 seconds
+    } catch (error) {
+        console.error('Error creating markdown preview:', error);
+        throw new Error(`Failed to create markdown preview: ${error instanceof Error ? error.message : String(error)}`);
+    }
 }
 
 let client: LanguageClient;

@@ -81,7 +81,8 @@
             {
                 "type": "webview",
                 "id": "zmodelSimpleOutline",
-                "name": "ZModel Simple Outline"
+                "name": "ZModel Simple Outline",
+                "icon": "$(outline)"
             }
         ]
     },
@@ -92,6 +93,19 @@
           "when": "view == zmodelSimpleOutline",
           "group": "navigation"
         }
+        ],
+        "editor/title": [
+        {
+          "command": "zenstack.preview-zmodel",
+          "when": "editorLangId == zmodel",
+          "group": "navigation"
+        }
+        ],
+        "commandPalette": [
+        {
+          "command": "zenstack.preview-zmodel",
+          "when": "editorLangId == zmodel"
+        }
         ]
     },
     "commands": [
@@ -99,12 +113,15 @@
             "command": "zenstack.open-in-window-from-outline",
             "title": "Open Outline in Window",
             "icon": "$(preview)"
+        },
+        {
+            "command": "zenstack.preview-zmodel",
+            "title": "Preview ZModel",
+            "icon": "$(preview)"
         }
       ]
     },
-    "activationEvents": [
-        "onLanguage:zmodel"
-    ],
+    "activationEvents": [],
     "capabilities": {
         "untrustedWorkspaces": {
             "supported": true
