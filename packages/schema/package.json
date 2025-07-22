@@ -27,7 +27,7 @@
         "linkDirectory": true
     },
     "engines": {
-        "vscode": "^1.63.0"
+        "vscode": "^1.90.0"
     },
     "categories": [
         "Programming Languages"
@@ -66,11 +66,51 @@
                     "description": "Use Prisma style indentation."
                 }
             }
+        },
+        "viewsContainers": {
+        "activitybar": [
+            {
+                "id": "zmodelOutlineContainer",
+                "title": "ZModel Outline",
+                "icon": "$(type-hierarchy-sub)"
+            }
+        ]
+    },
+    "views": {
+        "zmodelOutlineContainer": [
+            {
+                "type": "webview",
+                "id": "zmodelSimpleOutline",
+                "name": "ZModel Simple Outline"
+            }
+        ]
+    },
+    "menus": {
+        "view/title": [
+        {
+          "command": "zenstack.open-in-window-from-outline",
+          "when": "view == zmodelSimpleOutline",
+          "group": "navigation"
         }
+        ]
+    },
+    "commands": [
+        {
+            "command": "zenstack.open-in-window-from-outline",
+            "title": "Open Outline in Window",
+            "icon": "$(preview)"
+        }
+      ]
     },
     "activationEvents": [
         "onLanguage:zmodel"
     ],
+    "capabilities": {
+        "untrustedWorkspaces": {
+            "supported": true
+        },
+        "virtualWorkspaces": true
+    },
     "bin": {
         "zenstack": "bin/cli"
     },
