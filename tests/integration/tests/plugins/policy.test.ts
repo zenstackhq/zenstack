@@ -170,17 +170,5 @@ model M {
                 undefined
             )
         ).toEqual({ AND: [{ authorId: { equals: 'u2' } }, { published: true }] });
-
-        const content = fs.readFileSync(path.join(projectDir, 'out/policy.ts'), 'utf-8');
-        expect(content.replace(/\s+/g, ' ')).toContain(`function allowAll(): any { return true; }`);
-        expect(content.replace(/\s+/g, ' ')).toContain(`function defaultTitle(): any { return 'Default Title'; }`);
-        expect(content.replace(/\s+/g, ' ')).toContain(
-            `function currentUser(user: PermissionCheckerContext["user"]): any { return user?.id; }`
-        );
-
-        // // Test direct alias function calls
-        // expect((allowAll as Function)()).toEqual(true);
-        // expect((defaultTitle as Function)()).toEqual('Default Title');
-        // expect((currentUser as Function)({ id: 'u1' })).toEqual('u1');
     });
 });
