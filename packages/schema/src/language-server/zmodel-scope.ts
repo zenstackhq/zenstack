@@ -8,7 +8,6 @@ import {
     isMemberAccessExpr,
     isModel,
     isReferenceExpr,
-    isAliasDecl,
     isThisExpr,
     isTypeDef,
     isTypeDefField,
@@ -63,16 +62,6 @@ export class ZModelScopeComputation extends DefaultScopeComputation {
                 await interruptAndCheck(cancelToken);
             }
             if (isEnumField(node)) {
-                const desc = this.services.workspace.AstNodeDescriptionProvider.createDescription(
-                    node,
-                    node.name,
-                    document
-                );
-                result.push(desc);
-            }
-
-            if (isAliasDecl(node)) {
-                // add alias decls to the global scope
                 const desc = this.services.workspace.AstNodeDescriptionProvider.createDescription(
                     node,
                     node.name,
@@ -138,11 +127,6 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
                 return this.getCollectionPredicateScope(context, containerCollectionPredicate);
             }
         }
-
-        // if (isAliasExpr(context.container)) {
-        //     // resolve `[rule]()` to the containing model
-        //     return this.createScopeForContainingModel(context.container, this.getGlobalScope('AliasDecl', context));
-        // }
 
         return super.getScope(context);
     }
@@ -235,7 +219,7 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
         }
     }
 
-    private createScopeForContainer(node: AstNode | undefined, globalScope: Scope, includeTypeDefScope = false) {
+    private createScopeForContainer(node: AstNode | undefined, globalScope: Scope, includeTypeDefScope = false): Scope {
         if (isDataModel(node)) {
             return this.createScopeForNodes(getModelFieldsWithBases(node), globalScope);
         } else if (includeTypeDefScope && isTypeDef(node)) {

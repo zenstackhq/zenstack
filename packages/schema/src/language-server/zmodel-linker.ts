@@ -10,6 +10,7 @@ import {
     DataModelFieldType,
     Enum,
     EnumField,
+    Expression,
     ExpressionType,
     FunctionDecl,
     FunctionParam,
@@ -27,16 +28,20 @@ import {
     ThisExpr,
     TypeDefFieldType,
     UnaryExpr,
+    isAliasDecl,
     isArrayExpr,
+    isBinaryExpr,
     isBooleanLiteral,
     isDataModel,
     isDataModelField,
     isDataModelFieldType,
     isEnum,
+    isModel,
     isNumberLiteral,
     isReferenceExpr,
     isStringLiteral,
     isTypeDefField,
+    isUnaryExpr,
 } from '@zenstackhq/language/ast';
 import { getAuthDecl, getModelFieldsWithBases, isAuthInvocation, isFutureExpr } from '@zenstackhq/sdk';
 import {
@@ -155,10 +160,16 @@ export class ZModelLinker extends DefaultLinker {
                 break;
 
             case ReferenceExpr:
-                this.resolveReference(node as ReferenceExpr, document, extraScopes);
+                // If the reference comes from an alias, we resolve it against the first matching data model
+                if (getContainerOfType(node, isAliasDecl)) {
+                    this.resolveAliasExpr(node, document);
+                } else {
+                    this.resolveReference(node as ReferenceExpr, document, extraScopes);
+                }
                 break;
 
             case MemberAccessExpr:
+                // TODO: check from alias ?
                 this.resolveMemberAccess(node as MemberAccessExpr, document, extraScopes);
                 break;
 
@@ -261,6 +272,7 @@ export class ZModelLinker extends DefaultLinker {
             if (node.target.ref.$type === EnumField) {
                 this.resolveToBuiltinTypeOrDecl(node, node.target.ref.$container);
             } else {
+                // TODO: if the reference is from an alias, we should resolve it against the first matching data model
                 this.resolveToDeclaredType(node, (node.target.ref as DataModelField | FunctionParam).type);
             }
         }
@@ -300,9 +312,8 @@ export class ZModelLinker extends DefaultLinker {
             } else if (isFutureExpr(node)) {
                 // future() function is resolved to current model
                 node.$resolvedType = { decl: getContainingDataModel(node) };
-            } else if (isAliasInvocation(node)) {
+            } else if (isAliasInvocation(node) || !!getContainerOfType(node, isAliasDecl)) {
                 // function is resolved to matching alias declaration
-
                 const expressionType = funcDecl.expression?.$type;
                 if (!expressionType) {
                     this.createLinkingError({
@@ -446,6 +457,46 @@ export class ZModelLinker extends DefaultLinker {
             this.resolve(node.value, document, extraScopes);
         }
         node.$resolvedType = node.value.$resolvedType;
+    }
+
+    private resolveAliasExpr(node: AstNode, document: LangiumDocument<AstNode>) {
+        const container = getContainerOfType(node, isAliasDecl);
+        if (!container) {
+            return;
+        }
+        const model = getContainerOfType(node, isModel);
+        const models = model?.declarations.filter(isDataModel) ?? [];
+        // Find the first model that has the alias reference as a field
+        const matchingModel = models.find((model) => model.fields.some((f) => f.name === node.$cstNode?.text));
+        if (!matchingModel) {
+            this.createLinkingError({
+                reference: (node as ReferenceExpr).target,
+                container: node,
+                property: 'target',
+            });
+            return;
+        }
+
+        const scopeProvider = (name: string) =>
+            getModelFieldsWithBases(matchingModel).find((field) => field.name === name);
+
+        const visitExpr = (node: Expression) => {
+            if (isReferenceExpr(node)) {
+                const resolved = this.resolveFromScopeProviders(node, 'target', document, [scopeProvider]);
+                if (resolved) {
+                    this.resolveToDeclaredType(node, (resolved as DataModelField).type);
+                } else {
+                    this.unresolvableRefExpr(node);
+                }
+            } else if (isBinaryExpr(node)) {
+                visitExpr(node.left);
+                visitExpr(node.right);
+            } else if (isUnaryExpr(node)) {
+                visitExpr(node.operand);
+            }
+        };
+
+        visitExpr(container.expression);
     }
 
     private unresolvableRefExpr(item: ReferenceExpr) {

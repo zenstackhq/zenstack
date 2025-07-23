@@ -24,15 +24,7 @@ import { getContainerOfType } from 'langium';
 import { P, match } from 'ts-pattern';
 import { ExpressionContext } from './constants';
 import { getEntityCheckerFunctionName } from './names';
-import {
-    getIdFields,
-    getLiteral,
-    hasAuthInvocation,
-    isAliasExpr,
-    isDataModelFieldReference,
-    isFromStdlib,
-    isFutureExpr,
-} from './utils';
+import { getIdFields, getLiteral, isAliasExpr, isDataModelFieldReference, isFromStdlib, isFutureExpr } from './utils';
 
 export class TypeScriptExpressionTransformerError extends Error {
     constructor(message: string) {
@@ -97,6 +89,7 @@ export class TypeScriptExpressionTransformer {
                 return this.this(expr as ThisExpr);
 
             case ReferenceExpr:
+                // TODO: ensure referenceExpr from alias is resolved
                 return this.reference(expr as ReferenceExpr);
 
             case InvocationExpr:
@@ -153,11 +146,8 @@ export class TypeScriptExpressionTransformer {
         const isAlias = isAliasExpr(expr);
 
         if (isAlias) {
-            // if the function is an alias, we need to resolve it to the actual alias declaration
-            const hasAuth = hasAuthInvocation(expr);
-            const aliasInvocation = `${expr.function.ref.name}(${hasAuth ? 'user' : ''})`;
-            // const aliasExpression = `${expr.function.ref.expression?.$cstNode?.text}`;
-            return aliasInvocation;
+            // if the function invocation comes from an alias, we transform its expression
+            return this.transform(expr.function.ref.expression!, normalizeUndefined);
         }
 
         if (!isStdFunc) {
@@ -404,7 +394,7 @@ export class TypeScriptExpressionTransformer {
 
     private reference(expr: ReferenceExpr) {
         if (!expr.target.ref) {
-            throw new TypeScriptExpressionTransformerError(`Unresolved ReferenceExpr`);
+            throw new TypeScriptExpressionTransformerError(`Unresolved ReferenceExpr: ${expr.$cstNode?.text}`);
         }
 
         if (isEnumField(expr.target.ref)) {

@@ -807,7 +807,7 @@ export class ExpressionWriter {
                 );
             });
         } else if (isAliasDecl(funcDecl)) {
-            // noop
+            this.write(funcDecl.expression);
         } else {
             throw new PluginError(name, `Unsupported function ${funcDecl.name}`);
         }

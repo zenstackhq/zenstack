@@ -42,12 +42,6 @@ import path from 'node:path';
 import { URI, Utils } from 'vscode-uri';
 import { findNodeModulesFile } from './pkg-utils';
 
-export function extractDataModelsWithAllowAliass(model: Model): DataModel[] {
-    return model.declarations.filter(
-        (d) => isDataModel(d) && d.attributes.some((attr) => attr.decl.ref?.name === '@@allow')
-    ) as DataModel[];
-}
-
 type BuildReference = (
     node: AstNode,
     property: string,
@@ -323,7 +317,7 @@ export function getAllLoadedAndReachableDataModelsAndTypeDefs(
 }
 
 /**
- * Gets all data models and type defs from all loaded documents
+ * Gets all alias declarations from all loaded documents
  */
 export function getAllLoadedAlias(langiumDocuments: LangiumDocuments) {
     return langiumDocuments.all

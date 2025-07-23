@@ -1397,12 +1397,12 @@ describe('Attribute tests', () => {
             ${prelude}
 
             alias foo() {
-                true
+                opened
             }
 
             model A {
                 id String @id
-                opened Boolean @default(foo())
+                opened Boolean @default(true)
 
                 @@allow('all', foo())
             }
@@ -1415,15 +1415,37 @@ describe('Attribute tests', () => {
                 true
             }
 
-            alias currentUser() {
-                auth().id
+            alias defaultTitle() {
+                'Default Title'
             }
 
-            model User {
-                id String @id
-                opened Boolean @default(allowAll())
+            alias currentUser() {
+                auth().id 
+            }
 
-                @@allow('all', allowAll() && currentUser())
+            alias ownPublishedPosts() {
+                currentUser() != null && published
+            }
+
+            model Post {
+                id          Int      @id @default(autoincrement())
+                title        String
+                published   Boolean  @default(true)
+
+                author   User     @relation(fields: [authorId], references: [id])
+                authorId String   @default(auth().id)
+
+                @@allow('read', true)
+                @@deny('all', !ownPublishedPosts())
+            }
+
+
+            model User {
+                id            String    @id @default(cuid())
+                name          String?
+                posts         Post[]
+
+                @@allow('all', allowAll())
             }
         `);
 

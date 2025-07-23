@@ -12,7 +12,6 @@ import {
     isReferenceExpr,
     isThisExpr,
     isTypeDef,
-    isAliasDecl,
 } from '@zenstackhq/language/ast';
 
 import { PolicyCrudKind, type PolicyOperationKind } from '@zenstackhq/runtime';
@@ -61,8 +60,6 @@ export class PolicyGenerator {
         const sf = project.createSourceFile(path.join(output, 'policy.ts'), undefined, { overwrite: true });
 
         this.writeImports(model, output, sf);
-
-        this.writeAliasFunctions(model);
 
         const models = getDataModels(model);
 
@@ -469,41 +466,6 @@ export class PolicyGenerator {
         const guardFunc = generateQueryGuardFunction(model, kind, allows, denies);
         this.extraFunctions.push(guardFunc);
         writer.write(`guard: ${guardFunc.name},`);
-    }
-
-    /**
-     * Generates functions for the Aliases
-     */
-    private writeAliasFunctions(model: Model) {
-        for (const decl of model.declarations) {
-            if (isAliasDecl(decl)) {
-                const alias = decl;
-                const params = alias.params?.map((p) => ({ name: p.name, type: 'any' })) ?? [];
-                if (alias.expression.$cstNode?.text.includes('auth()')) {
-                    params.push({
-                        name: 'user',
-                        type: 'PermissionCheckerContext["user"]',
-                    });
-                }
-                const transformer = new TypeScriptExpressionTransformer({
-                    context: ExpressionContext.AliasFunction,
-                });
-                const writer = new FastWriter();
-                try {
-                    writer.write('return ');
-                    writer.write(transformer.transform(alias.expression, false));
-                    writer.write(';');
-                } catch (e) {
-                    writer.write('return undefined /* erreur de transformation de la règle */;');
-                }
-                this.extraFunctions.push({
-                    name: alias.name,
-                    returnType: 'any',
-                    parameters: params,
-                    statements: [writer.result],
-                });
-            }
-        }
     }
 
     // writes `permissionChecker: ...` for a given policy operation kind

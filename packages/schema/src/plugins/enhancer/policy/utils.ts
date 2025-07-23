@@ -43,7 +43,12 @@ import deepmerge from 'deepmerge';
 import { getContainerOfType, streamAllContents, streamAst, streamContents } from 'langium';
 import { FunctionDeclarationStructure, OptionalKind } from 'ts-morph';
 import { name } from '..';
-import { isCheckInvocation, isCollectionPredicate, isFutureInvocation } from '../../../utils/ast-utils';
+import {
+    isAliasInvocation,
+    isCheckInvocation,
+    isCollectionPredicate,
+    isFutureInvocation,
+} from '../../../utils/ast-utils';
 import { ExpressionWriter, FALSE, TRUE } from './expression-writer';
 
 /**
@@ -312,7 +317,9 @@ export function generateQueryGuardFunction(
                 // future().???
                 isFutureExpr(child) ||
                 // field reference
-                (isReferenceExpr(child) && isDataModelField(child.target.ref))
+                (isReferenceExpr(child) && isDataModelField(child.target.ref)) ||
+                // TODO: field access from alias expression
+                isAliasInvocation(child)
         )
     );
 
@@ -545,6 +552,7 @@ export function isEnumReferenced(model: Model, decl: Enum): unknown {
 
 function hasCrossModelComparison(expr: Expression) {
     return streamAst(expr).some((node) => {
+        // TODO: check cross model comparison in alias expression target
         if (isBinaryExpr(node) && ['==', '!=', '>', '<', '>=', '<=', 'in'].includes(node.operator)) {
             const leftRoot = getSourceModelOfFieldAccess(node.left);
             const rightRoot = getSourceModelOfFieldAccess(node.right);
