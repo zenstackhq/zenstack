@@ -144,6 +144,13 @@ export class ZModelLinker extends DefaultLinker {
     }
 
     private resolve(node: AstNode, document: LangiumDocument, extraScopes: ScopeProvider[] = []) {
+        // if the field has enum declaration type, resolve the rest with that enum's fields on top of the scopes
+        if (isDataModelField(node) && node.type.reference?.ref && isEnum(node.type.reference.ref)) {
+            const contextEnum = node.type.reference.ref as Enum;
+            const enumScope: ScopeProvider = (name) => contextEnum?.fields?.find((f) => f.name === name);
+            extraScopes = [enumScope, ...extraScopes];
+        }
+
         switch (node.$type) {
             case StringLiteral:
             case NumberLiteral:
@@ -160,12 +167,7 @@ export class ZModelLinker extends DefaultLinker {
                 break;
 
             case ReferenceExpr:
-                // If the reference comes from an alias, we resolve it against the first matching data model
-                if (getContainerOfType(node, isAliasDecl)) {
-                    this.resolveAliasExpr(node, document);
-                } else {
-                    this.resolveReference(node as ReferenceExpr, document, extraScopes);
-                }
+                this.resolveReference(node as ReferenceExpr, document, extraScopes);
                 break;
 
             case MemberAccessExpr:
@@ -265,6 +267,10 @@ export class ZModelLinker extends DefaultLinker {
     }
 
     private resolveReference(node: ReferenceExpr, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
+        // If the reference comes from an alias, we resolve it against the first matching data model
+        if (getContainerOfType(node, isAliasDecl)) {
+            this.resolveAliasExpr(node as ReferenceExpr, document);
+        }
         this.resolveDefault(node, document, extraScopes);
 
         if (node.target.ref) {
@@ -468,11 +474,6 @@ export class ZModelLinker extends DefaultLinker {
         // Find the first model that has the alias reference as a field
         const matchingModel = models.find((model) => model.fields.some((f) => f.name === node.$cstNode?.text));
         if (!matchingModel) {
-            this.createLinkingError({
-                reference: (node as ReferenceExpr).target,
-                container: node,
-                property: 'target',
-            });
             return;
         }
 
@@ -481,6 +482,11 @@ export class ZModelLinker extends DefaultLinker {
 
         const visitExpr = (node: Expression) => {
             if (isReferenceExpr(node)) {
+                // enums in alias expressions are already resolved
+                if (isEnum(node.target.ref?.$container)) {
+                    return;
+                }
+
                 const resolved = this.resolveFromScopeProviders(node, 'target', document, [scopeProvider]);
                 if (resolved) {
                     this.resolveToDeclaredType(node, (resolved as DataModelField).type);
@@ -585,6 +591,10 @@ export class ZModelLinker extends DefaultLinker {
     //#region Utils
 
     private resolveToDeclaredType(node: AstNode, type: FunctionParamType | DataModelFieldType | TypeDefFieldType) {
+        // enums from alias expressions are already resolved and do not exist in the scope
+        if (!type) {
+            return;
+        }
         let nullable = false;
         if (isDataModelFieldType(type) || isTypeDefField(type)) {
             nullable = type.optional;

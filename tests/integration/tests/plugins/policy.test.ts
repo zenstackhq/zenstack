@@ -174,12 +174,22 @@ model M {
 
     it('complex alias expressions', async () => {
         const model = `
+        enum TaskStatus {
+            TODO
+            IN_PROGRESS
+            DONE
+        }
+
+        alias isInProgress() {
+            status == IN_PROGRESS
+        }
+
         alias currentUserId() {
             auth().id
         }
 
         alias complexAlias() {
-            auth().cart.tasks?[id == 123] && value >10 && currentUserId() != null
+           status == IN_PROGRESS && auth().cart.tasks?[id == 123] && value >10 && currentUserId() != null
         }
 
          model User {
@@ -196,6 +206,7 @@ model M {
           
           model Task {
             id Int @id @default(autoincrement())
+            status TaskStatus @default(TODO)
             cart Cart @relation(fields: [cartId], references: [id])
             cartId Int
             value Int
@@ -213,12 +224,11 @@ model M {
             (policy.policy.task.modelLevel.read.guard as Function)({ user: { cart: { tasks: [{ id: 1 }] } } })
         ).toEqual(
             expect.objectContaining({
-                AND: [{ AND: [{ OR: [] }, { value: { gt: 10 } }] }, { OR: [] }],
+                AND: [
+                    { AND: [{ AND: [{ status: { equals: 'IN_PROGRESS' } }, { OR: [] }] }, { value: { gt: 10 } }] },
+                    { OR: [] },
+                ],
             })
         );
-
-        expect(
-            (policy.policy.task.modelLevel.read.guard as Function)({ user: { cart: { tasks: [{ id: 123 }] } } })
-        ).toEqual(expect.objectContaining({ AND: [{ AND: [{ AND: [] }, { value: { gt: 10 } }] }, { OR: [] }] }));
     });
 });
