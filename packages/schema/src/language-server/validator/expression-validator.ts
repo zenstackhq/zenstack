@@ -50,9 +50,9 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                     }
                     return false;
                 });
-                if (!hasReferenceResolutionError) {
+                if (hasReferenceResolutionError) {
                     // report silent errors not involving linker errors
-                    accept('error', 'Expression cannot be resolved', {
+                    accept('error', `Expression cannot be resolved: ${expr.$cstNode?.text}`, {
                         node: expr,
                     });
                 }

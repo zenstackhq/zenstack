@@ -1,4 +1,5 @@
 import {
+    isAliasDecl,
     isAttribute,
     isAttributeArg,
     isConfigField,
@@ -83,7 +84,7 @@ export class ZModelSemanticTokenProvider extends AbstractSemanticTokenProvider {
                 property: 'function',
                 type: SemanticTokenTypes.function,
             });
-        } else if (isFunctionDecl(node) || isAttribute(node)) {
+        } else if (isFunctionDecl(node) || isAliasDecl(node) || isAttribute(node)) {
             acceptor({
                 node,
                 property: 'name',

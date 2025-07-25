@@ -67,7 +67,7 @@ import {
     isAliasInvocation,
 } from '../utils/ast-utils';
 import { isMemberContainer } from './utils';
-import { mapBuiltinTypeToExpressionType, mappedRawExpressionTypeToResolvedShape } from './validator/utils';
+import { mapBuiltinTypeToExpressionType } from './validator/utils';
 
 interface DefaultReference extends Reference {
     _ref?: AstNode | LinkingError;
@@ -312,19 +312,18 @@ export class ZModelLinker extends DefaultLinker {
             } else if (isFutureExpr(node)) {
                 // future() function is resolved to current model
                 node.$resolvedType = { decl: getContainingDataModel(node) };
-            } else if (isAliasInvocation(node) || !!getContainerOfType(node, isAliasDecl)) {
+            } else if (isAliasInvocation(node)) {
                 // function is resolved to matching alias declaration
-                const expressionType = funcDecl.expression?.$type;
-                if (!expressionType) {
-                    this.createLinkingError({
-                        reference: node.function,
-                        container: node,
-                        property: 'alias',
-                    });
-                    return;
+                const containingAlias = getContainerOfType(node, isAliasDecl);
+                const allAlias = getContainerOfType(node, isModel)?.declarations.filter(isAliasDecl) ?? [];
+                const matchingAlias =
+                    isAliasInvocation(node) && !containingAlias
+                        ? allAlias.find((alias) => alias.name === node.function.$refText)
+                        : containingAlias;
+
+                if (matchingAlias) {
+                    node.$resolvedType = { decl: matchingAlias, nullable: false };
                 }
-                const mappedType = mappedRawExpressionTypeToResolvedShape(expressionType);
-                this.resolveToBuiltinTypeOrDecl(node, mappedType);
             } else {
                 this.resolveToDeclaredType(node, (funcDecl as FunctionDecl).returnType);
             }

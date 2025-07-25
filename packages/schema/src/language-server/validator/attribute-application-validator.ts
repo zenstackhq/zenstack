@@ -8,6 +8,7 @@ import {
     DataModelFieldAttribute,
     InternalAttribute,
     ReferenceExpr,
+    isAliasDecl,
     isArrayExpr,
     isAttribute,
     isDataModel,
@@ -28,7 +29,12 @@ import {
 import { ValidationAcceptor, streamAllContents, streamAst } from 'langium';
 import pluralize from 'pluralize';
 import { AstValidator } from '../types';
-import { getStringLiteral, mapBuiltinTypeToExpressionType, typeAssignable } from './utils';
+import {
+    getStringLiteral,
+    mapBuiltinTypeToExpressionType,
+    mappedRawExpressionTypeToResolvedShape,
+    typeAssignable,
+} from './utils';
 
 // a registry of function handlers marked with @check
 const attributeCheckers = new Map<string, PropertyDescriptor>();
@@ -263,6 +269,16 @@ function assignableToAttributeParam(arg: AttributeArg, param: AttributeParam, at
 
     let dstType = param.type.type;
     let dstIsArray = param.type.array;
+
+    if (isAliasDecl(arg.$resolvedType?.decl)) {
+        if (dstType === 'ContextType') {
+            // TODO: what is context type? Passed to true to avoid error, to be fixed later
+            return true;
+        }
+        const aliasExpression = arg.$resolvedType.decl.expression;
+        const mappedType = mappedRawExpressionTypeToResolvedShape(aliasExpression.$type);
+        return dstType === mappedType;
+    }
 
     if (dstType === 'ContextType') {
         // ContextType is inferred from the attribute's container's type

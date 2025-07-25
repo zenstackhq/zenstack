@@ -112,7 +112,7 @@ model M {
     });
 
     it('alias expressions', async () => {
-        const { policy, projectDir } = await loadSchema(
+        const { policy } = await loadSchema(
             `
             alias allowAll() {
                 true

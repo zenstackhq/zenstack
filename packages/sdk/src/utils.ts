@@ -14,7 +14,7 @@ import {
     FunctionDecl,
     GeneratorDecl,
     InternalAttribute,
-    InvocationExpr,
+    isAliasDecl,
     isArrayExpr,
     isConfigArrayExpr,
     isDataModel,
@@ -41,6 +41,7 @@ import fs from 'node:fs';
 import path from 'path';
 import { ExpressionContext, STD_LIB_MODULE_NAME } from './constants';
 import { PluginError, type PluginDeclaredOptions, type PluginOptions } from './types';
+import { streamAst } from 'langium';
 
 /**
  * Gets data models in the ZModel schema.
@@ -457,10 +458,13 @@ export function isAuthInvocation(node: AstNode) {
 }
 
 export function hasAuthInvocation(node: AstNode) {
-    return (
-        isAuthInvocation(node) ||
-        (isAliasExpr(node) && (node as InvocationExpr).function?.ref?.expression?.$cstNode?.text.includes('auth()'))
-    );
+    return streamAst(node).some((node) => {
+        const hasAuth =
+            isAuthInvocation(node) ||
+            (isAliasDecl(node.$resolvedType?.decl) &&
+                node.$resolvedType?.decl.expression?.$cstNode?.text.includes('auth()'));
+        return hasAuth;
+    });
 }
 
 export function isFromStdlib(node: AstNode) {
