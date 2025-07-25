@@ -270,16 +270,6 @@ function assignableToAttributeParam(arg: AttributeArg, param: AttributeParam, at
     let dstType = param.type.type;
     let dstIsArray = param.type.array;
 
-    if (isAliasDecl(arg.$resolvedType?.decl)) {
-        if (dstType === 'ContextType') {
-            // TODO: what is context type? Passed to true to avoid error, to be fixed later
-            return true;
-        }
-        const aliasExpression = arg.$resolvedType.decl.expression;
-        const mappedType = mappedRawExpressionTypeToResolvedShape(aliasExpression.$type);
-        return dstType === mappedType;
-    }
-
     if (dstType === 'ContextType') {
         // ContextType is inferred from the attribute's container's type
         if (isDataModelField(attr.$container)) {
@@ -308,6 +298,16 @@ function assignableToAttributeParam(arg: AttributeArg, param: AttributeParam, at
             // otherwise it's assignable to any array type
             return argResolvedType.array === dstIsArray;
         }
+    }
+
+    // alias expression is compared to corresponding expression resolved shape
+    if (isAliasDecl(arg.$resolvedType?.decl)) {
+        // TODO: what is context type? Passed to true to avoid error, to be fixed later
+        if (dstType === 'ContextType') return true;
+
+        const alias = arg.$resolvedType.decl;
+        const mappedAliasResolvedType = mappedRawExpressionTypeToResolvedShape(alias.expression.$type);
+        return dstType === mappedAliasResolvedType || dstType === 'Any' || mappedAliasResolvedType === 'Any';
     }
 
     // destination is field reference or transitive field reference, check if

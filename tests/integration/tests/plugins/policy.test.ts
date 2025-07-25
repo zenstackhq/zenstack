@@ -111,7 +111,7 @@ model M {
         ).toEqual(expect.objectContaining({ AND: [{ AND: [] }, { value: { gt: 10 } }] }));
     });
 
-    it('alias expressions', async () => {
+    it('simple alias expressions', async () => {
         const { policy } = await loadSchema(
             `
             alias allowAll() {
@@ -170,5 +170,55 @@ model M {
                 undefined
             )
         ).toEqual({ AND: [{ authorId: { equals: 'u2' } }, { published: true }] });
+    });
+
+    it('complex alias expressions', async () => {
+        const model = `
+        alias currentUserId() {
+            auth().id
+        }
+
+        alias complexAlias() {
+            auth().cart.tasks?[id == 123] && value >10 && currentUserId() != null
+        }
+
+         model User {
+            id Int @id @default(autoincrement())
+            cart Cart?
+          }
+          
+          model Cart {
+            id Int @id @default(autoincrement())
+            tasks Task[]
+            user User @relation(fields: [userId], references: [id])
+            userId Int @unique
+          }
+          
+          model Task {
+            id Int @id @default(autoincrement())
+            cart Cart @relation(fields: [cartId], references: [id])
+            cartId Int
+            value Int
+            @@allow('read', complexAlias())
+          }
+                `;
+
+        const { policy } = await loadSchema(model, {
+            compile: false,
+            generateNoCompile: true,
+            output: 'out/',
+        });
+
+        expect(
+            (policy.policy.task.modelLevel.read.guard as Function)({ user: { cart: { tasks: [{ id: 1 }] } } })
+        ).toEqual(
+            expect.objectContaining({
+                AND: [{ AND: [{ OR: [] }, { value: { gt: 10 } }] }, { OR: [] }],
+            })
+        );
+
+        expect(
+            (policy.policy.task.modelLevel.read.guard as Function)({ user: { cart: { tasks: [{ id: 123 }] } } })
+        ).toEqual(expect.objectContaining({ AND: [{ AND: [{ AND: [] }, { value: { gt: 10 } }] }, { OR: [] }] }));
     });
 });
