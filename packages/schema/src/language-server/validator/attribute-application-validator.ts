@@ -33,7 +33,7 @@ import { AstValidator } from '../types';
 import {
     getStringLiteral,
     mapBuiltinTypeToExpressionType,
-    mappedRawExpressionTypeToResolvedShape,
+    translateExpressionTypeToResolve,
     typeAssignable,
 } from './utils';
 
@@ -424,7 +424,7 @@ function isAliasAssignableToType(alias: AliasDecl, dstType: string, attr: Attrib
         return false;
     }
 
-    const mappedAliasResolvedType = mappedRawExpressionTypeToResolvedShape(alias.expression.$type);
+    const mappedAliasResolvedType = translateExpressionTypeToResolve(alias.expression.$type);
     return (
         effectiveDstType === mappedAliasResolvedType || effectiveDstType === 'Any' || mappedAliasResolvedType === 'Any'
     );

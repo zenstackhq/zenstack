@@ -5,7 +5,6 @@ import {
     isDataModelField,
     isMemberAccessExpr,
     isStringLiteral,
-    ResolvedShape,
 } from '@zenstackhq/language/ast';
 import { isAuthInvocation } from '@zenstackhq/sdk';
 import { AstNode, ValidationAcceptor } from 'langium';
@@ -101,9 +100,9 @@ export function mapBuiltinTypeToExpressionType(
 }
 
 /**
- * Maps an expression type (e.g. StringLiteral) to a resolved shape (e.g. String)
+ * Map an expression $type (e.g. StringLiteral) to a resolved ExpressionType (e.g. String)
  */
-export function mappedRawExpressionTypeToResolvedShape(expressionType: Expression['$type']): ResolvedShape {
+export function translateExpressionTypeToResolve(expressionType: Expression['$type']): ExpressionType {
     switch (expressionType) {
         case 'StringLiteral':
             return 'String';
