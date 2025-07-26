@@ -141,13 +141,6 @@ export class ZModelLinker extends DefaultLinker {
     }
 
     private resolve(node: AstNode, document: LangiumDocument, extraScopes: ScopeProvider[] = []) {
-        // if the field has enum declaration type, resolve the rest with that enum's fields on top of the scopes
-        if (isDataModelField(node) && node.type.reference?.ref && isEnum(node.type.reference.ref)) {
-            const contextEnum = node.type.reference.ref as Enum;
-            const enumScope: ScopeProvider = (name) => contextEnum?.fields?.find((f) => f.name === name);
-            extraScopes = [enumScope, ...extraScopes];
-        }
-
         switch (node.$type) {
             case StringLiteral:
             case NumberLiteral:
@@ -314,28 +307,7 @@ export class ZModelLinker extends DefaultLinker {
                 // future() function is resolved to current model
                 node.$resolvedType = { decl: getContainingDataModel(node) };
             } else if (isAliasInvocation(node)) {
-                // function is resolved to matching alias declaration
-                const containingAlias = getContainerOfType(node, isAliasDecl);
-                const allAlias = getContainerOfType(node, isModel)?.declarations.filter(isAliasDecl) ?? [];
-                const matchingAlias =
-                    isAliasInvocation(node) && !containingAlias
-                        ? allAlias.find((alias) => alias.name === node.function.$refText)
-                        : containingAlias;
-
-                if (matchingAlias) {
-                    node.$resolvedType = { decl: matchingAlias, nullable: false };
-
-                    // Resolve the alias expression in the context of the containing model
-                    const containingModel = getContainingDataModel(node);
-                    if (containingModel && matchingAlias.expression) {
-                        const scopeProvider = (name: string) =>
-                            getModelFieldsWithBases(containingModel).find((field) => field.name === name);
-
-                        // Ensure the alias expression is fully resolved in the current context
-                        // Pass both the model scope and existing extraScopes
-                        this.resolve(matchingAlias.expression, document, [scopeProvider, ...extraScopes]);
-                    }
-                }
+                this.resolveAliasInvocation(node, document, extraScopes);
             } else {
                 this.resolveToDeclaredType(node, (funcDecl as FunctionDecl).returnType);
             }
@@ -524,6 +496,13 @@ export class ZModelLinker extends DefaultLinker {
         // }
         //
 
+        // if the field has enum declaration type, resolve the rest with that enum's fields on top of the scopes
+        if (getContainerOfType(node, isAliasDecl) && node.type.reference?.ref && isEnum(node.type.reference.ref)) {
+            const contextEnum = node.type.reference.ref as Enum;
+            const enumScope: ScopeProvider = (name) => contextEnum?.fields?.find((f) => f.name === name);
+            extraScopes = [enumScope, ...extraScopes];
+        }
+
         // make sure type is resolved first
         this.resolve(node.type, document, extraScopes);
 
@@ -550,6 +529,32 @@ export class ZModelLinker extends DefaultLinker {
         for (const child of streamContents(node)) {
             this.resolve(child, document, extraScopes);
         }
+    }
+
+    private resolveAliasInvocation(node: InvocationExpr, document: LangiumDocument, extraScopes: ScopeProvider[]) {
+        // function is resolved to matching alias declaration
+        const containingAlias = getContainerOfType(node, isAliasDecl);
+        const matchingAlias = containingAlias || this.findMatchingAlias(node);
+
+        if (matchingAlias) {
+            node.$resolvedType = { decl: matchingAlias, nullable: false };
+
+            // Resolve the alias expression in the context of the containing model
+            const containingModel = getContainingDataModel(node);
+            if (containingModel && matchingAlias.expression) {
+                const scopeProvider = (name: string) =>
+                    getModelFieldsWithBases(containingModel).find((field) => field.name === name);
+
+                // Ensure the alias expression is fully resolved in the current context
+                // Pass both the model scope and existing extraScopes
+                this.resolve(matchingAlias.expression, document, [scopeProvider, ...extraScopes]);
+            }
+        }
+    }
+
+    private findMatchingAlias(node: InvocationExpr): AliasDecl | undefined {
+        const allAlias = getContainerOfType(node, isModel)?.declarations.filter(isAliasDecl) ?? [];
+        return allAlias.find((alias) => alias.name === node.function.$refText);
     }
 
     //#endregion

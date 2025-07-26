@@ -13,13 +13,6 @@ ModelImport:
 AbstractDeclaration:
     DataSource | GeneratorDecl | Plugin | DataModel | TypeDef | Enum | FunctionDecl | AliasDecl | Attribute;
 
-// alias
-AliasDecl:
-    TRIPLE_SLASH_COMMENT* 'alias' name=RegularID '(' (params+=FunctionParam (',' params+=FunctionParam)*)? ')' '{' expression=Expression '}' (attributes+=InternalAttribute)*;
-
-// AliasExpr:
-//     function=[AliasDecl] '(' ArgumentList? ')';
-
 // datasource
 DataSource:
     TRIPLE_SLASH_COMMENT* 'datasource' name=RegularID '{' (fields+=ConfigField)* '}';
@@ -223,6 +216,11 @@ Enum:
 EnumField:
     (comments+=TRIPLE_SLASH_COMMENT)*
     name=RegularIDWithTypeNames (attributes+=DataModelFieldAttribute)*;
+
+// alias
+AliasDecl:
+    TRIPLE_SLASH_COMMENT* 'alias' name=RegularID '(' (params+=FunctionParam (',' params+=FunctionParam)*)? ')' '{' expression=Expression '}' (attributes+=InternalAttribute)*;
+
 
 // function
 FunctionDecl:
