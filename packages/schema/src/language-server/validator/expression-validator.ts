@@ -25,7 +25,7 @@ import {
 import { ValidationAcceptor, getContainerOfType, streamAst } from 'langium';
 import { findUpAst, getContainingDataModel } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
-import { isAuthOrAuthMemberAccess, translateExpressionTypeToResolve, typeAssignable } from './utils';
+import { isAuthOrAuthMemberAccess, typeAssignable } from './utils';
 
 /**
  * Validates expressions.
@@ -295,17 +295,15 @@ export default class ExpressionValidator implements AstValidator<Expression> {
     }
 
     private isValidOperandType(operand: Expression, supportedShapes: string[]): boolean {
-        const decl = operand.$resolvedType?.decl;
+        let decl = operand.$resolvedType?.decl;
+        if (isAliasDecl(decl)) {
+            // If it's an alias, we check the resolved type of the expression
+            decl = decl.expression?.$resolvedType?.decl;
+        }
 
         // Check for valid type
         if (typeof decl === 'string') {
             return supportedShapes.includes(decl);
-        }
-
-        // Check for valid AliasDecl
-        if (isAliasDecl(decl)) {
-            const mappedResolvedType = translateExpressionTypeToResolve(decl.expression?.$type);
-            return supportedShapes.includes(mappedResolvedType);
         }
 
         // Any other type is invalid
