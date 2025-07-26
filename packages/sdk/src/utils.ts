@@ -1,4 +1,5 @@
 import {
+    AbstractCallable,
     AstNode,
     Attribute,
     AttributeParam,
@@ -13,6 +14,7 @@ import {
     FunctionDecl,
     GeneratorDecl,
     InternalAttribute,
+    isAliasDecl,
     isArrayExpr,
     isConfigArrayExpr,
     isDataModel,
@@ -39,6 +41,7 @@ import fs from 'node:fs';
 import path from 'path';
 import { ExpressionContext, STD_LIB_MODULE_NAME } from './constants';
 import { PluginError, type PluginDeclaredOptions, type PluginOptions } from './types';
+import { streamAst } from 'langium';
 
 /**
  * Gets data models in the ZModel schema.
@@ -426,7 +429,7 @@ export function parseOptionAsStrings(options: PluginDeclaredOptions, optionName:
     }
 }
 
-export function getFunctionExpressionContext(funcDecl: FunctionDecl) {
+export function getFunctionExpressionContext(funcDecl: AbstractCallable) {
     const funcAllowedContext: ExpressionContext[] = [];
     const funcAttr = funcDecl.attributes.find((attr) => attr.decl.$refText === '@@@expressionContext');
     if (funcAttr) {
@@ -446,8 +449,22 @@ export function isFutureExpr(node: AstNode) {
     return isInvocationExpr(node) && node.function.ref?.name === 'future' && isFromStdlib(node.function.ref);
 }
 
+export function isAliasExpr(node: AstNode) {
+    return isInvocationExpr(node) && node.function.ref?.$type === 'AliasDecl';
+}
+
 export function isAuthInvocation(node: AstNode) {
     return isInvocationExpr(node) && node.function.ref?.name === 'auth' && isFromStdlib(node.function.ref);
+}
+
+export function hasAuthInvocation(node: AstNode) {
+    return streamAst(node).some((node) => {
+        const hasAuth =
+            isAuthInvocation(node) ||
+            (isAliasDecl(node.$resolvedType?.decl) &&
+                node.$resolvedType?.decl.expression?.$cstNode?.text.includes('auth()'));
+        return hasAuth;
+    });
 }
 
 export function isFromStdlib(node: AstNode) {

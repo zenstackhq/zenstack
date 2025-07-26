@@ -24,7 +24,7 @@ import { getContainerOfType } from 'langium';
 import { P, match } from 'ts-pattern';
 import { ExpressionContext } from './constants';
 import { getEntityCheckerFunctionName } from './names';
-import { getIdFields, getLiteral, isDataModelFieldReference, isFromStdlib, isFutureExpr } from './utils';
+import { getIdFields, getLiteral, isAliasExpr, isDataModelFieldReference, isFromStdlib, isFutureExpr } from './utils';
 
 export class TypeScriptExpressionTransformerError extends Error {
     constructor(message: string) {
@@ -142,6 +142,15 @@ export class TypeScriptExpressionTransformer {
 
         const funcName = expr.function.ref.name;
         const isStdFunc = isFromStdlib(expr.function.ref);
+        const isAlias = isAliasExpr(expr);
+
+        if (isAlias) {
+            // if the function invocation comes from an alias, we transform its expression
+            if (!expr.function.ref.expression) {
+                throw new TypeScriptExpressionTransformerError(`Unresolved alias expression`);
+            }
+            return this.transform(expr.function.ref.expression, normalizeUndefined);
+        }
 
         if (!isStdFunc) {
             throw new TypeScriptExpressionTransformerError('User-defined functions are not supported yet');
@@ -387,7 +396,7 @@ export class TypeScriptExpressionTransformer {
 
     private reference(expr: ReferenceExpr) {
         if (!expr.target.ref) {
-            throw new TypeScriptExpressionTransformerError(`Unresolved ReferenceExpr`);
+            throw new TypeScriptExpressionTransformerError(`Unresolved ReferenceExpr: ${expr.$cstNode?.text}`);
         }
 
         if (isEnumField(expr.target.ref)) {
