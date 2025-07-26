@@ -1,4 +1,5 @@
 import {
+    AliasDecl,
     ArrayExpr,
     Attribute,
     AttributeArg,
@@ -300,14 +301,9 @@ function assignableToAttributeParam(arg: AttributeArg, param: AttributeParam, at
         }
     }
 
-    // alias expression is compared to corresponding expression resolved shape
+    // Handle alias expressions by comparing to their resolved shape
     if (isAliasDecl(arg.$resolvedType?.decl)) {
-        // TODO: what is context type? Passed to true to avoid error, to be fixed later
-        if (dstType === 'ContextType') return true;
-
-        const alias = arg.$resolvedType.decl;
-        const mappedAliasResolvedType = mappedRawExpressionTypeToResolvedShape(alias.expression.$type);
-        return dstType === mappedAliasResolvedType || dstType === 'Any' || mappedAliasResolvedType === 'Any';
+        return isAliasAssignableToType(arg.$resolvedType.decl, dstType ?? 'Any', attr);
     }
 
     // destination is field reference or transitive field reference, check if
@@ -420,6 +416,34 @@ function isValidAttributeTarget(attrDecl: Attribute, targetDecl: DataModelField)
     }
 
     return allowed;
+}
+
+function isAliasAssignableToType(alias: AliasDecl, dstType: string, attr: AttributeApplication): boolean {
+    const effectiveDstType = resolveEffectiveDestinationType(dstType, attr);
+    if (effectiveDstType === null) {
+        return false;
+    }
+
+    const mappedAliasResolvedType = mappedRawExpressionTypeToResolvedShape(alias.expression.$type);
+    return (
+        effectiveDstType === mappedAliasResolvedType || effectiveDstType === 'Any' || mappedAliasResolvedType === 'Any'
+    );
+}
+
+function resolveEffectiveDestinationType(dstType: string, attr: AttributeApplication): string | null {
+    if (dstType !== 'ContextType') {
+        return dstType;
+    }
+
+    // ContextType is inferred from the attribute's container's type
+    if (isDataModelField(attr.$container)) {
+        if (!attr.$container?.type?.type) {
+            return null;
+        }
+        return mapBuiltinTypeToExpressionType(attr.$container.type.type);
+    }
+
+    return 'Any';
 }
 
 export function validateAttributeApplication(attr: AttributeApplication, accept: ValidationAcceptor) {

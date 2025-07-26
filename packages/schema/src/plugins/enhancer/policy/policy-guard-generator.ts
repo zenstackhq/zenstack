@@ -36,7 +36,12 @@ import { lowerCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import { streamAst } from 'langium';
 import path from 'path';
 import { FunctionDeclarationStructure, OptionalKind, Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
-import { isCheckInvocation } from '../../../utils/ast-utils';
+import {
+    getAliasDeclaration,
+    getFieldsFromAliasExpression,
+    isAliasInvocation,
+    isCheckInvocation,
+} from '../../../utils/ast-utils';
 import { ConstraintTransformer } from './constraint-transformer';
 import {
     generateConstantQueryGuardFunction,
@@ -221,6 +226,25 @@ export class PolicyGenerator {
                         // reference to foreign key field
                         // we can't check based on create input
                         return false;
+                    }
+                }
+
+                // Handle alias invocations
+                if (isAliasInvocation(expr)) {
+                    const aliasDecl = getAliasDeclaration(expr);
+                    if (aliasDecl) {
+                        const referencedFields = getFieldsFromAliasExpression(aliasDecl);
+                        // Check if any referenced field would prevent create input checking
+                        for (const field of referencedFields) {
+                            if (field.$container === model && hasAttribute(field, '@default')) {
+                                // Alias references field with default value
+                                return false;
+                            }
+                            if (isForeignKeyField(field)) {
+                                // Alias references foreign key field
+                                return false;
+                            }
+                        }
                     }
                 }
 

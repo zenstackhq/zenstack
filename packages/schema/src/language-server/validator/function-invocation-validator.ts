@@ -110,12 +110,6 @@ export default class FunctionInvocationValidator implements AstValidator<Express
 
                 // first argument must refer to a model field
                 const firstArg = expr.args?.[0]?.value;
-                const callableDecl = expr.function.ref;
-                if (!callableDecl) {
-                    accept('error', 'function or rule cannot be resolved', { node: expr });
-                    return;
-                }
-
                 if (firstArg) {
                     if (!getFieldReference(firstArg)) {
                         accept('error', 'first argument must be a field reference', { node: firstArg });

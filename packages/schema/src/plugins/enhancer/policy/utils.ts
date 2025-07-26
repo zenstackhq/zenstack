@@ -44,6 +44,8 @@ import { getContainerOfType, streamAllContents, streamAst, streamContents } from
 import { FunctionDeclarationStructure, OptionalKind } from 'ts-morph';
 import { name } from '..';
 import {
+    getAliasDeclaration,
+    getFieldsFromAliasExpression,
     isAliasInvocation,
     isCheckInvocation,
     isCollectionPredicate,
@@ -318,8 +320,8 @@ export function generateQueryGuardFunction(
                 isFutureExpr(child) ||
                 // field reference
                 (isReferenceExpr(child) && isDataModelField(child.target.ref)) ||
-                // TODO: field access from alias expression
-                isAliasInvocation(child)
+                // field access from alias expression - resolve to actual fields
+                (isAliasInvocation(child) && isExpression(child) && hasFieldAccessInAlias(child))
         )
     );
 
@@ -597,4 +599,18 @@ function getSourceModelOfFieldAccess(expr: Expression) {
     }
 
     return undefined;
+}
+
+/**
+ * Checks if an alias invocation resolves to actual field accesses
+ */
+function hasFieldAccessInAlias(aliasInvocation: Expression): boolean {
+    const aliasDecl = getAliasDeclaration(aliasInvocation);
+    if (!aliasDecl) {
+        return false;
+    }
+    
+    // Get all fields referenced in the alias expression
+    const fields = getFieldsFromAliasExpression(aliasDecl);
+    return fields.length > 0;
 }

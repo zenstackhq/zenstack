@@ -1,7 +1,5 @@
 /// <reference types="@types/jest" />
 
-import fs from 'fs';
-import path from 'path';
 import { loadSchema } from '@zenstackhq/testtools';
 
 describe('Policy plugin tests', () => {
@@ -20,21 +18,21 @@ describe('Policy plugin tests', () => {
 
     it('short-circuit', async () => {
         const model = `
-model User {
-    id String @id @default(cuid())
-    value Int
-}
+    model User {
+        id String @id @default(cuid())
+        value Int
+    }
 
-model M {
-    id String @id @default(cuid())
-    value Int
-    @@allow('read', auth() != null)
-    @@allow('create', auth().value > 0)
+    model M {
+        id String @id @default(cuid())
+        value Int
+        @@allow('read', auth() != null)
+        @@allow('create', auth().value > 0)
 
-    @@allow('update', auth() != null)
-    @@deny('update', auth().value == null || auth().value <= 0)
-}
-        `;
+        @@allow('update', auth() != null)
+        @@deny('update', auth().value == null || auth().value <= 0)
+    }
+            `;
 
         const { policy } = await loadSchema(model);
 
@@ -56,17 +54,17 @@ model M {
 
     it('no short-circuit', async () => {
         const model = `
-model User {
-    id String @id @default(cuid())
-    value Int
-}
+    model User {
+        id String @id @default(cuid())
+        value Int
+    }
 
-model M {
-    id String @id @default(cuid())
-    value Int
-    @@allow('read', auth() != null && value > 0)
-}
-        `;
+    model M {
+        id String @id @default(cuid())
+        value Int
+        @@allow('read', auth() != null && value > 0)
+    }
+            `;
 
         const { policy } = await loadSchema(model);
 
@@ -80,26 +78,26 @@ model M {
 
     it('auth() multiple level member access', async () => {
         const model = `
-         model User {
-            id Int @id @default(autoincrement())
-            cart Cart?
-          }
-          
-          model Cart {
-            id Int @id @default(autoincrement())
-            tasks Task[]
-            user User @relation(fields: [userId], references: [id])
-            userId Int @unique
-          }
-          
-          model Task {
-            id Int @id @default(autoincrement())
-            cart Cart @relation(fields: [cartId], references: [id])
-            cartId Int
-            value Int
-            @@allow('read', auth().cart.tasks?[id == 123] && value >10)
-          }
-                `;
+             model User {
+                id Int @id @default(autoincrement())
+                cart Cart?
+              }
+
+              model Cart {
+                id Int @id @default(autoincrement())
+                tasks Task[]
+                user User @relation(fields: [userId], references: [id])
+                userId Int @unique
+              }
+
+              model Task {
+                id Int @id @default(autoincrement())
+                cart Cart @relation(fields: [cartId], references: [id])
+                cartId Int
+                value Int
+                @@allow('read', auth().cart.tasks?[id == 123] && value >10)
+              }
+                    `;
 
         const { policy } = await loadSchema(model);
         expect(
@@ -114,38 +112,38 @@ model M {
     it('simple alias expressions', async () => {
         const { policy } = await loadSchema(
             `
-            alias allowAll() {
-                true
-            }
+                alias allowAll() {
+                    true
+                }
 
-            alias defaultTitle() {
-                'Default Title'
-            }
+                alias defaultTitle() {
+                    'Default Title'
+                }
 
-            alias currentUser() {
-                auth().id 
-            }
+                alias currentUser() {
+                    auth().id
+                }
 
-            model Post {
-                id          Int      @id @default(autoincrement())
-                title       String   @default(defaultTitle())
-                published   Boolean  @default(allowAll())
+                model Post {
+                    id          Int      @id @default(autoincrement())
+                    title       String   @default(defaultTitle())
+                    published   Boolean  @default(allowAll())
 
-                author   User     @relation(fields: [authorId], references: [id])
-                authorId String   @default(auth().id)
+                    author   User     @relation(fields: [authorId], references: [id])
+                    authorId String   @default(auth().id)
 
-                @@allow('read', allowAll())
-                @@allow('create,update,delete', currentUser() == authorId && published)
-            }
+                    @@allow('read', allowAll())
+                    @@allow('create,update,delete', currentUser() == authorId && published)
+                }
 
-            model User {
-                id            String    @id @default(cuid())
-                name          String?
-                posts         Post[]
+                model User {
+                    id            String    @id @default(cuid())
+                    name          String?
+                    posts         Post[]
 
-                @@allow('all', allowAll())
-            }
-        `,
+                    @@allow('all', allowAll())
+                }
+            `,
             {
                 compile: false,
                 generateNoCompile: true,
@@ -174,53 +172,52 @@ model M {
 
     it('complex alias expressions', async () => {
         const model = `
-        enum TaskStatus {
-            TODO
-            IN_PROGRESS
-            DONE
-        }
+            enum TaskStatus {
+                TODO
+                IN_PROGRESS
+                DONE
+            }
 
-        alias isInProgress() {
-            status == IN_PROGRESS
-        }
+            alias isInProgress() {
+                status == IN_PROGRESS
+            }
 
+            alias complexAlias() {
+               status == IN_PROGRESS && value > 10
+            }
 
-        alias complexAlias() {
-           status == IN_PROGRESS && value > 10
-        }
-        
-        alias memberAccessAlias() {
-           cart.tasks?[id == 123]
-        }
+            alias memberAccessAlias() {
+               cart.tasks?[id == 123]
+            }
 
-        alias memberAccess() {
-            // new task can be created the cart contains tasks with status TODO...
-            cart.tasks?[status == TODO]
-        }
+            alias memberAccess() {
+                // new task can be created the cart contains tasks with status TODO...
+                cart.tasks?[status == TODO]
+            }
 
-         model User {
-            id Int @id @default(autoincrement())
-            cart Cart?
-          }
-          
-          model Cart {
-            id Int @id @default(autoincrement())
-            tasks Task[]
-            user User @relation(fields: [userId], references: [id])
-            userId Int @unique
-          }
-          
-          model Task {
-            id Int @id @default(autoincrement())
-            status TaskStatus @default(TODO)
-            cart Cart @relation(fields: [cartId], references: [id])
-            cartId Int
-            value Int
-            @@allow('read', complexAlias())
-            @@allow('update', memberAccessAlias())
-            @@allow('create', memberAccess())
-          }
-                `;
+             model User {
+                id Int @id @default(autoincrement())
+                cart Cart?
+              }
+
+              model Cart {
+                id Int @id @default(autoincrement())
+                tasks Task[]
+                user User @relation(fields: [userId], references: [id])
+                userId Int @unique
+              }
+
+              model Task {
+                id Int @id @default(autoincrement())
+                status TaskStatus @default(TODO)
+                cart Cart @relation(fields: [cartId], references: [id])
+                cartId Int
+                value Int
+                @@allow('read', complexAlias())
+                @@allow('update', memberAccessAlias())
+                @@allow('create', memberAccess())
+              }
+                    `;
 
         const { policy } = await loadSchema(model, {
             compile: false,
@@ -273,30 +270,30 @@ model M {
 
     it('simple member access in alias', async () => {
         const model = `
-        alias memberAccess() {
-            cart.tasks?[id == 123]
-        }
+            alias memberAccess() {
+                cart.tasks?[id == 123]
+            }
 
-        model User {
-            id Int @id @default(autoincrement())
-            cart Cart?
-        }
+            model User {
+                id Int @id @default(autoincrement())
+                cart Cart?
+            }
 
-        model Cart {
-            id Int @id @default(autoincrement())
-            tasks Task[]
-            user User @relation(fields: [userId], references: [id])
-            userId Int @unique
-        }
+            model Cart {
+                id Int @id @default(autoincrement())
+                tasks Task[]
+                user User @relation(fields: [userId], references: [id])
+                userId Int @unique
+            }
 
-        model Task {
-            id Int @id @default(autoincrement())
-            cart Cart @relation(fields: [cartId], references: [id])
-            cartId Int
-            value Int
-            @@allow('create', memberAccess())
-        }
-        `;
+            model Task {
+                id Int @id @default(autoincrement())
+                cart Cart @relation(fields: [cartId], references: [id])
+                cartId Int
+                value Int
+                @@allow('create', memberAccess())
+            }
+            `;
 
         const { policy } = await loadSchema(model, {
             compile: false,
@@ -327,5 +324,77 @@ model M {
                 user: { cart: { tasks: [] } },
             })
         ).toEqual({ cart: { tasks: { some: { id: { equals: 123 } } } } });
+    });
+
+    it('alias field access resolution in policy rules', async () => {
+        const model = `
+        alias isAdminUser() {
+            auth().role == 'admin'
+        }
+
+        // TODO: enable parameters in alias
+        // alias isInSameDepartment(targetDepartment: String) {
+        //     auth().department == targetDepartment
+        // }
+
+        alias hasFieldAccess() {
+            auth().role != null && auth().department != null
+        }
+
+        model User {
+            id String @id @default(cuid())
+            role String
+            department String
+        }
+
+        model Document {
+            id String @id @default(cuid())
+            title String
+            department String
+            sensitive Boolean @default(false)
+            
+            // @@allow('read', isAdminUser() || isInSameDepartment(department))
+            @@allow('create', hasFieldAccess() && !sensitive)
+            @@allow('update', isAdminUser())
+        }
+        `;
+
+        const { policy } = await loadSchema(model);
+        const docPolicy = policy.policy.document.modelLevel;
+
+        // Test admin user access
+        const adminUser = { id: '1', role: 'admin', department: 'IT' };
+        expect((docPolicy.read.guard as Function)({ user: adminUser })).toEqual({
+            OR: [
+                { AND: [] }, // isAdminUser() resolves to true
+                { department: { equals: 'IT' } }, // isInSameDepartment() check
+            ],
+        });
+
+        // // Test same department user access
+        // const deptUser = { id: '2', role: 'user', department: 'HR' };
+        // expect((docPolicy.read.guard as Function)({ user: deptUser })).toEqual({
+        //     OR: [
+        //         { OR: [] }, // isAdminUser() resolves to false
+        //         { department: { equals: 'HR' } }, // isInSameDepartment() check
+        //     ],
+        // });
+
+        // Test create policy with field access check
+        expect((docPolicy.create.guard as Function)({ user: adminUser })).toEqual({
+            AND: [
+                { AND: [] }, // hasFieldAccess() resolves to true for admin
+                { NOT: { sensitive: { equals: true } } }, // !sensitive check
+            ],
+        });
+
+        // Test user without proper field access
+        const limitedUser = { id: '3', role: null, department: 'Sales' };
+        expect((docPolicy.create.guard as Function)({ user: limitedUser })).toEqual({
+            AND: [
+                { OR: [] }, // hasFieldAccess() resolves to false
+                { NOT: { sensitive: { equals: true } } },
+            ],
+        });
     });
 });

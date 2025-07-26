@@ -282,6 +282,22 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
         const globalScope = this.getGlobalScope(referenceType, context);
         const node = context.container as MemberAccessExpr;
         
+        // Handle auth() invocation in alias
+        if (isInvocationExpr(node.operand)) {
+            if (isAuthInvocation(node.operand)) {
+                return this.createScopeForAuth(node, globalScope);
+            }
+            if (isFutureInvocation(node.operand)) {
+                return this.createScopeForContainingModel(node, globalScope);
+            }
+            return EMPTY_SCOPE;
+        }
+        
+        // Handle this expression in alias
+        if (isThisExpr(node.operand)) {
+            return this.createScopeForContainingModel(node, globalScope);
+        }
+        
         // For member access in aliases, we need to check all possible contexts
         if (isReferenceExpr(node.operand)) {
             const operandName = node.operand.$cstNode?.text;
@@ -330,6 +346,17 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
             // Combine all scopes
             if (allScopes.length > 0) {
                 return this.combineScopes(allScopes);
+            }
+        }
+        
+        // Handle nested member access (e.g., some.nested.field)
+        if (isMemberAccessExpr(node.operand)) {
+            const ref = node.operand.member.ref;
+            if (isDataModelField(ref) && !ref.type.array) {
+                return this.createScopeForContainer(ref.type.reference?.ref, globalScope, true);
+            }
+            if (isTypeDefField(ref) && !ref.type.array) {
+                return this.createScopeForContainer(ref.type.reference?.ref, globalScope, true);
             }
         }
         

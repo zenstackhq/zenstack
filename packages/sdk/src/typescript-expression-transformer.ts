@@ -89,7 +89,6 @@ export class TypeScriptExpressionTransformer {
                 return this.this(expr as ThisExpr);
 
             case ReferenceExpr:
-                // TODO: ensure referenceExpr from alias is resolved
                 return this.reference(expr as ReferenceExpr);
 
             case InvocationExpr:
@@ -147,7 +146,10 @@ export class TypeScriptExpressionTransformer {
 
         if (isAlias) {
             // if the function invocation comes from an alias, we transform its expression
-            return this.transform(expr.function.ref.expression!, normalizeUndefined);
+            if (!expr.function.ref.expression) {
+                throw new TypeScriptExpressionTransformerError(`Unresolved alias expression`);
+            }
+            return this.transform(expr.function.ref.expression, normalizeUndefined);
         }
 
         if (!isStdFunc) {

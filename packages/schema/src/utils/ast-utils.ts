@@ -9,8 +9,10 @@ import {
     isDataModel,
     isDataModelField,
     isInvocationExpr,
+    isMemberAccessExpr,
     isModel,
     isReferenceExpr,
+    isThisExpr,
     isAliasDecl,
     isTypeDef,
     Model,
@@ -166,11 +168,63 @@ export function isCheckInvocation(node: AstNode) {
 }
 
 export function isAliasInvocation(node: AstNode) {
-    // check if a matching alias exists
+    if (!isInvocationExpr(node)) {
+        return false;
+    }
+
+    // Check if the resolved reference is an alias declaration
+    if (node.function.ref && isAliasDecl(node.function.ref)) {
+        return true;
+    }
+
+    // Fallback: check by name in the current model
     const allAlias = getContainerOfType(node, isModel)?.declarations.filter(isAliasDecl) ?? [];
-    // const aliasDecls = getAllLoadedAlias(this.langiumDocuments());
-    return isInvocationExpr(node) && allAlias.some((alias) => alias.name === node.function.$refText);
-    // (!node.function.ref || !isFromStdlib(node.function.ref)) /*  && isAliasDecl(node.function.ref) */
+    return allAlias.some((alias) => alias.name === node.function.$refText);
+}
+
+/**
+ * Gets the alias declaration for a given alias invocation
+ */
+export function getAliasDeclaration(node: AstNode): AliasDecl | undefined {
+    if (!isInvocationExpr(node)) {
+        return undefined;
+    }
+
+    const allAlias = getContainerOfType(node, isModel)?.declarations.filter(isAliasDecl) ?? [];
+    return allAlias.find((alias) => alias.name === node.function.$refText);
+}
+
+/**
+ * Extracts all DataModelField references from an alias expression
+ */
+export function getFieldsFromAliasExpression(alias: AliasDecl): DataModelField[] {
+    const fields: DataModelField[] = [];
+
+    function extractFields(expr: Expression): void {
+        if (isReferenceExpr(expr) && isDataModelField(expr.target.ref)) {
+            fields.push(expr.target.ref);
+        } else if (isMemberAccessExpr(expr)) {
+            // Handle this.fieldName
+            if (isThisExpr(expr.operand) && expr.member.ref && isDataModelField(expr.member.ref)) {
+                fields.push(expr.member.ref);
+            }
+        } else if (isInvocationExpr(expr)) {
+            // Handle nested alias invocations
+            const nestedAlias = getAliasDeclaration(expr);
+            if (nestedAlias) {
+                fields.push(...getFieldsFromAliasExpression(nestedAlias));
+            }
+            // Also check arguments for field references
+            expr.args.forEach((arg) => extractFields(arg.value));
+        } else if (isBinaryExpr(expr)) {
+            extractFields(expr.left);
+            extractFields(expr.right);
+        }
+        // Add more expression types as needed
+    }
+
+    extractFields(alias.expression);
+    return [...new Set(fields)]; // Remove duplicates
 }
 
 export function resolveImportUri(imp: ModelImport): URI | undefined {
