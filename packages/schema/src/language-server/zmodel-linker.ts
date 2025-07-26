@@ -10,7 +10,6 @@ import {
     DataModelFieldType,
     Enum,
     EnumField,
-    Expression,
     ExpressionType,
     FunctionDecl,
     FunctionParam,
@@ -333,9 +332,8 @@ export class ZModelLinker extends DefaultLinker {
                             getModelFieldsWithBases(containingModel).find((field) => field.name === name);
 
                         // Ensure the alias expression is fully resolved in the current context
-                        this.resolveExpressionInContext(matchingAlias.expression, document, containingModel, [
-                            scopeProvider,
-                        ]);
+                        // Pass both the model scope and existing extraScopes
+                        this.resolve(matchingAlias.expression, document, [scopeProvider, ...extraScopes]);
                     }
                 }
             } else {
@@ -472,16 +470,6 @@ export class ZModelLinker extends DefaultLinker {
         node.$resolvedType = node.value.$resolvedType;
     }
 
-    private resolveExpressionInContext(
-        expr: Expression,
-        document: LangiumDocument<AstNode>,
-        contextModel: DataModel,
-        extraScopes: ScopeProvider[]
-    ) {
-        // Resolve the expression with the model context scope
-        this.resolve(expr, document, extraScopes);
-    }
-
     private unresolvableRefExpr(item: ReferenceExpr) {
         const ref = item.target as DefaultReference;
         ref._ref = this.createLinkingError({
@@ -569,10 +557,6 @@ export class ZModelLinker extends DefaultLinker {
     //#region Utils
 
     private resolveToDeclaredType(node: AstNode, type: FunctionParamType | DataModelFieldType | TypeDefFieldType) {
-        // enums from alias expressions are already resolved and do not exist in the scope
-        if (!type) {
-            return;
-        }
         let nullable = false;
         if (isDataModelFieldType(type) || isTypeDefField(type)) {
             nullable = type.optional;

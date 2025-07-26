@@ -4,6 +4,7 @@ import {
     DataModelAttribute,
     Expression,
     ExpressionType,
+    isAliasDecl,
     isArrayExpr,
     isDataModel,
     isDataModelAttribute,
@@ -21,7 +22,7 @@ import {
     isDataModelFieldReference,
     isEnumFieldReference,
 } from '@zenstackhq/sdk';
-import { ValidationAcceptor, streamAst } from 'langium';
+import { ValidationAcceptor, getContainerOfType, streamAst } from 'langium';
 import { findUpAst, getContainingDataModel } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
 import { isAuthOrAuthMemberAccess, typeAssignable } from './utils';
@@ -33,7 +34,7 @@ export default class ExpressionValidator implements AstValidator<Expression> {
     validate(expr: Expression, accept: ValidationAcceptor): void {
         // deal with a few cases where reference resolution fail silently
         if (!expr.$resolvedType) {
-            if (isAuthInvocation(expr)) {
+            if (isAuthInvocation(expr) && !getContainerOfType(expr, isAliasDecl)) {
                 // check was done at link time
                 accept(
                     'error',
