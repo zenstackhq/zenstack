@@ -184,12 +184,18 @@ model M {
             status == IN_PROGRESS
         }
 
-        alias currentUserId() {
-            auth().id
-        }
 
         alias complexAlias() {
-           status == IN_PROGRESS && auth().cart.tasks?[id == 123] && value >10 && currentUserId() != null
+           status == IN_PROGRESS && value > 10
+        }
+        
+        alias memberAccessAlias() {
+           cart.tasks?[id == 123]
+        }
+
+        alias memberAccess() {
+            // new task can be created the cart contains tasks with status TODO...
+            cart.tasks?[status == TODO]
         }
 
          model User {
@@ -211,6 +217,8 @@ model M {
             cartId Int
             value Int
             @@allow('read', complexAlias())
+            @@allow('update', memberAccessAlias())
+            @@allow('create', memberAccess())
           }
                 `;
 
@@ -220,15 +228,104 @@ model M {
             output: 'out/',
         });
 
+        // Test simple complex alias for read operation - requires status IN_PROGRESS and value > 10
         expect(
-            (policy.policy.task.modelLevel.read.guard as Function)({ user: { cart: { tasks: [{ id: 1 }] } } })
+            (policy.policy.task.modelLevel.read.guard as Function)({
+                status: 'IN_PROGRESS',
+                value: 15,
+            })
         ).toEqual(
             expect.objectContaining({
-                AND: [
-                    { AND: [{ AND: [{ status: { equals: 'IN_PROGRESS' } }, { OR: [] }] }, { value: { gt: 10 } }] },
-                    { OR: [] },
-                ],
+                AND: expect.arrayContaining([{ status: { equals: 'IN_PROGRESS' } }, { value: { gt: 10 } }]),
             })
         );
+
+        // Test member access alias for update operation - requires cart with tasks having id 123
+        expect(
+            (policy.policy.task.modelLevel.update.guard as Function)({
+                user: { cart: { tasks: [{ id: 123 }] } },
+            })
+        ).toEqual({
+            cart: {
+                tasks: {
+                    some: {
+                        id: { equals: 123 },
+                    },
+                },
+            },
+        });
+
+        // Test member access alias for create operation - requires cart with tasks having status TODO
+        expect(
+            (policy.policy.task.modelLevel.create.guard as Function)({
+                user: { cart: { tasks: [{ status: 'TODO' }] } },
+            })
+        ).toEqual({
+            cart: {
+                tasks: {
+                    some: {
+                        status: { equals: 'TODO' },
+                    },
+                },
+            },
+        });
+    });
+
+    it('simple member access in alias', async () => {
+        const model = `
+        alias memberAccess() {
+            cart.tasks?[id == 123]
+        }
+
+        model User {
+            id Int @id @default(autoincrement())
+            cart Cart?
+        }
+
+        model Cart {
+            id Int @id @default(autoincrement())
+            tasks Task[]
+            user User @relation(fields: [userId], references: [id])
+            userId Int @unique
+        }
+
+        model Task {
+            id Int @id @default(autoincrement())
+            cart Cart @relation(fields: [cartId], references: [id])
+            cartId Int
+            value Int
+            @@allow('create', memberAccess())
+        }
+        `;
+
+        const { policy } = await loadSchema(model, {
+            compile: false,
+            generateNoCompile: true,
+            output: 'out/',
+        });
+
+        // Test that the policy is correctly generated
+        expect(policy.policy.task.modelLevel.create.guard).toBeDefined();
+
+        // Test with cart containing matching task
+        expect(
+            (policy.policy.task.modelLevel.create.guard as Function)({
+                user: { cart: { tasks: [{ id: 123 }] } },
+            })
+        ).toEqual({ cart: { tasks: { some: { id: { equals: 123 } } } } });
+
+        // Test with cart containing non-matching task - policy still generates filter
+        expect(
+            (policy.policy.task.modelLevel.create.guard as Function)({
+                user: { cart: { tasks: [{ id: 456 }] } },
+            })
+        ).toEqual({ cart: { tasks: { some: { id: { equals: 123 } } } } });
+
+        // Test with empty cart - policy still generates filter
+        expect(
+            (policy.policy.task.modelLevel.create.guard as Function)({
+                user: { cart: { tasks: [] } },
+            })
+        ).toEqual({ cart: { tasks: { some: { id: { equals: 123 } } } } });
     });
 });

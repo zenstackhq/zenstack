@@ -1,6 +1,7 @@
 import {
     BinaryExpr,
     MemberAccessExpr,
+    isAliasDecl,
     isDataModel,
     isDataModelField,
     isEnumField,
@@ -117,6 +118,11 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
 
     override getScope(context: ReferenceInfo): Scope {
         if (isMemberAccessExpr(context.container) && context.container.operand && context.property === 'member') {
+            // Check if we're inside an alias first
+            const aliasDecl = getContainerOfType(context.container, isAliasDecl);
+            if (aliasDecl) {
+                return this.getAliasMemberAccessScope(context);
+            }
             return this.getMemberAccessScope(context);
         }
 
@@ -125,6 +131,12 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
             const containerCollectionPredicate = getCollectionPredicateContext(context.container);
             if (containerCollectionPredicate) {
                 return this.getCollectionPredicateScope(context, containerCollectionPredicate);
+            }
+            
+            // Check if we're inside an alias declaration - if so, get scope from containing model
+            const aliasDecl = getContainerOfType(context.container, isAliasDecl);
+            if (aliasDecl) {
+                return this.getAliasScope(context);
             }
         }
 
@@ -242,6 +254,100 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
         } else {
             return EMPTY_SCOPE;
         }
+    }
+    
+    private getAliasScope(context: ReferenceInfo): Scope {
+        const referenceType = this.reflection.getReferenceType(context);
+        const globalScope = this.getGlobalScope(referenceType, context);
+        
+        // In aliases, we want to resolve references against all possible models
+        const model = getContainerOfType(context.container, isModel);
+        if (!model) {
+            return globalScope;
+        }
+        
+        // Collect all fields from all models
+        const allFields: AstNode[] = [];
+        for (const decl of model.declarations) {
+            if (isDataModel(decl)) {
+                allFields.push(...getModelFieldsWithBases(decl));
+            }
+        }
+        
+        return this.createScopeForNodes(allFields, globalScope);
+    }
+    
+    private getAliasMemberAccessScope(context: ReferenceInfo): Scope {
+        const referenceType = this.reflection.getReferenceType(context);
+        const globalScope = this.getGlobalScope(referenceType, context);
+        const node = context.container as MemberAccessExpr;
+        
+        // For member access in aliases, we need to check all possible contexts
+        if (isReferenceExpr(node.operand)) {
+            const operandName = node.operand.$cstNode?.text;
+            if (!operandName) {
+                return EMPTY_SCOPE;
+            }
+            
+            // Check if this is used in an invocation context
+            let invocationContext: AstNode | undefined = node.$container;
+            while (invocationContext && !isInvocationExpr(invocationContext)) {
+                invocationContext = invocationContext.$container;
+            }
+            
+            if (invocationContext && isInvocationExpr(invocationContext)) {
+                // Find the model where this invocation is used
+                const containingModel = getContainerOfType(invocationContext, isDataModel);
+                if (containingModel) {
+                    const field = getModelFieldsWithBases(containingModel).find(
+                        (f) => f.name === operandName
+                    );
+                    if (field && field.type.reference?.ref) {
+                        return this.createScopeForContainer(field.type.reference.ref, globalScope);
+                    }
+                }
+            }
+            
+            // Otherwise, check all models for possible matches
+            const model = getContainerOfType(context.container, isModel);
+            if (!model) {
+                return EMPTY_SCOPE;
+            }
+            
+            // Collect all possible scopes from all models
+            const allScopes: Scope[] = [];
+            for (const decl of model.declarations) {
+                if (isDataModel(decl)) {
+                    const field = getModelFieldsWithBases(decl).find(
+                        (f) => f.name === operandName
+                    );
+                    if (field && field.type.reference?.ref) {
+                        allScopes.push(this.createScopeForContainer(field.type.reference.ref, globalScope));
+                    }
+                }
+            }
+            
+            // Combine all scopes
+            if (allScopes.length > 0) {
+                return this.combineScopes(allScopes);
+            }
+        }
+        
+        return EMPTY_SCOPE;
+    }
+    
+    private combineScopes(scopes: Scope[]): Scope {
+        const allElements: AstNodeDescription[] = [];
+        for (const scope of scopes) {
+            const elements = scope.getAllElements();
+            for (const element of elements) {
+                // Avoid duplicates
+                if (!allElements.some(e => e.name === element.name && e.type === element.type)) {
+                    allElements.push(element);
+                }
+            }
+        }
+        return new StreamScope(stream(allElements));
     }
 }
 

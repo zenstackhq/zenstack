@@ -30,7 +30,6 @@ import {
     UnaryExpr,
     isAliasDecl,
     isArrayExpr,
-    isBinaryExpr,
     isBooleanLiteral,
     isDataModel,
     isDataModelField,
@@ -41,7 +40,6 @@ import {
     isReferenceExpr,
     isStringLiteral,
     isTypeDefField,
-    isUnaryExpr,
 } from '@zenstackhq/language/ast';
 import { getAuthDecl, getModelFieldsWithBases, isAuthInvocation, isFutureExpr } from '@zenstackhq/sdk';
 import {
@@ -171,7 +169,6 @@ export class ZModelLinker extends DefaultLinker {
                 break;
 
             case MemberAccessExpr:
-                // TODO: check from alias ?
                 this.resolveMemberAccess(node as MemberAccessExpr, document, extraScopes);
                 break;
 
@@ -205,6 +202,10 @@ export class ZModelLinker extends DefaultLinker {
 
             case DataModelField:
                 this.resolveDataModelField(node as DataModelField, document, extraScopes);
+                break;
+
+            case AliasDecl:
+                // Don't resolve alias declarations - they will be resolved when used
                 break;
 
             default:
@@ -267,10 +268,6 @@ export class ZModelLinker extends DefaultLinker {
     }
 
     private resolveReference(node: ReferenceExpr, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
-        // If the reference comes from an alias, we resolve it against the first matching data model
-        if (getContainerOfType(node, isAliasDecl)) {
-            this.resolveAliasExpr(node as ReferenceExpr, document);
-        }
         this.resolveDefault(node, document, extraScopes);
 
         if (node.target.ref) {
@@ -278,7 +275,6 @@ export class ZModelLinker extends DefaultLinker {
             if (node.target.ref.$type === EnumField) {
                 this.resolveToBuiltinTypeOrDecl(node, node.target.ref.$container);
             } else {
-                // TODO: if the reference is from an alias, we should resolve it against the first matching data model
                 this.resolveToDeclaredType(node, (node.target.ref as DataModelField | FunctionParam).type);
             }
         }
@@ -329,6 +325,18 @@ export class ZModelLinker extends DefaultLinker {
 
                 if (matchingAlias) {
                     node.$resolvedType = { decl: matchingAlias, nullable: false };
+
+                    // Resolve the alias expression in the context of the containing model
+                    const containingModel = getContainingDataModel(node);
+                    if (containingModel && matchingAlias.expression) {
+                        const scopeProvider = (name: string) =>
+                            getModelFieldsWithBases(containingModel).find((field) => field.name === name);
+
+                        // Ensure the alias expression is fully resolved in the current context
+                        this.resolveExpressionInContext(matchingAlias.expression, document, containingModel, [
+                            scopeProvider,
+                        ]);
+                    }
                 }
             } else {
                 this.resolveToDeclaredType(node, (funcDecl as FunctionDecl).returnType);
@@ -464,44 +472,14 @@ export class ZModelLinker extends DefaultLinker {
         node.$resolvedType = node.value.$resolvedType;
     }
 
-    private resolveAliasExpr(node: AstNode, document: LangiumDocument<AstNode>) {
-        const container = getContainerOfType(node, isAliasDecl);
-        if (!container) {
-            return;
-        }
-        const model = getContainerOfType(node, isModel);
-        const models = model?.declarations.filter(isDataModel) ?? [];
-        // Find the first model that has the alias reference as a field
-        const matchingModel = models.find((model) => model.fields.some((f) => f.name === node.$cstNode?.text));
-        if (!matchingModel) {
-            return;
-        }
-
-        const scopeProvider = (name: string) =>
-            getModelFieldsWithBases(matchingModel).find((field) => field.name === name);
-
-        const visitExpr = (node: Expression) => {
-            if (isReferenceExpr(node)) {
-                // enums in alias expressions are already resolved
-                if (isEnum(node.target.ref?.$container)) {
-                    return;
-                }
-
-                const resolved = this.resolveFromScopeProviders(node, 'target', document, [scopeProvider]);
-                if (resolved) {
-                    this.resolveToDeclaredType(node, (resolved as DataModelField).type);
-                } else {
-                    this.unresolvableRefExpr(node);
-                }
-            } else if (isBinaryExpr(node)) {
-                visitExpr(node.left);
-                visitExpr(node.right);
-            } else if (isUnaryExpr(node)) {
-                visitExpr(node.operand);
-            }
-        };
-
-        visitExpr(container.expression);
+    private resolveExpressionInContext(
+        expr: Expression,
+        document: LangiumDocument<AstNode>,
+        contextModel: DataModel,
+        extraScopes: ScopeProvider[]
+    ) {
+        // Resolve the expression with the model context scope
+        this.resolve(expr, document, extraScopes);
     }
 
     private unresolvableRefExpr(item: ReferenceExpr) {
