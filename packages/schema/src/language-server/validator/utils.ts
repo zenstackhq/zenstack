@@ -99,26 +99,6 @@ export function mapBuiltinTypeToExpressionType(
     }
 }
 
-/**
- * Map an expression $type (e.g. StringLiteral) to a resolved ExpressionType (e.g. String)
- */
-export function translateExpressionTypeToResolve(expressionType: Expression['$type']): ExpressionType {
-    switch (expressionType) {
-        case 'StringLiteral':
-            return 'String';
-        case 'NumberLiteral':
-            return 'Int';
-        case 'BooleanLiteral':
-            return 'Boolean';
-        case 'ObjectExpr':
-            return 'Object';
-        case 'NullExpr':
-            return 'Null';
-        default:
-            return 'Any';
-    }
-}
-
 export function isAuthOrAuthMemberAccess(expr: Expression): boolean {
     return isAuthInvocation(expr) || (isMemberAccessExpr(expr) && isAuthOrAuthMemberAccess(expr.operand));
 }

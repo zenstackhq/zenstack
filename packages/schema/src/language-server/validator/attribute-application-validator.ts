@@ -30,12 +30,7 @@ import {
 import { ValidationAcceptor, streamAllContents, streamAst } from 'langium';
 import pluralize from 'pluralize';
 import { AstValidator } from '../types';
-import {
-    getStringLiteral,
-    mapBuiltinTypeToExpressionType,
-    translateExpressionTypeToResolve,
-    typeAssignable,
-} from './utils';
+import { getStringLiteral, mapBuiltinTypeToExpressionType, typeAssignable } from './utils';
 
 // a registry of function handlers marked with @check
 const attributeCheckers = new Map<string, PropertyDescriptor>();
@@ -424,10 +419,8 @@ function isAliasAssignableToType(alias: AliasDecl, dstType: string, attr: Attrib
         return false;
     }
 
-    const mappedAliasResolvedType = translateExpressionTypeToResolve(alias.expression.$type);
-    return (
-        effectiveDstType === mappedAliasResolvedType || effectiveDstType === 'Any' || mappedAliasResolvedType === 'Any'
-    );
+    const aliasExpressionType = alias.expression.$resolvedType?.decl;
+    return effectiveDstType === aliasExpressionType || effectiveDstType === 'Any' || aliasExpressionType === 'Any';
 }
 
 function resolveEffectiveDestinationType(dstType: string, attr: AttributeApplication): string | null {
