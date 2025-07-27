@@ -86,6 +86,8 @@ export function mapBuiltinTypeToExpressionType(
         case 'Int':
         case 'Float':
         case 'Null':
+        case 'Object':
+        case 'Unsupported':
             return type;
         case 'BigInt':
             return 'Int';
@@ -94,10 +96,6 @@ export function mapBuiltinTypeToExpressionType(
         case 'Json':
         case 'Bytes':
             return 'Any';
-        case 'Object':
-            return 'Object';
-        case 'Unsupported':
-            return 'Unsupported';
     }
 }
 

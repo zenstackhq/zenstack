@@ -10,7 +10,7 @@
     },
     {
       "name": "keyword.control.zmodel",
-      "match": "\\b(Any|BigInt|Boolean|Bytes|ContextType|DateTime|Decimal|FieldReference|Float|Int|Json|Null|Object|String|TransitiveFieldReference|Unsupported|abstract|attribute|datasource|enum|extends|false|function|generator|import|in|model|null|plugin|this|true|type|view)\\b"
+      "match": "\\b(Any|BigInt|Boolean|Bytes|ContextType|DateTime|Decimal|FieldReference|Float|Int|Json|Null|Object|String|TransitiveFieldReference|Unsupported|abstract|alias|attribute|datasource|enum|extends|false|function|generator|import|in|model|null|plugin|this|true|type|view)\\b"
     },
     {
       "name": "string.quoted.double.zmodel",

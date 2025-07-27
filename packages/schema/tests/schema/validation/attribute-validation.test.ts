@@ -406,7 +406,7 @@ describe('Attribute tests', () => {
                 id String @id @default(foo())
             }
         `)
-        ).toContain(`Could not resolve reference to FunctionDecl named 'foo'.`);
+        ).toContain(`Could not resolve reference to AbstractCallable named 'foo'.`);
 
         expect(
             await loadModelWithError(`
@@ -1390,5 +1390,80 @@ describe('Attribute tests', () => {
             }
         `)
         ).resolves.toContain('Invalid regular expression');
+    });
+
+    it('alias expressions', async () => {
+        await loadModel(`
+            ${prelude}
+
+            alias foo() {
+                opened
+            }
+
+            model A {
+                id String @id
+                opened Boolean @default(true)
+
+                @@allow('all', foo())
+            }
+        `);
+
+        await loadModel(`
+            ${prelude}
+
+            alias allowAll() {
+                true
+            }
+
+            alias defaultTitle() {
+                'Default Title'
+            }
+
+            alias currentUser() {
+                auth().id 
+            }
+
+            alias ownPublishedPosts() {
+                currentUser() != null && published
+            }
+
+            model Post {
+                id          Int      @id @default(autoincrement())
+                title        String
+                published   Boolean  @default(true)
+
+                author   User     @relation(fields: [authorId], references: [id])
+                authorId String   @default(auth().id)
+
+                @@allow('read', true)
+                @@deny('all', !ownPublishedPosts())
+            }
+
+
+            model User {
+                id            String    @id @default(cuid())
+                name          String?
+                posts         Post[]
+
+                @@allow('all', allowAll())
+            }
+        `);
+
+        expect(
+            await loadModelWithError(`
+                ${prelude}
+
+                alias foo() {
+                    "ok"
+                }
+
+                model A {
+                    id String @id
+                    opened Boolean @default(foo())
+
+                    @@allow('all', foo())
+                }
+            `)
+        ).toContain(`Value is not assignable to parameter`);
     });
 });
