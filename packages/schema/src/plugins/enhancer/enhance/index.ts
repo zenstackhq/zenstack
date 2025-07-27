@@ -1,5 +1,5 @@
 import { DELEGATE_AUX_RELATION_PREFIX } from '@zenstackhq/runtime';
-import { upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
+import { invariant, upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import {
     PluginError,
     getAttribute,
@@ -569,6 +569,32 @@ export type Enhanced<Client> =
     private async processClientTypesNewPrismaGenerator(prismaClientDir: string, delegateInfo: DelegateInfo) {
         const project = new Project();
 
+        // remove delegate_aux_* fields from the prismaNamespace.ts
+        const internalFilename = `${prismaClientDir}/internal/prismaNamespace.ts`
+        const internalFilenameFixed = `${prismaClientDir}/internal/prismaNamespace-fixed.ts`
+        const internalSf = project.addSourceFileAtPath(internalFilename);
+        const syntaxList = internalSf.getChildren()[0];
+        if (!Node.isSyntaxList(syntaxList)) {
+            throw new PluginError(name, `Unexpected syntax list structure in ${internalFilename}`);
+        }
+        const statements: (string | StatementStructures)[] = [];
+
+        syntaxList.getChildren().forEach((node) => {
+            if (Node.isVariableStatement(node)) {
+                statements.push(this.transformVariableStatementProps(node));
+            } else {
+                statements.push(node.getText());
+            }
+        });
+        const structure = internalSf.getStructure();
+        structure.statements = statements;
+
+        const internalSfNew = project.createSourceFile(internalFilenameFixed, structure, {
+            overwrite: true,
+        });
+        await internalSfNew.save();
+        fs.renameSync(internalFilenameFixed, internalFilename);
+
         // Create a shared file for all JSON fields type definitions
         const jsonFieldsFile = project.createSourceFile(path.join(this.outDir, 'json-types.ts'), undefined, {
             overwrite: true,
@@ -720,6 +746,27 @@ export type Enhanced<Client> =
                         source = this.removeFromSource(source, f.getText());
                     });
                     variable.type = source;
+                }
+            });
+        }
+
+        return structure;
+    }
+
+    private transformVariableStatementProps(variable: VariableStatement) {
+        const structure = variable.getStructure();
+
+        // remove `delegate_aux_*` fields from the variable's initializer
+        const auxFields = this.findAuxProps(variable);
+        if (auxFields.length > 0) {
+            structure.declarations.forEach((variable) => {
+                if (variable.initializer) {
+                    let source = variable.initializer;
+                    auxFields.forEach((f) => {
+                        invariant(typeof source === 'string');
+                        source = this.removeFromSource(source, f.getText());
+                    });
+                    variable.initializer = source;
                 }
             });
         }
