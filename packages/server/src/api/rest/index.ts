@@ -1178,6 +1178,11 @@ class RequestHandler extends APIHandlerBase {
     //#region utilities
     private getIdFields(modelMeta: ModelMeta, model: string): FieldInfo[] {
         const modelLower = lowerCaseFirst(model);
+
+        if (this.typeMap && modelLower in this.typeMap) {
+            return this.typeMap[modelLower].idFields;
+        }
+
         if (!(modelLower in this.externalIdMapping)) {
             return getIdFields(modelMeta, model);
         }
