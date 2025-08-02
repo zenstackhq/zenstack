@@ -1,10 +1,48 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import { z } from 'zod';
 
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient/node';
+import { DataModel, isDataModel, Model } from '@zenstackhq/sdk/ast';
+import MermaidGenerator from './mermaid-generator';
 
 const AUTH_PROVIDER_ID = 'github';
 const AUTH_SCOPES = ['user:email'];
+
+// Define the structured response schema using Zod
+export const ZModelDocumentationSchema = z.object({
+    overview: z.object({
+        description: z.string().describe("Brief description of the data model's purpose and what the application does"),
+        functionality: z.array(z.string()).describe('Key functionality and features the application provides to users'),
+    }),
+    models: z
+        .array(
+            z.object({
+                name: z.string().describe('The name of the data model'),
+                description: z.string().describe('What this model represents and its purpose'),
+                access_control_policies: z
+                    .array(z.string())
+                    .describe('Access control rules like @@allow, @@deny with explanations'),
+            })
+        )
+        .describe('All data models found in the schema'),
+    enums: z
+        .array(
+            z.object({
+                name: z.string(),
+                values: z.array(z.string()),
+                description: z.string(),
+            })
+        )
+        .optional()
+        .describe('Enum definitions if any'),
+    business_logic: z.array(z.string()).describe('Key business rules and validation logic derived from the schema'),
+    security_considerations: z
+        .array(z.string())
+        .describe('Important security implications from access policies and validation rules'),
+});
+
+export type ZModelDocumentation = z.infer<typeof ZModelDocumentationSchema>;
 
 // Utility to require authentication when needed
 export async function requireAuth(): Promise<vscode.AuthenticationSession | undefined> {
@@ -29,7 +67,51 @@ export async function requireAuth(): Promise<vscode.AuthenticationSession | unde
             }
         }
     }
+
+    // If session is available, fetch the user email from GitHub API using the access token
+    if (session) {
+        try {
+            const email = await getGitHubUserEmail(session);
+            if (email) {
+                console.log('GitHub user email:', email);
+            } else {
+                console.log('Could not retrieve GitHub user email.');
+            }
+        } catch (e) {
+            console.error('Failed to fetch GitHub user email:', e);
+        }
+    }
+
     return session;
+}
+
+// Fetch the user's primary email from GitHub using the session's access token
+async function getGitHubUserEmail(session: vscode.AuthenticationSession): Promise<string | undefined> {
+    const apiUrl = 'https://api.github.com/user/emails';
+    try {
+        const response = await fetch(apiUrl, {
+            headers: {
+                Authorization: `token ${session.accessToken}`,
+                Accept: 'application/vnd.github.v3+json',
+                'User-Agent': 'zenstack-vscode-extension',
+            },
+        });
+        if (!response.ok) {
+            throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+        }
+        const emails: { email: string; primary: boolean; verified: boolean }[] = await response.json();
+        // Find the primary, verified email
+        const primary = emails.find((e) => e.primary && e.verified);
+        if (primary) {
+            return primary.email;
+        }
+        // Fallback: return the first verified email
+        const verified = emails.find((e) => e.verified);
+        return verified ? verified.email : undefined;
+    } catch (e) {
+        console.error('Error fetching GitHub user email:', e);
+        return undefined;
+    }
 }
 
 // Outline View implemented as a WebviewViewProvider
@@ -39,7 +121,7 @@ class SimpleOutlineWebviewProvider implements vscode.WebviewViewProvider {
 
     constructor(private readonly context: vscode.ExtensionContext) {
         vscode.window.onDidChangeActiveTextEditor(() => {
-            this.updateView().catch(console.error);
+            //this.updateView().catch(console.error);
         });
     }
 
@@ -130,10 +212,10 @@ class SimpleOutlineWebviewProvider implements vscode.WebviewViewProvider {
                     const documentation = await generateZModelDocumentation(editor.document);
                     html = await this.renderMarkdown(documentation);
                 } catch (error) {
-                    html = this.createErrorHtml(fileName, error);
+                    html = `error generating documentation: ${error instanceof Error ? error.message : String(error)}`;
                 }
             } else {
-                html = this.createBasicFileHtml(fileName);
+                html = `${fileName}`;
             }
         }
 
@@ -198,93 +280,6 @@ class SimpleOutlineWebviewProvider implements vscode.WebviewViewProvider {
             <div class="loading">🔄 Generating documentation...</div>
         </body>
         </html>`;
-    }
-
-    private createDocumentationHtml(fileName: string, documentation: string): string {
-        // Convert markdown to basic HTML
-        const htmlContent = this.markdownToHtml(documentation);
-
-        return `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                body { font-family: system-ui, -apple-system, sans-serif; padding: 10px; line-height: 1.6; }
-                .filename { font-family: monospace; background: #f5f5f5; padding: 2px 4px; border-radius: 3px; }
-                .documentation { margin-top: 15px; }
-                h1, h2, h3, h4 { color: #333; margin-top: 20px; margin-bottom: 10px; }
-                h1 { border-bottom: 2px solid #ddd; padding-bottom: 5px; }
-                h2 { border-bottom: 1px solid #eee; padding-bottom: 3px; }
-                code { background: #f8f8f8; padding: 2px 4px; border-radius: 3px; font-family: 'Monaco', 'Consolas', monospace; }
-                pre { background: #f8f8f8; padding: 10px; border-radius: 5px; overflow-x: auto; }
-                pre code { background: none; padding: 0; }
-                ul, ol { padding-left: 20px; }
-                li { margin: 5px 0; }
-            </style>
-        </head>
-        <body>
-            <h3>Current File</h3>
-            <div class="filename">${fileName}</div>
-            <div class="documentation">${htmlContent}</div>
-        </body>
-        </html>`;
-    }
-
-    private createErrorHtml(fileName: string, error: unknown): string {
-        return `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                body { font-family: system-ui, -apple-system, sans-serif; padding: 10px; }
-                .filename { font-family: monospace; background: #f5f5f5; padding: 2px 4px; border-radius: 3px; }
-                .error { color: #d73a49; background: #ffe6e6; padding: 10px; border-radius: 5px; margin-top: 10px; }
-            </style>
-        </head>
-        <body>
-            <h3>Current File</h3>
-            <div class="filename">${fileName}</div>
-            <div class="error">❌ Error generating documentation: ${error}</div>
-        </body>
-        </html>`;
-    }
-
-    private createBasicFileHtml(fileName: string): string {
-        return `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                body { font-family: system-ui, -apple-system, sans-serif; padding: 10px; }
-                .filename { font-family: monospace; background: #f5f5f5; padding: 2px 4px; border-radius: 3px; }
-            </style>
-        </head>
-        <body>
-            <h3>Current File</h3>
-            <div class="filename">${fileName}</div>
-        </body>
-        </html>`;
-    }
-
-    private markdownToHtml(markdown: string): string {
-        // Basic markdown to HTML conversion
-        return markdown
-            .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-            .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-            .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-            .replace(/^\* (.*$)/gim, '<li>$1</li>')
-            .replace(/^- (.*$)/gim, '<li>$1</li>')
-            .replace(/`([^`]+)`/g, '<code>$1</code>')
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.*?)\*/g, '<em>$1</em>')
-            .replace(/\n\n/g, '</p><p>')
-            .replace(/(<li>.*<\/li>)/g, '<ul>$1</ul>')
-            .replace(/^(.*)$/gim, '<p>$1</p>')
-            .replace(/<p><h[1-6]>/g, '<h')
-            .replace(/<\/h[1-6]><\/p>/g, '</h>')
-            .replace(/<p><ul>/g, '<ul>')
-            .replace(/<\/ul><\/p>/g, '</ul>')
-            .replace(/<p><\/p>/g, '');
     }
 
     private readonly DummyZModelDocumentation = `
@@ -466,12 +461,43 @@ async function previewZModelFile(): Promise<void> {
     }
 }
 
+// Add this function to communicate with the language server
+async function getParsedAST(document: vscode.TextDocument): Promise<{
+    ast: Model;
+    errors: string[];
+    diagnostics: unknown[];
+} | null> {
+    if (!client) {
+        throw new Error('Language client not initialized');
+    }
+
+    try {
+        // Ensure the language server is ready
+        await client.start();
+
+        // Send the custom request to get AST
+        const result = await client.sendRequest('zenstack/getAST', {
+            textDocument: {
+                uri: document.uri.toString(),
+            },
+        });
+
+        return result as {
+            ast: Model;
+            errors: string[];
+            diagnostics: unknown[];
+        };
+    } catch (error) {
+        console.error('Error getting AST from language server:', error);
+        throw error;
+    }
+}
+
 async function generateZModelDocumentation(document: vscode.TextDocument): Promise<string> {
     try {
         // Get available language models, preferring context7 models
         const models = await vscode.lm.selectChatModels({
             vendor: 'copilot',
-            family: 'gpt-4o',
         });
 
         if (models.length === 0) {
@@ -480,57 +506,196 @@ async function generateZModelDocumentation(document: vscode.TextDocument): Promi
             );
         }
 
-        // Find context7 model or use the first available model
-        const selectedModel = models.find((model) => model.name.includes('context7')) || models[0];
+        const selectedModel = models[0];
+
+        console.log('Using model:', selectedModel.name);
 
         const zmodelContent = document.getText();
 
-        // Create a comprehensive prompt for generating documentation
+        // Get parsed AST from language server
+        let astInfo = null;
+        try {
+            astInfo = await getParsedAST(document);
+            console.log('AST obtained from language server:', astInfo);
+        } catch (error) {
+            console.warn('Could not get AST from language server:', error);
+        }
+
+        // Create enhanced prompt requesting structured JSON output
         const prompt = `You are a technical documentation expert specializing in ZenStack zmodel schema files. 
 
-ZenStack extends Prisma with powerful features like access policies, field validation, and automatic API generation. 
+ZenStack extends Prisma with powerful features like access policies, field validation, and automatic API generation.
 
-Analyze the following zmodel file and generate comprehensive markdown documentation that includes:
+Analyze the following zmodel file and return a structured JSON response that follows this exact schema:
 
-## Analysis Requirements:
-1. **Schema Overview** - Brief description of the data model's purpose
-2. **Model Definitions** - Each model with its purpose, fields, and data types
-3. **Relationships** - How models relate to each other (one-to-many, many-to-many, etc.)
-4. **Access Policies** - Any @@allow, @@deny rules and their implications
-5. **Field Attributes** - Special attributes like @default, @unique, @relation, etc.
-6. **Enums** - Any enum definitions and their usage
-7. **Data Validation** - Field-level validation rules
-8. **Business Logic** - Derived from the schema structure and policies
-
-## Formatting Guidelines:
-- Use clear markdown headers (##, ###)
-- Include code blocks for schema snippets
-- Use bullet points for lists
-- Highlight important security/access control implications
-- Be concise but comprehensive
+\`\`\`json
+{
+  "overview": {
+    "description": "Brief description of the data model's purpose and what the application does",
+    "functionality": ["Key functionality and features the application provides to users"]
+  },
+  "models": [
+    {
+      "name": "ModelName",
+      "description": "What this model represents and its purpose",
+      "fields": [
+        {
+          "name": "fieldName",
+          "type": "fieldType",
+          "description": "What this field represents",
+          "attributes": ["@attribute1", "@attribute2"]
+        }
+      ],
+      "relationships": [
+        {
+          "field": "relationField",
+          "relatedModel": "RelatedModel",
+          "type": "one-to-many" // or "one-to-one", "many-to-one", "many-to-many"
+        }
+      ],
+      "access_control_policies": ["@@allow rule explanations", "@@deny rule explanations"]
+    }
+  ],
+  "enums": [
+    {
+      "name": "EnumName",
+      "values": ["VALUE1", "VALUE2"],
+      "description": "What this enum represents"
+    }
+  ],
+  "business_logic": ["Key business rule 1", "Key business rule 2"],
+  "security_considerations": ["Security implication 1", "Security implication 2"]
+}
+\`\`\`
 
 ZModel Schema Content:
 \`\`\`zmodel
 ${zmodelContent}
 \`\`\`
 
-Generate detailed markdown documentation following the requirements above:`;
+IMPORTANT: 
+- Return ONLY valid JSON,no markdown formatting or code blocks.
+- Explain access control policies in plain English.
+- Be thorough but concise in descriptions.
+`;
 
         const messages = [vscode.LanguageModelChatMessage.User(prompt)];
 
+        // record the time spent
+        const startTime = Date.now();
+
         const chatRequest = await selectedModel.sendRequest(messages, {}, new vscode.CancellationTokenSource().token);
+
+        let endTime = Date.now();
+        console.log(`Chat request completed in ${endTime - startTime} ms`);
 
         let response = '';
         for await (const fragment of chatRequest.text) {
             response += fragment;
         }
 
-        return response || 'No documentation generated';
+        endTime = Date.now();
+
+        console.log(`Response completed in ${endTime - startTime} ms`);
+
+        // Parse and validate the JSON response
+        try {
+            const jsonResponse = JSON.parse(response);
+            const validatedData = ZModelDocumentationSchema.parse(jsonResponse);
+
+            // Convert the validated structured data back to markdown
+            return convertStructuredDataToMarkdown(validatedData, astInfo!.ast);
+        } catch (parseError) {
+            console.warn('Failed to parse JSON response, falling back to raw response:', parseError);
+
+            // If JSON parsing fails, return the raw response as fallback
+            return response || 'No documentation generated';
+        }
     } catch (error) {
         console.error('Error generating documentation:', error);
         const errorMessage = error instanceof Error ? error.message : String(error);
         throw new Error(`Failed to generate documentation: ${errorMessage}`);
     }
+}
+
+// Convert structured data to markdown format
+function convertStructuredDataToMarkdown(data: ZModelDocumentation, model: Model): string {
+    let markdown = `# ZModel Schema Documentation
+
+## Overview
+
+**Description:** ${data.overview.description}
+
+**Functionality:** 
+${data.overview.functionality.map((item) => `- ${item}`).join('\n')}
+
+## Models
+
+`;
+    const mermaidGenerator = new MermaidGenerator(model);
+    const dataModels = model.declarations.filter((x) => isDataModel(x) && !x.isAbstract) as DataModel[];
+
+    dataModels.forEach((model) => {
+        model.$baseMerged = true;
+    });
+
+    const modelChapter = dataModels.map((model) => {
+        const aiGeneratedModel = data.models.find((m) => m.name === model.name);
+
+        return [
+            `### ${model.name}`,
+            aiGeneratedModel?.description,
+            mermaidGenerator.generate(model),
+            aiGeneratedModel?.access_control_policies.map((policy) => `- ${policy}`)?.join('\n') || '',
+        ].join('\n');
+    });
+
+    markdown += modelChapter.join('\n\n');
+    // // Add each model
+    // data.models.forEach((model) => {
+    //     markdown += `### ${model.name}\n\n`;
+    //     markdown += `${model.description}\n\n`;
+
+    //     const mermaidDiagram = mermaidGenerator.generate();
+
+    //     if (model.access_control_policies && model.access_control_policies.length > 0) {
+    //         markdown += `**Access Control Policies:**\n`;
+    //         model.access_control_policies.forEach((policy) => {
+    //             markdown += `- ${policy}\n`;
+    //         });
+    //         markdown += `\n`;
+    //     }
+    // });
+
+    // Add enums if present
+    if (data.enums && data.enums.length > 0) {
+        markdown += `## Enums\n\n`;
+        data.enums.forEach((enumDef) => {
+            markdown += `### ${enumDef.name}\n\n`;
+            markdown += `${enumDef.description}\n\n`;
+            markdown += `**Values:** ${enumDef.values.join(', ')}\n\n`;
+        });
+    }
+
+    // Add business logic
+    if (data.business_logic && data.business_logic.length > 0) {
+        markdown += `## Business Logic\n\n`;
+        data.business_logic.forEach((rule) => {
+            markdown += `- ${rule}\n`;
+        });
+        markdown += `\n`;
+    }
+
+    // Add security considerations
+    if (data.security_considerations && data.security_considerations.length > 0) {
+        markdown += `## Security Considerations\n\n`;
+        data.security_considerations.forEach((consideration) => {
+            markdown += `- ${consideration}\n`;
+        });
+        markdown += `\n`;
+    }
+
+    return markdown;
 }
 
 async function openMarkdownPreview(markdownContent: string, originalFileName: string): Promise<void> {
@@ -627,7 +792,16 @@ function startLanguageClient(context: vscode.ExtensionContext): LanguageClient {
 
     // Create the language client and start the client.
     const client = new LanguageClient('zmodel', 'ZenStack Model', serverOptions, clientOptions);
-    // Start the client. This will also launch the server
-    void client.start();
+
+    // Log when client is ready (use start() promise)
+    client
+        .start()
+        .then(() => {
+            console.log('ZModel language server is ready and custom AST endpoint available');
+        })
+        .catch((error: unknown) => {
+            console.error('Language server failed to start:', error);
+        });
+
     return client;
 }
