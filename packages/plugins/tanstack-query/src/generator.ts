@@ -229,6 +229,7 @@ function generateMutationHook(
     switch (target) {
         case 'react':
         case 'vue':
+        case 'angular':
             // override the mutateAsync function to return the correct type
             func.addVariableStatement({
                 declarationKind: VariableDeclarationKind.Const,
@@ -273,31 +274,6 @@ function generateMutationHook(
                         )) as ${returnType};
                     },
                 }))`,
-                    },
-                ],
-            });
-            break;
-
-        case 'angular':
-            // Angular uses injectMutation which returns the mutation object directly
-            // override the mutateAsync function to return the correct type
-            func.addVariableStatement({
-                declarationKind: VariableDeclarationKind.Const,
-                declarations: [
-                    {
-                        name: 'mutation',
-                        initializer: `{
-                    ..._mutation,
-                    mutateAsync: async <T extends ${argsType}>(
-                        args: Prisma.SelectSubset<T, ${argsType}>,
-                        options?: ${optionsType}
-                      ) => {
-                        return (await _mutation.mutateAsync(
-                          args,
-                          options as any
-                        )) as ${returnType};
-                    },
-                }`,
                     },
                 ],
             });
@@ -628,7 +604,9 @@ function generateIndex(
             sf.addStatements(`export { SvelteQueryContextKey, setHooksContext } from '${runtimeImportBase}/svelte';`);
             break;
         case 'angular':
-            sf.addStatements(`export { AngularQueryContextKey, provideAngularQueryContext } from '${runtimeImportBase}/angular';`);
+            sf.addStatements(
+                `export { AngularQueryContextKey, provideAngularQueryContext } from '${runtimeImportBase}/angular';`
+            );
             break;
     }
     sf.addStatements(`export { default as metadata } from './__model_meta';`);
