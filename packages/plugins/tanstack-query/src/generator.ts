@@ -21,7 +21,7 @@ import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import { P, match } from 'ts-pattern';
 import { name } from '.';
 
-const supportedTargets = ['react', 'vue', 'svelte'];
+const supportedTargets = ['react', 'vue', 'svelte', 'angular'];
 type TargetFramework = (typeof supportedTargets)[number];
 type TanStackVersion = 'v4' | 'v5';
 
@@ -268,6 +268,19 @@ function generateMutationHook(
                         )) as ${returnType};
                     },
                 }))`,
+                    },
+                ],
+            });
+            break;
+
+        case 'angular':
+            // Angular uses inject functions, so we return the mutation directly
+            func.addVariableStatement({
+                declarationKind: VariableDeclarationKind.Const,
+                declarations: [
+                    {
+                        name: 'mutation',
+                        initializer: '_mutation',
                     },
                 ],
             });
@@ -597,6 +610,9 @@ function generateIndex(
         case 'svelte':
             sf.addStatements(`export { SvelteQueryContextKey, setHooksContext } from '${runtimeImportBase}/svelte';`);
             break;
+        case 'angular':
+            sf.addStatements(`export { AngularQueryContextToken, provideHooksContext } from '${runtimeImportBase}/angular';`);
+            break;
     }
     sf.addStatements(`export { default as metadata } from './__model_meta';`);
 }
@@ -609,6 +625,8 @@ function makeGetContext(target: TargetFramework) {
             return 'const { endpoint, fetch } = getHooksContext();';
         case 'svelte':
             return `const { endpoint, fetch } = getHooksContext();`;
+        case 'angular':
+            return 'const { endpoint, fetch } = getHooksContext();';
         default:
             throw new PluginError(name, `Unsupported target "${target}"`);
     }
@@ -653,6 +671,16 @@ function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
                 `import type { MutationOptions, CreateQueryOptions, CreateInfiniteQueryOptions } from '@tanstack/svelte-query';`,
                 ...(version === 'v5'
                     ? [`import type { InfiniteData, StoreOrVal } from '@tanstack/svelte-query';`]
+                    : []),
+                `import { getHooksContext } from '${runtimeImportBase}/${target}';`,
+                ...shared,
+            ];
+        }
+        case 'angular': {
+            return [
+                `import type { CreateMutationOptions, CreateQueryOptions, CreateInfiniteQueryOptions } from '@tanstack/angular-query-experimental';`,
+                ...(version === 'v5'
+                    ? [`import type { InfiniteData } from '@tanstack/angular-query-experimental';`]
                     : []),
                 `import { getHooksContext } from '${runtimeImportBase}/${target}';`,
                 ...shared,
@@ -707,6 +735,13 @@ function makeQueryOptions(
                 ? `Omit<CreateQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`
                 : `StoreOrVal<Omit<CreateQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>>`
         )
+        .with('angular', () =>
+            infinite
+                ? version === 'v4'
+                    ? `Omit<CreateInfiniteQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`
+                    : `Omit<CreateInfiniteQueryOptions<${returnType}, TError, InfiniteData<${dataType}>>, 'queryKey' | 'initialPageParam'>`
+                : `Omit<CreateQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`
+        )
         .otherwise(() => {
             throw new PluginError(name, `Unsupported target: ${target}`);
         });
@@ -727,6 +762,7 @@ function makeMutationOptions(target: string, returnType: string, argsType: strin
             return `MaybeRefOrGetter<${baseOption}> | ComputedRef<${baseOption}>`;
         })
         .with('svelte', () => `MutationOptions<${returnType}, DefaultError, ${argsType}>`)
+        .with('angular', () => `CreateMutationOptions<${returnType}, DefaultError, ${argsType}>`)
         .otherwise(() => {
             throw new PluginError(name, `Unsupported target: ${target}`);
         });

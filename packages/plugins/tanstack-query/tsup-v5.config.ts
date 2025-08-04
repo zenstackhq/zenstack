@@ -1,7 +1,13 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-    entry: ['src/runtime-v5/index.ts', 'src/runtime-v5/react.ts', 'src/runtime-v5/vue.ts', 'src/runtime-v5/svelte.ts'],
+    entry: [
+        'src/runtime-v5/index.ts',
+        'src/runtime-v5/react.ts',
+        'src/runtime-v5/vue.ts',
+        'src/runtime-v5/svelte.ts',
+        'src/runtime-v5/angular.ts',
+    ],
     outDir: 'dist/runtime-v5',
     splitting: false,
     sourcemap: true,

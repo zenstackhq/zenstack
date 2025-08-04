@@ -291,6 +291,27 @@ ${sharedModel}
         );
     });
 
+    it('angular-query run plugin v5', async () => {
+        await loadSchema(
+            `
+plugin tanstack {
+    provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
+    output = '$projectRoot/hooks'
+    target = 'angular'
+}
+
+${sharedModel}
+        `,
+            {
+                provider: 'postgresql',
+                pushDb: false,
+                extraDependencies: ['@angular/core@^17.0.0', '@tanstack/angular-query-experimental@^5.0.0'],
+                copyDependencies: [path.resolve(__dirname, '../dist')],
+                compile: true,
+            }
+        );
+    });
+
     it('clear output', async () => {
         const { name: projectDir } = tmp.dirSync();
         fs.mkdirSync(path.join(projectDir, 'tanstack'), { recursive: true });

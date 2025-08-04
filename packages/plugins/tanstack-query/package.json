@@ -58,6 +58,18 @@
             "import": "./runtime-v5/svelte.mjs",
             "require": "./runtime-v5/svelte.js",
             "default": "./runtime-v5/svelte.js"
+        },
+        "./runtime/angular": {
+            "types": "./runtime/angular.d.ts",
+            "import": "./runtime/angular.mjs",
+            "require": "./runtime/angular.js",
+            "default": "./runtime/angular.js"
+        },
+        "./runtime-v5/angular": {
+            "types": "./runtime-v5/angular.d.ts",
+            "import": "./runtime-v5/angular.mjs",
+            "require": "./runtime-v5/angular.js",
+            "default": "./runtime-v5/angular.js"
         }
     },
     "repository": {
@@ -88,6 +100,9 @@
         "ts-pattern": "^4.3.0"
     },
     "devDependencies": {
+        "@angular/common": "^20.0.0",
+        "@angular/core": "^20.0.0",
+        "@tanstack/angular-query-experimental": "^5.0.0",
         "@tanstack/react-query": "^4.29.7",
         "@tanstack/react-query-v5": "npm:@tanstack/react-query@5.56.x",
         "@tanstack/svelte-query": "^4.29.7",
