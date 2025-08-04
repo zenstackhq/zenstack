@@ -3,11 +3,13 @@ import {
     injectQuery,
     injectMutation,
     injectInfiniteQuery,
-    injectQueryClient,
+    QueryClient,
     type CreateQueryOptions,
     type CreateMutationOptions,
     type CreateInfiniteQueryOptions,
     type InfiniteData,
+    CreateInfiniteQueryResult,
+    QueryKey,
 } from '@tanstack/angular-query-v5';
 import type { ModelMeta } from '@zenstackhq/runtime/cross';
 import { inject, InjectionToken } from '@angular/core';
@@ -43,14 +45,14 @@ export function provideAngularQueryContext(context: APIContext) {
  * Hooks context.
  */
 export function getHooksContext() {
-    const context = inject(AngularQueryContextKey, { 
-        optional: true 
+    const context = inject(AngularQueryContextKey, {
+        optional: true,
     }) || {
         endpoint: DEFAULT_QUERY_ENDPOINT,
         fetch: undefined,
         logging: false,
     };
-    
+
     const { endpoint, ...rest } = context;
     return { endpoint: endpoint ?? DEFAULT_QUERY_ENDPOINT, ...rest };
 }
@@ -71,7 +73,7 @@ export function useModelQuery<TQueryFnData, TData, TError>(
     args?: unknown,
     options?: Omit<CreateQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions,
     fetch?: FetchFn
-): any {
+) {
     const reqUrl = makeUrl(url, args);
     const queryKey = getQueryKey(model, url, args, {
         infinite: false,
@@ -101,9 +103,12 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args: unknown,
-    options: Omit<CreateInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>, 'queryKey' | 'initialPageParam'>,
+    options: Omit<
+        CreateInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>,
+        'queryKey' | 'initialPageParam'
+    >,
     fetch?: FetchFn
-): any {
+): CreateInfiniteQueryResult<InfiniteData<TData>, TError> & { queryKey: QueryKey } {
     const queryKey = getQueryKey(model, url, args, { infinite: true, optimisticUpdate: false });
     return {
         queryKey,
@@ -144,9 +149,9 @@ export function useModelMutation<
     options?: Omit<CreateMutationOptions<Result, TError, TArgs>, 'mutationFn'> & ExtraMutationOptions,
     fetch?: FetchFn,
     checkReadBack?: C
-): any {
-    const queryClient = injectQueryClient();
-    const mutationFn = (data: any) => {
+) {
+    const queryClient = inject(QueryClient);
+    const mutationFn = (data: unknown) => {
         const reqUrl = method === 'DELETE' ? makeUrl(url, data) : url;
         const fetchInit: RequestInit = {
             method,
