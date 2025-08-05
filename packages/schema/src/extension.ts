@@ -467,6 +467,7 @@ async function previewZModelFile(): Promise<void> {
                 await openMarkdownPreview(markdownContent, document.fileName);
             }
         );
+        checkForMermaidExtensions();
     } catch (error) {
         console.error('Error previewing ZModel:', error);
         vscode.window.showErrorMessage(
@@ -961,4 +962,32 @@ function startLanguageClient(context: vscode.ExtensionContext): LanguageClient {
         });
 
     return client;
+}
+
+export function checkForMermaidExtensions() {
+    const setting = vscode.workspace.getConfiguration('zenstack').get('searchForExtensions');
+    if (setting !== false) {
+        const extensions = vscode.extensions.all.filter(
+            (extension) => extension.packageJSON.name === 'markdown-mermaid'
+        );
+        if (extensions.length === 0) {
+            const searchAction = 'Search';
+            const stopShowing = "Don't show again";
+            vscode.window
+                .showInformationMessage(
+                    'Search for extensions to view mermaid in markdown preview?',
+                    searchAction,
+                    stopShowing
+                )
+                .then((selectedAction) => {
+                    if (selectedAction === searchAction) {
+                        vscode.commands.executeCommand('workbench.extensions.search', 'markdown-mermaid');
+                    } else if (selectedAction === stopShowing) {
+                        vscode.workspace
+                            .getConfiguration('zenstack')
+                            .update('searchForExtensions', false, vscode.ConfigurationTarget.Global);
+                    }
+                });
+        }
+    }
 }
