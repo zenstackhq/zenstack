@@ -610,6 +610,18 @@ components:
                     $ref: '#/components/schemas/_AnyObject'
                 meta:
                     $ref: '#/components/schemas/_Meta'
+                orderBy:
+                    oneOf:
+                        - $ref: '#/components/schemas/_AnyObject'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/_AnyObject'
+                cursor:
+                    $ref: '#/components/schemas/_AnyObject'
+                take:
+                    type: integer
+                skip:
+                    type: integer
         UserUpdateArgs:
             type: object
             required:
@@ -798,6 +810,18 @@ components:
                     $ref: '#/components/schemas/_AnyObject'
                 meta:
                     $ref: '#/components/schemas/_Meta'
+                orderBy:
+                    oneOf:
+                        - $ref: '#/components/schemas/_AnyObject'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/_AnyObject'
+                cursor:
+                    $ref: '#/components/schemas/_AnyObject'
+                take:
+                    type: integer
+                skip:
+                    type: integer
         ProfileUpdateArgs:
             type: object
             required:
