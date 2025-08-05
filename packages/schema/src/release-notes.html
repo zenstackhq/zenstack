@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>ZenStack Extension - New Feature!</title>
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                line-height: 1.6;
+                margin: 0;
+                padding: 20px;
+                background-color: var(--vscode-editor-background);
+                color: var(--vscode-editor-foreground);
+                min-height: 100vh;
+            }
+
+            .container {
+                max-width: 800px;
+                margin: 0 auto;
+                background-color: var(--vscode-editor-background);
+                border: 1px solid var(--vscode-widget-border);
+                border-radius: 12px;
+                overflow: hidden;
+            }
+
+            .header {
+                background-color: var(--vscode-button-background);
+                color: var(--vscode-button-foreground);
+                padding: 40px 30px;
+                text-align: center;
+                border-bottom: 1px solid var(--vscode-widget-border);
+            }
+
+            .header h1 {
+                margin: 0 0 10px 0;
+                font-size: 2.5em;
+                font-weight: 300;
+            }
+
+            .header .version {
+                background-color: var(--vscode-button-secondaryBackground);
+                color: var(--vscode-button-secondaryForeground);
+                padding: 5px 15px;
+                border-radius: 20px;
+                display: inline-block;
+                font-size: 0.9em;
+                margin-top: 10px;
+                border: 1px solid var(--vscode-widget-border);
+            }
+
+            .content {
+                padding: 40px 30px;
+            }
+
+            .feature-highlight {
+                background-color: var(--vscode-textBlockQuote-background);
+                border: 1px solid var(--vscode-textBlockQuote-border);
+                padding: 30px;
+                border-radius: 8px;
+                margin: 30px 0;
+                text-align: center;
+            }
+
+            .feature-highlight h2 {
+                margin: 0 0 15px 0;
+                font-size: 1.8em;
+                color: var(--vscode-editor-foreground);
+            }
+
+            .feature-highlight p {
+                font-size: 1.1em;
+                margin: 0;
+                color: var(--vscode-descriptionForeground);
+            }
+
+            .demo-section {
+                background-color: var(--vscode-textCodeBlock-background);
+                padding: 25px;
+                border-radius: 8px;
+                margin: 30px 0;
+                border-left: 4px solid var(--vscode-button-background);
+            }
+
+            .demo-section h3 {
+                margin: 0 0 15px 0;
+                color: var(--vscode-editor-foreground);
+                font-size: 1.3em;
+            }
+
+            .step {
+                display: flex;
+                align-items: flex-start;
+                margin: 20px 0;
+                padding: 15px;
+                background-color: var(--vscode-list-hoverBackground);
+                border-radius: 6px;
+                border: 1px solid var(--vscode-widget-border);
+            }
+
+            .step-number {
+                background-color: var(--vscode-button-background);
+                color: var(--vscode-button-foreground);
+                width: 30px;
+                height: 30px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+                margin-right: 15px;
+                flex-shrink: 0;
+            }
+
+            .step-content {
+                flex: 1;
+            }
+
+            .step-title {
+                font-weight: 600;
+                margin: 0 0 8px 0;
+                color: var(--vscode-editor-foreground);
+            }
+
+            .step-description {
+                color: var(--vscode-descriptionForeground);
+                margin: 0;
+                font-size: 0.95em;
+            }
+
+            .benefits {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 20px;
+                margin: 30px 0;
+            }
+
+            .benefit {
+                background-color: var(--vscode-list-hoverBackground);
+                padding: 20px;
+                border-radius: 8px;
+                border: 1px solid var(--vscode-widget-border);
+                border-top: 3px solid var(--vscode-button-background);
+            }
+
+            .benefit h4 {
+                margin: 0 0 10px 0;
+                color: var(--vscode-editor-foreground);
+                font-size: 1.1em;
+            }
+
+            .benefit p {
+                margin: 0;
+                color: var(--vscode-descriptionForeground);
+                font-size: 0.9em;
+            }
+
+            .footer {
+                background-color: var(--vscode-textCodeBlock-background);
+                padding: 30px;
+                text-align: center;
+                border-top: 1px solid var(--vscode-widget-border);
+            }
+
+            .footer p {
+                margin: 0 0 10px 0;
+                color: var(--vscode-descriptionForeground);
+            }
+
+            .footer a {
+                color: var(--vscode-textLink-foreground);
+                text-decoration: none;
+                font-weight: 500;
+            }
+
+            .footer a:hover {
+                text-decoration: underline;
+                color: var(--vscode-textLink-activeForeground);
+            }
+
+            .icon {
+                font-size: 1.2em;
+                margin-right: 8px;
+            }
+
+            .keyboard-shortcut {
+                background-color: var(--vscode-keybindingLabel-background);
+                color: var(--vscode-keybindingLabel-foreground);
+                padding: 3px 8px;
+                border-radius: 4px;
+                font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+                font-size: 0.85em;
+                border: 1px solid var(--vscode-keybindingLabel-border);
+            }
+
+            .highlight {
+                background-color: var(--vscode-inputValidation-warningBackground);
+                padding: 15px;
+                border-radius: 6px;
+                border-left: 4px solid var(--vscode-inputValidation-warningBorder);
+                margin: 20px 0;
+            }
+
+            .highlight p {
+                margin: 0;
+                color: var(--vscode-editor-foreground);
+            }
+
+            /* Fallbacks for older VS Code versions */
+            body:not([data-vscode-theme-kind]) {
+                background-color: #1e1e1e;
+                color: #cccccc;
+            }
+
+            body:not([data-vscode-theme-kind]) .container {
+                background-color: #1e1e1e;
+                border-color: #3c3c3c;
+            }
+
+            body:not([data-vscode-theme-kind]) .header {
+                background-color: #0e639c;
+                color: #ffffff;
+            }
+
+            body:not([data-vscode-theme-kind]) .keyboard-shortcut {
+                background-color: #3c3c3c;
+                color: #cccccc;
+                border-color: #555555;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🎉 Exciting New Feature!</h1>
+                <p>ZenStack Extension has been enhanced with powerful documentation generation</p>
+                <div class="version">New in v2.16.1</div>
+            </div>
+
+            <div class="content">
+                <div class="feature-highlight">
+                    <h2>📖 ZModel Documentation Preview</h2>
+                    <p>
+                        Generate beautiful, comprehensive documentation directly from your ZModel schema files - as easy
+                        as previewing markdown!
+                    </p>
+                </div>
+
+                <div class="demo-section">
+                    <h3>🚀 How to Use This Amazing Feature</h3>
+
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <div class="step-title">Open any ZModel file (.zmodel)</div>
+                            <div class="step-description">Open your ZenStack schema file in VS Code</div>
+                        </div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <div class="step-title">Click the Preview button or use Command Palette</div>
+                            <div class="step-description">
+                                Look for the <span class="icon">👁️</span> preview icon in the editor toolbar, or press
+                                <span class="keyboard-shortcut">Cmd+Shift+P</span> and search for "Preview ZModel"
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <div class="step-title">Sign in with GitHub (one-time setup)</div>
+                            <div class="step-description">
+                                Authenticate with GitHub to access the AI-powered documentation generation
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <div class="step-title">Watch the magic happen! ✨</div>
+                            <div class="step-description">
+                                A beautiful, structured documentation will be generated and displayed in the markdown
+                                preview pane
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="highlight">
+                    <p>
+                        <strong>💡 Pro Tip:</strong> You can also use the ZModel Outline panel in the Activity Bar for a
+                        quick overview and easy access to documentation generation!
+                    </p>
+                </div>
+
+                <h3>🌟 What You Get</h3>
+                <div class="benefits">
+                    <div class="benefit">
+                        <h4>📋 Comprehensive Overview</h4>
+                        <p>Get a clear description of your data model's purpose and key functionality</p>
+                    </div>
+
+                    <div class="benefit">
+                        <h4>🏗️ Model Documentation</h4>
+                        <p>Detailed explanations of each data model with beautiful ER diagrams</p>
+                    </div>
+
+                    <div class="benefit">
+                        <h4>🔒 Security Analysis</h4>
+                        <p>Plain-English explanations of your access control policies and security considerations</p>
+                    </div>
+
+                    <div class="benefit">
+                        <h4>📊 Business Logic</h4>
+                        <p>Key business rules and validation logic derived from your schema</p>
+                    </div>
+
+                    <div class="benefit">
+                        <h4>🎨 Beautiful Formatting</h4>
+                        <p>Professional markdown output with Mermaid diagrams and clear structure</p>
+                    </div>
+
+                    <div class="benefit">
+                        <h4>🤖 AI-Powered</h4>
+                        <p>Leverages GitHub Copilot for intelligent, context-aware documentation</p>
+                    </div>
+                </div>
+
+                <div class="demo-section">
+                    <h3>🎯 Perfect For</h3>
+                    <ul style="padding-left: 20px; color: #666">
+                        <li><strong>Team Documentation:</strong> Share clear, comprehensive docs with your team</li>
+                        <li><strong>Code Reviews:</strong> Better understand the data architecture at a glance</li>
+                        <li><strong>Onboarding:</strong> Help new team members understand your data models quickly</li>
+                        <li><strong>Project Planning:</strong> Visualize your data relationships and business logic</li>
+                        <li><strong>Security Audits:</strong> Review access control policies in plain English</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer">
+                <p>Happy coding with ZenStack! 🚀</p>
+                <p>
+                    <a href="https://zenstack.dev" target="_blank">Learn more about ZenStack</a> |
+                    <a href="https://github.com/zenstackhq/zenstack" target="_blank">GitHub Repository</a> |
+                    <a href="https://discord.gg/Ykhr738dUe" target="_blank">Join our Community</a>
+                </p>
+            </div>
+        </div>
+    </body>
+</html>

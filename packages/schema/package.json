@@ -105,6 +105,12 @@
         {
           "command": "zenstack.preview-zmodel",
           "when": "editorLangId == zmodel"
+        },
+        {
+          "command": "zenstack.show-release-notes"
+        },
+        {
+          "command": "zenstack.reset-release-notes"
         }
         ]
     },
@@ -118,6 +124,16 @@
             "command": "zenstack.preview-zmodel",
             "title": "Preview ZModel",
             "icon": "$(preview)"
+        },
+        {
+            "command": "zenstack.show-release-notes",
+            "title": "ZenStack: Show Release Notes",
+            "icon": "$(info)"
+        },
+        {
+            "command": "zenstack.reset-release-notes",
+            "title": "ZenStack: Reset Release Notes Flag",
+            "icon": "$(refresh)"
         }
       ]
     },

@@ -27,3 +27,14 @@ console.log('Updating file: dist/cli/index.js');
 fs.writeFileSync('dist/cli/index.js', cliContent, {
     encoding: 'utf-8',
 });
+
+// Copy release notes HTML file to dist
+const releaseNotesSource = 'src/release-notes.html';
+const releaseNotesDest = 'dist/release-notes.html';
+
+if (fs.existsSync(releaseNotesSource)) {
+    console.log('Copying release notes HTML file to dist');
+    fs.copyFileSync(releaseNotesSource, releaseNotesDest);
+} else {
+    console.warn('Release notes HTML file not found at:', releaseNotesSource);
+}

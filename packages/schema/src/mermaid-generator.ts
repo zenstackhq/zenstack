@@ -1,11 +1,19 @@
-import { isDelegateModel, isForeignKeyField, isIdField, isRelationshipField } from '@zenstackhq/sdk';
+import {
+    getModelFieldsWithBases,
+    isDelegateModel,
+    isForeignKeyField,
+    isIdField,
+    isRelationshipField,
+} from '@zenstackhq/sdk';
 import { DataModel, DataModelField, isDataModel, isTypeDef, Model, TypeDef } from '@zenstackhq/sdk/ast';
 
 export default class MermaidGenerator {
     constructor(private model: Model) {}
 
     generate(dataModel: DataModel) {
-        const fields = dataModel.fields
+        const allFields = getModelFieldsWithBases(dataModel);
+
+        const fields = allFields
             .filter((x) => !isRelationshipField(x) && !isTypeDef(x.type.reference?.ref))
             .map((x) => {
                 return [
@@ -18,7 +26,7 @@ export default class MermaidGenerator {
             .map((x) => `  ${x}`)
             .join('\n');
 
-        const relations = dataModel.fields
+        const relations = allFields
             .filter((x) => isRelationshipField(x))
             .map((x) => {
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -59,7 +67,7 @@ export default class MermaidGenerator {
             })
             .join('\n');
 
-        const jsonFields = dataModel.fields
+        const jsonFields = allFields
             .filter((x) => isTypeDef(x.type.reference?.ref))
             .map((x) => {
                 return this.generateTypeDef(x.type.reference?.ref as TypeDef, x.name, dataModel.name, new Set());

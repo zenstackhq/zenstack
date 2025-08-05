@@ -3,6 +3,8 @@ import { NodeFileSystem } from 'langium/node';
 import { createConnection, ProposedFeatures } from 'vscode-languageserver/node';
 import { URI } from 'vscode-uri';
 import { createZModelServices } from './zmodel-module';
+import { eagerLoadAllImports } from '../cli/cli-util';
+import { isDataModel, Model } from '@zenstackhq/language/ast';
 
 // Create a connection to the client
 const connection = createConnection(ProposedFeatures.all);
@@ -11,7 +13,7 @@ const connection = createConnection(ProposedFeatures.all);
 const { shared } = createZModelServices({ connection, ...NodeFileSystem });
 
 // Helper function to serialize AST nodes for LSP transport
-function serializeASTNode(node: unknown, depth = 0, maxDepth = 10): unknown {
+function serializeASTNode(node: unknown, depth = 0, maxDepth = 15, isInContainer = false): unknown {
     if (depth > maxDepth || node === null || node === undefined) {
         return null;
     }
@@ -21,7 +23,7 @@ function serializeASTNode(node: unknown, depth = 0, maxDepth = 10): unknown {
     }
 
     if (Array.isArray(node)) {
-        return node.map((item) => serializeASTNode(item, depth + 1, maxDepth));
+        return node.map((item) => serializeASTNode(item, depth + 1, maxDepth, isInContainer));
     }
 
     const serialized: Record<string, unknown> = {};
@@ -41,9 +43,9 @@ function serializeASTNode(node: unknown, depth = 0, maxDepth = 10): unknown {
             typeof value === 'boolean'
         ) {
             serialized[key] = value;
-        } else if (key === '$container' && value && typeof value === 'object') {
+        } else if (!isInContainer && key === '$container' && value && isDataModel(value)) {
             // Serialize container information
-            serialized[key] = serializeASTNode(value, depth + 1, maxDepth);
+            serialized[key] = serializeASTNode(value, depth + 1, maxDepth, true);
         } else if (key === '$resolvedType' && value && typeof value === 'object') {
             // Serialize type information if available
             const resolvedType = value as Record<string, unknown>;
@@ -57,9 +59,9 @@ function serializeASTNode(node: unknown, depth = 0, maxDepth = 10): unknown {
                 nullable: resolvedType.nullable,
             };
         } else if (Array.isArray(value)) {
-            serialized[key] = serializeASTNode(value, depth + 1, maxDepth);
+            serialized[key] = serializeASTNode(value, depth + 1, maxDepth, isInContainer);
         } else if (value && typeof value === 'object' && !key.startsWith('$')) {
-            serialized[key] = serializeASTNode(value, depth + 1, maxDepth);
+            serialized[key] = serializeASTNode(value, depth + 1, maxDepth, isInContainer);
         }
     }
 
@@ -82,8 +84,28 @@ connection.onRequest('zenstack/getAST', async (params: { textDocument: { uri: st
             await shared.workspace.DocumentBuilder.build([document]);
         }
 
+        // #region merge imported documents
+        const langiumDocuments = shared.workspace.LangiumDocuments;
+
+        // load all imports
+        const importedURIs = eagerLoadAllImports(document, langiumDocuments);
+
+        const importedDocuments = importedURIs.map((uri) => langiumDocuments.getOrCreateDocument(uri));
+
+        // build the document together with standard library, plugin modules, and imported documents
+        await shared.workspace.DocumentBuilder.build([document, ...importedDocuments], {
+            validationChecks: 'all',
+        });
+
+        const declarations = [document, ...importedDocuments]
+            .map((doc) => doc.parseResult.value as Model)
+            .flatMap((model) => model.declarations);
+
+        const model: Model = { declarations, imports: [], $type: 'Model' };
+        //#endregion
+
         // Serialize the AST to avoid circular reference issues
-        const serializedAST = serializeASTNode(document.parseResult.value);
+        const serializedAST = serializeASTNode(model);
 
         // Serialize errors as well
         const serializedErrors = [
@@ -102,6 +124,7 @@ connection.onRequest('zenstack/getAST', async (params: { textDocument: { uri: st
 
         return {
             ast: serializedAST,
+            importedURIs,
             errors: serializedErrors,
             diagnostics: (document.diagnostics || []).map((diag) => ({
                 message: diag.message,

@@ -3,8 +3,9 @@ import * as path from 'path';
 import { z } from 'zod';
 
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient/node';
-import { DataModel, isDataModel, Model } from '@zenstackhq/sdk/ast';
+import { DataModel, isDataModel, isEnum, Model } from '@zenstackhq/sdk/ast';
 import MermaidGenerator from './mermaid-generator';
+import { URI } from 'vscode-uri';
 
 const AUTH_PROVIDER_ID = 'github';
 const AUTH_SCOPES = ['user:email'];
@@ -30,7 +31,6 @@ export const ZModelDocumentationSchema = z.object({
         .array(
             z.object({
                 name: z.string(),
-                values: z.array(z.string()),
                 description: z.string(),
             })
         )
@@ -417,6 +417,20 @@ function registerOutlineView(context: vscode.ExtensionContext, simpleOutlineProv
             await previewZModelFile();
         })
     );
+
+    // Register the release notes command
+    context.subscriptions.push(
+        vscode.commands.registerCommand('zenstack.show-release-notes', async () => {
+            await showReleaseNotes(context);
+        })
+    );
+
+    // Register the reset release notes command
+    context.subscriptions.push(
+        vscode.commands.registerCommand('zenstack.reset-release-notes', async () => {
+            await resetReleaseNotesFlag(context);
+        })
+    );
 }
 
 async function previewZModelFile(): Promise<void> {
@@ -464,6 +478,7 @@ async function previewZModelFile(): Promise<void> {
 // Add this function to communicate with the language server
 async function getParsedAST(document: vscode.TextDocument): Promise<{
     ast: Model;
+    importedURIs: URI[];
     errors: string[];
     diagnostics: unknown[];
 } | null> {
@@ -484,6 +499,7 @@ async function getParsedAST(document: vscode.TextDocument): Promise<{
 
         return result as {
             ast: Model;
+            importedURIs: URI[];
             errors: string[];
             diagnostics: unknown[];
         };
@@ -510,8 +526,6 @@ async function generateZModelDocumentation(document: vscode.TextDocument): Promi
 
         console.log('Using model:', selectedModel.name);
 
-        const zmodelContent = document.getText();
-
         // Get parsed AST from language server
         let astInfo = null;
         try {
@@ -520,6 +534,26 @@ async function generateZModelDocumentation(document: vscode.TextDocument): Promi
         } catch (error) {
             console.warn('Could not get AST from language server:', error);
         }
+
+        const importedURIs = astInfo?.importedURIs || [];
+
+        // get vscode document from importedURIs
+        const importedTexts = await Promise.all(
+            importedURIs.map(async (uri) => {
+                try {
+                    const fileUri = vscode.Uri.file(uri.path);
+                    const fileContent = await vscode.workspace.fs.readFile(fileUri);
+                    return Buffer.from(fileContent).toString('utf8');
+                } catch (error) {
+                    console.warn(`Could not read file for URI ${uri}:`, error);
+                    return null;
+                }
+            })
+        );
+
+        const zmodelContent = [document.getText(), ...importedTexts.filter((text) => text !== null)].join('\n\n');
+
+        console.log('ZModel content generated:', zmodelContent);
 
         // Create enhanced prompt requesting structured JSON output
         const prompt = `You are a technical documentation expert specializing in ZenStack zmodel schema files. 
@@ -538,28 +572,12 @@ Analyze the following zmodel file and return a structured JSON response that fol
     {
       "name": "ModelName",
       "description": "What this model represents and its purpose",
-      "fields": [
-        {
-          "name": "fieldName",
-          "type": "fieldType",
-          "description": "What this field represents",
-          "attributes": ["@attribute1", "@attribute2"]
-        }
-      ],
-      "relationships": [
-        {
-          "field": "relationField",
-          "relatedModel": "RelatedModel",
-          "type": "one-to-many" // or "one-to-one", "many-to-one", "many-to-many"
-        }
-      ],
       "access_control_policies": ["@@allow rule explanations", "@@deny rule explanations"]
     }
   ],
   "enums": [
     {
       "name": "EnumName",
-      "values": ["VALUE1", "VALUE2"],
       "description": "What this enum represents"
     }
   ],
@@ -575,7 +593,8 @@ ${zmodelContent}
 
 IMPORTANT: 
 - Return ONLY valid JSON,no markdown formatting or code blocks.
-- Explain access control policies in plain English.
+- Explain access control policies in plain English. 
+- If model 'extends' from base model, also include the base model's policies. Don't say it is inherited, treat it the same as the ones defined in the model.
 - Be thorough but concise in descriptions.
 `;
 
@@ -620,82 +639,61 @@ IMPORTANT:
 
 // Convert structured data to markdown format
 function convertStructuredDataToMarkdown(data: ZModelDocumentation, model: Model): string {
-    let markdown = `# ZModel Schema Documentation
-
-## Overview
-
-**Description:** ${data.overview.description}
-
-**Functionality:** 
-${data.overview.functionality.map((item) => `- ${item}`).join('\n')}
-
-## Models
-
-`;
     const mermaidGenerator = new MermaidGenerator(model);
-    const dataModels = model.declarations.filter((x) => isDataModel(x) && !x.isAbstract) as DataModel[];
 
-    dataModels.forEach((model) => {
-        model.$baseMerged = true;
-    });
+    const functionality = data.overview.functionality.map((item) => `- ${item}`).join('\n');
 
-    const modelChapter = dataModels.map((model) => {
-        const aiGeneratedModel = data.models.find((m) => m.name === model.name);
+    const emums = model.declarations.filter((x) => isEnum(x));
 
+    const enumChapter = emums.map((enumDef) => {
+        const aiGeneratedEnum = data.enums?.find((e) => e.name === enumDef.name);
         return [
-            `### ${model.name}`,
-            aiGeneratedModel?.description,
-            mermaidGenerator.generate(model),
-            aiGeneratedModel?.access_control_policies.map((policy) => `- ${policy}`)?.join('\n') || '',
+            `### ${enumDef.name}`,
+            aiGeneratedEnum?.description || '',
+            enumDef.fields.map((f) => `- ${f.name}`).join('\n'),
+            '\n',
         ].join('\n');
     });
 
-    markdown += modelChapter.join('\n\n');
-    // // Add each model
-    // data.models.forEach((model) => {
-    //     markdown += `### ${model.name}\n\n`;
-    //     markdown += `${model.description}\n\n`;
+    const dataModels = model.declarations.filter((x) => isDataModel(x) && !x.isAbstract) as DataModel[];
 
-    //     const mermaidDiagram = mermaidGenerator.generate();
+    const modelChapter = dataModels
+        .map((model) => {
+            const aiGeneratedModel = data.models.find((m) => m.name === model.name);
 
-    //     if (model.access_control_policies && model.access_control_policies.length > 0) {
-    //         markdown += `**Access Control Policies:**\n`;
-    //         model.access_control_policies.forEach((policy) => {
-    //             markdown += `- ${policy}\n`;
-    //         });
-    //         markdown += `\n`;
-    //     }
-    // });
+            return [
+                `### ${model.name}`,
+                aiGeneratedModel?.description,
+                mermaidGenerator.generate(model),
+                aiGeneratedModel?.access_control_policies.map((policy) => `- ${policy}`)?.join('\n'),
+            ].join('\n');
+        })
+        .join('\n');
 
-    // Add enums if present
-    if (data.enums && data.enums.length > 0) {
-        markdown += `## Enums\n\n`;
-        data.enums.forEach((enumDef) => {
-            markdown += `### ${enumDef.name}\n\n`;
-            markdown += `${enumDef.description}\n\n`;
-            markdown += `**Values:** ${enumDef.values.join(', ')}\n\n`;
-        });
-    }
+    const businessLogicChapter = data.business_logic.map((rule) => `- ${rule}`).join('\n');
 
-    // Add business logic
-    if (data.business_logic && data.business_logic.length > 0) {
-        markdown += `## Business Logic\n\n`;
-        data.business_logic.forEach((rule) => {
-            markdown += `- ${rule}\n`;
-        });
-        markdown += `\n`;
-    }
+    const securityConsiderationsChapter = data.security_considerations
+        .map((consideration) => `- ${consideration}`)
+        .join('\n');
 
-    // Add security considerations
-    if (data.security_considerations && data.security_considerations.length > 0) {
-        markdown += `## Security Considerations\n\n`;
-        data.security_considerations.forEach((consideration) => {
-            markdown += `- ${consideration}\n`;
-        });
-        markdown += `\n`;
-    }
+    const content = [
+        `# Technical Design Document`,
+        `## Overview`,
+        data.overview.description,
+        `## Functionality`,
+        functionality,
+        enumChapter.length > 0 ? `## Enums` : '',
+        enumChapter,
+        `## Models`,
+        dataModels.map((model) => `- [${model.name}](#${model.name})`).join('\n'),
+        modelChapter,
+        `## Business Logic`,
+        businessLogicChapter,
+        `## Security Considerations`,
+        securityConsiderationsChapter,
+    ].join('\n\n');
 
-    return markdown;
+    return content;
 }
 
 async function openMarkdownPreview(markdownContent: string, originalFileName: string): Promise<void> {
@@ -734,6 +732,162 @@ async function openMarkdownPreview(markdownContent: string, originalFileName: st
 
 let client: LanguageClient;
 
+// Show release notes on first activation of this version
+async function showReleaseNotesIfFirstTime(context: vscode.ExtensionContext): Promise<void> {
+    const RELEASE_NOTES_VERSION_KEY = 'zenstack.releaseNotesShown';
+    const currentVersion = context.extension.packageJSON.version;
+    const lastShownVersion = context.globalState.get(RELEASE_NOTES_VERSION_KEY);
+
+    // Show release notes if this is the first time activating this version
+    if (lastShownVersion !== currentVersion) {
+        await showReleaseNotes(context);
+        // Update the stored version to prevent showing again
+        await context.globalState.update(RELEASE_NOTES_VERSION_KEY, currentVersion);
+    }
+}
+
+// Show release notes (can be called manually)
+async function showReleaseNotes(context: vscode.ExtensionContext): Promise<void> {
+    try {
+        // Create and show the release notes webview
+        const panel = vscode.window.createWebviewPanel(
+            'zenstackReleaseNotes',
+            'ZenStack - New Feature Announcement!',
+            vscode.ViewColumn.One,
+            {
+                enableScripts: true,
+                retainContextWhenHidden: true,
+            }
+        );
+
+        // Read the release notes HTML file
+        const releaseNotesPath = vscode.Uri.joinPath(context.extensionUri, 'release-notes.html');
+        let htmlContent: string;
+
+        try {
+            const htmlBytes = await vscode.workspace.fs.readFile(releaseNotesPath);
+            htmlContent = Buffer.from(htmlBytes).toString('utf8');
+        } catch (error) {
+            console.warn('Could not load release notes file, using fallback content:', error);
+            htmlContent = getFallbackReleaseNotesContent();
+        }
+
+        panel.webview.html = htmlContent;
+
+        // Optional: Close the panel when user clicks outside or after some time
+        panel.onDidDispose(() => {
+            // Panel disposed
+        });
+    } catch (error) {
+        console.error('Error showing release notes:', error);
+        vscode.window.showErrorMessage('Could not show release notes');
+    }
+}
+
+// Reset the release notes flag to allow showing again
+async function resetReleaseNotesFlag(context: vscode.ExtensionContext): Promise<void> {
+    const RELEASE_NOTES_VERSION_KEY = 'zenstack.releaseNotesShown';
+
+    try {
+        await context.globalState.update(RELEASE_NOTES_VERSION_KEY, undefined);
+        vscode.window.showInformationMessage(
+            'Release notes flag has been reset. The release notes will be shown again on next extension activation.'
+        );
+        console.log('Release notes version key has been cleared from global state');
+    } catch (error) {
+        console.error('Error resetting release notes flag:', error);
+        vscode.window.showErrorMessage('Failed to reset release notes flag');
+    }
+}
+
+// Fallback content if the HTML file can't be loaded
+function getFallbackReleaseNotesContent(): string {
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body { 
+                font-family: system-ui, -apple-system, sans-serif; 
+                padding: 20px; 
+                max-width: 800px; 
+                margin: 0 auto; 
+                background-color: var(--vscode-editor-background);
+                color: var(--vscode-editor-foreground);
+            }
+            .header { 
+                background-color: var(--vscode-button-background); 
+                color: var(--vscode-button-foreground); 
+                padding: 20px; 
+                border-radius: 8px; 
+                text-align: center; 
+                margin-bottom: 20px; 
+            }
+            .feature { 
+                background-color: var(--vscode-textBlockQuote-background); 
+                border: 1px solid var(--vscode-textBlockQuote-border);
+                padding: 15px; 
+                border-radius: 6px; 
+                margin: 15px 0; 
+                border-left: 4px solid var(--vscode-button-background); 
+            }
+            .steps { 
+                background-color: var(--vscode-textCodeBlock-background); 
+                padding: 15px; 
+                border-radius: 6px; 
+                margin: 15px 0; 
+            }
+            a {
+                color: var(--vscode-textLink-foreground);
+                text-decoration: none;
+            }
+            a:hover {
+                text-decoration: underline;
+                color: var(--vscode-textLink-activeForeground);
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>🎉 New Feature: ZModel Documentation Preview!</h1>
+            <p>Generate beautiful documentation directly from your ZModel schema files</p>
+        </div>
+        
+        <div class="feature">
+            <h3>📖 What's New</h3>
+            <p>You can now preview comprehensive documentation for your ZModel schema files, just like you would preview a markdown file!</p>
+        </div>
+        
+        <div class="steps">
+            <h3>🚀 How to Use</h3>
+            <ol>
+                <li>Open any .zmodel file</li>
+                <li>Click the preview button (👁️) in the editor toolbar</li>
+                <li>Sign in with GitHub (one-time setup)</li>
+                <li>Enjoy your AI-generated documentation!</li>
+            </ol>
+        </div>
+        
+        <div class="feature">
+            <h3>✨ Features</h3>
+            <ul>
+                <li>Comprehensive model documentation</li>
+                <li>Beautiful ER diagrams with Mermaid</li>
+                <li>Access control policy explanations</li>
+                <li>Business logic analysis</li>
+                <li>Security considerations</li>
+            </ul>
+        </div>
+        
+        <p style="text-align: center; color: var(--vscode-descriptionForeground); margin-top: 30px;">
+            Happy coding with ZenStack! 🚀<br>
+            <a href="https://zenstack.dev">Learn more about ZenStack</a>
+        </p>
+    </body>
+    </html>
+    `;
+}
+
 // This function is called when the extension is activated.
 export function activate(context: vscode.ExtensionContext): void {
     client = startLanguageClient(context);
@@ -745,6 +899,9 @@ export function activate(context: vscode.ExtensionContext): void {
     );
 
     registerOutlineView(context, provider);
+
+    // Show release notes on first activation
+    showReleaseNotesIfFirstTime(context);
 }
 
 // This function is called when the extension is deactivated.
