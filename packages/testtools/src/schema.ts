@@ -12,7 +12,6 @@ import type { PolicyDef } from '@zenstackhq/runtime/enhancements/node';
 import { getDMMF, type DMMF } from '@zenstackhq/sdk/prisma';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
-import json from 'json5';
 import * as path from 'path';
 import tmp from 'tmp';
 import { loadDocument } from 'zenstack/cli/cli-util';
