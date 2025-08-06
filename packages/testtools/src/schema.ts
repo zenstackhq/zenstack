@@ -151,7 +151,6 @@ export type SchemaLoadOptions = {
     prismaLoadPath?: string;
     prismaClientOptions?: object;
     generateNoCompile?: boolean;
-    tscInitArgs?: string;
 };
 
 const defaultOptions: SchemaLoadOptions = {
@@ -364,11 +363,20 @@ export function createProjectAndCompile(schema: string, options: SchemaLoadOptio
     if (opt.compile || opt.extraSourceFiles) {
         console.log('Compiling...');
 
-        run(`npx tsc --init ${opt.tscInitArgs}`);
-
         // add generated '.zenstack/zod' folder to typescript's search path,
         // so that it can be resolved from symbolic-linked files
-        const tsconfig = json.parse(fs.readFileSync(path.join(projectDir, './tsconfig.json'), 'utf-8'));
+
+        const tsconfig: any = {
+            compilerOptions: {
+                target: 'es2016',
+                module: 'commonjs',
+                esModuleInterop: true,
+                forceConsistentCasingInFileNames: true,
+                strict: true,
+                skipLibCheck: true,
+            },
+        };
+
         tsconfig.compilerOptions.paths = {
             '.zenstack/zod/input': ['./node_modules/.zenstack/zod/input/index.d.ts'],
             '.zenstack/models': ['./node_modules/.zenstack/models.d.ts'],

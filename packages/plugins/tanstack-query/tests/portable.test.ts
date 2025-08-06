@@ -45,7 +45,6 @@ console.log(data?.posts[0]?.title);
 `,
                     },
                 ],
-                tscInitArgs: '--moduleResolution bundler --module esnext',
             }
         );
     });
@@ -106,7 +105,6 @@ console.log(data?.posts[0]?.title);
 `,
                     },
                 ],
-                tscInitArgs: '--moduleResolution bundler --module esnext',
             }
         );
     });
@@ -149,7 +147,6 @@ console.log(data?.createdAt);
 `,
                     },
                 ],
-                tscInitArgs: '--moduleResolution bundler --module esnext',
             }
         );
     });

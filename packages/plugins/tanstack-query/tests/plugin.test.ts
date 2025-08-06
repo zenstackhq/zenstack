@@ -97,7 +97,6 @@ ${sharedModel}
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
                 extraSourceFiles: [reactAppSource],
-                tscInitArgs: '--moduleResolution bundler --module esnext',
             }
         );
     });
@@ -137,7 +136,6 @@ ${sharedModel}
                         `,
                     },
                 ],
-                tscInitArgs: '--moduleResolution bundler --module esnext',
             }
         );
     });
@@ -191,7 +189,6 @@ ${sharedModel}
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
                 extraSourceFiles: [vueAppSource],
-                tscInitArgs: '--moduleResolution bundler --module esnext',
             }
         );
     });
@@ -214,7 +211,6 @@ ${sharedModel}
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
                 extraSourceFiles: [vueAppSource],
-                tscInitArgs: '--moduleResolution bundler --module esnext',
             }
         );
     });
@@ -269,7 +265,6 @@ ${sharedModel}
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
                 extraSourceFiles: [svelteAppSource],
-                tscInitArgs: '--moduleResolution bundler --module esnext',
             }
         );
     });
@@ -292,7 +287,6 @@ ${sharedModel}
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
                 extraSourceFiles: [svelteAppSource],
-                tscInitArgs: '--moduleResolution bundler --module esnext',
             }
         );
     });
