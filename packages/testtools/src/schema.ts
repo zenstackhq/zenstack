@@ -151,6 +151,7 @@ export type SchemaLoadOptions = {
     prismaLoadPath?: string;
     prismaClientOptions?: object;
     generateNoCompile?: boolean;
+    tscInitArgs?: string;
 };
 
 const defaultOptions: SchemaLoadOptions = {
@@ -363,7 +364,7 @@ export function createProjectAndCompile(schema: string, options: SchemaLoadOptio
     if (opt.compile || opt.extraSourceFiles) {
         console.log('Compiling...');
 
-        run('npx tsc --init');
+        run(`npx tsc --init ${opt.tscInitArgs}`);
 
         // add generated '.zenstack/zod' folder to typescript's search path,
         // so that it can be resolved from symbolic-linked files

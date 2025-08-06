@@ -65,7 +65,7 @@ model Foo {
             useInfiniteFindManypost_Item({ where: { published: true } });
             useInfiniteFindManypost_Item(undefined, { enabled: true, getNextPageParam: () => null });
             console.log(queryKey);
-            console.log(data?.pages[0][0].published);
+            console.log(data?.pages[0]?.[0]?.published);
             console.log(data?.pageParams[0]);
         }
 
@@ -97,6 +97,7 @@ ${sharedModel}
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
                 extraSourceFiles: [reactAppSource],
+                tscInitArgs: '--moduleResolution bundler --module esnext',
             }
         );
     });
@@ -130,12 +131,13 @@ ${sharedModel}
                             useSuspenseInfiniteFindManypost_Item({ where: { published: true } });
                             useSuspenseInfiniteFindManypost_Item(undefined, { getNextPageParam: () => null });
                             console.log(queryKey);
-                            console.log(data?.pages[0][0].published);
+                            console.log(data?.pages[0]?.[0]?.published);
                             console.log(data?.pageParams[0]);
                         }
                         `,
                     },
                 ],
+                tscInitArgs: '--moduleResolution bundler --module esnext',
             }
         );
     });
@@ -157,7 +159,7 @@ ${sharedModel}
             useInfiniteFindManypost_Item({ where: { published: true } }, { enabled: true, getNextPageParam: () => null });
             useInfiniteFindManypost_Item(undefined, { getNextPageParam: () => null });
             console.log(queryKey);
-            console.log(data.value?.pages[0][0].published);
+            console.log(data.value?.pages[0]?.[0]?.published);
             console.log(data.value?.pageParams[0]);
         }
 
@@ -189,6 +191,7 @@ ${sharedModel}
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
                 extraSourceFiles: [vueAppSource],
+                tscInitArgs: '--moduleResolution bundler --module esnext',
             }
         );
     });
@@ -211,6 +214,7 @@ ${sharedModel}
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
                 extraSourceFiles: [vueAppSource],
+                tscInitArgs: '--moduleResolution bundler --module esnext',
             }
         );
     });
@@ -233,7 +237,7 @@ ${sharedModel}
             useInfiniteFindManypost_Item({ where: { published: true } });
             useInfiniteFindManypost_Item(undefined, { enabled: true, getNextPageParam: () => null });
             console.log(queryKey);
-            console.log(data?.pages[0][0].published);
+            console.log(data?.pages[0]?.[0]?.published);
             console.log(data?.pageParams[0]);
         }
 
@@ -265,6 +269,7 @@ ${sharedModel}
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
                 extraSourceFiles: [svelteAppSource],
+                tscInitArgs: '--moduleResolution bundler --module esnext',
             }
         );
     });
@@ -287,6 +292,7 @@ ${sharedModel}
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
                 extraSourceFiles: [svelteAppSource],
+                tscInitArgs: '--moduleResolution bundler --module esnext',
             }
         );
     });
