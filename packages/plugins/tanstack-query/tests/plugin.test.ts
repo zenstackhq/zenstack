@@ -65,7 +65,7 @@ model Foo {
             useInfiniteFindManypost_Item({ where: { published: true } });
             useInfiniteFindManypost_Item(undefined, { enabled: true, getNextPageParam: () => null });
             console.log(queryKey);
-            console.log(data?.pages[0][0].published);
+            console.log(data?.pages[0]?.[0]?.published);
             console.log(data?.pageParams[0]);
         }
 
@@ -130,7 +130,7 @@ ${sharedModel}
                             useSuspenseInfiniteFindManypost_Item({ where: { published: true } });
                             useSuspenseInfiniteFindManypost_Item(undefined, { getNextPageParam: () => null });
                             console.log(queryKey);
-                            console.log(data?.pages[0][0].published);
+                            console.log(data?.pages[0]?.[0]?.published);
                             console.log(data?.pageParams[0]);
                         }
                         `,
@@ -157,7 +157,7 @@ ${sharedModel}
             useInfiniteFindManypost_Item({ where: { published: true } }, { enabled: true, getNextPageParam: () => null });
             useInfiniteFindManypost_Item(undefined, { getNextPageParam: () => null });
             console.log(queryKey);
-            console.log(data.value?.pages[0][0].published);
+            console.log(data.value?.pages[0]?.[0]?.published);
             console.log(data.value?.pageParams[0]);
         }
 
@@ -233,7 +233,7 @@ ${sharedModel}
             useInfiniteFindManypost_Item({ where: { published: true } });
             useInfiniteFindManypost_Item(undefined, { enabled: true, getNextPageParam: () => null });
             console.log(queryKey);
-            console.log(data?.pages[0][0].published);
+            console.log(data?.pages[0]?.[0]?.published);
             console.log(data?.pageParams[0]);
         }
 
