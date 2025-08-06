@@ -12,7 +12,6 @@ import type { PolicyDef } from '@zenstackhq/runtime/enhancements/node';
 import { getDMMF, type DMMF } from '@zenstackhq/sdk/prisma';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
-import json from 'json5';
 import * as path from 'path';
 import tmp from 'tmp';
 import { loadDocument } from 'zenstack/cli/cli-util';
@@ -363,11 +362,20 @@ export function createProjectAndCompile(schema: string, options: SchemaLoadOptio
     if (opt.compile || opt.extraSourceFiles) {
         console.log('Compiling...');
 
-        run('npx tsc --init');
-
         // add generated '.zenstack/zod' folder to typescript's search path,
         // so that it can be resolved from symbolic-linked files
-        const tsconfig = json.parse(fs.readFileSync(path.join(projectDir, './tsconfig.json'), 'utf-8'));
+
+        const tsconfig: any = {
+            compilerOptions: {
+                target: 'es2016',
+                module: 'commonjs',
+                esModuleInterop: true,
+                forceConsistentCasingInFileNames: true,
+                strict: true,
+                skipLibCheck: true,
+            },
+        };
+
         tsconfig.compilerOptions.paths = {
             '.zenstack/zod/input': ['./node_modules/.zenstack/zod/input/index.d.ts'],
             '.zenstack/models': ['./node_modules/.zenstack/models.d.ts'],
