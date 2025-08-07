@@ -33,6 +33,29 @@
         "Programming Languages"
     ],
     "contributes": {
+        "languageModelTools": [
+            {
+                "name": "zmodel_mermaid_generator",
+                "displayName": "ZModel Mermaid Generator",
+                "modelDescription": "Generate Mermaid charts from ZModel schema files. This tool analyzes the current ZModel file and creates comprehensive entity-relationship diagrams showing all models and their relationships.",
+                "canBeReferencedInPrompt": true,
+                "toolReferenceName": "zmodel_mermaid_generator"
+            }
+        ],
+        "chatParticipants": [
+            {
+                "id": "zenstack",
+                "name": "zenstack",
+                "description": "Generate documentation for ZModel schema files",
+                "isSticky": false,
+                "commands": [
+                    {
+                        "name": "doc",
+                        "description": "Generate documentation for the current ZModel file"
+                    }
+                ]
+            }
+        ],
         "languages": [
             {
                 "id": "zmodel",
@@ -69,78 +92,92 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Search for Mermaid extensions when viewing Mermaid source."
-                } 
+                }
             }
         },
         "viewsContainers": {
-        "activitybar": [
+            "activitybar": [
+                {
+                    "id": "zmodelOutlineContainer",
+                    "title": "ZModel Outline",
+                    "icon": "$(type-hierarchy-sub)"
+                }
+            ]
+        },
+        "views": {
+            "zmodelOutlineContainer": [
+                {
+                    "type": "webview",
+                    "id": "zmodelSimpleOutline",
+                    "name": "ZModel Simple Outline",
+                    "icon": "$(outline)"
+                }
+            ]
+        },
+        "menus": {
+            "view/title": [
+                {
+                    "command": "zenstack.open-in-window-from-outline",
+                    "when": "view == zmodelSimpleOutline",
+                    "group": "navigation"
+                }
+            ],
+            "editor/title": [
+                {
+                    "command": "zenstack.preview-zmodel",
+                    "when": "editorLangId == zmodel",
+                    "group": "navigation"
+                },
+                {
+                    "command": "zenstack.generate-mermaid",
+                    "when": "editorLangId == zmodel",
+                    "group": "navigation"
+                }
+            ],
+            "commandPalette": [
+                {
+                    "command": "zenstack.preview-zmodel",
+                    "when": "editorLangId == zmodel"
+                },
+                {
+                    "command": "zenstack.generate-mermaid",
+                    "when": "editorLangId == zmodel"
+                },
+                {
+                    "command": "zenstack.show-release-notes"
+                },
+                {
+                    "command": "zenstack.reset-release-notes"
+                }
+            ]
+        },
+        "commands": [
             {
-                "id": "zmodelOutlineContainer",
-                "title": "ZModel Outline",
-                "icon": "$(type-hierarchy-sub)"
+                "command": "zenstack.open-in-window-from-outline",
+                "title": "Open Outline in Window",
+                "icon": "$(preview)"
+            },
+            {
+                "command": "zenstack.preview-zmodel",
+                "title": "Preview ZModel",
+                "icon": "$(preview)"
+            },
+            {
+                "command": "zenstack.generate-mermaid",
+                "title": "Generate Mermaid Charts",
+                "icon": "$(graph)"
+            },
+            {
+                "command": "zenstack.show-release-notes",
+                "title": "ZenStack: Show Release Notes",
+                "icon": "$(info)"
+            },
+            {
+                "command": "zenstack.reset-release-notes",
+                "title": "ZenStack: Reset Release Notes Flag",
+                "icon": "$(refresh)"
             }
         ]
-    },
-    "views": {
-        "zmodelOutlineContainer": [
-            {
-                "type": "webview",
-                "id": "zmodelSimpleOutline",
-                "name": "ZModel Simple Outline",
-                "icon": "$(outline)"
-            }
-        ]
-    },
-    "menus": {
-        "view/title": [
-        {
-          "command": "zenstack.open-in-window-from-outline",
-          "when": "view == zmodelSimpleOutline",
-          "group": "navigation"
-        }
-        ],
-        "editor/title": [
-        {
-          "command": "zenstack.preview-zmodel",
-          "when": "editorLangId == zmodel",
-          "group": "navigation"
-        }
-        ],
-        "commandPalette": [
-        {
-          "command": "zenstack.preview-zmodel",
-          "when": "editorLangId == zmodel"
-        },
-        {
-          "command": "zenstack.show-release-notes"
-        },
-        {
-          "command": "zenstack.reset-release-notes"
-        }
-        ]
-    },
-    "commands": [
-        {
-            "command": "zenstack.open-in-window-from-outline",
-            "title": "Open Outline in Window",
-            "icon": "$(preview)"
-        },
-        {
-            "command": "zenstack.preview-zmodel",
-            "title": "Preview ZModel",
-            "icon": "$(preview)"
-        },
-        {
-            "command": "zenstack.show-release-notes",
-            "title": "ZenStack: Show Release Notes",
-            "icon": "$(info)"
-        },
-        {
-            "command": "zenstack.reset-release-notes",
-            "title": "ZenStack: Reset Release Notes Flag",
-            "icon": "$(refresh)"
-        }
-      ]
     },
     "activationEvents": [],
     "capabilities": {
@@ -206,7 +243,8 @@
         "@types/strip-color": "^0.1.0",
         "@types/tmp": "^0.2.3",
         "@types/uuid": "^8.3.4",
-        "@types/vscode": "^1.56.0",
+        "@types/vscode": "^1.102.0",
+        "@vscode/chat-extension-utils": "0.0.0-alpha.5",
         "@vscode/vsce": "^3.5.0",
         "@zenstackhq/runtime": "workspace:*",
         "dotenv": "^16.0.3",

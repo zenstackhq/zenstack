@@ -6,6 +6,7 @@ import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } f
 import { DataModel, isDataModel, isEnum, Model } from '@zenstackhq/sdk/ast';
 import MermaidGenerator from './mermaid-generator';
 import { URI } from 'vscode-uri';
+import { sendChatParticipantRequest, ChatHandlerResult } from '@vscode/chat-extension-utils';
 
 const AUTH_PROVIDER_ID = 'github';
 const AUTH_SCOPES = ['user:email'];
@@ -510,7 +511,56 @@ async function getParsedAST(document: vscode.TextDocument): Promise<{
     }
 }
 
-async function generateZModelDocumentation(document: vscode.TextDocument): Promise<string> {
+// Generate the default system prompt for ZModel documentation
+function generateDefaultSystemPrompt(zmodelContent: string): string {
+    return `You are a technical documentation expert specializing in ZenStack zmodel schema files. 
+
+ZenStack extends Prisma with powerful features like access policies, field validation, and automatic API generation.
+
+Analyze the following zmodel file and return a structured JSON response that follows this exact schema:
+
+\`\`\`json
+{
+  "overview": {
+    "description": "Brief description of the data model's purpose and what the application does",
+    "functionality": ["Key functionality and features the application provides to users"]
+  },
+  "models": [
+    {
+      "name": "ModelName",
+      "description": "What this model represents and its purpose",
+      "access_control_policies": ["@@allow rule explanations", "@@deny rule explanations"]
+    }
+  ],
+  "enums": [
+    {
+      "name": "EnumName",
+      "description": "What this enum represents"
+    }
+  ],
+  "business_logic": ["Key business rule 1", "Key business rule 2"],
+  "security_considerations": ["Security implication 1", "Security implication 2"]
+}
+\`\`\`
+
+ZModel Schema Content:
+\`\`\`zmodel
+${zmodelContent}
+\`\`\`
+
+IMPORTANT: 
+- Return ONLY valid JSON,no markdown formatting or code blocks.
+- Explain access control policies in plain English. 
+- If model 'extends' from base model, also include the base model's policies. Don't say it is inherited, treat it the same as the ones defined in the model.
+- Be thorough but concise in descriptions.
+`;
+}
+
+// Generate documentation for non-chat usage (structured JSON output)
+async function generateZModelDocumentationWithPrompt(
+    document: vscode.TextDocument,
+    customPrompt?: string
+): Promise<string> {
     try {
         // Get available language models, preferring context7 models
         const models = await vscode.lm.selectChatModels({
@@ -556,48 +606,17 @@ async function generateZModelDocumentation(document: vscode.TextDocument): Promi
 
         console.log('ZModel content generated:', zmodelContent);
 
-        // Create enhanced prompt requesting structured JSON output
-        const prompt = `You are a technical documentation expert specializing in ZenStack zmodel schema files. 
-
-ZenStack extends Prisma with powerful features like access policies, field validation, and automatic API generation.
-
-Analyze the following zmodel file and return a structured JSON response that follows this exact schema:
-
-\`\`\`json
-{
-  "overview": {
-    "description": "Brief description of the data model's purpose and what the application does",
-    "functionality": ["Key functionality and features the application provides to users"]
-  },
-  "models": [
-    {
-      "name": "ModelName",
-      "description": "What this model represents and its purpose",
-      "access_control_policies": ["@@allow rule explanations", "@@deny rule explanations"]
-    }
-  ],
-  "enums": [
-    {
-      "name": "EnumName",
-      "description": "What this enum represents"
-    }
-  ],
-  "business_logic": ["Key business rule 1", "Key business rule 2"],
-  "security_considerations": ["Security implication 1", "Security implication 2"]
-}
-\`\`\`
-
-ZModel Schema Content:
-\`\`\`zmodel
-${zmodelContent}
-\`\`\`
-
-IMPORTANT: 
-- Return ONLY valid JSON,no markdown formatting or code blocks.
-- Explain access control policies in plain English. 
-- If model 'extends' from base model, also include the base model's policies. Don't say it is inherited, treat it the same as the ones defined in the model.
-- Be thorough but concise in descriptions.
-`;
+        // Use custom prompt if provided, otherwise use default system prompt
+        const prompt = customPrompt
+            ? `
+            You are a technical documentation expert specializing in ZenStack zmodel schema files. 
+            ZenStack extends Prisma with powerful features like access policies, field validation, and automatic API generation.
+            Analyze the following zmodel files:
+            \n\nZModel Schema Content:\n\`\`\`zmodel\n${zmodelContent}\n\`\`\`
+            Follow the user's instructions to generate documentation:
+            ${customPrompt}
+            `
+            : generateDefaultSystemPrompt(zmodelContent);
 
         const messages = [vscode.LanguageModelChatMessage.User(prompt)];
 
@@ -618,17 +637,22 @@ IMPORTANT:
 
         console.log(`Response completed in ${endTime - startTime} ms`);
 
-        // Parse and validate the JSON response
-        try {
-            const jsonResponse = JSON.parse(response);
-            const validatedData = ZModelDocumentationSchema.parse(jsonResponse);
+        // Parse and validate the JSON response only if using default prompt
+        if (!customPrompt) {
+            try {
+                const jsonResponse = JSON.parse(response);
+                const validatedData = ZModelDocumentationSchema.parse(jsonResponse);
 
-            // Convert the validated structured data back to markdown
-            return convertStructuredDataToMarkdown(validatedData, astInfo!.ast);
-        } catch (parseError) {
-            console.warn('Failed to parse JSON response, falling back to raw response:', parseError);
+                // Convert the validated structured data back to markdown
+                return convertStructuredDataToMarkdown(validatedData, astInfo!.ast);
+            } catch (parseError) {
+                console.warn('Failed to parse JSON response, falling back to raw response:', parseError);
 
-            // If JSON parsing fails, return the raw response as fallback
+                // If JSON parsing fails, return the raw response as fallback
+                return response || 'No documentation generated';
+            }
+        } else {
+            // For custom prompts, return the raw response
             return response || 'No documentation generated';
         }
     } catch (error) {
@@ -636,6 +660,192 @@ IMPORTANT:
         const errorMessage = error instanceof Error ? error.message : String(error);
         throw new Error(`Failed to generate documentation: ${errorMessage}`);
     }
+}
+
+// Generate documentation for chat participants with tool integration
+async function generateZModelDocumentationForChat(
+    document: vscode.TextDocument,
+    customPrompt: string,
+    request: vscode.ChatRequest,
+    context: vscode.ChatContext,
+    stream: vscode.ChatResponseStream,
+    token: vscode.CancellationToken
+): Promise<ChatHandlerResult> {
+    try {
+        // Get parsed AST from language server
+        let astInfo = null;
+        try {
+            astInfo = await getParsedAST(document);
+            console.log('AST obtained from language server:', astInfo);
+        } catch (error) {
+            console.warn('Could not get AST from language server:', error);
+        }
+
+        const importedURIs = astInfo?.importedURIs || [];
+
+        // get vscode document from importedURIs
+        const importedTexts = await Promise.all(
+            importedURIs.map(async (uri) => {
+                try {
+                    const fileUri = vscode.Uri.file(uri.path);
+                    const fileContent = await vscode.workspace.fs.readFile(fileUri);
+                    return Buffer.from(fileContent).toString('utf8');
+                } catch (error) {
+                    console.warn(`Could not read file for URI ${uri}:`, error);
+                    return null;
+                }
+            })
+        );
+
+        const zmodelContent = [document.getText(), ...importedTexts.filter((text) => text !== null)].join('\n\n');
+
+        console.log('ZModel content generated for chat:', zmodelContent);
+
+        // Create system prompt for chat with tool integration
+        const systemPrompt = `You are a technical documentation expert specializing in ZenStack zmodel schema files. 
+ZenStack extends Prisma with powerful features like access policies, field validation, and automatic API generation.
+
+Analyze the following zmodel files:
+
+ZModel Schema Content:
+\`\`\`zmodel
+${zmodelContent}
+\`\`\`
+
+Follow the user's instructions to generate a markdown documentation: ${customPrompt}
+
+You should try to call "zmodel_mermaid_generator" tool to generate diagrams unless user specifies otherwise.`;
+
+        // Use sendChatParticipantRequest with tool integration
+        const result = sendChatParticipantRequest(
+            request,
+            context,
+            {
+                prompt: systemPrompt,
+                tools: vscode.lm.tools.filter((tool) => tool.name.includes('zmodel_mermaid_generator')),
+                responseStreamOptions: {
+                    stream,
+                    references: true,
+                    responseText: false,
+                },
+                requestJustification: 'To collaborate on diagrams',
+            },
+            token
+        );
+
+        return result;
+    } catch (error) {
+        console.error('Error generating documentation for chat:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to generate documentation: ${errorMessage}`);
+    }
+}
+
+// Chat participant handler
+class ZenStackChatParticipant {
+    private static readonly ID = 'zenstack';
+
+    static register(context: vscode.ExtensionContext): vscode.Disposable {
+        const handler: vscode.ChatRequestHandler = async (
+            request: vscode.ChatRequest,
+            context: vscode.ChatContext,
+            stream: vscode.ChatResponseStream,
+            token: vscode.CancellationToken
+        ): Promise<vscode.ChatResult> => {
+            try {
+                if (request.command === 'doc') {
+                    return await ZenStackChatParticipant.handleDocCommand(request, context, stream, token);
+                } else {
+                    stream.markdown(
+                        'I currently support the `/doc` command to generate documentation for ZModel files and open it in a preview window.'
+                    );
+                    return { metadata: { command: 'unknown' } };
+                }
+            } catch (error) {
+                stream.markdown(`❌ Error: ${error instanceof Error ? error.message : String(error)}`);
+                return { metadata: { command: request.command, error: String(error) } };
+            }
+        };
+
+        const participant = vscode.chat.createChatParticipant(ZenStackChatParticipant.ID, handler);
+        participant.iconPath = vscode.Uri.joinPath(context.extensionUri, 'asset/logo-256-bg.png');
+
+        context.subscriptions.push(participant);
+        return participant;
+    }
+
+    private static async handleDocCommand(
+        request: vscode.ChatRequest,
+        context: vscode.ChatContext,
+        stream: vscode.ChatResponseStream,
+        token: vscode.CancellationToken
+    ): Promise<vscode.ChatResult> {
+        // Get the active editor
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            stream.markdown('❌ No active editor found. Please open a ZModel file first.');
+            return { metadata: { command: 'doc', error: 'no-active-editor' } };
+        }
+
+        const document = editor.document;
+        if (!document.fileName.endsWith('.zmodel')) {
+            stream.markdown('❌ The active file is not a ZModel file. Please open a `.zmodel` file.');
+            return { metadata: { command: 'doc', error: 'not-zmodel-file' } };
+        }
+
+        // Check GitHub authentication
+        const session = await requireAuth();
+        if (!session) {
+            stream.markdown('❌ GitHub authentication required. Please sign in to use this feature.');
+            return { metadata: { command: 'doc', error: 'authentication-required' } };
+        }
+
+        stream.progress('Generating ZModel documentation...');
+
+        try {
+            // Determine if user provided custom instructions
+            const userPrompt = request.prompt.trim();
+
+            // Use chat version with tool integration for custom prompts
+            const chatResult = await generateZModelDocumentationForChat(
+                document,
+                userPrompt,
+                request,
+                context,
+                stream,
+                token
+            );
+
+            let chatResponse = '';
+
+            // Stream the response
+            for await (const fragment of chatResult.stream) {
+                if (fragment instanceof vscode.LanguageModelTextPart) {
+                    if ('value' in fragment) {
+                        chatResponse += fragment.value;
+                    }
+                }
+            }
+
+            console.log('Chat response generated:', chatResponse);
+
+            await openMarkdownPreview(chatResponse, document.fileName);
+
+            stream.markdown(
+                `✅ Documentation generated and opened in preview for **${path.basename(document.fileName)}**`
+            );
+
+            return chatResult.result;
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            stream.markdown(`❌ Failed to generate documentation: ${errorMessage}`);
+            return { metadata: { command: 'doc', error: errorMessage } };
+        }
+    }
+}
+
+async function generateZModelDocumentation(document: vscode.TextDocument): Promise<string> {
+    return generateZModelDocumentationWithPrompt(document);
 }
 
 // Convert structured data to markdown format
@@ -801,6 +1011,138 @@ async function resetReleaseNotesFlag(context: vscode.ExtensionContext): Promise<
     }
 }
 
+// Function to generate Mermaid charts from current ZModel file
+async function generateMermaidCharts(): Promise<string> {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        throw new Error('No active editor found. Please open a ZModel file first.');
+    }
+
+    const document = editor.document;
+    if (!document.fileName.endsWith('.zmodel')) {
+        throw new Error('The active file is not a ZModel file. Please open a `.zmodel` file.');
+    }
+
+    // Get parsed AST from language server
+    let astInfo = null;
+    try {
+        astInfo = await getParsedAST(document);
+        console.log('AST obtained from language server for Mermaid generation:', astInfo);
+    } catch (error) {
+        console.warn('Could not get AST from language server:', error);
+        throw new Error(`Failed to parse ZModel file: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    if (!astInfo || !astInfo.ast) {
+        throw new Error('Failed to parse the ZModel file. Please check for syntax errors.');
+    }
+
+    // Generate Mermaid diagrams for all data models
+    const model = astInfo.ast;
+    const mermaidGenerator = new MermaidGenerator(model);
+    const dataModels = model.declarations.filter((x) => isDataModel(x) && !x.isAbstract) as DataModel[];
+
+    if (dataModels.length === 0) {
+        throw new Error('No data models found in the ZModel file.');
+    }
+
+    // Generate individual Mermaid charts for each model
+    const individualCharts = dataModels
+        .map((dataModel) => {
+            const chart = mermaidGenerator.generate(dataModel);
+            return `## ${dataModel.name} Model\n\n${chart}`;
+        })
+        .join('\n\n');
+
+    // Generate a comprehensive diagram with all models using MermaidGenerator
+    const allModelsChart = mermaidGenerator.generateComprehensive();
+
+    const result = [
+        `# Mermaid Charts for ${path.basename(document.fileName)}`,
+        '',
+        '## Complete Entity Relationship Diagram',
+        '',
+        allModelsChart,
+        '',
+        '## Individual Model Diagrams',
+        '',
+        individualCharts,
+    ].join('\n');
+
+    return result;
+}
+
+// Command to generate and preview Mermaid charts
+async function generateAndPreviewMermaidCharts(): Promise<void> {
+    try {
+        // Show progress indicator
+        await vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Notification,
+                title: 'Generating Mermaid charts...',
+                cancellable: false,
+            },
+            async () => {
+                const mermaidContent = await generateMermaidCharts();
+                await openMarkdownPreview(mermaidContent, vscode.window.activeTextEditor!.document.fileName);
+            }
+        );
+
+        // Check for Mermaid extensions
+        checkForMermaidExtensions();
+
+        vscode.window.showInformationMessage('Mermaid charts generated and opened in preview!');
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        vscode.window.showErrorMessage(`Failed to generate Mermaid charts: ${errorMessage}`);
+    }
+}
+
+// Language Model Tool for generating Mermaid charts
+class ZModelMermaidTool {
+    public readonly name = 'zmodel_mermaid_generator';
+
+    async invoke() {
+        try {
+            const mermaidMessage = await generateMermaidCharts();
+            return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(mermaidMessage)]);
+        } catch (error) {
+            const errorMessage = `Error generating Mermaid charts: ${
+                error instanceof Error ? error.message : String(error)
+            }`;
+            console.error(errorMessage);
+            throw new Error(errorMessage);
+        }
+    }
+}
+
+// Function to register the Mermaid generation functionality
+function registerMermaidGeneration(context: vscode.ExtensionContext): void {
+    // Register the command
+    const mermaidCommand = vscode.commands.registerCommand('zenstack.generate-mermaid', async () => {
+        await generateAndPreviewMermaidCharts();
+    });
+
+    context.subscriptions.push(mermaidCommand);
+
+    // Create an instance of the tool for potential future use with Language Model Tools
+    const mermaidTool = new ZModelMermaidTool();
+
+    // Try to register with Language Model Tools if the API is available
+    try {
+        // This may not be available in all VS Code versions
+        if (vscode.lm && 'registerTool' in vscode.lm) {
+            const registration = vscode.lm.registerTool(mermaidTool.name, mermaidTool);
+            context.subscriptions.push(registration);
+            console.log('ZModel Mermaid Generator registered as Language Model Tool:', mermaidTool.name);
+        } else {
+            console.log('Language Model Tools API not available, ZModel Mermaid Generator registered as command only');
+        }
+    } catch (error) {
+        console.log('Could not register Language Model Tool, fallback to command only:', error);
+    }
+}
+
 // Fallback content if the HTML file can't be loaded
 function getFallbackReleaseNotesContent(): string {
     return `
@@ -900,6 +1242,12 @@ export function activate(context: vscode.ExtensionContext): void {
     );
 
     registerOutlineView(context, provider);
+
+    // Register the chat participant
+    ZenStackChatParticipant.register(context);
+
+    // Register Mermaid generation functionality
+    registerMermaidGeneration(context);
 
     // Show release notes on first activation
     showReleaseNotesIfFirstTime(context);
