@@ -544,7 +544,7 @@ describe('Prisma generator test', () => {
             }
 
             view UserInfo {
-                id    Int    @unique
+                id    Int    @id
                 email String
                 name  String
                 bio   String
