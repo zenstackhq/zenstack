@@ -12,6 +12,9 @@ catalogs:
     typescript:
       specifier: ~5.8.0
       version: 5.8.3
+    zod:
+      specifier: ^3.25.0
+      version: 3.25.76
 
 importers:
 
@@ -147,11 +150,11 @@ importers:
         specifier: ^2.2.2
         version: 2.4.5
       zod:
-        specifier: ^3.22.4
-        version: 3.23.8
+        specifier: 'catalog:'
+        version: 3.25.76
       zod-validation-error:
         specifier: ^1.5.0
-        version: 1.5.0(zod@3.23.8)
+        version: 1.5.0(zod@3.25.76)
     devDependencies:
       '@readme/openapi-parser':
         specifier: ^2.4.0
@@ -324,8 +327,8 @@ importers:
         specifier: ^2.4.1
         version: 2.6.3
       zod:
-        specifier: ^3.22.4
-        version: 3.23.8
+        specifier: 'catalog:'
+        version: 3.25.76
     devDependencies:
       '@trpc/next':
         specifier: ^10.32.0
@@ -395,11 +398,11 @@ importers:
         specifier: ^9.0.0
         version: 9.0.1
       zod:
-        specifier: ^3.22.4
-        version: 3.23.8
+        specifier: 'catalog:'
+        version: 3.25.76
       zod-validation-error:
         specifier: ^1.5.0
-        version: 1.5.0(zod@3.23.8)
+        version: 1.5.0(zod@3.25.76)
     devDependencies:
       '@types/bcryptjs':
         specifier: ^2.4.2
@@ -493,11 +496,11 @@ importers:
         specifier: ^3.0.6
         version: 3.0.8
       zod:
-        specifier: ^3.22.4
-        version: 3.23.8
+        specifier: 'catalog:'
+        version: 3.25.76
       zod-validation-error:
         specifier: ^1.5.0
-        version: 1.5.0(zod@3.23.8)
+        version: 1.5.0(zod@3.25.76)
     devDependencies:
       '@prisma/client':
         specifier: 6.13.x
@@ -599,11 +602,11 @@ importers:
         specifier: ^1.0.3
         version: 1.0.3
       zod:
-        specifier: ^3.22.4
-        version: 3.23.8
+        specifier: 'catalog:'
+        version: 3.25.76
       zod-validation-error:
         specifier: ^1.5.0
-        version: 1.5.0(zod@3.23.8)
+        version: 1.5.0(zod@3.25.76)
     devDependencies:
       '@nestjs/common':
         specifier: ^10.3.7
@@ -8746,8 +8749,8 @@ packages:
     peerDependencies:
       zod: ^3.18.0
 
-  zod@3.23.8:
-    resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
+  zod@3.25.76:
+    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
 snapshots:
 
@@ -17892,8 +17895,8 @@ snapshots:
       compress-commons: 6.0.2
       readable-stream: 4.5.2
 
-  zod-validation-error@1.5.0(zod@3.23.8):
+  zod-validation-error@1.5.0(zod@3.25.76):
     dependencies:
-      zod: 3.23.8
+      zod: 3.25.76
 
-  zod@3.23.8: {}
+  zod@3.25.76: {}

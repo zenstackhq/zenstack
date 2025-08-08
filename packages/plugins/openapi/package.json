@@ -32,8 +32,10 @@
     "semver": "^7.5.2",
     "ts-pattern": "^4.3.0",
     "yaml": "^2.2.2",
-    "zod": "^3.22.4",
     "zod-validation-error": "^1.5.0"
+  },
+  "peerDependencies": {
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@readme/openapi-parser": "^2.4.0",
