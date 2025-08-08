@@ -28,7 +28,7 @@
     "dependencies": {
         "@zenstackhq/runtime": "workspace:*",
         "@zenstackhq/sdk": "workspace:*",
-        "ts-morph": "^26.0.0",
+        "ts-morph": "catalog:",
         "tslib": "^2.4.1"
     },
     "peerDependencies": {

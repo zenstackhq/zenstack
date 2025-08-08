@@ -84,7 +84,7 @@
         "@zenstackhq/sdk": "workspace:*",
         "cross-fetch": "^4.0.0",
         "semver": "^7.5.2",
-        "ts-morph": "^26.0.0",
+        "ts-morph": "catalog:",
         "ts-pattern": "^4.3.0"
     },
     "devDependencies": {
