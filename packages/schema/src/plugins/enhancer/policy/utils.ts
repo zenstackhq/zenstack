@@ -14,6 +14,7 @@ import {
     getIdFields,
     getLiteral,
     getQueryGuardFunctionName,
+    hasAuthInvocation,
     isAuthInvocation,
     isDataModelFieldReference,
     isEnumFieldReference,
@@ -42,7 +43,14 @@ import deepmerge from 'deepmerge';
 import { getContainerOfType, streamAllContents, streamAst, streamContents } from 'langium';
 import { FunctionDeclarationStructure, OptionalKind } from 'ts-morph';
 import { name } from '..';
-import { isCheckInvocation, isCollectionPredicate, isFutureInvocation } from '../../../utils/ast-utils';
+import {
+    getAliasDeclaration,
+    getFieldsFromAliasExpression,
+    isAliasInvocation,
+    isCheckInvocation,
+    isCollectionPredicate,
+    isFutureInvocation,
+} from '../../../utils/ast-utils';
 import { ExpressionWriter, FALSE, TRUE } from './expression-writer';
 
 /**
@@ -311,7 +319,9 @@ export function generateQueryGuardFunction(
                 // future().???
                 isFutureExpr(child) ||
                 // field reference
-                (isReferenceExpr(child) && isDataModelField(child.target.ref))
+                (isReferenceExpr(child) && isDataModelField(child.target.ref)) ||
+                // field access from alias expression - resolve to actual fields
+                (isAliasInvocation(child) && isExpression(child) && hasFieldAccessInAlias(child))
         )
     );
 
@@ -506,8 +516,7 @@ export function generateNormalizedAuthRef(
     statements: string[]
 ) {
     // check if any allow or deny rule contains 'auth()' invocation
-    const hasAuthRef = [...allows, ...denies].some((rule) => streamAst(rule).some((child) => isAuthInvocation(child)));
-
+    const hasAuthRef = [...allows, ...denies].some((rule) => streamAst(rule).some((child) => hasAuthInvocation(child)));
     if (hasAuthRef) {
         const authModel = getAuthDecl(getDataModelAndTypeDefs(model.$container, true));
         if (!authModel) {
@@ -545,6 +554,7 @@ export function isEnumReferenced(model: Model, decl: Enum): unknown {
 
 function hasCrossModelComparison(expr: Expression) {
     return streamAst(expr).some((node) => {
+        // TODO: check cross model comparison in alias expression target
         if (isBinaryExpr(node) && ['==', '!=', '>', '<', '>=', '<=', 'in'].includes(node.operator)) {
             const leftRoot = getSourceModelOfFieldAccess(node.left);
             const rightRoot = getSourceModelOfFieldAccess(node.right);
@@ -589,4 +599,18 @@ function getSourceModelOfFieldAccess(expr: Expression) {
     }
 
     return undefined;
+}
+
+/**
+ * Checks if an alias invocation resolves to actual field accesses
+ */
+function hasFieldAccessInAlias(aliasInvocation: Expression): boolean {
+    const aliasDecl = getAliasDeclaration(aliasInvocation);
+    if (!aliasDecl) {
+        return false;
+    }
+    
+    // Get all fields referenced in the alias expression
+    const fields = getFieldsFromAliasExpression(aliasDecl);
+    return fields.length > 0;
 }

@@ -1,4 +1,5 @@
 import {
+    AliasDecl,
     ArrayExpr,
     Attribute,
     AttributeArg,
@@ -8,6 +9,7 @@ import {
     DataModelFieldAttribute,
     InternalAttribute,
     ReferenceExpr,
+    isAliasDecl,
     isArrayExpr,
     isAttribute,
     isDataModel,
@@ -294,6 +296,11 @@ function assignableToAttributeParam(arg: AttributeArg, param: AttributeParam, at
         }
     }
 
+    // Handle alias expressions by comparing to their resolved shape
+    if (isAliasDecl(arg.$resolvedType?.decl)) {
+        return isAliasAssignableToType(arg.$resolvedType.decl, dstType ?? 'Any', attr);
+    }
+
     // destination is field reference or transitive field reference, check if
     // argument is reference or array or reference
     if (dstType === 'FieldReference' || dstType === 'TransitiveFieldReference') {
@@ -404,6 +411,32 @@ function isValidAttributeTarget(attrDecl: Attribute, targetDecl: DataModelField)
     }
 
     return allowed;
+}
+
+function isAliasAssignableToType(alias: AliasDecl, dstType: string, attr: AttributeApplication): boolean {
+    const effectiveDstType = resolveEffectiveDestinationType(dstType, attr);
+    if (effectiveDstType === null) {
+        return false;
+    }
+
+    const aliasExpressionType = alias.expression.$resolvedType?.decl;
+    return effectiveDstType === aliasExpressionType || effectiveDstType === 'Any' || aliasExpressionType === 'Any';
+}
+
+function resolveEffectiveDestinationType(dstType: string, attr: AttributeApplication): string | null {
+    if (dstType !== 'ContextType') {
+        return dstType;
+    }
+
+    // ContextType is inferred from the attribute's container's type
+    if (isDataModelField(attr.$container)) {
+        if (!attr.$container?.type?.type) {
+            return null;
+        }
+        return mapBuiltinTypeToExpressionType(attr.$container.type.type);
+    }
+
+    return 'Any';
 }
 
 export function validateAttributeApplication(attr: AttributeApplication, accept: ValidationAcceptor) {

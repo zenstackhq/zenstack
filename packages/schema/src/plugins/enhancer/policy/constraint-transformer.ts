@@ -32,7 +32,12 @@ import {
 } from '@zenstackhq/sdk/ast';
 import { P, match } from 'ts-pattern';
 import { name } from '..';
-import { isCheckInvocation } from '../../../utils/ast-utils';
+import {
+    getAliasDeclaration,
+    getFieldsFromAliasExpression,
+    isAliasInvocation,
+    isCheckInvocation,
+} from '../../../utils/ast-utils';
 
 /**
  * Options for {@link ConstraintTransformer}.
@@ -380,6 +385,19 @@ export class ConstraintTransformer {
         }
         if (isMemberAccessExpr(expr)) {
             return isThisExpr(expr.operand) ? { name: expr.member.$refText } : undefined;
+        }
+        if (isAliasInvocation(expr)) {
+            // Resolve alias to actual fields - for constraint transformation,
+            // we need to return a single field name representation
+            const aliasDecl = getAliasDeclaration(expr);
+            if (aliasDecl) {
+                const fields = getFieldsFromAliasExpression(aliasDecl);
+                if (fields.length > 0) {
+                    // For constraint purposes, use the alias name itself as the field identifier
+                    // The actual field resolution will be handled by the expression transformer
+                    return { name: aliasDecl.name };
+                }
+            }
         }
         return undefined;
     }

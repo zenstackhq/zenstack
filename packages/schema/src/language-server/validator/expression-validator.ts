@@ -4,6 +4,7 @@ import {
     DataModelAttribute,
     Expression,
     ExpressionType,
+    isAliasDecl,
     isArrayExpr,
     isDataModel,
     isDataModelAttribute,
@@ -21,7 +22,7 @@ import {
     isDataModelFieldReference,
     isEnumFieldReference,
 } from '@zenstackhq/sdk';
-import { ValidationAcceptor, streamAst } from 'langium';
+import { ValidationAcceptor, getContainerOfType, streamAst } from 'langium';
 import { findUpAst, getContainingDataModel } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
 import { isAuthOrAuthMemberAccess, typeAssignable } from './utils';
@@ -33,7 +34,7 @@ export default class ExpressionValidator implements AstValidator<Expression> {
     validate(expr: Expression, accept: ValidationAcceptor): void {
         // deal with a few cases where reference resolution fail silently
         if (!expr.$resolvedType) {
-            if (isAuthInvocation(expr)) {
+            if (isAuthInvocation(expr) && !getContainerOfType(expr, isAliasDecl)) {
                 // check was done at link time
                 accept(
                     'error',
@@ -50,9 +51,9 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                     }
                     return false;
                 });
-                if (!hasReferenceResolutionError) {
+                if (hasReferenceResolutionError) {
                     // report silent errors not involving linker errors
-                    accept('error', 'Expression cannot be resolved', {
+                    accept('error', `Expression cannot be resolved: ${expr.$cstNode?.text}`, {
                         node: expr,
                     });
                 }
@@ -107,19 +108,14 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                     supportedShapes = ['Boolean', 'Any'];
                 }
 
-                if (
-                    typeof expr.left.$resolvedType?.decl !== 'string' ||
-                    !supportedShapes.includes(expr.left.$resolvedType.decl)
-                ) {
+                if (!this.isValidOperandType(expr.left, supportedShapes)) {
                     accept('error', `invalid operand type for "${expr.operator}" operator`, {
                         node: expr.left,
                     });
                     return;
                 }
-                if (
-                    typeof expr.right.$resolvedType?.decl !== 'string' ||
-                    !supportedShapes.includes(expr.right.$resolvedType.decl)
-                ) {
+
+                if (!this.isValidOperandType(expr.right, supportedShapes)) {
                     accept('error', `invalid operand type for "${expr.operator}" operator`, {
                         node: expr.right,
                     });
@@ -127,11 +123,11 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                 }
 
                 // DateTime comparison is only allowed between two DateTime values
-                if (expr.left.$resolvedType.decl === 'DateTime' && expr.right.$resolvedType.decl !== 'DateTime') {
+                if (expr.left.$resolvedType?.decl === 'DateTime' && expr.right.$resolvedType?.decl !== 'DateTime') {
                     accept('error', 'incompatible operand types', { node: expr });
                 } else if (
-                    expr.right.$resolvedType.decl === 'DateTime' &&
-                    expr.left.$resolvedType.decl !== 'DateTime'
+                    expr.right.$resolvedType?.decl === 'DateTime' &&
+                    expr.left.$resolvedType?.decl !== 'DateTime'
                 ) {
                     accept('error', 'incompatible operand types', { node: expr });
                 }
@@ -296,5 +292,21 @@ export default class ExpressionValidator implements AstValidator<Expression> {
             // array
             (isArrayExpr(expr) && expr.items.every((item) => this.isNotModelFieldExpr(item)))
         );
+    }
+
+    private isValidOperandType(operand: Expression, supportedShapes: string[]): boolean {
+        let decl = operand.$resolvedType?.decl;
+        if (isAliasDecl(decl)) {
+            // If it's an alias, we check the resolved type of the expression
+            decl = decl.expression?.$resolvedType?.decl;
+        }
+
+        // Check for valid type
+        if (typeof decl === 'string') {
+            return supportedShapes.includes(decl);
+        }
+
+        // Any other type is invalid
+        return false;
     }
 }
