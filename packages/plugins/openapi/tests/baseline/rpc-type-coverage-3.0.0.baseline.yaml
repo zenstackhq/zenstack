@@ -1959,6 +1959,18 @@ components:
                     $ref: '#/components/schemas/FooWhereInput'
                 meta:
                     $ref: '#/components/schemas/_Meta'
+                orderBy:
+                    oneOf:
+                        - $ref: '#/components/schemas/FooOrderByWithRelationInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/FooOrderByWithRelationInput'
+                cursor:
+                    $ref: '#/components/schemas/FooWhereUniqueInput'
+                take:
+                    type: integer
+                skip:
+                    type: integer
         FooUpdateArgs:
             type: object
             required:

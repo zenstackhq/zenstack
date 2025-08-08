@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/swr",
     "displayName": "ZenStack plugin for generating SWR hooks",
-    "version": "2.17.2",
+    "version": "2.18.0",
     "description": "ZenStack plugin for generating SWR hooks",
     "main": "index.js",
     "repository": {
@@ -42,7 +42,7 @@
         "@zenstackhq/sdk": "workspace:*",
         "cross-fetch": "^4.0.0",
         "semver": "^7.5.2",
-        "ts-morph": "^16.0.0",
+        "ts-morph": "catalog:",
         "ts-pattern": "^4.3.0"
     },
     "peerDependencies": {

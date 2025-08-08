@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/redwood",
     "displayName": "ZenStack RedwoodJS Integration",
-    "version": "2.17.2",
+    "version": "2.18.0",
     "description": "CLI and runtime for integrating ZenStack with RedwoodJS projects.",
     "repository": {
         "type": "git",
@@ -46,7 +46,7 @@
         "listr2": "^6.0.0",
         "semver": "^7.5.2",
         "terminal-link": "^2.0.0",
-        "ts-morph": "^16.0.0",
+        "ts-morph": "catalog:",
         "yargs": "^17.7.2"
     },
     "devDependencies": {

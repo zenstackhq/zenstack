@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/trpc",
     "displayName": "ZenStack plugin for tRPC",
-    "version": "2.17.2",
+    "version": "2.18.0",
     "description": "ZenStack plugin for tRPC",
     "main": "index.js",
     "repository": {
@@ -28,7 +28,7 @@
     "dependencies": {
         "@zenstackhq/runtime": "workspace:*",
         "@zenstackhq/sdk": "workspace:*",
-        "ts-morph": "^16.0.0",
+        "ts-morph": "catalog:",
         "tslib": "^2.4.1"
     },
     "peerDependencies": {

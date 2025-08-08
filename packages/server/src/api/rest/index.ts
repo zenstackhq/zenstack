@@ -7,6 +7,7 @@ import {
     PrismaErrorCode,
     clone,
     enumerate,
+    requireField,
     getIdFields,
     isPrismaClientKnownRequestError,
 } from '@zenstackhq/runtime';
@@ -52,6 +53,8 @@ export type Options = {
     urlSegmentCharset?: string;
 
     modelNameMapping?: Record<string, string>;
+
+    externalIdMapping?: Record<string, string>;
 };
 
 type RelationshipInfo = {
@@ -238,6 +241,7 @@ class RequestHandler extends APIHandlerBase {
     private urlPatternMap: Record<UrlPatterns, UrlPattern>;
     private modelNameMapping: Record<string, string>;
     private reverseModelNameMapping: Record<string, string>;
+    private externalIdMapping: Record<string, string>;
 
     constructor(private readonly options: Options) {
         super();
@@ -251,6 +255,12 @@ class RequestHandler extends APIHandlerBase {
         this.reverseModelNameMapping = Object.fromEntries(
             Object.entries(this.modelNameMapping).map(([k, v]) => [v, k])
         );
+
+        this.externalIdMapping = options.externalIdMapping ?? {};
+        this.externalIdMapping = Object.fromEntries(
+            Object.entries(this.externalIdMapping).map(([k, v]) => [lowerCaseFirst(k), v])
+        );
+
         this.urlPatternMap = this.buildUrlPatternMap(segmentCharset);
     }
 
@@ -1166,11 +1176,28 @@ class RequestHandler extends APIHandlerBase {
     }
 
     //#region utilities
+    private getIdFields(modelMeta: ModelMeta, model: string): FieldInfo[] {
+        const modelLower = lowerCaseFirst(model);
+        if (!(modelLower in this.externalIdMapping)) {
+            return getIdFields(modelMeta, model);
+        }
+
+        const metaData = modelMeta.models[modelLower] ?? {};
+        const externalIdName = this.externalIdMapping[modelLower];
+        const uniqueConstraints = metaData.uniqueConstraints ?? {};
+        for (const [name, constraint] of Object.entries(uniqueConstraints)) {
+            if (name === externalIdName) {
+                return constraint.fields.map((f) => requireField(modelMeta, model, f));
+            }
+        }
+
+        throw new Error(`Model ${model} does not have unique key ${externalIdName}`);
+    }
 
     private buildTypeMap(logger: LoggerConfig | undefined, modelMeta: ModelMeta): void {
         this.typeMap = {};
         for (const [model, { fields }] of Object.entries(modelMeta.models)) {
-            const idFields = getIdFields(modelMeta, model);
+            const idFields = this.getIdFields(modelMeta, model);
             if (idFields.length === 0) {
                 logWarning(logger, `Not including model ${model} in the API because it has no ID field`);
                 continue;
@@ -1186,7 +1213,7 @@ class RequestHandler extends APIHandlerBase {
                 if (!fieldInfo.isDataModel) {
                     continue;
                 }
-                const fieldTypeIdFields = getIdFields(modelMeta, fieldInfo.type);
+                const fieldTypeIdFields = this.getIdFields(modelMeta, fieldInfo.type);
                 if (fieldTypeIdFields.length === 0) {
                     logWarning(
                         logger,
@@ -1214,7 +1241,7 @@ class RequestHandler extends APIHandlerBase {
         const linkers: Record<string, Linker<any>> = {};
 
         for (const model of Object.keys(modelMeta.models)) {
-            const ids = getIdFields(modelMeta, model);
+            const ids = this.getIdFields(modelMeta, model);
             const mappedModel = this.mapModelName(model);
 
             if (ids.length < 1) {
@@ -1266,7 +1293,7 @@ class RequestHandler extends APIHandlerBase {
                 if (!fieldSerializer) {
                     continue;
                 }
-                const fieldIds = getIdFields(modelMeta, fieldMeta.type);
+                const fieldIds = this.getIdFields(modelMeta, fieldMeta.type);
                 if (fieldIds.length > 0) {
                     const mappedModel = this.mapModelName(model);
 
@@ -1306,7 +1333,7 @@ class RequestHandler extends APIHandlerBase {
         if (!data) {
             return undefined;
         }
-        const ids = getIdFields(modelMeta, model);
+        const ids = this.getIdFields(modelMeta, model);
         if (ids.length === 0) {
             return undefined;
         } else {
