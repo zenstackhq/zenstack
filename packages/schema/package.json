@@ -91,7 +91,6 @@
     },
     "dependencies": {
         "@paralleldrive/cuid2": "^2.2.0",
-        "@types/node": "^20.12.7",
         "@zenstackhq/language": "workspace:*",
         "@zenstackhq/sdk": "workspace:*",
         "async-exit-hook": "^2.0.1",
@@ -106,7 +105,7 @@
         "semver": "^7.5.2",
         "strip-color": "^0.1.0",
         "terminal-link": "^2.0.0",
-        "ts-morph": "^26.0.0",
+        "ts-morph": "catalog:",
         "ts-pattern": "^4.3.0",
         "uuid": "^9.0.0",
         "vscode-jsonrpc": "^8.0.2",
