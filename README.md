@@ -10,7 +10,7 @@
         <img src="https://img.shields.io/npm/v/zenstack">
     </a>
     <a href="https://www.npmjs.com/package/zenstack">
-        <img src="https://img.shields.io/npm/dm/zenstack">
+        <img src="https://img.shields.io/npm/dm/@zenstackhq/runtime">
     </a>
     <img src="https://github.com/zenstackhq/zenstack/actions/workflows/build-test.yml/badge.svg">
     <a href="https://twitter.com/zenstackhq">
