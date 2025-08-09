@@ -32,7 +32,7 @@
     "semver": "^7.5.2",
     "ts-pattern": "^4.3.0",
     "yaml": "^2.2.2",
-    "zod-validation-error": "^1.5.0"
+    "zod-validation-error": "catalog:"
   },
   "peerDependencies": {
     "zod": "catalog:"
