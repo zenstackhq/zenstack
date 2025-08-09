@@ -28,7 +28,6 @@
         "zenstack": "workspace: *"
     },
     "dependencies": {
-        "@types/node": "^18.0.0",
         "@zenstackhq/sdk": "workspace:*",
         "@zenstackhq/testtools": "workspace:*",
         "bcryptjs": "^2.4.3",
