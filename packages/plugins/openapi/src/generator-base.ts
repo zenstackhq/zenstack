@@ -3,7 +3,7 @@ import { Model } from '@zenstackhq/sdk/ast';
 import type { DMMF } from '@zenstackhq/sdk/prisma';
 import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
 import semver from 'semver';
-import { fromZodError } from 'zod-validation-error';
+import { fromZodError } from 'zod-validation-error/v3';
 import { name } from '.';
 import { SecuritySchemesSchema } from './schema';
 

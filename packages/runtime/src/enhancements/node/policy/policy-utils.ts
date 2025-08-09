@@ -2,7 +2,7 @@
 
 import deepmerge from 'deepmerge';
 import { z, type ZodError, type ZodObject, type ZodSchema } from 'zod';
-import { fromZodError } from 'zod-validation-error';
+import { fromZodError } from 'zod-validation-error/v3';
 import { CrudFailureReason, PrismaErrorCode } from '../../../constants';
 import {
     clone,
