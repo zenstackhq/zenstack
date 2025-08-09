@@ -1,6 +1,6 @@
 import fs from 'fs';
 import z, { ZodError } from 'zod';
-import { fromZodError } from 'zod-validation-error';
+import { fromZodError } from 'zod-validation-error/v3';
 import { CliError } from './cli-error';
 
 // TODO: future use

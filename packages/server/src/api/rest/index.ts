@@ -16,7 +16,7 @@ import SuperJSON from 'superjson';
 import { Linker, Paginator, Relator, Serializer, SerializerOptions } from 'ts-japi';
 import UrlPattern from 'url-pattern';
 import z, { ZodError } from 'zod';
-import { fromZodError } from 'zod-validation-error';
+import { fromZodError } from 'zod-validation-error/v3';
 import { LoggerConfig, Response } from '../../types';
 import { APIHandlerBase, RequestContext } from '../base';
 import { logWarning, registerCustomSerializers } from '../utils';
