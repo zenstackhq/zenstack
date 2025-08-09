@@ -237,9 +237,6 @@ importers:
 
   packages/plugins/tanstack-query:
     dependencies:
-      '@tanstack/angular-query-experimental':
-        specifier: ^5.0.0
-        version: 5.84.1(@angular/common@20.1.4(@angular/core@20.1.4(rxjs@7.8.1)(zone.js@0.15.1))(rxjs@7.8.1))(@angular/core@20.1.4(rxjs@7.8.1)(zone.js@0.15.1))
       '@zenstackhq/runtime':
         specifier: workspace:*
         version: link:../../runtime/dist
