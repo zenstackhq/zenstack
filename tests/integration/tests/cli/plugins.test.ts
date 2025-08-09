@@ -70,7 +70,7 @@ describe('CLI Plugins Tests', () => {
         // deps
         const ver = require('../../../../packages/schema/package.json').version;
         const depPkgs = [
-            'zod@3.21.1',
+            'zod@^3.25.0',
             'react',
             'swr',
             '@tanstack/react-query@5.56.x',

@@ -16,6 +16,6 @@
         "react": "^18.2.0",
         "swr": "^1.3.0",
         "zenstack": "file:../../../packages/schema/dist",
-        "zod": "^3.22.4"
+        "zod": "^3.25.0"
     }
 }
