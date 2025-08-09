@@ -93,9 +93,6 @@
         "ts-morph": "catalog:",
         "ts-pattern": "^4.3.0"
     },
-    "peerDependencies": {
-        "@tanstack/angular-query-experimental": "^5.0.0"
-    },
     "devDependencies": {
         "@angular/core": "^20.0.0",
         "@angular/common": "^20.0.0",
