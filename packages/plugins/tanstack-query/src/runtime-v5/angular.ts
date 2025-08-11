@@ -8,8 +8,6 @@ import {
     type CreateMutationOptions,
     type CreateInfiniteQueryOptions,
     type InfiniteData,
-    CreateInfiniteQueryResult,
-    QueryKey,
 } from '@tanstack/angular-query-v5';
 import type { ModelMeta } from '@zenstackhq/runtime/cross';
 import { inject, InjectionToken } from '@angular/core';
@@ -28,6 +26,9 @@ import {
 } from '../runtime/common';
 
 export { APIContext as RequestHandlerContext } from '../runtime/common';
+
+type AnyFn = (...a: unknown[]) => unknown;
+const isFn = (v: unknown): v is AnyFn => typeof v === 'function';
 
 export const AngularQueryContextKey = new InjectionToken<APIContext>('zenstack-angular-query-context');
 
@@ -74,19 +75,21 @@ export function useModelQuery<TQueryFnData, TData, TError>(
     options?: Omit<CreateQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions,
     fetch?: FetchFn
 ) {
-    const reqUrl = makeUrl(url, args);
-    const queryKey = getQueryKey(model, url, args, {
-        infinite: false,
-        optimisticUpdate: options?.optimisticUpdate !== false,
-    });
-    return {
-        queryKey,
-        ...injectQuery(() => ({
+    const query = injectQuery(() => {
+        const resolvedArgs = isFn(args) ? args() : args;
+
+        const reqUrl = makeUrl(url, resolvedArgs);
+        const queryKey = getQueryKey(model, url, resolvedArgs, {
+            infinite: false,
+            optimisticUpdate: options?.optimisticUpdate !== false,
+        });
+        return {
             queryKey,
             queryFn: ({ signal }) => fetcher<TQueryFnData, false>(reqUrl, { signal }, fetch, false),
             ...options,
-        })),
-    };
+        };
+    });
+    return query;
 }
 
 /**
@@ -108,19 +111,22 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
         'queryKey' | 'initialPageParam'
     >,
     fetch?: FetchFn
-): CreateInfiniteQueryResult<InfiniteData<TData>, TError> & { queryKey: QueryKey } {
-    const queryKey = getQueryKey(model, url, args, { infinite: true, optimisticUpdate: false });
-    return {
-        queryKey,
-        ...injectInfiniteQuery(() => ({
+) {
+    const query = injectInfiniteQuery(() => {
+        const resolvedArgs = isFn(args) ? args() : args;
+
+        const queryKey = getQueryKey(model, url, resolvedArgs, { infinite: true, optimisticUpdate: false });
+
+        return {
             queryKey,
             queryFn: ({ pageParam, signal }) => {
-                return fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), { signal }, fetch, false);
+                return fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? resolvedArgs), { signal }, fetch, false);
             },
-            initialPageParam: args,
+            initialPageParam: resolvedArgs,
             ...options,
-        })),
-    };
+        };
+    });
+    return query;
 }
 
 /**
