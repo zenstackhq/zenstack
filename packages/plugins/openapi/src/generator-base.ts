@@ -15,7 +15,14 @@ export abstract class OpenAPIGeneratorBase {
     abstract generate(): PluginResult;
 
     protected get includedModels() {
-        return getDataModels(this.model).filter((d) => !hasAttribute(d, '@@openapi.ignore'));
+        const includeApiIgnored = this.getOption<boolean>('includeApiIgnored', false);
+        if (includeApiIgnored) {
+            return getDataModels(this.model);
+        } else {
+            return getDataModels(this.model).filter(
+                (d) => !hasAttribute(d, '@@openapi.ignore')
+            );
+        }
     }
 
     protected wrapArray(
