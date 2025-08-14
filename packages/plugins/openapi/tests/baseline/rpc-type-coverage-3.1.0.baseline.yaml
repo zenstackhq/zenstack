@@ -1,2813 +1,3162 @@
 openapi: 3.1.0
 info:
-    title: ZenStack Generated API
-    version: 1.0.0
+  title: ZenStack Generated API
+  version: 1.0.0
 tags:
-    - name: foo
-      description: Foo operations
+  - name: foo
+    description: Foo operations
 components:
-    schemas:
-        FooScalarFieldEnum:
+  schemas:
+    FooScalarFieldEnum:
+      type: string
+      enum:
+        - id
+        - string
+        - int
+        - bigInt
+        - date
+        - float
+        - decimal
+        - boolean
+        - bytes
+        - json
+        - plainJson
+    SortOrder:
+      type: string
+      enum:
+        - asc
+        - desc
+    NullableJsonNullValueInput:
+      type: string
+      enum:
+        - DbNull
+        - JsonNull
+    JsonNullValueInput:
+      type: string
+      enum:
+        - JsonNull
+    QueryMode:
+      type: string
+      enum:
+        - default
+        - insensitive
+    JsonNullValueFilter:
+      type: string
+      enum:
+        - DbNull
+        - JsonNull
+        - AnyNull
+    NullsOrder:
+      type: string
+      enum:
+        - first
+        - last
+    Foo:
+      type: object
+      properties:
+        id:
+          type: string
+        string:
+          type: string
+        int:
+          type: integer
+        bigInt:
+          type: integer
+        date:
+          type: string
+          format: date-time
+        float:
+          type: number
+        decimal:
+          oneOf:
+            - type: string
+            - type: number
+        boolean:
+          type: boolean
+        bytes:
+          oneOf:
+            - type: "null"
+            - type: string
+              format: byte
+        json:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/Meta"
+        plainJson: {}
+      required:
+        - id
+        - string
+        - int
+        - bigInt
+        - date
+        - float
+        - decimal
+        - boolean
+        - plainJson
+    Meta:
+      type: object
+      description: The "Meta" TypeDef
+      properties:
+        something:
+          type: string
+      required:
+        - something
+    FooWhereInput:
+      type: object
+      properties:
+        AND:
+          oneOf:
+            - $ref: "#/components/schemas/FooWhereInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/FooWhereInput"
+        OR:
+          type: array
+          items:
+            $ref: "#/components/schemas/FooWhereInput"
+        NOT:
+          oneOf:
+            - $ref: "#/components/schemas/FooWhereInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/FooWhereInput"
+        id:
+          oneOf:
+            - $ref: "#/components/schemas/StringFilter"
+            - type: string
+        string:
+          oneOf:
+            - $ref: "#/components/schemas/StringFilter"
+            - type: string
+        int:
+          oneOf:
+            - $ref: "#/components/schemas/IntFilter"
+            - type: integer
+        bigInt:
+          oneOf:
+            - $ref: "#/components/schemas/BigIntFilter"
+            - type: integer
+        date:
+          oneOf:
+            - $ref: "#/components/schemas/DateTimeFilter"
+            - type: string
+              format: date-time
+        float:
+          oneOf:
+            - $ref: "#/components/schemas/FloatFilter"
+            - type: number
+        decimal:
+          oneOf:
+            - $ref: "#/components/schemas/DecimalFilter"
+            - oneOf:
+                - type: string
+                - type: number
+        boolean:
+          oneOf:
+            - $ref: "#/components/schemas/BoolFilter"
+            - type: boolean
+        bytes:
+          oneOf:
+            - $ref: "#/components/schemas/BytesNullableFilter"
+            - type: string
+              format: byte
+            - type: "null"
+        json:
+          $ref: "#/components/schemas/JsonNullableFilter"
+        plainJson:
+          $ref: "#/components/schemas/JsonFilter"
+    FooOrderByWithRelationInput:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/SortOrder"
+        string:
+          $ref: "#/components/schemas/SortOrder"
+        int:
+          $ref: "#/components/schemas/SortOrder"
+        bigInt:
+          $ref: "#/components/schemas/SortOrder"
+        date:
+          $ref: "#/components/schemas/SortOrder"
+        float:
+          $ref: "#/components/schemas/SortOrder"
+        decimal:
+          $ref: "#/components/schemas/SortOrder"
+        boolean:
+          $ref: "#/components/schemas/SortOrder"
+        bytes:
+          oneOf:
+            - $ref: "#/components/schemas/SortOrder"
+            - $ref: "#/components/schemas/SortOrderInput"
+        json:
+          oneOf:
+            - $ref: "#/components/schemas/SortOrder"
+            - $ref: "#/components/schemas/SortOrderInput"
+        plainJson:
+          $ref: "#/components/schemas/SortOrder"
+    FooWhereUniqueInput:
+      type: object
+      properties:
+        id:
+          type: string
+        AND:
+          oneOf:
+            - $ref: "#/components/schemas/FooWhereInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/FooWhereInput"
+        OR:
+          type: array
+          items:
+            $ref: "#/components/schemas/FooWhereInput"
+        NOT:
+          oneOf:
+            - $ref: "#/components/schemas/FooWhereInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/FooWhereInput"
+        string:
+          oneOf:
+            - $ref: "#/components/schemas/StringFilter"
+            - type: string
+        int:
+          oneOf:
+            - $ref: "#/components/schemas/IntFilter"
+            - type: integer
+        bigInt:
+          oneOf:
+            - $ref: "#/components/schemas/BigIntFilter"
+            - type: integer
+        date:
+          oneOf:
+            - $ref: "#/components/schemas/DateTimeFilter"
+            - type: string
+              format: date-time
+        float:
+          oneOf:
+            - $ref: "#/components/schemas/FloatFilter"
+            - type: number
+        decimal:
+          oneOf:
+            - $ref: "#/components/schemas/DecimalFilter"
+            - oneOf:
+                - type: string
+                - type: number
+        boolean:
+          oneOf:
+            - $ref: "#/components/schemas/BoolFilter"
+            - type: boolean
+        bytes:
+          oneOf:
+            - $ref: "#/components/schemas/BytesNullableFilter"
+            - type: string
+              format: byte
+            - type: "null"
+        json:
+          $ref: "#/components/schemas/JsonNullableFilter"
+        plainJson:
+          $ref: "#/components/schemas/JsonFilter"
+    FooScalarWhereWithAggregatesInput:
+      type: object
+      properties:
+        AND:
+          oneOf:
+            - $ref: "#/components/schemas/FooScalarWhereWithAggregatesInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/FooScalarWhereWithAggregatesInput"
+        OR:
+          type: array
+          items:
+            $ref: "#/components/schemas/FooScalarWhereWithAggregatesInput"
+        NOT:
+          oneOf:
+            - $ref: "#/components/schemas/FooScalarWhereWithAggregatesInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/FooScalarWhereWithAggregatesInput"
+        id:
+          oneOf:
+            - $ref: "#/components/schemas/StringWithAggregatesFilter"
+            - type: string
+        string:
+          oneOf:
+            - $ref: "#/components/schemas/StringWithAggregatesFilter"
+            - type: string
+        int:
+          oneOf:
+            - $ref: "#/components/schemas/IntWithAggregatesFilter"
+            - type: integer
+        bigInt:
+          oneOf:
+            - $ref: "#/components/schemas/BigIntWithAggregatesFilter"
+            - type: integer
+        date:
+          oneOf:
+            - $ref: "#/components/schemas/DateTimeWithAggregatesFilter"
+            - type: string
+              format: date-time
+        float:
+          oneOf:
+            - $ref: "#/components/schemas/FloatWithAggregatesFilter"
+            - type: number
+        decimal:
+          oneOf:
+            - $ref: "#/components/schemas/DecimalWithAggregatesFilter"
+            - oneOf:
+                - type: string
+                - type: number
+        boolean:
+          oneOf:
+            - $ref: "#/components/schemas/BoolWithAggregatesFilter"
+            - type: boolean
+        bytes:
+          oneOf:
+            - $ref: "#/components/schemas/BytesNullableWithAggregatesFilter"
+            - type: string
+              format: byte
+            - type: "null"
+        json:
+          $ref: "#/components/schemas/JsonNullableWithAggregatesFilter"
+        plainJson:
+          $ref: "#/components/schemas/JsonWithAggregatesFilter"
+    FooCreateInput:
+      type: object
+      properties:
+        id:
+          type: string
+        string:
+          type: string
+        int:
+          type: integer
+        bigInt:
+          type: integer
+        date:
+          type: string
+          format: date-time
+        float:
+          type: number
+        decimal:
+          oneOf:
+            - type: string
+            - type: number
+        boolean:
+          type: boolean
+        bytes:
+          oneOf:
+            - type: "null"
+            - type: string
+              format: byte
+        json:
+          oneOf:
+            - $ref: "#/components/schemas/NullableJsonNullValueInput"
+            - {}
+        plainJson:
+          oneOf:
+            - $ref: "#/components/schemas/JsonNullValueInput"
+            - {}
+      required:
+        - string
+        - int
+        - bigInt
+        - date
+        - float
+        - decimal
+        - boolean
+        - plainJson
+    FooUpdateInput:
+      type: object
+      properties:
+        id:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/StringFieldUpdateOperationsInput"
+        string:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/StringFieldUpdateOperationsInput"
+        int:
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/IntFieldUpdateOperationsInput"
+        bigInt:
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/BigIntFieldUpdateOperationsInput"
+        date:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/DateTimeFieldUpdateOperationsInput"
+        float:
+          oneOf:
+            - type: number
+            - $ref: "#/components/schemas/FloatFieldUpdateOperationsInput"
+        decimal:
+          oneOf:
+            - oneOf:
+                - type: string
+                - type: number
+            - $ref: "#/components/schemas/DecimalFieldUpdateOperationsInput"
+        boolean:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/BoolFieldUpdateOperationsInput"
+        bytes:
+          oneOf:
+            - type: string
+              format: byte
+            - $ref: "#/components/schemas/NullableBytesFieldUpdateOperationsInput"
+            - type: "null"
+        json:
+          oneOf:
+            - $ref: "#/components/schemas/NullableJsonNullValueInput"
+            - {}
+        plainJson:
+          oneOf:
+            - $ref: "#/components/schemas/JsonNullValueInput"
+            - {}
+    FooCreateManyInput:
+      type: object
+      properties:
+        id:
+          type: string
+        string:
+          type: string
+        int:
+          type: integer
+        bigInt:
+          type: integer
+        date:
+          type: string
+          format: date-time
+        float:
+          type: number
+        decimal:
+          oneOf:
+            - type: string
+            - type: number
+        boolean:
+          type: boolean
+        bytes:
+          oneOf:
+            - type: "null"
+            - type: string
+              format: byte
+        json:
+          oneOf:
+            - $ref: "#/components/schemas/NullableJsonNullValueInput"
+            - {}
+        plainJson:
+          oneOf:
+            - $ref: "#/components/schemas/JsonNullValueInput"
+            - {}
+      required:
+        - string
+        - int
+        - bigInt
+        - date
+        - float
+        - decimal
+        - boolean
+        - plainJson
+    FooUpdateManyMutationInput:
+      type: object
+      properties:
+        id:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/StringFieldUpdateOperationsInput"
+        string:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/StringFieldUpdateOperationsInput"
+        int:
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/IntFieldUpdateOperationsInput"
+        bigInt:
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/BigIntFieldUpdateOperationsInput"
+        date:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/DateTimeFieldUpdateOperationsInput"
+        float:
+          oneOf:
+            - type: number
+            - $ref: "#/components/schemas/FloatFieldUpdateOperationsInput"
+        decimal:
+          oneOf:
+            - oneOf:
+                - type: string
+                - type: number
+            - $ref: "#/components/schemas/DecimalFieldUpdateOperationsInput"
+        boolean:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/BoolFieldUpdateOperationsInput"
+        bytes:
+          oneOf:
+            - type: string
+              format: byte
+            - $ref: "#/components/schemas/NullableBytesFieldUpdateOperationsInput"
+            - type: "null"
+        json:
+          oneOf:
+            - $ref: "#/components/schemas/NullableJsonNullValueInput"
+            - {}
+        plainJson:
+          oneOf:
+            - $ref: "#/components/schemas/JsonNullValueInput"
+            - {}
+    StringFilter:
+      type: object
+      properties:
+        equals:
+          type: string
+        in:
+          type: array
+          items:
             type: string
-            enum:
-                - id
-                - string
-                - int
-                - bigInt
-                - date
-                - float
-                - decimal
-                - boolean
-                - bytes
-        SortOrder:
+        notIn:
+          type: array
+          items:
             type: string
-            enum:
-                - asc
-                - desc
-        QueryMode:
+        lt:
+          type: string
+        lte:
+          type: string
+        gt:
+          type: string
+        gte:
+          type: string
+        contains:
+          type: string
+        startsWith:
+          type: string
+        endsWith:
+          type: string
+        mode:
+          $ref: "#/components/schemas/QueryMode"
+        not:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/NestedStringFilter"
+    IntFilter:
+      type: object
+      properties:
+        equals:
+          type: integer
+        in:
+          type: array
+          items:
+            type: integer
+        notIn:
+          type: array
+          items:
+            type: integer
+        lt:
+          type: integer
+        lte:
+          type: integer
+        gt:
+          type: integer
+        gte:
+          type: integer
+        not:
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/NestedIntFilter"
+    BigIntFilter:
+      type: object
+      properties:
+        equals:
+          type: integer
+        in:
+          type: array
+          items:
+            type: integer
+        notIn:
+          type: array
+          items:
+            type: integer
+        lt:
+          type: integer
+        lte:
+          type: integer
+        gt:
+          type: integer
+        gte:
+          type: integer
+        not:
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/NestedBigIntFilter"
+    DateTimeFilter:
+      type: object
+      properties:
+        equals:
+          type: string
+          format: date-time
+        in:
+          type: array
+          items:
             type: string
-            enum:
-                - default
-                - insensitive
-        NullsOrder:
+            format: date-time
+        notIn:
+          type: array
+          items:
             type: string
-            enum:
-                - first
-                - last
-        Foo:
-            type: object
-            properties:
-                id:
-                    type: string
-                string:
-                    type: string
-                int:
-                    type: integer
-                bigInt:
-                    type: integer
-                date:
-                    type: string
-                    format: date-time
-                float:
-                    type: number
-                decimal:
-                    oneOf:
-                        - type: string
-                        - type: number
-                boolean:
-                    type: boolean
-                bytes:
-                    oneOf:
-                        - type: 'null'
-                        - type: string
-                          format: byte
-            required:
-                - id
-                - string
-                - int
-                - bigInt
-                - date
-                - float
-                - decimal
-                - boolean
-        FooWhereInput:
-            type: object
-            properties:
-                AND:
-                    oneOf:
-                        - $ref: '#/components/schemas/FooWhereInput'
-                        - type: array
-                          items:
-                              $ref: '#/components/schemas/FooWhereInput'
-                OR:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/FooWhereInput'
-                NOT:
-                    oneOf:
-                        - $ref: '#/components/schemas/FooWhereInput'
-                        - type: array
-                          items:
-                              $ref: '#/components/schemas/FooWhereInput'
-                id:
-                    oneOf:
-                        - $ref: '#/components/schemas/StringFilter'
-                        - type: string
-                string:
-                    oneOf:
-                        - $ref: '#/components/schemas/StringFilter'
-                        - type: string
-                int:
-                    oneOf:
-                        - $ref: '#/components/schemas/IntFilter'
-                        - type: integer
-                bigInt:
-                    oneOf:
-                        - $ref: '#/components/schemas/BigIntFilter'
-                        - type: integer
-                date:
-                    oneOf:
-                        - $ref: '#/components/schemas/DateTimeFilter'
-                        - type: string
-                          format: date-time
-                float:
-                    oneOf:
-                        - $ref: '#/components/schemas/FloatFilter'
-                        - type: number
-                decimal:
-                    oneOf:
-                        - $ref: '#/components/schemas/DecimalFilter'
-                        - oneOf:
-                              - type: string
-                              - type: number
-                boolean:
-                    oneOf:
-                        - $ref: '#/components/schemas/BoolFilter'
-                        - type: boolean
-                bytes:
-                    oneOf:
-                        - $ref: '#/components/schemas/BytesNullableFilter'
-                        - type: string
-                          format: byte
-                        - type: 'null'
-        FooOrderByWithRelationInput:
-            type: object
-            properties:
-                id:
-                    $ref: '#/components/schemas/SortOrder'
-                string:
-                    $ref: '#/components/schemas/SortOrder'
-                int:
-                    $ref: '#/components/schemas/SortOrder'
-                bigInt:
-                    $ref: '#/components/schemas/SortOrder'
-                date:
-                    $ref: '#/components/schemas/SortOrder'
-                float:
-                    $ref: '#/components/schemas/SortOrder'
-                decimal:
-                    $ref: '#/components/schemas/SortOrder'
-                boolean:
-                    $ref: '#/components/schemas/SortOrder'
-                bytes:
-                    oneOf:
-                        - $ref: '#/components/schemas/SortOrder'
-                        - $ref: '#/components/schemas/SortOrderInput'
-        FooWhereUniqueInput:
-            type: object
-            properties:
-                id:
-                    type: string
-                AND:
-                    oneOf:
-                        - $ref: '#/components/schemas/FooWhereInput'
-                        - type: array
-                          items:
-                              $ref: '#/components/schemas/FooWhereInput'
-                OR:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/FooWhereInput'
-                NOT:
-                    oneOf:
-                        - $ref: '#/components/schemas/FooWhereInput'
-                        - type: array
-                          items:
-                              $ref: '#/components/schemas/FooWhereInput'
-                string:
-                    oneOf:
-                        - $ref: '#/components/schemas/StringFilter'
-                        - type: string
-                int:
-                    oneOf:
-                        - $ref: '#/components/schemas/IntFilter'
-                        - type: integer
-                bigInt:
-                    oneOf:
-                        - $ref: '#/components/schemas/BigIntFilter'
-                        - type: integer
-                date:
-                    oneOf:
-                        - $ref: '#/components/schemas/DateTimeFilter'
-                        - type: string
-                          format: date-time
-                float:
-                    oneOf:
-                        - $ref: '#/components/schemas/FloatFilter'
-                        - type: number
-                decimal:
-                    oneOf:
-                        - $ref: '#/components/schemas/DecimalFilter'
-                        - oneOf:
-                              - type: string
-                              - type: number
-                boolean:
-                    oneOf:
-                        - $ref: '#/components/schemas/BoolFilter'
-                        - type: boolean
-                bytes:
-                    oneOf:
-                        - $ref: '#/components/schemas/BytesNullableFilter'
-                        - type: string
-                          format: byte
-                        - type: 'null'
-        FooScalarWhereWithAggregatesInput:
-            type: object
-            properties:
-                AND:
-                    oneOf:
-                        - $ref: '#/components/schemas/FooScalarWhereWithAggregatesInput'
-                        - type: array
-                          items:
-                              $ref: '#/components/schemas/FooScalarWhereWithAggregatesInput'
-                OR:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/FooScalarWhereWithAggregatesInput'
-                NOT:
-                    oneOf:
-                        - $ref: '#/components/schemas/FooScalarWhereWithAggregatesInput'
-                        - type: array
-                          items:
-                              $ref: '#/components/schemas/FooScalarWhereWithAggregatesInput'
-                id:
-                    oneOf:
-                        - $ref: '#/components/schemas/StringWithAggregatesFilter'
-                        - type: string
-                string:
-                    oneOf:
-                        - $ref: '#/components/schemas/StringWithAggregatesFilter'
-                        - type: string
-                int:
-                    oneOf:
-                        - $ref: '#/components/schemas/IntWithAggregatesFilter'
-                        - type: integer
-                bigInt:
-                    oneOf:
-                        - $ref: '#/components/schemas/BigIntWithAggregatesFilter'
-                        - type: integer
-                date:
-                    oneOf:
-                        - $ref: '#/components/schemas/DateTimeWithAggregatesFilter'
-                        - type: string
-                          format: date-time
-                float:
-                    oneOf:
-                        - $ref: '#/components/schemas/FloatWithAggregatesFilter'
-                        - type: number
-                decimal:
-                    oneOf:
-                        - $ref: '#/components/schemas/DecimalWithAggregatesFilter'
-                        - oneOf:
-                              - type: string
-                              - type: number
-                boolean:
-                    oneOf:
-                        - $ref: '#/components/schemas/BoolWithAggregatesFilter'
-                        - type: boolean
-                bytes:
-                    oneOf:
-                        - $ref: '#/components/schemas/BytesNullableWithAggregatesFilter'
-                        - type: string
-                          format: byte
-                        - type: 'null'
-        FooCreateInput:
-            type: object
-            properties:
-                id:
-                    type: string
-                string:
-                    type: string
-                int:
-                    type: integer
-                bigInt:
-                    type: integer
-                date:
-                    type: string
-                    format: date-time
-                float:
-                    type: number
-                decimal:
-                    oneOf:
-                        - type: string
-                        - type: number
-                boolean:
-                    type: boolean
-                bytes:
-                    oneOf:
-                        - type: 'null'
-                        - type: string
-                          format: byte
-            required:
-                - string
-                - int
-                - bigInt
-                - date
-                - float
-                - decimal
-                - boolean
-        FooUpdateInput:
-            type: object
-            properties:
-                id:
-                    oneOf:
-                        - type: string
-                        - $ref: '#/components/schemas/StringFieldUpdateOperationsInput'
-                string:
-                    oneOf:
-                        - type: string
-                        - $ref: '#/components/schemas/StringFieldUpdateOperationsInput'
-                int:
-                    oneOf:
-                        - type: integer
-                        - $ref: '#/components/schemas/IntFieldUpdateOperationsInput'
-                bigInt:
-                    oneOf:
-                        - type: integer
-                        - $ref: '#/components/schemas/BigIntFieldUpdateOperationsInput'
-                date:
-                    oneOf:
-                        - type: string
-                          format: date-time
-                        - $ref: '#/components/schemas/DateTimeFieldUpdateOperationsInput'
-                float:
-                    oneOf:
-                        - type: number
-                        - $ref: '#/components/schemas/FloatFieldUpdateOperationsInput'
-                decimal:
-                    oneOf:
-                        - oneOf:
-                              - type: string
-                              - type: number
-                        - $ref: '#/components/schemas/DecimalFieldUpdateOperationsInput'
-                boolean:
-                    oneOf:
-                        - type: boolean
-                        - $ref: '#/components/schemas/BoolFieldUpdateOperationsInput'
-                bytes:
-                    oneOf:
-                        - type: string
-                          format: byte
-                        - $ref: '#/components/schemas/NullableBytesFieldUpdateOperationsInput'
-                        - type: 'null'
-        FooCreateManyInput:
-            type: object
-            properties:
-                id:
-                    type: string
-                string:
-                    type: string
-                int:
-                    type: integer
-                bigInt:
-                    type: integer
-                date:
-                    type: string
-                    format: date-time
-                float:
-                    type: number
-                decimal:
-                    oneOf:
-                        - type: string
-                        - type: number
-                boolean:
-                    type: boolean
-                bytes:
-                    oneOf:
-                        - type: 'null'
-                        - type: string
-                          format: byte
-            required:
-                - string
-                - int
-                - bigInt
-                - date
-                - float
-                - decimal
-                - boolean
-        FooUpdateManyMutationInput:
-            type: object
-            properties:
-                id:
-                    oneOf:
-                        - type: string
-                        - $ref: '#/components/schemas/StringFieldUpdateOperationsInput'
-                string:
-                    oneOf:
-                        - type: string
-                        - $ref: '#/components/schemas/StringFieldUpdateOperationsInput'
-                int:
-                    oneOf:
-                        - type: integer
-                        - $ref: '#/components/schemas/IntFieldUpdateOperationsInput'
-                bigInt:
-                    oneOf:
-                        - type: integer
-                        - $ref: '#/components/schemas/BigIntFieldUpdateOperationsInput'
-                date:
-                    oneOf:
-                        - type: string
-                          format: date-time
-                        - $ref: '#/components/schemas/DateTimeFieldUpdateOperationsInput'
-                float:
-                    oneOf:
-                        - type: number
-                        - $ref: '#/components/schemas/FloatFieldUpdateOperationsInput'
-                decimal:
-                    oneOf:
-                        - oneOf:
-                              - type: string
-                              - type: number
-                        - $ref: '#/components/schemas/DecimalFieldUpdateOperationsInput'
-                boolean:
-                    oneOf:
-                        - type: boolean
-                        - $ref: '#/components/schemas/BoolFieldUpdateOperationsInput'
-                bytes:
-                    oneOf:
-                        - type: string
-                          format: byte
-                        - $ref: '#/components/schemas/NullableBytesFieldUpdateOperationsInput'
-                        - type: 'null'
-        StringFilter:
-            type: object
-            properties:
-                equals:
-                    type: string
-                in:
-                    type: array
-                    items:
-                        type: string
-                notIn:
-                    type: array
-                    items:
-                        type: string
-                lt:
-                    type: string
-                lte:
-                    type: string
-                gt:
-                    type: string
-                gte:
-                    type: string
-                contains:
-                    type: string
-                startsWith:
-                    type: string
-                endsWith:
-                    type: string
-                mode:
-                    $ref: '#/components/schemas/QueryMode'
-                not:
-                    oneOf:
-                        - type: string
-                        - $ref: '#/components/schemas/NestedStringFilter'
-        IntFilter:
-            type: object
-            properties:
-                equals:
-                    type: integer
-                in:
-                    type: array
-                    items:
-                        type: integer
-                notIn:
-                    type: array
-                    items:
-                        type: integer
-                lt:
-                    type: integer
-                lte:
-                    type: integer
-                gt:
-                    type: integer
-                gte:
-                    type: integer
-                not:
-                    oneOf:
-                        - type: integer
-                        - $ref: '#/components/schemas/NestedIntFilter'
-        BigIntFilter:
-            type: object
-            properties:
-                equals:
-                    type: integer
-                in:
-                    type: array
-                    items:
-                        type: integer
-                notIn:
-                    type: array
-                    items:
-                        type: integer
-                lt:
-                    type: integer
-                lte:
-                    type: integer
-                gt:
-                    type: integer
-                gte:
-                    type: integer
-                not:
-                    oneOf:
-                        - type: integer
-                        - $ref: '#/components/schemas/NestedBigIntFilter'
-        DateTimeFilter:
-            type: object
-            properties:
-                equals:
-                    type: string
-                    format: date-time
-                in:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
-                notIn:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
-                lt:
-                    type: string
-                    format: date-time
-                lte:
-                    type: string
-                    format: date-time
-                gt:
-                    type: string
-                    format: date-time
-                gte:
-                    type: string
-                    format: date-time
-                not:
-                    oneOf:
-                        - type: string
-                          format: date-time
-                        - $ref: '#/components/schemas/NestedDateTimeFilter'
-        FloatFilter:
-            type: object
-            properties:
-                equals:
-                    type: number
-                in:
-                    type: array
-                    items:
-                        type: number
-                notIn:
-                    type: array
-                    items:
-                        type: number
-                lt:
-                    type: number
-                lte:
-                    type: number
-                gt:
-                    type: number
-                gte:
-                    type: number
-                not:
-                    oneOf:
-                        - type: number
-                        - $ref: '#/components/schemas/NestedFloatFilter'
-        DecimalFilter:
-            type: object
-            properties:
-                equals:
-                    oneOf:
-                        - type: string
-                        - type: number
-                in:
-                    type: array
-                    items:
-                        oneOf:
-                            - type: string
-                            - type: number
-                notIn:
-                    type: array
-                    items:
-                        oneOf:
-                            - type: string
-                            - type: number
-                lt:
-                    oneOf:
-                        - type: string
-                        - type: number
-                lte:
-                    oneOf:
-                        - type: string
-                        - type: number
-                gt:
-                    oneOf:
-                        - type: string
-                        - type: number
-                gte:
-                    oneOf:
-                        - type: string
-                        - type: number
-                not:
-                    oneOf:
-                        - oneOf:
-                              - type: string
-                              - type: number
-                        - $ref: '#/components/schemas/NestedDecimalFilter'
-        BoolFilter:
-            type: object
-            properties:
-                equals:
-                    type: boolean
-                not:
-                    oneOf:
-                        - type: boolean
-                        - $ref: '#/components/schemas/NestedBoolFilter'
-        BytesNullableFilter:
-            type: object
-            properties:
-                equals:
-                    oneOf:
-                        - type: 'null'
-                        - type: string
-                          format: byte
-                in:
-                    oneOf:
-                        - type: 'null'
-                        - type: array
-                          items:
-                              type: string
-                              format: byte
-                notIn:
-                    oneOf:
-                        - type: 'null'
-                        - type: array
-                          items:
-                              type: string
-                              format: byte
-                not:
-                    oneOf:
-                        - type: string
-                          format: byte
-                        - $ref: '#/components/schemas/NestedBytesNullableFilter'
-                        - type: 'null'
-        SortOrderInput:
-            type: object
-            properties:
-                sort:
-                    $ref: '#/components/schemas/SortOrder'
-                nulls:
-                    $ref: '#/components/schemas/NullsOrder'
-            required:
-                - sort
-        StringWithAggregatesFilter:
-            type: object
-            properties:
-                equals:
-                    type: string
-                in:
-                    type: array
-                    items:
-                        type: string
-                notIn:
-                    type: array
-                    items:
-                        type: string
-                lt:
-                    type: string
-                lte:
-                    type: string
-                gt:
-                    type: string
-                gte:
-                    type: string
-                contains:
-                    type: string
-                startsWith:
-                    type: string
-                endsWith:
-                    type: string
-                mode:
-                    $ref: '#/components/schemas/QueryMode'
-                not:
-                    oneOf:
-                        - type: string
-                        - $ref: '#/components/schemas/NestedStringWithAggregatesFilter'
-                _count:
-                    $ref: '#/components/schemas/NestedIntFilter'
-                _min:
-                    $ref: '#/components/schemas/NestedStringFilter'
-                _max:
-                    $ref: '#/components/schemas/NestedStringFilter'
-        IntWithAggregatesFilter:
-            type: object
-            properties:
-                equals:
-                    type: integer
-                in:
-                    type: array
-                    items:
-                        type: integer
-                notIn:
-                    type: array
-                    items:
-                        type: integer
-                lt:
-                    type: integer
-                lte:
-                    type: integer
-                gt:
-                    type: integer
-                gte:
-                    type: integer
-                not:
-                    oneOf:
-                        - type: integer
-                        - $ref: '#/components/schemas/NestedIntWithAggregatesFilter'
-                _count:
-                    $ref: '#/components/schemas/NestedIntFilter'
-                _avg:
-                    $ref: '#/components/schemas/NestedFloatFilter'
-                _sum:
-                    $ref: '#/components/schemas/NestedIntFilter'
-                _min:
-                    $ref: '#/components/schemas/NestedIntFilter'
-                _max:
-                    $ref: '#/components/schemas/NestedIntFilter'
-        BigIntWithAggregatesFilter:
-            type: object
-            properties:
-                equals:
-                    type: integer
-                in:
-                    type: array
-                    items:
-                        type: integer
-                notIn:
-                    type: array
-                    items:
-                        type: integer
-                lt:
-                    type: integer
-                lte:
-                    type: integer
-                gt:
-                    type: integer
-                gte:
-                    type: integer
-                not:
-                    oneOf:
-                        - type: integer
-                        - $ref: '#/components/schemas/NestedBigIntWithAggregatesFilter'
-                _count:
-                    $ref: '#/components/schemas/NestedIntFilter'
-                _avg:
-                    $ref: '#/components/schemas/NestedFloatFilter'
-                _sum:
-                    $ref: '#/components/schemas/NestedBigIntFilter'
-                _min:
-                    $ref: '#/components/schemas/NestedBigIntFilter'
-                _max:
-                    $ref: '#/components/schemas/NestedBigIntFilter'
-        DateTimeWithAggregatesFilter:
-            type: object
-            properties:
-                equals:
-                    type: string
-                    format: date-time
-                in:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
-                notIn:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
-                lt:
-                    type: string
-                    format: date-time
-                lte:
-                    type: string
-                    format: date-time
-                gt:
-                    type: string
-                    format: date-time
-                gte:
-                    type: string
-                    format: date-time
-                not:
-                    oneOf:
-                        - type: string
-                          format: date-time
-                        - $ref: '#/components/schemas/NestedDateTimeWithAggregatesFilter'
-                _count:
-                    $ref: '#/components/schemas/NestedIntFilter'
-                _min:
-                    $ref: '#/components/schemas/NestedDateTimeFilter'
-                _max:
-                    $ref: '#/components/schemas/NestedDateTimeFilter'
-        FloatWithAggregatesFilter:
-            type: object
-            properties:
-                equals:
-                    type: number
-                in:
-                    type: array
-                    items:
-                        type: number
-                notIn:
-                    type: array
-                    items:
-                        type: number
-                lt:
-                    type: number
-                lte:
-                    type: number
-                gt:
-                    type: number
-                gte:
-                    type: number
-                not:
-                    oneOf:
-                        - type: number
-                        - $ref: '#/components/schemas/NestedFloatWithAggregatesFilter'
-                _count:
-                    $ref: '#/components/schemas/NestedIntFilter'
-                _avg:
-                    $ref: '#/components/schemas/NestedFloatFilter'
-                _sum:
-                    $ref: '#/components/schemas/NestedFloatFilter'
-                _min:
-                    $ref: '#/components/schemas/NestedFloatFilter'
-                _max:
-                    $ref: '#/components/schemas/NestedFloatFilter'
-        DecimalWithAggregatesFilter:
-            type: object
-            properties:
-                equals:
-                    oneOf:
-                        - type: string
-                        - type: number
-                in:
-                    type: array
-                    items:
-                        oneOf:
-                            - type: string
-                            - type: number
-                notIn:
-                    type: array
-                    items:
-                        oneOf:
-                            - type: string
-                            - type: number
-                lt:
-                    oneOf:
-                        - type: string
-                        - type: number
-                lte:
-                    oneOf:
-                        - type: string
-                        - type: number
-                gt:
-                    oneOf:
-                        - type: string
-                        - type: number
-                gte:
-                    oneOf:
-                        - type: string
-                        - type: number
-                not:
-                    oneOf:
-                        - oneOf:
-                              - type: string
-                              - type: number
-                        - $ref: '#/components/schemas/NestedDecimalWithAggregatesFilter'
-                _count:
-                    $ref: '#/components/schemas/NestedIntFilter'
-                _avg:
-                    $ref: '#/components/schemas/NestedDecimalFilter'
-                _sum:
-                    $ref: '#/components/schemas/NestedDecimalFilter'
-                _min:
-                    $ref: '#/components/schemas/NestedDecimalFilter'
-                _max:
-                    $ref: '#/components/schemas/NestedDecimalFilter'
-        BoolWithAggregatesFilter:
-            type: object
-            properties:
-                equals:
-                    type: boolean
-                not:
-                    oneOf:
-                        - type: boolean
-                        - $ref: '#/components/schemas/NestedBoolWithAggregatesFilter'
-                _count:
-                    $ref: '#/components/schemas/NestedIntFilter'
-                _min:
-                    $ref: '#/components/schemas/NestedBoolFilter'
-                _max:
-                    $ref: '#/components/schemas/NestedBoolFilter'
-        BytesNullableWithAggregatesFilter:
-            type: object
-            properties:
-                equals:
-                    oneOf:
-                        - type: 'null'
-                        - type: string
-                          format: byte
-                in:
-                    oneOf:
-                        - type: 'null'
-                        - type: array
-                          items:
-                              type: string
-                              format: byte
-                notIn:
-                    oneOf:
-                        - type: 'null'
-                        - type: array
-                          items:
-                              type: string
-                              format: byte
-                not:
-                    oneOf:
-                        - type: string
-                          format: byte
-                        - $ref: '#/components/schemas/NestedBytesNullableWithAggregatesFilter'
-                        - type: 'null'
-                _count:
-                    $ref: '#/components/schemas/NestedIntNullableFilter'
-                _min:
-                    $ref: '#/components/schemas/NestedBytesNullableFilter'
-                _max:
-                    $ref: '#/components/schemas/NestedBytesNullableFilter'
-        StringFieldUpdateOperationsInput:
-            type: object
-            properties:
-                set:
-                    type: string
-        IntFieldUpdateOperationsInput:
-            type: object
-            properties:
-                set:
-                    type: integer
-                increment:
-                    type: integer
-                decrement:
-                    type: integer
-                multiply:
-                    type: integer
-                divide:
-                    type: integer
-        BigIntFieldUpdateOperationsInput:
-            type: object
-            properties:
-                set:
-                    type: integer
-                increment:
-                    type: integer
-                decrement:
-                    type: integer
-                multiply:
-                    type: integer
-                divide:
-                    type: integer
-        DateTimeFieldUpdateOperationsInput:
-            type: object
-            properties:
-                set:
-                    type: string
-                    format: date-time
-        FloatFieldUpdateOperationsInput:
-            type: object
-            properties:
-                set:
-                    type: number
-                increment:
-                    type: number
-                decrement:
-                    type: number
-                multiply:
-                    type: number
-                divide:
-                    type: number
-        DecimalFieldUpdateOperationsInput:
-            type: object
-            properties:
-                set:
-                    oneOf:
-                        - type: string
-                        - type: number
-                increment:
-                    oneOf:
-                        - type: string
-                        - type: number
-                decrement:
-                    oneOf:
-                        - type: string
-                        - type: number
-                multiply:
-                    oneOf:
-                        - type: string
-                        - type: number
-                divide:
-                    oneOf:
-                        - type: string
-                        - type: number
-        BoolFieldUpdateOperationsInput:
-            type: object
-            properties:
-                set:
-                    type: boolean
-        NullableBytesFieldUpdateOperationsInput:
-            type: object
-            properties:
-                set:
-                    oneOf:
-                        - type: 'null'
-                        - type: string
-                          format: byte
-        NestedStringFilter:
-            type: object
-            properties:
-                equals:
-                    type: string
-                in:
-                    type: array
-                    items:
-                        type: string
-                notIn:
-                    type: array
-                    items:
-                        type: string
-                lt:
-                    type: string
-                lte:
-                    type: string
-                gt:
-                    type: string
-                gte:
-                    type: string
-                contains:
-                    type: string
-                startsWith:
-                    type: string
-                endsWith:
-                    type: string
-                not:
-                    oneOf:
-                        - type: string
-                        - $ref: '#/components/schemas/NestedStringFilter'
-        NestedIntFilter:
-            type: object
-            properties:
-                equals:
-                    type: integer
-                in:
-                    type: array
-                    items:
-                        type: integer
-                notIn:
-                    type: array
-                    items:
-                        type: integer
-                lt:
-                    type: integer
-                lte:
-                    type: integer
-                gt:
-                    type: integer
-                gte:
-                    type: integer
-                not:
-                    oneOf:
-                        - type: integer
-                        - $ref: '#/components/schemas/NestedIntFilter'
-        NestedBigIntFilter:
-            type: object
-            properties:
-                equals:
-                    type: integer
-                in:
-                    type: array
-                    items:
-                        type: integer
-                notIn:
-                    type: array
-                    items:
-                        type: integer
-                lt:
-                    type: integer
-                lte:
-                    type: integer
-                gt:
-                    type: integer
-                gte:
-                    type: integer
-                not:
-                    oneOf:
-                        - type: integer
-                        - $ref: '#/components/schemas/NestedBigIntFilter'
-        NestedDateTimeFilter:
-            type: object
-            properties:
-                equals:
-                    type: string
-                    format: date-time
-                in:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
-                notIn:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
-                lt:
-                    type: string
-                    format: date-time
-                lte:
-                    type: string
-                    format: date-time
-                gt:
-                    type: string
-                    format: date-time
-                gte:
-                    type: string
-                    format: date-time
-                not:
-                    oneOf:
-                        - type: string
-                          format: date-time
-                        - $ref: '#/components/schemas/NestedDateTimeFilter'
-        NestedFloatFilter:
-            type: object
-            properties:
-                equals:
-                    type: number
-                in:
-                    type: array
-                    items:
-                        type: number
-                notIn:
-                    type: array
-                    items:
-                        type: number
-                lt:
-                    type: number
-                lte:
-                    type: number
-                gt:
-                    type: number
-                gte:
-                    type: number
-                not:
-                    oneOf:
-                        - type: number
-                        - $ref: '#/components/schemas/NestedFloatFilter'
-        NestedDecimalFilter:
-            type: object
-            properties:
-                equals:
-                    oneOf:
-                        - type: string
-                        - type: number
-                in:
-                    type: array
-                    items:
-                        oneOf:
-                            - type: string
-                            - type: number
-                notIn:
-                    type: array
-                    items:
-                        oneOf:
-                            - type: string
-                            - type: number
-                lt:
-                    oneOf:
-                        - type: string
-                        - type: number
-                lte:
-                    oneOf:
-                        - type: string
-                        - type: number
-                gt:
-                    oneOf:
-                        - type: string
-                        - type: number
-                gte:
-                    oneOf:
-                        - type: string
-                        - type: number
-                not:
-                    oneOf:
-                        - oneOf:
-                              - type: string
-                              - type: number
-                        - $ref: '#/components/schemas/NestedDecimalFilter'
-        NestedBoolFilter:
-            type: object
-            properties:
-                equals:
-                    type: boolean
-                not:
-                    oneOf:
-                        - type: boolean
-                        - $ref: '#/components/schemas/NestedBoolFilter'
-        NestedBytesNullableFilter:
-            type: object
-            properties:
-                equals:
-                    oneOf:
-                        - type: 'null'
-                        - type: string
-                          format: byte
-                in:
-                    oneOf:
-                        - type: 'null'
-                        - type: array
-                          items:
-                              type: string
-                              format: byte
-                notIn:
-                    oneOf:
-                        - type: 'null'
-                        - type: array
-                          items:
-                              type: string
-                              format: byte
-                not:
-                    oneOf:
-                        - type: string
-                          format: byte
-                        - $ref: '#/components/schemas/NestedBytesNullableFilter'
-                        - type: 'null'
-        NestedStringWithAggregatesFilter:
-            type: object
-            properties:
-                equals:
-                    type: string
-                in:
-                    type: array
-                    items:
-                        type: string
-                notIn:
-                    type: array
-                    items:
-                        type: string
-                lt:
-                    type: string
-                lte:
-                    type: string
-                gt:
-                    type: string
-                gte:
-                    type: string
-                contains:
-                    type: string
-                startsWith:
-                    type: string
-                endsWith:
-                    type: string
-                not:
-                    oneOf:
-                        - type: string
-                        - $ref: '#/components/schemas/NestedStringWithAggregatesFilter'
-                _count:
-                    $ref: '#/components/schemas/NestedIntFilter'
-                _min:
-                    $ref: '#/components/schemas/NestedStringFilter'
-                _max:
-                    $ref: '#/components/schemas/NestedStringFilter'
-        NestedIntWithAggregatesFilter:
-            type: object
-            properties:
-                equals:
-                    type: integer
-                in:
-                    type: array
-                    items:
-                        type: integer
-                notIn:
-                    type: array
-                    items:
-                        type: integer
-                lt:
-                    type: integer
-                lte:
-                    type: integer
-                gt:
-                    type: integer
-                gte:
-                    type: integer
-                not:
-                    oneOf:
-                        - type: integer
-                        - $ref: '#/components/schemas/NestedIntWithAggregatesFilter'
-                _count:
-                    $ref: '#/components/schemas/NestedIntFilter'
-                _avg:
-                    $ref: '#/components/schemas/NestedFloatFilter'
-                _sum:
-                    $ref: '#/components/schemas/NestedIntFilter'
-                _min:
-                    $ref: '#/components/schemas/NestedIntFilter'
-                _max:
-                    $ref: '#/components/schemas/NestedIntFilter'
-        NestedBigIntWithAggregatesFilter:
-            type: object
-            properties:
-                equals:
-                    type: integer
-                in:
-                    type: array
-                    items:
-                        type: integer
-                notIn:
-                    type: array
-                    items:
-                        type: integer
-                lt:
-                    type: integer
-                lte:
-                    type: integer
-                gt:
-                    type: integer
-                gte:
-                    type: integer
-                not:
-                    oneOf:
-                        - type: integer
-                        - $ref: '#/components/schemas/NestedBigIntWithAggregatesFilter'
-                _count:
-                    $ref: '#/components/schemas/NestedIntFilter'
-                _avg:
-                    $ref: '#/components/schemas/NestedFloatFilter'
-                _sum:
-                    $ref: '#/components/schemas/NestedBigIntFilter'
-                _min:
-                    $ref: '#/components/schemas/NestedBigIntFilter'
-                _max:
-                    $ref: '#/components/schemas/NestedBigIntFilter'
-        NestedDateTimeWithAggregatesFilter:
-            type: object
-            properties:
-                equals:
-                    type: string
-                    format: date-time
-                in:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
-                notIn:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
-                lt:
-                    type: string
-                    format: date-time
-                lte:
-                    type: string
-                    format: date-time
-                gt:
-                    type: string
-                    format: date-time
-                gte:
-                    type: string
-                    format: date-time
-                not:
-                    oneOf:
-                        - type: string
-                          format: date-time
-                        - $ref: '#/components/schemas/NestedDateTimeWithAggregatesFilter'
-                _count:
-                    $ref: '#/components/schemas/NestedIntFilter'
-                _min:
-                    $ref: '#/components/schemas/NestedDateTimeFilter'
-                _max:
-                    $ref: '#/components/schemas/NestedDateTimeFilter'
-        NestedFloatWithAggregatesFilter:
-            type: object
-            properties:
-                equals:
-                    type: number
-                in:
-                    type: array
-                    items:
-                        type: number
-                notIn:
-                    type: array
-                    items:
-                        type: number
-                lt:
-                    type: number
-                lte:
-                    type: number
-                gt:
-                    type: number
-                gte:
-                    type: number
-                not:
-                    oneOf:
-                        - type: number
-                        - $ref: '#/components/schemas/NestedFloatWithAggregatesFilter'
-                _count:
-                    $ref: '#/components/schemas/NestedIntFilter'
-                _avg:
-                    $ref: '#/components/schemas/NestedFloatFilter'
-                _sum:
-                    $ref: '#/components/schemas/NestedFloatFilter'
-                _min:
-                    $ref: '#/components/schemas/NestedFloatFilter'
-                _max:
-                    $ref: '#/components/schemas/NestedFloatFilter'
-        NestedDecimalWithAggregatesFilter:
-            type: object
-            properties:
-                equals:
-                    oneOf:
-                        - type: string
-                        - type: number
-                in:
-                    type: array
-                    items:
-                        oneOf:
-                            - type: string
-                            - type: number
-                notIn:
-                    type: array
-                    items:
-                        oneOf:
-                            - type: string
-                            - type: number
-                lt:
-                    oneOf:
-                        - type: string
-                        - type: number
-                lte:
-                    oneOf:
-                        - type: string
-                        - type: number
-                gt:
-                    oneOf:
-                        - type: string
-                        - type: number
-                gte:
-                    oneOf:
-                        - type: string
-                        - type: number
-                not:
-                    oneOf:
-                        - oneOf:
-                              - type: string
-                              - type: number
-                        - $ref: '#/components/schemas/NestedDecimalWithAggregatesFilter'
-                _count:
-                    $ref: '#/components/schemas/NestedIntFilter'
-                _avg:
-                    $ref: '#/components/schemas/NestedDecimalFilter'
-                _sum:
-                    $ref: '#/components/schemas/NestedDecimalFilter'
-                _min:
-                    $ref: '#/components/schemas/NestedDecimalFilter'
-                _max:
-                    $ref: '#/components/schemas/NestedDecimalFilter'
-        NestedBoolWithAggregatesFilter:
-            type: object
-            properties:
-                equals:
-                    type: boolean
-                not:
-                    oneOf:
-                        - type: boolean
-                        - $ref: '#/components/schemas/NestedBoolWithAggregatesFilter'
-                _count:
-                    $ref: '#/components/schemas/NestedIntFilter'
-                _min:
-                    $ref: '#/components/schemas/NestedBoolFilter'
-                _max:
-                    $ref: '#/components/schemas/NestedBoolFilter'
-        NestedBytesNullableWithAggregatesFilter:
-            type: object
-            properties:
-                equals:
-                    oneOf:
-                        - type: 'null'
-                        - type: string
-                          format: byte
-                in:
-                    oneOf:
-                        - type: 'null'
-                        - type: array
-                          items:
-                              type: string
-                              format: byte
-                notIn:
-                    oneOf:
-                        - type: 'null'
-                        - type: array
-                          items:
-                              type: string
-                              format: byte
-                not:
-                    oneOf:
-                        - type: string
-                          format: byte
-                        - $ref: '#/components/schemas/NestedBytesNullableWithAggregatesFilter'
-                        - type: 'null'
-                _count:
-                    $ref: '#/components/schemas/NestedIntNullableFilter'
-                _min:
-                    $ref: '#/components/schemas/NestedBytesNullableFilter'
-                _max:
-                    $ref: '#/components/schemas/NestedBytesNullableFilter'
-        NestedIntNullableFilter:
-            type: object
-            properties:
-                equals:
-                    oneOf:
-                        - type: 'null'
-                        - type: integer
-                in:
-                    oneOf:
-                        - type: 'null'
-                        - type: array
-                          items:
-                              type: integer
-                notIn:
-                    oneOf:
-                        - type: 'null'
-                        - type: array
-                          items:
-                              type: integer
-                lt:
-                    type: integer
-                lte:
-                    type: integer
-                gt:
-                    type: integer
-                gte:
-                    type: integer
-                not:
-                    oneOf:
-                        - type: integer
-                        - $ref: '#/components/schemas/NestedIntNullableFilter'
-                        - type: 'null'
-        FooSelect:
-            type: object
-            properties:
-                id:
-                    type: boolean
-                string:
-                    type: boolean
-                int:
-                    type: boolean
-                bigInt:
-                    type: boolean
-                date:
-                    type: boolean
-                float:
-                    type: boolean
-                decimal:
-                    type: boolean
-                boolean:
-                    type: boolean
-                bytes:
-                    type: boolean
-        FooCountAggregateInput:
-            type: object
-            properties:
-                id:
-                    type: boolean
-                string:
-                    type: boolean
-                int:
-                    type: boolean
-                bigInt:
-                    type: boolean
-                date:
-                    type: boolean
-                float:
-                    type: boolean
-                decimal:
-                    type: boolean
-                boolean:
-                    type: boolean
-                bytes:
-                    type: boolean
-                _all:
-                    type: boolean
-        FooAvgAggregateInput:
-            type: object
-            properties:
-                int:
-                    type: boolean
-                bigInt:
-                    type: boolean
-                float:
-                    type: boolean
-                decimal:
-                    type: boolean
-        FooSumAggregateInput:
-            type: object
-            properties:
-                int:
-                    type: boolean
-                bigInt:
-                    type: boolean
-                float:
-                    type: boolean
-                decimal:
-                    type: boolean
-        FooMinAggregateInput:
-            type: object
-            properties:
-                id:
-                    type: boolean
-                string:
-                    type: boolean
-                int:
-                    type: boolean
-                bigInt:
-                    type: boolean
-                date:
-                    type: boolean
-                float:
-                    type: boolean
-                decimal:
-                    type: boolean
-                boolean:
-                    type: boolean
-                bytes:
-                    type: boolean
-        FooMaxAggregateInput:
-            type: object
-            properties:
-                id:
-                    type: boolean
-                string:
-                    type: boolean
-                int:
-                    type: boolean
-                bigInt:
-                    type: boolean
-                date:
-                    type: boolean
-                float:
-                    type: boolean
-                decimal:
-                    type: boolean
-                boolean:
-                    type: boolean
-                bytes:
-                    type: boolean
-        AggregateFoo:
-            type: object
-            properties:
-                _count:
-                    oneOf:
-                        - type: 'null'
-                        - $ref: '#/components/schemas/FooCountAggregateOutputType'
-                _avg:
-                    oneOf:
-                        - type: 'null'
-                        - $ref: '#/components/schemas/FooAvgAggregateOutputType'
-                _sum:
-                    oneOf:
-                        - type: 'null'
-                        - $ref: '#/components/schemas/FooSumAggregateOutputType'
-                _min:
-                    oneOf:
-                        - type: 'null'
-                        - $ref: '#/components/schemas/FooMinAggregateOutputType'
-                _max:
-                    oneOf:
-                        - type: 'null'
-                        - $ref: '#/components/schemas/FooMaxAggregateOutputType'
-        FooGroupByOutputType:
-            type: object
-            properties:
-                id:
-                    type: string
-                string:
-                    type: string
-                int:
-                    type: integer
-                bigInt:
-                    type: integer
-                date:
-                    type: string
-                    format: date-time
-                float:
-                    type: number
-                decimal:
-                    oneOf:
-                        - type: string
-                        - type: number
-                boolean:
-                    type: boolean
-                bytes:
-                    oneOf:
-                        - type: 'null'
-                        - type: string
-                          format: byte
-                _count:
-                    oneOf:
-                        - type: 'null'
-                        - $ref: '#/components/schemas/FooCountAggregateOutputType'
-                _avg:
-                    oneOf:
-                        - type: 'null'
-                        - $ref: '#/components/schemas/FooAvgAggregateOutputType'
-                _sum:
-                    oneOf:
-                        - type: 'null'
-                        - $ref: '#/components/schemas/FooSumAggregateOutputType'
-                _min:
-                    oneOf:
-                        - type: 'null'
-                        - $ref: '#/components/schemas/FooMinAggregateOutputType'
-                _max:
-                    oneOf:
-                        - type: 'null'
-                        - $ref: '#/components/schemas/FooMaxAggregateOutputType'
-            required:
-                - id
-                - string
-                - int
-                - bigInt
-                - date
-                - float
-                - decimal
-                - boolean
-        FooCountAggregateOutputType:
-            type: object
-            properties:
-                id:
-                    type: integer
-                string:
-                    type: integer
-                int:
-                    type: integer
-                bigInt:
-                    type: integer
-                date:
-                    type: integer
-                float:
-                    type: integer
-                decimal:
-                    type: integer
-                boolean:
-                    type: integer
-                bytes:
-                    type: integer
-                _all:
-                    type: integer
-            required:
-                - id
-                - string
-                - int
-                - bigInt
-                - date
-                - float
-                - decimal
-                - boolean
-                - bytes
-                - _all
-        FooAvgAggregateOutputType:
-            type: object
-            properties:
-                int:
-                    oneOf:
-                        - type: 'null'
-                        - type: number
-                bigInt:
-                    oneOf:
-                        - type: 'null'
-                        - type: number
-                float:
-                    oneOf:
-                        - type: 'null'
-                        - type: number
-                decimal:
-                    oneOf:
-                        - type: string
-                        - type: number
-                        - type: 'null'
-        FooSumAggregateOutputType:
-            type: object
-            properties:
-                int:
-                    oneOf:
-                        - type: 'null'
-                        - type: integer
-                bigInt:
-                    oneOf:
-                        - type: 'null'
-                        - type: integer
-                float:
-                    oneOf:
-                        - type: 'null'
-                        - type: number
-                decimal:
-                    oneOf:
-                        - type: string
-                        - type: number
-                        - type: 'null'
-        FooMinAggregateOutputType:
-            type: object
-            properties:
-                id:
-                    oneOf:
-                        - type: 'null'
-                        - type: string
-                string:
-                    oneOf:
-                        - type: 'null'
-                        - type: string
-                int:
-                    oneOf:
-                        - type: 'null'
-                        - type: integer
-                bigInt:
-                    oneOf:
-                        - type: 'null'
-                        - type: integer
-                date:
-                    oneOf:
-                        - type: 'null'
-                        - type: string
-                          format: date-time
-                float:
-                    oneOf:
-                        - type: 'null'
-                        - type: number
-                decimal:
-                    oneOf:
-                        - type: string
-                        - type: number
-                        - type: 'null'
-                boolean:
-                    oneOf:
-                        - type: 'null'
-                        - type: boolean
-                bytes:
-                    oneOf:
-                        - type: 'null'
-                        - type: string
-                          format: byte
-        FooMaxAggregateOutputType:
-            type: object
-            properties:
-                id:
-                    oneOf:
-                        - type: 'null'
-                        - type: string
-                string:
-                    oneOf:
-                        - type: 'null'
-                        - type: string
-                int:
-                    oneOf:
-                        - type: 'null'
-                        - type: integer
-                bigInt:
-                    oneOf:
-                        - type: 'null'
-                        - type: integer
-                date:
-                    oneOf:
-                        - type: 'null'
-                        - type: string
-                          format: date-time
-                float:
-                    oneOf:
-                        - type: 'null'
-                        - type: number
-                decimal:
-                    oneOf:
-                        - type: string
-                        - type: number
-                        - type: 'null'
-                boolean:
-                    oneOf:
-                        - type: 'null'
-                        - type: boolean
-                bytes:
-                    oneOf:
-                        - type: 'null'
-                        - type: string
-                          format: byte
-        _Meta:
-            type: object
-            description: Meta information about the request or response
-            properties:
-                serialization:
-                    description: Serialization metadata
-            additionalProperties: true
-        _Error:
-            type: object
-            required:
-                - error
-            properties:
-                error:
-                    type: object
-                    required:
-                        - message
-                    properties:
-                        prisma:
-                            type: boolean
-                            description: Indicates if the error occurred during a Prisma call
-                        rejectedByPolicy:
-                            type: boolean
-                            description: Indicates if the error was due to rejection by a policy
-                        code:
-                            type: string
-                            description: Prisma error code. Only available when "prisma" field is true.
-                        message:
-                            type: string
-                            description: Error message
-                        reason:
-                            type: string
-                            description: Detailed error reason
-                        zodErrors:
-                            type: object
-                            additionalProperties: true
-                            description: Zod validation errors if the error is due to data validation
-                                failure
-                    additionalProperties: true
-        BatchPayload:
-            type: object
-            properties:
-                count:
-                    type: integer
-        FooCreateArgs:
-            type: object
-            required:
-                - data
-            properties:
-                select:
-                    $ref: '#/components/schemas/FooSelect'
-                data:
-                    $ref: '#/components/schemas/FooCreateInput'
-                meta:
-                    $ref: '#/components/schemas/_Meta'
-        FooCreateManyArgs:
-            type: object
-            required:
-                - data
-            properties:
-                data:
-                    oneOf:
-                        - $ref: '#/components/schemas/FooCreateManyInput'
-                        - type: array
-                          items:
-                              $ref: '#/components/schemas/FooCreateManyInput'
-                skipDuplicates:
-                    type: boolean
-                    description: Do not insert records with unique fields or ID fields that already
-                        exist.
-                meta:
-                    $ref: '#/components/schemas/_Meta'
-        FooFindUniqueArgs:
-            type: object
-            required:
-                - where
-            properties:
-                select:
-                    $ref: '#/components/schemas/FooSelect'
-                where:
-                    $ref: '#/components/schemas/FooWhereUniqueInput'
-                meta:
-                    $ref: '#/components/schemas/_Meta'
-        FooFindFirstArgs:
-            type: object
-            properties:
-                select:
-                    $ref: '#/components/schemas/FooSelect'
-                where:
-                    $ref: '#/components/schemas/FooWhereInput'
-                meta:
-                    $ref: '#/components/schemas/_Meta'
-        FooFindManyArgs:
-            type: object
-            properties:
-                select:
-                    $ref: '#/components/schemas/FooSelect'
-                where:
-                    $ref: '#/components/schemas/FooWhereInput'
-                meta:
-                    $ref: '#/components/schemas/_Meta'
-        FooUpdateArgs:
-            type: object
-            required:
-                - where
-                - data
-            properties:
-                select:
-                    $ref: '#/components/schemas/FooSelect'
-                where:
-                    $ref: '#/components/schemas/FooWhereUniqueInput'
-                data:
-                    $ref: '#/components/schemas/FooUpdateInput'
-                meta:
-                    $ref: '#/components/schemas/_Meta'
-        FooUpdateManyArgs:
-            type: object
-            required:
-                - data
-            properties:
-                where:
-                    $ref: '#/components/schemas/FooWhereInput'
-                data:
-                    $ref: '#/components/schemas/FooUpdateManyMutationInput'
-                meta:
-                    $ref: '#/components/schemas/_Meta'
-        FooUpsertArgs:
-            type: object
-            required:
-                - create
-                - update
-                - where
-            properties:
-                select:
-                    $ref: '#/components/schemas/FooSelect'
-                where:
-                    $ref: '#/components/schemas/FooWhereUniqueInput'
-                create:
-                    $ref: '#/components/schemas/FooCreateInput'
-                update:
-                    $ref: '#/components/schemas/FooUpdateInput'
-                meta:
-                    $ref: '#/components/schemas/_Meta'
-        FooDeleteUniqueArgs:
-            type: object
-            required:
-                - where
-            properties:
-                select:
-                    $ref: '#/components/schemas/FooSelect'
-                where:
-                    $ref: '#/components/schemas/FooWhereUniqueInput'
-                meta:
-                    $ref: '#/components/schemas/_Meta'
-        FooDeleteManyArgs:
-            type: object
-            properties:
-                where:
-                    $ref: '#/components/schemas/FooWhereInput'
-                meta:
-                    $ref: '#/components/schemas/_Meta'
-        FooCountArgs:
-            type: object
-            properties:
-                select:
-                    $ref: '#/components/schemas/FooSelect'
-                where:
-                    $ref: '#/components/schemas/FooWhereInput'
-                meta:
-                    $ref: '#/components/schemas/_Meta'
-        FooAggregateArgs:
-            type: object
-            properties:
-                where:
-                    $ref: '#/components/schemas/FooWhereInput'
-                orderBy:
-                    $ref: '#/components/schemas/FooOrderByWithRelationInput'
-                cursor:
-                    $ref: '#/components/schemas/FooWhereUniqueInput'
-                take:
-                    type: integer
-                skip:
-                    type: integer
-                _count:
-                    oneOf:
-                        - type: boolean
-                        - $ref: '#/components/schemas/FooCountAggregateInput'
-                _min:
-                    $ref: '#/components/schemas/FooMinAggregateInput'
-                _max:
-                    $ref: '#/components/schemas/FooMaxAggregateInput'
-                _sum:
-                    $ref: '#/components/schemas/FooSumAggregateInput'
-                _avg:
-                    $ref: '#/components/schemas/FooAvgAggregateInput'
-                meta:
-                    $ref: '#/components/schemas/_Meta'
-        FooGroupByArgs:
-            type: object
-            properties:
-                where:
-                    $ref: '#/components/schemas/FooWhereInput'
-                orderBy:
-                    $ref: '#/components/schemas/FooOrderByWithRelationInput'
-                by:
-                    $ref: '#/components/schemas/FooScalarFieldEnum'
-                having:
-                    $ref: '#/components/schemas/FooScalarWhereWithAggregatesInput'
-                take:
-                    type: integer
-                skip:
-                    type: integer
-                _count:
-                    oneOf:
-                        - type: boolean
-                        - $ref: '#/components/schemas/FooCountAggregateInput'
-                _min:
-                    $ref: '#/components/schemas/FooMinAggregateInput'
-                _max:
-                    $ref: '#/components/schemas/FooMaxAggregateInput'
-                _sum:
-                    $ref: '#/components/schemas/FooSumAggregateInput'
-                _avg:
-                    $ref: '#/components/schemas/FooAvgAggregateInput'
-                meta:
-                    $ref: '#/components/schemas/_Meta'
+            format: date-time
+        lt:
+          type: string
+          format: date-time
+        lte:
+          type: string
+          format: date-time
+        gt:
+          type: string
+          format: date-time
+        gte:
+          type: string
+          format: date-time
+        not:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/NestedDateTimeFilter"
+    FloatFilter:
+      type: object
+      properties:
+        equals:
+          type: number
+        in:
+          type: array
+          items:
+            type: number
+        notIn:
+          type: array
+          items:
+            type: number
+        lt:
+          type: number
+        lte:
+          type: number
+        gt:
+          type: number
+        gte:
+          type: number
+        not:
+          oneOf:
+            - type: number
+            - $ref: "#/components/schemas/NestedFloatFilter"
+    DecimalFilter:
+      type: object
+      properties:
+        equals:
+          oneOf:
+            - type: string
+            - type: number
+        in:
+          type: array
+          items:
+            oneOf:
+              - type: string
+              - type: number
+        notIn:
+          type: array
+          items:
+            oneOf:
+              - type: string
+              - type: number
+        lt:
+          oneOf:
+            - type: string
+            - type: number
+        lte:
+          oneOf:
+            - type: string
+            - type: number
+        gt:
+          oneOf:
+            - type: string
+            - type: number
+        gte:
+          oneOf:
+            - type: string
+            - type: number
+        not:
+          oneOf:
+            - oneOf:
+                - type: string
+                - type: number
+            - $ref: "#/components/schemas/NestedDecimalFilter"
+    BoolFilter:
+      type: object
+      properties:
+        equals:
+          type: boolean
+        not:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/NestedBoolFilter"
+    BytesNullableFilter:
+      type: object
+      properties:
+        equals:
+          oneOf:
+            - type: "null"
+            - type: string
+              format: byte
+        in:
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: string
+                format: byte
+        notIn:
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: string
+                format: byte
+        not:
+          oneOf:
+            - type: string
+              format: byte
+            - $ref: "#/components/schemas/NestedBytesNullableFilter"
+            - type: "null"
+    JsonNullableFilter:
+      type: object
+      properties:
+        equals:
+          oneOf:
+            - {}
+            - $ref: "#/components/schemas/JsonNullValueFilter"
+        path:
+          type: array
+          items:
+            type: string
+        mode:
+          $ref: "#/components/schemas/QueryMode"
+        string_contains:
+          type: string
+        string_starts_with:
+          type: string
+        string_ends_with:
+          type: string
+        array_starts_with:
+          oneOf:
+            - type: "null"
+            - {}
+        array_ends_with:
+          oneOf:
+            - type: "null"
+            - {}
+        array_contains:
+          oneOf:
+            - type: "null"
+            - {}
+        lt: {}
+        lte: {}
+        gt: {}
+        gte: {}
+        not:
+          oneOf:
+            - {}
+            - $ref: "#/components/schemas/JsonNullValueFilter"
+    JsonFilter:
+      type: object
+      properties:
+        equals:
+          oneOf:
+            - {}
+            - $ref: "#/components/schemas/JsonNullValueFilter"
+        path:
+          type: array
+          items:
+            type: string
+        mode:
+          $ref: "#/components/schemas/QueryMode"
+        string_contains:
+          type: string
+        string_starts_with:
+          type: string
+        string_ends_with:
+          type: string
+        array_starts_with:
+          oneOf:
+            - type: "null"
+            - {}
+        array_ends_with:
+          oneOf:
+            - type: "null"
+            - {}
+        array_contains:
+          oneOf:
+            - type: "null"
+            - {}
+        lt: {}
+        lte: {}
+        gt: {}
+        gte: {}
+        not:
+          oneOf:
+            - {}
+            - $ref: "#/components/schemas/JsonNullValueFilter"
+    SortOrderInput:
+      type: object
+      properties:
+        sort:
+          $ref: "#/components/schemas/SortOrder"
+        nulls:
+          $ref: "#/components/schemas/NullsOrder"
+      required:
+        - sort
+    StringWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          type: string
+        in:
+          type: array
+          items:
+            type: string
+        notIn:
+          type: array
+          items:
+            type: string
+        lt:
+          type: string
+        lte:
+          type: string
+        gt:
+          type: string
+        gte:
+          type: string
+        contains:
+          type: string
+        startsWith:
+          type: string
+        endsWith:
+          type: string
+        mode:
+          $ref: "#/components/schemas/QueryMode"
+        not:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/NestedStringWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _min:
+          $ref: "#/components/schemas/NestedStringFilter"
+        _max:
+          $ref: "#/components/schemas/NestedStringFilter"
+    IntWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          type: integer
+        in:
+          type: array
+          items:
+            type: integer
+        notIn:
+          type: array
+          items:
+            type: integer
+        lt:
+          type: integer
+        lte:
+          type: integer
+        gt:
+          type: integer
+        gte:
+          type: integer
+        not:
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/NestedIntWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _avg:
+          $ref: "#/components/schemas/NestedFloatFilter"
+        _sum:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _min:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _max:
+          $ref: "#/components/schemas/NestedIntFilter"
+    BigIntWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          type: integer
+        in:
+          type: array
+          items:
+            type: integer
+        notIn:
+          type: array
+          items:
+            type: integer
+        lt:
+          type: integer
+        lte:
+          type: integer
+        gt:
+          type: integer
+        gte:
+          type: integer
+        not:
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/NestedBigIntWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _avg:
+          $ref: "#/components/schemas/NestedFloatFilter"
+        _sum:
+          $ref: "#/components/schemas/NestedBigIntFilter"
+        _min:
+          $ref: "#/components/schemas/NestedBigIntFilter"
+        _max:
+          $ref: "#/components/schemas/NestedBigIntFilter"
+    DateTimeWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          type: string
+          format: date-time
+        in:
+          type: array
+          items:
+            type: string
+            format: date-time
+        notIn:
+          type: array
+          items:
+            type: string
+            format: date-time
+        lt:
+          type: string
+          format: date-time
+        lte:
+          type: string
+          format: date-time
+        gt:
+          type: string
+          format: date-time
+        gte:
+          type: string
+          format: date-time
+        not:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/NestedDateTimeWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _min:
+          $ref: "#/components/schemas/NestedDateTimeFilter"
+        _max:
+          $ref: "#/components/schemas/NestedDateTimeFilter"
+    FloatWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          type: number
+        in:
+          type: array
+          items:
+            type: number
+        notIn:
+          type: array
+          items:
+            type: number
+        lt:
+          type: number
+        lte:
+          type: number
+        gt:
+          type: number
+        gte:
+          type: number
+        not:
+          oneOf:
+            - type: number
+            - $ref: "#/components/schemas/NestedFloatWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _avg:
+          $ref: "#/components/schemas/NestedFloatFilter"
+        _sum:
+          $ref: "#/components/schemas/NestedFloatFilter"
+        _min:
+          $ref: "#/components/schemas/NestedFloatFilter"
+        _max:
+          $ref: "#/components/schemas/NestedFloatFilter"
+    DecimalWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          oneOf:
+            - type: string
+            - type: number
+        in:
+          type: array
+          items:
+            oneOf:
+              - type: string
+              - type: number
+        notIn:
+          type: array
+          items:
+            oneOf:
+              - type: string
+              - type: number
+        lt:
+          oneOf:
+            - type: string
+            - type: number
+        lte:
+          oneOf:
+            - type: string
+            - type: number
+        gt:
+          oneOf:
+            - type: string
+            - type: number
+        gte:
+          oneOf:
+            - type: string
+            - type: number
+        not:
+          oneOf:
+            - oneOf:
+                - type: string
+                - type: number
+            - $ref: "#/components/schemas/NestedDecimalWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _avg:
+          $ref: "#/components/schemas/NestedDecimalFilter"
+        _sum:
+          $ref: "#/components/schemas/NestedDecimalFilter"
+        _min:
+          $ref: "#/components/schemas/NestedDecimalFilter"
+        _max:
+          $ref: "#/components/schemas/NestedDecimalFilter"
+    BoolWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          type: boolean
+        not:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/NestedBoolWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _min:
+          $ref: "#/components/schemas/NestedBoolFilter"
+        _max:
+          $ref: "#/components/schemas/NestedBoolFilter"
+    BytesNullableWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          oneOf:
+            - type: "null"
+            - type: string
+              format: byte
+        in:
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: string
+                format: byte
+        notIn:
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: string
+                format: byte
+        not:
+          oneOf:
+            - type: string
+              format: byte
+            - $ref: "#/components/schemas/NestedBytesNullableWithAggregatesFilter"
+            - type: "null"
+        _count:
+          $ref: "#/components/schemas/NestedIntNullableFilter"
+        _min:
+          $ref: "#/components/schemas/NestedBytesNullableFilter"
+        _max:
+          $ref: "#/components/schemas/NestedBytesNullableFilter"
+    JsonNullableWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          oneOf:
+            - {}
+            - $ref: "#/components/schemas/JsonNullValueFilter"
+        path:
+          type: array
+          items:
+            type: string
+        mode:
+          $ref: "#/components/schemas/QueryMode"
+        string_contains:
+          type: string
+        string_starts_with:
+          type: string
+        string_ends_with:
+          type: string
+        array_starts_with:
+          oneOf:
+            - type: "null"
+            - {}
+        array_ends_with:
+          oneOf:
+            - type: "null"
+            - {}
+        array_contains:
+          oneOf:
+            - type: "null"
+            - {}
+        lt: {}
+        lte: {}
+        gt: {}
+        gte: {}
+        not:
+          oneOf:
+            - {}
+            - $ref: "#/components/schemas/JsonNullValueFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntNullableFilter"
+        _min:
+          $ref: "#/components/schemas/NestedJsonNullableFilter"
+        _max:
+          $ref: "#/components/schemas/NestedJsonNullableFilter"
+    JsonWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          oneOf:
+            - {}
+            - $ref: "#/components/schemas/JsonNullValueFilter"
+        path:
+          type: array
+          items:
+            type: string
+        mode:
+          $ref: "#/components/schemas/QueryMode"
+        string_contains:
+          type: string
+        string_starts_with:
+          type: string
+        string_ends_with:
+          type: string
+        array_starts_with:
+          oneOf:
+            - type: "null"
+            - {}
+        array_ends_with:
+          oneOf:
+            - type: "null"
+            - {}
+        array_contains:
+          oneOf:
+            - type: "null"
+            - {}
+        lt: {}
+        lte: {}
+        gt: {}
+        gte: {}
+        not:
+          oneOf:
+            - {}
+            - $ref: "#/components/schemas/JsonNullValueFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _min:
+          $ref: "#/components/schemas/NestedJsonFilter"
+        _max:
+          $ref: "#/components/schemas/NestedJsonFilter"
+    StringFieldUpdateOperationsInput:
+      type: object
+      properties:
+        set:
+          type: string
+    IntFieldUpdateOperationsInput:
+      type: object
+      properties:
+        set:
+          type: integer
+        increment:
+          type: integer
+        decrement:
+          type: integer
+        multiply:
+          type: integer
+        divide:
+          type: integer
+    BigIntFieldUpdateOperationsInput:
+      type: object
+      properties:
+        set:
+          type: integer
+        increment:
+          type: integer
+        decrement:
+          type: integer
+        multiply:
+          type: integer
+        divide:
+          type: integer
+    DateTimeFieldUpdateOperationsInput:
+      type: object
+      properties:
+        set:
+          type: string
+          format: date-time
+    FloatFieldUpdateOperationsInput:
+      type: object
+      properties:
+        set:
+          type: number
+        increment:
+          type: number
+        decrement:
+          type: number
+        multiply:
+          type: number
+        divide:
+          type: number
+    DecimalFieldUpdateOperationsInput:
+      type: object
+      properties:
+        set:
+          oneOf:
+            - type: string
+            - type: number
+        increment:
+          oneOf:
+            - type: string
+            - type: number
+        decrement:
+          oneOf:
+            - type: string
+            - type: number
+        multiply:
+          oneOf:
+            - type: string
+            - type: number
+        divide:
+          oneOf:
+            - type: string
+            - type: number
+    BoolFieldUpdateOperationsInput:
+      type: object
+      properties:
+        set:
+          type: boolean
+    NullableBytesFieldUpdateOperationsInput:
+      type: object
+      properties:
+        set:
+          oneOf:
+            - type: "null"
+            - type: string
+              format: byte
+    NestedStringFilter:
+      type: object
+      properties:
+        equals:
+          type: string
+        in:
+          type: array
+          items:
+            type: string
+        notIn:
+          type: array
+          items:
+            type: string
+        lt:
+          type: string
+        lte:
+          type: string
+        gt:
+          type: string
+        gte:
+          type: string
+        contains:
+          type: string
+        startsWith:
+          type: string
+        endsWith:
+          type: string
+        not:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/NestedStringFilter"
+    NestedIntFilter:
+      type: object
+      properties:
+        equals:
+          type: integer
+        in:
+          type: array
+          items:
+            type: integer
+        notIn:
+          type: array
+          items:
+            type: integer
+        lt:
+          type: integer
+        lte:
+          type: integer
+        gt:
+          type: integer
+        gte:
+          type: integer
+        not:
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/NestedIntFilter"
+    NestedBigIntFilter:
+      type: object
+      properties:
+        equals:
+          type: integer
+        in:
+          type: array
+          items:
+            type: integer
+        notIn:
+          type: array
+          items:
+            type: integer
+        lt:
+          type: integer
+        lte:
+          type: integer
+        gt:
+          type: integer
+        gte:
+          type: integer
+        not:
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/NestedBigIntFilter"
+    NestedDateTimeFilter:
+      type: object
+      properties:
+        equals:
+          type: string
+          format: date-time
+        in:
+          type: array
+          items:
+            type: string
+            format: date-time
+        notIn:
+          type: array
+          items:
+            type: string
+            format: date-time
+        lt:
+          type: string
+          format: date-time
+        lte:
+          type: string
+          format: date-time
+        gt:
+          type: string
+          format: date-time
+        gte:
+          type: string
+          format: date-time
+        not:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/NestedDateTimeFilter"
+    NestedFloatFilter:
+      type: object
+      properties:
+        equals:
+          type: number
+        in:
+          type: array
+          items:
+            type: number
+        notIn:
+          type: array
+          items:
+            type: number
+        lt:
+          type: number
+        lte:
+          type: number
+        gt:
+          type: number
+        gte:
+          type: number
+        not:
+          oneOf:
+            - type: number
+            - $ref: "#/components/schemas/NestedFloatFilter"
+    NestedDecimalFilter:
+      type: object
+      properties:
+        equals:
+          oneOf:
+            - type: string
+            - type: number
+        in:
+          type: array
+          items:
+            oneOf:
+              - type: string
+              - type: number
+        notIn:
+          type: array
+          items:
+            oneOf:
+              - type: string
+              - type: number
+        lt:
+          oneOf:
+            - type: string
+            - type: number
+        lte:
+          oneOf:
+            - type: string
+            - type: number
+        gt:
+          oneOf:
+            - type: string
+            - type: number
+        gte:
+          oneOf:
+            - type: string
+            - type: number
+        not:
+          oneOf:
+            - oneOf:
+                - type: string
+                - type: number
+            - $ref: "#/components/schemas/NestedDecimalFilter"
+    NestedBoolFilter:
+      type: object
+      properties:
+        equals:
+          type: boolean
+        not:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/NestedBoolFilter"
+    NestedBytesNullableFilter:
+      type: object
+      properties:
+        equals:
+          oneOf:
+            - type: "null"
+            - type: string
+              format: byte
+        in:
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: string
+                format: byte
+        notIn:
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: string
+                format: byte
+        not:
+          oneOf:
+            - type: string
+              format: byte
+            - $ref: "#/components/schemas/NestedBytesNullableFilter"
+            - type: "null"
+    NestedStringWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          type: string
+        in:
+          type: array
+          items:
+            type: string
+        notIn:
+          type: array
+          items:
+            type: string
+        lt:
+          type: string
+        lte:
+          type: string
+        gt:
+          type: string
+        gte:
+          type: string
+        contains:
+          type: string
+        startsWith:
+          type: string
+        endsWith:
+          type: string
+        not:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/NestedStringWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _min:
+          $ref: "#/components/schemas/NestedStringFilter"
+        _max:
+          $ref: "#/components/schemas/NestedStringFilter"
+    NestedIntWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          type: integer
+        in:
+          type: array
+          items:
+            type: integer
+        notIn:
+          type: array
+          items:
+            type: integer
+        lt:
+          type: integer
+        lte:
+          type: integer
+        gt:
+          type: integer
+        gte:
+          type: integer
+        not:
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/NestedIntWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _avg:
+          $ref: "#/components/schemas/NestedFloatFilter"
+        _sum:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _min:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _max:
+          $ref: "#/components/schemas/NestedIntFilter"
+    NestedBigIntWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          type: integer
+        in:
+          type: array
+          items:
+            type: integer
+        notIn:
+          type: array
+          items:
+            type: integer
+        lt:
+          type: integer
+        lte:
+          type: integer
+        gt:
+          type: integer
+        gte:
+          type: integer
+        not:
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/NestedBigIntWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _avg:
+          $ref: "#/components/schemas/NestedFloatFilter"
+        _sum:
+          $ref: "#/components/schemas/NestedBigIntFilter"
+        _min:
+          $ref: "#/components/schemas/NestedBigIntFilter"
+        _max:
+          $ref: "#/components/schemas/NestedBigIntFilter"
+    NestedDateTimeWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          type: string
+          format: date-time
+        in:
+          type: array
+          items:
+            type: string
+            format: date-time
+        notIn:
+          type: array
+          items:
+            type: string
+            format: date-time
+        lt:
+          type: string
+          format: date-time
+        lte:
+          type: string
+          format: date-time
+        gt:
+          type: string
+          format: date-time
+        gte:
+          type: string
+          format: date-time
+        not:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/NestedDateTimeWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _min:
+          $ref: "#/components/schemas/NestedDateTimeFilter"
+        _max:
+          $ref: "#/components/schemas/NestedDateTimeFilter"
+    NestedFloatWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          type: number
+        in:
+          type: array
+          items:
+            type: number
+        notIn:
+          type: array
+          items:
+            type: number
+        lt:
+          type: number
+        lte:
+          type: number
+        gt:
+          type: number
+        gte:
+          type: number
+        not:
+          oneOf:
+            - type: number
+            - $ref: "#/components/schemas/NestedFloatWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _avg:
+          $ref: "#/components/schemas/NestedFloatFilter"
+        _sum:
+          $ref: "#/components/schemas/NestedFloatFilter"
+        _min:
+          $ref: "#/components/schemas/NestedFloatFilter"
+        _max:
+          $ref: "#/components/schemas/NestedFloatFilter"
+    NestedDecimalWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          oneOf:
+            - type: string
+            - type: number
+        in:
+          type: array
+          items:
+            oneOf:
+              - type: string
+              - type: number
+        notIn:
+          type: array
+          items:
+            oneOf:
+              - type: string
+              - type: number
+        lt:
+          oneOf:
+            - type: string
+            - type: number
+        lte:
+          oneOf:
+            - type: string
+            - type: number
+        gt:
+          oneOf:
+            - type: string
+            - type: number
+        gte:
+          oneOf:
+            - type: string
+            - type: number
+        not:
+          oneOf:
+            - oneOf:
+                - type: string
+                - type: number
+            - $ref: "#/components/schemas/NestedDecimalWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _avg:
+          $ref: "#/components/schemas/NestedDecimalFilter"
+        _sum:
+          $ref: "#/components/schemas/NestedDecimalFilter"
+        _min:
+          $ref: "#/components/schemas/NestedDecimalFilter"
+        _max:
+          $ref: "#/components/schemas/NestedDecimalFilter"
+    NestedBoolWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          type: boolean
+        not:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/NestedBoolWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _min:
+          $ref: "#/components/schemas/NestedBoolFilter"
+        _max:
+          $ref: "#/components/schemas/NestedBoolFilter"
+    NestedBytesNullableWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          oneOf:
+            - type: "null"
+            - type: string
+              format: byte
+        in:
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: string
+                format: byte
+        notIn:
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: string
+                format: byte
+        not:
+          oneOf:
+            - type: string
+              format: byte
+            - $ref: "#/components/schemas/NestedBytesNullableWithAggregatesFilter"
+            - type: "null"
+        _count:
+          $ref: "#/components/schemas/NestedIntNullableFilter"
+        _min:
+          $ref: "#/components/schemas/NestedBytesNullableFilter"
+        _max:
+          $ref: "#/components/schemas/NestedBytesNullableFilter"
+    NestedIntNullableFilter:
+      type: object
+      properties:
+        equals:
+          oneOf:
+            - type: "null"
+            - type: integer
+        in:
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: integer
+        notIn:
+          oneOf:
+            - type: "null"
+            - type: array
+              items:
+                type: integer
+        lt:
+          type: integer
+        lte:
+          type: integer
+        gt:
+          type: integer
+        gte:
+          type: integer
+        not:
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/NestedIntNullableFilter"
+            - type: "null"
+    NestedJsonNullableFilter:
+      type: object
+      properties:
+        equals:
+          oneOf:
+            - {}
+            - $ref: "#/components/schemas/JsonNullValueFilter"
+        path:
+          type: array
+          items:
+            type: string
+        mode:
+          $ref: "#/components/schemas/QueryMode"
+        string_contains:
+          type: string
+        string_starts_with:
+          type: string
+        string_ends_with:
+          type: string
+        array_starts_with:
+          oneOf:
+            - type: "null"
+            - {}
+        array_ends_with:
+          oneOf:
+            - type: "null"
+            - {}
+        array_contains:
+          oneOf:
+            - type: "null"
+            - {}
+        lt: {}
+        lte: {}
+        gt: {}
+        gte: {}
+        not:
+          oneOf:
+            - {}
+            - $ref: "#/components/schemas/JsonNullValueFilter"
+    NestedJsonFilter:
+      type: object
+      properties:
+        equals:
+          oneOf:
+            - {}
+            - $ref: "#/components/schemas/JsonNullValueFilter"
+        path:
+          type: array
+          items:
+            type: string
+        mode:
+          $ref: "#/components/schemas/QueryMode"
+        string_contains:
+          type: string
+        string_starts_with:
+          type: string
+        string_ends_with:
+          type: string
+        array_starts_with:
+          oneOf:
+            - type: "null"
+            - {}
+        array_ends_with:
+          oneOf:
+            - type: "null"
+            - {}
+        array_contains:
+          oneOf:
+            - type: "null"
+            - {}
+        lt: {}
+        lte: {}
+        gt: {}
+        gte: {}
+        not:
+          oneOf:
+            - {}
+            - $ref: "#/components/schemas/JsonNullValueFilter"
+    FooSelect:
+      type: object
+      properties:
+        id:
+          type: boolean
+        string:
+          type: boolean
+        int:
+          type: boolean
+        bigInt:
+          type: boolean
+        date:
+          type: boolean
+        float:
+          type: boolean
+        decimal:
+          type: boolean
+        boolean:
+          type: boolean
+        bytes:
+          type: boolean
+        json:
+          type: boolean
+        plainJson:
+          type: boolean
+    FooCountAggregateInput:
+      type: object
+      properties:
+        id:
+          type: boolean
+        string:
+          type: boolean
+        int:
+          type: boolean
+        bigInt:
+          type: boolean
+        date:
+          type: boolean
+        float:
+          type: boolean
+        decimal:
+          type: boolean
+        boolean:
+          type: boolean
+        bytes:
+          type: boolean
+        json:
+          type: boolean
+        plainJson:
+          type: boolean
+        _all:
+          type: boolean
+    FooAvgAggregateInput:
+      type: object
+      properties:
+        int:
+          type: boolean
+        bigInt:
+          type: boolean
+        float:
+          type: boolean
+        decimal:
+          type: boolean
+    FooSumAggregateInput:
+      type: object
+      properties:
+        int:
+          type: boolean
+        bigInt:
+          type: boolean
+        float:
+          type: boolean
+        decimal:
+          type: boolean
+    FooMinAggregateInput:
+      type: object
+      properties:
+        id:
+          type: boolean
+        string:
+          type: boolean
+        int:
+          type: boolean
+        bigInt:
+          type: boolean
+        date:
+          type: boolean
+        float:
+          type: boolean
+        decimal:
+          type: boolean
+        boolean:
+          type: boolean
+        bytes:
+          type: boolean
+    FooMaxAggregateInput:
+      type: object
+      properties:
+        id:
+          type: boolean
+        string:
+          type: boolean
+        int:
+          type: boolean
+        bigInt:
+          type: boolean
+        date:
+          type: boolean
+        float:
+          type: boolean
+        decimal:
+          type: boolean
+        boolean:
+          type: boolean
+        bytes:
+          type: boolean
+    AggregateFoo:
+      type: object
+      properties:
+        _count:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/FooCountAggregateOutputType"
+        _avg:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/FooAvgAggregateOutputType"
+        _sum:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/FooSumAggregateOutputType"
+        _min:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/FooMinAggregateOutputType"
+        _max:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/FooMaxAggregateOutputType"
+    FooGroupByOutputType:
+      type: object
+      properties:
+        id:
+          type: string
+        string:
+          type: string
+        int:
+          type: integer
+        bigInt:
+          type: integer
+        date:
+          type: string
+          format: date-time
+        float:
+          type: number
+        decimal:
+          oneOf:
+            - type: string
+            - type: number
+        boolean:
+          type: boolean
+        bytes:
+          oneOf:
+            - type: "null"
+            - type: string
+              format: byte
+        json:
+          oneOf:
+            - type: "null"
+            - {}
+        plainJson: {}
+        _count:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/FooCountAggregateOutputType"
+        _avg:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/FooAvgAggregateOutputType"
+        _sum:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/FooSumAggregateOutputType"
+        _min:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/FooMinAggregateOutputType"
+        _max:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/FooMaxAggregateOutputType"
+      required:
+        - id
+        - string
+        - int
+        - bigInt
+        - date
+        - float
+        - decimal
+        - boolean
+        - plainJson
+    FooCountAggregateOutputType:
+      type: object
+      properties:
+        id:
+          type: integer
+        string:
+          type: integer
+        int:
+          type: integer
+        bigInt:
+          type: integer
+        date:
+          type: integer
+        float:
+          type: integer
+        decimal:
+          type: integer
+        boolean:
+          type: integer
+        bytes:
+          type: integer
+        json:
+          type: integer
+        plainJson:
+          type: integer
+        _all:
+          type: integer
+      required:
+        - id
+        - string
+        - int
+        - bigInt
+        - date
+        - float
+        - decimal
+        - boolean
+        - bytes
+        - json
+        - plainJson
+        - _all
+    FooAvgAggregateOutputType:
+      type: object
+      properties:
+        int:
+          oneOf:
+            - type: "null"
+            - type: number
+        bigInt:
+          oneOf:
+            - type: "null"
+            - type: number
+        float:
+          oneOf:
+            - type: "null"
+            - type: number
+        decimal:
+          oneOf:
+            - type: string
+            - type: number
+            - type: "null"
+    FooSumAggregateOutputType:
+      type: object
+      properties:
+        int:
+          oneOf:
+            - type: "null"
+            - type: integer
+        bigInt:
+          oneOf:
+            - type: "null"
+            - type: integer
+        float:
+          oneOf:
+            - type: "null"
+            - type: number
+        decimal:
+          oneOf:
+            - type: string
+            - type: number
+            - type: "null"
+    FooMinAggregateOutputType:
+      type: object
+      properties:
+        id:
+          oneOf:
+            - type: "null"
+            - type: string
+        string:
+          oneOf:
+            - type: "null"
+            - type: string
+        int:
+          oneOf:
+            - type: "null"
+            - type: integer
+        bigInt:
+          oneOf:
+            - type: "null"
+            - type: integer
+        date:
+          oneOf:
+            - type: "null"
+            - type: string
+              format: date-time
+        float:
+          oneOf:
+            - type: "null"
+            - type: number
+        decimal:
+          oneOf:
+            - type: string
+            - type: number
+            - type: "null"
+        boolean:
+          oneOf:
+            - type: "null"
+            - type: boolean
+        bytes:
+          oneOf:
+            - type: "null"
+            - type: string
+              format: byte
+    FooMaxAggregateOutputType:
+      type: object
+      properties:
+        id:
+          oneOf:
+            - type: "null"
+            - type: string
+        string:
+          oneOf:
+            - type: "null"
+            - type: string
+        int:
+          oneOf:
+            - type: "null"
+            - type: integer
+        bigInt:
+          oneOf:
+            - type: "null"
+            - type: integer
+        date:
+          oneOf:
+            - type: "null"
+            - type: string
+              format: date-time
+        float:
+          oneOf:
+            - type: "null"
+            - type: number
+        decimal:
+          oneOf:
+            - type: string
+            - type: number
+            - type: "null"
+        boolean:
+          oneOf:
+            - type: "null"
+            - type: boolean
+        bytes:
+          oneOf:
+            - type: "null"
+            - type: string
+              format: byte
+    _Meta:
+      type: object
+      description: Meta information about the request or response
+      properties:
+        serialization:
+          description: Serialization metadata
+      additionalProperties: true
+    _Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - message
+          properties:
+            prisma:
+              type: boolean
+              description: Indicates if the error occurred during a Prisma call
+            rejectedByPolicy:
+              type: boolean
+              description: Indicates if the error was due to rejection by a policy
+            code:
+              type: string
+              description: Prisma error code. Only available when "prisma" field is true.
+            message:
+              type: string
+              description: Error message
+            reason:
+              type: string
+              description: Detailed error reason
+            zodErrors:
+              type: object
+              additionalProperties: true
+              description: Zod validation errors if the error is due to data validation
+                failure
+          additionalProperties: true
+    BatchPayload:
+      type: object
+      properties:
+        count:
+          type: integer
+    FooCreateArgs:
+      type: object
+      required:
+        - data
+      properties:
+        select:
+          $ref: "#/components/schemas/FooSelect"
+        data:
+          $ref: "#/components/schemas/FooCreateInput"
+        meta:
+          $ref: "#/components/schemas/_Meta"
+    FooCreateManyArgs:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          oneOf:
+            - $ref: "#/components/schemas/FooCreateManyInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/FooCreateManyInput"
+        skipDuplicates:
+          type: boolean
+          description: Do not insert records with unique fields or ID fields that already
+            exist.
+        meta:
+          $ref: "#/components/schemas/_Meta"
+    FooFindUniqueArgs:
+      type: object
+      required:
+        - where
+      properties:
+        select:
+          $ref: "#/components/schemas/FooSelect"
+        where:
+          $ref: "#/components/schemas/FooWhereUniqueInput"
+        meta:
+          $ref: "#/components/schemas/_Meta"
+    FooFindFirstArgs:
+      type: object
+      properties:
+        select:
+          $ref: "#/components/schemas/FooSelect"
+        where:
+          $ref: "#/components/schemas/FooWhereInput"
+        meta:
+          $ref: "#/components/schemas/_Meta"
+    FooFindManyArgs:
+      type: object
+      properties:
+        select:
+          $ref: "#/components/schemas/FooSelect"
+        where:
+          $ref: "#/components/schemas/FooWhereInput"
+        meta:
+          $ref: "#/components/schemas/_Meta"
+    FooUpdateArgs:
+      type: object
+      required:
+        - where
+        - data
+      properties:
+        select:
+          $ref: "#/components/schemas/FooSelect"
+        where:
+          $ref: "#/components/schemas/FooWhereUniqueInput"
+        data:
+          $ref: "#/components/schemas/FooUpdateInput"
+        meta:
+          $ref: "#/components/schemas/_Meta"
+    FooUpdateManyArgs:
+      type: object
+      required:
+        - data
+      properties:
+        where:
+          $ref: "#/components/schemas/FooWhereInput"
+        data:
+          $ref: "#/components/schemas/FooUpdateManyMutationInput"
+        meta:
+          $ref: "#/components/schemas/_Meta"
+    FooUpsertArgs:
+      type: object
+      required:
+        - create
+        - update
+        - where
+      properties:
+        select:
+          $ref: "#/components/schemas/FooSelect"
+        where:
+          $ref: "#/components/schemas/FooWhereUniqueInput"
+        create:
+          $ref: "#/components/schemas/FooCreateInput"
+        update:
+          $ref: "#/components/schemas/FooUpdateInput"
+        meta:
+          $ref: "#/components/schemas/_Meta"
+    FooDeleteUniqueArgs:
+      type: object
+      required:
+        - where
+      properties:
+        select:
+          $ref: "#/components/schemas/FooSelect"
+        where:
+          $ref: "#/components/schemas/FooWhereUniqueInput"
+        meta:
+          $ref: "#/components/schemas/_Meta"
+    FooDeleteManyArgs:
+      type: object
+      properties:
+        where:
+          $ref: "#/components/schemas/FooWhereInput"
+        meta:
+          $ref: "#/components/schemas/_Meta"
+    FooCountArgs:
+      type: object
+      properties:
+        select:
+          $ref: "#/components/schemas/FooSelect"
+        where:
+          $ref: "#/components/schemas/FooWhereInput"
+        meta:
+          $ref: "#/components/schemas/_Meta"
+    FooAggregateArgs:
+      type: object
+      properties:
+        where:
+          $ref: "#/components/schemas/FooWhereInput"
+        orderBy:
+          $ref: "#/components/schemas/FooOrderByWithRelationInput"
+        cursor:
+          $ref: "#/components/schemas/FooWhereUniqueInput"
+        take:
+          type: integer
+        skip:
+          type: integer
+        _count:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/FooCountAggregateInput"
+        _min:
+          $ref: "#/components/schemas/FooMinAggregateInput"
+        _max:
+          $ref: "#/components/schemas/FooMaxAggregateInput"
+        _sum:
+          $ref: "#/components/schemas/FooSumAggregateInput"
+        _avg:
+          $ref: "#/components/schemas/FooAvgAggregateInput"
+        meta:
+          $ref: "#/components/schemas/_Meta"
+    FooGroupByArgs:
+      type: object
+      properties:
+        where:
+          $ref: "#/components/schemas/FooWhereInput"
+        orderBy:
+          $ref: "#/components/schemas/FooOrderByWithRelationInput"
+        by:
+          $ref: "#/components/schemas/FooScalarFieldEnum"
+        having:
+          $ref: "#/components/schemas/FooScalarWhereWithAggregatesInput"
+        take:
+          type: integer
+        skip:
+          type: integer
+        _count:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/FooCountAggregateInput"
+        _min:
+          $ref: "#/components/schemas/FooMinAggregateInput"
+        _max:
+          $ref: "#/components/schemas/FooMaxAggregateInput"
+        _sum:
+          $ref: "#/components/schemas/FooSumAggregateInput"
+        _avg:
+          $ref: "#/components/schemas/FooAvgAggregateInput"
+        meta:
+          $ref: "#/components/schemas/_Meta"
 paths:
-    /foo/create:
-        post:
-            operationId: createFoo
-            description: Create a new Foo
-            tags:
-                - foo
-            security: []
-            responses:
-                '201':
-                    description: Successful operation
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                required:
-                                    - data
-                                properties:
-                                    data:
-                                        $ref: '#/components/schemas/Foo'
-                                        description: The Prisma response data serialized with superjson
-                                    meta:
-                                        $ref: '#/components/schemas/_Meta'
-                                        description: The superjson serialization metadata for the "data" field
-                '400':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Invalid request
-                '403':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is forbidden
-                '422':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is unprocessable due to validation errors
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/FooCreateArgs'
-    /foo/createMany:
-        post:
-            operationId: createManyFoo
-            description: Create several Foo
-            tags:
-                - foo
-            security: []
-            responses:
-                '201':
-                    description: Successful operation
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                required:
-                                    - data
-                                properties:
-                                    data:
-                                        $ref: '#/components/schemas/BatchPayload'
-                                        description: The Prisma response data serialized with superjson
-                                    meta:
-                                        $ref: '#/components/schemas/_Meta'
-                                        description: The superjson serialization metadata for the "data" field
-                '400':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Invalid request
-                '403':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is forbidden
-                '422':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is unprocessable due to validation errors
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/FooCreateManyArgs'
-    /foo/findUnique:
-        get:
-            operationId: findUniqueFoo
-            description: Find one unique Foo
-            tags:
-                - foo
-            security: []
-            responses:
-                '200':
-                    description: Successful operation
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                required:
-                                    - data
-                                properties:
-                                    data:
-                                        $ref: '#/components/schemas/Foo'
-                                        description: The Prisma response data serialized with superjson
-                                    meta:
-                                        $ref: '#/components/schemas/_Meta'
-                                        description: The superjson serialization metadata for the "data" field
-                '400':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Invalid request
-                '403':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is forbidden
-                '422':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is unprocessable due to validation errors
-            parameters:
-                - name: q
-                  in: query
-                  required: true
-                  description: Superjson-serialized Prisma query object
-                  content:
-                      application/json:
-                          schema:
-                              $ref: '#/components/schemas/FooFindUniqueArgs'
-                - name: meta
-                  in: query
-                  description: Superjson serialization metadata for parameter "q"
-                  content:
-                      application/json:
-                          schema: {}
-    /foo/findFirst:
-        get:
-            operationId: findFirstFoo
-            description: Find the first Foo matching the given condition
-            tags:
-                - foo
-            security: []
-            responses:
-                '200':
-                    description: Successful operation
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                required:
-                                    - data
-                                properties:
-                                    data:
-                                        $ref: '#/components/schemas/Foo'
-                                        description: The Prisma response data serialized with superjson
-                                    meta:
-                                        $ref: '#/components/schemas/_Meta'
-                                        description: The superjson serialization metadata for the "data" field
-                '400':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Invalid request
-                '403':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is forbidden
-                '422':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is unprocessable due to validation errors
-            parameters:
-                - name: q
-                  in: query
-                  required: true
-                  description: Superjson-serialized Prisma query object
-                  content:
-                      application/json:
-                          schema:
-                              $ref: '#/components/schemas/FooFindFirstArgs'
-                - name: meta
-                  in: query
-                  description: Superjson serialization metadata for parameter "q"
-                  content:
-                      application/json:
-                          schema: {}
-    /foo/findMany:
-        get:
-            operationId: findManyFoo
-            description: Find a list of Foo
-            tags:
-                - foo
-            security: []
-            responses:
-                '200':
-                    description: Successful operation
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                required:
-                                    - data
-                                properties:
-                                    data:
-                                        type: array
-                                        items:
-                                            $ref: '#/components/schemas/Foo'
-                                        description: The Prisma response data serialized with superjson
-                                    meta:
-                                        $ref: '#/components/schemas/_Meta'
-                                        description: The superjson serialization metadata for the "data" field
-                '400':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Invalid request
-                '403':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is forbidden
-                '422':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is unprocessable due to validation errors
-            parameters:
-                - name: q
-                  in: query
-                  required: true
-                  description: Superjson-serialized Prisma query object
-                  content:
-                      application/json:
-                          schema:
-                              $ref: '#/components/schemas/FooFindManyArgs'
-                - name: meta
-                  in: query
-                  description: Superjson serialization metadata for parameter "q"
-                  content:
-                      application/json:
-                          schema: {}
-    /foo/update:
-        patch:
-            operationId: updateFoo
-            description: Update a Foo
-            tags:
-                - foo
-            security: []
-            responses:
-                '200':
-                    description: Successful operation
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                required:
-                                    - data
-                                properties:
-                                    data:
-                                        $ref: '#/components/schemas/Foo'
-                                        description: The Prisma response data serialized with superjson
-                                    meta:
-                                        $ref: '#/components/schemas/_Meta'
-                                        description: The superjson serialization metadata for the "data" field
-                '400':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Invalid request
-                '403':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is forbidden
-                '422':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is unprocessable due to validation errors
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/FooUpdateArgs'
-    /foo/updateMany:
-        patch:
-            operationId: updateManyFoo
-            description: Update Foos matching the given condition
-            tags:
-                - foo
-            security: []
-            responses:
-                '200':
-                    description: Successful operation
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                required:
-                                    - data
-                                properties:
-                                    data:
-                                        $ref: '#/components/schemas/BatchPayload'
-                                        description: The Prisma response data serialized with superjson
-                                    meta:
-                                        $ref: '#/components/schemas/_Meta'
-                                        description: The superjson serialization metadata for the "data" field
-                '400':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Invalid request
-                '403':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is forbidden
-                '422':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is unprocessable due to validation errors
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/FooUpdateManyArgs'
-    /foo/upsert:
-        post:
-            operationId: upsertFoo
-            description: Upsert a Foo
-            tags:
-                - foo
-            security: []
-            responses:
-                '200':
-                    description: Successful operation
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                required:
-                                    - data
-                                properties:
-                                    data:
-                                        $ref: '#/components/schemas/Foo'
-                                        description: The Prisma response data serialized with superjson
-                                    meta:
-                                        $ref: '#/components/schemas/_Meta'
-                                        description: The superjson serialization metadata for the "data" field
-                '400':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Invalid request
-                '403':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is forbidden
-                '422':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is unprocessable due to validation errors
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/FooUpsertArgs'
-    /foo/delete:
-        delete:
-            operationId: deleteFoo
-            description: Delete one unique Foo
-            tags:
-                - foo
-            security: []
-            responses:
-                '200':
-                    description: Successful operation
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                required:
-                                    - data
-                                properties:
-                                    data:
-                                        $ref: '#/components/schemas/Foo'
-                                        description: The Prisma response data serialized with superjson
-                                    meta:
-                                        $ref: '#/components/schemas/_Meta'
-                                        description: The superjson serialization metadata for the "data" field
-                '400':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Invalid request
-                '403':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is forbidden
-                '422':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is unprocessable due to validation errors
-            parameters:
-                - name: q
-                  in: query
-                  required: true
-                  description: Superjson-serialized Prisma query object
-                  content:
-                      application/json:
-                          schema:
-                              $ref: '#/components/schemas/FooDeleteUniqueArgs'
-                - name: meta
-                  in: query
-                  description: Superjson serialization metadata for parameter "q"
-                  content:
-                      application/json:
-                          schema: {}
-    /foo/deleteMany:
-        delete:
-            operationId: deleteManyFoo
-            description: Delete Foos matching the given condition
-            tags:
-                - foo
-            security: []
-            responses:
-                '200':
-                    description: Successful operation
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                required:
-                                    - data
-                                properties:
-                                    data:
-                                        $ref: '#/components/schemas/BatchPayload'
-                                        description: The Prisma response data serialized with superjson
-                                    meta:
-                                        $ref: '#/components/schemas/_Meta'
-                                        description: The superjson serialization metadata for the "data" field
-                '400':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Invalid request
-                '403':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is forbidden
-                '422':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is unprocessable due to validation errors
-            parameters:
-                - name: q
-                  in: query
-                  required: true
-                  description: Superjson-serialized Prisma query object
-                  content:
-                      application/json:
-                          schema:
-                              $ref: '#/components/schemas/FooDeleteManyArgs'
-                - name: meta
-                  in: query
-                  description: Superjson serialization metadata for parameter "q"
-                  content:
-                      application/json:
-                          schema: {}
-    /foo/count:
-        get:
-            operationId: countFoo
-            description: Find a list of Foo
-            tags:
-                - foo
-            security: []
-            responses:
-                '200':
-                    description: Successful operation
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                required:
-                                    - data
-                                properties:
-                                    data:
-                                        oneOf:
-                                            - type: integer
-                                            - $ref: '#/components/schemas/FooCountAggregateOutputType'
-                                        description: The Prisma response data serialized with superjson
-                                    meta:
-                                        $ref: '#/components/schemas/_Meta'
-                                        description: The superjson serialization metadata for the "data" field
-                '400':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Invalid request
-                '403':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is forbidden
-                '422':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is unprocessable due to validation errors
-            parameters:
-                - name: q
-                  in: query
-                  required: true
-                  description: Superjson-serialized Prisma query object
-                  content:
-                      application/json:
-                          schema:
-                              $ref: '#/components/schemas/FooCountArgs'
-                - name: meta
-                  in: query
-                  description: Superjson serialization metadata for parameter "q"
-                  content:
-                      application/json:
-                          schema: {}
-    /foo/aggregate:
-        get:
-            operationId: aggregateFoo
-            description: Aggregate Foos
-            tags:
-                - foo
-            security: []
-            responses:
-                '200':
-                    description: Successful operation
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                required:
-                                    - data
-                                properties:
-                                    data:
-                                        $ref: '#/components/schemas/AggregateFoo'
-                                        description: The Prisma response data serialized with superjson
-                                    meta:
-                                        $ref: '#/components/schemas/_Meta'
-                                        description: The superjson serialization metadata for the "data" field
-                '400':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Invalid request
-                '403':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is forbidden
-                '422':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is unprocessable due to validation errors
-            parameters:
-                - name: q
-                  in: query
-                  required: true
-                  description: Superjson-serialized Prisma query object
-                  content:
-                      application/json:
-                          schema:
-                              $ref: '#/components/schemas/FooAggregateArgs'
-                - name: meta
-                  in: query
-                  description: Superjson serialization metadata for parameter "q"
-                  content:
-                      application/json:
-                          schema: {}
-    /foo/groupBy:
-        get:
-            operationId: groupByFoo
-            description: Group Foos by fields
-            tags:
-                - foo
-            security: []
-            responses:
-                '200':
-                    description: Successful operation
-                    content:
-                        application/json:
-                            schema:
-                                type: object
-                                required:
-                                    - data
-                                properties:
-                                    data:
-                                        type: array
-                                        items:
-                                            $ref: '#/components/schemas/FooGroupByOutputType'
-                                        description: The Prisma response data serialized with superjson
-                                    meta:
-                                        $ref: '#/components/schemas/_Meta'
-                                        description: The superjson serialization metadata for the "data" field
-                '400':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Invalid request
-                '403':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is forbidden
-                '422':
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/_Error'
-                    description: Request is unprocessable due to validation errors
-            parameters:
-                - name: q
-                  in: query
-                  required: true
-                  description: Superjson-serialized Prisma query object
-                  content:
-                      application/json:
-                          schema:
-                              $ref: '#/components/schemas/FooGroupByArgs'
-                - name: meta
-                  in: query
-                  description: Superjson serialization metadata for parameter "q"
-                  content:
-                      application/json:
-                          schema: {}
+  /foo/create:
+    post:
+      operationId: createFoo
+      description: Create a new Foo
+      tags:
+        - foo
+      security: []
+      responses:
+        "201":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Foo"
+                    description: The Prisma response data serialized with superjson
+                  meta:
+                    $ref: "#/components/schemas/_Meta"
+                    description: The superjson serialization metadata for the "data" field
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Invalid request
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is unprocessable due to validation errors
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FooCreateArgs"
+  /foo/createMany:
+    post:
+      operationId: createManyFoo
+      description: Create several Foo
+      tags:
+        - foo
+      security: []
+      responses:
+        "201":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: "#/components/schemas/BatchPayload"
+                    description: The Prisma response data serialized with superjson
+                  meta:
+                    $ref: "#/components/schemas/_Meta"
+                    description: The superjson serialization metadata for the "data" field
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Invalid request
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is unprocessable due to validation errors
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FooCreateManyArgs"
+  /foo/findUnique:
+    get:
+      operationId: findUniqueFoo
+      description: Find one unique Foo
+      tags:
+        - foo
+      security: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Foo"
+                    description: The Prisma response data serialized with superjson
+                  meta:
+                    $ref: "#/components/schemas/_Meta"
+                    description: The superjson serialization metadata for the "data" field
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Invalid request
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is unprocessable due to validation errors
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Superjson-serialized Prisma query object
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FooFindUniqueArgs"
+        - name: meta
+          in: query
+          description: Superjson serialization metadata for parameter "q"
+          content:
+            application/json:
+              schema: {}
+  /foo/findFirst:
+    get:
+      operationId: findFirstFoo
+      description: Find the first Foo matching the given condition
+      tags:
+        - foo
+      security: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Foo"
+                    description: The Prisma response data serialized with superjson
+                  meta:
+                    $ref: "#/components/schemas/_Meta"
+                    description: The superjson serialization metadata for the "data" field
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Invalid request
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is unprocessable due to validation errors
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Superjson-serialized Prisma query object
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FooFindFirstArgs"
+        - name: meta
+          in: query
+          description: Superjson serialization metadata for parameter "q"
+          content:
+            application/json:
+              schema: {}
+  /foo/findMany:
+    get:
+      operationId: findManyFoo
+      description: Find a list of Foo
+      tags:
+        - foo
+      security: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Foo"
+                    description: The Prisma response data serialized with superjson
+                  meta:
+                    $ref: "#/components/schemas/_Meta"
+                    description: The superjson serialization metadata for the "data" field
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Invalid request
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is unprocessable due to validation errors
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Superjson-serialized Prisma query object
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FooFindManyArgs"
+        - name: meta
+          in: query
+          description: Superjson serialization metadata for parameter "q"
+          content:
+            application/json:
+              schema: {}
+  /foo/update:
+    patch:
+      operationId: updateFoo
+      description: Update a Foo
+      tags:
+        - foo
+      security: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Foo"
+                    description: The Prisma response data serialized with superjson
+                  meta:
+                    $ref: "#/components/schemas/_Meta"
+                    description: The superjson serialization metadata for the "data" field
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Invalid request
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is unprocessable due to validation errors
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FooUpdateArgs"
+  /foo/updateMany:
+    patch:
+      operationId: updateManyFoo
+      description: Update Foos matching the given condition
+      tags:
+        - foo
+      security: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: "#/components/schemas/BatchPayload"
+                    description: The Prisma response data serialized with superjson
+                  meta:
+                    $ref: "#/components/schemas/_Meta"
+                    description: The superjson serialization metadata for the "data" field
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Invalid request
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is unprocessable due to validation errors
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FooUpdateManyArgs"
+  /foo/upsert:
+    post:
+      operationId: upsertFoo
+      description: Upsert a Foo
+      tags:
+        - foo
+      security: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Foo"
+                    description: The Prisma response data serialized with superjson
+                  meta:
+                    $ref: "#/components/schemas/_Meta"
+                    description: The superjson serialization metadata for the "data" field
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Invalid request
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is unprocessable due to validation errors
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FooUpsertArgs"
+  /foo/delete:
+    delete:
+      operationId: deleteFoo
+      description: Delete one unique Foo
+      tags:
+        - foo
+      security: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Foo"
+                    description: The Prisma response data serialized with superjson
+                  meta:
+                    $ref: "#/components/schemas/_Meta"
+                    description: The superjson serialization metadata for the "data" field
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Invalid request
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is unprocessable due to validation errors
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Superjson-serialized Prisma query object
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FooDeleteUniqueArgs"
+        - name: meta
+          in: query
+          description: Superjson serialization metadata for parameter "q"
+          content:
+            application/json:
+              schema: {}
+  /foo/deleteMany:
+    delete:
+      operationId: deleteManyFoo
+      description: Delete Foos matching the given condition
+      tags:
+        - foo
+      security: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: "#/components/schemas/BatchPayload"
+                    description: The Prisma response data serialized with superjson
+                  meta:
+                    $ref: "#/components/schemas/_Meta"
+                    description: The superjson serialization metadata for the "data" field
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Invalid request
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is unprocessable due to validation errors
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Superjson-serialized Prisma query object
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FooDeleteManyArgs"
+        - name: meta
+          in: query
+          description: Superjson serialization metadata for parameter "q"
+          content:
+            application/json:
+              schema: {}
+  /foo/count:
+    get:
+      operationId: countFoo
+      description: Find a list of Foo
+      tags:
+        - foo
+      security: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    oneOf:
+                      - type: integer
+                      - $ref: "#/components/schemas/FooCountAggregateOutputType"
+                    description: The Prisma response data serialized with superjson
+                  meta:
+                    $ref: "#/components/schemas/_Meta"
+                    description: The superjson serialization metadata for the "data" field
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Invalid request
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is unprocessable due to validation errors
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Superjson-serialized Prisma query object
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FooCountArgs"
+        - name: meta
+          in: query
+          description: Superjson serialization metadata for parameter "q"
+          content:
+            application/json:
+              schema: {}
+  /foo/aggregate:
+    get:
+      operationId: aggregateFoo
+      description: Aggregate Foos
+      tags:
+        - foo
+      security: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: "#/components/schemas/AggregateFoo"
+                    description: The Prisma response data serialized with superjson
+                  meta:
+                    $ref: "#/components/schemas/_Meta"
+                    description: The superjson serialization metadata for the "data" field
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Invalid request
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is unprocessable due to validation errors
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Superjson-serialized Prisma query object
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FooAggregateArgs"
+        - name: meta
+          in: query
+          description: Superjson serialization metadata for parameter "q"
+          content:
+            application/json:
+              schema: {}
+  /foo/groupBy:
+    get:
+      operationId: groupByFoo
+      description: Group Foos by fields
+      tags:
+        - foo
+      security: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/FooGroupByOutputType"
+                    description: The Prisma response data serialized with superjson
+                  meta:
+                    $ref: "#/components/schemas/_Meta"
+                    description: The superjson serialization metadata for the "data" field
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Invalid request
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is forbidden
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_Error"
+          description: Request is unprocessable due to validation errors
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Superjson-serialized Prisma query object
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FooGroupByArgs"
+        - name: meta
+          in: query
+          description: Superjson serialization metadata for parameter "q"
+          content:
+            application/json:
+              schema: {}

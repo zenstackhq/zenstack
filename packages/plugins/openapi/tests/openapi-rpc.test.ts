@@ -377,6 +377,10 @@ plugin openapi {
     specVersion = '${specVersion}'
 }
 
+type Meta {
+    something String
+}
+
 model Foo {
     id String @id @default(cuid())
     
@@ -388,6 +392,8 @@ model Foo {
     decimal Decimal
     boolean Boolean
     bytes Bytes?
+    json Meta? @json
+    plainJson Json
 
     @@allow('all', true)
 }
@@ -408,6 +414,94 @@ model Foo {
                 fs.readFileSync(`${__dirname}/baseline/rpc-type-coverage-${specVersion}.baseline.yaml`, 'utf-8')
             );
             expect(parsed).toMatchObject(baseline);
+        }
+    });
+
+    it('complex TypeDef structures', async () => {
+        for (const specVersion of ['3.0.0', '3.1.0']) {
+            const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
+plugin openapi {
+    provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
+    specVersion = '${specVersion}'
+}
+
+enum Status {
+    PENDING
+    APPROVED
+    REJECTED
+}
+
+type Address {
+    street String
+    city String
+    country String
+    zipCode String?
+}
+
+type ContactInfo {
+    email String
+    phone String?
+    addresses Address[]
+}
+
+type ReviewItem {
+    id String
+    status Status
+    reviewer ContactInfo
+    score Int
+    comments String[]
+    metadata Json?
+}
+
+type ComplexData {
+    reviews ReviewItem[]
+    primaryContact ContactInfo
+    tags String[]
+    settings Json
+}
+
+model Product {
+    id String @id @default(cuid())
+    name String
+    data ComplexData @json
+    simpleJson Json
+
+    @@allow('all', true)
+}
+        `);
+
+            const { name: output } = tmp.fileSync({ postfix: '.yaml' });
+
+            const options = buildOptions(model, modelFile, output);
+            await generate(model, options, dmmf);
+
+            await OpenAPIParser.validate(output);
+
+            const parsed = YAML.parse(fs.readFileSync(output, 'utf-8'));
+            expect(parsed.openapi).toBe(specVersion);
+            
+            // Verify all TypeDefs are generated
+            expect(parsed.components.schemas.Address).toBeDefined();
+            expect(parsed.components.schemas.ContactInfo).toBeDefined();
+            expect(parsed.components.schemas.ReviewItem).toBeDefined();
+            expect(parsed.components.schemas.ComplexData).toBeDefined();
+            
+            // Verify enum reference in TypeDef
+            expect(parsed.components.schemas.ReviewItem.properties.status.$ref).toBe('#/components/schemas/Status');
+            
+            // Verify nested TypeDef references
+            expect(parsed.components.schemas.ContactInfo.properties.addresses.type).toBe('array');
+            expect(parsed.components.schemas.ContactInfo.properties.addresses.items.$ref).toBe('#/components/schemas/Address');
+            
+            // Verify array of complex objects
+            expect(parsed.components.schemas.ComplexData.properties.reviews.type).toBe('array');
+            expect(parsed.components.schemas.ComplexData.properties.reviews.items.$ref).toBe('#/components/schemas/ReviewItem');
+            
+            // Verify the Product model references the ComplexData TypeDef
+            expect(parsed.components.schemas.Product.properties.data.$ref).toBe('#/components/schemas/ComplexData');
+            
+            // Verify plain Json field remains generic
+            expect(parsed.components.schemas.Product.properties.simpleJson).toEqual({});
         }
     });
 
