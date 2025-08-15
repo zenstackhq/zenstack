@@ -117,7 +117,10 @@ function generateQueryHook(
         const capOperation = upperCaseFirst(operation);
 
         const argsType = overrideInputType ?? `Prisma.${model}${capOperation}Args`;
-        const inputType = makeQueryArgsType(target, argsType);
+        let inputType = makeQueryArgsType(target, argsType);
+        if (target === 'angular') {
+            inputType = `${inputType} | (() => ${inputType})`;
+        }
 
         const infinite = generateMode.includes('Infinite');
         const suspense = generateMode.includes('Suspense');
@@ -673,7 +676,7 @@ function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
         }
         case 'angular': {
             return [
-                `import type { CreateMutationOptions, CreateQueryOptions, CreateInfiniteQueryOptions, InfiniteData } from '@tanstack/angular-query-v5';`,
+                `import type { CreateMutationOptions, CreateQueryOptions, CreateInfiniteQueryOptions, InfiniteData } from '@tanstack/angular-query-experimental';`,
                 `import { getHooksContext } from '${runtimeImportBase}/${target}';`,
                 ...shared,
             ];
