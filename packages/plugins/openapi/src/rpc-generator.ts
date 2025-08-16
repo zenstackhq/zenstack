@@ -1,7 +1,7 @@
 // Inspired by: https://github.com/omar-dulaimi/prisma-trpc-generator
 
 import { PluginError, PluginOptions, analyzePolicies, requireOption, resolvePath } from '@zenstackhq/sdk';
-import { DataModel, Enum, Model, TypeDef, TypeDefField, TypeDefFieldType, isDataModel, isEnum, isTypeDef } from '@zenstackhq/sdk/ast';
+import { DataModel, Model, TypeDef, TypeDefField, TypeDefFieldType, isDataModel, isEnum, isTypeDef } from '@zenstackhq/sdk/ast';
 import {
     AggregateOperationSupport,
     addMissingInputObjectTypesForAggregate,
@@ -865,23 +865,18 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
     }
 
     private typeDefFieldTypeToOpenAPISchema(type: TypeDefFieldType): OAPI.ReferenceObject | OAPI.SchemaObject {
+        // For references to other types (TypeDef, Enum, Model)
+        if (type.reference?.ref) {
+            return this.ref(type.reference.ref.name, true);
+        }
+        
+        // For scalar types, reuse the existing mapping logic
+        // Note: Json type is handled as empty schema for consistency
         return match(type.type)
-            .with('String', () => ({ type: 'string' } as OAPI.SchemaObject))
-            .with(P.union('Int', 'BigInt'), () => ({ type: 'integer' } as OAPI.SchemaObject))
-            .with('Float', () => ({ type: 'number' } as OAPI.SchemaObject))
-            .with('Decimal', () => this.oneOf({ type: 'string' }, { type: 'number' }))
-            .with('Boolean', () => ({ type: 'boolean' } as OAPI.SchemaObject))
-            .with('DateTime', () => ({ type: 'string', format: 'date-time' } as OAPI.SchemaObject))
-            .with('Bytes', () => ({ type: 'string', format: 'byte' } as OAPI.SchemaObject))
-            .with('Json', () => ({ type: 'string', format: 'json' } as OAPI.SchemaObject))
-            .otherwise(() => {
-                // It's a reference to another TypeDef, Enum, or Model
-                const fieldDecl = type.reference?.ref;
-                if (fieldDecl) {
-                    return this.ref(fieldDecl.name, true);
-                }
-                // Fallback for unknown types
-                return { type: 'string' } as OAPI.SchemaObject;
+            .with('Json', () => ({} as OAPI.SchemaObject))
+            .otherwise((t) => {
+                // Delegate to prismaTypeToOpenAPIType for all other scalar types
+                return this.prismaTypeToOpenAPIType(String(t), false);
             });
     }
 
@@ -900,9 +895,6 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
     }
 
     private prismaTypeToOpenAPIType(type: string, nullable: boolean): OAPI.ReferenceObject | OAPI.SchemaObject {
-        // Check if this type is a TypeDef
-        const isTypeDefType = this.model.declarations.some(d => isTypeDef(d) && d.name === type);
-        
         const result = match(type)
             .with('String', () => ({ type: 'string' }))
             .with(P.union('Int', 'BigInt'), () => ({ type: 'integer' }))
@@ -914,6 +906,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
             .with(P.union('JSON', 'Json'), () => {
                 // For Json fields, check if there's a specific TypeDef reference
                 // Otherwise, return empty schema for arbitrary JSON
+                const isTypeDefType = this.model.declarations.some(d => isTypeDef(d) && d.name === type);
                 return isTypeDefType ? this.ref(type, false) : {};
             })
             .otherwise((type) => this.ref(type.toString(), false));

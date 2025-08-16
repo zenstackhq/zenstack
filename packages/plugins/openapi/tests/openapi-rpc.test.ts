@@ -489,6 +489,19 @@ model Product {
             // Verify enum reference in TypeDef
             expect(parsed.components.schemas.ReviewItem.properties.status.$ref).toBe('#/components/schemas/Status');
             
+            // Json field inside a TypeDef should remain generic (wrapped with nullable since it's optional)
+            // OpenAPI 3.1 uses oneOf with null type, while 3.0 uses nullable: true
+            if (specVersion === '3.1.0') {
+                expect(parsed.components.schemas.ReviewItem.properties.metadata).toEqual({
+                    oneOf: [
+                        { type: 'null' },
+                        {}
+                    ]
+                });
+            } else {
+                expect(parsed.components.schemas.ReviewItem.properties.metadata).toEqual({ nullable: true });
+            }
+            
             // Verify nested TypeDef references
             expect(parsed.components.schemas.ContactInfo.properties.addresses.type).toBe('array');
             expect(parsed.components.schemas.ContactInfo.properties.addresses.items.$ref).toBe('#/components/schemas/Address');
