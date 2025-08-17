@@ -1,7 +1,7 @@
 // Inspired by: https://github.com/omar-dulaimi/prisma-trpc-generator
 
 import { PluginError, PluginOptions, analyzePolicies, requireOption, resolvePath } from '@zenstackhq/sdk';
-import { DataModel, Model, isDataModel } from '@zenstackhq/sdk/ast';
+import { DataModel, Model, TypeDef, TypeDefField, TypeDefFieldType, isDataModel, isEnum, isTypeDef } from '@zenstackhq/sdk/ast';
 import {
     AggregateOperationSupport,
     addMissingInputObjectTypesForAggregate,
@@ -649,10 +649,25 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         for (const _enum of [...(this.dmmf.schema.enumTypes.model ?? []), ...this.dmmf.schema.enumTypes.prisma]) {
             schemas[upperCaseFirst(_enum.name)] = this.generateEnumComponent(_enum);
         }
+        
+        // Also add enums from AST that might not be in DMMF (e.g., only used in TypeDefs)
+        for (const enumDecl of this.model.declarations.filter(isEnum)) {
+            if (!schemas[upperCaseFirst(enumDecl.name)]) {
+                schemas[upperCaseFirst(enumDecl.name)] = {
+                    type: 'string',
+                    enum: enumDecl.fields.map(f => f.name)
+                };
+            }
+        }
 
         // data models
         for (const model of this.dmmf.datamodel.models) {
             schemas[upperCaseFirst(model.name)] = this.generateEntityComponent(model);
+        }
+
+        // type defs
+        for (const typeDef of this.model.declarations.filter(isTypeDef)) {
+            schemas[upperCaseFirst(typeDef.name)] = this.generateTypeDefComponent(typeDef);
         }
 
         for (const input of this.inputObjectTypes) {
@@ -737,7 +752,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
 
         const required: string[] = [];
         for (const field of model.fields) {
-            properties[field.name] = this.generateField(field);
+            properties[field.name] = this.generateField(field, model.name);
             if (field.isRequired && !(field.relationName && field.isList)) {
                 required.push(field.name);
             }
@@ -750,7 +765,22 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         return result;
     }
 
-    private generateField(def: { kind: DMMF.FieldKind; type: string; isList: boolean; isRequired: boolean }) {
+    private generateField(def: { kind: DMMF.FieldKind; type: string; isList: boolean; isRequired: boolean; name?: string }, modelName?: string) {
+        // For Json fields, check if there's a corresponding TypeDef in the original model
+        if (def.kind === 'scalar' && def.type === 'Json' && modelName && def.name) {
+            const dataModel = this.model.declarations.find(d => isDataModel(d) && d.name === modelName) as DataModel;
+            if (dataModel) {
+                const field = dataModel.fields.find(f => f.name === def.name);
+                if (field?.type.reference?.ref && isTypeDef(field.type.reference.ref)) {
+                    // This Json field references a TypeDef
+                    return this.wrapArray(
+                        this.wrapNullable(this.ref(field.type.reference.ref.name, true), !def.isRequired),
+                        def.isList
+                    );
+                }
+            }
+        }
+
         switch (def.kind) {
             case 'scalar':
                 return this.wrapArray(this.prismaTypeToOpenAPIType(def.type, !def.isRequired), def.isList);
@@ -816,6 +846,47 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         return result;
     }
 
+    private generateTypeDefComponent(typeDef: TypeDef): OAPI.SchemaObject {
+        const schema: OAPI.SchemaObject = {
+            type: 'object',
+            description: `The "${typeDef.name}" TypeDef`,
+            properties: typeDef.fields.reduce((acc, field) => {
+                acc[field.name] = this.generateTypeDefField(field);
+                return acc;
+            }, {} as Record<string, OAPI.ReferenceObject | OAPI.SchemaObject>),
+        };
+
+        const required = typeDef.fields.filter((f) => !f.type.optional).map((f) => f.name);
+        if (required.length > 0) {
+            schema.required = required;
+        }
+
+        return schema;
+    }
+
+    private generateTypeDefField(field: TypeDefField): OAPI.ReferenceObject | OAPI.SchemaObject {
+        return this.wrapArray(
+            this.wrapNullable(this.typeDefFieldTypeToOpenAPISchema(field.type), field.type.optional),
+            field.type.array
+        );
+    }
+
+    private typeDefFieldTypeToOpenAPISchema(type: TypeDefFieldType): OAPI.ReferenceObject | OAPI.SchemaObject {
+        // For references to other types (TypeDef, Enum, Model)
+        if (type.reference?.ref) {
+            return this.ref(type.reference.ref.name, true);
+        }
+        
+        // For scalar types, reuse the existing mapping logic
+        // Note: Json type is handled as empty schema for consistency
+        return match(type.type)
+            .with('Json', () => ({} as OAPI.SchemaObject))
+            .otherwise((t) => {
+                // Delegate to prismaTypeToOpenAPIType for all other scalar types
+                return this.prismaTypeToOpenAPIType(String(t), false);
+            });
+    }
+
     private setInputRequired(fields: readonly DMMF.SchemaArg[], result: OAPI.NonArraySchemaObject) {
         const required = fields.filter((f) => f.isRequired).map((f) => f.name);
         if (required.length > 0) {
@@ -839,7 +910,12 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
             .with(P.union('Boolean', 'True'), () => ({ type: 'boolean' }))
             .with('DateTime', () => ({ type: 'string', format: 'date-time' }))
             .with('Bytes', () => ({ type: 'string', format: 'byte' }))
-            .with(P.union('JSON', 'Json'), () => ({}))
+            .with(P.union('JSON', 'Json'), () => {
+                // For Json fields, check if there's a specific TypeDef reference
+                // Otherwise, return empty schema for arbitrary JSON
+                const isTypeDefType = this.model.declarations.some(d => isTypeDef(d) && d.name === type);
+                return isTypeDefType ? this.ref(type, false) : {};
+            })
             .otherwise((type) => this.ref(type.toString(), false));
 
         return this.wrapNullable(result, nullable);

@@ -19,16 +19,33 @@ components:
                 - decimal
                 - boolean
                 - bytes
+                - json
+                - plainJson
         SortOrder:
             type: string
             enum:
                 - asc
                 - desc
+        NullableJsonNullValueInput:
+            type: string
+            enum:
+                - DbNull
+                - JsonNull
+        JsonNullValueInput:
+            type: string
+            enum:
+                - JsonNull
         QueryMode:
             type: string
             enum:
                 - default
                 - insensitive
+        JsonNullValueFilter:
+            type: string
+            enum:
+                - DbNull
+                - JsonNull
+                - AnyNull
         NullsOrder:
             type: string
             enum:
@@ -60,6 +77,11 @@ components:
                     type: string
                     format: byte
                     nullable: true
+                json:
+                    allOf:
+                        - $ref: '#/components/schemas/Meta'
+                    nullable: true
+                plainJson: {}
             required:
                 - id
                 - string
@@ -69,6 +91,15 @@ components:
                 - float
                 - decimal
                 - boolean
+                - plainJson
+        Meta:
+            type: object
+            description: The "Meta" TypeDef
+            properties:
+                something:
+                    type: string
+            required:
+                - something
         FooWhereInput:
             type: object
             properties:
@@ -129,6 +160,10 @@ components:
                         - type: string
                           format: byte
                     nullable: true
+                json:
+                    $ref: '#/components/schemas/JsonNullableFilter'
+                plainJson:
+                    $ref: '#/components/schemas/JsonFilter'
         FooOrderByWithRelationInput:
             type: object
             properties:
@@ -152,6 +187,12 @@ components:
                     oneOf:
                         - $ref: '#/components/schemas/SortOrder'
                         - $ref: '#/components/schemas/SortOrderInput'
+                json:
+                    oneOf:
+                        - $ref: '#/components/schemas/SortOrder'
+                        - $ref: '#/components/schemas/SortOrderInput'
+                plainJson:
+                    $ref: '#/components/schemas/SortOrder'
         FooWhereUniqueInput:
             type: object
             properties:
@@ -210,6 +251,10 @@ components:
                         - type: string
                           format: byte
                     nullable: true
+                json:
+                    $ref: '#/components/schemas/JsonNullableFilter'
+                plainJson:
+                    $ref: '#/components/schemas/JsonFilter'
         FooScalarWhereWithAggregatesInput:
             type: object
             properties:
@@ -270,6 +315,10 @@ components:
                         - type: string
                           format: byte
                     nullable: true
+                json:
+                    $ref: '#/components/schemas/JsonNullableWithAggregatesFilter'
+                plainJson:
+                    $ref: '#/components/schemas/JsonWithAggregatesFilter'
         FooCreateInput:
             type: object
             properties:
@@ -296,6 +345,14 @@ components:
                     type: string
                     format: byte
                     nullable: true
+                json:
+                    oneOf:
+                        - $ref: '#/components/schemas/NullableJsonNullValueInput'
+                        - {}
+                plainJson:
+                    oneOf:
+                        - $ref: '#/components/schemas/JsonNullValueInput'
+                        - {}
             required:
                 - string
                 - int
@@ -304,6 +361,7 @@ components:
                 - float
                 - decimal
                 - boolean
+                - plainJson
         FooUpdateInput:
             type: object
             properties:
@@ -348,6 +406,14 @@ components:
                           format: byte
                         - $ref: '#/components/schemas/NullableBytesFieldUpdateOperationsInput'
                     nullable: true
+                json:
+                    oneOf:
+                        - $ref: '#/components/schemas/NullableJsonNullValueInput'
+                        - {}
+                plainJson:
+                    oneOf:
+                        - $ref: '#/components/schemas/JsonNullValueInput'
+                        - {}
         FooCreateManyInput:
             type: object
             properties:
@@ -374,6 +440,14 @@ components:
                     type: string
                     format: byte
                     nullable: true
+                json:
+                    oneOf:
+                        - $ref: '#/components/schemas/NullableJsonNullValueInput'
+                        - {}
+                plainJson:
+                    oneOf:
+                        - $ref: '#/components/schemas/JsonNullValueInput'
+                        - {}
             required:
                 - string
                 - int
@@ -382,6 +456,7 @@ components:
                 - float
                 - decimal
                 - boolean
+                - plainJson
         FooUpdateManyMutationInput:
             type: object
             properties:
@@ -426,6 +501,14 @@ components:
                           format: byte
                         - $ref: '#/components/schemas/NullableBytesFieldUpdateOperationsInput'
                     nullable: true
+                json:
+                    oneOf:
+                        - $ref: '#/components/schemas/NullableJsonNullValueInput'
+                        - {}
+                plainJson:
+                    oneOf:
+                        - $ref: '#/components/schemas/JsonNullValueInput'
+                        - {}
         StringFilter:
             type: object
             properties:
@@ -642,6 +725,72 @@ components:
                           format: byte
                         - $ref: '#/components/schemas/NestedBytesNullableFilter'
                     nullable: true
+        JsonNullableFilter:
+            type: object
+            properties:
+                equals:
+                    oneOf:
+                        - {}
+                        - $ref: '#/components/schemas/JsonNullValueFilter'
+                path:
+                    type: array
+                    items:
+                        type: string
+                mode:
+                    $ref: '#/components/schemas/QueryMode'
+                string_contains:
+                    type: string
+                string_starts_with:
+                    type: string
+                string_ends_with:
+                    type: string
+                array_starts_with:
+                    nullable: true
+                array_ends_with:
+                    nullable: true
+                array_contains:
+                    nullable: true
+                lt: {}
+                lte: {}
+                gt: {}
+                gte: {}
+                not:
+                    oneOf:
+                        - {}
+                        - $ref: '#/components/schemas/JsonNullValueFilter'
+        JsonFilter:
+            type: object
+            properties:
+                equals:
+                    oneOf:
+                        - {}
+                        - $ref: '#/components/schemas/JsonNullValueFilter'
+                path:
+                    type: array
+                    items:
+                        type: string
+                mode:
+                    $ref: '#/components/schemas/QueryMode'
+                string_contains:
+                    type: string
+                string_starts_with:
+                    type: string
+                string_ends_with:
+                    type: string
+                array_starts_with:
+                    nullable: true
+                array_ends_with:
+                    nullable: true
+                array_contains:
+                    nullable: true
+                lt: {}
+                lte: {}
+                gt: {}
+                gte: {}
+                not:
+                    oneOf:
+                        - {}
+                        - $ref: '#/components/schemas/JsonNullValueFilter'
         SortOrderInput:
             type: object
             properties:
@@ -931,6 +1080,84 @@ components:
                     $ref: '#/components/schemas/NestedBytesNullableFilter'
                 _max:
                     $ref: '#/components/schemas/NestedBytesNullableFilter'
+        JsonNullableWithAggregatesFilter:
+            type: object
+            properties:
+                equals:
+                    oneOf:
+                        - {}
+                        - $ref: '#/components/schemas/JsonNullValueFilter'
+                path:
+                    type: array
+                    items:
+                        type: string
+                mode:
+                    $ref: '#/components/schemas/QueryMode'
+                string_contains:
+                    type: string
+                string_starts_with:
+                    type: string
+                string_ends_with:
+                    type: string
+                array_starts_with:
+                    nullable: true
+                array_ends_with:
+                    nullable: true
+                array_contains:
+                    nullable: true
+                lt: {}
+                lte: {}
+                gt: {}
+                gte: {}
+                not:
+                    oneOf:
+                        - {}
+                        - $ref: '#/components/schemas/JsonNullValueFilter'
+                _count:
+                    $ref: '#/components/schemas/NestedIntNullableFilter'
+                _min:
+                    $ref: '#/components/schemas/NestedJsonNullableFilter'
+                _max:
+                    $ref: '#/components/schemas/NestedJsonNullableFilter'
+        JsonWithAggregatesFilter:
+            type: object
+            properties:
+                equals:
+                    oneOf:
+                        - {}
+                        - $ref: '#/components/schemas/JsonNullValueFilter'
+                path:
+                    type: array
+                    items:
+                        type: string
+                mode:
+                    $ref: '#/components/schemas/QueryMode'
+                string_contains:
+                    type: string
+                string_starts_with:
+                    type: string
+                string_ends_with:
+                    type: string
+                array_starts_with:
+                    nullable: true
+                array_ends_with:
+                    nullable: true
+                array_contains:
+                    nullable: true
+                lt: {}
+                lte: {}
+                gt: {}
+                gte: {}
+                not:
+                    oneOf:
+                        - {}
+                        - $ref: '#/components/schemas/JsonNullValueFilter'
+                _count:
+                    $ref: '#/components/schemas/NestedIntFilter'
+                _min:
+                    $ref: '#/components/schemas/NestedJsonFilter'
+                _max:
+                    $ref: '#/components/schemas/NestedJsonFilter'
         StringFieldUpdateOperationsInput:
             type: object
             properties:
@@ -1537,6 +1764,72 @@ components:
                         - type: integer
                         - $ref: '#/components/schemas/NestedIntNullableFilter'
                     nullable: true
+        NestedJsonNullableFilter:
+            type: object
+            properties:
+                equals:
+                    oneOf:
+                        - {}
+                        - $ref: '#/components/schemas/JsonNullValueFilter'
+                path:
+                    type: array
+                    items:
+                        type: string
+                mode:
+                    $ref: '#/components/schemas/QueryMode'
+                string_contains:
+                    type: string
+                string_starts_with:
+                    type: string
+                string_ends_with:
+                    type: string
+                array_starts_with:
+                    nullable: true
+                array_ends_with:
+                    nullable: true
+                array_contains:
+                    nullable: true
+                lt: {}
+                lte: {}
+                gt: {}
+                gte: {}
+                not:
+                    oneOf:
+                        - {}
+                        - $ref: '#/components/schemas/JsonNullValueFilter'
+        NestedJsonFilter:
+            type: object
+            properties:
+                equals:
+                    oneOf:
+                        - {}
+                        - $ref: '#/components/schemas/JsonNullValueFilter'
+                path:
+                    type: array
+                    items:
+                        type: string
+                mode:
+                    $ref: '#/components/schemas/QueryMode'
+                string_contains:
+                    type: string
+                string_starts_with:
+                    type: string
+                string_ends_with:
+                    type: string
+                array_starts_with:
+                    nullable: true
+                array_ends_with:
+                    nullable: true
+                array_contains:
+                    nullable: true
+                lt: {}
+                lte: {}
+                gt: {}
+                gte: {}
+                not:
+                    oneOf:
+                        - {}
+                        - $ref: '#/components/schemas/JsonNullValueFilter'
         FooSelect:
             type: object
             properties:
@@ -1558,6 +1851,10 @@ components:
                     type: boolean
                 bytes:
                     type: boolean
+                json:
+                    type: boolean
+                plainJson:
+                    type: boolean
         FooCountAggregateInput:
             type: object
             properties:
@@ -1578,6 +1875,10 @@ components:
                 boolean:
                     type: boolean
                 bytes:
+                    type: boolean
+                json:
+                    type: boolean
+                plainJson:
                     type: boolean
                 _all:
                     type: boolean
@@ -1694,6 +1995,9 @@ components:
                     type: string
                     format: byte
                     nullable: true
+                json:
+                    nullable: true
+                plainJson: {}
                 _count:
                     allOf:
                         - $ref: '#/components/schemas/FooCountAggregateOutputType'
@@ -1723,6 +2027,7 @@ components:
                 - float
                 - decimal
                 - boolean
+                - plainJson
         FooCountAggregateOutputType:
             type: object
             properties:
@@ -1744,6 +2049,10 @@ components:
                     type: integer
                 bytes:
                     type: integer
+                json:
+                    type: integer
+                plainJson:
+                    type: integer
                 _all:
                     type: integer
             required:
@@ -1756,6 +2065,8 @@ components:
                 - decimal
                 - boolean
                 - bytes
+                - json
+                - plainJson
                 - _all
         FooAvgAggregateOutputType:
             type: object
@@ -1957,8 +2268,6 @@ components:
                     $ref: '#/components/schemas/FooSelect'
                 where:
                     $ref: '#/components/schemas/FooWhereInput'
-                meta:
-                    $ref: '#/components/schemas/_Meta'
                 orderBy:
                     oneOf:
                         - $ref: '#/components/schemas/FooOrderByWithRelationInput'
@@ -1971,6 +2280,8 @@ components:
                     type: integer
                 skip:
                     type: integer
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         FooUpdateArgs:
             type: object
             required:
