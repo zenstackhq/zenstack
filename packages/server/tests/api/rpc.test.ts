@@ -131,6 +131,123 @@ describe('RPC API Handler Tests', () => {
         expect(r.data.count).toBe(1);
     });
 
+    it('pagination and ordering', async () => {
+        const handleRequest = makeHandler();
+
+        // Clean up any existing data first
+        await prisma.post.deleteMany();
+        await prisma.user.deleteMany();
+
+        // Create test data
+        await prisma.user.create({
+            data: {
+                id: 'user1',
+                email: 'user1@abc.com',
+                posts: {
+                    create: [
+                        { id: '1', title: 'A Post', published: true, viewCount: 5 },
+                        { id: '2', title: 'B Post', published: true, viewCount: 3 },
+                        { id: '3', title: 'C Post', published: true, viewCount: 7 },
+                        { id: '4', title: 'D Post', published: true, viewCount: 1 },
+                        { id: '5', title: 'E Post', published: true, viewCount: 9 },
+                    ],
+                },
+            },
+        });
+
+        // Test orderBy with title ascending
+        let r = await handleRequest({
+            method: 'get',
+            path: '/post/findMany',
+            query: { q: JSON.stringify({ orderBy: { title: 'asc' } }) },
+            prisma,
+        });
+        expect(r.status).toBe(200);
+        expect(r.data).toHaveLength(5);
+        expect(r.data[0].title).toBe('A Post');
+        expect(r.data[4].title).toBe('E Post');
+
+        // Test orderBy with viewCount descending
+        r = await handleRequest({
+            method: 'get',
+            path: '/post/findMany',
+            query: { q: JSON.stringify({ orderBy: { viewCount: 'desc' } }) },
+            prisma,
+        });
+        expect(r.status).toBe(200);
+        expect(r.data[0].viewCount).toBe(9);
+        expect(r.data[4].viewCount).toBe(1);
+
+        // Test multiple orderBy
+        r = await handleRequest({
+            method: 'get',
+            path: '/post/findMany',
+            query: { q: JSON.stringify({ orderBy: [{ published: 'desc' }, { title: 'asc' }] }) },
+            prisma,
+        });
+        expect(r.status).toBe(200);
+        expect(r.data[0].title).toBe('A Post');
+
+        // Test take (limit)
+        r = await handleRequest({
+            method: 'get',
+            path: '/post/findMany',
+            query: { q: JSON.stringify({ take: 3 }) },
+            prisma,
+        });
+        expect(r.status).toBe(200);
+        expect(r.data).toHaveLength(3);
+
+        // Test skip (offset)
+        r = await handleRequest({
+            method: 'get',
+            path: '/post/findMany',
+            query: { q: JSON.stringify({ skip: 2, take: 2 }) },
+            prisma,
+        });
+        expect(r.status).toBe(200);
+        expect(r.data).toHaveLength(2);
+
+        // Test skip and take with orderBy
+        r = await handleRequest({
+            method: 'get',
+            path: '/post/findMany',
+            query: { q: JSON.stringify({ orderBy: { title: 'asc' }, skip: 1, take: 3 }) },
+            prisma,
+        });
+        expect(r.status).toBe(200);
+        expect(r.data).toHaveLength(3);
+        expect(r.data[0].title).toBe('B Post');
+        expect(r.data[2].title).toBe('D Post');
+
+        // Test cursor-based pagination
+        r = await handleRequest({
+            method: 'get',
+            path: '/post/findMany',
+            query: { q: JSON.stringify({ orderBy: { id: 'asc' }, take: 2 }) },
+            prisma,
+        });
+        expect(r.status).toBe(200);
+        expect(r.data).toHaveLength(2);
+        const lastId = r.data[1].id;
+
+        // Get next page using cursor
+        r = await handleRequest({
+            method: 'get',
+            path: '/post/findMany',
+            query: { q: JSON.stringify({ orderBy: { id: 'asc' }, take: 2, skip: 1, cursor: { id: lastId } }) },
+            prisma,
+        });
+        expect(r.status).toBe(200);
+        expect(r.data).toHaveLength(2);
+        expect(r.data[0].id).toBe('3');
+        expect(r.data[1].id).toBe('4');
+
+        // Clean up
+        await prisma.post.deleteMany();
+        await prisma.user.deleteMany();
+    });
+
     it('check', async () => {
         const handleRequest = makeHandler();
 
@@ -163,6 +280,10 @@ describe('RPC API Handler Tests', () => {
     });
 
     it('policy violation', async () => {
+        // Clean up any existing data first
+        await prisma.post.deleteMany();
+        await prisma.user.deleteMany();
+
         await prisma.user.create({
             data: {
                 id: '1',

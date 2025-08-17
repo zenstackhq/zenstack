@@ -48,6 +48,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
 
         if (
             !dm.isAbstract &&
+            !dm.isView &&
             idFields.length === 0 &&
             modelLevelIds.length === 0 &&
             uniqueFields.length === 0 &&

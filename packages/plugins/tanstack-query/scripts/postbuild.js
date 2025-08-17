@@ -45,3 +45,10 @@ replaceSync({
     from: /@tanstack\/vue-query-v5/g,
     to: '@tanstack/vue-query',
 });
+
+console.log('Replacing @tanstack/angular-query-v5');
+replaceSync({
+    file: 'dist/runtime-v5/angular*(.d.ts|.d.mts|.js|.mjs)',
+    from: /@tanstack\/angular-query-v5/g,
+    to: '@tanstack/angular-query-experimental',
+});

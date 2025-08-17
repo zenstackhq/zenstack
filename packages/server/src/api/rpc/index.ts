@@ -10,7 +10,7 @@ import {
 import { upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import SuperJSON from 'superjson';
 import { ZodError } from 'zod';
-import { fromZodError } from 'zod-validation-error';
+import { fromZodError } from 'zod-validation-error/v3';
 import { Response } from '../../types';
 import { APIHandlerBase, RequestContext } from '../base';
 import { logError, registerCustomSerializers } from '../utils';

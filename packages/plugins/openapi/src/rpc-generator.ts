@@ -154,6 +154,13 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         // analyze access policies to determine default security
         const { create, read, update, delete: del } = analyzePolicies(zmodel);
 
+        // OrderByWithRelationInput's name is different when "fullTextSearch" is enabled
+        const orderByWithRelationInput = this.inputObjectTypes
+            .map((o) => upperCaseFirst(o.name))
+            .includes(`${modelName}OrderByWithRelationInput`)
+            ? `${modelName}OrderByWithRelationInput`
+            : `${modelName}OrderByWithRelationAndSearchRelevanceInput`;
+
         if (ops['createOne']) {
             definitions.push({
                 method: 'post',
@@ -269,6 +276,13 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                             select: this.omittableRef(`${modelName}Select`),
                             include: hasRelation ? this.omittableRef(`${modelName}Include`) : undefined,
                             where: this.omittableRef(`${modelName}WhereInput`),
+                            orderBy: this.oneOf(
+                                this.omittableRef(orderByWithRelationInput),
+                                this.array(this.omittableRef(orderByWithRelationInput))
+                            ),
+                            cursor: this.omittableRef(`${modelName}WhereUniqueInput`),
+                            take: { type: 'integer' },
+                            skip: { type: 'integer' },
                             meta: this.ref('_Meta'),
                         },
                     },
@@ -421,13 +435,6 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
             description: `Find a list of ${modelName}`,
             security: read === true ? [] : undefined,
         });
-
-        // OrderByWithRelationInput's name is different when "fullTextSearch" is enabled
-        const orderByWithRelationInput = this.inputObjectTypes
-            .map((o) => upperCaseFirst(o.name))
-            .includes(`${modelName}OrderByWithRelationInput`)
-            ? `${modelName}OrderByWithRelationInput`
-            : `${modelName}OrderByWithRelationAndSearchRelevanceInput`;
 
         if (ops['aggregate']) {
             definitions.push({

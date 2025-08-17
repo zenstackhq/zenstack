@@ -4,3 +4,8 @@ packages:
     - 'packages/misc/*'
     - 'packages/ide/*'
     - 'tests/*'
+catalog:
+    ts-morph: ^26.0.0
+    typescript: ~5.8.0
+    zod: ^3.25.0
+    zod-validation-error: ^4.0.0

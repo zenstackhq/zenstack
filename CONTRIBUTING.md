@@ -5,7 +5,7 @@ I want to think you first for considering contributing to ZenStack 🙏🏻. It'
 ## Prerequisites
 
 -   [Node.js](https://nodejs.org/): v20 or above
--   [pnpm](https://pnpm.io/): v9.4.0
+-   [pnpm](https://pnpm.io/): v9.15.9
 
 If you want to run the tests, you should be aware that some of the integration tests run against postgres. These tests will attempt to set up and subsequently their own database, so you'll need to provide a connection details for a postgres user with at least those permissions. To provide connection details, you can configure the following environment variables or provide them when executing `pnpm test` commands.
 
