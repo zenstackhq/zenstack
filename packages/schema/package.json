@@ -92,6 +92,11 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Search for Mermaid extensions when viewing Mermaid source."
+                },
+                "clerk.frontendApi": {
+                    "type": "string",
+                    "default": "https://magnetic-humpback-6.accounts.dev/sign-in",
+                    "description": "Clerk frontend API URL (optional, will be inferred from publishable key if not provided)"
                 }
             }
         },

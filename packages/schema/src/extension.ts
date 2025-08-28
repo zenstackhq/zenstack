@@ -7,8 +7,9 @@ import { DataModel, isDataModel, isEnum, Model } from '@zenstackhq/sdk/ast';
 import MermaidGenerator from './mermaid-generator';
 import { URI } from 'vscode-uri';
 import { sendChatParticipantRequest, ChatHandlerResult } from '@vscode/chat-extension-utils';
+import { ClerkAuthenticationProvider } from './clerk-auth-provider';
 
-const AUTH_PROVIDER_ID = 'github';
+const AUTH_PROVIDER_ID = 'ZenStack';
 const AUTH_SCOPES = ['user:email'];
 
 // Define the structured response schema using Zod
@@ -21,7 +22,7 @@ export const ZModelDocumentationSchema = z.object({
         .array(
             z.object({
                 name: z.string().describe('The name of the data model'),
-                description: z.string().describe('What this model represents and its purpose'),
+                description: z.string().optional().describe('What this model represents and its purpose'),
                 access_control_policies: z
                     .array(z.string())
                     .describe('Access control rules like @@allow, @@deny with explanations'),
@@ -37,9 +38,13 @@ export const ZModelDocumentationSchema = z.object({
         )
         .optional()
         .describe('Enum definitions if any'),
-    business_logic: z.array(z.string()).describe('Key business rules and validation logic derived from the schema'),
+    business_logic: z
+        .array(z.string())
+        .optional()
+        .describe('Key business rules and validation logic derived from the schema'),
     security_considerations: z
         .array(z.string())
+        .optional()
         .describe('Important security implications from access policies and validation rules'),
 });
 
@@ -48,11 +53,8 @@ export type ZModelDocumentation = z.infer<typeof ZModelDocumentationSchema>;
 // Utility to require authentication when needed
 export async function requireAuth(): Promise<vscode.AuthenticationSession | undefined> {
     let session: vscode.AuthenticationSession | undefined;
-    try {
-        session = await vscode.authentication.getSession(AUTH_PROVIDER_ID, AUTH_SCOPES, { createIfNone: false });
-    } catch (e) {
-        console.error(e);
-    }
+
+    session = await vscode.authentication.getSession(AUTH_PROVIDER_ID, AUTH_SCOPES, { createIfNone: false });
 
     if (!session) {
         const signIn = 'Sign in';
@@ -61,7 +63,7 @@ export async function requireAuth(): Promise<vscode.AuthenticationSession | unde
             try {
                 session = await vscode.authentication.getSession(AUTH_PROVIDER_ID, AUTH_SCOPES, { createIfNone: true });
                 if (session) {
-                    vscode.window.showInformationMessage('Sign-in successful! Please retry your action.');
+                    vscode.window.showInformationMessage('Sign-in successful!');
                 }
             } catch (e) {
                 vscode.window.showErrorMessage('Sign-in failed: ' + String(e));
@@ -69,50 +71,44 @@ export async function requireAuth(): Promise<vscode.AuthenticationSession | unde
         }
     }
 
-    // If session is available, fetch the user email from GitHub API using the access token
+    // If session is available, fetch the user email from Clerk API using the access token
     if (session) {
         try {
-            const email = await getGitHubUserEmail(session);
+            const email = await getClerkUserEmail(session);
             if (email) {
-                console.log('GitHub user email:', email);
+                console.log('Clerk user email:', email);
             } else {
-                console.log('Could not retrieve GitHub user email.');
+                console.log('Could not retrieve Clerk user email.');
             }
         } catch (e) {
-            console.error('Failed to fetch GitHub user email:', e);
+            console.error('Failed to fetch Clerk user email:', e);
         }
     }
 
     return session;
 }
 
-// Fetch the user's primary email from GitHub using the session's access token
-async function getGitHubUserEmail(session: vscode.AuthenticationSession): Promise<string | undefined> {
-    const apiUrl = 'https://api.github.com/user/emails';
-    try {
-        const response = await fetch(apiUrl, {
-            headers: {
-                Authorization: `token ${session.accessToken}`,
-                Accept: 'application/vnd.github.v3+json',
-                'User-Agent': 'zenstack-vscode-extension',
-            },
-        });
-        if (!response.ok) {
-            throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+// Fetch the user's primary email from Clerk using the session's access token
+async function getClerkUserEmail(session: vscode.AuthenticationSession): Promise<string | undefined> {
+    // Get the Clerk provider instance to fetch user email
+    const authProviders = await vscode.authentication.getAccounts(AUTH_PROVIDER_ID);
+    for (const provider of authProviders) {
+        if (provider.id === session.account.id) {
+            // If we have a Clerk provider instance, use it to get the email
+            const clerkProvider = getClerkProvider();
+            if (clerkProvider) {
+                return await clerkProvider.getUserEmail(session);
+            }
         }
-        const emails: { email: string; primary: boolean; verified: boolean }[] = await response.json();
-        // Find the primary, verified email
-        const primary = emails.find((e) => e.primary && e.verified);
-        if (primary) {
-            return primary.email;
-        }
-        // Fallback: return the first verified email
-        const verified = emails.find((e) => e.verified);
-        return verified ? verified.email : undefined;
-    } catch (e) {
-        console.error('Error fetching GitHub user email:', e);
-        return undefined;
     }
+
+    // Fallback: try to extract email from account label if it looks like an email
+    const accountLabel = session.account.label;
+    if (accountLabel && accountLabel.includes('@')) {
+        return accountLabel;
+    }
+
+    return undefined;
 }
 
 // Outline View implemented as a WebviewViewProvider
@@ -136,7 +132,7 @@ class SimpleOutlineWebviewProvider implements vscode.WebviewViewProvider {
         webviewView.webview.onDidReceiveMessage(
             async (message) => {
                 switch (message.command) {
-                    case 'openGitHubAuth':
+                    case 'openClerkAuth':
                         try {
                             const session = await vscode.authentication.getSession(AUTH_PROVIDER_ID, AUTH_SCOPES, {
                                 createIfNone: true,
@@ -146,7 +142,7 @@ class SimpleOutlineWebviewProvider implements vscode.WebviewViewProvider {
                             }
                         } catch (error) {
                             console.error('Authentication failed:', error);
-                            vscode.window.showErrorMessage('GitHub authentication failed. Please try again.');
+                            vscode.window.showErrorMessage('Clerk authentication failed. Please try again.');
                         }
                         break;
                 }
@@ -168,7 +164,7 @@ class SimpleOutlineWebviewProvider implements vscode.WebviewViewProvider {
             const isZModelFile = fileName.endsWith('.zmodel');
 
             if (isZModelFile) {
-                // Check GitHub authentication before proceeding
+                // Check Clerk authentication before proceeding
                 const session = await requireAuth();
 
                 if (!session) {
@@ -197,8 +193,8 @@ class SimpleOutlineWebviewProvider implements vscode.WebviewViewProvider {
                     </head>
                     <body>
                         <h3>Authentication Required</h3>
-                        <p>Please sign in to GitHub to generate documentation.</p>
-                        <button class="auth-button" onclick="vscode.postMessage({ command: 'openGitHubAuth' })">Sign In</button>
+                        <p>Please sign in to Clerk to generate documentation.</p>
+                        <button class="auth-button" onclick="vscode.postMessage({ command: 'openClerkAuth' })">Sign In</button>
                     </body>
                     </html>
                     `;
@@ -451,7 +447,7 @@ async function previewZModelFile(): Promise<void> {
     // Check GitHub authentication before proceeding
     const session = await requireAuth();
     if (!session) {
-        vscode.window.showWarningMessage('GitHub authentication required for ZModel preview.');
+        vscode.window.showWarningMessage('Clerk authentication required for ZModel preview.');
         return;
     }
 
@@ -559,7 +555,8 @@ IMPORTANT:
 // Generate documentation for non-chat usage (structured JSON output)
 async function generateZModelDocumentationWithPrompt(
     document: vscode.TextDocument,
-    customPrompt?: string
+    customPrompt?: string,
+    useAPI = true
 ): Promise<string> {
     try {
         // Get available language models, preferring context7 models
@@ -606,9 +603,11 @@ async function generateZModelDocumentationWithPrompt(
 
         console.log('ZModel content generated:', zmodelContent);
 
-        // Use custom prompt if provided, otherwise use default system prompt
-        const prompt = customPrompt
-            ? `
+        if (!useAPI) {
+            // Call the API to generate documentation
+            // Use custom prompt if provided, otherwise use default system prompt
+            const prompt = customPrompt
+                ? `
             You are a technical documentation expert specializing in ZenStack zmodel schema files. 
             ZenStack extends Prisma with powerful features like access policies, field validation, and automatic API generation.
             Analyze the following zmodel files:
@@ -616,44 +615,86 @@ async function generateZModelDocumentationWithPrompt(
             Follow the user's instructions to generate documentation:
             ${customPrompt}
             `
-            : generateDefaultSystemPrompt(zmodelContent);
+                : generateDefaultSystemPrompt(zmodelContent);
 
-        const messages = [vscode.LanguageModelChatMessage.User(prompt)];
+            const messages = [vscode.LanguageModelChatMessage.User(prompt)];
 
-        // record the time spent
-        const startTime = Date.now();
+            // record the time spent
+            const startTime = Date.now();
 
-        const chatRequest = await selectedModel.sendRequest(messages, {}, new vscode.CancellationTokenSource().token);
+            const chatRequest = await selectedModel.sendRequest(
+                messages,
+                {},
+                new vscode.CancellationTokenSource().token
+            );
 
-        let endTime = Date.now();
-        console.log(`Chat request completed in ${endTime - startTime} ms`);
+            let endTime = Date.now();
+            console.log(`Chat request completed in ${endTime - startTime} ms`);
 
-        let response = '';
-        for await (const fragment of chatRequest.text) {
-            response += fragment;
-        }
+            let response = '';
+            for await (const fragment of chatRequest.text) {
+                response += fragment;
+            }
 
-        endTime = Date.now();
+            endTime = Date.now();
 
-        console.log(`Response completed in ${endTime - startTime} ms`);
+            console.log(`Response completed in ${endTime - startTime} ms`);
+            // Parse and validate the JSON response only if using default prompt
+            if (!customPrompt) {
+                try {
+                    const jsonResponse = JSON.parse(response);
+                    const validatedData = ZModelDocumentationSchema.parse(jsonResponse);
 
-        // Parse and validate the JSON response only if using default prompt
-        if (!customPrompt) {
+                    // Convert the validated structured data back to markdown
+                    return convertStructuredDataToMarkdown(validatedData, astInfo!.ast);
+                } catch (parseError) {
+                    console.warn('Failed to parse JSON response, falling back to raw response:', parseError);
+
+                    // If JSON parsing fails, return the raw response as fallback
+                    return response || 'No documentation generated';
+                }
+            } else {
+                // For custom prompts, return the raw response
+                return response || 'No documentation generated';
+            }
+        } else {
+            // Fallback: fetch from API endpoint
+            const session = await requireAuth();
+            if (!session) {
+                throw new Error('Authentication required to generate documentation');
+            }
+
+            // record the time spent
+            const startTime = Date.now();
+            const apiResponse = await fetch('https://zenstack-backend.vercel.app/api/doc', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    authorization: session.accessToken,
+                },
+                body: JSON.stringify({
+                    models: zmodelContent,
+                }),
+            });
+
+            console.log(`API request completed in ${Date.now() - startTime} ms`);
+
+            if (!apiResponse.ok) {
+                throw new Error(`API request failed: ${apiResponse.status} ${apiResponse.statusText}`);
+            }
+
+            const apiResult = await apiResponse.json();
+            const response = apiResult.object;
+
             try {
-                const jsonResponse = JSON.parse(response);
-                const validatedData = ZModelDocumentationSchema.parse(jsonResponse);
+                const validatedData = ZModelDocumentationSchema.parse(response);
 
                 // Convert the validated structured data back to markdown
                 return convertStructuredDataToMarkdown(validatedData, astInfo!.ast);
             } catch (parseError) {
-                console.warn('Failed to parse JSON response, falling back to raw response:', parseError);
-
-                // If JSON parsing fails, return the raw response as fallback
+                console.warn('Failed to parse JSON response from API, falling back to raw response:', parseError);
                 return response || 'No documentation generated';
             }
-        } else {
-            // For custom prompts, return the raw response
-            return response || 'No documentation generated';
         }
     } catch (error) {
         console.error('Error generating documentation:', error);
@@ -793,10 +834,10 @@ class ZenStackChatParticipant {
             return { metadata: { command: 'doc', error: 'not-zmodel-file' } };
         }
 
-        // Check GitHub authentication
+        // Check Clerk authentication
         const session = await requireAuth();
         if (!session) {
-            stream.markdown('❌ GitHub authentication required. Please sign in to use this feature.');
+            stream.markdown('❌ Clerk authentication required. Please sign in to use this feature.');
             return { metadata: { command: 'doc', error: 'authentication-required' } };
         }
 
@@ -881,10 +922,10 @@ function convertStructuredDataToMarkdown(data: ZModelDocumentation, model: Model
         })
         .join('\n');
 
-    const businessLogicChapter = data.business_logic.map((rule) => `- ${rule}`).join('\n');
+    const businessLogicChapter = data.business_logic?.map((rule) => `- ${rule}`).join('\n');
 
     const securityConsiderationsChapter = data.security_considerations
-        .map((consideration) => `- ${consideration}`)
+        ?.map((consideration) => `- ${consideration}`)
         .join('\n');
 
     const content = [
@@ -942,6 +983,12 @@ async function openMarkdownPreview(markdownContent: string, originalFileName: st
 }
 
 let client: LanguageClient;
+let clerkAuthProvider: ClerkAuthenticationProvider | undefined;
+
+// Get the Clerk authentication provider instance
+function getClerkProvider(): ClerkAuthenticationProvider | undefined {
+    return clerkAuthProvider;
+}
 
 // Show release notes on first activation of this version
 async function showReleaseNotesIfFirstTime(context: vscode.ExtensionContext): Promise<void> {
@@ -1233,6 +1280,31 @@ function getFallbackReleaseNotesContent(): string {
 
 // This function is called when the extension is activated.
 export function activate(context: vscode.ExtensionContext): void {
+    // Initialize and register the Clerk authentication provider
+    const clerkPublishableKey = getClerkConfiguration().publishableKey;
+    const clerkFrontendApi = getClerkConfiguration().frontendApi;
+
+    clerkAuthProvider = new ClerkAuthenticationProvider(context, clerkPublishableKey!, clerkFrontendApi);
+
+    const authProviderDisposable = vscode.authentication.registerAuthenticationProvider(
+        AUTH_PROVIDER_ID,
+        'ZenStack',
+        clerkAuthProvider
+    );
+
+    context.subscriptions.push(authProviderDisposable);
+
+    // Register URI handler for authentication callback
+    const uriHandler = vscode.window.registerUriHandler({
+        handleUri: async (uri: vscode.Uri) => {
+            if (uri.path === '/auth-callback' && clerkAuthProvider) {
+                await clerkAuthProvider.handleAuthCallback(uri);
+            }
+        },
+    });
+
+    context.subscriptions.push(uriHandler);
+
     client = startLanguageClient(context);
 
     // Register the simple outline webview view
@@ -1251,6 +1323,15 @@ export function activate(context: vscode.ExtensionContext): void {
 
     // Show release notes on first activation
     showReleaseNotesIfFirstTime(context);
+}
+
+// Get Clerk configuration from VS Code settings
+function getClerkConfiguration(): { publishableKey?: string; frontendApi?: string } {
+    const config = vscode.workspace.getConfiguration('clerk');
+    return {
+        publishableKey: config.get<string>('publishableKey'),
+        frontendApi: config.get<string>('frontendApi'),
+    };
 }
 
 // This function is called when the extension is deactivated.
