@@ -89,7 +89,7 @@ export class ZodSchemaGenerator {
             (o) => !excludeModels.find((e) => e === o.model)
         );
 
-        const inputObjectTypes = prismaClientDmmf.schema.inputObjectTypes.prisma.filter(
+        const inputObjectTypes = (prismaClientDmmf.schema.inputObjectTypes.prisma ?? []).filter(
             (type) =>
                 !excludeModels.some((e) => type.name.toLowerCase().startsWith(e.toLocaleLowerCase())) &&
                 // exclude delegate aux related types
