@@ -15,7 +15,6 @@ export class ClerkAuthenticationProvider implements vscode.AuthenticationProvide
 
     private _sessions: vscode.AuthenticationSession[] = [];
     private _clerkFrontendApi: string;
-    private _clerkPublishableKey: string;
     private _context: vscode.ExtensionContext;
     private pendingAuth?: {
         state: string;
@@ -24,9 +23,8 @@ export class ClerkAuthenticationProvider implements vscode.AuthenticationProvide
         scopes: readonly string[];
     };
 
-    constructor(context: vscode.ExtensionContext, clerkPublishableKey: string, clerkFrontendApi?: string) {
+    constructor(context: vscode.ExtensionContext, clerkFrontendApi?: string) {
         this._context = context;
-        this._clerkPublishableKey = clerkPublishableKey;
         this._clerkFrontendApi = clerkFrontendApi!;
     }
 
