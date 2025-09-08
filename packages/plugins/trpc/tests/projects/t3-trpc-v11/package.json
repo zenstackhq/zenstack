@@ -16,7 +16,7 @@
     },
     "dependencies": {
         "@prisma/client": "6.15.x",
-        "@t3-oss/env-nextjs": "^0.10.1",
+        "@t3-oss/env-nextjs": "^0.13.0",
         "@tanstack/react-query": "^5.50.0",
         "@trpc/client": "^11.0.0-rc.446",
         "@trpc/next": "^11.0.0-rc.446",
@@ -28,7 +28,7 @@
         "react-dom": "^18.3.1",
         "server-only": "^0.0.1",
         "superjson": "^2.2.1",
-        "zod": "^3.25.0"
+        "zod": "^4.0.0"
     },
     "devDependencies": {
         "@types/eslint": "^8.56.10",

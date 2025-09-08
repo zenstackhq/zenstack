@@ -23,7 +23,7 @@
     "react-dom": "18.2.0",
     "superjson": "^1.13.0",
     "typescript": "5.x",
-    "zod": "^3.25.0",
+    "zod": "^4.0.0",
     "@zenstackhq/language": "../../../../../../../packages/language/dist",
     "@zenstackhq/runtime": "../../../../../../../packages/runtime/dist",
     "@zenstackhq/sdk": "../../../../../../../packages/sdk/dist",

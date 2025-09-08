@@ -13,8 +13,8 @@ catalogs:
       specifier: ~5.8.0
       version: 5.8.3
     zod:
-      specifier: ^3.25.0
-      version: 3.25.76
+      specifier: ^4.0.0
+      version: 4.1.5
     zod-validation-error:
       specifier: ^4.0.0
       version: 4.0.1
@@ -154,10 +154,10 @@ importers:
         version: 2.4.5
       zod:
         specifier: 'catalog:'
-        version: 3.25.76
+        version: 4.1.5
       zod-validation-error:
         specifier: 'catalog:'
-        version: 4.0.1(zod@3.25.76)
+        version: 4.0.1(zod@4.1.5)
     devDependencies:
       '@readme/openapi-parser':
         specifier: ^2.4.0
@@ -352,7 +352,7 @@ importers:
         version: 2.6.3
       zod:
         specifier: 'catalog:'
-        version: 3.25.76
+        version: 4.1.5
     devDependencies:
       '@trpc/next':
         specifier: ^10.32.0
@@ -421,12 +421,9 @@ importers:
       uuid:
         specifier: ^9.0.0
         version: 9.0.1
-      zod:
-        specifier: 'catalog:'
-        version: 3.25.76
       zod-validation-error:
         specifier: 'catalog:'
-        version: 4.0.1(zod@3.25.76)
+        version: 4.0.1(zod@4.1.5)
     devDependencies:
       '@types/bcryptjs':
         specifier: ^2.4.2
@@ -443,6 +440,9 @@ importers:
       '@types/uuid':
         specifier: ^8.3.4
         version: 8.3.4
+      zod:
+        specifier: ^4.0.0
+        version: 4.1.5
     publishDirectory: dist
 
   packages/schema:
@@ -521,10 +521,10 @@ importers:
         version: 3.0.8
       zod:
         specifier: 'catalog:'
-        version: 3.25.76
+        version: 4.1.5
       zod-validation-error:
         specifier: 'catalog:'
-        version: 4.0.1(zod@3.25.76)
+        version: 4.0.1(zod@4.1.5)
     devDependencies:
       '@prisma/client':
         specifier: 6.15.x
@@ -625,12 +625,6 @@ importers:
       url-pattern:
         specifier: ^1.0.3
         version: 1.0.3
-      zod:
-        specifier: 'catalog:'
-        version: 3.25.76
-      zod-validation-error:
-        specifier: 'catalog:'
-        version: 4.0.1(zod@3.25.76)
     devDependencies:
       '@nestjs/common':
         specifier: ^10.3.7
@@ -692,6 +686,9 @@ importers:
       supertest:
         specifier: ^6.3.3
         version: 6.3.4
+      zod:
+        specifier: ^4.0.0
+        version: 4.1.5
     publishDirectory: dist
 
   packages/testtools:
@@ -8793,8 +8790,8 @@ packages:
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
 
-  zod@3.25.76:
-    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+  zod@4.1.5:
+    resolution: {integrity: sha512-rcUUZqlLJgBC33IT3PNMgsCq6TzLQEG/Ei/KTCU0PedSWRMAXoOUN+4t/0H+Q8bdnLPdqUYnvboJT0bn/229qg==}
 
   zone.js@0.15.1:
     resolution: {integrity: sha512-XE96n56IQpJM7NAoXswY3XRLcWFW83xe0BiAOeMD7K5k5xecOeul3Qcpx6GqEeeHNkW5DWL5zOyTbEfB4eti8w==}
@@ -17942,10 +17939,10 @@ snapshots:
       compress-commons: 6.0.2
       readable-stream: 4.5.2
 
-  zod-validation-error@4.0.1(zod@3.25.76):
+  zod-validation-error@4.0.1(zod@4.1.5):
     dependencies:
-      zod: 3.25.76
+      zod: 4.1.5
 
-  zod@3.25.76: {}
+  zod@4.1.5: {}
 
   zone.js@0.15.1: {}
