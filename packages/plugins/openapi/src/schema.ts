@@ -4,6 +4,7 @@ import z from 'zod';
  * Zod schema for OpenAPI security schemes: https://swagger.io/docs/specification/authentication/
  */
 export const SecuritySchemesSchema = z.record(
+    z.string(),
     z.union([
         z.object({ type: z.literal('http'), scheme: z.literal('basic') }),
         z.object({ type: z.literal('http'), scheme: z.literal('bearer'), bearerFormat: z.string().optional() }),
@@ -20,22 +21,22 @@ export const SecuritySchemesSchema = z.record(
                     authorizationUrl: z.string(),
                     tokenUrl: z.string(),
                     refreshUrl: z.string(),
-                    scopes: z.record(z.string()),
+                    scopes: z.record(z.string(), z.string()),
                 }),
                 implicit: z.object({
                     authorizationUrl: z.string(),
                     refreshUrl: z.string(),
-                    scopes: z.record(z.string()),
+                    scopes: z.record(z.string(), z.string()),
                 }),
                 password: z.object({
                     tokenUrl: z.string(),
                     refreshUrl: z.string(),
-                    scopes: z.record(z.string()),
+                    scopes: z.record(z.string(), z.string()),
                 }),
                 clientCredentials: z.object({
                     tokenUrl: z.string(),
                     refreshUrl: z.string(),
-                    scopes: z.record(z.string()),
+                    scopes: z.record(z.string(), z.string()),
                 }),
             }),
         }),

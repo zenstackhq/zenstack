@@ -13,8 +13,8 @@ catalogs:
       specifier: ~5.8.0
       version: 5.8.3
     zod:
-      specifier: ^3.25.0
-      version: 3.25.76
+      specifier: ^4.0.0
+      version: 4.1.5
     zod-validation-error:
       specifier: ^4.0.0
       version: 4.0.1
@@ -154,10 +154,10 @@ importers:
         version: 2.4.5
       zod:
         specifier: 'catalog:'
-        version: 3.25.76
+        version: 4.1.5
       zod-validation-error:
         specifier: 'catalog:'
-        version: 4.0.1(zod@3.25.76)
+        version: 4.0.1(zod@4.1.5)
     devDependencies:
       '@readme/openapi-parser':
         specifier: ^2.4.0
@@ -352,7 +352,7 @@ importers:
         version: 2.6.3
       zod:
         specifier: 'catalog:'
-        version: 3.25.76
+        version: 4.1.5
     devDependencies:
       '@trpc/next':
         specifier: ^10.32.0
@@ -521,10 +521,10 @@ importers:
         version: 3.0.8
       zod:
         specifier: 'catalog:'
-        version: 3.25.76
+        version: 4.1.5
       zod-validation-error:
         specifier: 'catalog:'
-        version: 4.0.1(zod@3.25.76)
+        version: 4.0.1(zod@4.1.5)
     devDependencies:
       '@prisma/client':
         specifier: 6.15.x
@@ -8789,9 +8789,6 @@ packages:
     engines: {node: '>=18.0.0'}
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
-
-  zod@3.25.76:
-    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
   zod@4.1.5:
     resolution: {integrity: sha512-rcUUZqlLJgBC33IT3PNMgsCq6TzLQEG/Ei/KTCU0PedSWRMAXoOUN+4t/0H+Q8bdnLPdqUYnvboJT0bn/229qg==}
@@ -17942,15 +17939,9 @@ snapshots:
       compress-commons: 6.0.2
       readable-stream: 4.5.2
 
-  zod-validation-error@4.0.1(zod@3.25.76):
-    dependencies:
-      zod: 3.25.76
-
   zod-validation-error@4.0.1(zod@4.1.5):
     dependencies:
       zod: 4.1.5
-
-  zod@3.25.76: {}
 
   zod@4.1.5: {}
 
