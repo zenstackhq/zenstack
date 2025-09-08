@@ -14,7 +14,7 @@ import {
 import { upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import { isDefaultWithAuth } from '../../enhancer/enhancer-utils';
 
-export function makeFieldSchema(field: DataModelField | TypeDefField) {
+export function makeFieldSchema(field: DataModelField | TypeDefField, addDefaults: boolean = true) {
     if (isDataModel(field.type.reference?.ref)) {
         if (field.type.array) {
             // array field is always optional
@@ -141,14 +141,16 @@ export function makeFieldSchema(field: DataModelField | TypeDefField) {
             schema += '.optional()';
         }
     } else {
-        const schemaDefault = getFieldSchemaDefault(field);
-        if (schemaDefault !== undefined) {
-            if (field.type.type === 'BigInt') {
-                // we can't use the `n` BigInt literal notation, since it needs
-                // ES2020 or later, which TypeScript doesn't use by default
-                schema += `.default(BigInt("${schemaDefault}"))`;
-            } else {
-                schema += `.default(${schemaDefault})`;
+        if (addDefaults) {
+            const schemaDefault = getFieldSchemaDefault(field);
+            if (schemaDefault !== undefined) {
+                if (field.type.type === 'BigInt') {
+                    // we can't use the `n` BigInt literal notation, since it needs
+                    // ES2020 or later, which TypeScript doesn't use by default
+                    schema += `.default(BigInt("${schemaDefault}"))`;
+                } else {
+                    schema += `.default(${schemaDefault})`;
+                }
             }
         }
 
