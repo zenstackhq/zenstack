@@ -1262,7 +1262,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             {}
         );
 
-        const validatedData = this.policyUtils.validateZodSchema(model, 'update', literalData, false, (err) => {
+        const validatedData: any = this.policyUtils.validateZodSchema(model, 'update', literalData, false, (err) => {
             throw this.policyUtils.deniedByPolicy(
                 model,
                 'update',
