@@ -222,7 +222,15 @@ export class ZodSchemaGenerator {
                 path.join(output, 'common', 'index.ts'),
                 `
     import { z } from 'zod';
-    export const DecimalSchema = z.union([z.number(), z.string(), z.object({d: z.number().array(), e: z.number(), s: z.number()}).passthrough()]);
+    export const DecimalSchema = z.any().refine((val) => {
+        if (typeof val === 'string' || typeof val === 'number') {
+            return val;
+        }
+        // Decimal.js shape
+        if (typeof val === 'object' && val && Array.isArray(val.d) && typeof val.e === 'number' && typeof val.s === 'number') {
+            return val;
+        }
+    });
     `,
                 { overwrite: true }
             )
@@ -553,7 +561,7 @@ export const ${upperCaseFirst(model.name)}PrismaCreateSchema = ${prismaCreateSch
                     .map((field) => {
                         let fieldSchema = makeFieldSchema(field, false);
                         if (field.type.type === 'Int' || field.type.type === 'Float') {
-                            fieldSchema = `z.union([${fieldSchema}, z.record(z.unknown())])`;
+                            fieldSchema = `z.union([${fieldSchema}, z.record(z.string(), z.unknown())])`;
                         }
                         return `\t${field.name}: ${fieldSchema}`;
                     })

@@ -20,7 +20,9 @@ export function makeFieldSchema(field: DataModelField | TypeDefField, addDefault
             // array field is always optional
             return `z.array(z.unknown()).optional()`;
         } else {
-            return field.type.optional ? `z.record(z.unknown()).optional()` : `z.record(z.unknown())`;
+            return field.type.optional
+                ? `z.record(z.string(), z.unknown()).optional()`
+                : `z.record(z.string(), z.unknown())`;
         }
     }
 
