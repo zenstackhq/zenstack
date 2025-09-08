@@ -2,7 +2,6 @@
 
 import deepmerge from 'deepmerge';
 import { z, type ZodError, type ZodObject, type ZodSchema } from 'zod';
-import { fromZodError } from 'zod-validation-error/v3';
 import { CrudFailureReason, PrismaErrorCode } from '../../../constants';
 import {
     clone,
@@ -14,7 +13,13 @@ import {
     type FieldInfo,
     type ModelMeta,
 } from '../../../cross';
-import { isPlainObject, lowerCaseFirst, simpleTraverse, upperCaseFirst } from '../../../local-helpers';
+import {
+    getZodErrorMessage,
+    isPlainObject,
+    lowerCaseFirst,
+    simpleTraverse,
+    upperCaseFirst,
+} from '../../../local-helpers';
 import {
     AuthUser,
     CrudContract,
@@ -935,7 +940,7 @@ export class PolicyUtil extends QueryUtils {
                 throw this.deniedByPolicy(
                     model,
                     operation,
-                    `entity ${formatObject(uniqueFilter, false)} failed validation: [${fromZodError(err)}]`,
+                    `entity ${formatObject(uniqueFilter, false)} failed validation: [${getZodErrorMessage(err)}]`,
                     CrudFailureReason.DATA_VALIDATION_VIOLATION,
                     err
                 );
@@ -1440,7 +1445,7 @@ export class PolicyUtil extends QueryUtils {
         if (!parseResult.success) {
             if (this.logger.enabled('info')) {
                 this.logger.info(
-                    `entity ${model} failed validation for operation ${kind}: ${fromZodError(parseResult.error)}`
+                    `entity ${model} failed validation for operation ${kind}: ${getZodErrorMessage(parseResult.error)}`
                 );
             }
             onError(parseResult.error);
