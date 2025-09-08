@@ -121,7 +121,7 @@
         "decimal.js-light": "^2.5.1",
         "superjson": "^1.13.0",
         "uuid": "^9.0.0",
-        "zod": "^4.0.0"
+        "zod": "^3.25.0"
     },
     "peerDependencies": {
         "@prisma/client": "5.0.0 - 6.15.x",

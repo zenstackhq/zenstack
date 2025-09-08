@@ -57,7 +57,7 @@
         "nuxt": "^3.7.4",
         "reflect-metadata": "^0.2.2",
         "supertest": "^6.3.3",
-        "zod": "^4.0.0"
+        "zod": "^3.25.0"
     },
     "exports": {
         "./package.json": "./package.json",
