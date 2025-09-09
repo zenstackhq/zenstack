@@ -352,8 +352,9 @@ export default class Transformer {
             if (mappedInputTypeName.includes('NestedInput')) {
                 candidates.push(...candidates.map((name) => name.replace('NestedInput', 'Input')));
             }
-            const foundInputType = this.inputObjectTypes.find((it) => candidates.includes(it.name));
-            const finalMappedName = foundInputType ? foundInputType.name : mappedInputTypeName;
+
+            const finalMappedName =
+                candidates.find((name) => this.inputObjectTypes.some((it) => it.name === name)) ?? mappedInputTypeName;
 
             processedInputType = { ...inputType, type: finalMappedName };
         }
