@@ -2,137 +2,49 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient/node';
-import { ClerkAuthenticationProvider } from './clerk-auth-provider';
+import { AUTH_PROVIDER_ID, ZenStackAuthenticationProvider } from './zenstack-auth-provider';
 import { DocumentationCache } from './documentation-cache';
 import { ZModelPreview } from './zmodel-preview';
 import { ReleaseNotesManager } from './release-notes-manager';
 
-const AUTH_PROVIDER_ID = 'ZenStack';
-const AUTH_SCOPES = ['user:email'];
-
 // Global variables
 let client: LanguageClient;
-let clerkAuthProvider: ClerkAuthenticationProvider | undefined;
-let documentationCache: DocumentationCache;
-let zmodelPreview: ZModelPreview;
-let releaseNotesManager: ReleaseNotesManager;
 
 // Utility to require authentication when needed
 export async function requireAuth(): Promise<vscode.AuthenticationSession | undefined> {
     let session: vscode.AuthenticationSession | undefined;
 
-    session = await vscode.authentication.getSession(AUTH_PROVIDER_ID, AUTH_SCOPES, { createIfNone: false });
+    session = await vscode.authentication.getSession(AUTH_PROVIDER_ID, [], { createIfNone: false });
 
     if (!session) {
         const signIn = 'Sign in';
-        const selection = await vscode.window.showWarningMessage('You must sign in to use this feature.', signIn);
+        const selection = await vscode.window.showWarningMessage('Please sign in to use this feature', signIn);
         if (selection === signIn) {
             try {
-                session = await vscode.authentication.getSession(AUTH_PROVIDER_ID, AUTH_SCOPES, { createIfNone: true });
+                session = await vscode.authentication.getSession(AUTH_PROVIDER_ID, [], { createIfNone: true });
                 if (session) {
-                    vscode.window.showInformationMessage('Sign-in successful!');
+                    vscode.window.showInformationMessage('ZenStack sign in successful!');
                 }
             } catch (e) {
-                vscode.window.showErrorMessage('Sign-in failed: ' + String(e));
+                vscode.window.showErrorMessage('ZenStack sign in failed: ' + String(e));
             }
         }
     }
-
-    // If session is available, fetch the user email from Clerk API using the access token
-    if (session) {
-        try {
-            const email = await getClerkUserEmail(session);
-            if (email) {
-                console.log('Clerk user email:', email);
-            } else {
-                console.log('Could not retrieve Clerk user email.');
-            }
-        } catch (e) {
-            console.error('Failed to fetch Clerk user email:', e);
-        }
-    }
-
     return session;
-}
-
-// Fetch the user's primary email from Clerk using the session's access token
-async function getClerkUserEmail(session: vscode.AuthenticationSession): Promise<string | undefined> {
-    // Get the Clerk provider instance to fetch user email
-    const authProviders = await vscode.authentication.getAccounts(AUTH_PROVIDER_ID);
-    for (const provider of authProviders) {
-        if (provider.id === session.account.id) {
-            // If we have a Clerk provider instance, use it to get the email
-            const clerkProvider = getClerkProvider();
-            if (clerkProvider) {
-                return await clerkProvider.getUserEmail(session);
-            }
-        }
-    }
-
-    // Fallback: try to extract email from account label if it looks like an email
-    const accountLabel = session.account.label;
-    if (accountLabel && accountLabel.includes('@')) {
-        return accountLabel;
-    }
-
-    return undefined;
-}
-
-// Get the Clerk authentication provider instance
-function getClerkProvider(): ClerkAuthenticationProvider | undefined {
-    return clerkAuthProvider;
 }
 
 // This function is called when the extension is activated.
 export function activate(context: vscode.ExtensionContext): void {
-    // Initialize and register the Clerk authentication provider
-    const clerkFrontendApi = getClerkConfiguration().frontendApi;
-
-    clerkAuthProvider = new ClerkAuthenticationProvider(context, clerkFrontendApi);
-
-    const authProviderDisposable = vscode.authentication.registerAuthenticationProvider(
-        AUTH_PROVIDER_ID,
-        'ZenStack',
-        clerkAuthProvider
-    );
-
-    context.subscriptions.push(authProviderDisposable);
-
-    // Register URI handler for authentication callback
-    const uriHandler = vscode.window.registerUriHandler({
-        handleUri: async (uri: vscode.Uri) => {
-            if (uri.path === '/auth-callback' && clerkAuthProvider) {
-                await clerkAuthProvider.handleAuthCallback(uri);
-            }
-        },
-    });
-
-    context.subscriptions.push(uriHandler);
+    // Initialize and register the ZenStack authentication provider
+    context.subscriptions.push(new ZenStackAuthenticationProvider(context));
 
     // Start language client
     client = startLanguageClient(context);
 
-    // Initialize the documentation cache
-    documentationCache = new DocumentationCache(context);
-    // Add cache to subscriptions for automatic disposal
+    const documentationCache = new DocumentationCache(context);
     context.subscriptions.push(documentationCache);
-
-    // Initialize ZModel preview and release notes managers
-    zmodelPreview = new ZModelPreview(context, client, documentationCache);
-    releaseNotesManager = new ReleaseNotesManager(context);
-
-    // Add managers to subscriptions for automatic disposal
-    context.subscriptions.push(zmodelPreview);
-    context.subscriptions.push(releaseNotesManager);
-}
-
-// Get Clerk configuration from VS Code settings
-function getClerkConfiguration(): { publishableKey?: string; frontendApi?: string } {
-    const config = vscode.workspace.getConfiguration('clerk');
-    return {
-        publishableKey: config.get<string>('publishableKey'),
-        frontendApi: config.get<string>('frontendApi'),
-    };
+    context.subscriptions.push(new ZModelPreview(context, client, documentationCache));
+    context.subscriptions.push(new ReleaseNotesManager(context));
 }
 
 // This function is called when the extension is deactivated.

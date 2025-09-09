@@ -66,7 +66,6 @@ export class ZModelPreview implements vscode.Disposable {
         // Check authentication before proceeding
         const session = await requireAuth();
         if (!session) {
-            vscode.window.showWarningMessage('Clerk authentication required for ZModel preview.');
             return;
         }
 
@@ -188,7 +187,7 @@ export class ZModelPreview implements vscode.Disposable {
 
             // record the time spent
             const startTime = Date.now();
-            const apiResponse = await fetch('https://zenstack-backend.vercel.app/api/doc', {
+            const apiResponse = await fetch('https://api.zenstack.dev/api/doc', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -269,7 +268,7 @@ export class ZModelPreview implements vscode.Disposable {
                 const stopShowing = "Don't show again";
                 vscode.window
                     .showInformationMessage(
-                        'Search for extensions to view mermaid chart in preview?',
+                        'Search for extensions to view mermaid chart in ZModel preview doc?',
                         searchAction,
                         stopShowing
                     )

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-interface ClerkJWTClaims {
+interface JWTClaims {
     jti?: string;
     sub?: string;
     email?: string;
@@ -8,14 +8,17 @@ interface ClerkJWTClaims {
     [key: string]: unknown;
 }
 
-export class ClerkAuthenticationProvider implements vscode.AuthenticationProvider {
+export const AUTH_PROVIDER_ID = 'ZenStack';
+export const AUTH_URL = 'https://accounts.zenstack.dev';
+
+export class ZenStackAuthenticationProvider implements vscode.AuthenticationProvider, vscode.Disposable {
     private _onDidChangeSessions =
         new vscode.EventEmitter<vscode.AuthenticationProviderAuthenticationSessionsChangeEvent>();
     public readonly onDidChangeSessions = this._onDidChangeSessions.event;
 
     private _sessions: vscode.AuthenticationSession[] = [];
-    private _clerkFrontendApi: string;
     private _context: vscode.ExtensionContext;
+    private _disposable: vscode.Disposable;
     private pendingAuth?: {
         state: string;
         resolve: (session: vscode.AuthenticationSession) => void;
@@ -23,9 +26,19 @@ export class ClerkAuthenticationProvider implements vscode.AuthenticationProvide
         scopes: readonly string[];
     };
 
-    constructor(context: vscode.ExtensionContext, clerkFrontendApi?: string) {
+    constructor(context: vscode.ExtensionContext) {
         this._context = context;
-        this._clerkFrontendApi = clerkFrontendApi!;
+
+        this._disposable = vscode.Disposable.from(
+            vscode.authentication.registerAuthenticationProvider(AUTH_PROVIDER_ID, 'ZenStack', this),
+            vscode.window.registerUriHandler({
+                handleUri: async (uri: vscode.Uri) => {
+                    if (uri.path === '/auth-callback') {
+                        await this.handleAuthCallback(uri);
+                    }
+                },
+            })
+        );
     }
 
     async getSessions(_scopes?: readonly string[]): Promise<vscode.AuthenticationSession[]> {
@@ -36,8 +49,8 @@ export class ClerkAuthenticationProvider implements vscode.AuthenticationProvide
     }
 
     async createSession(scopes: readonly string[]): Promise<vscode.AuthenticationSession> {
-        // Create a login flow using Clerk's authentication
-        const session = await this.performClerkLogin(scopes);
+        // Create a login flow
+        const session = await this.performLogin(scopes);
         if (session) {
             this._sessions.push(session);
             await this.storeSession(session);
@@ -56,7 +69,6 @@ export class ClerkAuthenticationProvider implements vscode.AuthenticationProvide
             const session = this._sessions[sessionIndex];
             this._sessions.splice(sessionIndex, 1);
             await this.removeStoredSession(sessionId);
-            //await this.logoutFromClerk(session);
             this._onDidChangeSessions.fire({
                 added: [],
                 removed: [session],
@@ -65,23 +77,20 @@ export class ClerkAuthenticationProvider implements vscode.AuthenticationProvide
         }
     }
 
-    private async performClerkLogin(scopes: readonly string[]): Promise<vscode.AuthenticationSession> {
+    private async performLogin(scopes: readonly string[]): Promise<vscode.AuthenticationSession> {
         return new Promise((resolve, reject) => {
             // Generate a unique state parameter for security
             const state = this.generateState();
-            const redirectUri = 'https://zenstack-backend.vercel.app/oauth/oauth_callback';
-
-            // Construct the Clerk sign-in URL for implicit flow (returns access_token directly)
-            const signInUrl = new URL('/sign-in', this._clerkFrontendApi);
-            signInUrl.searchParams.set('redirect_url', redirectUri);
+            // Construct the ZenStack sign-in URL for implicit flow (returns access_token directly)
+            const signInUrl = new URL('/sign-in', AUTH_URL);
 
             // Store the state and resolve function for later use
             this.pendingAuth = { state, resolve, reject, scopes };
 
-            // Open the Clerk sign-in page in the user's default browser
+            // Open the ZenStack sign-in page in the user's default browser
             vscode.env.openExternal(vscode.Uri.parse(signInUrl.toString())).then(
                 () => {
-                    console.log('Opened Clerk sign-in page in browser');
+                    console.log('Opened ZenStack sign-in page in browser');
                 },
                 (error) => {
                     delete this.pendingAuth;
@@ -94,7 +103,7 @@ export class ClerkAuthenticationProvider implements vscode.AuthenticationProvide
         return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     }
 
-    // Handle authentication callback from Clerk
+    // Handle authentication callback from ZenStack
     public async handleAuthCallback(callbackUri: vscode.Uri): Promise<void> {
         const query = new URLSearchParams(callbackUri.query);
         const accessToken = query.get('access_token');
@@ -132,7 +141,7 @@ export class ClerkAuthenticationProvider implements vscode.AuthenticationProvide
                 accessToken: accessToken,
                 account: {
                     id: claims.sub || 'unknown',
-                    label: claims.email || 'unknown@clerk.dev',
+                    label: claims.email || 'unknown@zenstack.dev',
                 },
                 scopes: [],
             };
@@ -141,7 +150,7 @@ export class ClerkAuthenticationProvider implements vscode.AuthenticationProvide
         }
     }
 
-    private parseJWTClaims(token: string): ClerkJWTClaims {
+    private parseJWTClaims(token: string): JWTClaims {
         try {
             // JWT tokens have 3 parts separated by dots: header.payload.signature
             const parts = token.split('.');
@@ -163,7 +172,7 @@ export class ClerkAuthenticationProvider implements vscode.AuthenticationProvide
 
     private async getStoredSessions(): Promise<vscode.AuthenticationSession[]> {
         try {
-            const stored = await this._context.secrets.get('clerk-auth-sessions');
+            const stored = await this._context.secrets.get('zenstack-auth-sessions');
             return stored ? JSON.parse(stored) : [];
         } catch (error) {
             console.error('Error retrieving stored sessions:', error);
@@ -175,7 +184,7 @@ export class ClerkAuthenticationProvider implements vscode.AuthenticationProvide
         try {
             const sessions = await this.getStoredSessions();
             sessions.push(session);
-            await this._context.secrets.store('clerk-auth-sessions', JSON.stringify(sessions));
+            await this._context.secrets.store('zenstack-auth-sessions', JSON.stringify(sessions));
         } catch (error) {
             console.error('Error storing session:', error);
         }
@@ -185,7 +194,7 @@ export class ClerkAuthenticationProvider implements vscode.AuthenticationProvide
         try {
             const sessions = await this.getStoredSessions();
             const filteredSessions = sessions.filter((s) => s.id !== sessionId);
-            await this._context.secrets.store('clerk-auth-sessions', JSON.stringify(filteredSessions));
+            await this._context.secrets.store('zenstack-auth-sessions', JSON.stringify(filteredSessions));
         } catch (error) {
             console.error('Error removing stored session:', error);
         }
@@ -201,5 +210,12 @@ export class ClerkAuthenticationProvider implements vscode.AuthenticationProvide
             // Fallback to account label if JWT parsing fails
             return session.account.label.includes('@') ? session.account.label : undefined;
         }
+    }
+
+    /**
+     * Dispose the registered services
+     */
+    public async dispose() {
+        this._disposable.dispose();
     }
 }

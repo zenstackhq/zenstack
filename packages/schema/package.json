@@ -42,20 +42,6 @@
                 "toolReferenceName": "zmodel_mermaid_generator"
             }
         ],
-        "chatParticipants": [
-            {
-                "id": "zenstack",
-                "name": "zenstack",
-                "description": "Generate documentation for ZModel schema files",
-                "isSticky": false,
-                "commands": [
-                    {
-                        "name": "doc",
-                        "description": "Generate documentation for the current ZModel file"
-                    }
-                ]
-            }
-        ],
         "languages": [
             {
                 "id": "zmodel",
@@ -92,49 +78,13 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Search for Mermaid extensions when viewing Mermaid source."
-                },
-                "clerk.frontendApi": {
-                    "type": "string",
-                    "default": "https://magnetic-humpback-6.accounts.dev/sign-in",
-                    "description": "Clerk frontend API URL (optional, will be inferred from publishable key if not provided)"
                 }
             }
         },
-        "viewsContainers": {
-            "activitybar": [
-                {
-                    "id": "zmodelOutlineContainer",
-                    "title": "ZModel Outline",
-                    "icon": "$(type-hierarchy-sub)"
-                }
-            ]
-        },
-        "views": {
-            "zmodelOutlineContainer": [
-                {
-                    "type": "webview",
-                    "id": "zmodelSimpleOutline",
-                    "name": "ZModel Simple Outline",
-                    "icon": "$(outline)"
-                }
-            ]
-        },
         "menus": {
-            "view/title": [
-                {
-                    "command": "zenstack.open-in-window-from-outline",
-                    "when": "view == zmodelSimpleOutline",
-                    "group": "navigation"
-                }
-            ],
             "editor/title": [
                 {
                     "command": "zenstack.preview-zmodel",
-                    "when": "editorLangId == zmodel",
-                    "group": "navigation"
-                },
-                {
-                    "command": "zenstack.generate-mermaid",
                     "when": "editorLangId == zmodel",
                     "group": "navigation"
                 }
@@ -145,42 +95,42 @@
                     "when": "editorLangId == zmodel"
                 },
                 {
-                    "command": "zenstack.generate-mermaid",
-                    "when": "editorLangId == zmodel"
-                },
-                {
                     "command": "zenstack.show-release-notes"
                 },
                 {
                     "command": "zenstack.reset-release-notes"
+                },
+                {
+                    "command": "zenstack.clear-documentation-cache"
                 }
             ]
         },
         "commands": [
             {
-                "command": "zenstack.open-in-window-from-outline",
-                "title": "Open Outline in Window",
-                "icon": "$(preview)"
-            },
-            {
                 "command": "zenstack.preview-zmodel",
-                "title": "Preview ZModel",
+                "title": "ZenStack: Preview ZModel",
                 "icon": "$(preview)"
-            },
-            {
-                "command": "zenstack.generate-mermaid",
-                "title": "Generate Mermaid Charts",
-                "icon": "$(graph)"
             },
             {
                 "command": "zenstack.show-release-notes",
-                "title": "ZenStack: Show Release Notes",
-                "icon": "$(info)"
+                "title": "ZenStack: Show Release Notes"
             },
             {
                 "command": "zenstack.reset-release-notes",
-                "title": "ZenStack: Reset Release Notes Flag",
-                "icon": "$(refresh)"
+                "title": "ZenStack: Reset Release Notes Flag"
+            },
+            {
+                "command": "zenstack.clear-documentation-cache",
+                "title": "ZenStack: Clear Documentation Cache",
+                "icon": "$(trash)"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "zenstack.preview-zmodel",
+                "key": "ctrl+shift+v",
+                "mac": "cmd+shift+v",
+                "when": "editorLangId == zmodel"
             }
         ]
     },
