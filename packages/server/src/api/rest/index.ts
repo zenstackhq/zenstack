@@ -201,6 +201,7 @@ class RequestHandler extends APIHandlerBase {
                 attributes: z.object({}).passthrough().optional(),
                 relationships: z
                     .record(
+                        z.string(),
                         z.object({
                             data: z.union([
                                 z.object({ type: z.string(), id: z.union([z.string(), z.number()]) }),
@@ -1973,7 +1974,7 @@ class RequestHandler extends APIHandlerBase {
         detail?: string,
         status?: number,
         reason?: string,
-        zodErrors?: ZodError
+        zodErrors?: ZodError<any>
     ) {
         const error: any = {
             status: status ?? this.errors[code].status,
