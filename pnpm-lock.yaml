@@ -548,8 +548,11 @@ importers:
         specifier: ^8.3.4
         version: 8.3.4
       '@types/vscode':
-        specifier: ^1.56.0
-        version: 1.90.0
+        specifier: ^1.102.0
+        version: 1.103.0
+      '@vscode/chat-extension-utils':
+        specifier: 0.0.0-alpha.5
+        version: 0.0.0-alpha.5
       '@vscode/vsce':
         specifier: ^3.5.0
         version: 3.5.0
@@ -3236,8 +3239,8 @@ packages:
   '@types/uuid@8.3.4':
     resolution: {integrity: sha512-c/I8ZRb51j+pYGAu5CrFMRxqZ2ke4y2grEBO5AUjgSkSk+qT2Ea+OdWElz/OiMf5MNpn2b17kuVBwZLQJXzihw==}
 
-  '@types/vscode@1.90.0':
-    resolution: {integrity: sha512-oT+ZJL7qHS9Z8bs0+WKf/kQ27qWYR3trsXpq46YDjFqBsMLG4ygGGjPaJ2tyrH0wJzjOEmDyg9PDJBBhWg9pkQ==}
+  '@types/vscode@1.103.0':
+    resolution: {integrity: sha512-o4hanZAQdNfsKecexq9L3eHICd0AAvdbLk6hA60UzGXbGH/q8b/9xv2RgR7vV3ZcHuyKVq7b37IGd/+gM4Tu+Q==}
 
   '@types/yargs-parser@21.0.3':
     resolution: {integrity: sha512-I4q9QU9MQv4oEOz4tAHJtNz1cwuLxn2F3xcc2iV5WdqLPpUnj30aUuxt1mAxYTG+oe8CZMV/+6rU4S4gRDzqtQ==}
@@ -3353,6 +3356,12 @@ packages:
 
   '@vitest/utils@0.29.8':
     resolution: {integrity: sha512-qGzuf3vrTbnoY+RjjVVIBYfuWMjn3UMUqyQtdGNZ6ZIIyte7B37exj6LaVkrZiUTvzSadVvO/tJm8AEgbGCBPg==}
+
+  '@vscode/chat-extension-utils@0.0.0-alpha.5':
+    resolution: {integrity: sha512-EkfetTIGMDyClZkIx8oMOhprlXufnj0b/G1W4QGg4jhkWVUBE7kLRZsqEnpNjmtxHTugzc61gPQwT3zgH3HXgA==}
+
+  '@vscode/prompt-tsx@0.3.0-alpha.24':
+    resolution: {integrity: sha512-WUz6rPLcN6F64WxxwTiLzHOuhUcdLKBWMckppn43DBC1Ba67Lvd9RV+2LOxj938YzvEVOKGoAY/qgRtXd77I7Q==}
 
   '@vscode/vsce-sign-alpine-arm64@2.0.2':
     resolution: {integrity: sha512-E80YvqhtZCLUv3YAf9+tIbbqoinWLCO/B3j03yQPbjT3ZIHCliKZlsy1peNc4XNZ5uIb87Jn0HWx/ZbPXviuAQ==}
@@ -11502,7 +11511,7 @@ snapshots:
 
   '@types/uuid@8.3.4': {}
 
-  '@types/vscode@1.90.0': {}
+  '@types/vscode@1.103.0': {}
 
   '@types/yargs-parser@21.0.3': {}
 
@@ -11675,6 +11684,12 @@ snapshots:
       diff: 5.2.0
       loupe: 2.3.7
       pretty-format: 27.5.1
+
+  '@vscode/chat-extension-utils@0.0.0-alpha.5':
+    dependencies:
+      '@vscode/prompt-tsx': 0.3.0-alpha.24
+
+  '@vscode/prompt-tsx@0.3.0-alpha.24': {}
 
   '@vscode/vsce-sign-alpine-arm64@2.0.2':
     optional: true
