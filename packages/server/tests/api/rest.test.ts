@@ -3013,4 +3013,185 @@ describe('REST server tests', () => {
             expect(r.body.data.attributes.enabled).toBe(false);
         });
     });
+
+    describe('REST server tests - model name mapping', () => {
+        const schema = `
+    model User {
+        id String @id @default(cuid())
+        name String
+        posts Post[]
+    }
+    
+    model Post {
+        id String @id @default(cuid())
+        title String
+        author User? @relation(fields: [authorId], references: [id])
+        authorId String?
+    }
+    `;
+        beforeAll(async () => {
+            const params = await loadSchema(schema);
+            prisma = params.prisma;
+            zodSchemas = params.zodSchemas;
+            modelMeta = params.modelMeta;
+
+            const _handler = makeHandler({
+                endpoint: 'http://localhost/api',
+                modelNameMapping: {
+                    User: 'myUser',
+                },
+            });
+            handler = (args) =>
+                _handler({ ...args, zodSchemas, modelMeta, url: new URL(`http://localhost/${args.path}`) });
+        });
+
+        it('works with name mapping', async () => {
+            // using original model name
+            await expect(
+                handler({
+                    method: 'post',
+                    path: '/user',
+                    query: {},
+                    requestBody: { data: { type: 'user', attributes: { id: '1', name: 'User1' } } },
+                    prisma,
+                })
+            ).resolves.toMatchObject({
+                status: 400,
+            });
+
+            // using mapped model name
+            await expect(
+                handler({
+                    method: 'post',
+                    path: '/myUser',
+                    query: {},
+                    requestBody: { data: { type: 'user', attributes: { id: '1', name: 'User1' } } },
+                    prisma,
+                })
+            ).resolves.toMatchObject({
+                status: 201,
+                body: {
+                    links: { self: 'http://localhost/api/myUser/1' },
+                },
+            });
+
+            await expect(
+                handler({
+                    method: 'get',
+                    path: '/myUser/1',
+                    query: {},
+                    prisma,
+                })
+            ).resolves.toMatchObject({
+                status: 200,
+                body: {
+                    links: { self: 'http://localhost/api/myUser/1' },
+                },
+            });
+
+            // works with unmapped model name
+            await expect(
+                handler({
+                    method: 'post',
+                    path: '/post',
+                    query: {},
+                    requestBody: {
+                        data: {
+                            type: 'post',
+                            attributes: { id: '1', title: 'Post1' },
+                            relationships: {
+                                author: { data: { type: 'user', id: '1' } },
+                            },
+                        },
+                    },
+                    prisma,
+                })
+            ).resolves.toMatchObject({
+                status: 201,
+            });
+        });
+    });
+
+    describe('REST server tests - external id mapping', () => {
+        const schema = `
+    model User {
+        id Int @id @default(autoincrement())
+        name String
+        source String
+        posts Post[]
+
+        @@unique([name, source])
+    }
+
+    model Post {
+        id Int @id @default(autoincrement())
+        title String
+        author User? @relation(fields: [authorId], references: [id])
+        authorId Int?
+    }
+    `;
+        beforeAll(async () => {
+            const params = await loadSchema(schema);
+            prisma = params.prisma;
+            zodSchemas = params.zodSchemas;
+            modelMeta = params.modelMeta;
+
+            const _handler = makeHandler({
+                endpoint: 'http://localhost/api',
+                externalIdMapping: {
+                    User: 'name_source',
+                },
+            });
+            handler = (args) =>
+                _handler({ ...args, zodSchemas, modelMeta, url: new URL(`http://localhost/${args.path}`) });
+        });
+
+        it('works with id mapping', async () => {
+            await prisma.user.create({
+                data: { id: 1, name: 'User1', source: 'a' },
+            });
+
+            // user is no longer exposed using the `id` field
+            let r = await handler({
+                method: 'get',
+                path: '/user/1',
+                query: {},
+                prisma,
+            });
+
+            expect(r.status).toBe(400);
+
+            // user is exposed using the fields from the `name__source` multi-column unique index
+            r = await handler({
+                method: 'get',
+                path: '/user/User1_a',
+                query: {},
+                prisma,
+            });
+
+            expect(r.status).toBe(200);
+            expect(r.body.data.attributes.source).toBe('a');
+            expect(r.body.data.attributes.name).toBe('User1');
+
+            await prisma.post.create({
+                data: { id: 1, title: 'Title1', authorId: 1 },
+            });
+
+            // post is exposed using the `id` field
+            r = await handler({
+                method: 'get',
+                path: '/post/1',
+                query: { include: 'author' },
+                prisma,
+            });
+
+            expect(r.status).toBe(200);
+            expect(r.body.data.attributes.title).toBe('Title1');
+            // Verify author relationship contains the external ID
+            expect(r.body.data.relationships.author.data).toMatchObject({
+                type: 'user',
+                id: 'User1_a',
+            });
+        });
+    });
 });

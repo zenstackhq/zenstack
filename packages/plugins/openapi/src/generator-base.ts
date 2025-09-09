@@ -1,9 +1,9 @@
+import { getZodErrorMessage } from '@zenstackhq/runtime/local-helpers';
 import { PluginError, getDataModels, hasAttribute, type PluginOptions, type PluginResult } from '@zenstackhq/sdk';
 import { Model } from '@zenstackhq/sdk/ast';
 import type { DMMF } from '@zenstackhq/sdk/prisma';
 import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
 import semver from 'semver';
-import { fromZodError } from 'zod-validation-error';
 import { name } from '.';
 import { SecuritySchemesSchema } from './schema';
 
@@ -15,7 +15,9 @@ export abstract class OpenAPIGeneratorBase {
     abstract generate(): PluginResult;
 
     protected get includedModels() {
-        return getDataModels(this.model).filter((d) => !hasAttribute(d, '@@openapi.ignore'));
+        const includeOpenApiIgnored = this.getOption<boolean>('includeOpenApiIgnored', false);
+        const models = getDataModels(this.model);
+        return includeOpenApiIgnored ? models : models.filter((d) => !hasAttribute(d, '@@openapi.ignore'));
     }
 
     protected wrapArray(
@@ -92,7 +94,7 @@ export abstract class OpenAPIGeneratorBase {
         if (securitySchemes) {
             const parsed = SecuritySchemesSchema.safeParse(securitySchemes);
             if (!parsed.success) {
-                throw new PluginError(name, `"securitySchemes" option is invalid: ${fromZodError(parsed.error)}`);
+                throw new PluginError(name, `"securitySchemes" option is invalid: ${getZodErrorMessage(parsed.error)}`);
             }
             return parsed.data;
         }

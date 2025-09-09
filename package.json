@@ -1,6 +1,6 @@
 {
     "name": "zenstack-monorepo",
-    "version": "2.16.1",
+    "version": "2.19.0",
     "description": "",
     "scripts": {
         "build": "pnpm -r --filter=\"!./packages/ide/*\" build",
@@ -22,11 +22,10 @@
     "keywords": [],
     "author": "",
     "license": "MIT",
-    "packageManager": "pnpm@9.4.0+sha256.b6fd0bfda555e7e584ad7e56b30c68b01d5a04f9ee93989f4b93ca8473c49c74",
+    "packageManager": "pnpm@9.15.9",
     "devDependencies": {
-        "@changesets/cli": "^2.26.0",
         "@types/jest": "^29.5.10",
-        "@types/node": "^20.10.2",
+        "@types/node": "^20.14.9",
         "@typescript-eslint/eslint-plugin": "^7.6.0",
         "@typescript-eslint/parser": "^7.6.0",
         "concurrently": "^7.4.0",
@@ -38,6 +37,6 @@
         "ts-jest": "^29.1.1",
         "tsup": "^8.0.1",
         "tsx": "^4.7.1",
-        "typescript": "^5.4.4"
+        "typescript": "catalog:"
     }
 }

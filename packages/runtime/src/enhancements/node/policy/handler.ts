@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import deepmerge from 'deepmerge';
-import { fromZodError } from 'zod-validation-error';
 import { CrudFailureReason } from '../../../constants';
 import {
     ModelDataVisitor,
@@ -15,7 +14,7 @@ import {
     type FieldInfo,
     type ModelMeta,
 } from '../../../cross';
-import { lowerCaseFirst, upperCaseFirst, invariant } from '../../../local-helpers';
+import { getZodErrorMessage, invariant, lowerCaseFirst, upperCaseFirst } from '../../../local-helpers';
 import { EnhancementContext, PolicyOperationKind, type CrudContract, type DbClientContract } from '../../../types';
 import type { InternalEnhancementOptions } from '../create-enhancement';
 import { Logger } from '../logger';
@@ -420,7 +419,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw this.policyUtils.deniedByPolicy(
                 model,
                 'create',
-                `input failed validation: ${fromZodError(err)}`,
+                `input failed validation: ${getZodErrorMessage(err)}`,
                 CrudFailureReason.DATA_VALIDATION_VIOLATION,
                 err
             );
@@ -1263,11 +1262,11 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             {}
         );
 
-        const validatedData = this.policyUtils.validateZodSchema(model, 'update', literalData, false, (err) => {
+        const validatedData: any = this.policyUtils.validateZodSchema(model, 'update', literalData, false, (err) => {
             throw this.policyUtils.deniedByPolicy(
                 model,
                 'update',
-                `input failed validation: ${fromZodError(err)}`,
+                `input failed validation: ${getZodErrorMessage(err)}`,
                 CrudFailureReason.DATA_VALIDATION_VIOLATION,
                 err
             );

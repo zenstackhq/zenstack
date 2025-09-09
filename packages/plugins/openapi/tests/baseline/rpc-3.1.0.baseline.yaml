@@ -3382,6 +3382,18 @@ components:
                     $ref: '#/components/schemas/UserWhereInput'
                 meta:
                     $ref: '#/components/schemas/_Meta'
+                orderBy:
+                    oneOf:
+                        - $ref: '#/components/schemas/UserOrderByWithRelationInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/UserOrderByWithRelationInput'
+                cursor:
+                    $ref: '#/components/schemas/UserWhereUniqueInput'
+                take:
+                    type: integer
+                skip:
+                    type: integer
         UserUpdateArgs:
             type: object
             required:
@@ -3570,6 +3582,18 @@ components:
                     $ref: '#/components/schemas/ProfileWhereInput'
                 meta:
                     $ref: '#/components/schemas/_Meta'
+                orderBy:
+                    oneOf:
+                        - $ref: '#/components/schemas/ProfileOrderByWithRelationInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/ProfileOrderByWithRelationInput'
+                cursor:
+                    $ref: '#/components/schemas/ProfileWhereUniqueInput'
+                take:
+                    type: integer
+                skip:
+                    type: integer
         ProfileUpdateArgs:
             type: object
             required:
@@ -3758,6 +3782,18 @@ components:
                     $ref: '#/components/schemas/Post_ItemWhereInput'
                 meta:
                     $ref: '#/components/schemas/_Meta'
+                orderBy:
+                    oneOf:
+                        - $ref: '#/components/schemas/Post_ItemOrderByWithRelationInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Post_ItemOrderByWithRelationInput'
+                cursor:
+                    $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
+                take:
+                    type: integer
+                skip:
+                    type: integer
         Post_ItemUpdateArgs:
             type: object
             required:

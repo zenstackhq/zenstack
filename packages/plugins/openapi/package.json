@@ -1,7 +1,7 @@
 {
   "name": "@zenstackhq/openapi",
   "displayName": "ZenStack Plugin and Runtime for OpenAPI",
-  "version": "2.16.1",
+  "version": "2.19.0",
   "description": "ZenStack plugin and runtime supporting OpenAPI",
   "main": "index.js",
   "repository": {
@@ -32,8 +32,10 @@
     "semver": "^7.5.2",
     "ts-pattern": "^4.3.0",
     "yaml": "^2.2.2",
-    "zod": "^3.22.4",
-    "zod-validation-error": "^1.5.0"
+    "zod-validation-error": "catalog:"
+  },
+  "peerDependencies": {
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@readme/openapi-parser": "^2.4.0",
