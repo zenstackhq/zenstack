@@ -16,12 +16,6 @@ require('esbuild')
     .then(() => {
         fs.cpSync('./src/res', 'bundle/res', { force: true, recursive: true });
         fs.cpSync('../language/syntaxes', 'bundle/syntaxes', { force: true, recursive: true });
-
-        // Copy release notes HTML file
-        if (fs.existsSync('src/release-notes.html')) {
-            fs.copyFileSync('src/release-notes.html', 'bundle/release-notes.html');
-            console.log('Copied release notes HTML file to bundle');
-        }
     })
     .then(() => console.log(success))
     .catch((err) => {

@@ -27,7 +27,7 @@
         "linkDirectory": true
     },
     "engines": {
-        "vscode": "^1.90.0"
+        "vscode": "^1.102.0"
     },
     "categories": [
         "Programming Languages"
@@ -184,7 +184,6 @@
         "@types/tmp": "^0.2.3",
         "@types/uuid": "^8.3.4",
         "@types/vscode": "^1.102.0",
-        "@vscode/chat-extension-utils": "0.0.0-alpha.5",
         "@vscode/vsce": "^3.5.0",
         "@zenstackhq/runtime": "workspace:*",
         "dotenv": "^16.0.3",

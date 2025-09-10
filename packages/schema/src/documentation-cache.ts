@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import crypto from 'crypto';
+import { createHash } from 'crypto';
 
 // Cache entry interface
 interface CacheEntry {
@@ -13,7 +13,7 @@ interface CacheEntry {
  * using VS Code's globalState for cross-session persistence
  */
 export class DocumentationCache implements vscode.Disposable {
-    private static readonly CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes cache duration
+    private static readonly CACHE_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days cache duration
     private static readonly CACHE_PREFIX = 'doc-cache.';
 
     private extensionContext: vscode.ExtensionContext;
@@ -56,9 +56,8 @@ export class DocumentationCache implements vscode.Disposable {
     private generateCacheKey(requestBody: { models: string[] }): string {
         // Remove ALL whitespace characters from each model string for cache key generation
         // This ensures identical content with different formatting uses the same cache
-        const normalizedModels = requestBody.models.map((model) => model.replace(/\s/g, ''));
-        const hash = crypto
-            .createHash('sha512')
+        const normalizedModels = requestBody.models.map((model) => model.replace(/\s/g, '')).sort();
+        const hash = createHash('sha512')
             .update(JSON.stringify({ models: normalizedModels }))
             .digest('hex');
         return `${DocumentationCache.CACHE_PREFIX}${hash}`;

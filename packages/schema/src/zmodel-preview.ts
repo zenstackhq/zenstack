@@ -70,6 +70,7 @@ export class ZModelPreview implements vscode.Disposable {
         }
 
         try {
+            this.checkForMermaidExtensions();
             // Show progress indicator
             await vscode.window.withProgress(
                 {
@@ -82,7 +83,6 @@ export class ZModelPreview implements vscode.Disposable {
 
                     if (markdownContent) {
                         await this.openMarkdownPreview(markdownContent, document.fileName);
-                        this.checkForMermaidExtensions();
                     }
                 }
             );
@@ -159,9 +159,6 @@ export class ZModelPreview implements vscode.Disposable {
             // Trim whitespace from each model string
             const trimmedZmodelContent = zmodelContent.map((content) => content.trim());
 
-            console.log('ZModel content generated:', trimmedZmodelContent);
-
-            // Fallback: fetch from API endpoint
             const session = await requireAuth();
             if (!session) {
                 throw new Error('Authentication required to generate documentation');
@@ -219,16 +216,11 @@ export class ZModelPreview implements vscode.Disposable {
      * Open markdown preview
      */
     private async openMarkdownPreview(markdownContent: string, originalFileName: string): Promise<void> {
-        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-        if (!workspaceFolder) {
-            vscode.window.showErrorMessage('No workspace folder found.');
-            return;
-        }
-
-        // Create a temporary markdown file with a descriptive name
+        // Create a temporary markdown file with a descriptive name in the system temp folder
         const baseName = path.basename(originalFileName, '.zmodel');
         const tempFileName = `${baseName}-preview.md`;
-        const tempFile = vscode.Uri.joinPath(workspaceFolder.uri, tempFileName);
+        const tempFilePath = path.join(os.tmpdir(), tempFileName);
+        const tempFile = vscode.Uri.file(tempFilePath);
 
         try {
             // Write the markdown content to the temp file
@@ -236,16 +228,6 @@ export class ZModelPreview implements vscode.Disposable {
 
             // Open the markdown preview side by side
             await vscode.commands.executeCommand('markdown.showPreviewToSide', tempFile);
-
-            // Optionally clean up the temp file after a delay
-            setTimeout(async () => {
-                try {
-                    await vscode.workspace.fs.delete(tempFile);
-                } catch (error) {
-                    // Ignore cleanup errors
-                    console.log('Could not clean up temp file:', error);
-                }
-            }, 5000); // Clean up after 5 seconds
         } catch (error) {
             console.error('Error creating markdown preview:', error);
             throw new Error(
@@ -260,8 +242,10 @@ export class ZModelPreview implements vscode.Disposable {
     private checkForMermaidExtensions(): void {
         const setting = vscode.workspace.getConfiguration('zenstack').get('searchForExtensions');
         if (setting !== false) {
-            const extensions = vscode.extensions.all.filter(
-                (extension) => extension.packageJSON.name === 'markdown-mermaid'
+            const extensions = vscode.extensions.all.filter((extension) =>
+                ['markdown-mermaid', 'vscode-mermaid-chart', 'vscode-mermaid-preview'].some((name) =>
+                    extension.packageJSON.name?.toLowerCase().includes(name.toLowerCase())
+                )
             );
             if (extensions.length === 0) {
                 const searchAction = 'Search';

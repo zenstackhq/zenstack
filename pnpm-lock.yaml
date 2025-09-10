@@ -550,9 +550,6 @@ importers:
       '@types/vscode':
         specifier: ^1.102.0
         version: 1.103.0
-      '@vscode/chat-extension-utils':
-        specifier: 0.0.0-alpha.5
-        version: 0.0.0-alpha.5
       '@vscode/vsce':
         specifier: ^3.5.0
         version: 3.5.0

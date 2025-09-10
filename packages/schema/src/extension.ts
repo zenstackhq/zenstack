@@ -23,10 +23,12 @@ export async function requireAuth(): Promise<vscode.AuthenticationSession | unde
             try {
                 session = await vscode.authentication.getSession(AUTH_PROVIDER_ID, [], { createIfNone: true });
                 if (session) {
-                    vscode.window.showInformationMessage('ZenStack sign in successful!');
+                    vscode.window.showInformationMessage('ZenStack sign-in successful!');
                 }
-            } catch (e) {
-                vscode.window.showErrorMessage('ZenStack sign in failed: ' + String(e));
+            } catch (e: unknown) {
+                vscode.window.showErrorMessage(
+                    'ZenStack sign-in failed: ' + (e instanceof Error ? e.message : String(e))
+                );
             }
         }
     }

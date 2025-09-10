@@ -78,26 +78,54 @@ export class ZenStackAuthenticationProvider implements vscode.AuthenticationProv
     }
 
     private async performLogin(scopes: readonly string[]): Promise<vscode.AuthenticationSession> {
-        return new Promise((resolve, reject) => {
-            // Generate a unique state parameter for security
-            const state = this.generateState();
-            // Construct the ZenStack sign-in URL for implicit flow (returns access_token directly)
-            const signInUrl = new URL('/sign-in', AUTH_URL);
+        // Create the authentication promise
+        return vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Notification,
+                title: 'Signing in to ZenStack',
+                cancellable: true,
+            },
+            async (progress, token) => {
+                return new Promise<vscode.AuthenticationSession>((resolve, reject) => {
+                    // Handle cancellation
+                    token.onCancellationRequested(() => {
+                        if (this.pendingAuth) {
+                            delete this.pendingAuth;
+                        }
+                        reject(new Error('User Cancelled'));
+                    });
 
-            // Store the state and resolve function for later use
-            this.pendingAuth = { state, resolve, reject, scopes };
+                    // Generate a unique state parameter for security
+                    const state = this.generateState();
+                    // Construct the ZenStack sign-in URL for implicit flow (returns access_token directly)
+                    const signInUrl = new URL('/sign-in', AUTH_URL);
 
-            // Open the ZenStack sign-in page in the user's default browser
-            vscode.env.openExternal(vscode.Uri.parse(signInUrl.toString())).then(
-                () => {
-                    console.log('Opened ZenStack sign-in page in browser');
-                },
-                (error) => {
-                    delete this.pendingAuth;
-                    reject(new Error(`Failed to open sign-in page: ${error}`));
-                }
-            );
-        });
+                    // Store the state and resolve function for later use
+                    this.pendingAuth = { state, resolve, reject, scopes };
+
+                    // Open the ZenStack sign-in page in the user's default browser
+                    vscode.env.openExternal(vscode.Uri.parse(signInUrl.toString())).then(
+                        () => {
+                            console.log('Opened ZenStack sign-in page in browser');
+                            progress.report({ message: 'Waiting for return from browser...' });
+                        },
+                        (error) => {
+                            if (this.pendingAuth) {
+                                delete this.pendingAuth;
+                            }
+                            reject(new Error(`Failed to open sign-in page: ${error}`));
+                        }
+                    );
+
+                    setTimeout(() => {
+                        if (this.pendingAuth) {
+                            delete this.pendingAuth;
+                        }
+                        reject(new Error('Timeout'));
+                    }, 60000);
+                });
+            }
+        );
     }
     private generateState(): string {
         return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
@@ -133,9 +161,6 @@ export class ZenStackAuthenticationProvider implements vscode.AuthenticationProv
         try {
             // Decode JWT to get claims
             const claims = this.parseJWTClaims(accessToken);
-
-            console.log('Parsed JWT claims:', claims);
-
             return {
                 id: claims.jti || Math.random().toString(36),
                 accessToken: accessToken,
@@ -197,18 +222,6 @@ export class ZenStackAuthenticationProvider implements vscode.AuthenticationProv
             await this._context.secrets.store('zenstack-auth-sessions', JSON.stringify(filteredSessions));
         } catch (error) {
             console.error('Error removing stored session:', error);
-        }
-    }
-
-    async getUserEmail(session: vscode.AuthenticationSession): Promise<string | undefined> {
-        try {
-            // Extract email from JWT claims instead of making API call
-            const claims = this.parseJWTClaims(session.accessToken);
-            return claims.email;
-        } catch (error) {
-            console.error('Error extracting email from JWT:', error);
-            // Fallback to account label if JWT parsing fails
-            return session.account.label.includes('@') ? session.account.label : undefined;
         }
     }
 

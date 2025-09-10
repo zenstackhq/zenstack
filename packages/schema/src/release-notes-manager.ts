@@ -5,11 +5,10 @@ import * as vscode from 'vscode';
  */
 export class ReleaseNotesManager implements vscode.Disposable {
     private extensionContext: vscode.ExtensionContext;
-    private releaseNoteVersionKey: string;
+    private readonly zmodelPreviewReleaseNoteKey = 'zmodel-preview-release-note-shown';
 
     constructor(context: vscode.ExtensionContext) {
         this.extensionContext = context;
-        this.releaseNoteVersionKey = `release-notes-shown:${this.extensionContext.extension.packageJSON.version}`;
         this.initialize();
     }
 
@@ -25,12 +24,12 @@ export class ReleaseNotesManager implements vscode.Disposable {
      */
     async showReleaseNotesIfFirstTime(): Promise<void> {
         // Show release notes if this is the first time activating this version
-        if (!this.extensionContext.globalState.get(this.releaseNoteVersionKey)) {
+        if (!this.extensionContext.globalState.get(this.zmodelPreviewReleaseNoteKey)) {
             await this.showReleaseNotes();
             // Update the stored version to prevent showing again
-            await this.extensionContext.globalState.update(this.releaseNoteVersionKey, true);
+            await this.extensionContext.globalState.update(this.zmodelPreviewReleaseNoteKey, true);
             // Add this key to sync keys for cross-machine synchronization
-            this.extensionContext.globalState.setKeysForSync([this.releaseNoteVersionKey]);
+            this.extensionContext.globalState.setKeysForSync([this.zmodelPreviewReleaseNoteKey]);
         }
     }
 
@@ -39,9 +38,17 @@ export class ReleaseNotesManager implements vscode.Disposable {
      */
     async showReleaseNotes(): Promise<void> {
         try {
+            // Read the release notes HTML file
+            const releaseNotesPath = vscode.Uri.joinPath(
+                this.extensionContext.extensionUri,
+                'bundle/res/zmodel-preview-release-notes.html'
+            );
+
+            const htmlBytes = await vscode.workspace.fs.readFile(releaseNotesPath);
+            const htmlContent = Buffer.from(htmlBytes).toString('utf8');
             // Create and show the release notes webview
             const panel = vscode.window.createWebviewPanel(
-                'zenstackReleaseNotes',
+                'ZenstackReleaseNotes',
                 'ZenStack - New Feature Announcement!',
                 vscode.ViewColumn.One,
                 {
@@ -49,12 +56,6 @@ export class ReleaseNotesManager implements vscode.Disposable {
                     retainContextWhenHidden: true,
                 }
             );
-
-            // Read the release notes HTML file
-            const releaseNotesPath = vscode.Uri.joinPath(this.extensionContext.extensionUri, 'src/release-notes.html');
-
-            const htmlBytes = await vscode.workspace.fs.readFile(releaseNotesPath);
-            const htmlContent = Buffer.from(htmlBytes).toString('utf8');
 
             panel.webview.html = htmlContent;
 
