@@ -53,10 +53,10 @@ export class DocumentationCache implements vscode.Disposable {
     /**
      * Generate a cache key from request body with normalized content
      */
-    private generateCacheKey(requestBody: { models: string[] }): string {
+    private generateCacheKey(models: string[]): string {
         // Remove ALL whitespace characters from each model string for cache key generation
         // This ensures identical content with different formatting uses the same cache
-        const normalizedModels = requestBody.models.map((model) => model.replace(/\s/g, '')).sort();
+        const normalizedModels = models.map((model) => model.replace(/\s/g, '')).sort();
         const hash = createHash('sha512')
             .update(JSON.stringify({ models: normalizedModels }))
             .digest('hex');
@@ -73,8 +73,8 @@ export class DocumentationCache implements vscode.Disposable {
     /**
      * Get cached response if available and valid
      */
-    async getCachedResponse(requestBody: { models: string[] }): Promise<string | null> {
-        const cacheKey = this.generateCacheKey(requestBody);
+    async getCachedResponse(models: string[]): Promise<string | null> {
+        const cacheKey = this.generateCacheKey(models);
         const entry = this.extensionContext.globalState.get<CacheEntry>(cacheKey);
 
         if (entry && this.isCacheValid(entry)) {
@@ -93,8 +93,8 @@ export class DocumentationCache implements vscode.Disposable {
     /**
      * Cache a response for future use
      */
-    async setCachedResponse(requestBody: { models: string[] }, data: string): Promise<void> {
-        const cacheKey = this.generateCacheKey(requestBody);
+    async setCachedResponse(models: string[], data: string): Promise<void> {
+        const cacheKey = this.generateCacheKey(models);
         const cacheEntry: CacheEntry = {
             data,
             timestamp: Date.now(),

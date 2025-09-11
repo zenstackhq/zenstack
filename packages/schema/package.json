@@ -27,21 +27,12 @@
         "linkDirectory": true
     },
     "engines": {
-        "vscode": "^1.102.0"
+        "vscode": "^1.99.3"
     },
     "categories": [
         "Programming Languages"
     ],
     "contributes": {
-        "languageModelTools": [
-            {
-                "name": "zmodel_mermaid_generator",
-                "displayName": "ZModel Mermaid Generator",
-                "modelDescription": "Generate Mermaid charts from ZModel schema files. This tool analyzes the current ZModel file and creates comprehensive entity-relationship diagrams showing all models and their relationships.",
-                "canBeReferencedInPrompt": true,
-                "toolReferenceName": "zmodel_mermaid_generator"
-            }
-        ],
         "languages": [
             {
                 "id": "zmodel",
@@ -102,7 +93,7 @@
         "commands": [
             {
                 "command": "zenstack.preview-zmodel",
-                "title": "ZenStack: Preview ZModel",
+                "title": "ZenStack: Preview ZModel Documentation",
                 "icon": "$(preview)"
             },
             {
@@ -183,7 +174,7 @@
         "@types/strip-color": "^0.1.0",
         "@types/tmp": "^0.2.3",
         "@types/uuid": "^8.3.4",
-        "@types/vscode": "^1.102.0",
+        "@types/vscode": "^1.99.3",
         "@vscode/vsce": "^3.5.0",
         "@zenstackhq/runtime": "workspace:*",
         "dotenv": "^16.0.3",

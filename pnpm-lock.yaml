@@ -548,7 +548,7 @@ importers:
         specifier: ^8.3.4
         version: 8.3.4
       '@types/vscode':
-        specifier: ^1.102.0
+        specifier: ^1.99.3
         version: 1.103.0
       '@vscode/vsce':
         specifier: ^3.5.0
@@ -3353,12 +3353,6 @@ packages:
 
   '@vitest/utils@0.29.8':
     resolution: {integrity: sha512-qGzuf3vrTbnoY+RjjVVIBYfuWMjn3UMUqyQtdGNZ6ZIIyte7B37exj6LaVkrZiUTvzSadVvO/tJm8AEgbGCBPg==}
-
-  '@vscode/chat-extension-utils@0.0.0-alpha.5':
-    resolution: {integrity: sha512-EkfetTIGMDyClZkIx8oMOhprlXufnj0b/G1W4QGg4jhkWVUBE7kLRZsqEnpNjmtxHTugzc61gPQwT3zgH3HXgA==}
-
-  '@vscode/prompt-tsx@0.3.0-alpha.24':
-    resolution: {integrity: sha512-WUz6rPLcN6F64WxxwTiLzHOuhUcdLKBWMckppn43DBC1Ba67Lvd9RV+2LOxj938YzvEVOKGoAY/qgRtXd77I7Q==}
 
   '@vscode/vsce-sign-alpine-arm64@2.0.2':
     resolution: {integrity: sha512-E80YvqhtZCLUv3YAf9+tIbbqoinWLCO/B3j03yQPbjT3ZIHCliKZlsy1peNc4XNZ5uIb87Jn0HWx/ZbPXviuAQ==}
@@ -11681,12 +11675,6 @@ snapshots:
       diff: 5.2.0
       loupe: 2.3.7
       pretty-format: 27.5.1
-
-  '@vscode/chat-extension-utils@0.0.0-alpha.5':
-    dependencies:
-      '@vscode/prompt-tsx': 0.3.0-alpha.24
-
-  '@vscode/prompt-tsx@0.3.0-alpha.24': {}
 
   '@vscode/vsce-sign-alpine-arm64@2.0.2':
     optional: true

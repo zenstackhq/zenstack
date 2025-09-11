@@ -10,6 +10,7 @@ interface JWTClaims {
 
 export const AUTH_PROVIDER_ID = 'ZenStack';
 export const AUTH_URL = 'https://accounts.zenstack.dev';
+export const API_URL = 'https://api.zenstack.dev';
 
 export class ZenStackAuthenticationProvider implements vscode.AuthenticationProvider, vscode.Disposable {
     private _onDidChangeSessions =
@@ -20,7 +21,6 @@ export class ZenStackAuthenticationProvider implements vscode.AuthenticationProv
     private _context: vscode.ExtensionContext;
     private _disposable: vscode.Disposable;
     private pendingAuth?: {
-        state: string;
         resolve: (session: vscode.AuthenticationSession) => void;
         reject: (error: Error) => void;
         scopes: readonly string[];
@@ -95,16 +95,22 @@ export class ZenStackAuthenticationProvider implements vscode.AuthenticationProv
                         reject(new Error('User Cancelled'));
                     });
 
-                    // Generate a unique state parameter for security
-                    const state = this.generateState();
-                    // Construct the ZenStack sign-in URL for implicit flow (returns access_token directly)
-                    const signInUrl = new URL('/sign-in', AUTH_URL);
+                    const isCursor = vscode.env.appName == 'Cursor';
 
+                    let signInUrl = vscode.Uri.parse(new URL('/sign-in', AUTH_URL).toString());
+
+                    if (isCursor) {
+                        signInUrl = signInUrl.with({
+                            query: `redirect_url=${API_URL}/oauth/oauth_callback?vscodeapp=cursor`,
+                        });
+                    }
+
+                    console.log('ZenStack sign-in URL:', signInUrl.toString());
                     // Store the state and resolve function for later use
-                    this.pendingAuth = { state, resolve, reject, scopes };
+                    this.pendingAuth = { resolve, reject, scopes };
 
                     // Open the ZenStack sign-in page in the user's default browser
-                    vscode.env.openExternal(vscode.Uri.parse(signInUrl.toString())).then(
+                    vscode.env.openExternal(signInUrl).then(
                         () => {
                             console.log('Opened ZenStack sign-in page in browser');
                             progress.report({ message: 'Waiting for return from browser...' });

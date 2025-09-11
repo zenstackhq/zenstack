@@ -1,10 +1,12 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as os from 'os';
+import { z } from 'zod';
 import { LanguageClient } from 'vscode-languageclient/node';
 import { URI } from 'vscode-uri';
 import { DocumentationCache } from './documentation-cache';
 import { requireAuth } from './extension';
+import { API_URL } from './zenstack-auth-provider';
 
 /**
  * ZModelPreview class handles ZModel file preview functionality
@@ -12,6 +14,25 @@ import { requireAuth } from './extension';
 export class ZModelPreview implements vscode.Disposable {
     private documentationCache: DocumentationCache;
     private languageClient: LanguageClient;
+
+    // Schema for validating the request body
+    private static DocRequestSchema = z.object({
+        models: z.array(
+            z.object({
+                path: z.string().optional(),
+                content: z.string(),
+            })
+        ),
+        environments: z
+            .object({
+                vscodeAppName: z.string(),
+                vscodeVersion: z.string(),
+                vscodeAppHost: z.string(),
+                osRelease: z.string(),
+                osType: z.string(),
+            })
+            .optional(),
+    });
 
     constructor(context: vscode.ExtensionContext, client: LanguageClient, cache: DocumentationCache) {
         this.documentationCache = cache;
@@ -141,23 +162,24 @@ export class ZModelPreview implements vscode.Disposable {
             const importedURIs = astInfo?.importedURIs;
 
             // get vscode document from importedURIs
-            const importedTexts = await Promise.all(
+            const importedModels = await Promise.all(
                 importedURIs.map(async (uri) => {
                     try {
                         const fileUri = vscode.Uri.file(uri.path);
                         const fileContent = await vscode.workspace.fs.readFile(fileUri);
-                        return Buffer.from(fileContent).toString('utf8');
+                        const filePath = fileUri.path;
+                        return { content: Buffer.from(fileContent).toString('utf8').trim(), path: filePath };
                     } catch (error) {
-                        console.warn(`Could not read file for URI ${uri}:`, error);
-                        return null;
+                        throw new Error(
+                            `Failed to read imported ZModel file at ${uri.path}: ${
+                                error instanceof Error ? error.message : String(error)
+                            }`
+                        );
                     }
                 })
             );
 
-            const zmodelContent = [document.getText(), ...importedTexts.filter((text) => text !== null)];
-
-            // Trim whitespace from each model string
-            const trimmedZmodelContent = zmodelContent.map((content) => content.trim());
+            const allModels = [{ content: document.getText().trim(), path: document.uri.path }, ...importedModels];
 
             const session = await requireAuth();
             if (!session) {
@@ -165,26 +187,28 @@ export class ZModelPreview implements vscode.Disposable {
             }
 
             // Prepare request body
-            const requestBody = {
-                models: trimmedZmodelContent,
+            const requestBody: z.infer<typeof ZModelPreview.DocRequestSchema> = {
+                models: allModels,
                 environments: {
-                    editorName: vscode.env.appName,
+                    vscodeAppName: vscode.env.appName,
                     vscodeVersion: vscode.version,
-                    appHost: vscode.env.appHost,
+                    vscodeAppHost: vscode.env.appHost,
                     osRelease: os.release(),
                     osType: os.type(),
                 },
             };
 
+            const allModelsContent = allModels.map((m) => m.content);
+
             // Check cache first
-            const cachedResponse = await this.documentationCache.getCachedResponse(requestBody);
+            const cachedResponse = await this.documentationCache.getCachedResponse(allModelsContent);
             if (cachedResponse) {
                 return cachedResponse;
             }
 
             // record the time spent
             const startTime = Date.now();
-            const apiResponse = await fetch('https://api.zenstack.dev/api/doc', {
+            const apiResponse = await fetch(`${API_URL}/api/doc`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -202,7 +226,7 @@ export class ZModelPreview implements vscode.Disposable {
             const responseText = await apiResponse.text();
 
             // Cache the response
-            await this.documentationCache.setCachedResponse(requestBody, responseText);
+            await this.documentationCache.setCachedResponse(allModelsContent, responseText);
 
             return responseText;
         } catch (error) {
