@@ -37,6 +37,10 @@ export class ZenStackAuthenticationProvider implements vscode.AuthenticationProv
                         await this.handleAuthCallback(uri);
                     }
                 },
+            }),
+            // Register logout command
+            vscode.commands.registerCommand('zenstack.logout', async () => {
+                await this.logoutAllSessions();
             })
         );
     }
@@ -75,6 +79,18 @@ export class ZenStackAuthenticationProvider implements vscode.AuthenticationProv
                 changed: [],
             });
         }
+    }
+
+    /**
+     * Log out all sessions
+     */
+    async logoutAllSessions(): Promise<void> {
+        if (this._sessions.length === 0) {
+            return;
+        }
+
+        (await this.getSessions()).forEach(async (s) => await this.removeSession(s.id));
+        vscode.window.showInformationMessage('Successfully logged out of ZenStack.');
     }
 
     private async performLogin(scopes: readonly string[]): Promise<vscode.AuthenticationSession> {

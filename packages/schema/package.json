@@ -87,6 +87,9 @@
                 },
                 {
                     "command": "zenstack.clear-documentation-cache"
+                },
+                {
+                    "command": "zenstack.logout"
                 }
             ]
         },
@@ -100,6 +103,11 @@
                 "command": "zenstack.clear-documentation-cache",
                 "title": "ZenStack: Clear Documentation Cache",
                 "icon": "$(trash)"
+            },
+            {
+                "command": "zenstack.logout",
+                "title": "ZenStack: Logout",
+                "icon": "$(log-out)"
             }
         ],
         "keybindings": [
