@@ -116,11 +116,11 @@
         "zod-validation-error": "catalog:"
     },
     "peerDependencies": {
-        "prisma": "5.0.0 - 6.15.x",
+        "prisma": "5.0.0 - 6.16.x",
         "zod": "catalog:"
     },
     "devDependencies": {
-        "@prisma/client": "6.15.x",
+        "@prisma/client": "6.16.x",
         "@types/async-exit-hook": "^2.0.0",
         "@types/pluralize": "^0.0.29",
         "@types/semver": "^7.3.13",
