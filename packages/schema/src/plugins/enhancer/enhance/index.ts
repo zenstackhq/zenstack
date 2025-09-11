@@ -612,7 +612,7 @@ export type Enhanced<Client> =
                 throw new PluginError(name, `Unexpected syntax list structure in ${fileName}`);
             }
 
-            const statements: (string | StatementStructures)[] = ['import $Types = runtime.Types;'];
+            const statements: (string | StatementStructures)[] = [];
 
             // Add import for json-types if this model has JSON type fields
             const modelWithJsonFields = this.modelsWithJsonTypeFields.find((m) => m.name === d.name);
@@ -1032,7 +1032,7 @@ export type Enhanced<Client> =
             // Check if the field in the source is optional (has a `?`)
             const isOptionalInSource = new RegExp(`(${field.name}\\?\\s*):`).test(source);
             if (isOptionalInSource) {
-                replaceValue += ' | $Types.Skip';
+                replaceValue += ' | runtime.Types.Skip';
             }
 
             return source.replace(new RegExp(`(${field.name}\\??\\s*):[^\\n]+`), replaceValue);
