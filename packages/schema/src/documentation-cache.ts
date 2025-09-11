@@ -13,7 +13,7 @@ interface CacheEntry {
  * using VS Code's globalState for cross-session persistence
  */
 export class DocumentationCache implements vscode.Disposable {
-    private static readonly CACHE_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days cache duration
+    private static readonly CACHE_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days cache duration
     private static readonly CACHE_PREFIX = 'doc-cache.';
 
     private extensionContext: vscode.ExtensionContext;

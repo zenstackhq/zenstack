@@ -139,12 +139,13 @@ export class ZenStackAuthenticationProvider implements vscode.AuthenticationProv
                         }
                     );
 
+                    // 2 minutes timeout
                     setTimeout(() => {
                         if (this.pendingAuth) {
                             delete this.pendingAuth;
                         }
                         reject(new Error('Timeout'));
-                    }, 60000);
+                    }, 120000);
                 });
             }
         );
