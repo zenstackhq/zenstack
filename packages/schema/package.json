@@ -27,7 +27,7 @@
         "linkDirectory": true
     },
     "engines": {
-        "vscode": "^1.63.0"
+        "vscode": "^1.99.3"
     },
     "categories": [
         "Programming Languages"
@@ -64,13 +64,68 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Use Prisma style indentation."
+                },
+                "zenstack.searchForExtensions": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Search for Mermaid extensions when viewing Mermaid source."
                 }
             }
-        }
+        },
+        "menus": {
+            "editor/title": [
+                {
+                    "command": "zenstack.preview-zmodel",
+                    "when": "editorLangId == zmodel",
+                    "group": "navigation"
+                }
+            ],
+            "commandPalette": [
+                {
+                    "command": "zenstack.preview-zmodel",
+                    "when": "editorLangId == zmodel"
+                },
+                {
+                    "command": "zenstack.clear-documentation-cache"
+                },
+                {
+                    "command": "zenstack.logout"
+                }
+            ]
+        },
+        "commands": [
+            {
+                "command": "zenstack.preview-zmodel",
+                "title": "ZenStack: Preview ZModel Documentation",
+                "icon": "$(preview)"
+            },
+            {
+                "command": "zenstack.clear-documentation-cache",
+                "title": "ZenStack: Clear Documentation Cache",
+                "icon": "$(trash)"
+            },
+            {
+                "command": "zenstack.logout",
+                "title": "ZenStack: Logout",
+                "icon": "$(log-out)"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "zenstack.preview-zmodel",
+                "key": "ctrl+shift+v",
+                "mac": "cmd+shift+v",
+                "when": "editorLangId == zmodel"
+            }
+        ]
     },
-    "activationEvents": [
-        "onLanguage:zmodel"
-    ],
+    "activationEvents": [],
+    "capabilities": {
+        "untrustedWorkspaces": {
+            "supported": true
+        },
+        "virtualWorkspaces": true
+    },
     "bin": {
         "zenstack": "bin/cli"
     },
@@ -127,7 +182,7 @@
         "@types/strip-color": "^0.1.0",
         "@types/tmp": "^0.2.3",
         "@types/uuid": "^8.3.4",
-        "@types/vscode": "^1.56.0",
+        "@types/vscode": "^1.99.3",
         "@vscode/vsce": "^3.5.0",
         "@zenstackhq/runtime": "workspace:*",
         "dotenv": "^16.0.3",
