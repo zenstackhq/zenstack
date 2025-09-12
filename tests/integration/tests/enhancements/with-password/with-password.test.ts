@@ -94,7 +94,7 @@ describe('Password test', () => {
                     password: 'abc456789',
                 },
             })
-        ).toBeRejectedByPolicy(['String must contain at most 8 character(s) at "password"']);
+        ).toBeRejectedByPolicy(['8 character']);
 
         await expect(
             db.user.create({
@@ -103,7 +103,7 @@ describe('Password test', () => {
                     password: 'abc456789',
                 },
             })
-        ).toBeRejectedByPolicy(['String must contain at most 8 character(s) at "password"']);
+        ).toBeRejectedByPolicy(['8 character']);
 
         await expect(
             db.user.create({

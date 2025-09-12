@@ -1,7 +1,16 @@
 // Inspired by: https://github.com/omar-dulaimi/prisma-trpc-generator
 
 import { PluginError, PluginOptions, analyzePolicies, requireOption, resolvePath } from '@zenstackhq/sdk';
-import { DataModel, Model, TypeDef, TypeDefField, TypeDefFieldType, isDataModel, isEnum, isTypeDef } from '@zenstackhq/sdk/ast';
+import {
+    DataModel,
+    Model,
+    TypeDef,
+    TypeDefField,
+    TypeDefFieldType,
+    isDataModel,
+    isEnum,
+    isTypeDef,
+} from '@zenstackhq/sdk/ast';
 import {
     AggregateOperationSupport,
     addMissingInputObjectTypesForAggregate,
@@ -48,7 +57,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         output = resolvePath(output, this.options);
 
         // input types
-        this.inputObjectTypes.push(...this.dmmf.schema.inputObjectTypes.prisma);
+        this.inputObjectTypes.push(...(this.dmmf.schema.inputObjectTypes.prisma ?? []));
         this.outputObjectTypes.push(...this.dmmf.schema.outputObjectTypes.prisma);
 
         // add input object types that are missing from Prisma dmmf
@@ -649,13 +658,13 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         for (const _enum of [...(this.dmmf.schema.enumTypes.model ?? []), ...this.dmmf.schema.enumTypes.prisma]) {
             schemas[upperCaseFirst(_enum.name)] = this.generateEnumComponent(_enum);
         }
-        
+
         // Also add enums from AST that might not be in DMMF (e.g., only used in TypeDefs)
         for (const enumDecl of this.model.declarations.filter(isEnum)) {
             if (!schemas[upperCaseFirst(enumDecl.name)]) {
                 schemas[upperCaseFirst(enumDecl.name)] = {
                     type: 'string',
-                    enum: enumDecl.fields.map(f => f.name)
+                    enum: enumDecl.fields.map((f) => f.name),
                 };
             }
         }
@@ -765,12 +774,15 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         return result;
     }
 
-    private generateField(def: { kind: DMMF.FieldKind; type: string; isList: boolean; isRequired: boolean; name?: string }, modelName?: string) {
+    private generateField(
+        def: { kind: DMMF.FieldKind; type: string; isList: boolean; isRequired: boolean; name?: string },
+        modelName?: string
+    ) {
         // For Json fields, check if there's a corresponding TypeDef in the original model
         if (def.kind === 'scalar' && def.type === 'Json' && modelName && def.name) {
-            const dataModel = this.model.declarations.find(d => isDataModel(d) && d.name === modelName) as DataModel;
+            const dataModel = this.model.declarations.find((d) => isDataModel(d) && d.name === modelName) as DataModel;
             if (dataModel) {
-                const field = dataModel.fields.find(f => f.name === def.name);
+                const field = dataModel.fields.find((f) => f.name === def.name);
                 if (field?.type.reference?.ref && isTypeDef(field.type.reference.ref)) {
                     // This Json field references a TypeDef
                     return this.wrapArray(
@@ -876,7 +888,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         if (type.reference?.ref) {
             return this.ref(type.reference.ref.name, true);
         }
-        
+
         // For scalar types, reuse the existing mapping logic
         // Note: Json type is handled as empty schema for consistency
         return match(type.type)
@@ -913,7 +925,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
             .with(P.union('JSON', 'Json'), () => {
                 // For Json fields, check if there's a specific TypeDef reference
                 // Otherwise, return empty schema for arbitrary JSON
-                const isTypeDefType = this.model.declarations.some(d => isTypeDef(d) && d.name === type);
+                const isTypeDefType = this.model.declarations.some((d) => isTypeDef(d) && d.name === type);
                 return isTypeDefType ? this.ref(type, false) : {};
             })
             .otherwise((type) => this.ref(type.toString(), false));

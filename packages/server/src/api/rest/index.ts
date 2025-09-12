@@ -7,16 +7,15 @@ import {
     PrismaErrorCode,
     clone,
     enumerate,
-    requireField,
     getIdFields,
     isPrismaClientKnownRequestError,
+    requireField,
 } from '@zenstackhq/runtime';
-import { lowerCaseFirst, upperCaseFirst, paramCase } from '@zenstackhq/runtime/local-helpers';
+import { getZodErrorMessage, lowerCaseFirst, paramCase, upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import SuperJSON from 'superjson';
 import { Linker, Paginator, Relator, Serializer, SerializerOptions } from 'ts-japi';
 import UrlPattern from 'url-pattern';
 import z, { ZodError } from 'zod';
-import { fromZodError } from 'zod-validation-error/v3';
 import { LoggerConfig, Response } from '../../types';
 import { APIHandlerBase, RequestContext } from '../base';
 import { logWarning, registerCustomSerializers } from '../utils';
@@ -202,6 +201,7 @@ class RequestHandler extends APIHandlerBase {
                 attributes: z.object({}).passthrough().optional(),
                 relationships: z
                     .record(
+                        z.string(),
                         z.object({
                             data: z.union([
                                 z.object({ type: z.string(), id: z.union([z.string(), z.number()]) }),
@@ -821,7 +821,7 @@ class RequestHandler extends APIHandlerBase {
                     return {
                         error: this.makeError(
                             'invalidPayload',
-                            fromZodError(parsed.error).message,
+                            getZodErrorMessage(parsed.error),
                             422,
                             CrudFailureReason.DATA_VALIDATION_VIOLATION,
                             parsed.error
@@ -1022,7 +1022,7 @@ class RequestHandler extends APIHandlerBase {
             if (!parsed.success) {
                 return this.makeError(
                     'invalidPayload',
-                    fromZodError(parsed.error).message,
+                    getZodErrorMessage(parsed.error),
                     undefined,
                     CrudFailureReason.DATA_VALIDATION_VIOLATION,
                     parsed.error
@@ -1053,7 +1053,7 @@ class RequestHandler extends APIHandlerBase {
             if (!parsed.success) {
                 return this.makeError(
                     'invalidPayload',
-                    fromZodError(parsed.error).message,
+                    getZodErrorMessage(parsed.error),
                     undefined,
                     CrudFailureReason.DATA_VALIDATION_VIOLATION,
                     parsed.error
@@ -1974,7 +1974,7 @@ class RequestHandler extends APIHandlerBase {
         detail?: string,
         status?: number,
         reason?: string,
-        zodErrors?: ZodError
+        zodErrors?: ZodError<any>
     ) {
         const error: any = {
             status: status ?? this.errors[code].status,

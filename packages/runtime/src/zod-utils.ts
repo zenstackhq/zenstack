@@ -121,5 +121,14 @@ function countUnrecognizedKeys(issues: Z.ZodIssue[]) {
 }
 
 function unwrapLazy<T extends Z.ZodSchema>(z: typeof Z, schema: T | Z.ZodLazy<T>): T {
-    return schema instanceof z.ZodLazy ? schema.schema : schema;
+    if (!(schema instanceof z.ZodLazy)) {
+        return schema;
+    }
+    if ('unwrap' in schema && typeof schema.unwrap === 'function') {
+        return schema.unwrap();
+    } else if ('schema' in schema) {
+        return schema.schema as T;
+    } else {
+        throw new Error('Unable to determine how to unwrap a lazy schema with this zod version.');
+    }
 }

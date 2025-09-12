@@ -1,12 +1,52 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient/node';
 
+import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient/node';
+import { AUTH_PROVIDER_ID, ZenStackAuthenticationProvider } from './zenstack-auth-provider';
+import { DocumentationCache } from './documentation-cache';
+import { ZModelPreview } from './zmodel-preview';
+import { ReleaseNotesManager } from './release-notes-manager';
+
+// Global variables
 let client: LanguageClient;
+
+// Utility to require authentication when needed
+export async function requireAuth(): Promise<vscode.AuthenticationSession | undefined> {
+    let session: vscode.AuthenticationSession | undefined;
+
+    session = await vscode.authentication.getSession(AUTH_PROVIDER_ID, [], { createIfNone: false });
+
+    if (!session) {
+        const signIn = 'Sign in';
+        const selection = await vscode.window.showWarningMessage('Please sign in to use this feature', signIn);
+        if (selection === signIn) {
+            try {
+                session = await vscode.authentication.getSession(AUTH_PROVIDER_ID, [], { createIfNone: true });
+                if (session) {
+                    vscode.window.showInformationMessage('ZenStack sign-in successful!');
+                }
+            } catch (e: unknown) {
+                vscode.window.showErrorMessage(
+                    'ZenStack sign-in failed: ' + (e instanceof Error ? e.message : String(e))
+                );
+            }
+        }
+    }
+    return session;
+}
 
 // This function is called when the extension is activated.
 export function activate(context: vscode.ExtensionContext): void {
+    // Initialize and register the ZenStack authentication provider
+    context.subscriptions.push(new ZenStackAuthenticationProvider(context));
+
+    // Start language client
     client = startLanguageClient(context);
+
+    const documentationCache = new DocumentationCache(context);
+    context.subscriptions.push(documentationCache);
+    context.subscriptions.push(new ZModelPreview(context, client, documentationCache));
+    context.subscriptions.push(new ReleaseNotesManager(context));
 }
 
 // This function is called when the extension is deactivated.

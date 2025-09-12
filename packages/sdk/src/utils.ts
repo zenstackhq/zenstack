@@ -659,8 +659,16 @@ export function getRelationBackLink(field: DataModelField) {
 
     const targetModel = field.type.reference.ref as DataModel;
 
+    const sameField = (f1: DataModelField, f2: DataModelField) => {
+        // for fields inherited from a delegate model, always use
+        // the base to compare
+        const parent1 = f1.$inheritedFrom ?? f1.$container;
+        const parent2 = f2.$inheritedFrom ?? f2.$container;
+        return f1.name === f2.name && parent1 === parent2;
+    };
+
     for (const otherField of targetModel.fields) {
-        if (otherField === field) {
+        if (sameField(otherField, field)) {
             // backlink field is never self
             continue;
         }

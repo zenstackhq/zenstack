@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/server",
-    "version": "2.18.1",
+    "version": "2.19.0",
     "displayName": "ZenStack Server-side Adapters",
     "description": "ZenStack server-side adapters",
     "homepage": "https://zenstack.dev",
@@ -31,7 +31,6 @@
         "superjson": "^1.13.0",
         "ts-japi": "^1.10.1",
         "url-pattern": "^1.0.3",
-        "zod-validation-error": "catalog:",
         "decimal.js": "^10.4.2"
     },
     "peerDependencies": {
@@ -57,7 +56,8 @@
         "next": "14.2.4",
         "nuxt": "^3.7.4",
         "reflect-metadata": "^0.2.2",
-        "supertest": "^6.3.3"
+        "supertest": "^6.3.3",
+        "zod": "^3.25.0"
     },
     "exports": {
         "./package.json": "./package.json",
