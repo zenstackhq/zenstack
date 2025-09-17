@@ -1,0 +1,38 @@
+name: zenstack
+
+volumes:
+  postgres-data:
+
+
+networks:
+  workspace:
+    external: false
+
+services:
+  workspace:
+    container_name: zenstack-workspace
+    image: mcr.microsoft.com/devcontainers/javascript-node:20
+    restart: always
+    volumes:
+      - ..:/workspace:cached
+    env_file: ./.env
+    command: sleep infinity
+    networks:
+      - workspace
+
+  postgres:
+    container_name: zenstack-postgres
+    image: postgres
+    restart: always
+    volumes:
+      - postgres-data:/var/lib/postgresql/data/
+    env_file: ./.env
+    networks:
+      - workspace
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
