@@ -585,7 +585,14 @@ class RequestHandler extends APIHandlerBase {
             select = relationSelect;
         }
 
-        select = select ?? { [relationship]: true };
+        // handle partial results for requested type
+        if (!select) {
+            const { select: partialFields, error } = this.buildPartialSelect(lowerCaseFirst(relationInfo.type), query);
+            if (error) return error;
+
+            select = partialFields ? { [relationship]: { select: { ...partialFields } } } : { [relationship]: true };
+        }
+
         const args: any = {
             where: this.makePrismaIdFilter(typeInfo.idFields, resourceId),
             select,
@@ -771,8 +778,6 @@ class RequestHandler extends APIHandlerBase {
             };
         } else {
             args.take = limit;
-
-            console.log('args', JSON.stringify(args));
 
             const [entities, count] = await Promise.all([
                 prisma[type].findMany(args),
@@ -1904,8 +1909,6 @@ class RequestHandler extends APIHandlerBase {
                 }
             }
         }
-
-        console.log('relation select:', JSON.stringify({ select: result, error: undefined, allIncludes }));
 
         return { select: result, error: undefined, allIncludes };
     }
