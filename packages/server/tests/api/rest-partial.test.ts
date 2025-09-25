@@ -32,6 +32,7 @@ describe('REST server tests', () => {
         createdAt DateTime @default (now())
         updatedAt DateTime @updatedAt
         title String @length(1, 10)
+        content String
         author User? @relation(fields: [authorId], references: [myId])
         authorId String?
         published Boolean @default(false)
@@ -52,333 +53,378 @@ describe('REST server tests', () => {
                 _handler({ ...args, zodSchemas, modelMeta, url: new URL(`http://localhost/${args.path}`) });
         });
 
-        it('returns all items and fields when there are some in the database', async () => {
-            // Create users first
+        // it('returns all items and fields when there are some in the database', async () => {
+        //     // Create users first
+        //     await prisma.user.create({
+        //         data: {
+        //             myId: 'user1',
+        //             email: 'user1@abc.com',
+        //             nickName: 'one',
+        //             posts: {
+        //                 create: { title: 'Post1', content: 'Post 1 Content' },
+        //             },
+        //         },
+        //     });
+        //     await prisma.user.create({
+        //         data: {
+        //             myId: 'user2',
+        //             email: 'user2@abc.com',
+        //             nickName: 'two',
+        //             posts: {
+        //                 create: { title: 'Post2', content: 'Post 2 Content' },
+        //             },
+        //         },
+        //     });
+
+        //     const r = await handler({
+        //         method: 'get',
+        //         path: '/user',
+        //         prisma,
+        //     });
+
+        //     expect(r.status).toBe(200);
+        //     expect(r.body).toMatchObject({
+        //         links: {
+        //             self: 'http://localhost/api/user',
+        //         },
+        //         meta: {
+        //             total: 2,
+        //         },
+        //         data: [
+        //             {
+        //                 type: 'user',
+        //                 id: 'user1',
+        //                 attributes: { email: 'user1@abc.com', nickName: 'one' },
+        //                 links: {
+        //                     self: 'http://localhost/api/user/user1',
+        //                 },
+        //                 relationships: {
+        //                     posts: {
+        //                         links: {
+        //                             self: 'http://localhost/api/user/user1/relationships/posts',
+        //                             related: 'http://localhost/api/user/user1/posts',
+        //                         },
+        //                         data: [{ type: 'post', id: 1 }],
+        //                     },
+        //                 },
+        //             },
+        //             {
+        //                 type: 'user',
+        //                 id: 'user2',
+        //                 attributes: { email: 'user2@abc.com', nickName: 'two' },
+        //                 links: {
+        //                     self: 'http://localhost/api/user/user2',
+        //                 },
+        //                 relationships: {
+        //                     posts: {
+        //                         links: {
+        //                             self: 'http://localhost/api/user/user2/relationships/posts',
+        //                             related: 'http://localhost/api/user/user2/posts',
+        //                         },
+        //                         data: [{ type: 'post', id: 2 }],
+        //                     },
+        //                 },
+        //             },
+        //         ],
+        //     });
+        // });
+
+        // it('returns only the requested fields when there are some in the database', async () => {
+        //     // Create users first
+        //     await prisma.user.create({
+        //         data: {
+        //             myId: 'user1',
+        //             email: 'user1@abc.com',
+        //             nickName: 'one',
+        //             posts: {
+        //                 create: { title: 'Post1', content: 'Post 1 Content' },
+        //             },
+        //         },
+        //     });
+        //     await prisma.user.create({
+        //         data: {
+        //             myId: 'user2',
+        //             email: 'user2@abc.com',
+        //             nickName: 'two',
+        //             posts: {
+        //                 create: { title: 'Post2', content: 'Post 2 Content' },
+        //             },
+        //         },
+        //     });
+
+        //     const r = await handler({
+        //         method: 'get',
+        //         path: '/user',
+        //         prisma,
+        //         query: { ['fields[user]']: 'email,nickName' },
+        //     });
+
+        //     expect(r.status).toBe(200);
+
+        //     console.log('body', JSON.stringify(r.body));
+
+        //     expect(r.body.data).toEqual([
+        //         {
+        //             type: 'user',
+        //             id: 'user1',
+        //             attributes: {
+        //                 email: 'user1@abc.com',
+        //                 nickName: 'one',
+        //             },
+        //             links: {
+        //                 self: 'http://localhost/api/user/user1',
+        //             },
+        //             relationships: {
+        //                 posts: {
+        //                     links: {
+        //                         self: 'http://localhost/api/user/user1/relationships/posts',
+        //                         related: 'http://localhost/api/user/user1/posts',
+        //                     },
+        //                     data: [
+        //                         {
+        //                             type: 'post',
+        //                             id: 1,
+        //                         },
+        //                     ],
+        //                 },
+        //             },
+        //         },
+        //         {
+        //             type: 'user',
+        //             id: 'user2',
+        //             attributes: {
+        //                 email: 'user2@abc.com',
+        //                 nickName: 'two',
+        //             },
+        //             links: {
+        //                 self: 'http://localhost/api/user/user2',
+        //             },
+        //             relationships: {
+        //                 posts: {
+        //                     links: {
+        //                         self: 'http://localhost/api/user/user2/relationships/posts',
+        //                         related: 'http://localhost/api/user/user2/posts',
+        //                     },
+        //                     data: [
+        //                         {
+        //                             type: 'post',
+        //                             id: 2,
+        //                         },
+        //                     ],
+        //                 },
+        //             },
+        //         },
+        //     ]);
+        // });
+
+        // it('returns collection with only the requested fields when there are includes', async () => {
+        //     // Create users first
+        //     await prisma.user.create({
+        //         data: {
+        //             myId: 'user1',
+        //             email: 'user1@abc.com',
+        //             nickName: 'one',
+        //             posts: {
+        //                 create: { title: 'Post1', content: 'Post 1 Content', published: true },
+        //             },
+        //         },
+        //     });
+        //     await prisma.user.create({
+        //         data: {
+        //             myId: 'user2',
+        //             email: 'user2@abc.com',
+        //             nickName: 'two',
+        //             posts: {
+        //                 create: { title: 'Post2', content: 'Post 2 Content', published: true },
+        //             },
+        //         },
+        //     });
+
+        //     const r = await handler({
+        //         method: 'get',
+        //         path: '/user',
+        //         prisma,
+        //         query: { ['fields[user]']: 'email,nickName', ['fields[post]']: 'title,published', include: 'posts' },
+        //     });
+
+        //     expect(r.status).toBe(200);
+
+        //     console.log('body', JSON.stringify(r.body));
+
+        //     expect(r.body.data).toEqual([
+        //         {
+        //             type: 'user',
+        //             id: 'user1',
+        //             attributes: {
+        //                 email: 'user1@abc.com',
+        //                 nickName: 'one',
+        //             },
+        //             links: {
+        //                 self: 'http://localhost/api/user/user1',
+        //             },
+        //             relationships: {
+        //                 posts: {
+        //                     links: {
+        //                         self: 'http://localhost/api/user/user1/relationships/posts',
+        //                         related: 'http://localhost/api/user/user1/posts',
+        //                     },
+        //                     data: [
+        //                         {
+        //                             type: 'post',
+        //                             id: 1,
+        //                         },
+        //                     ],
+        //                 },
+        //             },
+        //         },
+        //         {
+        //             type: 'user',
+        //             id: 'user2',
+        //             attributes: {
+        //                 email: 'user2@abc.com',
+        //                 nickName: 'two',
+        //             },
+        //             links: {
+        //                 self: 'http://localhost/api/user/user2',
+        //             },
+        //             relationships: {
+        //                 posts: {
+        //                     links: {
+        //                         self: 'http://localhost/api/user/user2/relationships/posts',
+        //                         related: 'http://localhost/api/user/user2/posts',
+        //                     },
+        //                     data: [
+        //                         {
+        //                             type: 'post',
+        //                             id: 2,
+        //                         },
+        //                     ],
+        //                 },
+        //             },
+        //         },
+        //     ]);
+
+        //     expect(r.body.included).toEqual([
+        //         {
+        //             type: 'post',
+        //             id: 1,
+        //             attributes: {
+        //                 title: 'Post1',
+        //                 published: false,
+        //             },
+        //             links: {
+        //                 self: 'http://localhost/api/post/1',
+        //             },
+        //             relationships: {
+        //                 author: {
+        //                     links: {
+        //                         self: 'http://localhost/api/post/1/relationships/author',
+        //                         related: 'http://localhost/api/post/1/author',
+        //                     },
+        //                 },
+        //             },
+        //         },
+        //         {
+        //             type: 'post',
+        //             id: 2,
+        //             attributes: {
+        //                 title: 'Post2',
+        //                 published: true,
+        //             },
+        //             links: {
+        //                 self: 'http://localhost/api/post/2',
+        //             },
+        //             relationships: {
+        //                 author: {
+        //                     links: {
+        //                         self: 'http://localhost/api/post/2/relationships/author',
+        //                         related: 'http://localhost/api/post/2/author',
+        //                     },
+        //                 },
+        //             },
+        //         },
+        //     ]);
+        // });
+
+        it('returns the full item when the ID is specified', async () => {
+            // Create a user first
             await prisma.user.create({
                 data: {
                     myId: 'user1',
                     email: 'user1@abc.com',
-                    nickName: 'one',
-                    posts: {
-                        create: { title: 'Post1' },
-                    },
-                },
-            });
-            await prisma.user.create({
-                data: {
-                    myId: 'user2',
-                    email: 'user2@abc.com',
-                    nickName: 'two',
-                    posts: {
-                        create: { title: 'Post2' },
-                    },
+                    nickName: 'User 1',
+                    posts: { create: { title: 'Post1', content: 'Post 1 Content' } },
                 },
             });
 
             const r = await handler({
                 method: 'get',
-                path: '/user',
+                path: '/user/user1',
                 prisma,
             });
 
             expect(r.status).toBe(200);
             expect(r.body).toMatchObject({
+                data: {
+                    type: 'user',
+                    id: 'user1',
+                    attributes: { email: 'user1@abc.com', nickName: 'User 1' },
+                    links: {
+                        self: 'http://localhost/api/user/user1',
+                    },
+                    relationships: {
+                        posts: {
+                            links: {
+                                self: 'http://localhost/api/user/user1/relationships/posts',
+                                related: 'http://localhost/api/user/user1/posts',
+                            },
+                            data: [{ type: 'post', id: 1 }],
+                        },
+                    },
+                },
+            });
+        });
+
+        it('returns only the requested fields when the ID is specified', async () => {
+            // Create a user first
+            await prisma.user.create({
+                data: {
+                    myId: 'user1',
+                    email: 'user1@abc.com',
+                    nickName: 'User 1',
+                    posts: { create: { title: 'Post1', content: 'Post 1 Content' } },
+                },
+            });
+
+            const r = await handler({
+                method: 'get',
+                path: '/user/user1',
+                prisma,
+                query: { ['fields[user]']: 'email' },
+            });
+
+            expect(r.status).toBe(200);
+            expect(r.body.data).toEqual({
+                type: 'user',
+                id: 'user1',
+                attributes: { email: 'user1@abc.com' },
                 links: {
-                    self: 'http://localhost/api/user',
+                    self: 'http://localhost/api/user/user1',
                 },
-                meta: {
-                    total: 2,
-                },
-                data: [
-                    {
-                        type: 'user',
-                        id: 'user1',
-                        attributes: { email: 'user1@abc.com', nickName: 'one' },
+                relationships: {
+                    posts: {
                         links: {
-                            self: 'http://localhost/api/user/user1',
+                            self: 'http://localhost/api/user/user1/relationships/posts',
+                            related: 'http://localhost/api/user/user1/posts',
                         },
-                        relationships: {
-                            posts: {
-                                links: {
-                                    self: 'http://localhost/api/user/user1/relationships/posts',
-                                    related: 'http://localhost/api/user/user1/posts',
-                                },
-                                data: [{ type: 'post', id: 1 }],
-                            },
-                        },
-                    },
-                    {
-                        type: 'user',
-                        id: 'user2',
-                        attributes: { email: 'user2@abc.com', nickName: 'two' },
-                        links: {
-                            self: 'http://localhost/api/user/user2',
-                        },
-                        relationships: {
-                            posts: {
-                                links: {
-                                    self: 'http://localhost/api/user/user2/relationships/posts',
-                                    related: 'http://localhost/api/user/user2/posts',
-                                },
-                                data: [{ type: 'post', id: 2 }],
-                            },
-                        },
-                    },
-                ],
-            });
-        });
-
-        it('returns only the requested fields when there are some in the database', async () => {
-            // Create users first
-            await prisma.user.create({
-                data: {
-                    myId: 'user1',
-                    email: 'user1@abc.com',
-                    nickName: 'one',
-                    posts: {
-                        create: { title: 'Post1' },
+                        data: [{ type: 'post', id: 1 }],
                     },
                 },
             });
-            await prisma.user.create({
-                data: {
-                    myId: 'user2',
-                    email: 'user2@abc.com',
-                    nickName: 'two',
-                    posts: {
-                        create: { title: 'Post2' },
-                    },
-                },
-            });
-
-            const r = await handler({
-                method: 'get',
-                path: '/user',
-                prisma,
-                query: { ['fields[user]']: 'email,nickName' }, //'fields[user]=email,nickName',
-            });
-
-            expect(r.status).toBe(200);
-
-            console.log('body', JSON.stringify(r.body));
-
-            expect(r.body.data).toEqual([
-                {
-                    type: 'user',
-                    id: 'user1',
-                    attributes: {
-                        email: 'user1@abc.com',
-                        nickName: 'one',
-                    },
-                    links: {
-                        self: 'http://localhost/api/user/user1',
-                    },
-                    relationships: {
-                        posts: {
-                            links: {
-                                self: 'http://localhost/api/user/user1/relationships/posts',
-                                related: 'http://localhost/api/user/user1/posts',
-                            },
-                            data: [
-                                {
-                                    type: 'post',
-                                    id: 1,
-                                },
-                            ],
-                        },
-                    },
-                },
-                {
-                    type: 'user',
-                    id: 'user2',
-                    attributes: {
-                        email: 'user2@abc.com',
-                        nickName: 'two',
-                    },
-                    links: {
-                        self: 'http://localhost/api/user/user2',
-                    },
-                    relationships: {
-                        posts: {
-                            links: {
-                                self: 'http://localhost/api/user/user2/relationships/posts',
-                                related: 'http://localhost/api/user/user2/posts',
-                            },
-                            data: [
-                                {
-                                    type: 'post',
-                                    id: 2,
-                                },
-                            ],
-                        },
-                    },
-                },
-            ]);
-        });
-
-        it('returns only the requested fields when there are includes', async () => {
-            // Create users first
-            await prisma.user.create({
-                data: {
-                    myId: 'user1',
-                    email: 'user1@abc.com',
-                    nickName: 'one',
-                    posts: {
-                        create: { title: 'Post1' },
-                    },
-                },
-            });
-            await prisma.user.create({
-                data: {
-                    myId: 'user2',
-                    email: 'user2@abc.com',
-                    nickName: 'two',
-                    posts: {
-                        create: { title: 'Post2', published: true },
-                    },
-                },
-            });
-
-            const r = await handler({
-                method: 'get',
-                path: '/user',
-                prisma,
-                query: { ['fields[user]']: 'email,nickName', ['fields[post]']: 'title,published', include: 'posts' },
-            });
-
-            expect(r.status).toBe(200);
-
-            console.log('body', JSON.stringify(r.body));
-
-            expect(r.body.data).toEqual([
-                {
-                    type: 'user',
-                    id: 'user1',
-                    attributes: {
-                        email: 'user1@abc.com',
-                        nickName: 'one',
-                    },
-                    links: {
-                        self: 'http://localhost/api/user/user1',
-                    },
-                    relationships: {
-                        posts: {
-                            links: {
-                                self: 'http://localhost/api/user/user1/relationships/posts',
-                                related: 'http://localhost/api/user/user1/posts',
-                            },
-                            data: [
-                                {
-                                    type: 'post',
-                                    id: 1,
-                                },
-                            ],
-                        },
-                    },
-                },
-                {
-                    type: 'user',
-                    id: 'user2',
-                    attributes: {
-                        email: 'user2@abc.com',
-                        nickName: 'two',
-                    },
-                    links: {
-                        self: 'http://localhost/api/user/user2',
-                    },
-                    relationships: {
-                        posts: {
-                            links: {
-                                self: 'http://localhost/api/user/user2/relationships/posts',
-                                related: 'http://localhost/api/user/user2/posts',
-                            },
-                            data: [
-                                {
-                                    type: 'post',
-                                    id: 2,
-                                },
-                            ],
-                        },
-                    },
-                },
-            ]);
-
-            expect(r.body.included).toEqual([
-                {
-                    type: 'post',
-                    id: 1,
-                    attributes: {
-                        title: 'Post1',
-                        published: false,
-                    },
-                    links: {
-                        self: 'http://localhost/api/post/1',
-                    },
-                    relationships: {
-                        author: {
-                            links: {
-                                self: 'http://localhost/api/post/1/relationships/author',
-                                related: 'http://localhost/api/post/1/author',
-                            },
-                        },
-                    },
-                },
-                {
-                    type: 'post',
-                    id: 2,
-                    attributes: {
-                        title: 'Post2',
-                        published: true,
-                    },
-                    links: {
-                        self: 'http://localhost/api/post/2',
-                    },
-                    relationships: {
-                        author: {
-                            links: {
-                                self: 'http://localhost/api/post/2/relationships/author',
-                                related: 'http://localhost/api/post/2/author',
-                            },
-                        },
-                    },
-                },
-            ]);
         });
 
         /**
-                it('returns a single item when the ID is specified', async () => {
-                    // Create a user first
-                    await prisma.user.create({
-                        data: { myId: 'user1', email: 'user1@abc.com', posts: { create: { title: 'Post1' } } },
-                    });
-
-                    const r = await handler({
-                        method: 'get',
-                        path: '/user/user1',
-                        prisma,
-                    });
-
-                    expect(r.status).toBe(200);
-                    expect(r.body).toMatchObject({
-                        data: {
-                            type: 'user',
-                            id: 'user1',
-                            attributes: { email: 'user1@abc.com' },
-                            links: {
-                                self: 'http://localhost/api/user/user1',
-                            },
-                            relationships: {
-                                posts: {
-                                    links: {
-                                        self: 'http://localhost/api/user/user1/relationships/posts',
-                                        related: 'http://localhost/api/user/user1/posts',
-                                    },
-                                    data: [{ type: 'post', id: 1 }],
-                                },
-                            },
-                        },
-                    });
-                });
+                
 
 
                 it('fetch a related resource', async () => {

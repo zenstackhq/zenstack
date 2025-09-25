@@ -526,6 +526,20 @@ class RequestHandler extends APIHandlerBase {
             include = allIncludes;
         }
 
+        // handle partial results for requested type
+        const { select, error } = this.buildPartialSelect(type, query);
+        if (error) return error;
+        if (select) {
+            args.select = { ...select, ...args.select };
+            if (args.include) {
+                args.select = {
+                    ...args.select,
+                    ...args.include,
+                };
+                args.include = undefined;
+            }
+        }
+
         const entity = await prisma[type].findUnique(args);
 
         if (entity) {
