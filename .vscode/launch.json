@@ -6,14 +6,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "command": "pnpm jest -- rest-partial.test.ts",
-            "name": "Run npm start",
-            "request": "launch",
-            "type": "node-terminal",
-            "cwd": "${workspaceFolder}/packages/server"
-        },
-        
-        {
             "name": "Attach",
             "port": 9229,
             "request": "attach",
