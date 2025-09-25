@@ -161,8 +161,6 @@ describe('REST server tests', () => {
 
         //     expect(r.status).toBe(200);
 
-        //     console.log('body', JSON.stringify(r.body));
-
         //     expect(r.body.data).toEqual([
         //         {
         //             type: 'user',
@@ -248,8 +246,6 @@ describe('REST server tests', () => {
         //     });
 
         //     expect(r.status).toBe(200);
-
-        //     console.log('body', JSON.stringify(r.body));
 
         //     expect(r.body.data).toEqual([
         //         {
@@ -346,7 +342,84 @@ describe('REST server tests', () => {
         //     ]);
         // });
 
-        it('returns the full item when the ID is specified', async () => {
+        // it('returns the full item when the ID is specified', async () => {
+        //     // Create a user first
+        //     await prisma.user.create({
+        //         data: {
+        //             myId: 'user1',
+        //             email: 'user1@abc.com',
+        //             nickName: 'User 1',
+        //             posts: { create: { title: 'Post1', content: 'Post 1 Content' } },
+        //         },
+        //     });
+
+        //     const r = await handler({
+        //         method: 'get',
+        //         path: '/user/user1',
+        //         prisma,
+        //     });
+
+        //     expect(r.status).toBe(200);
+        //     expect(r.body).toMatchObject({
+        //         data: {
+        //             type: 'user',
+        //             id: 'user1',
+        //             attributes: { email: 'user1@abc.com', nickName: 'User 1' },
+        //             links: {
+        //                 self: 'http://localhost/api/user/user1',
+        //             },
+        //             relationships: {
+        //                 posts: {
+        //                     links: {
+        //                         self: 'http://localhost/api/user/user1/relationships/posts',
+        //                         related: 'http://localhost/api/user/user1/posts',
+        //                     },
+        //                     data: [{ type: 'post', id: 1 }],
+        //                 },
+        //             },
+        //         },
+        //     });
+        // });
+
+        // it('returns only the requested fields when the ID is specified', async () => {
+        //     // Create a user first
+        //     await prisma.user.create({
+        //         data: {
+        //             myId: 'user1',
+        //             email: 'user1@abc.com',
+        //             nickName: 'User 1',
+        //             posts: { create: { title: 'Post1', content: 'Post 1 Content' } },
+        //         },
+        //     });
+
+        //     const r = await handler({
+        //         method: 'get',
+        //         path: '/user/user1',
+        //         prisma,
+        //         query: { ['fields[user]']: 'email' },
+        //     });
+
+        //     expect(r.status).toBe(200);
+        //     expect(r.body.data).toEqual({
+        //         type: 'user',
+        //         id: 'user1',
+        //         attributes: { email: 'user1@abc.com' },
+        //         links: {
+        //             self: 'http://localhost/api/user/user1',
+        //         },
+        //         relationships: {
+        //             posts: {
+        //                 links: {
+        //                     self: 'http://localhost/api/user/user1/relationships/posts',
+        //                     related: 'http://localhost/api/user/user1/posts',
+        //                 },
+        //                 data: [{ type: 'post', id: 1 }],
+        //             },
+        //         },
+        //     });
+        // });
+
+        it('returns only the requested fields when the ID is specified and has an include', async () => {
             // Create a user first
             await prisma.user.create({
                 data: {
@@ -361,53 +434,14 @@ describe('REST server tests', () => {
                 method: 'get',
                 path: '/user/user1',
                 prisma,
-            });
-
-            expect(r.status).toBe(200);
-            expect(r.body).toMatchObject({
-                data: {
-                    type: 'user',
-                    id: 'user1',
-                    attributes: { email: 'user1@abc.com', nickName: 'User 1' },
-                    links: {
-                        self: 'http://localhost/api/user/user1',
-                    },
-                    relationships: {
-                        posts: {
-                            links: {
-                                self: 'http://localhost/api/user/user1/relationships/posts',
-                                related: 'http://localhost/api/user/user1/posts',
-                            },
-                            data: [{ type: 'post', id: 1 }],
-                        },
-                    },
-                },
-            });
-        });
-
-        it('returns only the requested fields when the ID is specified', async () => {
-            // Create a user first
-            await prisma.user.create({
-                data: {
-                    myId: 'user1',
-                    email: 'user1@abc.com',
-                    nickName: 'User 1',
-                    posts: { create: { title: 'Post1', content: 'Post 1 Content' } },
-                },
-            });
-
-            const r = await handler({
-                method: 'get',
-                path: '/user/user1',
-                prisma,
-                query: { ['fields[user]']: 'email' },
+                query: { ['fields[user]']: 'email,nickName', ['fields[post]']: 'title,published', include: 'posts' },
             });
 
             expect(r.status).toBe(200);
             expect(r.body.data).toEqual({
                 type: 'user',
                 id: 'user1',
-                attributes: { email: 'user1@abc.com' },
+                attributes: { email: 'user1@abc.com', nickName: 'User 1' },
                 links: {
                     self: 'http://localhost/api/user/user1',
                 },
@@ -421,6 +455,28 @@ describe('REST server tests', () => {
                     },
                 },
             });
+
+            expect(r.body.included).toEqual([
+                {
+                    type: 'post',
+                    id: 1,
+                    attributes: {
+                        title: 'Post1',
+                        published: false,
+                    },
+                    links: {
+                        self: 'http://localhost/api/post/1',
+                    },
+                    relationships: {
+                        author: {
+                            links: {
+                                self: 'http://localhost/api/post/1/relationships/author',
+                                related: 'http://localhost/api/post/1/author',
+                            },
+                        },
+                    },
+                },
+            ]);
         });
 
         /**
