@@ -14,6 +14,9 @@ import { API_URL } from './zenstack-auth-provider';
 export class ZModelPreview implements vscode.Disposable {
     private documentationCache: DocumentationCache;
     private languageClient: LanguageClient;
+    private lastGeneratedMarkdown: string | null = null;
+    // use a zero-width space in the file name to make it non-colliding with user file
+    private readonly previewZModelFileName = `zmodel${'\u200B'}-preview.md`;
 
     // Schema for validating the request body
     private static DocRequestSchema = z.object({
@@ -45,6 +48,17 @@ export class ZModelPreview implements vscode.Disposable {
      */
     initialize(context: vscode.ExtensionContext): void {
         this.registerCommands(context);
+
+        vscode.window.tabGroups.onDidChangeTabs(() => {
+            const activeTabLabels = vscode.window.tabGroups.all.filter((group) =>
+                group.activeTab?.label?.endsWith(this.previewZModelFileName)
+            );
+            if (activeTabLabels.length > 0) {
+                vscode.commands.executeCommand('setContext', 'zenstack.isMarkdownPreview', true);
+            } else {
+                vscode.commands.executeCommand('setContext', 'zenstack.isMarkdownPreview', false);
+            }
+        });
     }
 
     /**
@@ -55,6 +69,13 @@ export class ZModelPreview implements vscode.Disposable {
         context.subscriptions.push(
             vscode.commands.registerCommand('zenstack.preview-zmodel', async () => {
                 await this.previewZModelFile();
+            })
+        );
+
+        // Register the save documentation command for zmodel files
+        context.subscriptions.push(
+            vscode.commands.registerCommand('zenstack.save-zmodel-documentation', async () => {
+                await this.saveZModelDocumentation();
             })
         );
 
@@ -103,7 +124,10 @@ export class ZModelPreview implements vscode.Disposable {
                     const markdownContent = await this.generateZModelDocumentation(document);
 
                     if (markdownContent) {
-                        await this.openMarkdownPreview(markdownContent, document.fileName);
+                        // Store the generated content for potential saving later
+                        this.lastGeneratedMarkdown = markdownContent;
+
+                        await this.openMarkdownPreview(markdownContent);
                     }
                 }
             );
@@ -239,23 +263,69 @@ export class ZModelPreview implements vscode.Disposable {
     /**
      * Open markdown preview
      */
-    private async openMarkdownPreview(markdownContent: string, originalFileName: string): Promise<void> {
+    private async openMarkdownPreview(markdownContent: string): Promise<void> {
         // Create a temporary markdown file with a descriptive name in the system temp folder
-        const baseName = path.basename(originalFileName, '.zmodel');
-        const tempFileName = `${baseName}-preview.md`;
-        const tempFilePath = path.join(os.tmpdir(), tempFileName);
+        const tempFilePath = path.join(os.tmpdir(), this.previewZModelFileName);
         const tempFile = vscode.Uri.file(tempFilePath);
 
         try {
             // Write the markdown content to the temp file
             await vscode.workspace.fs.writeFile(tempFile, new TextEncoder().encode(markdownContent));
-
             // Open the markdown preview side by side
             await vscode.commands.executeCommand('markdown.showPreviewToSide', tempFile);
         } catch (error) {
             console.error('Error creating markdown preview:', error);
             throw new Error(
                 `Failed to create markdown preview: ${error instanceof Error ? error.message : String(error)}`
+            );
+        }
+    }
+
+    /**
+     * Save ZModel documentation to a user-selected file
+     */
+    async saveZModelDocumentation(): Promise<void> {
+        // Check if we have cached content first
+        if (!this.lastGeneratedMarkdown) {
+            vscode.window.showErrorMessage(
+                'No documentation content available to save. Please generate the documentation first by running "Preview ZModel Documentation".'
+            );
+            return;
+        }
+
+        // Show save dialog
+        let defaultFilePath = `zmodel-doc.md`;
+
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders && workspaceFolders.length > 0) {
+            const workspacePath = workspaceFolders[0].uri.fsPath;
+            // If the workspace folder exists, use it
+            defaultFilePath = path.join(workspacePath, defaultFilePath);
+        }
+
+        const saveUri = await vscode.window.showSaveDialog({
+            defaultUri: vscode.Uri.file(defaultFilePath),
+            filters: {
+                Markdown: ['md'],
+                'All Files': ['*'],
+            },
+            saveLabel: 'Save Documentation',
+        });
+
+        if (!saveUri) {
+            return; // User cancelled
+        }
+
+        try {
+            // Write the markdown content to the selected file
+            await vscode.workspace.fs.writeFile(saveUri, new TextEncoder().encode(this.lastGeneratedMarkdown));
+            // Open and close the saved file to refresh the shown markdown preview
+            await vscode.commands.executeCommand('vscode.open', saveUri);
+            await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+        } catch (error) {
+            console.error('Error saving markdown file:', error);
+            vscode.window.showErrorMessage(
+                `Failed to save documentation: ${error instanceof Error ? error.message : String(error)}`
             );
         }
     }
