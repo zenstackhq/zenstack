@@ -7,6 +7,7 @@ import { URI } from 'vscode-uri';
 import { DocumentationCache } from './documentation-cache';
 import { requireAuth } from './extension';
 import { API_URL } from './zenstack-auth-provider';
+import telemetry from './vscode-telemetry';
 
 /**
  * ZModelPreview class handles ZModel file preview functionality
@@ -92,6 +93,7 @@ export class ZModelPreview implements vscode.Disposable {
      * Preview a ZModel file
      */
     async previewZModelFile(): Promise<void> {
+        telemetry.track('extension:zmodel-preview');
         const editor = vscode.window.activeTextEditor;
 
         if (!editor) {
@@ -285,6 +287,7 @@ export class ZModelPreview implements vscode.Disposable {
      * Save ZModel documentation to a user-selected file
      */
     async saveZModelDocumentation(): Promise<void> {
+        telemetry.track('extension:zmodel-save');
         // Check if we have cached content first
         if (!this.lastGeneratedMarkdown) {
             vscode.window.showErrorMessage(
