@@ -1,6 +1,6 @@
 import { init, Mixpanel } from 'mixpanel';
 import * as os from 'os';
-import vscode from 'vscode';
+import * as vscode from 'vscode';
 import { getMachineId } from './utils/machine-id-utils';
 import { v5 as uuidv5 } from 'uuid';
 import { TELEMETRY_TRACKING_TOKEN } from './constants';
@@ -36,6 +36,7 @@ export class VSCodeTelemetry {
 
     private getDeviceId() {
         const hostId = getMachineId();
+        // namespace UUID for generating UUIDv5 from DNS 'zenstack.dev'
         return uuidv5(hostId, '133cac15-3efb-50fa-b5fc-4b90e441e563');
     }
 

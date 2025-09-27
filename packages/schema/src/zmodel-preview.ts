@@ -50,16 +50,18 @@ export class ZModelPreview implements vscode.Disposable {
     initialize(context: vscode.ExtensionContext): void {
         this.registerCommands(context);
 
-        vscode.window.tabGroups.onDidChangeTabs(() => {
-            const activeTabLabels = vscode.window.tabGroups.all.filter((group) =>
-                group.activeTab?.label?.endsWith(this.previewZModelFileName)
-            );
-            if (activeTabLabels.length > 0) {
-                vscode.commands.executeCommand('setContext', 'zenstack.isMarkdownPreview', true);
-            } else {
-                vscode.commands.executeCommand('setContext', 'zenstack.isMarkdownPreview', false);
-            }
-        });
+        context.subscriptions.push(
+            vscode.window.tabGroups.onDidChangeTabs(() => {
+                const activeTabLabels = vscode.window.tabGroups.all.filter((group) =>
+                    group.activeTab?.label?.endsWith(this.previewZModelFileName)
+                );
+                if (activeTabLabels.length > 0) {
+                    vscode.commands.executeCommand('setContext', 'zenstack.isMarkdownPreview', true);
+                } else {
+                    vscode.commands.executeCommand('setContext', 'zenstack.isMarkdownPreview', false);
+                }
+            })
+        );
     }
 
     /**
