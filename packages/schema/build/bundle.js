@@ -4,26 +4,18 @@ const success = watch ? 'Watch build succeeded' : 'Build succeeded';
 const fs = require('fs');
 const path = require('path');
 
-// Replace telemetry token before building
-function replaceTelemetryToken() {
+// Replace telemetry token in generated bundle files after building
+function replaceTelemetryTokenInBundle() {
     const telemetryToken = process.env.TELEMETRY_TRACKING_TOKEN;
     if (!telemetryToken) {
         console.error('Error: TELEMETRY_TRACKING_TOKEN environment variable is not set');
         process.exit(1);
     }
-
-    const constantsPath = path.join(__dirname, '../src/constants.ts');
-    let constantsContent = fs.readFileSync(constantsPath, 'utf8');
-
-    // Replace the placeholder with the actual token
-    constantsContent = constantsContent.replace('<TELEMETRY_TRACKING_TOKEN>', telemetryToken);
-
-    fs.writeFileSync(constantsPath, constantsContent);
-    console.log('Telemetry token replaced successfully');
+    const file = 'bundle/extension.js';
+    let content = fs.readFileSync(file, 'utf-8');
+    content = content.replace('<TELEMETRY_TRACKING_TOKEN>', telemetryToken);
+    fs.writeFileSync(file, content, 'utf-8');
 }
-
-// Replace the token before building
-replaceTelemetryToken();
 
 require('esbuild')
     .build({
@@ -34,6 +26,10 @@ require('esbuild')
         platform: 'node',
         sourcemap: !minify,
         minify,
+    })
+    .then(() => {
+        // Replace the token after building outputs
+        replaceTelemetryTokenInBundle();
     })
     .then(() => {
         fs.cpSync('./src/res', 'bundle/res', { force: true, recursive: true });
