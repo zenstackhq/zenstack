@@ -2,11 +2,11 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient/node';
-import { AUTH_PROVIDER_ID, ZenStackAuthenticationProvider } from './zenstack-auth-provider';
-import { DocumentationCache } from './documentation-cache';
-import { ZModelPreview } from './zmodel-preview';
-import { ReleaseNotesManager } from './release-notes-manager';
-import telemetry from './vscode-telemetry';
+import { AUTH_PROVIDER_ID, ZenStackAuthenticationProvider } from './vscode/zenstack-auth-provider';
+import { DocumentationCache } from './vscode/documentation-cache';
+import { ZModelPreview } from './vscode/zmodel-preview';
+import { ReleaseNotesManager } from './vscode/release-notes-manager';
+import telemetry from './vscode/vscode-telemetry';
 
 // Global variables
 let client: LanguageClient;

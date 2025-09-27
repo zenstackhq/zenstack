@@ -1,9 +1,9 @@
 import { init, Mixpanel } from 'mixpanel';
 import * as os from 'os';
 import * as vscode from 'vscode';
-import { getMachineId } from './utils/machine-id-utils';
+import { getMachineId } from '../utils/machine-id-utils';
 import { v5 as uuidv5 } from 'uuid';
-import { TELEMETRY_TRACKING_TOKEN } from './constants';
+import { TELEMETRY_TRACKING_TOKEN } from '../constants';
 
 export type TelemetryEvents =
     | 'extension:activate'

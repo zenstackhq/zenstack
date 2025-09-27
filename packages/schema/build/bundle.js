@@ -15,6 +15,7 @@ require('esbuild')
     })
     .then(() => {
         fs.cpSync('./src/res', 'bundle/res', { force: true, recursive: true });
+        fs.cpSync('./src/vscode/res', 'bundle/res', { force: true, recursive: true });
         fs.cpSync('../language/syntaxes', 'bundle/syntaxes', { force: true, recursive: true });
     })
     .then(() => console.log(success))

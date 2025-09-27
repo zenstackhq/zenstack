@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { LanguageClient } from 'vscode-languageclient/node';
 import { URI } from 'vscode-uri';
 import { DocumentationCache } from './documentation-cache';
-import { requireAuth } from './extension';
+import { requireAuth } from '../extension';
 import { API_URL } from './zenstack-auth-provider';
 import telemetry from './vscode-telemetry';
 
