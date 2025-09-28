@@ -4,5 +4,5 @@
         "outDir": "dist"
     },
     "include": ["src/**/*.ts"],
-    "exclude": ["src/extension.ts"]
+    "exclude": ["src/extension.ts", "src/vscode/**/*.ts"]
 }

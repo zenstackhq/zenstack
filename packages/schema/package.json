@@ -78,6 +78,11 @@
                     "command": "zenstack.preview-zmodel",
                     "when": "editorLangId == zmodel",
                     "group": "navigation"
+                },
+                {
+                    "command": "zenstack.save-zmodel-documentation",
+                    "when": "(activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor') && zenstack.isMarkdownPreview == true",
+                    "group": "navigation"
                 }
             ],
             "commandPalette": [
@@ -100,6 +105,11 @@
                 "icon": "$(preview)"
             },
             {
+                "command": "zenstack.save-zmodel-documentation",
+                "title": "ZenStack: Save ZModel Documentation",
+                "icon": "$(save)"
+            },
+            {
                 "command": "zenstack.clear-documentation-cache",
                 "title": "ZenStack: Clear Documentation Cache",
                 "icon": "$(trash)"
@@ -116,6 +126,12 @@
                 "key": "ctrl+shift+v",
                 "mac": "cmd+shift+v",
                 "when": "editorLangId == zmodel"
+            },
+            {
+                "command": "zenstack.save-zmodel-documentation",
+                "key": "ctrl+shift+s",
+                "mac": "cmd+shift+s",
+                "when": "(activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor') && zenstack.isMarkdownPreview == true"
             }
         ]
     },
