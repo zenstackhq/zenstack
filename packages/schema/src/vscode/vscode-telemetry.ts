@@ -3,7 +3,8 @@ import * as os from 'os';
 import * as vscode from 'vscode';
 import { getMachineId } from '../utils/machine-id-utils';
 import { v5 as uuidv5 } from 'uuid';
-import { TELEMETRY_TRACKING_TOKEN } from '../constants';
+
+export const VSCODE_TELEMETRY_TRACKING_TOKEN = '<VSCODE_TELEMETRY_TRACKING_TOKEN>';
 
 export type TelemetryEvents =
     | 'extension:activate'
@@ -28,7 +29,7 @@ export class VSCodeTelemetry {
 
     constructor() {
         if (vscode.env.isTelemetryEnabled) {
-            this.mixpanel = init(TELEMETRY_TRACKING_TOKEN, {
+            this.mixpanel = init(VSCODE_TELEMETRY_TRACKING_TOKEN, {
                 geolocate: true,
             });
         }

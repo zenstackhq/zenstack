@@ -6,14 +6,14 @@ const path = require('path');
 
 // Replace telemetry token in generated bundle files after building
 function replaceTelemetryTokenInBundle() {
-    const telemetryToken = process.env.TELEMETRY_TRACKING_TOKEN;
+    const telemetryToken = process.env.VSCODE_TELEMETRY_TRACKING_TOKEN;
     if (!telemetryToken) {
-        console.error('Error: TELEMETRY_TRACKING_TOKEN environment variable is not set');
+        console.error('Error: VSCODE_TELEMETRY_TRACKING_TOKEN environment variable is not set');
         process.exit(1);
     }
     const file = 'bundle/extension.js';
     let content = fs.readFileSync(file, 'utf-8');
-    content = content.replace('<TELEMETRY_TRACKING_TOKEN>', telemetryToken);
+    content = content.replace('<VSCODE_TELEMETRY_TRACKING_TOKEN>', telemetryToken);
     fs.writeFileSync(file, content, 'utf-8');
 }
 
