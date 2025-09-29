@@ -1897,8 +1897,13 @@ class RequestHandler extends APIHandlerBase {
                     if (error) return { select: undefined, error };
 
                     if (i !== parts.length - 1) {
-                        currPayload[relation] = { include: { ...currPayload[relation]?.include } };
-                        currPayload = currPayload[relation].include;
+                        if (select) {
+                            currPayload[relation] = { select: { ...select } };
+                            currPayload = currPayload[relation].select;
+                        } else {
+                            currPayload[relation] = { include: { ...currPayload[relation]?.include } };
+                            currPayload = currPayload[relation].include;
+                        }
                     } else {
                         currPayload[relation] = select
                             ? {

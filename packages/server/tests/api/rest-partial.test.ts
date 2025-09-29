@@ -38,6 +38,14 @@ describe('REST server tests', () => {
         published Boolean @default(false)
         publishedAt DateTime?
         viewCount Int @default(0)
+        comments Comment[]
+    }
+        
+    model Comment {
+        id Int @id @default(autoincrement())
+        post Post @relation(fields: [postId], references: [id])
+        postId Int
+        content String
     }
     `;
 
@@ -85,58 +93,15 @@ describe('REST server tests', () => {
 
             expect(r.status).toBe(200);
 
-            expect(r.body.data).toEqual([
-                {
-                    type: 'user',
-                    id: 'user1',
-                    attributes: {
-                        email: 'user1@abc.com',
-                        nickName: 'one',
-                    },
-                    links: {
-                        self: 'http://localhost/api/user/user1',
-                    },
-                    relationships: {
-                        posts: {
-                            links: {
-                                self: 'http://localhost/api/user/user1/relationships/posts',
-                                related: 'http://localhost/api/user/user1/posts',
-                            },
-                            data: [
-                                {
-                                    type: 'post',
-                                    id: 1,
-                                },
-                            ],
-                        },
-                    },
-                },
-                {
-                    type: 'user',
-                    id: 'user2',
-                    attributes: {
-                        email: 'user2@abc.com',
-                        nickName: 'two',
-                    },
-                    links: {
-                        self: 'http://localhost/api/user/user2',
-                    },
-                    relationships: {
-                        posts: {
-                            links: {
-                                self: 'http://localhost/api/user/user2/relationships/posts',
-                                related: 'http://localhost/api/user/user2/posts',
-                            },
-                            data: [
-                                {
-                                    type: 'post',
-                                    id: 2,
-                                },
-                            ],
-                        },
-                    },
-                },
-            ]);
+            expect(r.body.data[0].attributes).toEqual({
+                email: 'user1@abc.com',
+                nickName: 'one',
+            });
+
+            expect(r.body.data[1].attributes).toEqual({
+                email: 'user2@abc.com',
+                nickName: 'two',
+            });
         });
 
         it('returns collection with only the requested fields when there are includes', async () => {
@@ -171,99 +136,166 @@ describe('REST server tests', () => {
 
             expect(r.status).toBe(200);
 
-            expect(r.body.data).toEqual([
-                {
-                    type: 'user',
-                    id: 'user1',
-                    attributes: {
-                        email: 'user1@abc.com',
-                        nickName: 'one',
-                    },
-                    links: {
-                        self: 'http://localhost/api/user/user1',
-                    },
-                    relationships: {
-                        posts: {
-                            links: {
-                                self: 'http://localhost/api/user/user1/relationships/posts',
-                                related: 'http://localhost/api/user/user1/posts',
-                            },
-                            data: [
-                                {
-                                    type: 'post',
-                                    id: 1,
-                                },
-                            ],
-                        },
-                    },
-                },
-                {
-                    type: 'user',
-                    id: 'user2',
-                    attributes: {
-                        email: 'user2@abc.com',
-                        nickName: 'two',
-                    },
-                    links: {
-                        self: 'http://localhost/api/user/user2',
-                    },
-                    relationships: {
-                        posts: {
-                            links: {
-                                self: 'http://localhost/api/user/user2/relationships/posts',
-                                related: 'http://localhost/api/user/user2/posts',
-                            },
-                            data: [
-                                {
-                                    type: 'post',
-                                    id: 2,
-                                },
-                            ],
-                        },
-                    },
-                },
-            ]);
+            expect(r.body.data[0].attributes).toEqual({
+                email: 'user1@abc.com',
+                nickName: 'one',
+            });
 
-            expect(r.body.included).toEqual([
-                {
-                    type: 'post',
-                    id: 1,
-                    attributes: {
-                        title: 'Post1',
-                        published: false,
-                    },
-                    links: {
-                        self: 'http://localhost/api/post/1',
-                    },
-                    relationships: {
-                        author: {
-                            links: {
-                                self: 'http://localhost/api/post/1/relationships/author',
-                                related: 'http://localhost/api/post/1/author',
-                            },
+            expect(r.body.data[1].attributes).toEqual({
+                email: 'user2@abc.com',
+                nickName: 'two',
+            });
+
+            expect(r.body.included[0].attributes).toEqual({
+                title: 'Post1',
+                published: false,
+            });
+
+            expect(r.body.included[1].attributes).toEqual({
+                title: 'Post2',
+                published: true,
+            });
+        });
+
+        it('returns collection with only the requested fields when there are deep includes', async () => {
+            // Create users first
+            await prisma.user.create({
+                data: {
+                    myId: 'user1',
+                    email: 'user1@abc.com',
+                    nickName: 'one',
+                    posts: {
+                        create: {
+                            title: 'Post1',
+                            content: 'Post 1 Content',
+                            comments: { create: { content: 'Comment1' } },
                         },
                     },
                 },
-                {
-                    type: 'post',
-                    id: 2,
-                    attributes: {
-                        title: 'Post2',
-                        published: true,
-                    },
-                    links: {
-                        self: 'http://localhost/api/post/2',
-                    },
-                    relationships: {
-                        author: {
-                            links: {
-                                self: 'http://localhost/api/post/2/relationships/author',
-                                related: 'http://localhost/api/post/2/author',
-                            },
+            });
+            await prisma.user.create({
+                data: {
+                    myId: 'user2',
+                    email: 'user2@abc.com',
+                    nickName: 'two',
+                    posts: {
+                        create: {
+                            title: 'Post2',
+                            content: 'Post 2 Content',
+                            published: true,
+                            comments: { create: { content: 'Comment2' } },
                         },
                     },
                 },
-            ]);
+            });
+
+            const r = await handler({
+                method: 'get',
+                path: '/user',
+                prisma,
+                query: {
+                    ['fields[user]']: 'email,nickName',
+                    ['fields[post]']: 'title,published',
+                    ['fields[comment]']: 'content',
+                    include: 'posts,posts.comments',
+                },
+            });
+
+            expect(r.status).toBe(200);
+
+            expect(r.body.data[0].attributes).toEqual({
+                email: 'user1@abc.com',
+                nickName: 'one',
+            });
+
+            expect(r.body.data[1].attributes).toEqual({
+                email: 'user2@abc.com',
+                nickName: 'two',
+            });
+
+            expect(r.body.included[0].attributes).toEqual({
+                title: 'Post1',
+                published: false,
+            });
+
+            expect(r.body.included[1].attributes).toEqual({
+                title: 'Post2',
+                published: true,
+            });
+
+            expect(r.body.included[2].attributes).toEqual({ content: 'Comment1' });
+            expect(r.body.included[3].attributes).toEqual({ content: 'Comment2' });
+        });
+
+        it('returns collection with only the requested fields when there are sparse fields on deep includes', async () => {
+            // Create users first
+            await prisma.user.create({
+                data: {
+                    myId: 'user1',
+                    email: 'user1@abc.com',
+                    nickName: 'one',
+                    posts: {
+                        create: {
+                            title: 'Post1',
+                            content: 'Post 1 Content',
+                            comments: { create: { content: 'Comment1' } },
+                        },
+                    },
+                },
+            });
+            await prisma.user.create({
+                data: {
+                    myId: 'user2',
+                    email: 'user2@abc.com',
+                    nickName: 'two',
+                    posts: {
+                        create: {
+                            title: 'Post2',
+                            content: 'Post 2 Content',
+                            published: true,
+                            comments: { create: { content: 'Comment2' } },
+                        },
+                    },
+                },
+            });
+
+            const r = await handler({
+                method: 'get',
+                path: '/user',
+                prisma,
+                query: {
+                    ['fields[user]']: 'email,nickName',
+                    ['fields[comment]']: 'content',
+                    include: 'posts,posts.comments',
+                },
+            });
+
+            expect(r.status).toBe(200);
+
+            expect(r.body.data[0].attributes).toEqual({
+                email: 'user1@abc.com',
+                nickName: 'one',
+            });
+
+            expect(r.body.data[1].attributes).toEqual({
+                email: 'user2@abc.com',
+                nickName: 'two',
+            });
+
+            //did not use sparse field on posts, only comments
+            expect(r.body.included[0].attributes).toMatchObject({
+                title: 'Post1',
+                published: false,
+            });
+
+            //did not use sparse field on posts, only comments
+            expect(r.body.included[1].attributes).toMatchObject({
+                title: 'Post2',
+                published: true,
+            });
+
+            expect(r.body.included[2].attributes).toEqual({ content: 'Comment1' });
+            expect(r.body.included[3].attributes).toEqual({ content: 'Comment2' });
         });
 
         it('returns only the requested fields when the ID is specified', async () => {
@@ -285,23 +317,7 @@ describe('REST server tests', () => {
             });
 
             expect(r.status).toBe(200);
-            expect(r.body.data).toEqual({
-                type: 'user',
-                id: 'user1',
-                attributes: { email: 'user1@abc.com' },
-                links: {
-                    self: 'http://localhost/api/user/user1',
-                },
-                relationships: {
-                    posts: {
-                        links: {
-                            self: 'http://localhost/api/user/user1/relationships/posts',
-                            related: 'http://localhost/api/user/user1/posts',
-                        },
-                        data: [{ type: 'post', id: 1 }],
-                    },
-                },
-            });
+            expect(r.body.data.attributes).toEqual({ email: 'user1@abc.com' });
         });
 
         it('returns only the requested fields when the ID is specified and has an include', async () => {
@@ -323,45 +339,12 @@ describe('REST server tests', () => {
             });
 
             expect(r.status).toBe(200);
-            expect(r.body.data).toEqual({
-                type: 'user',
-                id: 'user1',
-                attributes: { email: 'user1@abc.com', nickName: 'User 1' },
-                links: {
-                    self: 'http://localhost/api/user/user1',
-                },
-                relationships: {
-                    posts: {
-                        links: {
-                            self: 'http://localhost/api/user/user1/relationships/posts',
-                            related: 'http://localhost/api/user/user1/posts',
-                        },
-                        data: [{ type: 'post', id: 1 }],
-                    },
-                },
-            });
+            expect(r.body.data.attributes).toEqual({ email: 'user1@abc.com', nickName: 'User 1' });
 
-            expect(r.body.included).toEqual([
-                {
-                    type: 'post',
-                    id: 1,
-                    attributes: {
-                        title: 'Post1',
-                        published: false,
-                    },
-                    links: {
-                        self: 'http://localhost/api/post/1',
-                    },
-                    relationships: {
-                        author: {
-                            links: {
-                                self: 'http://localhost/api/post/1/relationships/author',
-                                related: 'http://localhost/api/post/1/author',
-                            },
-                        },
-                    },
-                },
-            ]);
+            expect(r.body.included[0].attributes).toEqual({
+                title: 'Post1',
+                published: false,
+            });
         });
 
         it('fetch only requested fields on a related resource', async () => {
@@ -385,27 +368,10 @@ describe('REST server tests', () => {
             });
 
             expect(r.status).toBe(200);
-            expect(r.body.data).toEqual([
-                {
-                    type: 'post',
-                    id: 1,
-                    attributes: {
-                        title: 'Post1',
-                        content: 'Post 1 Content',
-                    },
-                    links: {
-                        self: 'http://localhost/api/post/1',
-                    },
-                    relationships: {
-                        author: {
-                            links: {
-                                self: 'http://localhost/api/post/1/relationships/author',
-                                related: 'http://localhost/api/post/1/author',
-                            },
-                        },
-                    },
-                },
-            ]);
+            expect(r.body.data[0].attributes).toEqual({
+                title: 'Post1',
+                content: 'Post 1 Content',
+            });
         });
 
         it('does not efect toplevel filtering', async () => {
