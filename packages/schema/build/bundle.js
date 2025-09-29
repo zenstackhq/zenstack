@@ -2,7 +2,8 @@ const watch = process.argv.includes('--watch');
 const minify = process.argv.includes('--minify');
 const success = watch ? 'Watch build succeeded' : 'Build succeeded';
 const fs = require('fs');
-const path = require('path');
+require('dotenv').config({ path: './.env.local' });
+require('dotenv').config({ path: './.env' });
 
 // Replace telemetry token in generated bundle files after building
 function replaceTelemetryTokenInBundle() {
