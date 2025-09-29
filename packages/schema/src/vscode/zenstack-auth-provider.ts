@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-
+import telemetry from './vscode-telemetry';
 interface JWTClaims {
     jti?: string;
     sub?: string;
@@ -150,9 +150,6 @@ export class ZenStackAuthenticationProvider implements vscode.AuthenticationProv
             }
         );
     }
-    private generateState(): string {
-        return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    }
 
     // Handle authentication callback from ZenStack
     public async handleAuthCallback(callbackUri: vscode.Uri): Promise<void> {
@@ -184,6 +181,7 @@ export class ZenStackAuthenticationProvider implements vscode.AuthenticationProv
         try {
             // Decode JWT to get claims
             const claims = this.parseJWTClaims(accessToken);
+            telemetry.identify(claims.email!);
             return {
                 id: claims.jti || Math.random().toString(36),
                 accessToken: accessToken,

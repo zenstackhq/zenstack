@@ -2,10 +2,11 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient/node';
-import { AUTH_PROVIDER_ID, ZenStackAuthenticationProvider } from './zenstack-auth-provider';
-import { DocumentationCache } from './documentation-cache';
-import { ZModelPreview } from './zmodel-preview';
-import { ReleaseNotesManager } from './release-notes-manager';
+import { AUTH_PROVIDER_ID, ZenStackAuthenticationProvider } from './vscode/zenstack-auth-provider';
+import { DocumentationCache } from './vscode/documentation-cache';
+import { ZModelPreview } from './vscode/zmodel-preview';
+import { ReleaseNotesManager } from './vscode/release-notes-manager';
+import telemetry from './vscode/vscode-telemetry';
 
 // Global variables
 let client: LanguageClient;
@@ -19,13 +20,17 @@ export async function requireAuth(): Promise<vscode.AuthenticationSession | unde
     if (!session) {
         const signIn = 'Sign in';
         const selection = await vscode.window.showWarningMessage('Please sign in to use this feature', signIn);
+        telemetry.track('extension:signin:show');
         if (selection === signIn) {
+            telemetry.track('extension:signin:start');
             try {
                 session = await vscode.authentication.getSession(AUTH_PROVIDER_ID, [], { createIfNone: true });
                 if (session) {
+                    telemetry.track('extension:signin:complete');
                     vscode.window.showInformationMessage('ZenStack sign-in successful!');
                 }
             } catch (e: unknown) {
+                telemetry.track('extension:signin:error', { error: e instanceof Error ? e.message : String(e) });
                 vscode.window.showErrorMessage(
                     'ZenStack sign-in failed: ' + (e instanceof Error ? e.message : String(e))
                 );
@@ -37,6 +42,7 @@ export async function requireAuth(): Promise<vscode.AuthenticationSession | unde
 
 // This function is called when the extension is activated.
 export function activate(context: vscode.ExtensionContext): void {
+    telemetry.track('extension:activate');
     // Initialize and register the ZenStack authentication provider
     context.subscriptions.push(new ZenStackAuthenticationProvider(context));
 
