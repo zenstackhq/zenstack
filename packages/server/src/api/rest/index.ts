@@ -177,6 +177,10 @@ class RequestHandler extends APIHandlerBase {
             status: 400,
             title: 'Invalid value for type',
         },
+        duplicatedFieldsParameter: {
+            status: 400,
+            title: 'Fields Parameter Duplicated',
+        },
         forbidden: {
             status: 403,
             title: 'Operation is forbidden',
@@ -185,6 +189,7 @@ class RequestHandler extends APIHandlerBase {
             status: 422,
             title: 'Operation is unprocessable due to validation errors',
         },
+
         unknownError: {
             status: 400,
             title: 'Unknown error',
@@ -511,7 +516,7 @@ class RequestHandler extends APIHandlerBase {
         // handle "include" query parameter
         let include: string[] | undefined;
         if (query?.include) {
-            const { select, error, allIncludes } = this.buildRelationSelect(type, query.include);
+            const { select, error, allIncludes } = this.buildRelationSelect(type, query.include, query);
             if (error) {
                 return error;
             }
@@ -519,6 +524,20 @@ class RequestHandler extends APIHandlerBase {
                 args.include = { ...args.include, ...select };
             }
             include = allIncludes;
+        }
+
+        // handle partial results for requested type
+        const { select, error } = this.buildPartialSelect(type, query);
+        if (error) return error;
+        if (select) {
+            args.select = { ...select, ...args.select };
+            if (args.include) {
+                args.select = {
+                    ...args.select,
+                    ...args.include,
+                };
+                args.include = undefined;
+            }
         }
 
         const entity = await prisma[type].findUnique(args);
@@ -555,7 +574,7 @@ class RequestHandler extends APIHandlerBase {
         // handle "include" query parameter
         let include: string[] | undefined;
         if (query?.include) {
-            const { select: relationSelect, error, allIncludes } = this.buildRelationSelect(type, query.include);
+            const { select: relationSelect, error, allIncludes } = this.buildRelationSelect(type, query.include, query);
             if (error) {
                 return error;
             }
@@ -566,7 +585,14 @@ class RequestHandler extends APIHandlerBase {
             select = relationSelect;
         }
 
-        select = select ?? { [relationship]: true };
+        // handle partial results for requested type
+        if (!select) {
+            const { select: partialFields, error } = this.buildPartialSelect(lowerCaseFirst(relationInfo.type), query);
+            if (error) return error;
+
+            select = partialFields ? { [relationship]: { select: { ...partialFields } } } : { [relationship]: true };
+        }
+
         const args: any = {
             where: this.makePrismaIdFilter(typeInfo.idFields, resourceId),
             select,
@@ -710,7 +736,7 @@ class RequestHandler extends APIHandlerBase {
         // handle "include" query parameter
         let include: string[] | undefined;
         if (query?.include) {
-            const { select, error, allIncludes } = this.buildRelationSelect(type, query.include);
+            const { select, error, allIncludes } = this.buildRelationSelect(type, query.include, query);
             if (error) {
                 return error;
             }
@@ -718,6 +744,20 @@ class RequestHandler extends APIHandlerBase {
                 args.include = { ...args.include, ...select };
             }
             include = allIncludes;
+        }
+
+        // handle partial results for requested type
+        const { select, error } = this.buildPartialSelect(type, query);
+        if (error) return error;
+        if (select) {
+            args.select = { ...select, ...args.select };
+            if (args.include) {
+                args.select = {
+                    ...args.select,
+                    ...args.include,
+                };
+                args.include = undefined;
+            }
         }
 
         const { offset, limit } = this.getPagination(query);
@@ -738,6 +778,7 @@ class RequestHandler extends APIHandlerBase {
             };
         } else {
             args.take = limit;
+
             const [entities, count] = await Promise.all([
                 prisma[type].findMany(args),
                 prisma[type].count({ where: args.where ?? {} }),
@@ -760,6 +801,33 @@ class RequestHandler extends APIHandlerBase {
                 body: body,
             };
         }
+    }
+
+    private buildPartialSelect(type: string, query: Record<string, string | string[]> | undefined) {
+        const selectFieldsQuery = query?.[`fields[${type}]`];
+        if (!selectFieldsQuery) {
+            return { select: undefined, error: undefined };
+        }
+
+        if (Array.isArray(selectFieldsQuery)) {
+            return {
+                select: undefined,
+                error: this.makeError('duplicatedFieldsParameter', `duplicated fields query for type ${type}`),
+            };
+        }
+
+        const typeInfo = this.typeMap[lowerCaseFirst(type)];
+        if (!typeInfo) {
+            return { select: undefined, error: this.makeUnsupportedModelError(type) };
+        }
+
+        const selectFieldNames = selectFieldsQuery.split(',').filter((i) => i);
+
+        const fields = selectFieldNames.reduce((acc, curr) => ({ ...acc, [curr]: true }), {});
+
+        return {
+            select: { ...this.makeIdSelect(typeInfo.idFields), ...fields },
+        };
     }
 
     private addTotalCountToMeta(meta: any, total: any) {
@@ -1790,7 +1858,11 @@ class RequestHandler extends APIHandlerBase {
         return { sort: result, error: undefined };
     }
 
-    private buildRelationSelect(type: string, include: string | string[]) {
+    private buildRelationSelect(
+        type: string,
+        include: string | string[],
+        query: Record<string, string | string[]> | undefined
+    ) {
         const typeInfo = this.typeMap[lowerCaseFirst(type)];
         if (!typeInfo) {
             return { select: undefined, error: this.makeUnsupportedModelError(type) };
@@ -1820,11 +1892,24 @@ class RequestHandler extends APIHandlerBase {
                         return { select: undefined, error: this.makeUnsupportedModelError(relationInfo.type) };
                     }
 
+                    // handle partial results for requested type
+                    const { select, error } = this.buildPartialSelect(lowerCaseFirst(relationInfo.type), query);
+                    if (error) return { select: undefined, error };
+
                     if (i !== parts.length - 1) {
-                        currPayload[relation] = { include: { ...currPayload[relation]?.include } };
-                        currPayload = currPayload[relation].include;
+                        if (select) {
+                            currPayload[relation] = { select: { ...select } };
+                            currPayload = currPayload[relation].select;
+                        } else {
+                            currPayload[relation] = { include: { ...currPayload[relation]?.include } };
+                            currPayload = currPayload[relation].include;
+                        }
                     } else {
-                        currPayload[relation] = true;
+                        currPayload[relation] = select
+                            ? {
+                                  select: { ...select },
+                              }
+                            : true;
                     }
                 }
             }
