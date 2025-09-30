@@ -80,13 +80,20 @@ export function generate(
 ) {
     const sf = project.createSourceFile(options.output, undefined, { overwrite: true });
 
+    // generate: import type { ModelMeta } from '@zenstackhq/runtime';
+    sf.addImportDeclaration({
+        isTypeOnly: true,
+        namedImports: ['ModelMeta'],
+        moduleSpecifier: '@zenstackhq/runtime',
+    });
+
     const writer = new FastWriter();
     const extraFunctions: OptionalKind<FunctionDeclarationStructure>[] = [];
     generateModelMetadata(models, typeDefs, writer, options, extraFunctions);
 
     sf.addVariableStatement({
         declarationKind: VariableDeclarationKind.Const,
-        declarations: [{ name: 'metadata', initializer: writer.result }],
+        declarations: [{ name: 'metadata', type: 'ModelMeta', initializer: writer.result }],
     });
 
     if (extraFunctions.length > 0) {
@@ -364,7 +371,7 @@ function writeFields(
 function getAttributes(target: DataModelField | DataModel | TypeDefField): RuntimeAttribute[] {
     return target.attributes
         .map((attr) => {
-            const args: Array<{ name?: string; value: unknown }> = [];
+            const args: Array<{ name?: string; value?: unknown }> = [];
             for (const arg of attr.args) {
                 const argName = arg.$resolvedParam?.name ?? arg.name;
                 const argValue = exprToValue(arg.value);
