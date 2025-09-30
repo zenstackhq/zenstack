@@ -12,7 +12,7 @@ export type RuntimeAttribute = {
     /**
      * Attribute arguments
      */
-    args: Array<{ name?: string; value: unknown }>;
+    args: Array<{ name?: string; value?: unknown }>;
 };
 
 /**
