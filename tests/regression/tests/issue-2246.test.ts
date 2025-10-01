@@ -1,5 +1,4 @@
 import { loadSchema } from '@zenstackhq/testtools';
-import { title } from 'process';
 
 describe('issue 2246', () => {
     it('regression', async () => {
