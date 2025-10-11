@@ -479,7 +479,7 @@ export type Enhanced<Client> =
         // they may be incorrectly represented as required, we need to fix that for input types
         // also, if a FK field is of such case, its corresponding relation field should be optional
         const createInputPattern = new RegExp(`^(.+?)(Unchecked)?Create.*Input$`);
-        for (const inputType of dmmf.schema.inputObjectTypes.prisma) {
+        for (const inputType of dmmf.schema.inputObjectTypes.prisma ?? []) {
             const match = inputType.name.match(createInputPattern);
             const modelName = this.resolveName(match?.[1]);
             if (modelName) {
@@ -569,6 +569,32 @@ export type Enhanced<Client> =
     private async processClientTypesNewPrismaGenerator(prismaClientDir: string, delegateInfo: DelegateInfo) {
         const project = new Project();
 
+        // remove delegate_aux_* fields from the prismaNamespace.ts
+        const internalFilename = `${prismaClientDir}/internal/prismaNamespace.ts`;
+        const internalFilenameFixed = `${prismaClientDir}/internal/prismaNamespace-fixed.ts`;
+        const internalSf = project.addSourceFileAtPath(internalFilename);
+        const syntaxList = internalSf.getChildren()[0];
+        if (!Node.isSyntaxList(syntaxList)) {
+            throw new PluginError(name, `Unexpected syntax list structure in ${internalFilename}`);
+        }
+        const statements: (string | StatementStructures)[] = [];
+
+        syntaxList.getChildren().forEach((node) => {
+            if (Node.isVariableStatement(node)) {
+                statements.push(this.transformVariableStatementProps(node));
+            } else {
+                statements.push(node.getText());
+            }
+        });
+        const structure = internalSf.getStructure();
+        structure.statements = statements;
+
+        const internalSfNew = project.createSourceFile(internalFilenameFixed, structure, {
+            overwrite: true,
+        });
+        await internalSfNew.save();
+        fs.renameSync(internalFilenameFixed, internalFilename);
+
         // Create a shared file for all JSON fields type definitions
         const jsonFieldsFile = project.createSourceFile(path.join(this.outDir, 'json-types.ts'), undefined, {
             overwrite: true,
@@ -586,7 +612,7 @@ export type Enhanced<Client> =
                 throw new PluginError(name, `Unexpected syntax list structure in ${fileName}`);
             }
 
-            const statements: (string | StatementStructures)[] = ['import $Types = runtime.Types;'];
+            const statements: (string | StatementStructures)[] = [];
 
             // Add import for json-types if this model has JSON type fields
             const modelWithJsonFields = this.modelsWithJsonTypeFields.find((m) => m.name === d.name);
@@ -1006,7 +1032,7 @@ export type Enhanced<Client> =
             // Check if the field in the source is optional (has a `?`)
             const isOptionalInSource = new RegExp(`(${field.name}\\?\\s*):`).test(source);
             if (isOptionalInSource) {
-                replaceValue += ' | $Types.Skip';
+                replaceValue += ' | runtime.Types.Skip';
             }
 
             return source.replace(new RegExp(`(${field.name}\\??\\s*):[^\\n]+`), replaceValue);

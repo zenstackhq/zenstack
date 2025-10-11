@@ -21,7 +21,7 @@ import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import { P, match } from 'ts-pattern';
 import { name } from '.';
 
-const supportedTargets = ['react', 'vue', 'svelte'];
+const supportedTargets = ['react', 'vue', 'svelte', 'angular'];
 type TargetFramework = (typeof supportedTargets)[number];
 type TanStackVersion = 'v4' | 'v5';
 
@@ -39,6 +39,11 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     const version = typeof options.version === 'string' ? options.version : 'v5';
     if (version !== 'v4' && version !== 'v5') {
         throw new PluginError(name, `Unsupported version "${version}": use "v4" or "v5"`);
+    }
+
+    // Angular is only supported in v5
+    if (target === 'angular' && version !== 'v5') {
+        throw new PluginError(name, `Angular target is only supported with version "v5", got "${version}"`);
     }
 
     let outDir = requireOption<string>(options, 'output', name);
@@ -112,7 +117,10 @@ function generateQueryHook(
         const capOperation = upperCaseFirst(operation);
 
         const argsType = overrideInputType ?? `Prisma.${model}${capOperation}Args`;
-        const inputType = makeQueryArgsType(target, argsType);
+        let inputType = makeQueryArgsType(target, argsType);
+        if (target === 'angular') {
+            inputType = `${inputType} | (() => ${inputType})`;
+        }
 
         const infinite = generateMode.includes('Infinite');
         const suspense = generateMode.includes('Suspense');
@@ -224,6 +232,7 @@ function generateMutationHook(
     switch (target) {
         case 'react':
         case 'vue':
+        case 'angular':
             // override the mutateAsync function to return the correct type
             func.addVariableStatement({
                 declarationKind: VariableDeclarationKind.Const,
@@ -597,6 +606,11 @@ function generateIndex(
         case 'svelte':
             sf.addStatements(`export { SvelteQueryContextKey, setHooksContext } from '${runtimeImportBase}/svelte';`);
             break;
+        case 'angular':
+            sf.addStatements(
+                `export { AngularQueryContextKey, provideAngularQueryContext } from '${runtimeImportBase}/angular';`
+            );
+            break;
     }
     sf.addStatements(`export { default as metadata } from './__model_meta';`);
 }
@@ -609,6 +623,8 @@ function makeGetContext(target: TargetFramework) {
             return 'const { endpoint, fetch } = getHooksContext();';
         case 'svelte':
             return `const { endpoint, fetch } = getHooksContext();`;
+        case 'angular':
+            return 'const { endpoint, fetch } = getHooksContext();';
         default:
             throw new PluginError(name, `Unsupported target "${target}"`);
     }
@@ -654,6 +670,13 @@ function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
                 ...(version === 'v5'
                     ? [`import type { InfiniteData, StoreOrVal } from '@tanstack/svelte-query';`]
                     : []),
+                `import { getHooksContext } from '${runtimeImportBase}/${target}';`,
+                ...shared,
+            ];
+        }
+        case 'angular': {
+            return [
+                `import type { CreateMutationOptions, CreateQueryOptions, CreateInfiniteQueryOptions, InfiniteData } from '@tanstack/angular-query-experimental';`,
                 `import { getHooksContext } from '${runtimeImportBase}/${target}';`,
                 ...shared,
             ];
@@ -707,6 +730,11 @@ function makeQueryOptions(
                 ? `Omit<CreateQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`
                 : `StoreOrVal<Omit<CreateQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>>`
         )
+        .with('angular', () =>
+            infinite
+                ? `Omit<CreateInfiniteQueryOptions<${returnType}, TError, InfiniteData<${dataType}>>, 'queryKey' | 'initialPageParam'>`
+                : `Omit<CreateQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`
+        )
         .otherwise(() => {
             throw new PluginError(name, `Unsupported target: ${target}`);
         });
@@ -727,6 +755,7 @@ function makeMutationOptions(target: string, returnType: string, argsType: strin
             return `MaybeRefOrGetter<${baseOption}> | ComputedRef<${baseOption}>`;
         })
         .with('svelte', () => `MutationOptions<${returnType}, DefaultError, ${argsType}>`)
+        .with('angular', () => `CreateMutationOptions<${returnType}, DefaultError, ${argsType}>`)
         .otherwise(() => {
             throw new PluginError(name, `Unsupported target: ${target}`);
         });

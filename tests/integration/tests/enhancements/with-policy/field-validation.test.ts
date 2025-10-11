@@ -65,7 +65,7 @@ describe('Field validation', () => {
                     handle: 'hello world',
                 },
             })
-        ).toBeRejectedByPolicy(['String must contain at least 8 character(s) at "password"', 'Invalid at "handle"']);
+        ).toBeRejectedByPolicy(['8 character', 'handle']);
 
         let err: any;
         try {
@@ -98,11 +98,7 @@ describe('Field validation', () => {
                     handle: 'user1user1user1user1user1',
                 },
             })
-        ).toBeRejectedByPolicy([
-            'Invalid email at "email"',
-            'must end with "@myorg.com" at "email"',
-            'Invalid at "handle"',
-        ]);
+        ).toBeRejectedByPolicy(['email', 'handle']);
 
         await expect(
             db.user.create({
@@ -123,10 +119,7 @@ describe('Field validation', () => {
                     email: 'something',
                 },
             })
-        ).toBeRejectedByPolicy([
-            'String must contain at least 8 character(s) at "password"',
-            'must end with "@myorg.com" at "email"',
-        ]);
+        ).toBeRejectedByPolicy(['8 character', 'email']);
 
         await expect(
             db.user.update({
@@ -135,7 +128,7 @@ describe('Field validation', () => {
                     age: { increment: 100 },
                 },
             })
-        ).toBeRejectedByPolicy(['Number must be less than 100 at "age"']);
+        ).toBeRejectedByPolicy(['100']);
 
         await expect(
             db.user.update({
@@ -173,15 +166,15 @@ describe('Field validation', () => {
                 },
             })
         ).toBeRejectedByPolicy([
-            'Number must be greater than 0 at "a"',
-            'Number must be greater than or equal to 0 at "b"',
-            'Number must be less than 0 at "c"',
-            'Number must be less than or equal to 0 at "d"',
-            'must start with "abc" at "text1"',
-            'must end with "def" at "text2"',
-            'String must contain at least 3 character(s) at "text3"',
-            'String must contain at most 5 character(s) at "text4"',
-            'must end with "xyz" at "text5"',
+            '0 at "a"',
+            '0 at "b"',
+            '0 at "c"',
+            '0 at "d"',
+            'text1',
+            'text2',
+            'text3',
+            'text4',
+            'text5',
         ]);
 
         await expect(
@@ -240,7 +233,7 @@ describe('Field validation', () => {
                     },
                 },
             })
-        ).toBeRejectedByPolicy(['Number must be greater than 0 at "a"']);
+        ).toBeRejectedByPolicy(['0 at "a"']);
 
         await expect(
             db.user.create({
@@ -253,7 +246,7 @@ describe('Field validation', () => {
                     },
                 },
             })
-        ).toBeRejectedByPolicy(['Invalid at "slug"']);
+        ).toBeRejectedByPolicy(['slug']);
 
         await expect(
             db.user.create({
@@ -272,7 +265,7 @@ describe('Field validation', () => {
                     },
                 },
             })
-        ).toBeRejectedByPolicy(['Number must be greater than 0 at "a"']);
+        ).toBeRejectedByPolicy(['0 at "a"']);
 
         await expect(
             db.user.create({
@@ -290,7 +283,7 @@ describe('Field validation', () => {
                     },
                 },
             })
-        ).toBeRejectedByPolicy(['Invalid at "slug"']);
+        ).toBeRejectedByPolicy(['slug']);
 
         await expect(
             db.user.create({
@@ -351,7 +344,7 @@ describe('Field validation', () => {
                     },
                 },
             })
-        ).toBeRejectedByPolicy(['Number must be greater than 0 at "a"']);
+        ).toBeRejectedByPolicy(['0 at "a"']);
 
         await expect(
             db.user.update({
@@ -364,7 +357,7 @@ describe('Field validation', () => {
                     },
                 },
             })
-        ).toBeRejectedByPolicy(['Invalid at "slug"']);
+        ).toBeRejectedByPolicy(['slug']);
 
         await expect(
             db.user.update({
@@ -394,7 +387,7 @@ describe('Field validation', () => {
                     },
                 },
             })
-        ).toBeRejectedByPolicy(['Number must be greater than 0 at "a"']);
+        ).toBeRejectedByPolicy(['0 at "a"']);
 
         await expect(
             db.user.update({
@@ -410,7 +403,7 @@ describe('Field validation', () => {
                     },
                 },
             })
-        ).toBeRejectedByPolicy(['Invalid at "slug"']);
+        ).toBeRejectedByPolicy(['slug']);
 
         await expect(
             db.user.update({
@@ -450,7 +443,7 @@ describe('Field validation', () => {
                     },
                 },
             })
-        ).toBeRejectedByPolicy(['Number must be greater than 0 at "a"']);
+        ).toBeRejectedByPolicy(['0 at "a"']);
 
         await expect(
             db.user.update({
@@ -466,7 +459,7 @@ describe('Field validation', () => {
                     },
                 },
             })
-        ).toBeRejectedByPolicy(['Invalid at "slug"']);
+        ).toBeRejectedByPolicy(['slug']);
 
         await expect(
             db.user.update({
@@ -979,7 +972,7 @@ describe('Policy and validation interaction', () => {
                     age: 18,
                 },
             })
-        ).toBeRejectedByPolicy(['Invalid email at "email"']);
+        ).toBeRejectedByPolicy(['email']);
 
         await expect(
             db.user.create({

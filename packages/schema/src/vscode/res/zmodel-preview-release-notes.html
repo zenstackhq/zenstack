@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.40/dist/codicon.min.css" rel="stylesheet" />
+
+        <style>
+            body {
+                font-family: system-ui, -apple-system, sans-serif;
+                padding: 20px;
+                max-width: 800px;
+                margin: 0 auto;
+                background-color: var(--vscode-editor-background);
+                color: var(--vscode-editor-foreground);
+            }
+            .header {
+                background-color: var(--vscode-button-background);
+                color: var(--vscode-button-foreground);
+                padding: 20px;
+                border-radius: 8px;
+                text-align: center;
+                margin-bottom: 20px;
+            }
+            .feature {
+                background-color: var(--vscode-textBlockQuote-background);
+                border: 1px solid var(--vscode-textBlockQuote-border);
+                padding: 15px;
+                border-radius: 6px;
+                margin: 15px 0;
+                border-left: 4px solid var(--vscode-button-background);
+            }
+            .steps {
+                background-color: var(--vscode-textCodeBlock-background);
+                padding: 15px;
+                border-radius: 6px;
+                margin: 15px 0;
+            }
+            a {
+                color: var(--vscode-textLink-foreground);
+                text-decoration: none;
+            }
+            a:hover {
+                text-decoration: underline;
+                color: var(--vscode-textLink-activeForeground);
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>🎉 Introducing ZModel Documentation Preview</h1>
+            <p>Preview documentation directly from your ZModel powered by AI</p>
+        </div>
+
+        <div class="feature">
+            <h3>📖 What's New</h3>
+            <p>
+                You can now preview comprehensive documentation for your ZModel files, just like you would preview a
+                markdown file.
+            </p>
+        </div>
+
+        <div class="steps">
+            <h3>🚀 How to Use</h3>
+            <ol>
+                <li>Open your <code>.zmodel</code> file</li>
+                <li>
+                    Click (<span class="codicon codicon-preview"></span>) in the editor toolbar, or press
+                    <code>Cmd&nbsp;+&nbsp;Shift&nbsp;+&nbsp;V</code> (Mac) or
+                    <code>Ctrl&nbsp;+&nbsp;Shift&nbsp;+&nbsp;V</code> (Windows)
+                </li>
+                <li>Sign in with ZenStack (one-time setup)</li>
+                <li>
+                    Click (<span class="codicon codicon-save"></span>) in the preview toolbar to save the doc, or press
+                    <code>Cmd&nbsp;+&nbsp;Shift&nbsp;+&nbsp;S</code> (Mac) or
+                    <code>Ctrl&nbsp;+&nbsp;Shift&nbsp;+&nbsp;S</code> (Windows)
+                </li>
+            </ol>
+        </div>
+
+        <div class="steps">
+            <h3>💡 Tips</h3>
+            <ul>
+                <li>Ensure your zmodel is error-free before generating.</li>
+                <li>Use your main zmodel file, which will include all imported models, for complete documentation.</li>
+                <li>
+                    Add clear, descriptive comments in your ZModel. The more context you provide, the better the
+                    results.
+                </li>
+            </ul>
+        </div>
+
+        <p style="text-align: center; color: var(--vscode-descriptionForeground); margin-top: 30px">
+            Happy coding with ZenStack! 🚀<br />
+        </p>
+    </body>
+</html>

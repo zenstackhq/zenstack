@@ -342,7 +342,21 @@ export default class Transformer {
             // "Input" or "NestedInput" suffix
             mappedInputTypeName += match[4];
 
-            processedInputType = { ...inputType, type: mappedInputTypeName };
+            // Prisma's naming is inconsistent for update input types, so we need
+            // to check for a few other candidates and use the one that matches
+            // a DMMF input type name
+            const candidates = [mappedInputTypeName];
+            if (mappedInputTypeName.includes('UpdateOne')) {
+                candidates.push(...candidates.map((name) => name.replace('UpdateOne', 'Update')));
+            }
+            if (mappedInputTypeName.includes('NestedInput')) {
+                candidates.push(...candidates.map((name) => name.replace('NestedInput', 'Input')));
+            }
+
+            const finalMappedName =
+                candidates.find((name) => this.inputObjectTypes.some((it) => it.name === name)) ?? mappedInputTypeName;
+
+            processedInputType = { ...inputType, type: finalMappedName };
         }
         return processedInputType;
     }
@@ -486,7 +500,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
             jsonSchemaImplementation += `\n`;
             jsonSchemaImplementation += `const literalSchema = z.union([z.string(), z.number(), z.boolean()]);\n`;
             jsonSchemaImplementation += `const jsonSchema: z.ZodType<Prisma.InputJsonValue> = z.lazy(() =>\n`;
-            jsonSchemaImplementation += `  z.union([literalSchema, z.array(jsonSchema.nullable()), z.record(jsonSchema.nullable())])\n`;
+            jsonSchemaImplementation += `  z.union([literalSchema, z.array(jsonSchema.nullable()), z.record(z.string(), jsonSchema.nullable())])\n`;
             jsonSchemaImplementation += `);\n\n`;
         }
 

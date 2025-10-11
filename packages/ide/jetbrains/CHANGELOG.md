@@ -4,6 +4,18 @@
 
 ### Fixed
 
+-   Views are not required to have a unique identifying field marked with `@id` or `@unique`.
+
+## 2.17.0
+
+### Fixed
+
+-   Support `@db.Json` and `@db.JsonB` attributes on strongly typed JSON fields.
+
+## 2.16.0
+
+### Fixed
+
 -   Prefer to use "stdlib.zmodel" from user's node_modules folder.
 
 ## 2.13.0

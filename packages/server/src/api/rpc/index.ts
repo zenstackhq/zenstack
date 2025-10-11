@@ -7,10 +7,9 @@ import {
     isPrismaClientUnknownRequestError,
     isPrismaClientValidationError,
 } from '@zenstackhq/runtime';
-import { upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
+import { upperCaseFirst, getZodErrorMessage } from '@zenstackhq/runtime/local-helpers';
 import SuperJSON from 'superjson';
 import { ZodError } from 'zod';
-import { fromZodError } from 'zod-validation-error';
 import { Response } from '../../types';
 import { APIHandlerBase, RequestContext } from '../base';
 import { logError, registerCustomSerializers } from '../utils';
@@ -202,7 +201,8 @@ class RequestHandler extends APIHandlerBase {
         }
     }
 
-    private makeError(message: string, reason?: string, zodErrors?: ZodError) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private makeError(message: string, reason?: string, zodErrors?: ZodError<any>) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const error: any = { message, reason };
         if (reason === CrudFailureReason.ACCESS_POLICY_VIOLATION || reason === CrudFailureReason.RESULT_NOT_READABLE) {
@@ -251,7 +251,7 @@ class RequestHandler extends APIHandlerBase {
             } else {
                 return {
                     data: undefined,
-                    error: fromZodError(parseResult.error).message,
+                    error: getZodErrorMessage(parseResult.error),
                     zodErrors: parseResult.error,
                 };
             }

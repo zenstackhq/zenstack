@@ -228,6 +228,9 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                             data[field] = {};
                         }
                         await this.injectSelectIncludeHierarchy(fieldInfo.type, data[field]);
+                        if (data[field].where) {
+                            this.injectWhereHierarchy(fieldInfo.type, data[field].where);
+                        }
                     }
                 }
 

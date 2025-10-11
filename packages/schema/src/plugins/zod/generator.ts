@@ -1,4 +1,5 @@
 import { DELEGATE_AUX_RELATION_PREFIX } from '@zenstackhq/runtime';
+import { upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import {
     ExpressionContext,
     PluginError,
@@ -23,10 +24,19 @@ import {
     resolvePath,
     saveSourceFile,
 } from '@zenstackhq/sdk';
-import { DataModel, EnumField, Model, TypeDef, isArrayExpr, isDataModel, isEnum, isTypeDef } from '@zenstackhq/sdk/ast';
+import {
+    DataModel,
+    DataModelField,
+    EnumField,
+    Model,
+    TypeDef,
+    isArrayExpr,
+    isDataModel,
+    isEnum,
+    isTypeDef,
+} from '@zenstackhq/sdk/ast';
 import { addMissingInputObjectTypes, resolveAggregateOperationSupport } from '@zenstackhq/sdk/dmmf-helpers';
 import { getPrismaClientImportSpec, supportCreateMany, type DMMF } from '@zenstackhq/sdk/prisma';
-import { upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import { streamAllContents } from 'langium';
 import path from 'path';
 import type { CodeBlockWriter, SourceFile } from 'ts-morph';
@@ -89,7 +99,7 @@ export class ZodSchemaGenerator {
             (o) => !excludeModels.find((e) => e === o.model)
         );
 
-        const inputObjectTypes = prismaClientDmmf.schema.inputObjectTypes.prisma.filter(
+        const inputObjectTypes = (prismaClientDmmf.schema.inputObjectTypes.prisma ?? []).filter(
             (type) =>
                 !excludeModels.some((e) => type.name.toLowerCase().startsWith(e.toLocaleLowerCase())) &&
                 // exclude delegate aux related types
@@ -212,7 +222,16 @@ export class ZodSchemaGenerator {
                 path.join(output, 'common', 'index.ts'),
                 `
     import { z } from 'zod';
-    export const DecimalSchema = z.union([z.number(), z.string(), z.object({d: z.number().array(), e: z.number(), s: z.number()}).passthrough()]);
+    export const DecimalSchema = z.any().refine((val) => {
+        if (typeof val === 'string' || typeof val === 'number') {
+            return true;
+        }
+        // Decimal.js shape
+        if (typeof val === 'object' && val && Array.isArray(val.d) && typeof val.e === 'number' && typeof val.s === 'number') {
+            return true;
+        }
+        return false;
+    }, { message: 'Not a valid Decimal value'});
     `,
                 { overwrite: true }
             )
@@ -418,25 +437,10 @@ export const ${typeDef.name}Schema = ${refineFuncName}(${noRefineSchema});
             this.addPreludeAndImports(model, writer, output);
 
             // base schema - including all scalar fields, with optionality following the schema
-            writer.write(`const baseSchema = z.object(`);
-            writer.inlineBlock(() => {
-                scalarFields.forEach((field) => {
-                    writer.writeLine(`${field.name}: ${makeFieldSchema(field)},`);
-                });
-            });
+            this.createModelBaseSchema('baseSchema', writer, scalarFields, true);
 
-            switch (this.options.mode) {
-                case 'strip':
-                    // zod strips by default
-                    writer.writeLine(')');
-                    break;
-                case 'passthrough':
-                    writer.writeLine(').passthrough();');
-                    break;
-                default:
-                    writer.writeLine(').strict();');
-                    break;
-            }
+            // base schema without field defaults
+            this.createModelBaseSchema('baseSchemaWithoutDefaults', writer, scalarFields, false);
 
             // relation fields
 
@@ -536,7 +540,9 @@ export const ${upperCaseFirst(model.name)}Schema = ${modelSchema};
             ////////////////////////////////////////////////
 
             // schema for validating prisma create input (all fields optional)
-            let prismaCreateSchema = this.makePassthrough(this.makePartial(`baseSchema${omitDiscriminators}`));
+            let prismaCreateSchema = this.makePassthrough(
+                this.makePartial(`baseSchemaWithoutDefaults${omitDiscriminators}`)
+            );
             if (refineFuncName) {
                 prismaCreateSchema = `${refineFuncName}(${prismaCreateSchema})`;
             }
@@ -554,9 +560,9 @@ export const ${upperCaseFirst(model.name)}PrismaCreateSchema = ${prismaCreateSch
                 ${scalarFields
                     .filter((f) => !isDiscriminatorField(f))
                     .map((field) => {
-                        let fieldSchema = makeFieldSchema(field);
+                        let fieldSchema = makeFieldSchema(field, false);
                         if (field.type.type === 'Int' || field.type.type === 'Float') {
-                            fieldSchema = `z.union([${fieldSchema}, z.record(z.unknown())])`;
+                            fieldSchema = `z.union([${fieldSchema}, z.record(z.string(), z.unknown())])`;
                         }
                         return `\t${field.name}: ${fieldSchema}`;
                     })
@@ -577,7 +583,7 @@ export const ${upperCaseFirst(model.name)}PrismaUpdateSchema = ${prismaUpdateSch
             // 3. Create schema
             ////////////////////////////////////////////////
 
-            let createSchema = `baseSchema${omitDiscriminators}`;
+            let createSchema = `baseSchemaWithoutDefaults${omitDiscriminators}`;
             const fieldsWithDefault = scalarFields.filter(
                 (field) => hasAttribute(field, '@default') || hasAttribute(field, '@updatedAt') || field.type.array
             );
@@ -631,7 +637,7 @@ export const ${upperCaseFirst(model.name)}CreateSchema = ${createSchema};
             ////////////////////////////////////////////////
 
             // for update all fields are optional
-            let updateSchema = this.makePartial(`baseSchema${omitDiscriminators}`);
+            let updateSchema = this.makePartial(`baseSchemaWithoutDefaults${omitDiscriminators}`);
 
             // export schema with only scalar fields: `[Model]UpdateScalarSchema`
             const updateScalarSchema = `${upperCaseFirst(model.name)}UpdateScalarSchema`;
@@ -671,6 +677,33 @@ export const ${upperCaseFirst(model.name)}UpdateSchema = ${updateSchema};
         });
 
         return schemaName;
+    }
+
+    private createModelBaseSchema(
+        name: string,
+        writer: CodeBlockWriter,
+        scalarFields: DataModelField[],
+        addDefaults: boolean
+    ) {
+        writer.write(`const ${name} = z.object(`);
+        writer.inlineBlock(() => {
+            scalarFields.forEach((field) => {
+                writer.writeLine(`${field.name}: ${makeFieldSchema(field, addDefaults)},`);
+            });
+        });
+
+        switch (this.options.mode) {
+            case 'strip':
+                // zod strips by default
+                writer.writeLine(')');
+                break;
+            case 'passthrough':
+                writer.writeLine(').passthrough();');
+                break;
+            default:
+                writer.writeLine(').strict();');
+                break;
+        }
     }
 
     private createRefineFunction(decl: DataModel | TypeDef, writer: CodeBlockWriter) {

@@ -65,7 +65,7 @@ model Foo {
             useInfiniteFindManypost_Item({ where: { published: true } });
             useInfiniteFindManypost_Item(undefined, { enabled: true, getNextPageParam: () => null });
             console.log(queryKey);
-            console.log(data?.pages[0][0].published);
+            console.log(data?.pages[0]?.[0]?.published);
             console.log(data?.pageParams[0]);
         }
 
@@ -130,7 +130,7 @@ ${sharedModel}
                             useSuspenseInfiniteFindManypost_Item({ where: { published: true } });
                             useSuspenseInfiniteFindManypost_Item(undefined, { getNextPageParam: () => null });
                             console.log(queryKey);
-                            console.log(data?.pages[0][0].published);
+                            console.log(data?.pages[0]?.[0]?.published);
                             console.log(data?.pageParams[0]);
                         }
                         `,
@@ -157,7 +157,7 @@ ${sharedModel}
             useInfiniteFindManypost_Item({ where: { published: true } }, { enabled: true, getNextPageParam: () => null });
             useInfiniteFindManypost_Item(undefined, { getNextPageParam: () => null });
             console.log(queryKey);
-            console.log(data.value?.pages[0][0].published);
+            console.log(data.value?.pages[0]?.[0]?.published);
             console.log(data.value?.pageParams[0]);
         }
 
@@ -233,7 +233,7 @@ ${sharedModel}
             useInfiniteFindManypost_Item({ where: { published: true } });
             useInfiniteFindManypost_Item(undefined, { enabled: true, getNextPageParam: () => null });
             console.log(queryKey);
-            console.log(data?.pages[0][0].published);
+            console.log(data?.pages[0]?.[0]?.published);
             console.log(data?.pageParams[0]);
         }
 
@@ -287,6 +287,72 @@ ${sharedModel}
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
                 extraSourceFiles: [svelteAppSource],
+            }
+        );
+    });
+
+    const angularAppSource = {
+        name: 'main.ts',
+        content: `
+        import { Component, inject } from '@angular/core';
+        import { useFindFirstpost_Item, useInfiniteFindManypost_Item, useCreatepost_Item } from './hooks';
+
+        @Component({
+            selector: 'app-test',
+            template: '<div>Test Component</div>'
+        })
+        export class TestComponent {
+            query() {
+                const { data, queryKey } = useFindFirstpost_Item({include: { author: true }}, { enabled: true, optimisticUpdate: false });
+                console.log(queryKey);
+                console.log(data()?.viewCount);
+                console.log(data()?.author?.email);
+            }
+
+            infiniteQuery() {
+                const { data, queryKey, fetchNextPage, hasNextPage } = useInfiniteFindManypost_Item();
+                useInfiniteFindManypost_Item({ where: { published: true } });
+                useInfiniteFindManypost_Item(undefined, { enabled: true, getNextPageParam: () => null });
+                console.log(queryKey);
+                console.log(data()?.pages[0][0].published);
+                console.log(data()?.pageParams[0]);
+            }
+
+            async mutation() {
+                const { mutateAsync } = useCreatepost_Item();
+                const data = await mutateAsync({ data: { title: 'hello' }, include: { author: true } });
+                console.log(data?.viewCount);
+                console.log(data?.author?.email);
+            }
+        }
+        `,
+    };
+
+    it('angular-query run plugin v5', async () => {
+        await loadSchema(
+            `
+plugin tanstack {
+    provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
+    output = '$projectRoot/hooks'
+    target = 'angular'
+}
+
+${sharedModel}
+        `,
+            {
+                provider: 'postgresql',
+                pushDb: false,
+                extraDependencies: [
+                    '@angular/core@^20.0.0',
+                    '@angular/common@^20.0.0',
+                    '@angular/platform-browser@^20.0.0',
+                    '@tanstack/angular-query-v5@npm:@tanstack/angular-query-experimental@5.84.x',
+                    'rxjs@^7.8.0',
+                    'zone.js@^0.15.0'
+                ],
+                copyDependencies: [path.resolve(__dirname, '../dist')],
+                compile: true,
+                extraSourceFiles: [angularAppSource],
             }
         );
     });

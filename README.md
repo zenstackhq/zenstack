@@ -10,7 +10,7 @@
         <img src="https://img.shields.io/npm/v/zenstack">
     </a>
     <a href="https://www.npmjs.com/package/zenstack">
-        <img src="https://img.shields.io/npm/dm/zenstack">
+        <img src="https://img.shields.io/npm/dm/@zenstackhq/runtime">
     </a>
     <img src="https://github.com/zenstackhq/zenstack/actions/workflows/build-test.yml/badge.svg">
     <a href="https://twitter.com/zenstackhq">
@@ -90,18 +90,26 @@ async function getPosts(userId: string) {
 Server adapter packages help you wrap an access-control-enabled Prisma client into backend CRUD APIs that can be safely called from the frontend. Here's an example for Next.js:
 
 ```ts
-// pages/api/model/[...path].ts
+// /src/app/api/model/[...path]/route.ts
 
-import { requestHandler } from '@zenstackhq/next';
+import { NextRequestHandler } from '@zenstackhq/server/next';
+import type { NextRequest } from 'next/server';
 import { enhance } from '@zenstackhq/runtime';
 import { getSessionUser } from '@lib/auth';
 import { prisma } from '@lib/db';
 
 // Mount Prisma-style APIs: "/api/model/post/findMany", "/api/model/post/create", etc.
 // Can be configured to provide standard RESTful APIs (using JSON:API) instead.
-export default requestHandler({
-    getPrisma: (req, res) => enhance(prisma, { user: getSessionUser(req, res) }),
-});
+
+function getPrisma(req: NextRequest) {
+    // getSessionUser extracts the current session user from the request, its
+    // implementation depends on your auth solution
+    return enhance(prisma, { user: getSessionUser(req) });
+}
+
+const handler = NextRequestHandler({ getPrisma, useAppDir: true });
+
+export { handler as GET, handler as POST, handler as PUT, handler as PATCH, handler as DELETE };
 ```
 
 ### 4. Generated client libraries (hooks) for data access

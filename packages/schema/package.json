@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "FullStack enhancement for Prisma ORM: seamless integration from database to UI",
-    "version": "2.16.2",
+    "version": "2.19.2",
     "author": {
         "name": "ZenStack Team"
     },
@@ -27,7 +27,7 @@
         "linkDirectory": true
     },
     "engines": {
-        "vscode": "^1.63.0"
+        "vscode": "^1.99.3"
     },
     "categories": [
         "Programming Languages"
@@ -64,13 +64,84 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Use Prisma style indentation."
+                },
+                "zenstack.searchForExtensions": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Search for Mermaid extensions when viewing Mermaid source."
                 }
             }
-        }
+        },
+        "menus": {
+            "editor/title": [
+                {
+                    "command": "zenstack.preview-zmodel",
+                    "when": "editorLangId == zmodel",
+                    "group": "navigation"
+                },
+                {
+                    "command": "zenstack.save-zmodel-documentation",
+                    "when": "(activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor') && zenstack.isMarkdownPreview == true",
+                    "group": "navigation"
+                }
+            ],
+            "commandPalette": [
+                {
+                    "command": "zenstack.preview-zmodel",
+                    "when": "editorLangId == zmodel"
+                },
+                {
+                    "command": "zenstack.clear-documentation-cache"
+                },
+                {
+                    "command": "zenstack.logout"
+                }
+            ]
+        },
+        "commands": [
+            {
+                "command": "zenstack.preview-zmodel",
+                "title": "ZenStack: Preview ZModel Documentation",
+                "icon": "$(preview)"
+            },
+            {
+                "command": "zenstack.save-zmodel-documentation",
+                "title": "ZenStack: Save ZModel Documentation",
+                "icon": "$(save)"
+            },
+            {
+                "command": "zenstack.clear-documentation-cache",
+                "title": "ZenStack: Clear Documentation Cache",
+                "icon": "$(trash)"
+            },
+            {
+                "command": "zenstack.logout",
+                "title": "ZenStack: Logout",
+                "icon": "$(log-out)"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "zenstack.preview-zmodel",
+                "key": "ctrl+shift+v",
+                "mac": "cmd+shift+v",
+                "when": "editorLangId == zmodel"
+            },
+            {
+                "command": "zenstack.save-zmodel-documentation",
+                "key": "ctrl+shift+s",
+                "mac": "cmd+shift+s",
+                "when": "(activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor') && zenstack.isMarkdownPreview == true"
+            }
+        ]
     },
-    "activationEvents": [
-        "onLanguage:zmodel"
-    ],
+    "activationEvents": [],
+    "capabilities": {
+        "untrustedWorkspaces": {
+            "supported": true
+        },
+        "virtualWorkspaces": true
+    },
     "bin": {
         "zenstack": "bin/cli"
     },
@@ -82,7 +153,7 @@
         "vscode:package": "pnpm bundle && vsce package --no-dependencies",
         "clean": "rimraf dist",
         "build": "pnpm clean && pnpm lint --max-warnings=0 && tsc && copyfiles -F \"bin/*\" dist && copyfiles ./README-global.md ./LICENSE ./package.json dist && renamer --replace \"README.md\" dist/README-global.md && copyfiles -u 1 \"src/res/*\" dist && node build/post-build.js && pnpm pack dist --pack-destination ../../../.build",
-        "bundle": "rimraf bundle && pnpm lint --max-warnings=0 && node build/bundle.js --minify",
+        "bundle": "rimraf bundle && tsc -p tsconfig.vscode.json --noEmit && pnpm lint --max-warnings=0 && node build/bundle.js --minify",
         "watch": "tsc --watch",
         "lint": "eslint src tests --ext ts",
         "test": "jest",
@@ -91,7 +162,6 @@
     },
     "dependencies": {
         "@paralleldrive/cuid2": "^2.2.0",
-        "@types/node": "^20.12.7",
         "@zenstackhq/language": "workspace:*",
         "@zenstackhq/sdk": "workspace:*",
         "async-exit-hook": "^2.0.1",
@@ -106,7 +176,7 @@
         "semver": "^7.5.2",
         "strip-color": "^0.1.0",
         "terminal-link": "^2.0.0",
-        "ts-morph": "^16.0.0",
+        "ts-morph": "catalog:",
         "ts-pattern": "^4.3.0",
         "uuid": "^9.0.0",
         "vscode-jsonrpc": "^8.0.2",
@@ -114,21 +184,21 @@
         "vscode-languageserver": "^8.0.2",
         "vscode-languageserver-textdocument": "^1.0.7",
         "vscode-uri": "^3.0.6",
-        "zod": "^3.22.4",
-        "zod-validation-error": "^1.5.0"
+        "zod-validation-error": "catalog:"
     },
     "peerDependencies": {
-        "prisma": "5.0.0 - 6.11.x"
+        "prisma": "5.0.0 - 6.16.x",
+        "zod": "catalog:"
     },
     "devDependencies": {
-        "@prisma/client": "6.11.x",
+        "@prisma/client": "6.16.x",
         "@types/async-exit-hook": "^2.0.0",
         "@types/pluralize": "^0.0.29",
         "@types/semver": "^7.3.13",
         "@types/strip-color": "^0.1.0",
         "@types/tmp": "^0.2.3",
         "@types/uuid": "^8.3.4",
-        "@types/vscode": "^1.56.0",
+        "@types/vscode": "^1.99.3",
         "@vscode/vsce": "^3.5.0",
         "@zenstackhq/runtime": "workspace:*",
         "dotenv": "^16.0.3",

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { fromZodError } from 'zod-validation-error';
+import { getZodErrorMessage } from './local-helpers';
 
 /**
  * Error indicating violations of field-level constraints
@@ -15,7 +15,7 @@ export function validate(validator: z.ZodType, data: unknown) {
     try {
         validator.parse(data);
     } catch (err) {
-        throw new ValidationError(fromZodError(err as z.ZodError).message);
+        throw new ValidationError(getZodErrorMessage(err as z.ZodError));
     }
 }
 

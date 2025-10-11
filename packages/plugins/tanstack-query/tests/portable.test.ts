@@ -41,7 +41,7 @@ describe('Tanstack Query Plugin Portable Tests', () => {
 import { useFindUniqueUser } from './hooks';
 const { data } = useFindUniqueUser({ where: { id: 1 }, include: { posts: true } });
 console.log(data?.email);
-console.log(data?.posts[0].title);
+console.log(data?.posts[0]?.title);
 `,
                     },
                 ],
@@ -101,7 +101,7 @@ console.log(data?.posts[0].title);
 import { useFindUniqueUser } from './hooks';
 const { data } = useFindUniqueUser({ where: { id: 1 }, include: { posts: true } });
 console.log(data?.email);
-console.log(data?.posts[0].title);
+console.log(data?.posts[0]?.title);
 `,
                     },
                 ],

@@ -1,6 +1,5 @@
 import fs from 'fs';
 import z, { ZodError } from 'zod';
-import { fromZodError } from 'zod-validation-error';
 import { CliError } from './cli-error';
 
 // TODO: future use
@@ -28,7 +27,7 @@ export function loadConfig(filename: string) {
             throw new CliError(`Config is not a valid JSON file: ${filename}`);
         }
         if (err instanceof ZodError) {
-            throw new CliError(`Config file ${filename} is not valid: ${fromZodError(err)}`);
+            throw new CliError(`Config file ${filename} is not valid: ${err}`);
         }
         throw new CliError(`Error loading config: ${filename}`);
     }
