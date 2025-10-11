@@ -22,7 +22,8 @@
         "nextjs",
         "sveltekit",
         "nuxtjs",
-        "elysia"
+        "elysia",
+        "tanstack-start"
     ],
     "author": "ZenStack Team",
     "license": "MIT",
@@ -72,6 +73,7 @@
         "./nestjs": "./nestjs/index.js",
         "./hono": "./hono/index.js",
         "./elysia": "./elysia/index.js",
+        "./tanstack-start": "./tanstack-start/index.js",
         "./types": "./types.js"
     }
 }
