@@ -57,7 +57,7 @@ tasks {
 
     patchPluginXml {
         sinceBuild.set("233.2")
-        untilBuild.set("251.*")
+        untilBuild.set("271.*")
         changeNotes.set(provider {
             changelog.renderItem(
                     changelog
