@@ -16,7 +16,7 @@ export function createProject(options?: CompilerOptions) {
             noEmitOnError: true,
             noImplicitAny: false,
             skipDefaultLibCheck: true,
-            types: [],
+            types: ['node'],
             ...options,
         },
     });
