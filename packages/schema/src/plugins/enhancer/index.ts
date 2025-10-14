@@ -2,6 +2,7 @@ import {
     PluginError,
     RUNTIME_PACKAGE,
     createProject,
+    getPrismaClientGenerator,
     normalizedRelative,
     resolvePath,
     type PluginFunction,
@@ -35,7 +36,8 @@ const run: PluginFunction = async (model, options, _dmmf, globalOptions) => {
             // handle custom output path
 
             // get the absolute path of the prisma client types
-            const prismaClientPathAbs = path.resolve(outDir, 'models');
+            const prismaGenerator = getPrismaClientGenerator(model);
+            const prismaClientPathAbs = path.resolve(outDir, prismaGenerator?.isNewGenerator ? 'client' : 'models');
 
             // resolve it relative to the schema path
             prismaClientPath = normalizedRelative(path.dirname(options.schemaPath), prismaClientPathAbs);
