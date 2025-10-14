@@ -164,11 +164,7 @@ export class EnhancerGenerator {
         );
         this.saveSourceFile(clientTs);
 
-        // `enhance.ts` and `enhance-edge.ts`
-        const targets = this.isNewPrismaClientGenerator ? (['node'] as const) : (['node', 'edge'] as const);
-        for (const target of targets) {
-            this.generateEnhance(prismaImport, `${resultPrismaBaseImport}/client`, needsLogicalClient, target);
-        }
+        this.generateEnhance(prismaImport, `${resultPrismaBaseImport}/client`, needsLogicalClient, 'node');
 
         return {
             // logical dmmf if there is one
