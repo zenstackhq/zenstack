@@ -3,7 +3,6 @@
  ******************************************************************************/
 
 /* eslint-disable */
-// @ts-nocheck
 
 import type { AnyRouter } from '@trpc/server';
 import { createTRPCNuxtClient as _createTRPCNuxtClient } from 'trpc-nuxt/client';

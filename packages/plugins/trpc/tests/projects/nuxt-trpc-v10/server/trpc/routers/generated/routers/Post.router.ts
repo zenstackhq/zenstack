@@ -3,7 +3,6 @@
  ******************************************************************************/
 
 /* eslint-disable */
-// @ts-nocheck
 
 import { type RouterFactory, type ProcBuilder, type BaseConfig, db } from ".";
 import * as _Schema from '@zenstackhq/runtime/zod/input';

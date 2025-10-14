@@ -346,9 +346,9 @@ ${sharedModel}
                     '@angular/core@^20.0.0',
                     '@angular/common@^20.0.0',
                     '@angular/platform-browser@^20.0.0',
-                    '@tanstack/angular-query-v5@npm:@tanstack/angular-query-experimental@5.84.x',
+                    '@tanstack/angular-query-experimental@5.84.x',
                     'rxjs@^7.8.0',
-                    'zone.js@^0.15.0'
+                    'zone.js@^0.15.0',
                 ],
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,

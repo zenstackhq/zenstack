@@ -57,7 +57,7 @@ model Foo {
             {
                 provider: 'postgresql',
                 pushDb: false,
-                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client@10', '@trpc/server@10'],
                 compile: true,
                 fullZod: true,
             }
@@ -99,7 +99,7 @@ model Foo {
         `,
             {
                 pushDb: false,
-                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client@10', '@trpc/server@10'],
                 compile: true,
                 fullZod: true,
             }
@@ -129,7 +129,7 @@ model Post {
         `,
             {
                 pushDb: false,
-                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client@10', '@trpc/server@10'],
                 compile: true,
                 fullZod: true,
                 customSchemaFilePath: 'zenstack/schema.zmodel',
@@ -154,7 +154,7 @@ model Post {
         `,
             {
                 pushDb: false,
-                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client@10', '@trpc/server@10'],
                 compile: true,
                 fullZod: true,
                 customSchemaFilePath: 'zenstack/schema.zmodel',
@@ -184,7 +184,7 @@ model Post {
         `,
             {
                 pushDb: false,
-                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client@10', '@trpc/server@10'],
                 compile: true,
                 fullZod: true,
                 customSchemaFilePath: 'zenstack/schema.zmodel',
@@ -232,9 +232,9 @@ model Post {
                 pushDb: false,
                 extraDependencies: [
                     path.resolve(__dirname, '../dist'),
-                    '@trpc/client',
-                    '@trpc/server',
-                    '@trpc/react-query',
+                    '@trpc/client@10',
+                    '@trpc/server@10',
+                    '@trpc/react-query@10',
                 ],
                 compile: true,
                 fullZod: true,
@@ -255,7 +255,12 @@ model Post {
             `,
             {
                 pushDb: false,
-                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server', '@trpc/next'],
+                extraDependencies: [
+                    path.resolve(__dirname, '../dist'),
+                    '@trpc/client@10',
+                    '@trpc/server@10',
+                    '@trpc/next@10',
+                ],
                 compile: true,
                 fullZod: true,
             }
@@ -285,7 +290,7 @@ model post_item {
         `,
             {
                 pushDb: false,
-                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client@10', '@trpc/server@10'],
                 compile: true,
                 fullZod: true,
             }
@@ -332,7 +337,7 @@ model Foo {
             {
                 addPrelude: false,
                 pushDb: false,
-                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client@10', '@trpc/server@10'],
                 compile: true,
             }
         );
@@ -403,7 +408,7 @@ model Foo {
             {
                 addPrelude: false,
                 pushDb: false,
-                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client@10', '@trpc/server@10'],
                 compile: true,
             }
         );
