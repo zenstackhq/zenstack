@@ -188,7 +188,8 @@
     },
     "peerDependencies": {
         "prisma": "5.0.0 - 6.17.x",
-        "zod": "catalog:"
+        "zod": "catalog:",
+        "@types/node": ">=18.0.0"
     },
     "devDependencies": {
         "@prisma/client": "6.17.x",
