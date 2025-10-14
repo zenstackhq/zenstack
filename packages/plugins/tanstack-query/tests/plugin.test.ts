@@ -303,17 +303,15 @@ ${sharedModel}
         })
         export class TestComponent {
             query() {
-                const { data, queryKey } = useFindFirstpost_Item({include: { author: true }}, { enabled: true, optimisticUpdate: false });
-                console.log(queryKey);
+                const { data } = useFindFirstpost_Item({include: { author: true }}, { enabled: true, optimisticUpdate: false });
                 console.log(data()?.viewCount);
                 console.log(data()?.author?.email);
             }
 
             infiniteQuery() {
-                const { data, queryKey, fetchNextPage, hasNextPage } = useInfiniteFindManypost_Item();
+                const { data, fetchNextPage, hasNextPage } = useInfiniteFindManypost_Item();
                 useInfiniteFindManypost_Item({ where: { published: true } });
                 useInfiniteFindManypost_Item(undefined, { enabled: true, getNextPageParam: () => null });
-                console.log(queryKey);
                 console.log(data()?.pages[0][0].published);
                 console.log(data()?.pageParams[0]);
             }
