@@ -181,6 +181,8 @@ The following diagram gives a high-level architecture overview of ZenStack.
 -   [ExpressJS](https://zenstack.dev/docs/reference/server-adapters/express)
 -   [NestJS](https://zenstack.dev/docs/reference/server-adapters/nestjs)
 -   [Hono](https://zenstack.dev/docs/reference/server-adapters/hono)
+-   [Elysia](https://zenstack.dev/docs/reference/server-adapters/elysia)
+-   [TanStack Start](https://zenstack.dev/docs/reference/server-adapters/tanstack-start)
 -   🙋🏻 [Request for an adapter](https://discord.gg/Ykhr738dUe)
 
 ### Prisma schema extensions
