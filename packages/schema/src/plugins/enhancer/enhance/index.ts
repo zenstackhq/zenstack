@@ -129,13 +129,19 @@ export class EnhancerGenerator {
         }
 
         // `models.ts` for exporting model types
-        const modelsTsContent = [
-            `export * from '${resultPrismaBaseImport}/models';`,
-            `export * from './json-types';`,
-        ].join('\n');
-        const modelsTs = this.project.createSourceFile(path.join(this.outDir, 'models.ts'), modelsTsContent, {
-            overwrite: true,
-        });
+
+        const modelsTsContent = [`export * from '${resultPrismaBaseImport}/models';`];
+        if (this.model.declarations.some((d) => isTypeDef(d))) {
+            modelsTsContent.push(`export * from './json-types';`);
+        }
+
+        const modelsTs = this.project.createSourceFile(
+            path.join(this.outDir, 'models.ts'),
+            modelsTsContent.join('\n'),
+            {
+                overwrite: true,
+            }
+        );
         this.saveSourceFile(modelsTs);
 
         // `enums.ts` for exporting enums
@@ -158,10 +164,7 @@ export class EnhancerGenerator {
         );
         this.saveSourceFile(clientTs);
 
-        // `enhance.ts` and `enhance-edge.ts`
-        for (const target of ['node', 'edge'] as const) {
-            this.generateEnhance(prismaImport, `${resultPrismaBaseImport}/client`, needsLogicalClient, target);
-        }
+        this.generateEnhance(prismaImport, `${resultPrismaBaseImport}/client`, needsLogicalClient, 'node');
 
         return {
             // logical dmmf if there is one
@@ -596,12 +599,13 @@ export type Enhanced<Client> =
         fs.renameSync(internalFilenameFixed, internalFilename);
 
         // Create a shared file for all JSON fields type definitions
-        const jsonFieldsFile = project.createSourceFile(path.join(this.outDir, 'json-types.ts'), undefined, {
-            overwrite: true,
-        });
-
-        this.generateExtraTypes(jsonFieldsFile);
-        await saveSourceFile(jsonFieldsFile);
+        if (this.model.declarations.some(isTypeDef)) {
+            const jsonFieldsFile = project.createSourceFile(path.join(this.outDir, 'json-types.ts'), undefined, {
+                overwrite: true,
+            });
+            this.generateExtraTypes(jsonFieldsFile);
+            await saveSourceFile(jsonFieldsFile);
+        }
 
         for (const d of this.model.declarations.filter(isDataModel)) {
             const fileName = `${prismaClientDir}/models/${d.name}.ts`;

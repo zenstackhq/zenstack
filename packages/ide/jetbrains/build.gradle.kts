@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "dev.zenstack"
-version = "2.19.2"
+version = "2.20.0"
 
 repositories {
     mavenCentral()
@@ -57,7 +57,7 @@ tasks {
 
     patchPluginXml {
         sinceBuild.set("233.2")
-        untilBuild.set("251.*")
+        untilBuild.set("271.*")
         changeNotes.set(provider {
             changelog.renderItem(
                     changelog

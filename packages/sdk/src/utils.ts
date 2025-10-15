@@ -132,7 +132,16 @@ export function indentString(string: string, count = 4): string {
 }
 
 export function hasAttribute(
-    decl: DataModel | TypeDef | DataModelField | Enum | EnumField | FunctionDecl | Attribute | AttributeParam,
+    decl:
+        | DataModel
+        | TypeDef
+        | DataModelField
+        | TypeDefField
+        | Enum
+        | EnumField
+        | FunctionDecl
+        | Attribute
+        | AttributeParam,
     name: string
 ) {
     return !!getAttribute(decl, name);

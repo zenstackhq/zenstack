@@ -3,7 +3,6 @@
  ******************************************************************************/
 
 /* eslint-disable */
-// @ts-nocheck
 
 import { TRPCError } from '@trpc/server';
 import { isPrismaClientKnownRequestError } from '@zenstackhq/runtime';

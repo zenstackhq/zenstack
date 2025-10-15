@@ -52,7 +52,7 @@ describe('Polymorphic Plugin Interaction Test', () => {
 
         await loadSchema(schema, {
             compile: true,
-            extraDependencies: ['@trpc/client', '@trpc/server', '@trpc/react-query'],
+            extraDependencies: ['@trpc/client@10', '@trpc/server@10', '@trpc/react-query@10'],
         });
     });
 

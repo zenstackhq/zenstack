@@ -67,7 +67,7 @@ export class VSCodeTelemetry {
             this.mixpanel.track('$identify', {
                 $identified_id: userId,
                 $anon_id: this.deviceId,
-                token: TELEMETRY_TRACKING_TOKEN,
+                token: VSCODE_TELEMETRY_TRACKING_TOKEN,
             });
         }
     }

@@ -1,0 +1,20 @@
+{
+  "name": "zenstack",
+  "dockerComposeFile": [
+    "./docker-compose.yml"
+  ],
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+  "workspaceFolder": "/workspace",
+  "service": "workspace",
+  "shutdownAction": "stopCompose",
+  "postCreateCommand": "npm i -g pnpm@9.15.9 && pnpm install && pnpm build && pnpm test-scaffold",
+  "remoteUser": "node",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "langium.langium-vscode",
+        "firsttris.vscode-jest-runner"
+      ]
+    }
+  }
+}

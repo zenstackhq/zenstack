@@ -4,6 +4,12 @@
 
 ### Fixed
 
+-   Update JetBrains platform version compatibility.
+
+## 2.18.0
+
+### Fixed
+
 -   Views are not required to have a unique identifying field marked with `@id` or `@unique`.
 
 ## 2.17.0
