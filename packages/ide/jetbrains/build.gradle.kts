@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "dev.zenstack"
-version = "2.20.0"
+version = "2.20.1"
 
 repositories {
     mavenCentral()

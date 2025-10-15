@@ -340,7 +340,7 @@ export type { PrismaClient };
         return `
 // overload for plain PrismaClient
 export function enhance<ExtArgs extends Record<string, any> & InternalArgs>(
-    prisma: _PrismaClient<any, any, ExtArgs>,
+    prisma: _PrismaClient${this.isNewPrismaClientGenerator ? '' : '<any, any, ExtArgs>'},
     context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions): PrismaClient${
             this.generatePermissionChecker ? ' & ModelCheckers' : ''
         };
