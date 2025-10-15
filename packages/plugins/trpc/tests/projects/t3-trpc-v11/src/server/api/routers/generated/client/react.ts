@@ -3,7 +3,6 @@
  ******************************************************************************/
 
 /* eslint-disable */
-// @ts-nocheck
 
 import type { AnyTRPCRouter as AnyRouter } from '@trpc/server';
 import type { CreateTRPCReactOptions } from '@trpc/react-query/shared';

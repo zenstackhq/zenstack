@@ -161,7 +161,7 @@ function generateQueryHook(
             isExported: true,
         });
 
-        if (version === 'v5' && infinite && ['react', 'svelte'].includes(target)) {
+        if (version === 'v5' && infinite && ['react', 'svelte', 'angular'].includes(target)) {
             // getNextPageParam option is required in v5
             func.addStatements([`options = options ?? { getNextPageParam: () => null };`]);
         }

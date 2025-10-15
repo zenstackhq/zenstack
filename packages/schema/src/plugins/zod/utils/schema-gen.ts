@@ -1,4 +1,5 @@
-import { getLiteral, isFromStdlib } from '@zenstackhq/sdk';
+import { upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
+import { getLiteral, hasAttribute, isFromStdlib } from '@zenstackhq/sdk';
 import {
     DataModelField,
     DataModelFieldAttribute,
@@ -11,7 +12,6 @@ import {
     isTypeDef,
     TypeDefField,
 } from '@zenstackhq/sdk/ast';
-import { upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import { isDefaultWithAuth } from '../../enhancer/enhancer-utils';
 
 export function makeFieldSchema(field: DataModelField | TypeDefField, addDefaults: boolean = true) {
@@ -235,7 +235,13 @@ export function getFieldSchemaDefault(field: DataModelField | TypeDefField) {
     const arg = attr.args.find((arg) => arg.$resolvedParam?.name === 'value');
     if (arg) {
         if (isStringLiteral(arg.value)) {
-            return JSON.stringify(arg.value.value);
+            if (field.type.type === 'Json' || hasAttribute(field, '@json')) {
+                // JSON field can have JSON string as default value, we shouldn't
+                // stringify it back
+                return arg.value.value;
+            } else {
+                return JSON.stringify(arg.value.value);
+            }
         } else if (isNumberLiteral(arg.value)) {
             return arg.value.value;
         } else if (isBooleanLiteral(arg.value)) {

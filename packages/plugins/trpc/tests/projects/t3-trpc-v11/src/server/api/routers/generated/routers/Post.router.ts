@@ -3,7 +3,6 @@
  ******************************************************************************/
 
 /* eslint-disable */
-// @ts-nocheck
 
 import { db } from ".";
 import { createTRPCRouter } from "../../generated-router-helper";

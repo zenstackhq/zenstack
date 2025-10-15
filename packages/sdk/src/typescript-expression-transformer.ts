@@ -16,6 +16,7 @@ import {
     isArrayExpr,
     isDataModel,
     isEnumField,
+    isInvocationExpr,
     isLiteralExpr,
     isNullExpr,
     isThisExpr,
@@ -509,6 +510,26 @@ export class TypeScriptExpressionTransformer {
                     }
                     return result;
                 } else {
+                    const isLiteralOrEvaluatesToLiteral = (e: Expression) =>
+                        isLiteralExpr(e) ||
+                        (isInvocationExpr(e) &&
+                            (e.function.$refText === 'currentModel' || e.function.$refText === 'currentOperation'));
+                    if (isLiteralOrEvaluatesToLiteral(expr.left) && isLiteralOrEvaluatesToLiteral(expr.right)) {
+                        // resolve trivial comparisons to avoid TS compiler errors
+                        if (expr.operator === '==') {
+                            if (left === right) {
+                                return 'true';
+                            } else {
+                                return 'false';
+                            }
+                        } else if (expr.operator === '!=') {
+                            if (left !== right) {
+                                return 'true';
+                            } else {
+                                return 'false';
+                            }
+                        }
+                    }
                     return _default;
                 }
             })

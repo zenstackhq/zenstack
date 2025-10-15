@@ -3,7 +3,6 @@
  ******************************************************************************/
 
 /* eslint-disable */
-// @ts-nocheck
 
 import type { Prisma } from '@prisma/client';
 import type { TRPCClientErrorLike, TRPCRequestOptions } from '@trpc/client';
