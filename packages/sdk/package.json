@@ -18,8 +18,8 @@
     "author": "",
     "license": "MIT",
     "dependencies": {
-        "@prisma/generator-helper": "6.17.x",
-        "@prisma/internals": "6.17.x",
+        "@prisma/generator-helper": "6.18.x",
+        "@prisma/internals": "6.18.x",
         "@zenstackhq/language": "workspace:*",
         "@zenstackhq/runtime": "workspace:*",
         "langium": "1.3.1",
