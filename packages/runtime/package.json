@@ -124,7 +124,7 @@
         "zod": "^3.25.0"
     },
     "peerDependencies": {
-        "@prisma/client": "5.0.0 - 6.17.x",
+        "@prisma/client": "5.0.0 - 6.18.x",
         "zod": "catalog:"
     },
     "author": {
