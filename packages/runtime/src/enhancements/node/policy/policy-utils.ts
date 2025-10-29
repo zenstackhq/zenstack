@@ -1528,8 +1528,20 @@ export class PolicyUtil extends QueryUtils {
                     continue;
                 }
 
-                if (queryArgs?.omit?.[field] === true) {
+                if (queryArgs?.omit && typeof queryArgs.omit === 'object' && queryArgs.omit[field] === true) {
                     // respect `{ omit: { [field]: true } }`
+                    delete entityData[field];
+                    continue;
+                }
+
+                if (queryArgs?.select && typeof queryArgs.select === 'object' && !queryArgs.select[field]) {
+                    // respect select
+                    delete entityData[field];
+                    continue;
+                }
+
+                if (fieldInfo.isDataModel && queryArgs?.include && typeof queryArgs.include === 'object' && !queryArgs.include[field]) {
+                    // respect include
                     delete entityData[field];
                     continue;
                 }
