@@ -635,7 +635,6 @@ model Class extends BaseWithCuid {
 `,
             { 
               dbFile: path.join(__dirname, 'dev.db'),
-              logPrismaQuery: true
             }
         );
 
