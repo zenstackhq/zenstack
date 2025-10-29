@@ -150,6 +150,7 @@ export type SchemaLoadOptions = {
     prismaLoadPath?: string;
     prismaClientOptions?: object;
     generateNoCompile?: boolean;
+    dbFile?: string;
 };
 
 const defaultOptions: SchemaLoadOptions = {
@@ -337,7 +338,10 @@ export function createProjectAndCompile(schema: string, options: SchemaLoadOptio
         });
     }
 
-    if (opt.pushDb) {
+    if (opt.dbFile) {
+        fs.cpSync(opt.dbFile, path.join(projectDir, 'prisma/dev.db'));
+    }
+    else if (opt.pushDb) {
         run('npx prisma db push --skip-generate --accept-data-loss');
     }
 
