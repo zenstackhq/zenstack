@@ -192,7 +192,8 @@
         "@types/node": ">=18.0.0"
     },
     "devDependencies": {
-        "@prisma/client": "6.18.x",
+        "prisma": "6.17.x",
+        "@prisma/client": "6.17.x",
         "@types/async-exit-hook": "^2.0.0",
         "@types/pluralize": "^0.0.29",
         "@types/semver": "^7.3.13",
