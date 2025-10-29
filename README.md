@@ -24,6 +24,11 @@
     </a>
 </div>
 
+
+## V3 is in Beta now!
+
+[ZenStack v3](https://zenstack.dev/v3) is in Beta now! It replaced Prisma ORM with its own implementation built on top of [Kysely](https://kysely.dev) - lighter, faster, and more flexible. The code resides in a [separate repo](https://github.com/zenstackhq/zenstack-v3).
+
 ## What it is
 
 ZenStack is a Node.js/TypeScript toolkit that simplifies the development of web applications. It enhances [Prisma ORM](https://prisma.io) with a flexible Authorization layer and auto-generated, type-safe APIs/hooks, unlocking its full potential for full-stack development.
