@@ -50,6 +50,7 @@ export class ZodSchemaGenerator {
     private readonly sourceFiles: SourceFile[] = [];
     private readonly globalOptions: PluginGlobalOptions;
     private readonly mode: ObjectMode;
+    private readonly zodVersion: 'v3' | 'v4' = 'v3';
 
     constructor(
         private readonly model: Model,
@@ -74,6 +75,16 @@ export class ZodSchemaGenerator {
         }
 
         this.mode = (this.options.mode ?? 'strict') as ObjectMode;
+
+        if (this.options.version) {
+            if (typeof this.options.version !== 'string' || !['v3', 'v4'].includes(this.options.version)) {
+                throw new PluginError(
+                    name,
+                    `Invalid "version" option: "${this.options.version}". Must be one of 'v3' or 'v4'.`
+                );
+            }
+            this.zodVersion = this.options.version as 'v3' | 'v4';
+        }
     }
 
     async generate() {
@@ -151,6 +162,7 @@ export class ZodSchemaGenerator {
                 inputObjectTypes,
                 zmodel: this.model,
                 mode: this.mode,
+                zodVersion: this.zodVersion,
             });
             await transformer.generateInputSchemas(this.options, this.model);
             this.sourceFiles.push(...transformer.sourceFiles);
@@ -221,7 +233,7 @@ export class ZodSchemaGenerator {
             this.project.createSourceFile(
                 path.join(output, 'common', 'index.ts'),
                 `
-    import { z } from 'zod';
+    import { z } from 'zod/${this.zodVersion}';
     export const DecimalSchema = z.any().refine((val) => {
         if (typeof val === 'string' || typeof val === 'number') {
             return true;
@@ -251,6 +263,7 @@ export class ZodSchemaGenerator {
             inputObjectTypes: [],
             zmodel: this.model,
             mode: this.mode,
+            zodVersion: this.zodVersion,
         });
         await transformer.generateEnumSchemas();
         this.sourceFiles.push(...transformer.sourceFiles);
@@ -281,6 +294,7 @@ export class ZodSchemaGenerator {
                 inputObjectTypes,
                 zmodel: this.model,
                 mode: this.mode,
+                zodVersion: this.zodVersion,
             });
             const moduleName = transformer.generateObjectSchema(generateUnchecked, this.options);
             moduleNames.push(moduleName);
@@ -370,7 +384,7 @@ export const ${typeDef.name}Schema = ${refineFuncName}(${noRefineSchema});
     }
 
     private addPreludeAndImports(decl: DataModel | TypeDef, writer: CodeBlockWriter, output: string) {
-        writer.writeLine(`import { z } from 'zod';`);
+        writer.writeLine(`import { z } from 'zod/${this.zodVersion}';`);
 
         // import user-defined enums from Prisma as they might be referenced in the expressions
         const importEnums = new Set<string>();
@@ -716,7 +730,7 @@ export const ${upperCaseFirst(model.name)}UpdateSchema = ${updateSchema};
     /**
     * Schema refinement function for applying \`@@validate\` rules.
     */
-    export function ${refineFuncName}<T, D extends z.ZodTypeDef>(schema: z.ZodType<T, D, T>) { return schema${refinements.join(
+    export function ${refineFuncName}<T>(schema: z.ZodType<T>) { return schema${refinements.join(
                     '\n'
                 )};
     }
