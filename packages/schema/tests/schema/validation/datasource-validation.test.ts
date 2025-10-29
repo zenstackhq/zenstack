@@ -1,8 +1,6 @@
 import { loadModel, loadModelWithError, safelyLoadModel } from '../../utils';
 
-// TODO: investigate CI failure
-// eslint-disable-next-line jest/no-disabled-tests
-describe.skip('Datasource Validation Tests', () => {
+describe('Datasource Validation Tests', () => {
     it('missing fields', async () => {
         const result = await safelyLoadModel(`
                 datasource db {
