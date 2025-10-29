@@ -679,7 +679,6 @@ model Class extends BaseWithCuid {
             },
         });
 
-        console.log(JSON.stringify(r, null, 2));
         expect(r.lab.content[0].modules[0].classes[0].module).toBeUndefined();
     });
 });
