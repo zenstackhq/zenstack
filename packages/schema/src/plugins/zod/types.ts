@@ -15,6 +15,7 @@ export type TransformerParams = {
     inputObjectTypes: PrismaDMMF.InputType[];
     zmodel: Model;
     mode: ObjectMode;
+    zodVersion: 'v3' | 'v4';
 };
 
 export type AggregateOperationSupport = {

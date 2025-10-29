@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { DELEGATE_AUX_RELATION_PREFIX } from '@zenstackhq/runtime';
+import { upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import {
     getForeignKeyFields,
     getRelationBackLink,
@@ -12,7 +13,6 @@ import {
 import { DataModel, DataModelField, Enum, isDataModel, isEnum, isTypeDef, type Model } from '@zenstackhq/sdk/ast';
 import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
 import { supportCreateMany, type DMMF as PrismaDMMF } from '@zenstackhq/sdk/prisma';
-import { upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
 import path from 'path';
 import type { Project, SourceFile } from 'ts-morph';
 import { computePrismaClientImport } from './generator';
@@ -38,6 +38,7 @@ export default class Transformer {
     public sourceFiles: SourceFile[] = [];
     private zmodel: Model;
     private mode: ObjectMode;
+    private zodVersion: 'v3' | 'v4';
 
     constructor(params: TransformerParams) {
         this.originalName = params.name ?? '';
@@ -51,6 +52,7 @@ export default class Transformer {
         this.inputObjectTypes = params.inputObjectTypes;
         this.zmodel = params.zmodel;
         this.mode = params.mode;
+        this.zodVersion = params.zodVersion;
     }
 
     static setOutputPath(outPath: string) {
@@ -103,7 +105,7 @@ export default class Transformer {
     }
 
     generateImportZodStatement() {
-        let r = "import { z } from 'zod';\n";
+        let r = `import { z } from 'zod/${this.zodVersion}';\n`;
         if (this.mode === 'strip') {
             // import the additional `smartUnion` helper
             r += `import { smartUnion } from '@zenstackhq/runtime/zod-utils';\n`;
@@ -480,7 +482,7 @@ export default class Transformer {
             name = `${name}Type`;
             origName = `${origName}Type`;
         }
-        const outType = `z.ZodType<Prisma.${origName}>`;
+        const outType = this.makeZodType(`Prisma.${origName}`);
         return `type SchemaType = ${outType};
 export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
     }
@@ -499,7 +501,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
         if (this.hasJson) {
             jsonSchemaImplementation += `\n`;
             jsonSchemaImplementation += `const literalSchema = z.union([z.string(), z.number(), z.boolean()]);\n`;
-            jsonSchemaImplementation += `const jsonSchema: z.ZodType<Prisma.InputJsonValue> = z.lazy(() =>\n`;
+            jsonSchemaImplementation += `const jsonSchema: ${this.makeZodType('Prisma.InputJsonValue')} = z.lazy(() =>\n`;
             jsonSchemaImplementation += `  z.union([literalSchema, z.array(jsonSchema.nullable()), z.record(z.string(), jsonSchema.nullable())])\n`;
             jsonSchemaImplementation += `);\n\n`;
         }
@@ -886,9 +888,10 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
             
             type ${modelName}InputSchemaType = {
 ${operations
-    .map(([operation, typeName]) =>
-        indentString(`${operation}: z.ZodType<Prisma.${typeName}${upperCaseFirst(operation)}Args>`, 4)
-    )
+    .map(([operation, typeName]) => {
+        const argType = `Prisma.${typeName}${upperCaseFirst(operation)}Args`;
+        return indentString(`${operation}: ${this.makeZodType(argType)}`, 4)
+})
     .join(',\n')}
             }
 
@@ -949,5 +952,9 @@ ${globalExports.join(';\n')}
             selectZodSchemaLineLazy,
             includeZodSchemaLineLazy,
         };
+    }
+
+    private makeZodType(typeArg: string) {
+        return this.zodVersion === 'v3' ? `z.ZodType<${typeArg}>` : `z.ZodType<${typeArg}, ${typeArg}>`;
     }
 }
