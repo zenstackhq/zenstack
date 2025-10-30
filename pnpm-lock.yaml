@@ -124,7 +124,7 @@ importers:
     devDependencies:
       '@redwoodjs/graphql-server':
         specifier: ^7.7.3
-        version: 7.7.3(@escape.tech/graphql-armor-types@0.5.0)(prisma@6.0.0)
+        version: 7.7.3(@escape.tech/graphql-armor-types@0.5.0)(prisma@6.17.1(typescript@5.9.2))
       '@types/yargs':
         specifier: ^17.0.32
         version: 17.0.32
@@ -382,9 +382,6 @@ importers:
 
   packages/runtime:
     dependencies:
-      '@prisma/client':
-        specifier: 5.0.0 - 6.17.x
-        version: 6.17.1(prisma@6.0.0)(typescript@5.9.2)
       bcryptjs:
         specifier: ^2.4.3
         version: 2.4.3
@@ -425,6 +422,9 @@ importers:
         specifier: 'catalog:'
         version: 4.0.1(zod@3.25.76)
     devDependencies:
+      '@prisma/client':
+        specifier: 6.17.x
+        version: 6.17.1(prisma@6.17.1(typescript@5.9.2))(typescript@5.9.2)
       '@types/bcryptjs':
         specifier: ^2.4.2
         version: 2.4.6
@@ -486,9 +486,6 @@ importers:
       pretty-repl:
         specifier: ^4.0.0
         version: 4.0.1
-      prisma:
-        specifier: 5.0.0 - 6.17.x
-        version: 6.0.0
       semver:
         specifier: ^7.5.2
         version: 7.6.2
@@ -531,7 +528,7 @@ importers:
     devDependencies:
       '@prisma/client':
         specifier: 6.17.x
-        version: 6.17.1(prisma@6.0.0)(typescript@5.9.2)
+        version: 6.17.1(prisma@6.17.1(typescript@5.9.2))(typescript@5.9.2)
       '@types/async-exit-hook':
         specifier: ^2.0.0
         version: 2.0.2
@@ -565,6 +562,9 @@ importers:
       esbuild:
         specifier: ^0.24.0
         version: 0.24.0
+      prisma:
+        specifier: 6.17.x
+        version: 6.17.1(typescript@5.9.2)
       renamer:
         specifier: ^4.0.0
         version: 4.0.0
@@ -2498,9 +2498,6 @@ packages:
   '@prisma/debug@5.14.0':
     resolution: {integrity: sha512-iq56qBZuFfX3fCxoxT8gBX33lQzomBU0qIUaEj1RebsKVz1ob/BVH1XSBwwwvRVtZEV1b7Fxx2eVu34Ge/mg3w==}
 
-  '@prisma/debug@6.0.0':
-    resolution: {integrity: sha512-eUjoNThlDXdyJ1iQ2d7U6aTVwm59EwvODb5zFVNJEokNoSiQmiYWNzZIwZyDmZ+j51j42/0iTaHIJ4/aZPKFRg==}
-
   '@prisma/debug@6.17.1':
     resolution: {integrity: sha512-Vf7Tt5Wh9XcndpbmeotuqOMLWPTjEKCsgojxXP2oxE1/xYe7PtnP76hsouG9vis6fctX+TxgmwxTuYi/+xc7dQ==}
 
@@ -2513,26 +2510,17 @@ packages:
   '@prisma/engines-version@5.14.0-25.e9771e62de70f79a5e1c604a2d7c8e2a0a874b48':
     resolution: {integrity: sha512-ip6pNkRo1UxWv+6toxNcYvItNYaqQjXdFNGJ+Nuk2eYtRoEdoF13wxo7/jsClJFFenMPVNVqXQDV0oveXnR1cA==}
 
-  '@prisma/engines-version@5.23.0-27.5dbef10bdbfb579e07d35cc85fb1518d357cb99e':
-    resolution: {integrity: sha512-JmIds0Q2/vsOmnuTJYxY4LE+sajqjYKhLtdOT6y4imojqv5d/aeVEfbBGC74t8Be1uSp0OP8lxIj2OqoKbLsfQ==}
-
   '@prisma/engines-version@6.17.1-1.272a37d34178c2894197e17273bf937f25acdeac':
     resolution: {integrity: sha512-17140E3huOuD9lMdJ9+SF/juOf3WR3sTJMVyyenzqUPbuH+89nPhSWcrY+Mf7tmSs6HvaO+7S+HkELinn6bhdg==}
 
   '@prisma/engines@5.14.0':
     resolution: {integrity: sha512-lgxkKZ6IEygVcw6IZZUlPIfLQ9hjSYAtHjZ5r64sCLDgVzsPFCi2XBBJgzPMkOQ5RHzUD4E/dVdpn9+ez8tk1A==}
 
-  '@prisma/engines@6.0.0':
-    resolution: {integrity: sha512-ZZCVP3q22ifN6Ex6C8RIcTDBlRtMJS2H1ljV0knCiWNGArvvkEbE88W3uDdq/l4+UvyvHpGzdf9ZsCWSQR7ZQQ==}
-
   '@prisma/engines@6.17.1':
     resolution: {integrity: sha512-D95Ik3GYZkqZ8lSR4EyFOJ/tR33FcYRP8kK61o+WMsyD10UfJwd7+YielflHfKwiGodcqKqoraWw8ElAgMDbPw==}
 
   '@prisma/fetch-engine@5.14.0':
     resolution: {integrity: sha512-VrheA9y9DMURK5vu8OJoOgQpxOhas3qF0IBHJ8G/0X44k82kc8E0w98HCn2nhnbOOMwbWsJWXfLC2/F8n5u0gQ==}
-
-  '@prisma/fetch-engine@6.0.0':
-    resolution: {integrity: sha512-j2m+iO5RDPRI7SUc7sHo8wX7SA4iTkJ+18Sxch8KinQM46YiCQD1iXKN6qU79C1Fliw5Bw/qDyTHaTsa3JMerA==}
 
   '@prisma/fetch-engine@6.17.1':
     resolution: {integrity: sha512-AYZiHOs184qkDMiTeshyJCtyL4yERkjfTkJiSJdYuSfc24m94lTNL5+GFinZ6vVz+ktX4NJzHKn1zIFzGTWrWg==}
@@ -2548,9 +2536,6 @@ packages:
 
   '@prisma/get-platform@5.14.0':
     resolution: {integrity: sha512-/yAyBvcEjRv41ynZrhdrPtHgk47xLRRq/o5eWGcUpBJ1YrUZTYB8EoPiopnP7iQrMATK8stXQdPOoVlrzuTQZw==}
-
-  '@prisma/get-platform@6.0.0':
-    resolution: {integrity: sha512-PS6nYyIm9g8C03E4y7LknOfdCw/t2KyEJxntMPQHQZCOUgOpF82Ma60mdlOD08w90I3fjLiZZ0+MadenR3naDQ==}
 
   '@prisma/get-platform@6.17.1':
     resolution: {integrity: sha512-AKEn6fsfz0r482S5KRDFlIGEaq9wLNcgalD1adL+fPcFFblIKs1sD81kY/utrHdqKuVC6E1XSRpegDK3ZLL4Qg==}
@@ -7068,10 +7053,15 @@ packages:
     engines: {node: '>=0.8'}
     hasBin: true
 
-  prisma@6.0.0:
-    resolution: {integrity: sha512-RX7KtbW7IoEByf7MR32JK1PkVYLVYFqeODTtiIX3cqekq1aKdsF3Eud4zp2sUShMLjvdb5Jow0LbUjRq5LVxPw==}
+  prisma@6.17.1:
+    resolution: {integrity: sha512-ac6h0sM1Tg3zu8NInY+qhP/S9KhENVaw9n1BrGKQVFu05JT5yT5Qqqmb8tMRIE3ZXvVj4xcRA5yfrsy4X7Yy5g==}
     engines: {node: '>=18.18'}
     hasBin: true
+    peerDependencies:
+      typescript: '>=5.1.0'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
 
   proc-log@4.2.0:
     resolution: {integrity: sha512-g8+OnU/L2v+wyiVK+D5fA34J7EH8jZ8DDlvwhRCMxmMj7UCBvxiO1mGeN+36JXIKF4zevU4kRBd8lVgG9vLelA==}
@@ -10569,13 +10559,13 @@ snapshots:
 
   '@polka/url@1.0.0-next.25': {}
 
-  '@prisma/client@5.14.0(prisma@6.0.0)':
+  '@prisma/client@5.14.0(prisma@6.17.1(typescript@5.9.2))':
     optionalDependencies:
-      prisma: 6.0.0
+      prisma: 6.17.1(typescript@5.9.2)
 
-  '@prisma/client@6.17.1(prisma@6.0.0)(typescript@5.9.2)':
+  '@prisma/client@6.17.1(prisma@6.17.1(typescript@5.9.2))(typescript@5.9.2)':
     optionalDependencies:
-      prisma: 6.0.0
+      prisma: 6.17.1(typescript@5.9.2)
       typescript: 5.9.2
 
   '@prisma/config@6.17.1':
@@ -10589,8 +10579,6 @@ snapshots:
 
   '@prisma/debug@5.14.0': {}
 
-  '@prisma/debug@6.0.0': {}
-
   '@prisma/debug@6.17.1': {}
 
   '@prisma/dmmf@6.17.1': {}
@@ -10601,8 +10589,6 @@ snapshots:
 
   '@prisma/engines-version@5.14.0-25.e9771e62de70f79a5e1c604a2d7c8e2a0a874b48': {}
 
-  '@prisma/engines-version@5.23.0-27.5dbef10bdbfb579e07d35cc85fb1518d357cb99e': {}
-
   '@prisma/engines-version@6.17.1-1.272a37d34178c2894197e17273bf937f25acdeac': {}
 
   '@prisma/engines@5.14.0':
@@ -10611,13 +10597,6 @@ snapshots:
       '@prisma/engines-version': 5.14.0-25.e9771e62de70f79a5e1c604a2d7c8e2a0a874b48
       '@prisma/fetch-engine': 5.14.0
       '@prisma/get-platform': 5.14.0
-
-  '@prisma/engines@6.0.0':
-    dependencies:
-      '@prisma/debug': 6.0.0
-      '@prisma/engines-version': 5.23.0-27.5dbef10bdbfb579e07d35cc85fb1518d357cb99e
-      '@prisma/fetch-engine': 6.0.0
-      '@prisma/get-platform': 6.0.0
 
   '@prisma/engines@6.17.1':
     dependencies:
@@ -10631,12 +10610,6 @@ snapshots:
       '@prisma/debug': 5.14.0
       '@prisma/engines-version': 5.14.0-25.e9771e62de70f79a5e1c604a2d7c8e2a0a874b48
       '@prisma/get-platform': 5.14.0
-
-  '@prisma/fetch-engine@6.0.0':
-    dependencies:
-      '@prisma/debug': 6.0.0
-      '@prisma/engines-version': 5.23.0-27.5dbef10bdbfb579e07d35cc85fb1518d357cb99e
-      '@prisma/get-platform': 6.0.0
 
   '@prisma/fetch-engine@6.17.1':
     dependencies:
@@ -10659,10 +10632,6 @@ snapshots:
   '@prisma/get-platform@5.14.0':
     dependencies:
       '@prisma/debug': 5.14.0
-
-  '@prisma/get-platform@6.0.0':
-    dependencies:
-      '@prisma/debug': 6.0.0
 
   '@prisma/get-platform@6.17.1':
     dependencies:
@@ -10774,10 +10743,10 @@ snapshots:
 
   '@readme/openapi-schemas@3.1.0': {}
 
-  '@redwoodjs/api@7.7.3(prisma@6.0.0)':
+  '@redwoodjs/api@7.7.3(prisma@6.17.1(typescript@5.9.2))':
     dependencies:
       '@babel/runtime-corejs3': 7.24.5
-      '@prisma/client': 5.14.0(prisma@6.0.0)
+      '@prisma/client': 5.14.0(prisma@6.17.1(typescript@5.9.2))
       '@whatwg-node/fetch': 0.9.17
       core-js: 3.37.1
       humanize-string: 2.1.0
@@ -10810,7 +10779,7 @@ snapshots:
 
   '@redwoodjs/context@7.7.3': {}
 
-  '@redwoodjs/graphql-server@7.7.3(@escape.tech/graphql-armor-types@0.5.0)(prisma@6.0.0)':
+  '@redwoodjs/graphql-server@7.7.3(@escape.tech/graphql-armor-types@0.5.0)(prisma@6.17.1(typescript@5.9.2))':
     dependencies:
       '@babel/runtime-corejs3': 7.24.5
       '@envelop/core': 5.0.1
@@ -10824,7 +10793,7 @@ snapshots:
       '@graphql-tools/utils': 10.2.0(graphql@16.8.1)
       '@graphql-yoga/plugin-persisted-operations': 3.3.1(@graphql-tools/utils@10.2.0(graphql@16.8.1))(graphql-yoga@5.3.1(graphql@16.8.1))(graphql@16.8.1)
       '@opentelemetry/api': 1.8.0
-      '@redwoodjs/api': 7.7.3(prisma@6.0.0)
+      '@redwoodjs/api': 7.7.3(prisma@6.17.1(typescript@5.9.2))
       '@redwoodjs/context': 7.7.3
       core-js: 3.37.1
       graphql: 16.8.1
@@ -16150,11 +16119,14 @@ snapshots:
 
   printj@1.3.1: {}
 
-  prisma@6.0.0:
+  prisma@6.17.1(typescript@5.9.2):
     dependencies:
-      '@prisma/engines': 6.0.0
+      '@prisma/config': 6.17.1
+      '@prisma/engines': 6.17.1
     optionalDependencies:
-      fsevents: 2.3.3
+      typescript: 5.9.2
+    transitivePeerDependencies:
+      - magicast
 
   proc-log@4.2.0: {}
 

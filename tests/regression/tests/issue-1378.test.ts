@@ -24,7 +24,7 @@ describe('issue 1378', () => {
                     {
                         name: 'main.ts',
                         content: `
-                  import { z } from 'zod';
+                  import { z } from 'zod/v3';
                   import { PrismaClient } from '@prisma/client';
                   import { enhance } from '.zenstack/enhance';
                   import { TodoCreateSchema } from '.zenstack/zod/models';
