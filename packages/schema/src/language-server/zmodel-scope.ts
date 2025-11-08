@@ -34,7 +34,7 @@ import {
 import { match } from 'ts-pattern';
 import { CancellationToken } from 'vscode-jsonrpc';
 import {
-    getAllLoadedAndReachableDataModelsAndTypeDefs,
+    getCurrentNodeAndReachableDataModelsAndTypeDefs,
     isCollectionPredicate,
     isFutureInvocation,
     resolveImportUri,
@@ -135,7 +135,6 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
         const referenceType = this.reflection.getReferenceType(context);
         const globalScope = this.getGlobalScope(referenceType, context);
         const node = context.container as MemberAccessExpr;
-
         // typedef's fields are only added to the scope if the access starts with `auth().`
         // or the member access resides inside a typedef
         const allowTypeDefScope = isAuthOrAuthMemberAccess(node.operand) || !!getContainerOfType(node, isTypeDef);
@@ -230,9 +229,11 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
     }
 
     private createScopeForAuth(node: AstNode, globalScope: Scope) {
-        // get all data models and type defs from loaded and reachable documents
-        const decls = getAllLoadedAndReachableDataModelsAndTypeDefs(
+        // get all data models and type defs from current node and reachable documents
+
+        const decls = getCurrentNodeAndReachableDataModelsAndTypeDefs(
             this.services.shared.workspace.LangiumDocuments,
+            node,
             getContainerOfType(node, isDataModel)
         );
 

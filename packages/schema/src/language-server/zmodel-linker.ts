@@ -55,7 +55,7 @@ import {
 } from 'langium';
 import { match } from 'ts-pattern';
 import { CancellationToken } from 'vscode-jsonrpc';
-import { getAllLoadedAndReachableDataModelsAndTypeDefs, getContainingDataModel } from '../utils/ast-utils';
+import { getContainingDataModel, getCurrentNodeAndReachableDataModelsAndTypeDefs } from '../utils/ast-utils';
 import { isMemberContainer } from './utils';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
 
@@ -283,9 +283,11 @@ export class ZModelLinker extends DefaultLinker {
             if (isAuthInvocation(node)) {
                 // auth() function is resolved against all loaded and reachable documents
 
-                // get all data models from loaded and reachable documents
-                const allDecls = getAllLoadedAndReachableDataModelsAndTypeDefs(
+                // get all data models from current node and reachable documents
+
+                const allDecls = getCurrentNodeAndReachableDataModelsAndTypeDefs(
                     this.langiumDocuments(),
+                    node,
                     getContainerOfType(node, isDataModel)
                 );
 
