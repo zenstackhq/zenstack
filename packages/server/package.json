@@ -29,10 +29,10 @@
     "license": "MIT",
     "dependencies": {
         "@zenstackhq/runtime": "workspace:*",
+        "decimal.js": "^10.4.2",
         "superjson": "^1.13.0",
-        "ts-japi": "^1.10.1",
-        "url-pattern": "^1.0.3",
-        "decimal.js": "^10.4.2"
+        "ts-japi": "^1.12.1",
+        "url-pattern": "^1.0.3"
     },
     "peerDependencies": {
         "zod": "catalog:"
