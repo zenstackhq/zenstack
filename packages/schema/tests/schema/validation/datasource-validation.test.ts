@@ -10,10 +10,7 @@ describe('Datasource Validation Tests', () => {
         expect(result).toMatchObject({
             status: 'rejected',
             reason: {
-                cause: [
-                    { message: 'datasource must include a "provider" field' },
-                    { message: 'datasource must include a "url" field' },
-                ],
+                cause: [{ message: 'datasource must include a "provider" field' }],
             },
         });
     });
