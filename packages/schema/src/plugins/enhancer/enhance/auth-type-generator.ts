@@ -101,7 +101,7 @@ export function generateAuthType(model: Model, authDecl: DataModel | TypeDef) {
 ${Array.from(types.entries())
     .map(([type, typeInfo]) => {
         // TypeDef types are generated in "json-types.ts" for the new "prisma-client" generator
-        const typeRef = isNewGenerator ? `$TypeDefs.${type}` : `_P.${type}`;
+        const typeRef = isNewGenerator && typeInfo.isTypeDef ? `$TypeDefs.${type}` : `_P.${type}`;
         let result = `Partial<${typeRef}>`;
 
         if (type === authDecl.name) {
