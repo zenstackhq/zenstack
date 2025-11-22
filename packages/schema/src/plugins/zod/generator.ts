@@ -340,7 +340,7 @@ export class ZodSchemaGenerator {
         });
         this.sourceFiles.push(sf);
         sf.replaceWithText((writer) => {
-            this.addPreludeAndImports(typeDef, writer, output);
+            this.addPreludeAndImports(typeDef, writer);
 
             writer.write(`const baseSchema = z.object(`);
             writer.inlineBlock(() => {
@@ -383,7 +383,7 @@ export const ${typeDef.name}Schema = ${refineFuncName}(${noRefineSchema});
         return schemaName;
     }
 
-    private addPreludeAndImports(decl: DataModel | TypeDef, writer: CodeBlockWriter, output: string) {
+    private addPreludeAndImports(decl: DataModel | TypeDef, writer: CodeBlockWriter) {
         writer.writeLine(`import { z } from 'zod/${this.zodVersion}';`);
 
         // import user-defined enums from Prisma as they might be referenced in the expressions
@@ -444,7 +444,7 @@ export const ${typeDef.name}Schema = ${refineFuncName}(${noRefineSchema});
             const relations = model.fields.filter((field) => isDataModel(field.type.reference?.ref));
             const fkFields = model.fields.filter((field) => isForeignKeyField(field));
 
-            this.addPreludeAndImports(model, writer, output);
+            this.addPreludeAndImports(model, writer);
 
             // base schema - including all scalar fields, with optionality following the schema
             this.createModelBaseSchema('baseSchema', writer, scalarFields, true);
