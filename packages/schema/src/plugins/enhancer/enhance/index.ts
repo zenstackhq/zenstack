@@ -322,9 +322,13 @@ export function enhance<DbClient extends object>(prisma: DbClient, context?: Enh
             : // old generator has these types generated with the client
               `${prismaImport}/runtime/library`;
 
+        const hasTypeDef = this.model.declarations.some(isTypeDef);
+
         return `import { Prisma as _Prisma, PrismaClient as _PrismaClient } from '${prismaTargetImport}';
 import type { InternalArgs, DynamicClientExtensionThis } from '${runtimeLibraryImport}';
-import type * as _P from '${prismaClientImport}';
+import type * as _P from '${prismaClientImport}';${
+            hasTypeDef && this.isNewPrismaClientGenerator ? `\nimport type * as $TypeDefs from './json-types';` : ''
+        }
 import type { Prisma, PrismaClient } from '${prismaClientImport}';
 export type { PrismaClient };
 `;

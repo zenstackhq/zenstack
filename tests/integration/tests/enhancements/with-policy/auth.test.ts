@@ -865,7 +865,7 @@ describe('auth() compile-time test', () => {
         );
     });
 
-    it('"User" type as auth', async () => {
+    it('"User" type as auth legacy generator', async () => {
         const { enhance } = await loadSchema(
             `
         type Profile {
@@ -899,6 +899,77 @@ describe('auth() compile-time test', () => {
                         name: 'main.ts',
                         content: `
                 import { enhance } from ".zenstack/enhance";
+                import { PrismaClient } from '@prisma/client';
+                enhance(new PrismaClient(), { user: { myId: 1, profile: { age: 20 } } });
+                `,
+                    },
+                ],
+            }
+        );
+
+        await expect(enhance().foo.create({ data: {} })).toBeRejectedByPolicy();
+        await expect(enhance({ myId: 1, banned: true }).foo.create({ data: {} })).toBeRejectedByPolicy();
+        await expect(enhance({ myId: 1, profile: { age: 16 } }).foo.create({ data: {} })).toBeRejectedByPolicy();
+        const r = await enhance({ myId: 1, profile: { age: 20 } }).foo.create({ data: {} });
+        await expect(
+            enhance({ myId: 1, profile: { age: 20 } }).foo.delete({ where: { id: r.id } })
+        ).toBeRejectedByPolicy();
+        await expect(
+            enhance({ myId: 1, profile: { age: 20 }, roles: [{ name: 'ADMIN', permissions: ['DELETE'] }] }).foo.delete({
+                where: { id: r.id },
+            })
+        ).toResolveTruthy();
+    });
+
+    it('"User" type as auth new generator', async () => {
+        const { enhance } = await loadSchema(
+            `
+        datasource db {
+            provider = "sqlite"
+            url = "file:./dev.db"
+        }
+
+        generator js {
+            provider = "prisma-client"
+            output = "./generated/client"
+            moduleFormat = "cjs"
+        }
+
+        type Profile {
+            age Int
+        }
+
+        type Role {
+            name String
+            permissions String[]
+        }
+        
+        type User {
+            myId Int @id
+            banned Boolean
+            profile Profile
+            roles Role[]
+        }
+
+        model Foo {
+            id Int @id @default(autoincrement())
+            @@allow('read', true)
+            @@allow('create', auth().myId == 1 && !auth().banned)
+            @@allow('delete', auth().roles?['DELETE' in permissions])
+            @@deny('all', auth().profile.age < 18)
+        }
+        `,
+            {
+                addPrelude: false,
+                output: './zenstack',
+                preserveTsFiles: true,
+                prismaLoadPath: './prisma/generated/client/client',
+                compile: true,
+                extraSourceFiles: [
+                    {
+                        name: 'main.ts',
+                        content: `
+                import { enhance } from "./zenstack/enhance";
                 import { PrismaClient } from '@prisma/client';
                 enhance(new PrismaClient(), { user: { myId: 1, profile: { age: 20 } } });
                 `,
