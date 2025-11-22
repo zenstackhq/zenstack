@@ -760,6 +760,7 @@ export const ${upperCaseFirst(model.name)}UpdateSchema = ${updateSchema};
                     let expr = new TypeScriptExpressionTransformer({
                         context: ExpressionContext.ValidationRule,
                         fieldReferenceContext: 'value',
+                        useLiteralEnum: true,
                     }).transform(valueArg);
 
                     if (isDataModelFieldReference(valueArg)) {
