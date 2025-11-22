@@ -45,6 +45,9 @@ export function generateAuthType(model: Model, authDecl: DataModel | TypeDef) {
         let typeInfo = types.get(typeName);
         if (!typeInfo) {
             const decl = findType(typeName);
+            if (!decl) {
+                return;
+            }
             typeInfo = { isTypeDef: isTypeDef(decl), requiredRelations: [] };
             types.set(typeName, typeInfo);
         }
