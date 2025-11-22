@@ -396,10 +396,6 @@ export const ${typeDef.name}Schema = ${refineFuncName}(${noRefineSchema});
                 }
             }
         }
-        if (importEnums.size > 0) {
-            const prismaImport = computePrismaClientImport(path.join(output, 'models'), this.options);
-            writer.writeLine(`import { ${[...importEnums].join(', ')} } from '${prismaImport}';`);
-        }
 
         // import enum schemas
         const importedEnumSchemas = new Set<string>();
@@ -730,9 +726,7 @@ export const ${upperCaseFirst(model.name)}UpdateSchema = ${updateSchema};
     /**
     * Schema refinement function for applying \`@@validate\` rules.
     */
-    export function ${refineFuncName}<T>(schema: z.ZodType<T>) { return schema${refinements.join(
-                    '\n'
-                )};
+    export function ${refineFuncName}<T>(schema: z.ZodType<T>) { return schema${refinements.join('\n')};
     }
     `
             );
