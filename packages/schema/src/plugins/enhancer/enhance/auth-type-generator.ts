@@ -1,10 +1,11 @@
-import { getIdFields, isAuthInvocation, isDataModelFieldReference } from '@zenstackhq/sdk';
+import { getIdFields, getPrismaClientGenerator, isAuthInvocation, isDataModelFieldReference } from '@zenstackhq/sdk';
 import {
     DataModel,
     DataModelField,
     Expression,
     isDataModel,
     isMemberAccessExpr,
+    isTypeDef,
     TypeDef,
     type Model,
 } from '@zenstackhq/sdk/ast';
@@ -19,27 +20,39 @@ export function generateAuthType(model: Model, authDecl: DataModel | TypeDef) {
     const types = new Map<
         string,
         {
+            isTypeDef: boolean;
             // relation fields to require
             requiredRelations: { name: string; type: string }[];
         }
     >();
 
-    types.set(authDecl.name, { requiredRelations: [] });
+    types.set(authDecl.name, { isTypeDef: isTypeDef(authDecl), requiredRelations: [] });
 
-    const ensureType = (model: string) => {
-        if (!types.has(model)) {
-            types.set(model, { requiredRelations: [] });
+    const findType = (name: string) =>
+        model.declarations.find((d) => (isDataModel(d) || isTypeDef(d)) && d.name === name);
+
+    const ensureType = (name: string) => {
+        if (!types.has(name)) {
+            const decl = findType(name);
+            if (!decl) {
+                return;
+            }
+            types.set(name, { isTypeDef: isTypeDef(decl), requiredRelations: [] });
         }
     };
 
-    const addAddField = (model: string, name: string, type: string, array: boolean) => {
-        let fields = types.get(model);
-        if (!fields) {
-            fields = { requiredRelations: [] };
-            types.set(model, fields);
+    const addTypeField = (typeName: string, fieldName: string, fieldType: string, array: boolean) => {
+        let typeInfo = types.get(typeName);
+        if (!typeInfo) {
+            const decl = findType(typeName);
+            if (!decl) {
+                return;
+            }
+            typeInfo = { isTypeDef: isTypeDef(decl), requiredRelations: [] };
+            types.set(typeName, typeInfo);
         }
-        if (!fields.requiredRelations.find((f) => f.name === name)) {
-            fields.requiredRelations.push({ name, type: array ? `${type}[]` : type });
+        if (!typeInfo.requiredRelations.find((f) => f.name === fieldName)) {
+            typeInfo.requiredRelations.push({ name: fieldName, type: array ? `${fieldType}[]` : fieldType });
         }
     };
 
@@ -57,7 +70,7 @@ export function generateAuthType(model: Model, authDecl: DataModel | TypeDef) {
                         // member is a relation
                         const fieldType = memberDecl.type.reference.ref.name;
                         ensureType(fieldType);
-                        addAddField(exprType.name, memberDecl.name, fieldType, memberDecl.type.array);
+                        addTypeField(exprType.name, memberDecl.name, fieldType, memberDecl.type.array);
                     }
                 }
             }
@@ -69,11 +82,14 @@ export function generateAuthType(model: Model, authDecl: DataModel | TypeDef) {
                 if (isDataModel(fieldType)) {
                     // field is a relation
                     ensureType(fieldType.name);
-                    addAddField(fieldDecl.$container.name, node.target.$refText, fieldType.name, fieldDecl.type.array);
+                    addTypeField(fieldDecl.$container.name, node.target.$refText, fieldType.name, fieldDecl.type.array);
                 }
             }
         });
     });
+
+    const prismaGenerator = getPrismaClientGenerator(model);
+    const isNewGenerator = !!prismaGenerator?.isNewGenerator;
 
     // generate:
     // `
@@ -86,10 +102,12 @@ export function generateAuthType(model: Model, authDecl: DataModel | TypeDef) {
     return `export namespace auth {
     type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };
 ${Array.from(types.entries())
-    .map(([model, fields]) => {
-        let result = `Partial<_P.${model}>`;
+    .map(([type, typeInfo]) => {
+        // TypeDef types are generated in "json-types.ts" for the new "prisma-client" generator
+        const typeRef = isNewGenerator && typeInfo.isTypeDef ? `$TypeDefs.${type}` : `_P.${type}`;
+        let result = `Partial<${typeRef}>`;
 
-        if (model === authDecl.name) {
+        if (type === authDecl.name) {
             // auth model's id fields are always required
             const idFields = getIdFields(authDecl).map((f) => f.name);
             if (idFields.length > 0) {
@@ -97,14 +115,14 @@ ${Array.from(types.entries())
             }
         }
 
-        if (fields.requiredRelations.length > 0) {
+        if (typeInfo.requiredRelations.length > 0) {
             // merge required relation fields
-            result = `${result} & { ${fields.requiredRelations.map((f) => `${f.name}: ${f.type}`).join('; ')} }`;
+            result = `${result} & { ${typeInfo.requiredRelations.map((f) => `${f.name}: ${f.type}`).join('; ')} }`;
         }
 
         result = `${result} & Record<string, unknown>`;
 
-        return `    export type ${model} = ${result};`;
+        return `    export type ${type} = ${result};`;
     })
     .join('\n')}
 }`;

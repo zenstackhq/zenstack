@@ -40,6 +40,7 @@ type Options = {
     futureRefContext?: string;
     context: ExpressionContext;
     operationContext?: 'read' | 'create' | 'update' | 'postUpdate' | 'delete';
+    useLiteralEnum?: boolean;
 };
 
 type Casing = 'original' | 'upper' | 'lower' | 'capitalize' | 'uncapitalize';
@@ -392,7 +393,9 @@ export class TypeScriptExpressionTransformer {
         }
 
         if (isEnumField(expr.target.ref)) {
-            return `${expr.target.ref.$container.name}.${expr.target.ref.name}`;
+            return this.options.useLiteralEnum
+                ? JSON.stringify(expr.target.ref.name)
+                : `${expr.target.ref.$container.name}.${expr.target.ref.name}`;
         } else {
             if (this.options?.isPostGuard) {
                 // if we're processing post-update, any direct field access should be
