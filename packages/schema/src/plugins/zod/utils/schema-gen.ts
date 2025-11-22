@@ -1,5 +1,5 @@
 import { upperCaseFirst } from '@zenstackhq/runtime/local-helpers';
-import { getLiteral, hasAttribute, isFromStdlib } from '@zenstackhq/sdk';
+import { getLiteral, hasAttribute, isEnumFieldReference, isFromStdlib } from '@zenstackhq/sdk';
 import {
     DataModelField,
     DataModelFieldAttribute,
@@ -246,6 +246,8 @@ export function getFieldSchemaDefault(field: DataModelField | TypeDefField) {
             return arg.value.value;
         } else if (isBooleanLiteral(arg.value)) {
             return arg.value.value;
+        } else if (isEnumFieldReference(arg.value) && arg.value.target.ref) {
+            return JSON.stringify(arg.value.target.ref.name);
         } else if (
             isInvocationExpr(arg.value) &&
             isFromStdlib(arg.value.function.ref!) &&
