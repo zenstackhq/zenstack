@@ -1,7 +1,9 @@
 import { getPrismaClientGenerator, PluginError } from '@zenstackhq/sdk';
 import { isPlugin } from '@zenstackhq/sdk/ast';
+import { getPrismaVersion } from '@zenstackhq/sdk/prisma';
 import colors from 'colors';
 import path from 'path';
+import semver from 'semver';
 import { CliError } from '../cli-error';
 import {
     checkNewVersion,
@@ -46,6 +48,11 @@ export async function generate(projectPath: string, options: Options) {
                 )
             );
         }
+    }
+
+    const prismaVersion = getPrismaVersion();
+    if (prismaVersion && semver.gte(prismaVersion, '7.0.0')) {
+        console.warn(colors.yellow('Prisma 7 support is untested and not planned. Use with caution.'));
     }
 
     await runPlugins(options);
