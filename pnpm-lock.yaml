@@ -582,10 +582,10 @@ importers:
   packages/sdk:
     dependencies:
       '@prisma/generator-helper':
-        specifier: '>=6.19.0 <8.0.0'
+        specifier: 6.19.x
         version: 6.19.0
       '@prisma/internals':
-        specifier: '>=6.19.0 <8.0.0'
+        specifier: 6.19.x
         version: 6.19.0(typescript@5.9.2)
       '@zenstackhq/language':
         specifier: workspace:*
