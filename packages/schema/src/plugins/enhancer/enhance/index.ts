@@ -316,12 +316,12 @@ export function enhance<DbClient extends object>(prisma: DbClient, context?: Enh
 
     private createLogicalPrismaImports(prismaImport: string, prismaClientImport: string, target: string | undefined) {
         const prismaVersion = getPrismaVersion();
-        const runtimeLibraryImportSubPath = semver.gte(prismaVersion, '7.0.0') ? '/runtime/client' : '/runtime/library';
+        const runtimeLibraryImportSubPath = prismaVersion && semver.gte(prismaVersion, '7.0.0') ? '/runtime/client' : '/runtime/library';
         
         const prismaTargetImport = target === 'edge' ? `${prismaImport}/edge` : prismaImport;
         const runtimeLibraryImport = this.isNewPrismaClientGenerator
             ? // new generator has these types only in "@prisma/client"
-              '@prisma/client${runtimeLibraryImportSubPath}'
+              `@prisma/client${runtimeLibraryImportSubPath}`
             : // old generator has these types generated with the client
               `${prismaImport}/runtime/library`;
 
