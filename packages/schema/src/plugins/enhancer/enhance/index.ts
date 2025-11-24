@@ -315,10 +315,13 @@ export function enhance<DbClient extends object>(prisma: DbClient, context?: Enh
     }
 
     private createLogicalPrismaImports(prismaImport: string, prismaClientImport: string, target: string | undefined) {
+        const prismaVersion = getPrismaVersion();
+        const runtimeLibraryImportSubPath = semver.gte(prismaVersion, '7.0.0') ? '/runtime/library' : '/runtime/client';
+        
         const prismaTargetImport = target === 'edge' ? `${prismaImport}/edge` : prismaImport;
         const runtimeLibraryImport = this.isNewPrismaClientGenerator
             ? // new generator has these types only in "@prisma/client"
-              '@prisma/client/runtime/library'
+              '@prisma/client${runtimeLibraryImportSubPath}'
             : // old generator has these types generated with the client
               `${prismaImport}/runtime/library`;
 
@@ -432,8 +435,9 @@ export type Enhanced<Client> =
         let generateCmd = `prisma generate --schema "${logicalPrismaFile}" --generator=${prismaClientGeneratorName}`;
 
         const prismaVersion = getPrismaVersion();
-        if (!prismaVersion || semver.gte(prismaVersion, '5.2.0')) {
+        if (!prismaVersion || (semver.gte(prismaVersion, '5.2.0') && semver.lt(prismaVersion, '7.0.0'))) {
             // add --no-engine to reduce generation size if the prisma version supports
+            // v7 has removed this option completely, because it no longer generates an engine
             generateCmd += ' --no-engine';
         }
 
