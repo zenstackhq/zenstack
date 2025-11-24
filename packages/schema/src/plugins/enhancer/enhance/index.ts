@@ -316,7 +316,7 @@ export function enhance<DbClient extends object>(prisma: DbClient, context?: Enh
 
     private createLogicalPrismaImports(prismaImport: string, prismaClientImport: string, target: string | undefined) {
         const prismaVersion = getPrismaVersion();
-        const runtimeLibraryImportSubPath = semver.gte(prismaVersion, '7.0.0') ? '/runtime/library' : '/runtime/client';
+        const runtimeLibraryImportSubPath = semver.gte(prismaVersion, '7.0.0') ? '/runtime/client' : '/runtime/library';
         
         const prismaTargetImport = target === 'edge' ? `${prismaImport}/edge` : prismaImport;
         const runtimeLibraryImport = this.isNewPrismaClientGenerator
