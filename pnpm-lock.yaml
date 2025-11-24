@@ -582,10 +582,10 @@ importers:
   packages/sdk:
     dependencies:
       '@prisma/generator-helper':
-        specifier: 6.19.x
+        specifier: '>=6.19.0 <8.0.0'
         version: 6.19.0
       '@prisma/internals':
-        specifier: 6.19.x
+        specifier: '>=6.19.0 <8.0.0'
         version: 6.19.0(typescript@5.9.2)
       '@zenstackhq/language':
         specifier: workspace:*
@@ -17534,7 +17534,7 @@ snapshots:
       chokidar: 3.6.0
       commander: 8.3.0
       fast-glob: 3.3.3
-      fs-extra: 11.2.0
+      fs-extra: 11.3.0
       npm-run-path: 4.0.1
       semver: 7.6.2
       strip-ansi: 6.0.1
@@ -17555,7 +17555,7 @@ snapshots:
       '@rollup/pluginutils': 5.1.0(rollup@4.18.0)
       debug: 4.3.5
       error-stack-parser-es: 0.1.4
-      fs-extra: 11.2.0
+      fs-extra: 11.3.0
       open: 10.1.0
       perfect-debounce: 1.0.0
       picocolors: 1.0.1
