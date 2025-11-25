@@ -43,9 +43,8 @@ export default class DataSourceValidator implements AstValidator<DataSource> {
     private validateUrl(ds: DataSource, accept: ValidationAcceptor) {
         const url = ds.fields.find((f) => f.name === 'url');
         if (!url) {
-            accept('error', 'datasource must include a "url" field', {
-                node: ds,
-            });
+            // url field is optional for new versions of Prisma
+            return;
         }
 
         for (const fieldName of ['url', 'shadowDatabaseUrl']) {

@@ -315,16 +315,23 @@ export function enhance<DbClient extends object>(prisma: DbClient, context?: Enh
     }
 
     private createLogicalPrismaImports(prismaImport: string, prismaClientImport: string, target: string | undefined) {
+        const prismaVersion = getPrismaVersion();
+        const runtimeLibraryImportSubPath = prismaVersion && semver.gte(prismaVersion, '7.0.0') ? '/runtime/client' : '/runtime/library';
+        
         const prismaTargetImport = target === 'edge' ? `${prismaImport}/edge` : prismaImport;
         const runtimeLibraryImport = this.isNewPrismaClientGenerator
             ? // new generator has these types only in "@prisma/client"
-              '@prisma/client/runtime/library'
+              `@prisma/client${runtimeLibraryImportSubPath}`
             : // old generator has these types generated with the client
               `${prismaImport}/runtime/library`;
 
+        const hasTypeDef = this.model.declarations.some(isTypeDef);
+
         return `import { Prisma as _Prisma, PrismaClient as _PrismaClient } from '${prismaTargetImport}';
 import type { InternalArgs, DynamicClientExtensionThis } from '${runtimeLibraryImport}';
-import type * as _P from '${prismaClientImport}';
+import type * as _P from '${prismaClientImport}';${
+            hasTypeDef && this.isNewPrismaClientGenerator ? `\nimport type * as $TypeDefs from './json-types';` : ''
+        }
 import type { Prisma, PrismaClient } from '${prismaClientImport}';
 export type { PrismaClient };
 `;
@@ -432,8 +439,9 @@ export type Enhanced<Client> =
         let generateCmd = `prisma generate --schema "${logicalPrismaFile}" --generator=${prismaClientGeneratorName}`;
 
         const prismaVersion = getPrismaVersion();
-        if (!prismaVersion || semver.gte(prismaVersion, '5.2.0')) {
+        if (!prismaVersion || (semver.gte(prismaVersion, '5.2.0') && semver.lt(prismaVersion, '7.0.0'))) {
             // add --no-engine to reduce generation size if the prisma version supports
+            // v7 has removed this option completely, because it no longer generates an engine
             generateCmd += ' --no-engine';
         }
 

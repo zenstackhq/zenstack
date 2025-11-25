@@ -1,13 +1,13 @@
 {
     "name": "zenstack-monorepo",
-    "version": "2.21.1",
+    "version": "2.22.0",
     "description": "",
     "scripts": {
         "build": "pnpm -r --filter=\"!./packages/ide/*\" build",
         "build-ci": "pnpm -r build",
         "lint": "pnpm -r lint",
         "test": "pnpm -r --parallel run test --silent --forceExit",
-        "test-ci": "pnpm -r --parallel run --filter=\"./packages/**\" test --silent --forceExit",
+        "test-ci": "pnpm -r run --filter=\"./packages/**\" test --silent --forceExit",
         "test-integration": "pnpm run --filter=integration test --silent --forceExit",
         "test-regression": "pnpm run --filter=regression test --silent --forceExit",
         "test-scaffold": "tsx script/test-scaffold.ts",

@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/runtime",
     "displayName": "ZenStack Runtime Library",
-    "version": "2.21.1",
+    "version": "2.22.0",
     "description": "Runtime of ZenStack for both client-side and server-side environments.",
     "repository": {
         "type": "git",
@@ -122,10 +122,10 @@
         "superjson": "^1.13.0",
         "uuid": "^9.0.0",
         "zod": "^3.25.0",
-        "@prisma/client": "6.17.x"
+        "@prisma/client": "6.19.x"
     },
     "peerDependencies": {
-        "@prisma/client": "5.0.0 - 6.18.x",
+        "@prisma/client": "5.0.0 - 7.x",
         "zod": "catalog:"
     },
     "author": {

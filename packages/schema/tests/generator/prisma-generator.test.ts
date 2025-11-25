@@ -21,7 +21,7 @@ describe('Prisma generator test', () => {
         process.chdir(r.name);
 
         execSync('npm init -y', { stdio: 'ignore' });
-        execSync('npm install prisma');
+        execSync('npm install prisma@6.19.x');
     });
 
     afterEach(() => {
