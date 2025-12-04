@@ -785,9 +785,11 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                 const field = dataModel.fields.find((f) => f.name === def.name);
                 if (field?.type.reference?.ref && isTypeDef(field.type.reference.ref)) {
                     // This Json field references a TypeDef
+                    // Use field.type.array from ZModel AST instead of def.isList from DMMF,
+                    // since Prisma treats TypeDef fields as plain Json and doesn't know about arrays
                     return this.wrapArray(
                         this.wrapNullable(this.ref(field.type.reference.ref.name, true), !def.isRequired),
-                        def.isList
+                        field.type.array
                     );
                 }
             }

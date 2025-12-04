@@ -518,6 +518,65 @@ model Product {
         }
     });
 
+    it('array of TypeDef with enum directly on model field', async () => {
+        for (const specVersion of ['3.0.0', '3.1.0']) {
+            const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
+plugin openapi {
+    provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
+    specVersion = '${specVersion}'
+}
+
+enum Language {
+    FR
+    EN
+    ES
+    DE
+    IT
+}
+
+type TranslatedField {
+    language Language
+    content String
+}
+
+model Article {
+    id String @id @default(cuid())
+    title TranslatedField[] @json
+    description TranslatedField[] @json
+
+    @@allow('all', true)
+}
+        `);
+
+            const { name: output } = tmp.fileSync({ postfix: '.yaml' });
+
+            const options = buildOptions(model, modelFile, output);
+            await generate(model, options, dmmf);
+
+            await OpenAPIParser.validate(output);
+
+            const parsed = YAML.parse(fs.readFileSync(output, 'utf-8'));
+            expect(parsed.openapi).toBe(specVersion);
+
+            // Verify TranslatedField TypeDef is generated
+            expect(parsed.components.schemas.TranslatedField).toBeDefined();
+
+            // Verify Language enum is generated
+            expect(parsed.components.schemas.Language).toBeDefined();
+
+            // Verify enum reference inside TranslatedField
+            expect(parsed.components.schemas.TranslatedField.properties.language.$ref).toBe('#/components/schemas/Language');
+
+            // Verify array of TypeDef directly on model field
+            expect(parsed.components.schemas.Article.properties.title.type).toBe('array');
+            expect(parsed.components.schemas.Article.properties.title.items.$ref).toBe('#/components/schemas/TranslatedField');
+
+            // Verify second array field as well
+            expect(parsed.components.schemas.Article.properties.description.type).toBe('array');
+            expect(parsed.components.schemas.Article.properties.description.items.$ref).toBe('#/components/schemas/TranslatedField');
+        }
+    });
+
     it('full-text search', async () => {
         const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
 generator js {
