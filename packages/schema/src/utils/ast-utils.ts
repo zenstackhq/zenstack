@@ -286,6 +286,32 @@ export function getAllLoadedDataModelsAndTypeDefs(langiumDocuments: LangiumDocum
         .toArray();
 }
 
+export function getCurrentNodeAndReachableDataModelsAndTypeDefs(
+    langiumDocuments: LangiumDocuments,
+    node: AstNode,
+    fromModel?: DataModel
+) {
+    const document = getDocument(node);
+    const allDataModels = (document.parseResult.value as Model).declarations.filter(
+        (d): d is DataModel | TypeDef => isDataModel(d) || isTypeDef(d)
+    );
+
+    if (fromModel) {
+        // merge data models transitively reached from the current model
+        const model = getContainerOfType(fromModel, isModel);
+        if (model) {
+            const transitiveDataModels = getAllDataModelsIncludingImports(langiumDocuments, model);
+            transitiveDataModels.forEach((dm) => {
+                if (!allDataModels.includes(dm)) {
+                    allDataModels.push(dm);
+                }
+            });
+        }
+    }
+
+    return allDataModels;
+}
+
 /**
  * Gets all data models and type defs from loaded and reachable documents
  */
