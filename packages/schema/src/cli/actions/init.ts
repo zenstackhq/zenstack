@@ -1,7 +1,6 @@
 import colors from 'colors';
 import fs from 'fs';
 import path from 'path';
-import pkgJson from '../../package.json';
 import { PackageManagers, ensurePackage, installPackage } from '../../utils/pkg-utils';
 import { getVersion } from '../../utils/version-utils';
 import { CliError } from '../cli-error';
@@ -79,13 +78,6 @@ Moving forward please edit this file and run "zenstack generate" to regenerate P
 }
 
 function getLatestSupportedPrismaVersion() {
-    const versionSpec = pkgJson.peerDependencies.prisma;
-    let maxVersion: string | undefined;
-    const hyphen = versionSpec.indexOf('-');
-    if (hyphen > 0) {
-        maxVersion = versionSpec.substring(hyphen + 1).trim();
-    } else {
-        maxVersion = versionSpec;
-    }
-    return maxVersion ?? 'latest';
+    // Prisma 7 is not tested
+    return '6';
 }
