@@ -1,6 +1,6 @@
 {
     "name": "zenstack-monorepo",
-    "version": "2.22.1",
+    "version": "2.22.2",
     "description": "",
     "scripts": {
         "build": "pnpm -r --filter=\"!./packages/ide/*\" build",
@@ -11,10 +11,9 @@
         "test-integration": "pnpm run --filter=integration test --silent --forceExit",
         "test-regression": "pnpm run --filter=regression test --silent --forceExit",
         "test-scaffold": "tsx script/test-scaffold.ts",
-        "publish-all": "pnpm --filter \"./packages/**\" -r publish --access public",
+        "publish-all": "pnpm --filter \"./packages/**\" -r publish --access public --tag v2",
         "publish-preview": "pnpm --filter \"./packages/**\" -r publish --force --registry https://preview.registry.zenstack.dev/",
         "unpublish-preview": "pnpm --recursive --shell-mode exec -- npm unpublish -f --registry https://preview.registry.zenstack.dev/ \"\\$PNPM_PACKAGE_NAME\"",
-        "publish-next": "pnpm --filter \"./packages/**\" -r publish --access public --tag next",
         "publish-preview-next": "pnpm --filter \"./packages/**\" -r publish --force --registry https://preview.registry.zenstack.dev/ --tag next",
         "unpublish-preview-next": "pnpm --recursive --shell-mode exec -- npm unpublish -f --registry https://preview.registry.zenstack.dev/ --tag next \"\\$PNPM_PACKAGE_NAME\"",
         "publish-test": "pnpm --filter \"./packages/**\" -r publish --access public --tag test"
