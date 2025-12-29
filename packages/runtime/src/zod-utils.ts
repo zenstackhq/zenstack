@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { z as Z } from 'zod';
+import type { z as Z } from 'zod';
 
 /**
  * A smarter version of `z.union` that decide which candidate to use based on how few unrecognized keys it has.

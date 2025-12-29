@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import deepmerge from 'deepmerge';
-import { z, type ZodError, type ZodObject, type ZodSchema } from 'zod';
+import type { z, ZodError, ZodObject, ZodSchema } from 'zod';
+import { z as zod3 } from 'zod/v3';
+import { z as zod4 } from 'zod/v4';
 import { CrudFailureReason, PrismaErrorCode } from '../../../constants';
 import {
     clone,
@@ -1376,17 +1378,19 @@ export class PolicyUtil extends QueryUtils {
             let schema: ZodObject<any> | undefined;
 
             const overridePasswordFields = (schema: z.ZodObject<any>) => {
+                const useZod: any = schema._def ? zod3 : zod4;
+
                 let result = schema;
                 const modelFields = this.modelMeta.models[lowerCaseFirst(model)]?.fields;
                 if (modelFields) {
                     for (const [key, field] of Object.entries(modelFields)) {
                         if (field.attributes?.some((attr) => attr.name === '@password')) {
                             // override `@password` field schema with a string schema
-                            let pwFieldSchema: ZodSchema = z.string();
+                            let pwFieldSchema: ZodSchema = useZod.string();
                             if (field.isOptional) {
                                 pwFieldSchema = pwFieldSchema.nullish();
                             }
-                            result = result.merge(z.object({ [key]: pwFieldSchema }));
+                            result = result.merge(useZod.object({ [key]: pwFieldSchema }));
                         }
                     }
                 }
@@ -1540,7 +1544,12 @@ export class PolicyUtil extends QueryUtils {
                     continue;
                 }
 
-                if (fieldInfo.isDataModel && queryArgs?.include && typeof queryArgs.include === 'object' && !queryArgs.include[field]) {
+                if (
+                    fieldInfo.isDataModel &&
+                    queryArgs?.include &&
+                    typeof queryArgs.include === 'object' &&
+                    !queryArgs.include[field]
+                ) {
                     // respect include
                     delete entityData[field];
                     continue;
