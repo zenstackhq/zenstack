@@ -1,9 +1,9 @@
 {
     "name": "zenstack",
     "publisher": "zenstack",
-    "displayName": "ZenStack Language Tools",
+    "displayName": "ZenStack V2 Language Tools",
     "description": "FullStack enhancement for Prisma ORM: seamless integration from database to UI",
-    "version": "2.22.1",
+    "version": "2.22.2",
     "author": {
         "name": "ZenStack Team"
     },

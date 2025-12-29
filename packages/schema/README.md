@@ -1,5 +1,7 @@
 # ZenStack VS Code Extension
 
+> This extension only supports ZenStack v2. For the latest ZenStack v3, please use the [ZenStack V3 Language Tools](https://marketplace.visualstudio.com/items?itemName=zenstack.zenstack-v3) extension instead.
+
 [ZenStack](https://zenstack.dev) is a toolkit that simplifies the development of a web app's backend. It enhances [Prisma ORM](https://prisma.io) with flexible Authorization and auto-generated, type-safe APIs/hooks, simplifying full-stack development.
 
 This VS Code extension provides code editing helpers for authoring ZenStack's schema files (.zmodel files).

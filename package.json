@@ -1,6 +1,6 @@
 {
     "name": "zenstack-monorepo",
-    "version": "2.22.1",
+    "version": "2.22.2",
     "description": "",
     "scripts": {
         "build": "pnpm -r --filter=\"!./packages/ide/*\" build",
