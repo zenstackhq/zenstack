@@ -20,6 +20,7 @@
     "dependencies": {
         "@prisma/generator-helper": "6.19.x",
         "@prisma/internals": "6.19.x",
+        "@prisma/internals-v7": "npm:@prisma/internals@7",
         "@zenstackhq/language": "workspace:*",
         "@zenstackhq/runtime": "workspace:*",
         "langium": "1.3.1",

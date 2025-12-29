@@ -2,14 +2,15 @@
 
 import type { DMMF } from '@prisma/generator-helper';
 import { getDMMF as _getDMMF, type GetDMMFOptions } from '@prisma/internals';
+import { getDMMF as _getDMMF7 } from '@prisma/internals-v7';
 import { DEFAULT_RUNTIME_LOAD_PATH } from '@zenstackhq/runtime';
 import path from 'path';
 import semver from 'semver';
 import { Model } from './ast';
 import { RUNTIME_PACKAGE } from './constants';
+import { normalizedRelative } from './path';
 import type { PluginOptions } from './types';
 import { getDataSourceProvider } from './utils';
-import { normalizedRelative } from './path';
 
 /**
  * Given an import context directory and plugin options, compute the import spec for the Prisma Client.
@@ -51,7 +52,12 @@ function normalizePath(p: string) {
  * Loads Prisma DMMF
  */
 export function getDMMF(options: GetDMMFOptions): Promise<DMMF.Document> {
-    return _getDMMF(options);
+    const prismaVersion = getPrismaVersion();
+    if (prismaVersion && semver.gte(prismaVersion, '7.0.0')) {
+        return _getDMMF7(options);
+    } else {
+        return _getDMMF(options);
+    }
 }
 
 /**
