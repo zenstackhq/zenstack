@@ -11,7 +11,7 @@
         "test-integration": "pnpm run --filter=integration test --silent --forceExit",
         "test-regression": "pnpm run --filter=regression test --silent --forceExit",
         "test-scaffold": "tsx script/test-scaffold.ts",
-        "publish-all": "pnpm --filter \"./packages/**\" -r publish --access public --tag v2",
+        "publish-all": "pnpm --filter \"./packages/**\" -r publish --access public --tag release-v2",
         "publish-preview": "pnpm --filter \"./packages/**\" -r publish --force --registry https://preview.registry.zenstack.dev/",
         "unpublish-preview": "pnpm --recursive --shell-mode exec -- npm unpublish -f --registry https://preview.registry.zenstack.dev/ \"\\$PNPM_PACKAGE_NAME\"",
         "publish-preview-next": "pnpm --filter \"./packages/**\" -r publish --force --registry https://preview.registry.zenstack.dev/ --tag next",
