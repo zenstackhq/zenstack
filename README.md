@@ -7,7 +7,7 @@
     </a>
     <h1>ZenStack</h1>
     <a href="https://www.npmjs.com/package/zenstack">
-        <img src="https://img.shields.io/npm/v/zenstack">
+        <img src="https://img.shields.io/npm/v/zenstack/release-v2">
     </a>
     <a href="https://www.npmjs.com/package/zenstack">
         <img src="https://img.shields.io/npm/dm/@zenstackhq/runtime">
@@ -24,10 +24,9 @@
     </a>
 </div>
 
+## V3 is released!
 
-## V3 is in Beta now!
-
-[ZenStack v3](https://zenstack.dev/v3) is in Beta now! It replaced Prisma ORM with its own implementation built on top of [Kysely](https://kysely.dev) - lighter, faster, and more flexible. The code resides in a [separate repo](https://github.com/zenstackhq/zenstack-v3).
+[ZenStack v3](https://zenstack.dev) is released! It replaced Prisma ORM with its own implementation built on top of [Kysely](https://kysely.dev) - lighter, faster, and more flexible. The code resides in a [separate repo](https://github.com/zenstackhq/zenstack-v3).
 
 ## What it is
 
@@ -37,7 +36,7 @@ Our goal is to let you save time writing boilerplate code and focus on building 
 
 ## How it works
 
-> Read full documentation at 👉🏻 [zenstack.dev](https://zenstack.dev). Join [Discord](https://discord.gg/Ykhr738dUe) for feedback and questions.
+> Read full documentation at 👉🏻 [https://zenstack.dev/docs/2.x/](https://zenstack.dev/docs/2.x/). Join [Discord](https://discord.gg/Ykhr738dUe) for feedback and questions.
 
 ZenStack incrementally extends Prisma's power with the following four layers:
 
