@@ -24,7 +24,7 @@
     </a>
 </div>
 
-## V3 is in Beta now!
+## V3 is released!
 
 [ZenStack v3](https://zenstack.dev) is released! It replaced Prisma ORM with its own implementation built on top of [Kysely](https://kysely.dev) - lighter, faster, and more flexible. The code resides in a [separate repo](https://github.com/zenstackhq/zenstack-v3).
 
