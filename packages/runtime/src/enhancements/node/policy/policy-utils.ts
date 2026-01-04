@@ -888,16 +888,20 @@ export class PolicyUtil extends QueryUtils {
             return;
         }
 
-        let select = schema
-            ? // need to validate against schema, need to fetch all fields
-              undefined
-            : // only fetch id fields
-              this.makeIdSelection(model);
+        // Explicitly set select instead of using undefined to ensure Prisma handles array fields
+        // correctly when combined with WHERE clauses. When select is undefined, Prisma selects
+        // all fields but may generate invalid PostgreSQL SQL for array fields.
+        let select: any;
+        if (schema) {
+            // need to validate against schema, need to fetch all fields including arrays
+            select = this.makeAllFieldSelect(model);
+        } else {
+            // only fetch id fields
+            select = this.makeIdSelection(model);
+        }
 
         if (entityChecker?.selector) {
-            if (!select) {
-                select = this.makeAllScalarFieldSelect(model);
-            }
+            // Merge entityChecker selector
             select = { ...select, ...entityChecker.selector };
         }
 
@@ -1247,6 +1251,26 @@ export class PolicyUtil extends QueryUtils {
         const result: any = {};
         if (fields) {
             Object.entries(fields).forEach(([k, v]) => {
+                if (!v.isDataModel) {
+                    result[k] = true;
+                }
+            });
+        }
+        return result;
+    }
+
+    /**
+     * Creates a select object that includes all fields (scalar and array) for the model.
+     * This is used instead of undefined to ensure Prisma handles array fields correctly
+     * when generating PostgreSQL SQL queries with WHERE clauses.
+     */
+    private makeAllFieldSelect(model: string): any {
+        const fields = this.getModelFields(model);
+        const result: any = {};
+        if (fields) {
+            Object.entries(fields).forEach(([k, v]) => {
+                // Include all scalar fields (including arrays) - explicitly setting select
+                // instead of undefined ensures Prisma generates correct SQL
                 if (!v.isDataModel) {
                     result[k] = true;
                 }
