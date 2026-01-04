@@ -894,7 +894,7 @@ export class PolicyUtil extends QueryUtils {
         let select: any;
         if (schema) {
             // need to validate against schema, need to fetch all fields including arrays
-            select = this.makeAllFieldSelect(model);
+            select = this.makeAllScalarFieldSelect(model);
         } else {
             // only fetch id fields
             select = this.makeIdSelection(model);
@@ -1246,25 +1246,12 @@ export class PolicyUtil extends QueryUtils {
         }
     }
 
-    private makeAllScalarFieldSelect(model: string): any {
-        const fields = this.getModelFields(model);
-        const result: any = {};
-        if (fields) {
-            Object.entries(fields).forEach(([k, v]) => {
-                if (!v.isDataModel) {
-                    result[k] = true;
-                }
-            });
-        }
-        return result;
-    }
-
     /**
-     * Creates a select object that includes all fields (scalar and array) for the model.
+     * Creates a select object that includes all scalar fields (including arrays) for the model.
      * This is used instead of undefined to ensure Prisma handles array fields correctly
      * when generating PostgreSQL SQL queries with WHERE clauses.
      */
-    private makeAllFieldSelect(model: string): any {
+    private makeAllScalarFieldSelect(model: string): any {
         const fields = this.getModelFields(model);
         const result: any = {};
         if (fields) {
@@ -1278,6 +1265,7 @@ export class PolicyUtil extends QueryUtils {
         }
         return result;
     }
+
 
     //#endregion
 
