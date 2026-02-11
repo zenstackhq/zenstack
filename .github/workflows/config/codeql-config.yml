@@ -5,4 +5,3 @@ paths-ignore:
     - '**/*.test.ts'
     - '**/*.test.tsx'
     - '**/__tests__/**'
-    - 'packages/ide/**'

@@ -1,4 +1,0 @@
-{
-    "ignorePatterns": "src/generated/*",
-    "extends": ["../../.eslintrc.json"]
-}

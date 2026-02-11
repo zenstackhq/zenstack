@@ -1,8 +1,0 @@
-{
-    "extends": "../../../tsconfig.base.json",
-    "compilerOptions": {
-        "outDir": "dist",
-        "strictPropertyInitialization": false
-    },
-    "include": ["src/**/*.ts"]
-}

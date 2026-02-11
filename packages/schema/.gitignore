@@ -1,6 +1,0 @@
-/out/
-/tests/coverage/
-/bundle
-*.vsix
-/bin/post-install.js
-.env
