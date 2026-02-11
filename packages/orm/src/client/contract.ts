@@ -47,7 +47,7 @@ import type {
     CoreReadOperations,
     CoreUpdateOperations,
 } from './crud/operations/base';
-import type { ClientOptions, QueryOptions, ToQueryOptions } from './options';
+import type { ClientOptions, QueryOptions, SlicingOptions, ToQueryOptions } from './options';
 import type { ExtClientMembersBase, ExtQueryArgsBase, RuntimePlugin } from './plugin';
 import type { ZenStackPromise } from './promise';
 import type { ToKysely } from './query-builder';
@@ -88,6 +88,34 @@ export enum TransactionIsolationLevel {
     Serializable = 'serializable',
     Snapshot = 'snapshot',
 }
+
+/**
+ * Filters models based on slicing configuration.
+ *
+ * Logic:
+ * 1. If includedModels is specified, only include those models
+ * 2. Otherwise, include all models
+ * 3. Then exclude any models in excludedModels
+ */
+type GetSlicedModels<
+    Schema extends SchemaDef,
+    Options extends ClientOptions<Schema>,
+> = Options['slicing'] extends infer S
+    ? S extends SlicingOptions<Schema>
+        ? S['includedModels'] extends readonly GetModels<Schema>[]
+            ? // includedModels is specified, start with only those
+              Exclude<
+                  Extract<S['includedModels'][number], GetModels<Schema>>,
+                  S['excludedModels'] extends readonly GetModels<Schema>[] ? S['excludedModels'][number] : never
+              >
+            : // includedModels not specified, start with all models
+              Exclude<
+                  GetModels<Schema>,
+                  S['excludedModels'] extends readonly GetModels<Schema>[] ? S['excludedModels'][number] : never
+              >
+        : // No slicing config, include all models
+          GetModels<Schema>
+    : GetModels<Schema>;
 
 /**
  * ZenStack client interface.
@@ -238,7 +266,7 @@ export type ClientContract<
      */
     $pushSchema(): Promise<void>;
 } & {
-    [Key in GetModels<Schema> as Uncapitalize<Key>]: ModelOperations<
+    [Key in GetSlicedModels<Schema, Options> as Uncapitalize<Key>]: ModelOperations<
         Schema,
         Key,
         ToQueryOptions<Options>,
@@ -907,6 +935,86 @@ type CommonModelOperations<
 
 export type OperationsIneligibleForDelegateModels = 'create' | 'createMany' | 'createManyAndReturn' | 'upsert';
 
+/**
+ * Helper to extract includedOperations with $all fallback
+ */
+type ExtractIncludedOperations<S, Model extends string> = S extends {
+    models: infer M;
+}
+    ? M extends Record<string, any>
+        ? Model extends keyof M
+            ? M[Model] extends { includedOperations: infer IO }
+                ? IO
+                : '$all' extends keyof M
+                  ? M['$all'] extends { includedOperations: infer IO }
+                      ? IO
+                      : never
+                  : never
+            : '$all' extends keyof M
+              ? M['$all'] extends { includedOperations: infer IO }
+                  ? IO
+                  : never
+              : never
+        : never
+    : never;
+
+/**
+ * Helper to extract excludedOperations with $all fallback
+ */
+type ExtractExcludedOperations<S, Model extends string> = S extends {
+    models: infer M;
+}
+    ? M extends Record<string, any>
+        ? Model extends keyof M
+            ? M[Model] extends { excludedOperations: infer EO }
+                ? EO
+                : '$all' extends keyof M
+                  ? M['$all'] extends { excludedOperations: infer EO }
+                      ? EO
+                      : never
+                  : never
+            : '$all' extends keyof M
+              ? M['$all'] extends { excludedOperations: infer EO }
+                  ? EO
+                  : never
+              : never
+        : never
+    : never;
+
+/**
+ * Computes which operations to exclude for a model based on slicing configuration.
+ */
+type GetExcludedOperations<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema>,
+> =
+    Options['slicing'] extends SlicingOptions<Schema>
+        ? ExtractIncludedOperations<Options['slicing'], Model> extends infer IO
+            ? [IO] extends [never]
+                ? // No includedOperations, only check excludedOperations
+                  ExtractExcludedOperations<Options['slicing'], Model> extends infer EO
+                    ? [EO] extends [never]
+                        ? never
+                        : EO extends readonly any[]
+                          ? EO[number]
+                          : never
+                    : never
+                : IO extends readonly any[]
+                  ? // includedOperations specified, exclude all others except those in the list
+                    | Exclude<keyof AllModelOperations<Schema, Model, Options, {}>, IO[number]>
+                        // Also apply excludedOperations
+                        | (ExtractExcludedOperations<Options['slicing'], Model> extends infer EO
+                              ? [EO] extends [never]
+                                  ? never
+                                  : EO extends readonly any[]
+                                    ? EO[number]
+                                    : never
+                              : never)
+                  : never
+            : never
+        : never;
+
 export type ModelOperations<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
@@ -915,7 +1023,9 @@ export type ModelOperations<
 > = Omit<
     AllModelOperations<Schema, Model, Options, ExtQueryArgs>,
     // exclude operations not applicable to delegate models
-    IsDelegateModel<Schema, Model> extends true ? OperationsIneligibleForDelegateModels : never
+    | (IsDelegateModel<Schema, Model> extends true ? OperationsIneligibleForDelegateModels : never)
+    // exclude operations based on slicing configuration
+    | GetExcludedOperations<Schema, Model, Options>
 >;
 
 //#endregion

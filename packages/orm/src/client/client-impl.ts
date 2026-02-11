@@ -462,6 +462,10 @@ function createClientProxy(client: ClientImpl): ClientImpl {
             if (typeof prop === 'string') {
                 const model = Object.keys(client.$schema.models).find((m) => m.toLowerCase() === prop.toLowerCase());
                 if (model) {
+                    // Check if model is allowed by slicing configuration
+                    if (!isModelIncluded(client.$options, model)) {
+                        return undefined;
+                    }
                     return createModelCrudHandler(client as any, model, client.inputValidator, resultProcessor);
                 }
             }
@@ -469,6 +473,35 @@ function createClientProxy(client: ClientImpl): ClientImpl {
             return Reflect.get(target, prop, receiver);
         },
     }) as unknown as ClientImpl;
+}
+
+/**
+ * Checks if a model should be included based on slicing configuration.
+ */
+function isModelIncluded(options: ClientOptions<SchemaDef>, model: string): boolean {
+    const slicing = options.slicing;
+    if (!slicing) {
+        // No slicing config, include all models
+        return true;
+    }
+
+    const { includedModels, excludedModels } = slicing;
+
+    // If includedModels is specified (even if empty), only include those models
+    if (includedModels !== undefined) {
+        if (!includedModels.includes(model as any)) {
+            return false;
+        }
+    }
+
+    // Then check if model is excluded
+    if (excludedModels && excludedModels.length > 0) {
+        if (excludedModels.includes(model as any)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 function createModelCrudHandler(
@@ -527,7 +560,7 @@ function createModelCrudHandler(
     };
 
     // type parameters to operation handlers are explicitly specified to improve tsc performance
-    return {
+    const operations = {
         findUnique: (args: unknown) => {
             return createPromise(
                 'findUnique',
@@ -720,5 +753,36 @@ function createModelCrudHandler(
                 false,
             );
         },
-    } as ModelOperations<any, any>;
+    };
+
+    // Filter operations based on slicing configuration
+    const slicing = client.$options.slicing;
+    if (slicing?.models) {
+        const modelSlicing = slicing.models[model as any];
+        const allSlicing = slicing.models.$all;
+
+        // Determine includedOperations: model-specific takes precedence over $all
+        const includedOperations = modelSlicing?.includedOperations ?? allSlicing?.includedOperations;
+
+        // Determine excludedOperations: model-specific takes precedence over $all
+        const excludedOperations = modelSlicing?.excludedOperations ?? allSlicing?.excludedOperations;
+
+        // If includedOperations is specified, remove operations not in the list
+        if (includedOperations !== undefined) {
+            for (const key of Object.keys(operations)) {
+                if (!includedOperations.includes(key as any)) {
+                    delete (operations as any)[key];
+                }
+            }
+        }
+
+        // Then remove explicitly excluded operations
+        if (excludedOperations && excludedOperations.length > 0) {
+            for (const operation of excludedOperations) {
+                delete (operations as any)[operation];
+            }
+        }
+    }
+
+    return operations as ModelOperations<any, any>;
 }

@@ -108,15 +108,68 @@ type QueryLevelOmit<
     Omit,
 > = Field extends keyof Omit ? (Omit[Field] extends boolean ? Omit[Field] : undefined) : undefined;
 
+/**
+ * Merges field-level slicing omit settings with top-level omit config at the type level.
+ * Field-level settings take precedence over top-level settings.
+ */
+type MergeOmitConfigs<
+    Schema extends SchemaDef,
+    Options extends QueryOptions<Schema>,
+> = Options['slicing'] extends infer S
+    ? S extends { models: infer M }
+        ? {
+              [Model in GetModels<Schema>]: Model extends keyof M
+                  ? M[Model] extends { fields: infer F }
+                      ? F extends Record<string, any>
+                          ? {
+                                [Field in GetModelFields<Schema, Model>]: Field extends keyof F
+                                    ? F[Field] extends { omit: infer O }
+                                        ? O extends boolean
+                                            ? O
+                                            : Model extends keyof Options['omit']
+                                              ? Field extends keyof Options['omit'][Model]
+                                                  ? Options['omit'][Model][Field]
+                                                  : undefined
+                                              : undefined
+                                    : Model extends keyof Options['omit']
+                                      ? Field extends keyof Options['omit'][Model]
+                                          ? Options['omit'][Model][Field]
+                                          : undefined
+                                      : undefined
+                                    : Model extends keyof Options['omit']
+                                      ? Field extends keyof Options['omit'][Model]
+                                          ? Options['omit'][Model][Field]
+                                          : undefined
+                                      : undefined;
+                            }
+                          : Model extends keyof Options['omit']
+                            ? Options['omit'][Model]
+                            : {}
+                      : Model extends keyof Options['omit']
+                        ? Options['omit'][Model]
+                        : {}
+                  : Model extends keyof Options['omit']
+                    ? Options['omit'][Model]
+                    : {};
+          }
+        : Options['omit'] extends infer O
+          ? O
+          : {}
+    : Options['omit'] extends infer O
+      ? O
+      : {};
+
 type OptionsLevelOmit<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends GetModelFields<Schema, Model>,
     Options extends QueryOptions<Schema>,
-> = Model extends keyof Options['omit']
-    ? Field extends keyof Options['omit'][Model]
-        ? Options['omit'][Model][Field] extends boolean
-            ? Options['omit'][Model][Field]
+> = MergeOmitConfigs<Schema, Options> extends infer Merged
+    ? Model extends keyof Merged
+        ? Field extends keyof Merged[Model]
+            ? Merged[Model][Field] extends boolean
+                ? Merged[Model][Field]
+                : undefined
             : undefined
         : undefined
     : undefined;

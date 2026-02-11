@@ -1164,7 +1164,13 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             return (omit as any)[field];
         }
 
-        // options-level
+        // field-level slicing (takes precedence over top-level omit)
+        const fieldSlicing = this.options.slicing?.models?.[model as any]?.fields?.[field as any];
+        if (fieldSlicing && typeof fieldSlicing.omit === 'boolean') {
+            return fieldSlicing.omit;
+        }
+
+        // top-level omit
         if (
             this.options.omit?.[model] &&
             typeof this.options.omit[model] === 'object' &&
