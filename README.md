@@ -9,7 +9,7 @@
     <a href="https://www.npmjs.com/package/@zenstackhq/cli?activeTab=versions">
         <img src="https://img.shields.io/npm/v/%40zenstackhq%2Fcli/latest">
     </a>
-    <img src="https://github.com/zenstackhq/zenstack-v3/actions/workflows/build-test.yml/badge.svg">
+    <img src="https://github.com/zenstackhq/zenstack/actions/workflows/build-test.yml/badge.svg">
     <a href="https://twitter.com/zenstackhq">
         <img src="https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Fgithub.com%2Fzenstackhq%2Fzenstack">
     </a>
@@ -37,7 +37,7 @@ ZenStack is a TypeScript database toolkit for developing full-stack or backend N
 
 # What's New in V3
 
-ZenStack V3 is a major rewrite of [V2](https://github.com/zenstackhq/zenstack). It replaced Prisma ORM with its own ORM engine built on top of [Kysely](https://kysely.dev) while keeping a Prisma-compatible query API. This architecture change brings the level of flexibility that we couldn't imagine in previous versions. Please check [this blog post](https://zenstack.dev/blog/next-chapter-1) for why we made this bold decision.
+ZenStack V3 is a major rewrite. It replaced Prisma ORM with its own ORM engine built on top of [Kysely](https://kysely.dev) while keeping a Prisma-compatible query API. This architecture change brings the level of flexibility that we couldn't imagine in previous versions. Please check [this blog post](https://zenstack.dev/blog/next-chapter-1) for why we made this bold decision.
 
 Even without using advanced features, ZenStack offers the following benefits as a drop-in replacement to Prisma:
 

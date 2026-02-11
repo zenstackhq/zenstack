@@ -1,8 +1,9 @@
-import { loadDocument } from '@zenstackhq/language';
-import { isDataSource } from '@zenstackhq/language/ast';
+import { type ZModelServices, loadDocument } from '@zenstackhq/language';
+import { type Model, isDataSource } from '@zenstackhq/language/ast';
 import { PrismaSchemaGenerator } from '@zenstackhq/sdk';
 import colors from 'colors';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { CliError } from '../cli-error';
 
@@ -41,8 +42,22 @@ export function getSchemaFile(file?: string) {
     }
 }
 
-export async function loadSchemaDocument(schemaFile: string) {
-    const loadResult = await loadDocument(schemaFile);
+export async function loadSchemaDocument(
+    schemaFile: string,
+    opts?: { mergeImports?: boolean; returnServices?: false },
+): Promise<Model>;
+export async function loadSchemaDocument(
+    schemaFile: string,
+    opts: { returnServices: true; mergeImports?: boolean },
+): Promise<{ model: Model; services: ZModelServices }>;
+export async function loadSchemaDocument(
+    schemaFile: string,
+    opts: { returnServices?: boolean; mergeImports?: boolean } = {},
+) {
+    const returnServices = opts.returnServices ?? false;
+    const mergeImports = opts.mergeImports ?? true;
+
+    const loadResult = await loadDocument(schemaFile, [], mergeImports);
     if (!loadResult.success) {
         loadResult.errors.forEach((err) => {
             console.error(colors.red(err));
@@ -52,6 +67,9 @@ export async function loadSchemaDocument(schemaFile: string) {
     loadResult.warnings.forEach((warn) => {
         console.warn(colors.yellow(warn));
     });
+
+    if (returnServices) return { model: loadResult.model, services: loadResult.services };
+
     return loadResult.model;
 }
 
@@ -125,10 +143,10 @@ function findUp<Multiple extends boolean = false>(
     }
     const target = names.find((name) => fs.existsSync(path.join(cwd, name)));
     if (multiple === false && target) {
-        return path.join(cwd, target) as FindUpResult<Multiple>;
+        return path.resolve(cwd, target) as FindUpResult<Multiple>;
     }
     if (target) {
-        result.push(path.join(cwd, target));
+        result.push(path.resolve(cwd, target));
     }
     const up = path.resolve(cwd, '..');
     if (up === cwd) {
@@ -155,4 +173,46 @@ export function getOutputPath(options: { output?: string }, schemaFile: string) 
     } else {
         return path.dirname(schemaFile);
     }
+}
+export async function getZenStackPackages(
+    searchPath: string,
+): Promise<Array<{ pkg: string; version: string | undefined }>> {
+    const pkgJsonFile = findUp(['package.json'], searchPath, false);
+    if (!pkgJsonFile) {
+        return [];
+    }
+
+    let pkgJson: {
+        dependencies?: Record<string, unknown>;
+        devDependencies?: Record<string, unknown>;
+    };
+    try {
+        pkgJson = JSON.parse(fs.readFileSync(pkgJsonFile, 'utf8'));
+    } catch {
+        return [];
+    }
+
+    const packages = Array.from(
+        new Set(
+            [...Object.keys(pkgJson.dependencies ?? {}), ...Object.keys(pkgJson.devDependencies ?? {})].filter((p) =>
+                p.startsWith('@zenstackhq/'),
+            ),
+        ),
+    ).sort();
+
+    const require = createRequire(pkgJsonFile);
+
+    const result = packages.map((pkg) => {
+        try {
+            const depPkgJson = require(`${pkg}/package.json`);
+            if (depPkgJson.private) {
+                return undefined;
+            }
+            return { pkg, version: depPkgJson.version as string };
+        } catch {
+            return { pkg, version: undefined };
+        }
+    });
+
+    return result.filter((p) => !!p);
 }

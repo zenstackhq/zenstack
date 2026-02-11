@@ -3,6 +3,94 @@ import { sql } from 'kysely';
 import { describe, expect, it } from 'vitest';
 
 describe('Computed fields tests', () => {
+    it('throws error when computed field configuration is missing', async () => {
+        await expect(
+            createTestClient(
+                `
+model User {
+    id Int @id @default(autoincrement())
+    name String
+    upperName String @computed
+}
+`,
+                {
+                    // missing computedFields configuration
+                } as any,
+            ),
+        ).rejects.toThrow('Computed field "upperName" in model "User" does not have a configuration');
+    });
+
+    it('throws error when computed field is missing from configuration', async () => {
+        await expect(
+            createTestClient(
+                `
+model User {
+    id Int @id @default(autoincrement())
+    name String
+    upperName String @computed
+    lowerName String @computed
+}
+`,
+                {
+                    computedFields: {
+                        User: {
+                            // only providing one of two computed fields
+                            upperName: (eb: any) => eb.fn('upper', ['name']),
+                        },
+                    },
+                } as any,
+            ),
+        ).rejects.toThrow('Computed field "lowerName" in model "User" does not have a configuration');
+    });
+
+    it('throws error when computed field configuration is not a function', async () => {
+        await expect(
+            createTestClient(
+                `
+model User {
+    id Int @id @default(autoincrement())
+    name String
+    upperName String @computed
+}
+`,
+                {
+                    computedFields: {
+                        User: {
+                            // providing a string instead of a function
+                            upperName: 'not a function' as any,
+                        },
+                    },
+                } as any,
+            ),
+        ).rejects.toThrow(
+            'Computed field "upperName" in model "User" has an invalid configuration: expected a function but received string',
+        );
+    });
+
+    it('throws error when computed field configuration is a non-function object', async () => {
+        await expect(
+            createTestClient(
+                `
+model User {
+    id Int @id @default(autoincrement())
+    name String
+    computed1 String @computed
+}
+`,
+                {
+                    computedFields: {
+                        User: {
+                            // providing an object instead of a function
+                            computed1: { key: 'value' } as any,
+                        },
+                    },
+                } as any,
+            ),
+        ).rejects.toThrow(
+            'Computed field "computed1" in model "User" has an invalid configuration: expected a function but received object',
+        );
+    });
+
     it('works with non-optional fields', async () => {
         const db = await createTestClient(
             `
@@ -102,6 +190,11 @@ model User {
 }
 `,
             {
+                computedFields: {
+                    User: {
+                        upperName: (eb: any) => eb.fn('upper', ['name']),
+                    },
+                },
                 extraSourceFiles: {
                     main: `
 import { ZenStackClient } from '@zenstackhq/orm';
@@ -169,6 +262,11 @@ model User {
 }
 `,
             {
+                computedFields: {
+                    User: {
+                        upperName: (eb: any) => eb.lit(null),
+                    },
+                },
                 extraSourceFiles: {
                     main: `
 import { ZenStackClient } from '@zenstackhq/orm';

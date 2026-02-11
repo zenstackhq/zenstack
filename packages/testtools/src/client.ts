@@ -104,6 +104,11 @@ type ExtraTestClientOptions = {
         globPattern: string;
         destination: string;
     }[];
+
+    /**
+     * Computed fields configuration for tests.
+     */
+    computedFields?: import('@zenstackhq/orm').ComputedFieldsOptions<any>;
 };
 
 export type CreateTestClientOptions<Schema extends SchemaDef> = Omit<ClientOptions<Schema>, 'dialect'> &

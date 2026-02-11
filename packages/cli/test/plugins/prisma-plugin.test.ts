@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { createProject, runCli } from '../utils';
 
 describe('Core plugins tests', () => {
-    it('can automatically generate a TypeScript schema with default output', () => {
-        const workDir = createProject(`
+    it('can automatically generate a TypeScript schema with default output', async () => {
+        const { workDir } = await createProject(`
 model User {
     id String @id @default(cuid())
 }
@@ -14,8 +14,8 @@ model User {
         expect(fs.existsSync(path.join(workDir, 'zenstack/schema.ts'))).toBe(true);
     });
 
-    it('can automatically generate a TypeScript schema with custom output', () => {
-        const workDir = createProject(`
+    it('can automatically generate a TypeScript schema with custom output', async () => {
+        const { workDir } = await createProject(`
 plugin typescript {
     provider = '@core/typescript'
     output = '../generated-schema'
@@ -29,8 +29,8 @@ model User {
         expect(fs.existsSync(path.join(workDir, 'generated-schema/schema.ts'))).toBe(true);
     });
 
-    it('can generate a Prisma schema with default output', () => {
-        const workDir = createProject(`
+    it('can generate a Prisma schema with default output', async () => {
+        const { workDir } = await createProject(`
 plugin prisma {
     provider = '@core/prisma'
 }
@@ -43,8 +43,8 @@ model User {
         expect(fs.existsSync(path.join(workDir, 'zenstack/schema.prisma'))).toBe(true);
     });
 
-    it('can generate a Prisma schema with custom output', () => {
-        const workDir = createProject(`
+    it('can generate a Prisma schema with custom output', async () => {
+        const { workDir } = await createProject(`
 plugin prisma {
     provider = '@core/prisma'
     output = '../prisma/schema.prisma'
@@ -58,8 +58,8 @@ model User {
         expect(fs.existsSync(path.join(workDir, 'prisma/schema.prisma'))).toBe(true);
     });
 
-    it('can generate a Prisma schema with custom output relative to zenstack.output', () => {
-        const workDir = createProject(`
+    it('can generate a Prisma schema with custom output relative to zenstack.output', async () => {
+        const { workDir } = await createProject(`
 plugin prisma {
     provider = '@core/prisma'
     output = './schema.prisma'

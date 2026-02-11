@@ -5,6 +5,7 @@ export default defineConfig({
         index: 'src/index.ts',
         ast: 'src/ast.ts',
         utils: 'src/utils.ts',
+        factory: 'src/factory/index.ts',
     },
     outDir: 'dist',
     splitting: false,

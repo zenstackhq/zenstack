@@ -1,9 +1,0 @@
-{
-    "extends": "../../tsconfig.base.json",
-    "compilerOptions": {
-        "lib": ["ESNext", "DOM"],
-        "outDir": "dist"
-    },
-    "include": ["src/**/*.ts"],
-    "exclude": ["src/browser", "src/cross"]
-}

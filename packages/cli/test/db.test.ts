@@ -10,14 +10,14 @@ model User {
 `;
 
 describe('CLI db commands test', () => {
-    it('should generate a database with db push', () => {
-        const workDir = createProject(model);
+    it('should generate a database with db push', async () => {
+        const { workDir } = await createProject(model, { provider: 'sqlite' });
         runCli('db push', workDir);
-        expect(fs.existsSync(path.join(workDir, 'zenstack/dev.db'))).toBe(true);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/test.db'))).toBe(true);
     });
 
-    it('should seed the database with db seed with seed script', () => {
-        const workDir = createProject(model);
+    it('should seed the database with db seed with seed script', async () => {
+        const { workDir } = await createProject(model, { provider: 'sqlite' });
         const pkgJson = JSON.parse(fs.readFileSync(path.join(workDir, 'package.json'), 'utf8'));
         pkgJson.zenstack = {
             seed: 'node seed.js',
@@ -35,8 +35,8 @@ fs.writeFileSync('seed.txt', 'success');
         expect(fs.readFileSync(path.join(workDir, 'seed.txt'), 'utf8')).toBe('success');
     });
 
-    it('should seed the database after migrate reset', () => {
-        const workDir = createProject(model);
+    it('should seed the database after migrate reset', async () => {
+        const { workDir } = await createProject(model, { provider: 'sqlite' });
         const pkgJson = JSON.parse(fs.readFileSync(path.join(workDir, 'package.json'), 'utf8'));
         pkgJson.zenstack = {
             seed: 'node seed.js',
@@ -54,8 +54,8 @@ fs.writeFileSync('seed.txt', 'success');
         expect(fs.readFileSync(path.join(workDir, 'seed.txt'), 'utf8')).toBe('success');
     });
 
-    it('should skip seeding the database without seed script', () => {
-        const workDir = createProject(model);
+    it('should skip seeding the database without seed script', async () => {
+        const { workDir } = await createProject(model, { provider: 'sqlite' });
         runCli('db seed', workDir);
     });
 });

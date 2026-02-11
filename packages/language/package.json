@@ -49,6 +49,16 @@
                 "default": "./dist/utils.cjs"
             }
         },
+        "./factory": {
+            "import": {
+                "types": "./dist/factory.d.ts",
+                "default": "./dist/factory.js"
+            },
+            "require": {
+                "types": "./dist/factory.d.cts",
+                "default": "./dist/factory.cjs"
+            }
+        },
         "./package.json": {
             "import": "./package.json",
             "require": "./package.json"

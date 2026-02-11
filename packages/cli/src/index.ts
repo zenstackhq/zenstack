@@ -144,6 +144,36 @@ function createProgram() {
         .action((options) => dbAction('push', options));
 
     dbCommand
+        .command('pull')
+        .description('Introspect your database.')
+        .addOption(schemaOption)
+        .addOption(noVersionCheckOption)
+        .addOption(
+            new Option(
+                '-o, --output <path>',
+                'set custom output path for the introspected schema. If a file path is provided, all schemas are merged into that single file. If a directory path is provided, files are written to the directory and imports are kept.',
+            ),
+        )
+        .addOption(
+            new Option('--model-casing <pascal|camel|snake|none>', 'set the casing of generated models').default(
+                'pascal',
+            ),
+        )
+        .addOption(
+            new Option('--field-casing <pascal|camel|snake|none>', 'set the casing of generated fields').default(
+                'camel',
+            ),
+        )
+        .addOption(
+            new Option('--always-map', 'always add @map and @@map attributes to models and fields').default(false),
+        )
+        .addOption(
+            new Option('--quote <double|single>', 'set the quote style of generated schema files').default('single'),
+        )
+        .addOption(new Option('--indent <number>', 'set the indentation of the generated schema files').default(4))
+        .action((options) => dbAction('pull', options));
+
+    dbCommand
         .command('seed')
         .description('Seed the database')
         .allowExcessArguments(true)

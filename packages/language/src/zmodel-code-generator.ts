@@ -28,6 +28,7 @@ import {
     LiteralExpr,
     MemberAccessExpr,
     Model,
+    ModelImport,
     NullExpr,
     NumberLiteral,
     ObjectExpr,
@@ -70,7 +71,7 @@ function gen(name: string) {
  */
 export class ZModelCodeGenerator {
     private readonly options: ZModelCodeOptions;
-
+    private readonly quote: string;
     constructor(options?: Partial<ZModelCodeOptions>) {
         this.options = {
             binaryExprNumberOfSpaces: options?.binaryExprNumberOfSpaces ?? 1,
@@ -78,6 +79,7 @@ export class ZModelCodeGenerator {
             indent: options?.indent ?? 4,
             quote: options?.quote ?? 'single',
         };
+        this.quote = this.options.quote === 'double' ? '"' : "'";
     }
 
     /**
@@ -91,9 +93,16 @@ export class ZModelCodeGenerator {
         return handler.value.call(this, ast);
     }
 
+    private quotedStr(val: string): string {
+        const trimmedVal = val.replace(new RegExp(`(?<!\\\\)${this.quote}`, 'g'), `\\${this.quote}`);
+        return `${this.quote}${trimmedVal}${this.quote}`;
+    }
+
     @gen(Model)
     private _generateModel(ast: Model) {
-        return ast.declarations.map((d) => this.generate(d)).join('\n\n');
+        return `${ast.imports.map((d) => this.generate(d)).join('\n')}${ast.imports.length > 0 ? '\n\n' : ''}${ast.declarations
+            .map((d) => this.generate(d))
+            .join('\n\n')}`;
     }
 
     @gen(DataSource)
@@ -103,18 +112,39 @@ ${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}
 }`;
     }
 
+    @gen(ModelImport)
+    private _generateModelImport(ast: ModelImport) {
+        return `import ${this.quotedStr(ast.path)}`;
+    }
+
     @gen(Enum)
     private _generateEnum(ast: Enum) {
-        return `enum ${ast.name} {
-${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}
+        const comments = `${ast.comments.join('\n')}\n`;
+        return `${ast.comments.length > 0 ? comments : ''}enum ${ast.name} {
+${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}${
+            ast.attributes.length > 0
+                ? '\n\n' + ast.attributes.map((x) => this.indent + this.generate(x)).join('\n')
+                : ''
+        }
 }`;
     }
 
     @gen(EnumField)
     private _generateEnumField(ast: EnumField) {
-        return `${ast.name}${
+        const fieldLine = `${ast.name}${
             ast.attributes.length > 0 ? ' ' + ast.attributes.map((x) => this.generate(x)).join(' ') : ''
         }`;
+
+        if (ast.comments.length === 0) {
+            return fieldLine;
+        }
+
+        // Build comment block with proper indentation:
+        // - First comment: no indent (caller adds it via `this.indent + this.generate(x)`)
+        // - Subsequent comments: add indent
+        // - Field line: add indent (since it comes after the comment block)
+        const commentLines = ast.comments.map((c, i) => (i === 0 ? c : this.indent + c));
+        return `${commentLines.join('\n')}\n${this.indent}${fieldLine}`;
     }
 
     @gen(GeneratorDecl)
@@ -159,8 +189,10 @@ ${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}
 
     @gen(DataModel)
     private _generateDataModel(ast: DataModel) {
-        return `${ast.isView ? 'view' : 'model'} ${ast.name}${
-            ast.mixins.length > 0 ? ' mixes ' + ast.mixins.map((x) => x.$refText).join(', ') : ''
+        const comments = `${ast.comments.join('\n')}\n`;
+
+        return `${ast.comments.length > 0 ? comments : ''}${ast.isView ? 'view' : 'model'} ${ast.name}${
+            ast.mixins.length > 0 ? ' with ' + ast.mixins.map((x) => x.$refText).join(', ') : ''
         } {
 ${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}${
             ast.attributes.length > 0
@@ -172,9 +204,20 @@ ${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}${
 
     @gen(DataField)
     private _generateDataField(ast: DataField) {
-        return `${ast.name} ${this.fieldType(ast.type)}${
+        const fieldLine = `${ast.name} ${this.fieldType(ast.type)}${
             ast.attributes.length > 0 ? ' ' + ast.attributes.map((x) => this.generate(x)).join(' ') : ''
         }`;
+
+        if (ast.comments.length === 0) {
+            return fieldLine;
+        }
+
+        // Build comment block with proper indentation:
+        // - First comment: no indent (caller adds it via `this.indent + this.generate(x)`)
+        // - Subsequent comments: add indent
+        // - Field line: add indent (since it comes after the comment block)
+        const commentLines = ast.comments.map((c, i) => (i === 0 ? c : this.indent + c));
+        return `${commentLines.join('\n')}\n${this.indent}${fieldLine}`;
     }
 
     private fieldType(type: DataFieldType) {
@@ -226,7 +269,7 @@ ${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}${
 
     @gen(StringLiteral)
     private _generateLiteralExpr(ast: LiteralExpr) {
-        return this.options.quote === 'single' ? `'${ast.value}'` : `"${ast.value}"`;
+        return this.quotedStr(ast.value as string);
     }
 
     @gen(NumberLiteral)
@@ -271,7 +314,7 @@ ${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}${
 
     @gen(ReferenceArg)
     private _generateReferenceArg(ast: ReferenceArg) {
-        return `${ast.name}:${this.generate(ast.value)}`;
+        return `${ast.name}: ${this.generate(ast.value)}`;
     }
 
     @gen(MemberAccessExpr)

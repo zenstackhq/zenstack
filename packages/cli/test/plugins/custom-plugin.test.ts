@@ -5,8 +5,8 @@ import { createProject, runCli } from '../utils';
 import { execSync } from 'node:child_process';
 
 describe('Custom plugins tests', () => {
-    it('runs custom plugin generator', () => {
-        const workDir = createProject(`
+    it('runs custom plugin generator', async () => {
+        const { workDir } = await createProject(`
 plugin custom {
     provider = '../my-plugin.js'
     output = '../custom-output'

@@ -12,7 +12,8 @@ import { watch } from 'chokidar';
 import ora, { type Ora } from 'ora';
 import { CliError } from '../cli-error';
 import * as corePlugins from '../plugins';
-import { getOutputPath, getSchemaFile, loadSchemaDocument } from './action-utils';
+import { getOutputPath, getSchemaFile, getZenStackPackages, loadSchemaDocument } from './action-utils';
+import semver from 'semver';
 
 type Options = {
     schema?: string;
@@ -27,6 +28,11 @@ type Options = {
  * CLI action for generating code from schema
  */
 export async function run(options: Options) {
+    try {
+        await checkForMismatchedPackages(process.cwd());
+    } catch (err) {
+        console.warn(colors.yellow(`Failed to check for mismatched ZenStack packages: ${err}`));
+    }
     const model = await pureGenerate(options, false);
 
     if (options.watch) {
@@ -314,4 +320,41 @@ async function loadPluginModule(provider: string, basePath: string) {
         // plugin may not export a generator so we simply ignore the error here
         return undefined;
     }
+}
+
+async function checkForMismatchedPackages(projectPath: string) {
+    const packages = await getZenStackPackages(projectPath);
+    if (!packages.length) {
+        return false;
+    }
+
+    const versions = new Set<string>();
+    for (const { version } of packages) {
+        if (version) {
+            versions.add(version);
+        }
+    }
+
+    if (versions.size > 1) {
+        const message =
+            'WARNING: Multiple versions of ZenStack packages detected.\n\tThis will probably cause issues and break your types.';
+        const slashes = '/'.repeat(73);
+        const latestVersion = semver.sort(Array.from(versions)).reverse()[0]!;
+
+        console.warn(colors.yellow(`${slashes}\n\n\t${message}\n`));
+        for (const { pkg, version } of packages) {
+            if (!version) continue;
+
+            if (version === latestVersion) {
+                console.log(`\t${pkg.padEnd(32)}\t${colors.green(version)}`);
+            } else {
+                console.log(`\t${pkg.padEnd(32)}\t${colors.yellow(version)}`);
+            }
+        }
+        console.warn(`\n${colors.yellow(slashes)}`);
+
+        return true;
+    }
+
+    return false;
 }

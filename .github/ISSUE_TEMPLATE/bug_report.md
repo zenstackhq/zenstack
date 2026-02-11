@@ -14,9 +14,10 @@ If applicable, add screenshots to help explain your problem.
 
 **Environment (please complete the following information):**
 
--   ZenStack version: [e.g., 2.0.0]
--   Prisma version: [e.g., 5.7.0]
+-   ZenStack version: [e.g., 3.1.0]
 -   Database type: [e.g. Postgresql]
+-   Node.js/Bun version: [e.g., 20.0.0]
+-   Package manager: [e.g., npm, yarn, pnpm]
 
 **Additional context**
 Add any other context about the problem here.

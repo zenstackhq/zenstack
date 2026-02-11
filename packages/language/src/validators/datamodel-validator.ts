@@ -44,13 +44,15 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         const uniqueFields = allFields.filter((f) => f.attributes.find((attr) => attr.decl.ref?.name === '@unique'));
         const modelLevelIds = getModelIdFields(dm);
         const modelUniqueFields = getModelUniqueFields(dm);
+        const ignore = hasAttribute(dm, '@@ignore');
 
         if (
             !dm.isView &&
             idFields.length === 0 &&
             modelLevelIds.length === 0 &&
             uniqueFields.length === 0 &&
-            modelUniqueFields.length === 0
+            modelUniqueFields.length === 0 &&
+            !ignore
         ) {
             accept(
                 'error',

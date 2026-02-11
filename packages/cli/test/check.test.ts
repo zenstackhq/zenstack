@@ -36,37 +36,37 @@ model Post {
 `;
 
 describe('CLI validate command test', () => {
-    it('should validate a valid schema successfully', () => {
-        const workDir = createProject(validModel);
+    it('should validate a valid schema successfully', async () => {
+        const { workDir } = await createProject(validModel);
 
         // Should not throw an error
         expect(() => runCli('check', workDir)).not.toThrow();
     });
 
-    it('should fail validation for invalid schema', () => {
-        const workDir = createProject(invalidModel);
+    it('should fail validation for invalid schema', async () => {
+        const { workDir } = await createProject(invalidModel);
 
         // Should throw an error due to validation failure
         expect(() => runCli('check', workDir)).toThrow();
     });
 
-    it('should respect custom schema location', () => {
-        const workDir = createProject(validModel);
+    it('should respect custom schema location', async () => {
+        const { workDir } = await createProject(validModel);
         fs.renameSync(path.join(workDir, 'zenstack/schema.zmodel'), path.join(workDir, 'zenstack/custom.zmodel'));
 
         // Should not throw an error when using custom schema path
         expect(() => runCli('check --schema ./zenstack/custom.zmodel', workDir)).not.toThrow();
     });
 
-    it('should fail when schema file does not exist', () => {
-        const workDir = createProject(validModel);
+    it('should fail when schema file does not exist', async () => {
+        const { workDir } = await createProject(validModel);
 
         // Should throw an error when schema file doesn't exist
         expect(() => runCli('check --schema ./nonexistent.zmodel', workDir)).toThrow();
     });
 
-    it('should respect package.json config', () => {
-        const workDir = createProject(validModel);
+    it('should respect package.json config', async () => {
+        const { workDir } = await createProject(validModel);
         fs.mkdirSync(path.join(workDir, 'foo'));
         fs.renameSync(path.join(workDir, 'zenstack/schema.zmodel'), path.join(workDir, 'foo/schema.zmodel'));
         fs.rmdirSync(path.join(workDir, 'zenstack'));
@@ -81,19 +81,14 @@ describe('CLI validate command test', () => {
         expect(() => runCli('check', workDir)).not.toThrow();
     });
 
-    it('should validate schema with syntax errors', () => {
+    it('should validate schema with syntax errors', async () => {
         const modelWithSyntaxError = `
-datasource db {
-    provider = "sqlite"
-    url = "file:./dev.db"
-}
-
 model User {
     id String @id @default(cuid())
     email String @unique
     // Missing closing brace - syntax error
         `;
-        const workDir = createProject(modelWithSyntaxError, false);
+        const { workDir } = await createProject(modelWithSyntaxError);
 
         // Should throw an error due to syntax error
         expect(() => runCli('check', workDir)).toThrow();

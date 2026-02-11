@@ -75,6 +75,11 @@ export class ClientImpl {
             ...this.$options.functions,
         };
 
+        if (!baseClient) {
+            // validate computed fields configuration once for the root client
+            this.validateComputedFieldsConfig();
+        }
+
         // here we use kysely's props constructor so we can pass a custom query executor
         if (baseClient) {
             this.kyselyProps = {
@@ -137,6 +142,39 @@ export class ClientImpl {
      */
     withExecutor(executor: QueryExecutor) {
         return new ClientImpl(this.schema, this.$options, this, executor);
+    }
+
+    /**
+     * Validates that all computed fields in the schema have corresponding configurations.
+     */
+    private validateComputedFieldsConfig() {
+        const computedFieldsConfig =
+            'computedFields' in this.$options
+                ? (this.$options.computedFields as Record<string, any> | undefined)
+                : undefined;
+
+        for (const [modelName, modelDef] of Object.entries(this.$schema.models)) {
+            if (modelDef.computedFields) {
+                for (const fieldName of Object.keys(modelDef.computedFields)) {
+                    const modelConfig = computedFieldsConfig?.[modelName];
+                    const fieldConfig = modelConfig?.[fieldName];
+                    // Check if the computed field has a configuration
+                    if (fieldConfig === null || fieldConfig === undefined) {
+                        throw createConfigError(
+                            `Computed field "${fieldName}" in model "${modelName}" does not have a configuration. ` +
+                                `Please provide an implementation in the computedFields option.`,
+                        );
+                    }
+                    // Check that the configuration is a function
+                    if (typeof fieldConfig !== 'function') {
+                        throw createConfigError(
+                            `Computed field "${fieldName}" in model "${modelName}" has an invalid configuration: ` +
+                                `expected a function but received ${typeof fieldConfig}.`,
+                        );
+                    }
+                }
+            }
+        }
     }
 
     // overload for interactive transaction

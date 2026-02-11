@@ -6,7 +6,7 @@
 /* eslint-disable */
 
 import { type SchemaType as $Schema } from "./schema";
-import { type ModelResult as $ModelResult } from "@zenstackhq/orm";
+import type { ModelResult as $ModelResult } from "@zenstackhq/orm";
 export type InternalChat = $ModelResult<$Schema, "InternalChat">;
 export type Message = $ModelResult<$Schema, "Message">;
 export type Media = $ModelResult<$Schema, "Media">;

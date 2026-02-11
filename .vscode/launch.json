@@ -11,7 +11,7 @@
             "skipFiles": ["<node_internals>/**"],
             "type": "node",
             "args": ["generate"],
-            "cwd": "${workspaceFolder}/samples/blog"
+            "cwd": "${workspaceFolder}/samples/orm"
         },
         {
             "name": "Debug with TSX",

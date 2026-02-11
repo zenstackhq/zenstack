@@ -1359,18 +1359,18 @@ export class TsSchemaGenerator {
             ts.factory.createImportDeclaration(
                 undefined,
                 ts.factory.createImportClause(
-                    false,
+                    true,
                     undefined,
                     ts.factory.createNamedImports([
                         ts.factory.createImportSpecifier(
-                            true,
+                            false,
                             undefined,
                             ts.factory.createIdentifier(`ModelResult as $ModelResult`),
                         ),
                         ...(model.declarations.some(isTypeDef)
                             ? [
                                   ts.factory.createImportSpecifier(
-                                      true,
+                                      false,
                                       undefined,
                                       ts.factory.createIdentifier(`TypeDefResult as $TypeDefResult`),
                                   ),

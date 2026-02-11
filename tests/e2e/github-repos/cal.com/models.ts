@@ -6,7 +6,7 @@
 /* eslint-disable */
 
 import { schema as $schema, type SchemaType as $Schema } from "./schema";
-import { type ModelResult as $ModelResult } from "@zenstackhq/orm";
+import type { ModelResult as $ModelResult } from "@zenstackhq/orm";
 export type Host = $ModelResult<$Schema, "Host">;
 export type CalVideoSettings = $ModelResult<$Schema, "CalVideoSettings">;
 export type EventType = $ModelResult<$Schema, "EventType">;

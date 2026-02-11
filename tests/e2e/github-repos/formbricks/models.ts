@@ -6,7 +6,7 @@
 /* eslint-disable */
 
 import { schema as $schema, type SchemaType as $Schema } from "./schema";
-import { type ModelResult as $ModelResult } from "@zenstackhq/orm";
+import type { ModelResult as $ModelResult } from "@zenstackhq/orm";
 /**
  * Represents a webhook endpoint for receiving survey-related events.
  * Webhooks can be configured to receive notifications about response creation, updates, and completion.

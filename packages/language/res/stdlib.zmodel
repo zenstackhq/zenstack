@@ -120,7 +120,7 @@ function dbgenerated(expr: String?): Any {
 /**
  * Checks if the field value contains the search string. By default, the search is case-sensitive, and
  * "LIKE" operator is used to match. If `caseInSensitive` is true, "ILIKE" operator is used if
- * supported, otherwise it still falls back to "LIKE" and delivers whatever the database's 
+ * supported, otherwise it still falls back to "LIKE" and delivers whatever the database's
  * behavior is.
  */
 function contains(field: String, search: String, caseInSensitive: Boolean?): Boolean {
@@ -135,7 +135,7 @@ function contains(field: String, search: String, caseInSensitive: Boolean?): Boo
 /**
  * Checks the field value starts with the search string. By default, the search is case-sensitive, and
  * "LIKE" operator is used to match. If `caseInSensitive` is true, "ILIKE" operator is used if
- * supported, otherwise it still falls back to "LIKE" and delivers whatever the database's 
+ * supported, otherwise it still falls back to "LIKE" and delivers whatever the database's
  * behavior is.
  */
 function startsWith(field: String, search: String, caseInSensitive: Boolean?): Boolean {
@@ -144,7 +144,7 @@ function startsWith(field: String, search: String, caseInSensitive: Boolean?): B
 /**
  * Checks if the field value ends with the search string. By default, the search is case-sensitive, and
  * "LIKE" operator is used to match. If `caseInSensitive` is true, "ILIKE" operator is used if
- * supported, otherwise it still falls back to "LIKE" and delivers whatever the database's 
+ * supported, otherwise it still falls back to "LIKE" and delivers whatever the database's
  * behavior is.
  */
 function endsWith(field: String, search: String, caseInSensitive: Boolean?): Boolean {

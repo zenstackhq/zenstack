@@ -13,7 +13,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isDataModel, isDataSource, type Model } from './ast';
 import { DB_PROVIDERS_SUPPORTING_LIST_TYPE, STD_LIB_MODULE_NAME } from './constants';
-import { createZModelServices } from './module';
+import { createZModelServices, type ZModelServices } from './module';
 import {
     getAllFields,
     getDataModelAndTypeDefs,
@@ -32,8 +32,10 @@ import type { ZModelFormatter } from './zmodel-formatter';
 export async function loadDocument(
     fileName: string,
     additionalModelFiles: string[] = [],
+    mergeImports: boolean = true,
 ): Promise<
-    { success: true; model: Model; warnings: string[] } | { success: false; errors: string[]; warnings: string[] }
+    | { success: true; model: Model; warnings: string[]; services: ZModelServices }
+    | { success: false; errors: string[]; warnings: string[] }
 > {
     const { ZModelLanguage: services } = createZModelServices(false);
     const extensions = services.LanguageMetaData.fileExtensions;
@@ -121,17 +123,19 @@ export async function loadDocument(
 
     const model = document.parseResult.value as Model;
 
-    // merge all declarations into the main document
-    const imported = mergeImportsDeclarations(langiumDocuments, model);
+    if (mergeImports) {
+        // merge all declarations into the main document
+        const imported = mergeImportsDeclarations(langiumDocuments, model);
 
-    // remove imported documents
-    imported.forEach((model) => {
-        langiumDocuments.deleteDocument(model.$document!.uri);
-        services.shared.workspace.IndexManager.remove(model.$document!.uri);
-    });
+        // remove imported documents
+        imported.forEach((model) => {
+            langiumDocuments.deleteDocument(model.$document!.uri);
+            services.shared.workspace.IndexManager.remove(model.$document!.uri);
+        });
+    }
 
     // extra validation after merging imported declarations
-    const additionalErrors = validationAfterImportMerge(model);
+    const additionalErrors = mergeImports === true ? validationAfterImportMerge(model) : [];
     if (additionalErrors.length > 0) {
         return {
             success: false,
@@ -143,6 +147,7 @@ export async function loadDocument(
     return {
         success: true,
         model: document.parseResult.value as Model,
+        services,
         warnings,
     };
 }
