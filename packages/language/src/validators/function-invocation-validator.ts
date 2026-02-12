@@ -237,6 +237,20 @@ export default class FunctionInvocationValidator implements AstValidator<Express
         }
     }
 
+    @func('customId')
+    private _checkCustomId(expr: InvocationExpr, accept: ValidationAcceptor) {
+        // first argument must be positive if provided
+        const lengthArg = expr.args[0]?.value;
+        if (lengthArg) {
+            const length = getLiteral<number>(lengthArg);
+            if (length !== undefined && length <= 0) {
+                accept('error', 'first argument must be a positive number', {
+                    node: expr.args[0]!,
+                });
+            }
+        }
+    }
+
     @func('auth')
     private _checkAuth(expr: InvocationExpr, accept: ValidationAcceptor) {
         if (!expr.$resolvedType) {
