@@ -25,6 +25,7 @@ import { NUMERIC_FIELD_TYPES } from '../../constants';
 import { TransactionIsolationLevel, type ClientContract, type CRUD } from '../../contract';
 import type { FindArgs, SelectIncludeOmit, WhereInput } from '../../crud-types';
 import {
+    createConfigError,
     createDBQueryError,
     createInternalError,
     createInvalidInputError,
@@ -1096,14 +1097,18 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                 })
                 .with('ulid', () => this.formatGeneratedValue(ulid(), defaultValue.args?.[0]))
                 .with('customId', () => {
-                    invariant(this.client.$options.customId, '"customId" implementation not provided');
+                    if (!this.client.$options.customId) {
+                        throw createConfigError('"customId" implementation not provided');
+                    }
                     const length = typeof firstArgVal === 'number' ? firstArgVal : undefined;
                     const generated = this.client.$options.customId({
                         client: this.client,
                         model: model as GetModels<Schema>,
                         length,
                     });
-                    invariant(generated && typeof generated === 'string', '"customId" must return a non-empty string');
+                    if (!generated || typeof generated !== 'string') {
+                        throw createConfigError('"customId" must return a non-empty string');
+                    }
                     return generated;
                 })
                 .otherwise(() => undefined);
