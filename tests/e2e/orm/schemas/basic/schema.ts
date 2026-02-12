@@ -30,8 +30,8 @@ export class SchemaType implements SchemaDef {
                 updatedAt: {
                     name: "updatedAt",
                     type: "DateTime",
-                    updatedAt: { ignore: ["id", "createdAt"] },
-                    attributes: [{ name: "@updatedAt", args: [{ name: "ignore", value: ExpressionUtils.array("String", [ExpressionUtils.field("id"), ExpressionUtils.field("createdAt")]) }] }]
+                    updatedAt: true,
+                    attributes: [{ name: "@updatedAt" }]
                 },
                 email: {
                     name: "email",
@@ -97,8 +97,8 @@ export class SchemaType implements SchemaDef {
                 updatedAt: {
                     name: "updatedAt",
                     type: "DateTime",
-                    updatedAt: { ignore: ["id", "createdAt"] },
-                    attributes: [{ name: "@updatedAt", args: [{ name: "ignore", value: ExpressionUtils.array("String", [ExpressionUtils.field("id"), ExpressionUtils.field("createdAt")]) }] }]
+                    updatedAt: true,
+                    attributes: [{ name: "@updatedAt" }]
                 },
                 title: {
                     name: "title",
@@ -164,8 +164,8 @@ export class SchemaType implements SchemaDef {
                 updatedAt: {
                     name: "updatedAt",
                     type: "DateTime",
-                    updatedAt: { ignore: ["id", "createdAt"] },
-                    attributes: [{ name: "@updatedAt", args: [{ name: "ignore", value: ExpressionUtils.array("String", [ExpressionUtils.field("id"), ExpressionUtils.field("createdAt")]) }] }]
+                    updatedAt: true,
+                    attributes: [{ name: "@updatedAt" }]
                 },
                 content: {
                     name: "content",
@@ -211,8 +211,8 @@ export class SchemaType implements SchemaDef {
                 updatedAt: {
                     name: "updatedAt",
                     type: "DateTime",
-                    updatedAt: { ignore: ["id", "createdAt"] },
-                    attributes: [{ name: "@updatedAt", args: [{ name: "ignore", value: ExpressionUtils.array("String", [ExpressionUtils.field("id"), ExpressionUtils.field("createdAt")]) }] }]
+                    updatedAt: true,
+                    attributes: [{ name: "@updatedAt" }]
                 },
                 bio: {
                     name: "bio",
@@ -287,8 +287,8 @@ export class SchemaType implements SchemaDef {
                 updatedAt: {
                     name: "updatedAt",
                     type: "DateTime",
-                    updatedAt: { ignore: ["id", "createdAt"] },
-                    attributes: [{ name: "@updatedAt", args: [{ name: "ignore", value: ExpressionUtils.array("String", [ExpressionUtils.field("id"), ExpressionUtils.field("createdAt")]) }] }]
+                    updatedAt: true,
+                    attributes: [{ name: "@updatedAt" }]
                 }
             }
         }
