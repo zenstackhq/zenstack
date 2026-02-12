@@ -21,7 +21,7 @@ const schema = `
     }
 `;
 
-describe('customId', async () => {
+describe('customId', () => {
     it('works with no arguments', async () => {
         const client = await createTestClient(schema, {
             customId: ({ model, length }) => `${model}.${length ?? 16}`,

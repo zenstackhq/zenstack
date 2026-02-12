@@ -425,6 +425,20 @@ describe('Function Invocation Tests', () => {
                 }
 
                 model User {
+                    id String @id @default(customId(0))
+                }
+            `,
+                'first argument must be a positive number',
+            );
+
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
                     id String @id @default(customId(-1))
                 }
             `,
