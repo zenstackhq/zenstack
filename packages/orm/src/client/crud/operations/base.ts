@@ -1044,7 +1044,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             }
             if (!(field in data)) {
                 if (typeof fieldDef?.default === 'object' && 'kind' in fieldDef.default) {
-                    const generated = this.evalGenerator(fieldDef.default);
+                    const generated = this.evalGenerator(fieldDef.default, modelDef.name);
                     if (generated !== undefined) {
                         values[field] = this.dialect.transformInput(
                             generated,
@@ -1072,7 +1072,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         return values;
     }
 
-    private evalGenerator(defaultValue: Expression) {
+    private evalGenerator(defaultValue: Expression, model: string) {
         if (ExpressionUtils.isCall(defaultValue)) {
             const firstArgVal =
                 defaultValue.args?.[0] && ExpressionUtils.isLiteral(defaultValue.args[0])
@@ -1095,6 +1095,16 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                     return this.formatGeneratedValue(generated, defaultValue.args?.[1]);
                 })
                 .with('ulid', () => this.formatGeneratedValue(ulid(), defaultValue.args?.[0]))
+                .with('customId', () => {
+                    invariant(this.client.$options.customId, '"customId" implementation not provided');
+                    const length = typeof firstArgVal === 'number' ? firstArgVal : undefined;
+                    const generated = this.client.$options.customId({
+                        model,
+                        length,
+                    });
+                    invariant(generated && typeof generated === 'string', '"customId" must return a non-empty string');
+                    return generated;
+                })
                 .otherwise(() => undefined);
         } else if (
             ExpressionUtils.isMember(defaultValue) &&
