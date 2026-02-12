@@ -24,7 +24,7 @@ const schema = `
 describe('customId', () => {
     it('works with no arguments', async () => {
         let client = await createTestClient(schema, {
-            customId: ({ model, field, length, client }) => `${model}.${field}.${length ?? 16}.${client.$auth!['uid']}`,
+            customId: ({ model, length, client }) => `${model}.${length ?? 16}.${client.$auth!['uid']}`,
         });
 
         client = client.$setAuth({
@@ -32,15 +32,15 @@ describe('customId', () => {
         });
 
         await expect(client.user.create({ data: {} })).resolves.toMatchObject({
-            uid: 'User.uid.16.1',
+            uid: 'User.16.1',
         });
 
         await expect(client.post.create({ data: {} })).resolves.toMatchObject({
-            pid: 'Post.pid.16.1',
+            pid: 'Post.16.1',
         });
 
         await expect(client.comment.create({ data: {} })).resolves.toMatchObject({
-            cid: 'Comment.cid.16.1',
+            cid: 'Comment.16.1',
         });
     });
 
@@ -66,7 +66,7 @@ describe('customId', () => {
         `;
 
         let client = await createTestClient(schema, {
-            customId: ({ model, field, length }) => `${model}.${field}.${length}.${client.$auth!['uid']}`,
+            customId: ({ model, length, client }) => `${model}.${length}.${client.$auth!['uid']}`,
         });
 
         client = client.$setAuth({
@@ -74,21 +74,21 @@ describe('customId', () => {
         });
 
         await expect(client.user.create({ data: {} })).resolves.toMatchObject({
-            uid: 'User.uid.8.1',
+            uid: 'User.8.1',
         });
 
         await expect(client.post.create({ data: {} })).resolves.toMatchObject({
-            pid: 'Post.pid.8.1',
+            pid: 'Post.8.1',
         });
 
         await expect(client.comment.create({ data: {} })).resolves.toMatchObject({
-            cid: 'Comment.cid.8.1',
+            cid: 'Comment.8.1',
         });
     });
 
     it('works with nested', async () => {
         let client = await createTestClient(schema, {
-            customId: ({ model, field, length, client }) => `${model}.${field}.${length ?? 16}.${client.$auth!['uid']}`,
+            customId: ({ model, length, client }) => `${model}.${length ?? 16}.${client.$auth!['uid']}`,
         });
 
         client = client.$setAuth({
@@ -102,19 +102,19 @@ describe('customId', () => {
                 },
             },
         })).resolves.toMatchObject({
-            uid: 'User.uid.16.1',
+            uid: 'User.16.1',
         });
 
         await expect(client.post.findUnique({
             where: {
-                pid: 'Post.pid.16.1',
+                pid: 'Post.16.1',
             }
         })).resolves.toBeTruthy();
     });
 
     it('works with deeply nested', async () => {
         let client = await createTestClient(schema, {
-            customId: ({ model, field, length, client }) => `${model}.${field}.${length ?? 16}.${client.$auth!['uid']}`,
+            customId: ({ model, length, client }) => `${model}.${length ?? 16}.${client.$auth!['uid']}`,
         });
 
         client = client.$setAuth({
@@ -132,18 +132,18 @@ describe('customId', () => {
                 },
             },
         })).resolves.toMatchObject({
-            uid: 'User.uid.16.1',
+            uid: 'User.16.1',
         });
 
         await expect(client.post.findUnique({
             where: {
-                pid: 'Post.pid.16.1',
+                pid: 'Post.16.1',
             }
         })).resolves.toBeTruthy();
 
         await expect(client.comment.findUnique({
             where: {
-                cid: 'Comment.cid.16.1',
+                cid: 'Comment.16.1',
             }
         })).resolves.toBeTruthy();
     });

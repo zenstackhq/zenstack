@@ -52,11 +52,6 @@ export type CustomIdFunctionContext<Schema extends SchemaDef> = {
     model: GetModels<Schema>;
 
     /**
-     * The field for which the ID should be generated.
-     */
-    field: string;
-
-    /**
      * The length of the ID as requested by the schema.
      */
     length?: number;
