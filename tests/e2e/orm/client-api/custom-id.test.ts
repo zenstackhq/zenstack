@@ -137,22 +137,25 @@ describe('customId', async () => {
         await expect(client.user.create({ data: {} })).rejects.toThrowError('implementation not provided');
     });
 
-    it('rejects without a valid implementation', async () => {
+    it('rejects without a valid implementation (undefined)', async () => {
         // @ts-expect-error
-        let client = await createTestClient(schema, {
+        const client = await createTestClient(schema, {
             customId: () => undefined,
         });
         // @ts-expect-error
         await expect(client.user.create({ data: {} })).rejects.toThrowError('non-empty string');
+    });
 
-        client = await createTestClient(schema, {
+    it('rejects without a valid implementation (empty string)', async () => {
+        const client = await createTestClient(schema, {
             customId: () => '',
         });
-        // @ts-expect-error
         await expect(client.user.create({ data: {} })).rejects.toThrowError('non-empty string');
+    });
 
+    it('rejects without a valid implementation (non-string)', async () => {
         // @ts-expect-error
-        client = await createTestClient(schema, {
+        const client = await createTestClient(schema, {
             customId: () => 1,
         });
         // @ts-expect-error
