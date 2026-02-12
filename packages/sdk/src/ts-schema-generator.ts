@@ -522,10 +522,10 @@ export class TsSchemaGenerator {
         );
     }
 
-    private createUpdatedAtObject(ignoreArg: AttributeArg) {
+    private createUpdatedAtObject(arg: AttributeArg) {
         return ts.factory.createObjectLiteralExpression([
-            ts.factory.createPropertyAssignment('ignore', ts.factory.createArrayLiteralExpression(
-                (ignoreArg.value as ArrayExpr).items.map((item) => ts.factory.createStringLiteral((item as ReferenceExpr).target.$refText))
+            ts.factory.createPropertyAssignment(arg.$resolvedParam.name, ts.factory.createArrayLiteralExpression(
+                (arg.value as ArrayExpr).items.map((item) => ts.factory.createStringLiteral((item as ReferenceExpr).target.$refText))
             ))
         ]);
     }
@@ -575,9 +575,10 @@ export class TsSchemaGenerator {
         const updatedAtAttrib = getAttribute(field, '@updatedAt') as DataFieldAttribute | undefined;
         if (updatedAtAttrib) {
             const ignoreArg = updatedAtAttrib.args.find(arg => arg.$resolvedParam?.name === 'ignore');
+            const fieldsArg = updatedAtAttrib.args.find(arg => arg.$resolvedParam?.name === 'fields');
             objectFields.push(ts.factory.createPropertyAssignment('updatedAt',
-                ignoreArg
-                    ? this.createUpdatedAtObject(ignoreArg)
+                (ignoreArg || fieldsArg)
+                    ? this.createUpdatedAtObject(ignoreArg ?? fieldsArg!)
                     : ts.factory.createTrue()
             ));
         }
