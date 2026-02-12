@@ -47,12 +47,12 @@ export type CustomIdFunctionContext<Schema extends SchemaDef> = {
     client: ClientContract<Schema>;
 
     /**
-     * The model for which the ID should be generated for.
+     * The model for which the ID should be generated.
      */
-    model: string;
+    model: GetModels<Schema>;
 
     /**
-     * The field for which the ID should be generated for.
+     * The field for which the ID should be generated.
      */
     field: string;
 
