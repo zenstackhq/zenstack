@@ -46,6 +46,7 @@ describe('@updatedAt attribute', () => {
             });
 
             expect(updatedUser1.nameUpdatedAt.getTime()).toBeGreaterThan(nameUpdatedAt.getTime());
+            expect(updatedUser1.emailUpdatedAt.getTime()).toEqual(user.emailUpdatedAt.getTime());
             expect(updatedUser1.majorFieldUpdatedAt.getTime()).toBeGreaterThan(majorFieldUpdatedAt.getTime());
 
             await client.user.update({
@@ -154,6 +155,7 @@ describe('@updatedAt attribute', () => {
             const exceptNameUpdatedAt = user.exceptNameUpdatedAt;
             const exceptMajorFieldUpdatedAt = user.exceptMajorFieldUpdatedAt;
             const emptyFieldUpdatedAt = user.emptyFieldUpdatedAt;
+            const anyFieldUpdatedAt = user.anyFieldUpdatedAt;
 
             await client.user.update({
                 data: {
@@ -174,6 +176,7 @@ describe('@updatedAt attribute', () => {
             expect(updatedUser1.exceptNameUpdatedAt.getTime()).toBeGreaterThan(exceptNameUpdatedAt.getTime());
             expect(updatedUser1.exceptMajorFieldUpdatedAt.getTime()).toBeGreaterThan(exceptMajorFieldUpdatedAt.getTime());
             expect(updatedUser1.emptyFieldUpdatedAt.getTime()).toBeGreaterThan(emptyFieldUpdatedAt.getTime());
+            expect(updatedUser1.anyFieldUpdatedAt.getTime()).toBeGreaterThan(anyFieldUpdatedAt.getTime());
 
             await client.user.update({
                 data: {
@@ -195,6 +198,7 @@ describe('@updatedAt attribute', () => {
             expect(updatedUser2.exceptNameUpdatedAt.getTime()).toBeGreaterThan(updatedUser1.exceptNameUpdatedAt.getTime());
             expect(updatedUser2.exceptMajorFieldUpdatedAt.getTime()).toBeGreaterThan(updatedUser1.exceptMajorFieldUpdatedAt.getTime());
             expect(updatedUser2.emptyFieldUpdatedAt.getTime()).toBeGreaterThan(updatedUser1.emptyFieldUpdatedAt.getTime());
+            expect(updatedUser2.anyFieldUpdatedAt.getTime()).toBeGreaterThan(updatedUser1.anyFieldUpdatedAt.getTime());
         });
 
         it('does not update if only ignored fields are present', async () => {
@@ -205,6 +209,7 @@ describe('@updatedAt attribute', () => {
                 },
             });
             const exceptNameUpdatedAt = user.exceptNameUpdatedAt;
+            const exceptEmailUpdatedAt = user.exceptEmailUpdatedAt;
             const exceptMajorFieldUpdatedAt = user.exceptMajorFieldUpdatedAt;
 
             await client.user.update({
@@ -224,6 +229,7 @@ describe('@updatedAt attribute', () => {
             });
 
             expect(updatedUser1.exceptNameUpdatedAt.getTime()).toEqual(exceptNameUpdatedAt.getTime());
+            expect(updatedUser1.exceptEmailUpdatedAt.getTime()).toBeGreaterThan(exceptEmailUpdatedAt.getTime());
             expect(updatedUser1.exceptMajorFieldUpdatedAt.getTime()).toEqual(exceptMajorFieldUpdatedAt.getTime());
 
             await client.user.update({
