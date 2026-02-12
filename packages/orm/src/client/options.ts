@@ -40,19 +40,29 @@ export type ZModelFunction<Schema extends SchemaDef> = (
     context: ZModelFunctionContext<Schema>,
 ) => Expression<unknown>;
 
-export type CustomIdFunctionContext = {
+export type CustomIdFunctionContext<Schema extends SchemaDef> = {
+    /**
+     * ZenStack client instance.
+     */
+    client: ClientContract<Schema>;
+
     /**
      * The model for which the ID should be generated for.
      */
     model: string;
 
     /**
-     * The requested length of the ID.
+     * The field for which the ID should be generated for.
+     */
+    field: string;
+
+    /**
+     * The length of the ID as requested by the schema.
      */
     length?: number;
 };
 
-export type CustomIdFunction = (ctx: CustomIdFunctionContext) => string;
+export type CustomIdFunction<Schema extends SchemaDef> = (ctx: CustomIdFunctionContext<Schema>) => string;
 
 /**
  * ZenStack client options.
@@ -100,7 +110,7 @@ export type ClientOptions<Schema extends SchemaDef> = {
      * Implementation of a custom ID generation function, which is called from ZModel as
      * `@default(customId())`.
      */
-    customId?: CustomIdFunction;
+    customId?: CustomIdFunction<Schema>;
 
     /**
      * Options for omitting fields in ORM query results.

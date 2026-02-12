@@ -3,84 +3,84 @@ import { describe, expect, it } from 'vitest';
 
 const schema = `
     model User {
-        id      String  @id @default(customId())
+        uid      String  @id @default(customId())
         posts Post[]
     }
 
     model Post {
-        id      String  @id @default(customId())
+        pid      String  @id @default(customId())
         userId String?
-        user User? @relation(fields: [userId], references: [id])
+        user User? @relation(fields: [userId], references: [uid])
         comments Comment[]
     }
 
     model Comment {
-        id      String  @id @default(customId())
+        cid      String  @id @default(customId())
         postId String?
-        post Post? @relation(fields: [postId], references: [id])
+        post Post? @relation(fields: [postId], references: [pid])
     }
 `;
 
 describe('customId', () => {
     it('works with no arguments', async () => {
         const client = await createTestClient(schema, {
-            customId: ({ model, length }) => `${model}.${length ?? 16}`,
+            customId: ({ model, field, length }) => `${model}.${field}.${length ?? 16}`,
         });
 
         await expect(client.user.create({ data: {} })).resolves.toMatchObject({
-            id: 'User.16',
+            uid: 'User.uid.16',
         });
 
         await expect(client.post.create({ data: {} })).resolves.toMatchObject({
-            id: 'Post.16',
+            pid: 'Post.pid.16',
         });
 
         await expect(client.comment.create({ data: {} })).resolves.toMatchObject({
-            id: 'Comment.16',
+            cid: 'Comment.cid.16',
         });
     });
 
     it('works with arguments', async () => {
         const schema = `
             model User {
-                id      String  @id @default(customId(8))
+                uid      String  @id @default(customId(8))
                 posts Post[]
             }
 
             model Post {
-                id      String  @id @default(customId(8))
+                pid      String  @id @default(customId(8))
                 userId String?
-                user User? @relation(fields: [userId], references: [id])
+                user User? @relation(fields: [userId], references: [uid])
                 comments Comment[]
             }
 
             model Comment {
-                id      String  @id @default(customId(8))
+                cid      String  @id @default(customId(8))
                 postId String?
-                post Post? @relation(fields: [postId], references: [id])
+                post Post? @relation(fields: [postId], references: [pid])
             }
         `;
 
         const client = await createTestClient(schema, {
-            customId: ({ model, length }) => `${model}.${length}`,
+            customId: ({ model, field, length }) => `${model}.${field}.${length}`,
         });
 
         await expect(client.user.create({ data: {} })).resolves.toMatchObject({
-            id: 'User.8',
+            uid: 'User.uid.8',
         });
 
         await expect(client.post.create({ data: {} })).resolves.toMatchObject({
-            id: 'Post.8',
+            pid: 'Post.pid.8',
         });
 
         await expect(client.comment.create({ data: {} })).resolves.toMatchObject({
-            id: 'Comment.8',
+            cid: 'Comment.cid.8',
         });
     });
 
     it('works with nested', async () => {
         const client = await createTestClient(schema, {
-            customId: ({ model, length }) => `${model}.${length ?? 16}`,
+            customId: ({ model, field, length }) => `${model}.${field}.${length ?? 16}`,
         });
 
         await expect(client.user.create({
@@ -90,19 +90,19 @@ describe('customId', () => {
                 },
             },
         })).resolves.toMatchObject({
-            id: 'User.16',
+            uid: 'User.uid.16',
         });
 
         await expect(client.post.findUnique({
             where: {
-                id: 'Post.16',
+                pid: 'Post.pid.16',
             }
         })).resolves.toBeTruthy();
     });
 
     it('works with deeply nested', async () => {
         const client = await createTestClient(schema, {
-            customId: ({ model, length }) => `${model}.${length ?? 16}`,
+            customId: ({ model, field, length }) => `${model}.${field}.${length ?? 16}`,
         });
 
         await expect(client.user.create({
@@ -116,18 +116,18 @@ describe('customId', () => {
                 },
             },
         })).resolves.toMatchObject({
-            id: 'User.16',
+            uid: 'User.uid.16',
         });
 
         await expect(client.post.findUnique({
             where: {
-                id: 'Post.16',
+                pid: 'Post.pid.16',
             }
         })).resolves.toBeTruthy();
 
         await expect(client.comment.findUnique({
             where: {
-                id: 'Comment.16',
+                cid: 'Comment.cid.16',
             }
         })).resolves.toBeTruthy();
     });

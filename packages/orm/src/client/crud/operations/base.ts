@@ -1044,7 +1044,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             }
             if (!(field in data)) {
                 if (typeof fieldDef?.default === 'object' && 'kind' in fieldDef.default) {
-                    const generated = this.evalGenerator(fieldDef.default, modelDef.name);
+                    const generated = this.evalGenerator(fieldDef.default, modelDef.name, field);
                     if (generated !== undefined) {
                         values[field] = this.dialect.transformInput(
                             generated,
@@ -1072,7 +1072,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         return values;
     }
 
-    private evalGenerator(defaultValue: Expression, model: string) {
+    private evalGenerator(defaultValue: Expression, model: string, field: string) {
         if (ExpressionUtils.isCall(defaultValue)) {
             const firstArgVal =
                 defaultValue.args?.[0] && ExpressionUtils.isLiteral(defaultValue.args[0])
@@ -1099,7 +1099,9 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                     invariant(this.client.$options.customId, '"customId" implementation not provided');
                     const length = typeof firstArgVal === 'number' ? firstArgVal : undefined;
                     const generated = this.client.$options.customId({
+                        client: this.client,
                         model,
+                        field,
                         length,
                     });
                     invariant(generated && typeof generated === 'string', '"customId" must return a non-empty string');
