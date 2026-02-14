@@ -257,6 +257,10 @@ export class ClientImpl {
 
     get $procs() {
         return Object.keys(this.$schema.procedures ?? {}).reduce((acc, name) => {
+            // Filter procedures based on slicing configuration
+            if (!isProcedureIncluded(this.$options, name)) {
+                return acc;
+            }
             acc[name] = (input?: unknown) => this.handleProc(name, input);
             return acc;
         }, {} as any);
@@ -497,6 +501,35 @@ function isModelIncluded(options: ClientOptions<SchemaDef>, model: string): bool
     // Then check if model is excluded
     if (excludedModels && excludedModels.length > 0) {
         if (excludedModels.includes(model as any)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Checks if a procedure should be included based on slicing configuration.
+ */
+function isProcedureIncluded(options: ClientOptions<SchemaDef>, procedureName: string): boolean {
+    const slicing = options.slicing;
+    if (!slicing) {
+        // No slicing config, include all procedures
+        return true;
+    }
+
+    const { includedProcedures, excludedProcedures } = slicing;
+
+    // If includedProcedures is specified (even if empty), only include those procedures
+    if (includedProcedures !== undefined) {
+        if (!(includedProcedures as readonly string[]).includes(procedureName)) {
+            return false;
+        }
+    }
+
+    // Then check if procedure is excluded (exclusion takes precedence)
+    if (excludedProcedures && excludedProcedures.length > 0) {
+        if ((excludedProcedures as readonly string[]).includes(procedureName)) {
             return false;
         }
     }

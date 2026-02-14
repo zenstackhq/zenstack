@@ -27,7 +27,6 @@ import type {
     FindFirstArgs,
     FindManyArgs,
     FindUniqueArgs,
-    GetProcedureNames,
     GroupByArgs,
     GroupByResult,
     ProcedureFunc,
@@ -51,7 +50,7 @@ import type { ClientOptions, QueryOptions } from './options';
 import type { ExtClientMembersBase, ExtQueryArgsBase, RuntimePlugin } from './plugin';
 import type { ZenStackPromise } from './promise';
 import type { ToKysely } from './query-builder';
-import type { GetSlicedModels, GetSlicedOperations } from './type-utils';
+import type { GetSlicedModels, GetSlicedOperations, GetSlicedProcedures } from './type-utils';
 
 type TransactionUnsupportedMethods = (typeof TRANSACTION_UNSUPPORTED_METHODS)[number];
 
@@ -240,7 +239,7 @@ export type ClientContract<
     $pushSchema(): Promise<void>;
 } & {
     [Key in GetSlicedModels<Schema, Options> as Uncapitalize<Key>]: ModelOperations<Schema, Key, Options, ExtQueryArgs>;
-} & ProcedureOperations<Schema> &
+} & ProcedureOperations<Schema, Options> &
     ExtClientMembers;
 
 /**
@@ -253,14 +252,17 @@ export type TransactionClientContract<
     ExtClientMembers extends ExtClientMembersBase,
 > = Omit<ClientContract<Schema, Options, ExtQueryArgs, ExtClientMembers>, TransactionUnsupportedMethods>;
 
-export type ProcedureOperations<Schema extends SchemaDef> =
+export type ProcedureOperations<
+    Schema extends SchemaDef,
+    Options extends ClientOptions<Schema> = ClientOptions<Schema>,
+> =
     Schema['procedures'] extends Record<string, ProcedureDef>
         ? {
               /**
                * Custom procedures.
                */
               $procs: {
-                  [Key in GetProcedureNames<Schema>]: ProcedureFunc<Schema, Key>;
+                  [Key in GetSlicedProcedures<Schema, Options>]: ProcedureFunc<Schema, Key>;
               };
           }
         : {};

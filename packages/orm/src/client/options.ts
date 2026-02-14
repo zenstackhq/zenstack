@@ -72,8 +72,15 @@ export type SlicingOptions<Schema extends SchemaDef> = {
         $all?: ModelSlicingOptions<Schema, GetModels<Schema>>;
     };
 
-    // includedProcedures?: readonly GetProcedureNames<Schema>[];
-    // excludedProcedures?: readonly GetProcedureNames<Schema>[];
+    /**
+     * Procedures to include in the client. If not specified, all procedures are included by default.
+     */
+    includedProcedures?: readonly GetProcedureNames<Schema>[];
+
+    /**
+     * Procedures to exclude from the client. Exclusion takes precedence over inclusion.
+     */
+    excludedProcedures?: readonly GetProcedureNames<Schema>[];
 };
 
 /**

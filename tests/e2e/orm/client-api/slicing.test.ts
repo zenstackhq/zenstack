@@ -2,6 +2,7 @@ import { AllReadOperations } from '@zenstackhq/orm';
 import { createTestClient } from '@zenstackhq/testtools';
 import { describe, expect, it } from 'vitest';
 import { schema } from '../schemas/basic/schema';
+import { schema as proceduresSchema } from '../schemas/procedures/schema';
 
 describe('Model slicing tests', () => {
     describe('Model inclusion/exclusion', () => {
@@ -410,6 +411,230 @@ describe('Model slicing tests', () => {
             expect(db.post.update).toBeDefined();
             // @ts-expect-error - delete should be excluded
             expect(db.post.delete).toBeUndefined();
+        });
+    });
+
+    describe('Procedure inclusion/exclusion', () => {
+        // Mock procedure handlers for testing (simplified versions)
+        const mockProcedures = {
+            getUser: () => ({ id: 1, name: 'test', role: 'USER' as const }),
+            listUsers: () => [],
+            signUp: () => ({ id: 1, name: 'test', role: 'USER' as const }),
+            setAdmin: () => undefined,
+            getOverview: () => ({ userIds: [], total: 0, roles: ['USER' as const], meta: null }),
+            createMultiple: () => [],
+        };
+
+        it('includes all procedures when no slicing config', async () => {
+            const db = await createTestClient(proceduresSchema, {
+                procedures: mockProcedures as any,
+            });
+
+            // All procedures should be accessible
+            expect(db.$procs.getUser).toBeDefined();
+            expect(db.$procs.listUsers).toBeDefined();
+            expect(db.$procs.signUp).toBeDefined();
+            expect(db.$procs.setAdmin).toBeDefined();
+            expect(db.$procs.getOverview).toBeDefined();
+            expect(db.$procs.createMultiple).toBeDefined();
+
+            await db.$disconnect();
+        });
+
+        it('includes only specified procedures with includedProcedures', async () => {
+            const options = {
+                procedures: mockProcedures as any,
+                slicing: {
+                    includedProcedures: ['getUser', 'listUsers'] as const,
+                },
+                dialect: {} as any,
+            } as const;
+
+            const db = await createTestClient<typeof proceduresSchema, typeof options>(proceduresSchema, options);
+
+            // Included procedures should be accessible
+            expect(db.$procs.getUser).toBeDefined();
+            expect(db.$procs.listUsers).toBeDefined();
+
+            // Non-included procedures should not be accessible
+            // @ts-expect-error - signUp should not be accessible
+            expect(db.$procs.signUp).toBeUndefined();
+            // @ts-expect-error - setAdmin should not be accessible
+            expect(db.$procs.setAdmin).toBeUndefined();
+            // @ts-expect-error - getOverview should not be accessible
+            expect(db.$procs.getOverview).toBeUndefined();
+            // @ts-expect-error - createMultiple should not be accessible
+            expect(db.$procs.createMultiple).toBeUndefined();
+
+            await db.$disconnect();
+        });
+
+        it('excludes specified procedures with excludedProcedures', async () => {
+            const options = {
+                procedures: mockProcedures as any,
+                slicing: {
+                    excludedProcedures: ['signUp', 'setAdmin', 'createMultiple'] as const,
+                },
+                dialect: {} as any,
+            } as const;
+
+            const db = await createTestClient<typeof proceduresSchema, typeof options>(proceduresSchema, options);
+
+            // Non-excluded procedures should be accessible
+            expect(db.$procs.getUser).toBeDefined();
+            expect(db.$procs.listUsers).toBeDefined();
+            expect(db.$procs.getOverview).toBeDefined();
+
+            // Excluded procedures should not be accessible
+            // @ts-expect-error - signUp should be excluded
+            expect(db.$procs.signUp).toBeUndefined();
+            // @ts-expect-error - setAdmin should be excluded
+            expect(db.$procs.setAdmin).toBeUndefined();
+            // @ts-expect-error - createMultiple should be excluded
+            expect(db.$procs.createMultiple).toBeUndefined();
+
+            await db.$disconnect();
+        });
+
+        it('applies both includedProcedures and excludedProcedures (exclusion takes precedence)', async () => {
+            const options = {
+                procedures: mockProcedures as any,
+                slicing: {
+                    includedProcedures: ['getUser', 'listUsers', 'signUp'] as const,
+                    excludedProcedures: ['signUp'] as const,
+                },
+                dialect: {} as any,
+            } as const;
+
+            const db = await createTestClient<typeof proceduresSchema, typeof options>(proceduresSchema, options);
+
+            // Only getUser and listUsers should be accessible
+            expect(db.$procs.getUser).toBeDefined();
+            expect(db.$procs.listUsers).toBeDefined();
+
+            // signUp should be excluded despite being in includedProcedures
+            // @ts-expect-error - signUp should be excluded
+            expect(db.$procs.signUp).toBeUndefined();
+
+            // Others were never included
+            // @ts-expect-error - setAdmin was not included
+            expect(db.$procs.setAdmin).toBeUndefined();
+            // @ts-expect-error - getOverview was not included
+            expect(db.$procs.getOverview).toBeUndefined();
+            // @ts-expect-error - createMultiple was not included
+            expect(db.$procs.createMultiple).toBeUndefined();
+
+            await db.$disconnect();
+        });
+
+        it('excludes all procedures when includedProcedures is empty array', async () => {
+            const options = {
+                procedures: mockProcedures as any,
+                slicing: {
+                    includedProcedures: [] as const,
+                },
+                dialect: {} as any,
+            } as const;
+
+            const db = await createTestClient<typeof proceduresSchema, typeof options>(proceduresSchema, options);
+
+            // No procedures should be accessible with empty includedProcedures
+            // @ts-expect-error - getUser should not be accessible
+            expect(db.$procs.getUser).toBeUndefined();
+            // @ts-expect-error - listUsers should not be accessible
+            expect(db.$procs.listUsers).toBeUndefined();
+            // @ts-expect-error - signUp should not be accessible
+            expect(db.$procs.signUp).toBeUndefined();
+            // @ts-expect-error - setAdmin should not be accessible
+            expect(db.$procs.setAdmin).toBeUndefined();
+            // @ts-expect-error - getOverview should not be accessible
+            expect(db.$procs.getOverview).toBeUndefined();
+            // @ts-expect-error - createMultiple should not be accessible
+            expect(db.$procs.createMultiple).toBeUndefined();
+
+            await db.$disconnect();
+        });
+
+        it('has no effect when excludedProcedures is empty array', async () => {
+            const db = await createTestClient(proceduresSchema, {
+                procedures: mockProcedures as any,
+                slicing: {
+                    excludedProcedures: [] as const,
+                },
+            });
+
+            // All procedures should be accessible (empty excludedProcedures has no effect)
+            expect(db.$procs.getUser).toBeDefined();
+            expect(db.$procs.listUsers).toBeDefined();
+            expect(db.$procs.signUp).toBeDefined();
+            expect(db.$procs.setAdmin).toBeDefined();
+            expect(db.$procs.getOverview).toBeDefined();
+            expect(db.$procs.createMultiple).toBeDefined();
+
+            await db.$disconnect();
+        });
+
+        it('works with setOptions to change procedure slicing at runtime', async () => {
+            const options = {
+                procedures: mockProcedures as any,
+                slicing: {
+                    includedProcedures: ['getUser', 'listUsers'] as const,
+                },
+                dialect: {} as any,
+            } as const;
+
+            const db = await createTestClient<typeof proceduresSchema, typeof options>(proceduresSchema, options);
+
+            // Initially only getUser and listUsers are accessible
+            expect(db.$procs.getUser).toBeDefined();
+            expect(db.$procs.listUsers).toBeDefined();
+
+            // Change slicing options
+            const db2 = db.$setOptions({
+                ...db.$options,
+                slicing: {
+                    includedProcedures: ['signUp', 'setAdmin'] as const,
+                },
+            } as any);
+
+            // After setOptions, different procedures should be accessible
+            expect(db2['$procs'].signUp).toBeDefined();
+            expect(db2['$procs'].setAdmin).toBeDefined();
+            expect(db2['$procs'].getUser).toBeUndefined();
+            expect(db2['$procs'].listUsers).toBeUndefined();
+
+            // Original client should remain unchanged
+            expect(db.$procs.getUser).toBeDefined();
+            expect(db.$procs.listUsers).toBeDefined();
+
+            await db.$disconnect();
+        });
+
+        it('creates query-only procedures by excluding mutations', async () => {
+            const options = {
+                procedures: mockProcedures as any,
+                slicing: {
+                    excludedProcedures: ['signUp', 'setAdmin', 'createMultiple'] as const,
+                },
+                dialect: {} as any,
+            } as const;
+
+            const db = await createTestClient<typeof proceduresSchema, typeof options>(proceduresSchema, options);
+
+            // Only query procedures should be accessible
+            expect(db.$procs.getUser).toBeDefined();
+            expect(db.$procs.listUsers).toBeDefined();
+            expect(db.$procs.getOverview).toBeDefined();
+
+            // Mutation procedures should be excluded
+            // @ts-expect-error - signUp should be excluded
+            expect(db.$procs.signUp).toBeUndefined();
+            // @ts-expect-error - setAdmin should be excluded
+            expect(db.$procs.setAdmin).toBeUndefined();
+            // @ts-expect-error - createMultiple should be excluded
+            expect(db.$procs.createMultiple).toBeUndefined();
+
+            await db.$disconnect();
         });
     });
 });

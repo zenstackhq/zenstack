@@ -1,4 +1,5 @@
 import type { GetModels, SchemaDef } from '@zenstackhq/schema';
+import type { GetProcedureNames } from './crud-types';
 import type { AllCrudOperations } from './crud/operations/base';
 import type { QueryOptions, SlicingOptions } from './options';
 
@@ -103,3 +104,30 @@ type GetAllExcludedOperations<S extends SlicingOptions<any>> = S extends {
             : never
         : never
     : never;
+
+/**
+ * Filters procedures based on slicing configuration.
+ */
+export type GetSlicedProcedures<
+    Schema extends SchemaDef,
+    Options extends QueryOptions<Schema>,
+> = Options['slicing'] extends infer S
+    ? S extends SlicingOptions<Schema>
+        ? S['includedProcedures'] extends readonly (infer IncludedProc)[]
+            ? // includedProcedures is specified, start with only those
+              Exclude<
+                  Extract<IncludedProc, GetProcedureNames<Schema>>,
+                  S['excludedProcedures'] extends readonly (infer ExcludedProc)[]
+                      ? Extract<ExcludedProc, GetProcedureNames<Schema>>
+                      : never
+              >
+            : // includedProcedures not specified, start with all procedures
+              Exclude<
+                  GetProcedureNames<Schema>,
+                  S['excludedProcedures'] extends readonly (infer ExcludedProc)[]
+                      ? Extract<ExcludedProc, GetProcedureNames<Schema>>
+                      : never
+              >
+        : // No slicing config, include all procedures
+          GetProcedureNames<Schema>
+    : GetProcedureNames<Schema>;
