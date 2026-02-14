@@ -6,6 +6,10 @@ export default mergeConfig(
     defineConfig({
         test: {
             include: ['test/**/*.test.ts', 'test/**/*.test.tsx'],
+            typecheck: {
+                enabled: true,
+                tsconfig: 'tsconfig.test.json',
+            },
         },
     }),
 );

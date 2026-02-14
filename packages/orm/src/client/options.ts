@@ -71,14 +71,50 @@ export type SlicingOptions<Schema extends SchemaDef> = {
          */
         $all?: ModelSlicingOptions<Schema, GetModels<Schema>>;
     };
+
+    // includedProcedures?: readonly GetProcedureNames<Schema>[];
+    // excludedProcedures?: readonly GetProcedureNames<Schema>[];
 };
 
-type FilterKinds = 'Equality' | 'Range' | 'List' | 'Like' | 'Relation';
+/**
+ * Kinds of filter operations.
+ */
+export enum FilterKind {
+    /**
+     * Covers "equals", "not", "in", "notIn".
+     */
+    Equality,
+
+    /**
+     * Covers "gt", "gte", "lt", "lte".
+     */
+    Range,
+
+    /**
+     * Covers "contains", "startsWith", "endsWith".
+     */
+    Like,
+
+    /**
+     * Covers all Json filter operations.
+     */
+    Json,
+
+    /**
+     * Covers "has", "hasEvery", "hasSome", "isEmpty".
+     */
+    List,
+
+    /**
+     * Covers "is", "isNot", "some", "none", "every" for relations.
+     */
+    Relation,
+}
 
 /**
  * Model slicing options.
  */
-type ModelSlicingOptions<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+type ModelSlicingOptions<Schema extends SchemaDef, _Model extends GetModels<Schema>> = {
     /**
      * ORM query operations to include for the model. If not specified, all operations are included
      * by default.
@@ -90,36 +126,35 @@ type ModelSlicingOptions<Schema extends SchemaDef, Model extends GetModels<Schem
      */
     excludedOperations?: readonly AllCrudOperations[];
 
-    includedFilterKinds?: readonly FilterKinds[];
-    excludedFilterKinds?: readonly FilterKinds[];
-
-    fields?: {
-        [Field in GetModelFields<Schema, Model>]?: ModelFieldSlicingOptions<Schema, Model, Field>;
-    };
+    // includedFilterKinds?: readonly FilterKind[];
+    // excludedFilterKinds?: readonly FilterKind[];
 };
 
-type ModelFieldSlicingOptions<
-    Schema extends SchemaDef,
-    Model extends GetModels<Schema>,
-    _Field extends GetModelFields<Schema, Model>,
-> = {
+/**
+ * Default query options without any customization.
+ */
+export type QueryOptions<Schema extends SchemaDef> = {
     /**
-     * Set to `true` to exclude the field from query results by default. Omitted fields can be re-included at
-     * query time with an `omit` clause.
+     * Options for omitting fields in ORM query results.
      */
-    omit?: boolean;
+    omit?: OmitConfig<Schema>;
 
     /**
-     * Marks the field as ignored. Contrary to omitted fields, ignored fields are completely unaccessible
-     * by the ORM client.
+     * Options for slicing ORM client's capabilities by including/excluding certain models, operations, filters, etc.
      */
-    ignore?: boolean;
+    slicing?: SlicingOptions<Schema>;
+
+    /**
+     * Whether to allow overriding omit settings at query time. Defaults to `true`. When set to `false`, a
+     * query-time `omit` clause that sets the field to `false` (not omitting) will trigger a validation error.
+     */
+    allowQueryTimeOmitOverride?: boolean;
 };
 
 /**
  * ZenStack client options.
  */
-export type ClientOptions<Schema extends SchemaDef> = {
+export type ClientOptions<Schema extends SchemaDef> = QueryOptions<Schema> & {
     /**
      * Kysely dialect.
      */
@@ -157,34 +192,14 @@ export type ClientOptions<Schema extends SchemaDef> = {
      * `@@validate`, etc. Defaults to `true`.
      */
     validateInput?: boolean;
-
-    /**
-     * Options for slicing ORM client's capabilities by including/excluding certain models, operations, filters, etc.
-     */
-    slicing?: SlicingOptions<Schema>;
-
-    /**
-     * Options for omitting fields in ORM query results.
-     *
-     * @deprecated Use {@link slicing} options instead.
-     */
-    omit?: OmitConfig<Schema>;
-
-    /**
-     * Whether to allow overriding omit settings at query time. Defaults to `true`. When set to `false`, a
-     * query-time `omit` clause that sets the field to `false` (not omitting) will trigger a validation error.
-     *
-     * @deprecated Use {@link slicing} options instead.
-     */
-    allowQueryTimeOmitOverride?: boolean;
 } & (HasComputedFields<Schema> extends true
-    ? {
-          /**
-           * Computed field definitions.
-           */
-          computedFields: ComputedFieldsOptions<Schema>;
-      }
-    : {}) &
+        ? {
+              /**
+               * Computed field definitions.
+               */
+              computedFields: ComputedFieldsOptions<Schema>;
+          }
+        : {}) &
     (HasProcedures<Schema> extends true
         ? {
               /**
@@ -230,11 +245,6 @@ export type HasProcedures<Schema extends SchemaDef> = Schema extends {
     : false;
 
 /**
- * Subset of client options relevant to query operations.
+ * Extract QueryOptions from an object with $options property
  */
-export type QueryOptions<Schema extends SchemaDef> = Pick<ClientOptions<Schema>, 'omit' | 'slicing'>;
-
-/**
- * Extract QueryOptions from ClientOptions
- */
-export type ToQueryOptions<T extends ClientOptions<any>> = Pick<T, 'omit' | 'slicing'>;
+export type GetQueryOptions<T extends { $options: any }> = T['$options'];

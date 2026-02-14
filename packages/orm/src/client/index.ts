@@ -20,3 +20,4 @@ export * from './plugin';
 export type { ZenStackPromise } from './promise';
 export type { ToKysely } from './query-builder';
 export * as QueryUtils from './query-utils';
+export type * from './type-utils';

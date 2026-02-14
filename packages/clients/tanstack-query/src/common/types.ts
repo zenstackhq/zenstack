@@ -1,6 +1,12 @@
 import type { Logger, OptimisticDataProvider } from '@zenstackhq/client-helpers';
 import type { FetchFn } from '@zenstackhq/client-helpers/fetch';
-import type { GetProcedureNames, OperationsIneligibleForDelegateModels, ProcedureFunc } from '@zenstackhq/orm';
+import type {
+    GetProcedureNames,
+    GetSlicedOperations,
+    OperationsIneligibleForDelegateModels,
+    ProcedureFunc,
+    QueryOptions,
+} from '@zenstackhq/orm';
 import type { GetModels, IsDelegateModel, SchemaDef } from '@zenstackhq/schema';
 
 /**
@@ -65,6 +71,22 @@ export type TrimDelegateModelOperations<
     Model extends GetModels<Schema>,
     T extends Record<string, unknown>,
 > = IsDelegateModel<Schema, Model> extends true ? Omit<T, HooksOperationsIneligibleForDelegateModels> : T;
+
+type Modifiers = '' | 'Suspense' | 'Infinite' | `SuspenseInfinite`;
+
+/**
+ * Trim hooks based on slicing configuration.
+ */
+export type TrimSlicedHooks<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema>,
+    T extends Record<string, unknown>,
+> = {
+    [Key in keyof T as Key extends `use${Modifiers}${Capitalize<GetSlicedOperations<Schema, Model, Options>>}`
+        ? Key
+        : never]: T[Key];
+};
 
 type WithOptimisticFlag<T> = T extends object
     ? T & {
