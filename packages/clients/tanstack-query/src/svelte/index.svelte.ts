@@ -40,6 +40,8 @@ import type {
     FindUniqueArgs,
     GetProcedure,
     GetProcedureNames,
+    GetSlicedModels,
+    GetSlicedProcedures,
     GroupByArgs,
     GroupByResult,
     ProcedureEnvelope,
@@ -64,6 +66,7 @@ import type {
     ProcedureReturn,
     QueryContext,
     TrimDelegateModelOperations,
+    TrimSlicedHooks,
     WithOptimistic,
 } from '../common/types.js';
 export type { FetchFn } from '@zenstackhq/client-helpers/fetch';
@@ -145,11 +148,11 @@ export type ModelMutationModelResult<
 };
 
 export type ClientHooks<Schema extends SchemaDef, Options extends QueryOptions<Schema> = QueryOptions<Schema>> = {
-    [Model in GetModels<Schema> as `${Uncapitalize<Model>}`]: ModelQueryHooks<Schema, Model, Options>;
-} & ProcedureHooks<Schema>;
+    [Model in GetSlicedModels<Schema, Options> as `${Uncapitalize<Model>}`]: ModelQueryHooks<Schema, Model, Options>;
+} & ProcedureHooks<Schema, Options>;
 
-type ProcedureHookGroup<Schema extends SchemaDef> = {
-    [Name in GetProcedureNames<Schema>]: GetProcedure<Schema, Name> extends { mutation: true }
+type ProcedureHookGroup<Schema extends SchemaDef, Options extends QueryOptions<Schema>> = {
+    [Name in GetSlicedProcedures<Schema, Options>]: GetProcedure<Schema, Name> extends { mutation: true }
         ? {
               useMutation(
                   options?: Omit<
@@ -182,14 +185,15 @@ type ProcedureHookGroup<Schema extends SchemaDef> = {
           };
 };
 
-export type ProcedureHooks<Schema extends SchemaDef> = Schema['procedures'] extends Record<string, any>
-    ? {
-          /**
-           * Custom procedures.
-           */
-          $procs: ProcedureHookGroup<Schema>;
-      }
-    : Record<never, never>;
+export type ProcedureHooks<Schema extends SchemaDef, Options extends QueryOptions<Schema> = QueryOptions<Schema>> =
+    Schema['procedures'] extends Record<string, any>
+        ? {
+              /**
+               * Custom procedures.
+               */
+              $procs: ProcedureHookGroup<Schema, Options>;
+          }
+        : Record<never, never>;
 
 // Note that we can potentially use TypeScript's mapped type to directly map from ORM contract, but that seems
 // to significantly slow down tsc performance ...
@@ -197,10 +201,14 @@ export type ModelQueryHooks<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
-> = TrimDelegateModelOperations<
+> = TrimSlicedHooks<
     Schema,
     Model,
-    {
+    Options,
+    TrimDelegateModelOperations<
+        Schema,
+        Model,
+        {
         useFindUnique<T extends FindUniqueArgs<Schema, Model>>(
             args: Accessor<SelectSubset<T, FindUniqueArgs<Schema, Model>>>,
             options?: Accessor<ModelQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options> | null>>,
@@ -275,6 +283,7 @@ export type ModelQueryHooks<
             options?: Accessor<ModelQueryOptions<GroupByResult<Schema, Model, T>>>,
         ): ModelQueryResult<GroupByResult<Schema, Model, T>>;
     }
+    >
 >;
 
 /**

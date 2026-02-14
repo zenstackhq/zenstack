@@ -40,6 +40,7 @@ import type {
     GetProcedure,
     GetProcedureNames,
     GetSlicedModels,
+    GetSlicedProcedures,
     GroupByArgs,
     GroupByResult,
     ProcedureEnvelope,
@@ -151,10 +152,10 @@ export type ModelMutationModelResult<
 
 export type ClientHooks<Schema extends SchemaDef, Options extends QueryOptions<Schema> = QueryOptions<Schema>> = {
     [Model in GetSlicedModels<Schema, Options> as `${Uncapitalize<Model>}`]: ModelQueryHooks<Schema, Model, Options>;
-} & ProcedureHooks<Schema>;
+} & ProcedureHooks<Schema, Options>;
 
-type ProcedureHookGroup<Schema extends SchemaDef> = {
-    [Name in GetProcedureNames<Schema>]: GetProcedure<Schema, Name> extends { mutation: true }
+type ProcedureHookGroup<Schema extends SchemaDef, Options extends QueryOptions<Schema>> = {
+    [Name in GetSlicedProcedures<Schema, Options>]: GetProcedure<Schema, Name> extends { mutation: true }
         ? {
               useMutation(
                   options?: Omit<
@@ -197,13 +198,13 @@ type ProcedureHookGroup<Schema extends SchemaDef> = {
           };
 };
 
-export type ProcedureHooks<Schema extends SchemaDef> =
+export type ProcedureHooks<Schema extends SchemaDef, Options extends QueryOptions<Schema> = QueryOptions<Schema>> =
     Schema['procedures'] extends Record<string, any>
         ? {
               /**
                * Custom procedures.
                */
-              $procs: ProcedureHookGroup<Schema>;
+              $procs: ProcedureHookGroup<Schema, Options>;
           }
         : Record<never, never>;
 
