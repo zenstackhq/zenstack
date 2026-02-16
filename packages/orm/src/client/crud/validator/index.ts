@@ -1358,6 +1358,10 @@ export class InputValidator<Schema extends SchemaDef> {
                 if (withoutRelationFields) {
                     return;
                 }
+                // Check if the target model is allowed by slicing configuration
+                if (!this.isModelAllowed(fieldDef.type)) {
+                    return;
+                }
                 const excludeFields: string[] = [];
                 const oppositeField = fieldDef.relation.opposite;
                 if (oppositeField) {
@@ -1669,6 +1673,10 @@ export class InputValidator<Schema extends SchemaDef> {
 
             if (fieldDef.relation) {
                 if (withoutRelationFields) {
+                    return;
+                }
+                // Check if the target model is allowed by slicing configuration
+                if (!this.isModelAllowed(fieldDef.type)) {
                     return;
                 }
                 const excludeFields: string[] = [];

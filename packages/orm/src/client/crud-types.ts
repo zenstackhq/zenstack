@@ -1351,7 +1351,12 @@ type CreateRelationPayload<
     Schema,
     Model,
     {
-        [Key in RelationFields<Schema, Model>]: CreateRelationFieldPayload<Schema, Model, Key, Options>;
+        [Key in RelationFields<Schema, Model> as RelationFieldType<Schema, Model, Key> extends GetSlicedModels<
+            Schema,
+            Options
+        >
+            ? Key
+            : never]: CreateRelationFieldPayload<Schema, Model, Key, Options>;
     }
 >;
 
@@ -1381,7 +1386,12 @@ type CreateWithNonOwnedRelationPayload<
     Schema,
     Model,
     {
-        [Key in NonOwnedRelationFields<Schema, Model>]: CreateRelationFieldPayload<Schema, Model, Key, Options>;
+        [Key in NonOwnedRelationFields<Schema, Model> as RelationFieldType<Schema, Model, Key> extends GetSlicedModels<
+            Schema,
+            Options
+        >
+            ? Key
+            : never]: CreateRelationFieldPayload<Schema, Model, Key, Options>;
     }
 >;
 
@@ -1588,7 +1598,12 @@ type UpdateRelationInput<
     Without extends string = never,
 > = Omit<
     {
-        [Key in RelationFields<Schema, Model>]?: UpdateRelationFieldPayload<Schema, Model, Key, Options>;
+        [Key in RelationFields<Schema, Model> as RelationFieldType<Schema, Model, Key> extends GetSlicedModels<
+            Schema,
+            Options
+        >
+            ? Key
+            : never]?: UpdateRelationFieldPayload<Schema, Model, Key, Options>;
     },
     Without
 >;

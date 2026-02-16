@@ -397,6 +397,156 @@ describe('Query slicing tests', () => {
             });
             expect(userWithPosts[0]!.posts).toBeDefined();
         });
+
+        it('prevents nested create on excluded models', async () => {
+            const options = {
+                slicing: {
+                    excludedModels: ['Profile'] as const,
+                },
+                dialect: {} as any,
+            } as const;
+
+            const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+            // Cannot create user with nested profile (Profile is excluded)
+            await expect(
+                db.user.create({
+                    data: {
+                        email: 'test@example.com',
+                        // @ts-expect-error - Profile model is excluded
+                        profile: {
+                            create: {
+                                bio: 'Test bio',
+                            },
+                        },
+                    },
+                }),
+            ).toBeRejectedByValidation(['"profile"']);
+        });
+
+        it('prevents nested update on excluded models', async () => {
+            const options = {
+                slicing: {
+                    excludedModels: ['Profile'] as const,
+                },
+                dialect: {} as any,
+            } as const;
+
+            const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+            const user = await db.user.create({ data: { email: 'test@example.com' } });
+
+            // Cannot update user with nested profile operations (Profile is excluded)
+            await expect(
+                db.user.update({
+                    where: { id: user.id },
+                    data: {
+                        // @ts-expect-error - Profile model is excluded
+                        profile: {
+                            create: {
+                                bio: 'Test bio',
+                            },
+                        },
+                    },
+                }),
+            ).toBeRejectedByValidation(['"profile"']);
+        });
+
+        it('prevents nested upsert on excluded models', async () => {
+            const options = {
+                slicing: {
+                    excludedModels: ['Comment'] as const,
+                },
+                dialect: {} as any,
+            } as const;
+
+            const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+            // Cannot update post with nested comment operations (Comment is excluded)
+            await expect(
+                db.post.update({
+                    where: { id: 'post-id' },
+                    data: {
+                        // @ts-expect-error - Comment model is excluded
+                        comments: {
+                            upsert: {
+                                where: { id: 'comment-id' },
+                                create: { content: 'New comment' },
+                                update: { content: 'Updated comment' },
+                            },
+                        },
+                    },
+                }),
+            ).toBeRejectedByValidation(['"comments"']);
+        });
+
+        it('allows nested create on included models', async () => {
+            const options = {
+                slicing: {
+                    includedModels: ['User', 'Post'] as const,
+                },
+                dialect: {} as any,
+            } as const;
+
+            const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+            // Can create user with nested posts (Post is included)
+            const user = await db.user.create({
+                data: {
+                    email: 'test@example.com',
+                    posts: {
+                        create: [
+                            { title: 'Post 1', content: 'Content 1' },
+                            { title: 'Post 2', content: 'Content 2' },
+                        ],
+                    },
+                },
+                include: { posts: true },
+            });
+
+            expect(user.posts).toHaveLength(2);
+            expect(user.posts[0]!.title).toBe('Post 1');
+        });
+
+        it('allows nested update on included models', async () => {
+            const options = {
+                slicing: {
+                    includedModels: ['User', 'Post'] as const,
+                },
+                dialect: {} as any,
+            } as const;
+
+            const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+            // Create user with post
+            const user = await db.user.create({
+                data: {
+                    email: 'test@example.com',
+                    posts: {
+                        create: { title: 'Post 1', content: 'Content 1' },
+                    },
+                },
+                include: { posts: true },
+            });
+
+            const postId = user.posts[0]!.id;
+
+            // Can update user with nested post updates (Post is included)
+            const updated = await db.user.update({
+                where: { id: user.id },
+                data: {
+                    posts: {
+                        update: {
+                            where: { id: postId },
+                            data: { title: 'Updated Post' },
+                        },
+                    },
+                },
+                include: { posts: true },
+            });
+
+            expect(updated.posts[0]!.title).toBe('Updated Post');
+        });
     });
 
     describe('Operation inclusion/exclusion', () => {
