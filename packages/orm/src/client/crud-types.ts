@@ -306,7 +306,7 @@ type Filter<
 > =
     Field extends RelationFields<Schema, Model>
         ? // relation
-          AllowedKinds extends 'Relation'
+          'Relation' extends AllowedKinds
             ? RelationFilter<Schema, Model, Field, Options>
             : never
         : FieldIsArray<Schema, Model, Field> extends true
@@ -346,7 +346,7 @@ type EnumFilter<
     AllowedKinds extends FilterKind,
 > =
     | NullableIf<keyof GetEnum<Schema, T>, Nullable>
-    | ((AllowedKinds extends 'Equality'
+    | (('Equality' extends AllowedKinds
           ? {
                 /**
                  * Checks for equality with the specified enum value.
@@ -392,7 +392,7 @@ type ArrayFilter<
     Schema extends SchemaDef,
     Type extends string,
     AllowedKinds extends FilterKind,
-> = (AllowedKinds extends 'Equality'
+> = ('Equality' extends AllowedKinds
     ? {
           /**
            * Checks if the array equals the specified array.
@@ -400,7 +400,7 @@ type ArrayFilter<
           equals?: MapScalarType<Schema, Type>[] | null;
       }
     : {}) &
-    (AllowedKinds extends 'List'
+    ('List' extends AllowedKinds
         ? {
               /**
                * Checks if the array contains all elements of the specified array.
@@ -458,7 +458,7 @@ type CommonPrimitiveFilter<
      * Builds a negated filter.
      */
     not?: PrimitiveFilter<T, Nullable, WithAggregations, AllowedKinds>;
-} & (AllowedKinds extends 'Equality'
+} & ('Equality' extends AllowedKinds
     ? {
           /**
            * Checks for equality with the specified value.
@@ -476,7 +476,7 @@ type CommonPrimitiveFilter<
           notIn?: DataType[];
       }
     : {}) &
-    (AllowedKinds extends 'Range'
+    ('Range' extends AllowedKinds
         ? {
               /**
                * Checks if the value is less than the specified value.
@@ -512,7 +512,7 @@ export type StringFilter<
 > =
     | NullableIf<string, Nullable>
     | (CommonPrimitiveFilter<string, 'String', Nullable, WithAggregations, AllowedKinds> &
-          (AllowedKinds extends 'Like'
+          ('Like' extends AllowedKinds
               ? {
                     /**
                      * Checks if the string contains the specified substring.
@@ -623,7 +623,7 @@ export type BytesFilter<
     AllowedKinds extends FilterKind = FilterKind,
 > =
     | NullableIf<Uint8Array | Buffer, Nullable>
-    | ((AllowedKinds extends 'Equality'
+    | (('Equality' extends AllowedKinds
           ? {
                 /**
                  * Checks for equality with the specified value.
@@ -671,7 +671,7 @@ export type BooleanFilter<
     AllowedKinds extends FilterKind = FilterKind,
 > =
     | NullableIf<boolean, Nullable>
-    | ((AllowedKinds extends 'Equality'
+    | (('Equality' extends AllowedKinds
           ? {
                 /**
                  * Checks for equality with the specified value.
@@ -703,7 +703,7 @@ export type BooleanFilter<
                 }
               : {}));
 
-export type JsonFilter<AllowedKinds extends FilterKind = FilterKind> = (AllowedKinds extends 'Equality'
+export type JsonFilter<AllowedKinds extends FilterKind = FilterKind> = ('Equality' extends AllowedKinds
     ? {
           /**
            * Checks for equality with the specified value.
@@ -716,7 +716,7 @@ export type JsonFilter<AllowedKinds extends FilterKind = FilterKind> = (AllowedK
           not?: JsonValue | JsonNullValues;
       }
     : {}) &
-    (AllowedKinds extends 'Json'
+    ('Json' extends AllowedKinds
         ? {
               /**
                * JSON path to select the value to filter on. If omitted, the whole JSON value is used.
@@ -774,7 +774,7 @@ type TypedJsonTypedFilter<
     Array extends boolean,
     Optional extends boolean,
     AllowedKinds extends FilterKind,
-> = AllowedKinds extends 'Json'
+> = 'Json' extends AllowedKinds
     ?
           | (Array extends true
                 ? ArrayTypedJsonFilter<Schema, TypeDefName, AllowedKinds>

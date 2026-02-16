@@ -1,6 +1,7 @@
 import type { Dialect, Expression, ExpressionBuilder, KyselyConfig } from 'kysely';
 import type { GetModel, GetModelFields, GetModels, ProcedureDef, ScalarFields, SchemaDef } from '../schema';
 import type { PrependParameter } from '../utils/type-utils';
+import type { FilterPropertyToKind } from './constants';
 import type { ClientContract, CRUD_EXT } from './contract';
 import type { GetProcedureNames, ProcedureHandlerFunc } from './crud-types';
 import type { BaseCrudDialect } from './crud/dialects/base-dialect';
@@ -86,31 +87,7 @@ export type SlicingOptions<Schema extends SchemaDef> = {
 /**
  * Kinds of filter operations.
  */
-export type FilterKind =
-    /**
-     * Covers "equals", "not", "in", "notIn".
-     */
-    | 'Equality'
-    /**
-     * Covers "gt", "gte", "lt", "lte".
-     */
-    | 'Range'
-    /**
-     * Covers "contains", "startsWith", "endsWith".
-     */
-    | 'Like'
-    /**
-     * Covers all Json filter operations.
-     */
-    | 'Json'
-    /**
-     * Covers "has", "hasEvery", "hasSome", "isEmpty".
-     */
-    | 'List'
-    /**
-     * Covers "is", "isNot", "some", "none", "every" for relations.
-     */
-    | 'Relation';
+export type FilterKind = FilterPropertyToKind[keyof FilterPropertyToKind];
 
 /**
  * Model slicing options.
