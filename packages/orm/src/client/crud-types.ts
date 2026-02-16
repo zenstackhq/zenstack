@@ -52,7 +52,7 @@ import type {
 import type { ClientContract } from './contract';
 import type { FilterKind, QueryOptions } from './options';
 import type { ToKyselySchema } from './query-builder';
-import type { GetSlicedFilterKindsForField } from './type-utils';
+import type { GetSlicedFilterKindsForField, GetSlicedModels } from './type-utils';
 
 //#region Query results
 
@@ -941,32 +941,36 @@ export type SelectIncludeOmit<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     AllowCount extends boolean,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     AllowRelation extends boolean = true,
 > = {
     /**
      * Explicitly select fields and relations to be returned by the query.
      */
-    select?: SelectInput<Schema, Model, AllowCount, AllowRelation> | null;
-
-    /**
-     * Specifies relations to be included in the query result. All scalar fields are included.
-     */
-    include?: IncludeInput<Schema, Model, AllowCount> | null;
+    select?: SelectInput<Schema, Model, Options, AllowCount, AllowRelation> | null;
 
     /**
      * Explicitly omit fields from the query result.
      */
     omit?: OmitInput<Schema, Model> | null;
-};
+} & (AllowRelation extends true
+    ? {
+          /**
+           * Specifies relations to be included in the query result. All scalar fields are included.
+           */
+          include?: IncludeInput<Schema, Model, Options, AllowCount> | null;
+      }
+    : {});
 
 export type SelectInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     AllowCount extends boolean = true,
     AllowRelation extends boolean = true,
 > = {
     [Key in NonRelationFields<Schema, Model>]?: boolean;
-} & (AllowRelation extends true ? IncludeInput<Schema, Model, AllowCount> : {});
+} & (AllowRelation extends true ? IncludeInput<Schema, Model, Options, AllowCount> : {});
 
 type SelectCount<Schema extends SchemaDef, Model extends GetModels<Schema>, Options extends QueryOptions<Schema>> =
     | boolean
@@ -986,10 +990,15 @@ type SelectCount<Schema extends SchemaDef, Model extends GetModels<Schema>, Opti
 export type IncludeInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     AllowCount extends boolean = true,
-    Options extends QueryOptions<Schema> = {},
 > = {
-    [Key in RelationFields<Schema, Model>]?:
+    [Key in RelationFields<Schema, Model> as RelationFieldType<Schema, Model, Key> extends GetSlicedModels<
+        Schema,
+        Options
+    >
+        ? Key
+        : never]?:
         | boolean
         | FindArgs<
               Schema,
@@ -1201,7 +1210,7 @@ export type FindArgs<
               : {})
     : {}) &
     (AllowFilter extends true ? FilterArgs<Schema, Model, Options> : {}) &
-    SelectIncludeOmit<Schema, Model, Collection>;
+    SelectIncludeOmit<Schema, Model, Collection, Options>;
 
 export type FindManyArgs<
     Schema extends SchemaDef,
@@ -1227,7 +1236,7 @@ export type FindUniqueArgs<
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
 > = {
     where: WhereUniqueInput<Schema, Model, Options>;
-} & SelectIncludeOmit<Schema, Model, true>;
+} & SelectIncludeOmit<Schema, Model, true, Options>;
 
 //#endregion
 
@@ -1239,16 +1248,15 @@ export type CreateArgs<
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
 > = {
     data: CreateInput<Schema, Model, Options>;
-} & SelectIncludeOmit<Schema, Model, true>;
+} & SelectIncludeOmit<Schema, Model, true, Options>;
 
 export type CreateManyArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = CreateManyInput<Schema, Model>;
 
-export type CreateManyAndReturnArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = CreateManyInput<
-    Schema,
-    Model
-> &
-    Omit<SelectIncludeOmit<Schema, Model, false, false>, 'include'>;
-
+export type CreateManyAndReturnArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+> = CreateManyInput<Schema, Model> & SelectIncludeOmit<Schema, Model, true, Options, false>;
 type OptionalWrap<Schema extends SchemaDef, Model extends GetModels<Schema>, T extends object> = Optional<
     T,
     keyof T & OptionalFieldsForCreate<Schema, Model>
@@ -1454,7 +1462,7 @@ export type UpdateArgs<
      * The unique filter to find the record to update.
      */
     where: WhereUniqueInput<Schema, Model, Options>;
-} & SelectIncludeOmit<Schema, Model, true>;
+} & SelectIncludeOmit<Schema, Model, true, Options>;
 
 export type UpdateManyArgs<
     Schema extends SchemaDef,
@@ -1466,7 +1474,7 @@ export type UpdateManyAndReturnArgs<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
-> = UpdateManyPayload<Schema, Model, Options> & Omit<SelectIncludeOmit<Schema, Model, false, false>, 'include'>;
+> = UpdateManyPayload<Schema, Model, Options> & SelectIncludeOmit<Schema, Model, false, Options, false>;
 
 type UpdateManyPayload<
     Schema extends SchemaDef,
@@ -1509,7 +1517,7 @@ export type UpsertArgs<
      * The unique filter to find the record to update.
      */
     where: WhereUniqueInput<Schema, Model, Options>;
-} & SelectIncludeOmit<Schema, Model, true>;
+} & SelectIncludeOmit<Schema, Model, true, Options>;
 
 type UpdateScalarInput<
     Schema extends SchemaDef,
@@ -1729,7 +1737,7 @@ export type DeleteArgs<
      * The unique filter to find the record to delete.
      */
     where: WhereUniqueInput<Schema, Model, Options>;
-} & SelectIncludeOmit<Schema, Model, true>;
+} & SelectIncludeOmit<Schema, Model, true, Options>;
 
 export type DeleteManyArgs<
     Schema extends SchemaDef,

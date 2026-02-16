@@ -158,6 +158,245 @@ describe('Query slicing tests', () => {
             expect(db.user).toBeDefined();
             expect(db.post).toBeDefined();
         });
+
+        it('prevents excluded models from being used in include clause', async () => {
+            const options = {
+                slicing: {
+                    includedModels: ['User', 'Post'] as const,
+                    // excludedModels: ['Profile', 'Comment'] as const,
+                },
+                dialect: {} as any,
+            } as const;
+
+            const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+            await db.user.create({ data: { email: 'test@example.com', name: 'Test User' } });
+            const user = await db.user.findFirst({ where: { email: 'test@example.com' } });
+
+            await db.post.create({ data: { title: 'Test Post', content: 'Content', authorId: user!.id } });
+
+            // Profile is excluded, so including it should cause type error
+            await expect(
+                db.user.findMany({
+                    // @ts-expect-error - Profile model is excluded
+                    include: { profile: true },
+                }),
+            ).toBeRejectedByValidation(['"profile"', '"include"']);
+
+            // Comment is excluded, so including it should cause type error
+            await expect(
+                db.post.findMany({
+                    // @ts-expect-error - Comment model is excluded
+                    include: { comments: true },
+                }),
+            ).toBeRejectedByValidation(['"comments"', '"include"']);
+
+            // Non-excluded relations should work
+            const userWithPosts = await db.user.findMany({
+                include: { posts: true },
+            });
+            expect(userWithPosts[0]!.posts).toBeDefined();
+        });
+
+        it('prevents excluded models from being used in select clause', async () => {
+            const options = {
+                slicing: {
+                    excludedModels: ['Profile', 'Comment'] as const,
+                },
+                dialect: {} as any,
+            } as const;
+
+            const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+            await db.user.create({ data: { email: 'test@example.com', name: 'Test User' } });
+            const user = await db.user.findFirst({ where: { email: 'test@example.com' } });
+
+            await db.post.create({ data: { title: 'Test Post', content: 'Content', authorId: user!.id } });
+
+            // Profile is excluded, so selecting it should cause type error
+            await expect(
+                db.user.findMany({
+                    // @ts-expect-error - Profile model is excluded
+                    select: { id: true, profile: true },
+                }),
+            ).toBeRejectedByValidation(['"profile"', '"select"']);
+
+            // Comment is excluded, so selecting it should cause type error
+            await expect(
+                db.post.findMany({
+                    // @ts-expect-error - Comment model is excluded
+                    select: { id: true, comments: true },
+                }),
+            ).toBeRejectedByValidation(['"comments"', '"select"']);
+
+            // Non-excluded relations should work in select
+            const userWithPosts = await db.user.findMany({
+                select: { id: true, posts: true },
+            });
+            expect(userWithPosts[0]!.posts).toBeDefined();
+        });
+
+        it('prevents models not in includedModels from being used in include clause', async () => {
+            const options = {
+                slicing: {
+                    includedModels: ['User', 'Post'] as const,
+                },
+                dialect: {} as any,
+            } as const;
+
+            const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+            await db.user.create({ data: { email: 'test@example.com', name: 'Test User' } });
+            const user = await db.user.findFirst({ where: { email: 'test@example.com' } });
+
+            await db.post.create({ data: { title: 'Test Post', content: 'Content', authorId: user!.id } });
+
+            // Profile is not included, so including it should cause type error
+            await expect(
+                db.user.findMany({
+                    // @ts-expect-error - Profile model is not included
+                    include: { profile: true },
+                }),
+            ).toBeRejectedByValidation(['"profile"', '"include"']);
+
+            // Comment is not included, so including it should cause type error
+            await expect(
+                db.post.findMany({
+                    // @ts-expect-error - Comment model is not included
+                    include: { comments: true },
+                }),
+            ).toBeRejectedByValidation(['"comments"', '"include"']);
+
+            // User and Post are included, so relations between them should work
+            const userWithPosts = await db.user.findMany({
+                include: { posts: true },
+            });
+            expect(userWithPosts[0]!.posts).toBeDefined();
+
+            const postWithAuthor = await db.post.findMany({
+                include: { author: true },
+            });
+            expect(postWithAuthor[0]!.author).toBeDefined();
+        });
+
+        it('prevents models not in includedModels from being used in select clause', async () => {
+            const options = {
+                slicing: {
+                    includedModels: ['User', 'Post'] as const,
+                },
+                dialect: {} as any,
+            } as const;
+
+            const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+            await db.user.create({ data: { email: 'test@example.com', name: 'Test User' } });
+            const user = await db.user.findFirst({ where: { email: 'test@example.com' } });
+
+            await db.post.create({ data: { title: 'Test Post', content: 'Content', authorId: user!.id } });
+
+            // Profile is not included, so selecting it should cause type error
+            await expect(
+                db.user.findMany({
+                    // @ts-expect-error - Profile model is not included
+                    select: { id: true, profile: true },
+                }),
+            ).toBeRejectedByValidation(['"profile"', '"select"']);
+
+            // Comment is not included, so selecting it should cause type error
+            await expect(
+                db.post.findMany({
+                    // @ts-expect-error - Comment model is not included
+                    select: { id: true, comments: true },
+                }),
+            ).toBeRejectedByValidation(['"comments"', '"select"']);
+
+            // User and Post are included, so relations between them should work in select
+            const userWithPosts = await db.user.findMany({
+                select: { id: true, posts: true },
+            });
+            expect(userWithPosts[0]!.posts).toBeDefined();
+
+            const postWithAuthor = await db.post.findMany({
+                select: { id: true, author: true },
+            });
+            expect(postWithAuthor[0]!.author).toBeDefined();
+        });
+
+        it('prevents excluded models from nested include clauses', async () => {
+            const options = {
+                slicing: {
+                    excludedModels: ['Comment'] as const,
+                },
+                dialect: {} as any,
+            } as const;
+
+            const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+            await db.user.create({ data: { email: 'test@example.com', name: 'Test User' } });
+            const user = await db.user.findFirst({ where: { email: 'test@example.com' } });
+
+            await db.post.create({ data: { title: 'Test Post', content: 'Content', authorId: user!.id } });
+
+            // Comment is excluded, so including it in nested include should cause type error
+            await expect(
+                db.user.findMany({
+                    include: {
+                        posts: {
+                            // @ts-expect-error - Comment model is excluded
+                            include: { comments: true },
+                        },
+                    },
+                }),
+            ).toBeRejectedByValidation(['"comments"']);
+
+            // User -> Post relation should work (Comment is excluded)
+            const userWithPosts = await db.user.findMany({
+                include: {
+                    posts: true,
+                },
+            });
+            expect(userWithPosts[0]!.posts).toBeDefined();
+        });
+
+        it('prevents excluded models from nested select clauses', async () => {
+            const options = {
+                slicing: {
+                    excludedModels: ['Comment'] as const,
+                },
+                dialect: {} as any,
+            } as const;
+
+            const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+            await db.user.create({ data: { email: 'test@example.com', name: 'Test User' } });
+            const user = await db.user.findFirst({ where: { email: 'test@example.com' } });
+
+            await db.post.create({ data: { title: 'Test Post', content: 'Content', authorId: user!.id } });
+
+            // Comment is excluded, so selecting it in nested select should cause type error
+            await expect(
+                db.user.findMany({
+                    select: {
+                        id: true,
+                        posts: {
+                            // @ts-expect-error - Comment model is excluded
+                            select: { id: true, comments: true },
+                        },
+                    },
+                }),
+            ).toBeRejectedByValidation(['"comments"']);
+
+            // User -> Post relation should work in nested select (Comment is excluded)
+            const userWithPosts = await db.user.findMany({
+                select: {
+                    id: true,
+                    posts: {
+                        select: { id: true, title: true },
+                    },
+                },
+            });
+            expect(userWithPosts[0]!.posts).toBeDefined();
+        });
     });
 
     describe('Operation inclusion/exclusion', () => {

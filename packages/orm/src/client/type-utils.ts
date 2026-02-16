@@ -41,10 +41,10 @@ export type GetSlicedOperations<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema>,
-> = Options['slicing'] extends infer S
-    ? S extends SlicingOptions<Schema>
-        ? GetIncludedOperations<S, Model> extends infer IO
-            ? GetExcludedOperations<S, Model> extends infer EO
+> = Options['slicing'] extends infer Slicing
+    ? Slicing extends SlicingOptions<Schema>
+        ? GetIncludedOperations<Slicing, Model> extends infer IO
+            ? GetExcludedOperations<Slicing, Model> extends infer EO
                 ? IO extends '_none_'
                     ? // special case for empty includeOperations array - exclude all operations
                       never
@@ -58,55 +58,58 @@ export type GetSlicedOperations<
         : AllCrudOperations
     : AllCrudOperations;
 
-export type GetIncludedOperations<S extends SlicingOptions<any>, Model extends string> = S extends {
-    models: infer Config;
-}
-    ? Model extends keyof Config
-        ? 'includedOperations' extends keyof Config[Model]
-            ? // 'includedOperations' is specified for the model
-              Config[Model] extends { includedOperations: readonly [] }
-                ? // special marker for empty array (mute all)
-                  '_none_'
-                : // use the specified includedOperations
-                  Config[Model] extends { includedOperations: readonly (infer IO)[] }
-                  ? IO
-                  : never
-            : // fallback to $all if 'includedOperations' not specified for the model
-              GetAllIncludedOperations<S>
-        : // fallback to $all if model-specific config not found
-          GetAllIncludedOperations<S>
-    : never;
-
-export type GetAllIncludedOperations<S extends SlicingOptions<any>> = S extends {
-    models: infer Config;
-}
-    ? '$all' extends keyof Config
-        ? Config['$all'] extends { includedOperations: readonly [] }
-            ? '_none_'
-            : Config['$all'] extends { includedOperations: readonly (infer IO)[] }
-              ? IO
-              : AllCrudOperations
+export type GetIncludedOperations<
+    Slicing extends SlicingOptions<any>,
+    Model extends string,
+> = 'models' extends keyof Slicing
+    ? Slicing extends { models: infer Config }
+        ? Model extends keyof Config
+            ? 'includedOperations' extends keyof Config[Model]
+                ? // 'includedOperations' is specified for the model
+                  Config[Model] extends { includedOperations: readonly [] }
+                    ? // special marker for empty array (mute all)
+                      '_none_'
+                    : // use the specified includedOperations
+                      Config[Model] extends { includedOperations: readonly (infer IO)[] }
+                      ? IO
+                      : never
+                : // fallback to $all if 'includedOperations' not specified for the model
+                  GetAllIncludedOperations<Slicing>
+            : // fallback to $all if model-specific config not found
+              GetAllIncludedOperations<Slicing>
         : AllCrudOperations
     : AllCrudOperations;
 
-type GetExcludedOperations<S extends SlicingOptions<any>, Model extends string> = S extends {
-    models: infer Config;
-}
-    ? Model extends keyof Config
-        ? Config[Model] extends { excludedOperations: readonly (infer EO)[] }
-            ? EO
-            : // fallback to $all if 'excludedOperations' not specified for the model
-              GetAllExcludedOperations<S>
-        : // fallback to $all if model-specific config not found
-          GetAllExcludedOperations<S>
+export type GetAllIncludedOperations<Slicing extends SlicingOptions<any>> = 'models' extends keyof Slicing
+    ? Slicing extends { models: infer Config }
+        ? '$all' extends keyof Config
+            ? Config['$all'] extends { includedOperations: readonly [] }
+                ? '_none_'
+                : Config['$all'] extends { includedOperations: readonly (infer IO)[] }
+                  ? IO
+                  : AllCrudOperations
+            : AllCrudOperations
+        : AllCrudOperations
+    : AllCrudOperations;
+
+type GetExcludedOperations<Slicing extends SlicingOptions<any>, Model extends string> = 'models' extends keyof Slicing
+    ? Slicing extends { models: infer Config }
+        ? Model extends keyof Config
+            ? Config[Model] extends { excludedOperations: readonly (infer EO)[] }
+                ? EO
+                : // fallback to $all if 'excludedOperations' not specified for the model
+                  GetAllExcludedOperations<Slicing>
+            : // fallback to $all if model-specific config not found
+              GetAllExcludedOperations<Slicing>
+        : never
     : never;
 
-type GetAllExcludedOperations<S extends SlicingOptions<any>> = S extends {
-    models: infer M;
-}
-    ? '$all' extends keyof M
-        ? M['$all'] extends { excludedOperations: readonly (infer EO)[] }
-            ? EO
+type GetAllExcludedOperations<Slicing extends SlicingOptions<any>> = 'models' extends keyof Slicing
+    ? Slicing extends { models: infer M }
+        ? '$all' extends keyof M
+            ? M['$all'] extends { excludedOperations: readonly (infer EO)[] }
+                ? EO
+                : never
             : never
         : never
     : never;
@@ -203,7 +206,7 @@ type GetFieldIncludedFilterKinds<
     Model extends string,
     Field extends string,
 > = S extends {
-    models: infer Config;
+    models?: infer Config;
 }
     ? Model extends keyof Config
         ? GetIncludedFilterKindsFromModelConfig<Config[Model], Field>
@@ -240,7 +243,7 @@ type GetFieldExcludedFilterKinds<
     Model extends string,
     Field extends string,
 > = S extends {
-    models: infer Config;
+    models?: infer Config;
 }
     ? Model extends keyof Config
         ? GetExcludedFilterKindsFromModelConfig<Config[Model], Field>

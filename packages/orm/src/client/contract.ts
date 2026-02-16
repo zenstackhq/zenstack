@@ -299,6 +299,15 @@ export const CRUD_EXT = [...CRUD, 'post-update'] as const;
 
 //#region Model operations
 
+type SliceOperations<
+    T extends Record<string, unknown>,
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends ClientOptions<Schema>,
+> = {
+    [Key in keyof T as Key extends GetSlicedOperations<Schema, Model, Options> ? Key : never]: T[Key];
+};
+
 export type AllModelOperations<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
@@ -328,12 +337,13 @@ export type AllModelOperations<
                * ```
                */
               createManyAndReturn<
-                  T extends CreateManyAndReturnArgs<Schema, Model> &
+                  T extends CreateManyAndReturnArgs<Schema, Model, Options> &
                       ExtractExtQueryArgs<ExtQueryArgs, 'createManyAndReturn'>,
               >(
                   args?: SelectSubset<
                       T,
-                      CreateManyAndReturnArgs<Schema, Model> & ExtractExtQueryArgs<ExtQueryArgs, 'createManyAndReturn'>
+                      CreateManyAndReturnArgs<Schema, Model, Options> &
+                          ExtractExtQueryArgs<ExtQueryArgs, 'createManyAndReturn'>
                   >,
               ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options>[]>;
 
@@ -913,14 +923,10 @@ export type ModelOperations<
     Model extends GetModels<Schema>,
     Options extends ClientOptions<Schema> = ClientOptions<Schema>,
     ExtQueryArgs = {},
-> = Pick<
-    AllModelOperations<Schema, Model, Options, ExtQueryArgs>,
-    Exclude<
-        GetSlicedOperations<Schema, Model, Options>,
-        // exclude operations not applicable to delegate models
-        IsDelegateModel<Schema, Model> extends true ? OperationsIneligibleForDelegateModels : never
-    > &
-        keyof AllModelOperations<Schema, Model, Options, ExtQueryArgs>
+> = Omit<
+    SliceOperations<AllModelOperations<Schema, Model, Options, ExtQueryArgs>, Schema, Model, Options>,
+    // exclude operations not applicable to delegate models
+    IsDelegateModel<Schema, Model> extends true ? OperationsIneligibleForDelegateModels : never
 >;
 
 //#endregion

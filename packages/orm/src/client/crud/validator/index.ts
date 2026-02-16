@@ -138,8 +138,8 @@ export class InputValidator<Schema extends SchemaDef> {
     validateCreateManyAndReturnArgs(
         model: GetModels<Schema>,
         args: unknown,
-    ): CreateManyAndReturnArgs<Schema, GetModels<Schema>> | undefined {
-        return this.validate<CreateManyAndReturnArgs<Schema, GetModels<Schema>> | undefined>(
+    ): CreateManyAndReturnArgs<Schema, GetModels<Schema>, any> | undefined {
+        return this.validate<CreateManyAndReturnArgs<Schema, GetModels<Schema>, any> | undefined>(
             model,
             'createManyAndReturn',
             (model) => this.makeCreateManyAndReturnSchema(model),
@@ -1097,7 +1097,10 @@ export class InputValidator<Schema extends SchemaDef> {
         for (const field of Object.keys(modelDef.fields)) {
             const fieldDef = requireField(this.schema, model, field);
             if (fieldDef.relation) {
-                fields[field] = this.makeRelationSelectIncludeSchema(model, field).optional();
+                // Check if the target model is allowed by slicing configuration
+                if (this.isModelAllowed(fieldDef.type)) {
+                    fields[field] = this.makeRelationSelectIncludeSchema(model, field).optional();
+                }
             } else {
                 fields[field] = z.boolean().optional();
             }
@@ -1212,7 +1215,10 @@ export class InputValidator<Schema extends SchemaDef> {
         for (const field of Object.keys(modelDef.fields)) {
             const fieldDef = requireField(this.schema, model, field);
             if (fieldDef.relation) {
-                fields[field] = this.makeRelationSelectIncludeSchema(model, field).optional();
+                // Check if the target model is allowed by slicing configuration
+                if (this.isModelAllowed(fieldDef.type)) {
+                    fields[field] = this.makeRelationSelectIncludeSchema(model, field).optional();
+                }
             }
         }
 
@@ -2157,6 +2163,35 @@ export class InputValidator<Schema extends SchemaDef> {
                 );
             }),
         ) as Partial<T>;
+    }
+
+    /**
+     * Checks if a model is included in the slicing configuration.
+     * Returns true if the model is allowed, false if it's excluded.
+     */
+    private isModelAllowed(targetModel: string): boolean {
+        const slicing = this.options.slicing;
+        if (!slicing) {
+            return true; // No slicing, all models allowed
+        }
+
+        const { includedModels, excludedModels } = slicing;
+
+        // If includedModels is specified, only those models are allowed
+        if (includedModels !== undefined) {
+            if (!includedModels.includes(targetModel as any)) {
+                return false;
+            }
+        }
+
+        // If excludedModels is specified, those models are not allowed
+        if (excludedModels !== undefined) {
+            if (excludedModels.includes(targetModel as any)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     // #endregion
