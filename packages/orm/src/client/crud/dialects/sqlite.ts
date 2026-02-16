@@ -183,7 +183,7 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
         model: string,
         relationField: string,
         parentAlias: string,
-        payload: true | FindArgs<Schema, GetModels<Schema>, true>,
+        payload: true | FindArgs<Schema, GetModels<Schema>, any, true>,
     ): SelectQueryBuilder<any, any, any> {
         return query.select((eb) =>
             this.buildRelationJSON(model, eb, relationField, parentAlias, payload).as(relationField),
@@ -195,7 +195,7 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
         eb: ExpressionBuilder<any, any>,
         relationField: string,
         parentAlias: string,
-        payload: true | FindArgs<Schema, GetModels<Schema>, true>,
+        payload: true | FindArgs<Schema, GetModels<Schema>, any, true>,
     ) {
         const relationFieldDef = requireField(this.schema, model, relationField);
         const relationModel = relationFieldDef.type as GetModels<Schema>;

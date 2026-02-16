@@ -86,42 +86,36 @@ export type SlicingOptions<Schema extends SchemaDef> = {
 /**
  * Kinds of filter operations.
  */
-export enum FilterKind {
+export type FilterKind =
     /**
      * Covers "equals", "not", "in", "notIn".
      */
-    Equality,
-
+    | 'Equality'
     /**
      * Covers "gt", "gte", "lt", "lte".
      */
-    Range,
-
+    | 'Range'
     /**
      * Covers "contains", "startsWith", "endsWith".
      */
-    Like,
-
+    | 'Like'
     /**
      * Covers all Json filter operations.
      */
-    Json,
-
+    | 'Json'
     /**
      * Covers "has", "hasEvery", "hasSome", "isEmpty".
      */
-    List,
-
+    | 'List'
     /**
      * Covers "is", "isNot", "some", "none", "every" for relations.
      */
-    Relation,
-}
+    | 'Relation';
 
 /**
  * Model slicing options.
  */
-type ModelSlicingOptions<Schema extends SchemaDef, _Model extends GetModels<Schema>> = {
+export type ModelSlicingOptions<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
     /**
      * ORM query operations to include for the model. If not specified, all operations are included
      * by default.
@@ -133,8 +127,26 @@ type ModelSlicingOptions<Schema extends SchemaDef, _Model extends GetModels<Sche
      */
     excludedOperations?: readonly AllCrudOperations[];
 
-    // includedFilterKinds?: readonly FilterKind[];
-    // excludedFilterKinds?: readonly FilterKind[];
+    fields?: {
+        [Field in GetModelFields<Schema, Model>]?: FieldSlicingOptions;
+    } & {
+        $all?: FieldSlicingOptions;
+    };
+};
+
+/**
+ * Field slicing options.
+ */
+type FieldSlicingOptions = {
+    /**
+     * Filter kinds to include for the field. If not specified, all filter kinds are included by default.
+     */
+    includedFilterKinds?: readonly FilterKind[];
+
+    /**
+     * Filter kinds to exclude for the field. Exclusion takes precedence over inclusion.
+     */
+    excludedFilterKinds?: readonly FilterKind[];
 };
 
 /**

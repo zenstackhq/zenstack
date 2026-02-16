@@ -44,6 +44,11 @@ export class SchemaType implements SchemaDef {
                     type: "String",
                     optional: true
                 },
+                age: {
+                    name: "age",
+                    type: "Int",
+                    optional: true
+                },
                 role: {
                     name: "role",
                     type: "Role",

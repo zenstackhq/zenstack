@@ -1,9 +1,11 @@
 import type { GetModels, SchemaDef } from '@zenstackhq/schema';
 import type { GetProcedureNames } from './crud-types';
 import type { AllCrudOperations } from './crud/operations/base';
-import type { QueryOptions, SlicingOptions } from './options';
+import type { FilterKind, QueryOptions, SlicingOptions } from './options';
 
 type IsNever<T> = [T] extends [never] ? true : false;
+
+// #region Model slicing
 
 /**
  * Filters models based on slicing configuration.
@@ -27,6 +29,10 @@ export type GetSlicedModels<
         : // No slicing config, include all models
           GetModels<Schema>
     : GetModels<Schema>;
+
+// #endregion
+
+// #region Operation slicing
 
 /**
  * Filters query operations based on slicing configuration for a specific model.
@@ -105,6 +111,10 @@ type GetAllExcludedOperations<S extends SlicingOptions<any>> = S extends {
         : never
     : never;
 
+// #endregion
+
+// #region Procedure slicing
+
 /**
  * Filters procedures based on slicing configuration.
  */
@@ -131,3 +141,119 @@ export type GetSlicedProcedures<
         : // No slicing config, include all procedures
           GetProcedureNames<Schema>
     : GetProcedureNames<Schema>;
+
+// #endregion
+
+// #region Filter slicing
+
+/**
+ * Filters filter kinds for a specific field, considering field-level slicing configuration with $all fallback.
+ */
+export type GetSlicedFilterKindsForField<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Field extends string,
+    Options extends QueryOptions<Schema>,
+> = Options extends { slicing: infer S }
+    ? S extends SlicingOptions<Schema>
+        ? GetFieldIncludedFilterKinds<S, Model, Field> extends infer IFK
+            ? GetFieldExcludedFilterKinds<S, Model, Field> extends infer EFK
+                ? '_none_' extends IFK
+                    ? // Empty includedFilterKinds array - exclude all
+                      never
+                    : IsNever<IFK> extends true
+                      ? // No field-level includedFilterKinds specified
+                        IsNever<EFK> extends true
+                          ? // No field-level exclusions either - allow all
+                            FilterKind
+                          : // Field-level exclusions exist - exclude them from all filter kinds
+                            Exclude<FilterKind, EFK>
+                      : // Field-level includedFilterKinds specified - use those and apply exclusions
+                        Exclude<IFK, EFK>
+                : FilterKind
+            : FilterKind
+        : FilterKind
+    : FilterKind;
+
+// Helper type to extract includedFilterKinds from a model config (handles both specific model and $all)
+type GetIncludedFilterKindsFromModelConfig<ModelConfig, Field extends string> = ModelConfig extends {
+    includedFilterKinds: readonly [];
+}
+    ? '_none_'
+    : 'fields' extends keyof ModelConfig
+      ? ModelConfig['fields'] extends infer FieldsConfig
+          ? // Check if specific field config exists
+            Field extends keyof FieldsConfig
+              ? 'includedFilterKinds' extends keyof FieldsConfig[Field]
+                  ? // Field-specific includedFilterKinds
+                    FieldsConfig[Field] extends { includedFilterKinds: readonly [] }
+                      ? '_none_'
+                      : FieldsConfig[Field] extends { includedFilterKinds: readonly (infer IFK)[] }
+                        ? IFK
+                        : never
+                  : // No field-specific includedFilterKinds, try $all
+                    GetAllFieldsIncludedFilterKinds<FieldsConfig>
+              : // No field-specific config, try $all
+                GetAllFieldsIncludedFilterKinds<FieldsConfig>
+          : never
+      : never;
+
+type GetFieldIncludedFilterKinds<
+    S extends SlicingOptions<any>,
+    Model extends string,
+    Field extends string,
+> = S extends {
+    models: infer Config;
+}
+    ? Model extends keyof Config
+        ? GetIncludedFilterKindsFromModelConfig<Config[Model], Field>
+        : // Model not in config, fallback to $all
+          '$all' extends keyof Config
+          ? GetIncludedFilterKindsFromModelConfig<Config['$all'], Field>
+          : never
+    : never;
+
+type GetAllFieldsIncludedFilterKinds<FieldsConfig> = '$all' extends keyof FieldsConfig
+    ? FieldsConfig['$all'] extends { includedFilterKinds: readonly [] }
+        ? '_none_'
+        : FieldsConfig['$all'] extends { includedFilterKinds: readonly (infer IFK)[] }
+          ? IFK
+          : never
+    : never;
+
+// Helper type to extract excludedFilterKinds from a model config (handles both specific model and $all)
+type GetExcludedFilterKindsFromModelConfig<ModelConfig, Field extends string> = 'fields' extends keyof ModelConfig
+    ? ModelConfig['fields'] extends infer FieldsConfig
+        ? // Check if specific field config exists
+          Field extends keyof FieldsConfig
+            ? FieldsConfig[Field] extends { excludedFilterKinds: readonly (infer EFK)[] }
+                ? EFK
+                : // No field-specific excludedFilterKinds, try $all
+                  GetAllFieldsExcludedFilterKinds<FieldsConfig>
+            : // No field-specific config, try $all
+              GetAllFieldsExcludedFilterKinds<FieldsConfig>
+        : never
+    : never;
+
+type GetFieldExcludedFilterKinds<
+    S extends SlicingOptions<any>,
+    Model extends string,
+    Field extends string,
+> = S extends {
+    models: infer Config;
+}
+    ? Model extends keyof Config
+        ? GetExcludedFilterKindsFromModelConfig<Config[Model], Field>
+        : // Model not in config, fallback to $all
+          '$all' extends keyof Config
+          ? GetExcludedFilterKindsFromModelConfig<Config['$all'], Field>
+          : never
+    : never;
+
+type GetAllFieldsExcludedFilterKinds<FieldsConfig> = '$all' extends keyof FieldsConfig
+    ? FieldsConfig['$all'] extends { excludedFilterKinds: readonly (infer EFK)[] }
+        ? EFK
+        : never
+    : never;
+
+// #endregion

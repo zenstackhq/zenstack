@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { schema } from '../schemas/basic/schema';
 import { schema as proceduresSchema } from '../schemas/procedures/schema';
 
-describe('Model slicing tests', () => {
+describe('Query slicing tests', () => {
     describe('Model inclusion/exclusion', () => {
         it('includes all models when no slicing config', async () => {
             const db = await createTestClient(schema);
@@ -437,8 +437,6 @@ describe('Model slicing tests', () => {
             expect(db.$procs.setAdmin).toBeDefined();
             expect(db.$procs.getOverview).toBeDefined();
             expect(db.$procs.createMultiple).toBeDefined();
-
-            await db.$disconnect();
         });
 
         it('includes only specified procedures with includedProcedures', async () => {
@@ -465,8 +463,6 @@ describe('Model slicing tests', () => {
             expect(db.$procs.getOverview).toBeUndefined();
             // @ts-expect-error - createMultiple should not be accessible
             expect(db.$procs.createMultiple).toBeUndefined();
-
-            await db.$disconnect();
         });
 
         it('excludes specified procedures with excludedProcedures', async () => {
@@ -492,8 +488,6 @@ describe('Model slicing tests', () => {
             expect(db.$procs.setAdmin).toBeUndefined();
             // @ts-expect-error - createMultiple should be excluded
             expect(db.$procs.createMultiple).toBeUndefined();
-
-            await db.$disconnect();
         });
 
         it('applies both includedProcedures and excludedProcedures (exclusion takes precedence)', async () => {
@@ -523,8 +517,6 @@ describe('Model slicing tests', () => {
             expect(db.$procs.getOverview).toBeUndefined();
             // @ts-expect-error - createMultiple was not included
             expect(db.$procs.createMultiple).toBeUndefined();
-
-            await db.$disconnect();
         });
 
         it('excludes all procedures when includedProcedures is empty array', async () => {
@@ -551,8 +543,6 @@ describe('Model slicing tests', () => {
             expect(db.$procs.getOverview).toBeUndefined();
             // @ts-expect-error - createMultiple should not be accessible
             expect(db.$procs.createMultiple).toBeUndefined();
-
-            await db.$disconnect();
         });
 
         it('has no effect when excludedProcedures is empty array', async () => {
@@ -570,8 +560,817 @@ describe('Model slicing tests', () => {
             expect(db.$procs.setAdmin).toBeDefined();
             expect(db.$procs.getOverview).toBeDefined();
             expect(db.$procs.createMultiple).toBeDefined();
+        });
+    });
 
-            await db.$disconnect();
+    describe('Filter kind inclusion/exclusion', () => {
+        describe('Model-level filter kind slicing', () => {
+            it('allows all filter kinds when no slicing config', async () => {
+                const db = await createTestClient(schema);
+
+                await db.user.create({ data: { email: 'test@example.com', name: 'Test User', age: 25 } });
+
+                // All filter kinds should work
+
+                // Equality filters
+                const equalityResult = await db.user.findMany({
+                    where: { email: { equals: 'test@example.com' } },
+                });
+                expect(equalityResult).toHaveLength(1);
+
+                // Range filters
+                const rangeResult = await db.user.findMany({
+                    where: {},
+                });
+                expect(rangeResult).toHaveLength(1);
+
+                // Like filters
+                const likeResult = await db.user.findMany({
+                    where: { name: { contains: 'Test' } },
+                });
+                expect(likeResult).toHaveLength(1);
+            });
+
+            it('includes only specified filter kinds with includedFilterKinds', async () => {
+                const options = {
+                    slicing: {
+                        models: {
+                            User: {
+                                fields: {
+                                    $all: {
+                                        includedFilterKinds: ['Equality'] as const,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    dialect: {} as any,
+                } as const;
+
+                const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+                await db.user.create({ data: { email: 'test@example.com', name: 'Test User', age: 25 } });
+
+                // Equality filters should work
+                const equalityResult = await db.user.findMany({
+                    where: { email: { equals: 'test@example.com' } },
+                });
+                expect(equalityResult).toHaveLength(1);
+
+                // Range filters should cause type error
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - gte is not allowed (Range filters excluded)
+                        where: { age: { gte: 20 } },
+                    }),
+                ).toBeRejectedByValidation(['"gte']);
+
+                // Like filters should cause type error
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - contains is not allowed (Like filters excluded)
+                        where: { name: { contains: 'Test' } },
+                    }),
+                ).toBeRejectedByValidation(['"contains"']);
+            });
+
+            it('excludes specified filter kinds with excludedFilterKinds', async () => {
+                const options = {
+                    slicing: {
+                        models: {
+                            User: {
+                                fields: {
+                                    $all: {
+                                        excludedFilterKinds: ['Like', 'Range'] as const,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    dialect: {} as any,
+                } as const;
+
+                const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+                await db.user.create({ data: { email: 'test@example.com', name: 'Test User', age: 25 } });
+
+                // Equality filters should work
+                const equalityResult = await db.user.findMany({
+                    where: { email: { equals: 'test@example.com' } },
+                });
+                expect(equalityResult).toHaveLength(1);
+
+                // Range filters should cause type error
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - gte is excluded
+                        where: { age: { gte: 20 } },
+                    }),
+                ).toBeRejectedByValidation(['"gte"']);
+
+                // Like filters should cause type error
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - contains is excluded
+                        where: { name: { contains: 'Test' } },
+                    }),
+                ).toBeRejectedByValidation(['"contains"']);
+            });
+
+            it('applies both includedFilterKinds and excludedFilterKinds (exclusion takes precedence)', async () => {
+                const options = {
+                    slicing: {
+                        models: {
+                            User: {
+                                fields: {
+                                    $all: {
+                                        includedFilterKinds: ['Equality', 'Range', 'Like'] as const,
+                                        excludedFilterKinds: ['Range'] as const,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    dialect: {} as any,
+                } as const;
+
+                const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+                await db.user.create({ data: { email: 'test@example.com', name: 'Test User', age: 25 } });
+
+                // Equality filters should work
+                const equalityResult = await db.user.findMany({
+                    where: { email: { equals: 'test@example.com' } },
+                });
+                expect(equalityResult).toHaveLength(1);
+
+                // Like filters should work
+                const likeResult = await db.user.findMany({
+                    where: { name: { contains: 'Test' } },
+                });
+                expect(likeResult).toHaveLength(1);
+
+                // Range filters should cause type error (excluded despite being included)
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - gte is excluded
+                        where: { age: { gte: 20 } },
+                    }),
+                ).toBeRejectedByValidation(['"gte"']);
+            });
+
+            it('excludes all filter operations when includedFilterKinds is empty', async () => {
+                const options = {
+                    slicing: {
+                        models: {
+                            User: {
+                                fields: {
+                                    $all: {
+                                        includedFilterKinds: [] as const,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    dialect: {} as any,
+                } as const;
+
+                const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+                await db.user.create({ data: { email: 'test@example.com', name: 'Test User', age: 25 } });
+
+                // All filter operations should cause type errors
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - no filter operators are allowed
+                        where: { email: { equals: 'test@example.com' } },
+                    }),
+                ).toBeRejectedByValidation(['"where.email"']);
+
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - no filter operators are allowed
+                        where: { age: { gte: 20 } },
+                    }),
+                ).toBeRejectedByValidation(['"where.age"']);
+
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - no filter operators are allowed
+                        where: { name: { contains: 'Test' } },
+                    }),
+                ).toBeRejectedByValidation(['"where.name"']);
+            });
+
+            it('allows only Equality and Range filters for numeric fields', async () => {
+                const options = {
+                    slicing: {
+                        models: {
+                            User: {
+                                fields: {
+                                    $all: {
+                                        includedFilterKinds: ['Equality', 'Range'] as const,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    dialect: {} as any,
+                } as const;
+
+                const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+                await db.user.create({ data: { email: 'test@example.com', name: 'Test User', age: 25 } });
+
+                // Equality filters should work
+                const inResult = await db.user.findMany({
+                    where: { age: { in: [25, 30] } },
+                });
+                expect(inResult).toHaveLength(1);
+
+                // Range filters should work
+                const betweenResult = await db.user.findMany({
+                    where: { age: { between: [20, 30] } },
+                });
+                expect(betweenResult).toHaveLength(1);
+
+                const gteResult = await db.user.findMany({
+                    where: { age: { gte: 25, lte: 30 } },
+                });
+                expect(gteResult).toHaveLength(1);
+            });
+
+            it('applies $all filter kind slicing to all models', async () => {
+                const options = {
+                    slicing: {
+                        models: {
+                            $all: {
+                                fields: {
+                                    $all: {
+                                        includedFilterKinds: ['Equality'] as const,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    dialect: {} as any,
+                } as const;
+
+                const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+                await db.user.create({ data: { email: 'user@example.com', name: 'User' } });
+                const user = await db.user.findFirst({ where: { email: 'user@example.com' } });
+
+                await db.post.create({ data: { title: 'Test Post', content: 'Content', authorId: user!.id } });
+
+                // Equality filters should work for all models
+                const userResult = await db.user.findMany({
+                    where: { email: { equals: 'user@example.com' } },
+                });
+                expect(userResult).toHaveLength(1);
+
+                const postResult = await db.post.findMany({
+                    where: { title: { equals: 'Test Post' } },
+                });
+                expect(postResult).toHaveLength(1);
+
+                // Like filters should cause type errors for all models
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - contains is not allowed for User
+                        where: { name: { contains: 'User' } },
+                    }),
+                ).toBeRejectedByValidation(['"contains"']);
+
+                await expect(
+                    db.post.findMany({
+                        // @ts-expect-error - contains is not allowed for Post
+                        where: { title: { contains: 'Test' } },
+                    }),
+                ).toBeRejectedByValidation(['"contains"']);
+            });
+
+            it('model-specific filter kind slicing overrides $all slicing', async () => {
+                const options = {
+                    slicing: {
+                        models: {
+                            $all: {
+                                fields: {
+                                    $all: {
+                                        includedFilterKinds: ['Equality'] as const,
+                                    },
+                                },
+                            },
+                            User: {
+                                fields: {
+                                    $all: {
+                                        includedFilterKinds: ['Equality', 'Like'] as const,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    dialect: {} as any,
+                } as const;
+
+                const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+                await db.user.create({ data: { email: 'user@example.com', name: 'Test User' } });
+                const user = await db.user.findFirst({ where: { email: 'user@example.com' } });
+
+                await db.post.create({ data: { title: 'Test Post', content: 'Content', authorId: user!.id } });
+
+                // User should have Equality and Like filters
+                const userLikeResult = await db.user.findMany({
+                    where: { name: { contains: 'Test' } },
+                });
+                expect(userLikeResult).toHaveLength(1);
+
+                // Post should only have Equality filters (from $all)
+                const postEqualityResult = await db.post.findMany({
+                    where: { title: { equals: 'Test Post' } },
+                });
+                expect(postEqualityResult).toHaveLength(1);
+
+                // Post should not have Like filters
+                await expect(
+                    db.post.findMany({
+                        // @ts-expect-error - contains is not allowed for Post
+                        where: { title: { contains: 'Test' } },
+                    }),
+                ).toBeRejectedByValidation(['"contains"']);
+            });
+
+            it('excludes Relation filters to prevent relation queries', async () => {
+                const options = {
+                    slicing: {
+                        models: {
+                            User: {
+                                fields: {
+                                    $all: {
+                                        excludedFilterKinds: ['Relation'] as const,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    dialect: {} as any,
+                } as const;
+
+                const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+                await db.user.create({ data: { email: 'user@example.com', name: 'Test' } });
+
+                // Scalar filters should work
+                const scalarResult = await db.user.findMany({
+                    where: { email: { equals: 'user@example.com' } },
+                });
+                expect(scalarResult).toHaveLength(1);
+
+                // Relation filters should cause type errors
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - posts relation filter should be excluded
+                        where: { posts: { some: { title: 'test' } } },
+                    }),
+                ).toBeRejectedByValidation(['"where.posts"']);
+
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - profile relation filter should be excluded
+                        where: { profile: { is: { bio: 'test' } } },
+                    }),
+                ).toBeRejectedByValidation(['"where.profile"']);
+            });
+
+            it('uses $all excludedFilterKinds as fallback', async () => {
+                const options = {
+                    slicing: {
+                        models: {
+                            $all: {
+                                fields: {
+                                    $all: {
+                                        excludedFilterKinds: ['Relation', 'Json'] as const,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    dialect: {} as any,
+                } as const;
+
+                const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+                await db.user.create({ data: { email: 'user@example.com', name: 'User' } });
+                const user = await db.user.findFirst({ where: { email: 'user@example.com' } });
+                await db.post.create({ data: { title: 'Post', content: 'Content', authorId: user!.id } });
+
+                // Scalar filters should work for all models
+                const userResult = await db.user.findMany({
+                    where: { email: { equals: 'user@example.com' } },
+                });
+                expect(userResult).toHaveLength(1);
+
+                // Relation filters should be excluded for all models
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - posts relation filter excluded
+                        where: { posts: { some: { title: 'test' } } },
+                    }),
+                ).toBeRejectedByValidation(['"where.posts"']);
+
+                await expect(
+                    db.post.findMany({
+                        // @ts-expect-error - user relation filter excluded
+                        where: { user: { is: { email: 'test' } } },
+                    }),
+                ).toBeRejectedByValidation(['"user"']);
+            });
+        });
+
+        describe('Field-level filter kind slicing', () => {
+            it('allows field-specific filter kind restrictions', async () => {
+                const options = {
+                    slicing: {
+                        models: {
+                            User: {
+                                // Field-level: restrict 'name' to only Equality filters
+                                fields: {
+                                    name: {
+                                        includedFilterKinds: ['Equality'] as const,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    dialect: {} as any,
+                } as const;
+
+                const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+                await db.user.create({ data: { email: 'test@example.com', name: 'Test User', age: 25 } });
+
+                // Equality filters should work on 'name' field
+                const equalityResult = await db.user.findMany({
+                    where: { name: { equals: 'Test User' } },
+                });
+                expect(equalityResult).toHaveLength(1);
+
+                // Like filters should cause type error on 'name' field
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - contains is not allowed for 'name' field
+                        where: { name: { contains: 'Test' } },
+                    }),
+                ).toBeRejectedByValidation(['"contains"']);
+
+                // Other fields should still support all filter kinds
+                const ageRangeResult = await db.user.findMany({
+                    where: { age: { gte: 20 } },
+                });
+                expect(ageRangeResult).toHaveLength(1);
+
+                const emailLikeResult = await db.user.findMany({
+                    where: { email: { contains: 'example' } },
+                });
+                expect(emailLikeResult).toHaveLength(1);
+            });
+
+            it('excludes specific filter kinds for a field', async () => {
+                const options = {
+                    slicing: {
+                        models: {
+                            User: {
+                                fields: {
+                                    email: {
+                                        excludedFilterKinds: ['Like'] as const,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    dialect: {} as any,
+                } as const;
+
+                const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+                await db.user.create({ data: { email: 'test@example.com', name: 'Test User', age: 25 } });
+
+                // Equality filters should work on 'email' field
+                const equalityResult = await db.user.findMany({
+                    where: { email: { equals: 'test@example.com' } },
+                });
+                expect(equalityResult).toHaveLength(1);
+
+                // Like filters should cause type error on 'email' field
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - contains is excluded for 'email' field
+                        where: { email: { contains: 'test' } },
+                    }),
+                ).toBeRejectedByValidation(['"contains"']);
+
+                // Other fields should still support Like filters
+                const nameLikeResult = await db.user.findMany({
+                    where: { name: { contains: 'Test' } },
+                });
+                expect(nameLikeResult).toHaveLength(1);
+            });
+
+            it('applies both field-level includedFilterKinds and excludedFilterKinds', async () => {
+                const options = {
+                    slicing: {
+                        models: {
+                            User: {
+                                fields: {
+                                    name: {
+                                        includedFilterKinds: ['Equality', 'Like', 'Range'] as const,
+                                        excludedFilterKinds: ['Range'] as const,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    dialect: {} as any,
+                } as const;
+
+                const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+                await db.user.create({ data: { email: 'test@example.com', name: 'Test User', age: 25 } });
+
+                // Equality filters should work
+                const equalityResult = await db.user.findMany({
+                    where: { name: { equals: 'Test User' } },
+                });
+                expect(equalityResult).toHaveLength(1);
+
+                // Like filters should work
+                const likeResult = await db.user.findMany({
+                    where: { name: { contains: 'Test' } },
+                });
+                expect(likeResult).toHaveLength(1);
+
+                // Range filters should cause type error (excluded despite being included)
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - Range filters are excluded for 'name'
+                        where: { name: { gte: 'A' } },
+                    }),
+                ).toBeRejectedByValidation(['"gte"']);
+            });
+
+            it('field-level slicing with $all fallback', async () => {
+                const options = {
+                    slicing: {
+                        models: {
+                            User: {
+                                fields: {
+                                    // $all: only Equality filters for all fields by default
+                                    $all: {
+                                        includedFilterKinds: ['Equality'] as const,
+                                    },
+                                    // Field-level: 'name' gets Equality AND Like filters
+                                    name: {
+                                        includedFilterKinds: ['Equality', 'Like'] as const,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    dialect: {} as any,
+                } as const;
+
+                const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+                await db.user.create({ data: { email: 'test@example.com', name: 'Test User', age: 25 } });
+
+                // 'name' field should have Like filters (field-level override)
+                const nameLikeResult = await db.user.findMany({
+                    where: { name: { contains: 'Test' } },
+                });
+                expect(nameLikeResult).toHaveLength(1);
+
+                // 'email' field should only have Equality filters ($all fallback)
+                const emailEqualityResult = await db.user.findMany({
+                    where: { email: { equals: 'test@example.com' } },
+                });
+                expect(emailEqualityResult).toHaveLength(1);
+
+                // 'email' field should not have Like filters
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - Like filters not allowed for 'email' (from $all)
+                        where: { email: { contains: 'test' } },
+                    }),
+                ).toBeRejectedByValidation(['"contains"']);
+            });
+
+            it('excludes all filter operations for a field when includedFilterKinds is empty', async () => {
+                const options = {
+                    slicing: {
+                        models: {
+                            User: {
+                                fields: {
+                                    name: {
+                                        includedFilterKinds: [] as const,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    dialect: {} as any,
+                } as const;
+
+                const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+                await db.user.create({ data: { email: 'test@example.com', name: 'Test User', age: 25 } });
+
+                // All filter operations should cause type errors for 'name' field
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - equals is not allowed for 'name'
+                        where: { name: { equals: 'Test User' } },
+                    }),
+                ).toBeRejectedByValidation(['"where.name"']);
+
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - contains is not allowed for 'name'
+                        where: { name: { contains: 'Test' } },
+                    }),
+                ).toBeRejectedByValidation(['"where.name"']);
+
+                // Other fields should still work normally
+                const emailResult = await db.user.findMany({
+                    where: { email: { equals: 'test@example.com' } },
+                });
+                expect(emailResult).toHaveLength(1);
+            });
+
+            it('allows different field-level slicing for multiple fields', async () => {
+                const options = {
+                    slicing: {
+                        models: {
+                            User: {
+                                fields: {
+                                    name: {
+                                        includedFilterKinds: ['Equality'] as const,
+                                    },
+                                    email: {
+                                        includedFilterKinds: ['Equality', 'Like'] as const,
+                                    },
+                                    age: {
+                                        includedFilterKinds: ['Equality', 'Range'] as const,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    dialect: {} as any,
+                } as const;
+
+                const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+                await db.user.create({ data: { email: 'test@example.com', name: 'Test User', age: 25 } });
+
+                // 'name' should only support Equality
+                const nameResult = await db.user.findMany({
+                    where: { name: { equals: 'Test User' } },
+                });
+                expect(nameResult).toHaveLength(1);
+
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - Like filters not allowed for 'name'
+                        where: { name: { contains: 'Test' } },
+                    }),
+                ).toBeRejectedByValidation(['"contains"']);
+
+                // 'email' should support Equality and Like
+                const emailEqualityResult = await db.user.findMany({
+                    where: { email: { equals: 'test@example.com' } },
+                });
+                expect(emailEqualityResult).toHaveLength(1);
+
+                const emailLikeResult = await db.user.findMany({
+                    where: { email: { contains: 'example' } },
+                });
+                expect(emailLikeResult).toHaveLength(1);
+
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - Range filters not allowed for 'email'
+                        where: { email: { gte: 'a' } },
+                    }),
+                ).toBeRejectedByValidation(['"gte"']);
+
+                // 'age' should support Equality and Range
+                const ageEqualityResult = await db.user.findMany({
+                    where: { age: { equals: 25 } },
+                });
+                expect(ageEqualityResult).toHaveLength(1);
+
+                const ageRangeResult = await db.user.findMany({
+                    where: { age: { gte: 20, lte: 30 } },
+                });
+                expect(ageRangeResult).toHaveLength(1);
+            });
+
+            it('field-level excludedFilterKinds with $all fallback', async () => {
+                const options = {
+                    slicing: {
+                        models: {
+                            User: {
+                                fields: {
+                                    // $all: exclude Range filters for all fields
+                                    $all: {
+                                        excludedFilterKinds: ['Range'] as const,
+                                    },
+                                    // Field-level override
+                                    name: {
+                                        excludedFilterKinds: ['Like'] as const,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    dialect: {} as any,
+                } as const;
+
+                const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+                await db.user.create({ data: { email: 'test@example.com', name: 'Test User', age: 25 } });
+
+                // 'name' should support Equality but not Like or Range
+                const nameEqualityResult = await db.user.findMany({
+                    where: { name: { equals: 'Test User' } },
+                });
+                expect(nameEqualityResult).toHaveLength(1);
+
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - Like filters excluded for 'name' field
+                        where: { name: { contains: 'Test' } },
+                    }),
+                ).toBeRejectedByValidation(['"contains"']);
+
+                await db.user.findMany({
+                    where: { name: { gte: 'A' } },
+                });
+
+                // 'email' should support Equality and Like but not Range ($all excludes Range)
+                const emailLikeResult = await db.user.findMany({
+                    where: { email: { contains: 'example' } },
+                });
+                expect(emailLikeResult).toHaveLength(1);
+
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - Range filters excluded by $all
+                        where: { email: { gte: 'a' } },
+                    }),
+                ).toBeRejectedByValidation(['"gte"']);
+            });
+
+            it('works with numeric fields', async () => {
+                const options = {
+                    slicing: {
+                        models: {
+                            User: {
+                                fields: {
+                                    age: {
+                                        includedFilterKinds: ['Range'] as const,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    dialect: {} as any,
+                } as const;
+
+                const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+                await db.user.create({ data: { email: 'test@example.com', name: 'Test', age: 25 } });
+
+                // Range filters should work for 'age'
+                const gteResult = await db.user.findMany({
+                    where: { age: { gte: 20 } },
+                });
+                expect(gteResult).toHaveLength(1);
+
+                const betweenResult = await db.user.findMany({
+                    where: { age: { between: [20, 30] } },
+                });
+                expect(betweenResult).toHaveLength(1);
+
+                // Equality filters should cause type error for 'age'
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - Equality filters not allowed for 'age'
+                        where: { age: { equals: 25 } },
+                    }),
+                ).toBeRejectedByValidation(['"equals"']);
+            });
         });
     });
 });

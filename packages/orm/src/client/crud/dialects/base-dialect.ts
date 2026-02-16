@@ -5,7 +5,7 @@ import { match, P } from 'ts-pattern';
 import { AnyNullClass, DbNullClass, JsonNullClass } from '../../../common-types';
 import type { BuiltinType, DataSourceProviderType, FieldDef, GetModels, ModelDef, SchemaDef } from '../../../schema';
 import type { OrArray } from '../../../utils/type-utils';
-import { AGGREGATE_OPERATORS, DELEGATE_JOINED_FIELD_PREFIX, LOGICAL_COMBINATORS } from '../../constants';
+import { AggregateOperators, DELEGATE_JOINED_FIELD_PREFIX, LOGICAL_COMBINATORS } from '../../constants';
 import type {
     BooleanFilter,
     BytesFilter,
@@ -117,7 +117,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
     buildFilterSortTake(
         model: string,
-        args: FindArgs<Schema, GetModels<Schema>, true>,
+        args: FindArgs<Schema, GetModels<Schema>, any, true>,
         query: SelectQueryBuilder<any, any, {}>,
         modelAlias: string,
     ) {
@@ -828,7 +828,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                 })
                 .with('not', () => this.eb.not(recurse(value)))
                 // aggregations
-                .with(P.union(...AGGREGATE_OPERATORS), (op) => {
+                .with(P.union(...AggregateOperators), (op) => {
                     const innerResult = this.buildStandardFilter(
                         type,
                         value,
@@ -1040,7 +1040,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                     for (const [k, v] of Object.entries<SortOrder>(value)) {
                         invariant(v === 'asc' || v === 'desc', `invalid orderBy value for field "${field}"`);
                         result = result.orderBy(
-                            (eb) => aggregate(eb, buildFieldRef(model, k, modelAlias), field as AGGREGATE_OPERATORS),
+                            (eb) => aggregate(eb, buildFieldRef(model, k, modelAlias), field as AggregateOperators),
                             this.negateSort(v, negated),
                         );
                     }
@@ -1180,7 +1180,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
     protected buildModelSelect(
         model: GetModels<Schema>,
         subQueryAlias: string,
-        payload: true | FindArgs<Schema, GetModels<Schema>, true>,
+        payload: true | FindArgs<Schema, GetModels<Schema>, any, true>,
         selectAllFields: boolean,
     ) {
         let subQuery = this.buildSelectModel(model, subQueryAlias);
@@ -1370,7 +1370,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
     protected canJoinWithoutNestedSelect(
         modelDef: ModelDef,
-        payload: boolean | FindArgs<Schema, GetModels<Schema>, true>,
+        payload: boolean | FindArgs<Schema, GetModels<Schema>, any, true>,
     ) {
         if (modelDef.computedFields) {
             // computed fields requires explicit select
@@ -1411,7 +1411,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         model: string,
         relationField: string,
         parentAlias: string,
-        payload: true | FindArgs<Schema, GetModels<Schema>, true>,
+        payload: true | FindArgs<Schema, GetModels<Schema>, any, true>,
     ): SelectQueryBuilder<any, any, any>;
 
     /**

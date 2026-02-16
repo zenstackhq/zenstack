@@ -1,6 +1,5 @@
 import { match } from 'ts-pattern';
-import type { GetModels, SchemaDef } from '../../../schema';
-import type { CreateArgs, CreateManyAndReturnArgs, CreateManyArgs, WhereInput } from '../../crud-types';
+import type { SchemaDef } from '../../../schema';
 import { createRejectedByPolicyError, RejectedByPolicyReason } from '../../errors';
 import { getIdValues } from '../../query-utils';
 import { BaseOperationHandler } from './base';
@@ -23,7 +22,7 @@ export class CreateOperationHandler<Schema extends SchemaDef> extends BaseOperat
             .exhaustive();
     }
 
-    private async runCreate(args: CreateArgs<Schema, GetModels<Schema>>) {
+    private async runCreate(args: any) {
         // analyze if we need to read back the created record, or just return the create result
         const { needReadBack, selectedFields } = this.mutationNeedsReadBack(this.model, args);
 
@@ -36,11 +35,7 @@ export class CreateOperationHandler<Schema extends SchemaDef> extends BaseOperat
                     select: args.select,
                     include: args.include,
                     omit: args.omit,
-                    where: getIdValues(this.schema, this.model, createResult) as WhereInput<
-                        Schema,
-                        GetModels<Schema>,
-                        false
-                    >,
+                    where: getIdValues(this.schema, this.model, createResult) as any,
                 });
             } else {
                 return createResult;
@@ -58,7 +53,7 @@ export class CreateOperationHandler<Schema extends SchemaDef> extends BaseOperat
         return result;
     }
 
-    private runCreateMany(args?: CreateManyArgs<Schema, GetModels<Schema>>) {
+    private runCreateMany(args?: any) {
         if (args === undefined) {
             return { count: 0 };
         }
@@ -66,7 +61,7 @@ export class CreateOperationHandler<Schema extends SchemaDef> extends BaseOperat
         return this.safeTransaction((tx) => this.createMany(tx, this.model, args, false));
     }
 
-    private async runCreateManyAndReturn(args?: CreateManyAndReturnArgs<Schema, GetModels<Schema>>) {
+    private async runCreateManyAndReturn(args?: any) {
         if (args === undefined) {
             return [];
         }

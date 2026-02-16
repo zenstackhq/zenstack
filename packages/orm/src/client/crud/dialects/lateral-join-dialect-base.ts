@@ -29,7 +29,7 @@ export abstract class LateralJoinDialectBase<Schema extends SchemaDef> extends B
         model: string,
         relationField: string,
         parentAlias: string,
-        payload: true | FindArgs<Schema, GetModels<Schema>, true>,
+        payload: true | FindArgs<Schema, GetModels<Schema>, any, true>,
     ): SelectQueryBuilder<any, any, any> {
         const relationResultName = `${parentAlias}$${relationField}`;
         const joinedQuery = this.buildRelationJSON(
@@ -48,7 +48,7 @@ export abstract class LateralJoinDialectBase<Schema extends SchemaDef> extends B
         qb: SelectQueryBuilder<any, any, any>,
         relationField: string,
         parentAlias: string,
-        payload: true | FindArgs<Schema, GetModels<Schema>, true>,
+        payload: true | FindArgs<Schema, GetModels<Schema>, any, true>,
         resultName: string,
     ) {
         const relationFieldDef = requireField(this.schema, model, relationField);
@@ -158,7 +158,7 @@ export abstract class LateralJoinDialectBase<Schema extends SchemaDef> extends B
         relationModelAlias: string,
         relationFieldDef: FieldDef,
         qb: SelectQueryBuilder<any, any, any>,
-        payload: true | FindArgs<Schema, GetModels<Schema>, true>,
+        payload: true | FindArgs<Schema, GetModels<Schema>, any, true>,
         parentResultName: string,
     ) {
         qb = qb.select((eb) => {
@@ -184,7 +184,7 @@ export abstract class LateralJoinDialectBase<Schema extends SchemaDef> extends B
         relationModel: string,
         relationModelAlias: string,
         eb: ExpressionBuilder<any, any>,
-        payload: true | FindArgs<Schema, GetModels<Schema>, true>,
+        payload: true | FindArgs<Schema, GetModels<Schema>, any, true>,
         parentResultName: string,
     ) {
         const relationModelDef = requireModel(this.schema, relationModel);
@@ -264,7 +264,7 @@ export abstract class LateralJoinDialectBase<Schema extends SchemaDef> extends B
         query: SelectQueryBuilder<any, any, any>,
         relationModel: string,
         relationModelAlias: string,
-        payload: true | FindArgs<Schema, GetModels<Schema>, true>,
+        payload: true | FindArgs<Schema, GetModels<Schema>, any, true>,
         parentResultName: string,
     ) {
         let result = query;
