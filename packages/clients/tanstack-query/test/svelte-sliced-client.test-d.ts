@@ -2,6 +2,7 @@ import { ZenStackClient, type GetQueryOptions } from '@zenstackhq/orm';
 import { describe, expectTypeOf, it } from 'vitest';
 import { useClientQueries } from '../src/svelte/index.svelte';
 import { schema } from './schemas/basic/schema-lite';
+import { schema as procSchema } from './schemas/procedures/schema-lite';
 
 describe('Svelte client sliced client test', () => {
     const _db = new ZenStackClient(schema, {
@@ -44,5 +45,49 @@ describe('Svelte client sliced client test', () => {
         expectTypeOf(client.user).toHaveProperty('useFindMany');
         expectTypeOf(client.user).toHaveProperty('useUpdate');
         expectTypeOf(client.user).not.toHaveProperty('useFindFirst');
+    });
+
+    it('works with sliced filters', () => {
+        const client = useClientQueries<
+            typeof schema,
+            {
+                slicing: {
+                    models: {
+                        User: {
+                            fields: {
+                                $all: {
+                                    includedFilterKinds: ['Equality'];
+                                };
+                            };
+                        };
+                    };
+                };
+            }
+        >(schema);
+
+        // Equality filter should be allowed
+        client.user.useFindMany(() => ({
+            where: { name: { equals: 'test' } },
+        }));
+
+        // 'Like' filter kind should not be available
+        // @ts-expect-error - 'contains' is not allowed when only 'Equality' filter kind is included
+        client.user.useFindMany(() => ({ where: { name: { contains: 'test' } } }));
+    });
+
+    it('works with sliced procedures', () => {
+        const client = useClientQueries<
+            typeof procSchema,
+            {
+                slicing: {
+                    includedProcedures: ['greet', 'sum'];
+                    excludedProcedures: ['sum'];
+                };
+            }
+        >(procSchema);
+
+        expectTypeOf(client.$procs).toHaveProperty('greet');
+        expectTypeOf(client.$procs).not.toHaveProperty('sum');
+        expectTypeOf(client.$procs).not.toHaveProperty('greetMany');
     });
 });
