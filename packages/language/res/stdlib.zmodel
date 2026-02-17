@@ -105,6 +105,13 @@ function ulid(format: String?): String {
 } @@@expressionContext([DefaultValue])
 
 /**
+ * Generates a custom identifier. The ORM client must be initialized with an
+ * implementation of this function.
+ */
+function customId(length: Int?): String {
+} @@@expressionContext([DefaultValue])
+
+/**
  * Creates a sequence of integers in the underlying database and assign the incremented
  * values to the ID values of the created records based on the sequence.
  */
