@@ -345,7 +345,7 @@ type EnumFilter<
     WithAggregations extends boolean,
     AllowedKinds extends FilterKind,
 > =
-    | NullableIf<keyof GetEnum<Schema, T>, Nullable>
+    | ('Equality' extends AllowedKinds ? NullableIf<keyof GetEnum<Schema, T>, Nullable> : never)
     | (('Equality' extends AllowedKinds
           ? {
                 /**
@@ -510,7 +510,7 @@ export type StringFilter<
     WithAggregations extends boolean,
     AllowedKinds extends FilterKind = FilterKind,
 > =
-    | NullableIf<string, Nullable>
+    | ('Equality' extends AllowedKinds ? NullableIf<string, Nullable> : never)
     | (CommonPrimitiveFilter<string, 'String', Nullable, WithAggregations, AllowedKinds> &
           ('Like' extends AllowedKinds
               ? {
@@ -560,7 +560,7 @@ export type NumberFilter<
     WithAggregations extends boolean,
     AllowedKinds extends FilterKind = FilterKind,
 > =
-    | NullableIf<number | bigint, Nullable>
+    | ('Equality' extends AllowedKinds ? NullableIf<number | bigint, Nullable> : never)
     | (CommonPrimitiveFilter<number, T, Nullable, WithAggregations, AllowedKinds> &
           (WithAggregations extends true
               ? {
@@ -596,7 +596,7 @@ export type DateTimeFilter<
     WithAggregations extends boolean,
     AllowedKinds extends FilterKind = FilterKind,
 > =
-    | NullableIf<Date | string, Nullable>
+    | ('Equality' extends AllowedKinds ? NullableIf<Date | string, Nullable> : never)
     | (CommonPrimitiveFilter<Date | string, 'DateTime', Nullable, WithAggregations, AllowedKinds> &
           (WithAggregations extends true
               ? {
@@ -622,7 +622,7 @@ export type BytesFilter<
     WithAggregations extends boolean,
     AllowedKinds extends FilterKind = FilterKind,
 > =
-    | NullableIf<Uint8Array | Buffer, Nullable>
+    | ('Equality' extends AllowedKinds ? NullableIf<Uint8Array | Buffer, Nullable> : never)
     | (('Equality' extends AllowedKinds
           ? {
                 /**
@@ -670,7 +670,7 @@ export type BooleanFilter<
     WithAggregations extends boolean,
     AllowedKinds extends FilterKind = FilterKind,
 > =
-    | NullableIf<boolean, Nullable>
+    | ('Equality' extends AllowedKinds ? NullableIf<boolean, Nullable> : never)
     | (('Equality' extends AllowedKinds
           ? {
                 /**

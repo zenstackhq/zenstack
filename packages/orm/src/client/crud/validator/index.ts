@@ -559,6 +559,17 @@ export class InputValidator<Schema extends SchemaDef> {
     ): ZodType {
         const modelDef = requireModel(this.schema, model);
 
+        // unique field used in unique filters bypass filter slicing
+        const uniqueFieldNames = unique
+            ? getUniqueFields(this.schema, model)
+                  .filter(
+                      (uf): uf is { name: string; def: FieldDef } =>
+                          // single-field unique
+                          'def' in uf,
+                  )
+                  .map((uf) => uf.name)
+            : undefined;
+
         const fields: Record<string, any> = {};
         for (const field of Object.keys(modelDef.fields)) {
             const fieldDef = requireField(this.schema, model, field);
@@ -602,11 +613,13 @@ export class InputValidator<Schema extends SchemaDef> {
                     }
                 }
             } else {
+                const ignoreSlicing = !!uniqueFieldNames?.includes(field);
+
                 const enumDef = getEnum(this.schema, fieldDef.type);
                 if (enumDef) {
                     // enum
                     if (Object.keys(enumDef.values).length > 0) {
-                        fieldSchema = this.makeEnumFilterSchema(model, fieldDef, withAggregations);
+                        fieldSchema = this.makeEnumFilterSchema(model, fieldDef, withAggregations, ignoreSlicing);
                     }
                 } else if (fieldDef.array) {
                     // array field
@@ -615,7 +628,7 @@ export class InputValidator<Schema extends SchemaDef> {
                     fieldSchema = this.makeTypedJsonFilterSchema(model, fieldDef);
                 } else {
                     // primitive field
-                    fieldSchema = this.makePrimitiveFilterSchema(model, fieldDef, withAggregations);
+                    fieldSchema = this.makePrimitiveFilterSchema(model, fieldDef, withAggregations, ignoreSlicing);
                 }
             }
 
@@ -626,6 +639,7 @@ export class InputValidator<Schema extends SchemaDef> {
 
         if (unique) {
             // add compound unique fields, e.g. `{ id1_id2: { id1: 1, id2: 1 } }`
+            // compound-field filters are not affected by slicing
             const uniqueFields = getUniqueFields(this.schema, model);
             for (const uniqueField of uniqueFields) {
                 if ('defs' in uniqueField) {
@@ -639,13 +653,12 @@ export class InputValidator<Schema extends SchemaDef> {
                                     if (enumDef) {
                                         // enum
                                         if (Object.keys(enumDef.values).length > 0) {
-                                            fieldSchema = this.makeEnumFilterSchema(model, def, false);
+                                            fieldSchema = this.makeEnumFilterSchema(model, def, false, true);
                                         } else {
                                             fieldSchema = z.never();
                                         }
                                     } else {
-                                        // regular field
-                                        fieldSchema = this.makePrimitiveFilterSchema(model, def, false);
+                                        fieldSchema = this.makePrimitiveFilterSchema(model, def, false, true);
                                     }
                                     return [key, fieldSchema];
                                 }),
@@ -776,7 +789,12 @@ export class InputValidator<Schema extends SchemaDef> {
     }
 
     @cache()
-    private makeEnumFilterSchema(model: string, fieldInfo: FieldInfo, withAggregations: boolean) {
+    private makeEnumFilterSchema(
+        model: string,
+        fieldInfo: FieldInfo,
+        withAggregations: boolean,
+        ignoreSlicing: boolean = false,
+    ) {
         const enumName = fieldInfo.type;
         const optional = !!fieldInfo.optional;
         const array = !!fieldInfo.array;
@@ -787,7 +805,7 @@ export class InputValidator<Schema extends SchemaDef> {
         if (array) {
             return this.internalMakeArrayFilterSchema(model, fieldInfo.name, baseSchema);
         }
-        const allowedFilterKinds = this.getEffectiveFilterKinds(model, fieldInfo.name);
+        const allowedFilterKinds = ignoreSlicing ? undefined : this.getEffectiveFilterKinds(model, fieldInfo.name);
         const components = this.makeCommonPrimitiveFilterComponents(
             baseSchema,
             optional,
@@ -797,12 +815,7 @@ export class InputValidator<Schema extends SchemaDef> {
             allowedFilterKinds,
         );
 
-        // If all filter operators are excluded, return z.never()
-        if (Object.keys(components).length === 0) {
-            return z.never();
-        }
-
-        return z.union([this.nullableIf(baseSchema, optional), z.strictObject(components)]);
+        return this.createUnionFilterSchema(baseSchema, optional, components, allowedFilterKinds);
     }
 
     @cache()
@@ -831,8 +844,13 @@ export class InputValidator<Schema extends SchemaDef> {
     }
 
     @cache()
-    private makePrimitiveFilterSchema(model: string, fieldInfo: FieldInfo, withAggregations: boolean) {
-        const allowedFilterKinds = this.getEffectiveFilterKinds(model, fieldInfo.name);
+    private makePrimitiveFilterSchema(
+        model: string,
+        fieldInfo: FieldInfo,
+        withAggregations: boolean,
+        ignoreSlicing = false,
+    ) {
+        const allowedFilterKinds = ignoreSlicing ? undefined : this.getEffectiveFilterKinds(model, fieldInfo.name);
         const type = fieldInfo.type as BuiltinType;
         const optional = !!fieldInfo.optional;
         return match(type)
@@ -935,12 +953,7 @@ export class InputValidator<Schema extends SchemaDef> {
             allowedFilterKinds,
         );
 
-        // If all filter operators are excluded, return z.never()
-        if (Object.keys(components).length === 0) {
-            return z.never();
-        }
-
-        return z.union([this.nullableIf(z.boolean(), optional), z.strictObject(components)]);
+        return this.createUnionFilterSchema(z.boolean(), optional, components, allowedFilterKinds);
     }
 
     @cache()
@@ -959,12 +972,7 @@ export class InputValidator<Schema extends SchemaDef> {
             allowedFilterKinds,
         );
 
-        // If all filter operators are excluded, return z.never()
-        if (Object.keys(components).length === 0) {
-            return z.never();
-        }
-
-        return z.union([this.nullableIf(baseSchema, optional), z.strictObject(components)]);
+        return this.createUnionFilterSchema(baseSchema, optional, components, allowedFilterKinds);
     }
 
     private makeCommonPrimitiveFilterComponents(
@@ -1022,12 +1030,7 @@ export class InputValidator<Schema extends SchemaDef> {
             allowedFilterKinds,
         );
 
-        // If all filter operators are excluded, return z.never()
-        if (Object.keys(components).length === 0) {
-            return z.never();
-        }
-
-        return z.union([this.nullableIf(baseSchema, optional), z.strictObject(components)]);
+        return this.createUnionFilterSchema(baseSchema, optional, components, allowedFilterKinds);
     }
 
     private makeNumberFilterSchema(
@@ -1078,12 +1081,7 @@ export class InputValidator<Schema extends SchemaDef> {
             ...filteredStringOperators,
         };
 
-        // If all filter operators are excluded, return z.never()
-        if (Object.keys(allComponents).length === 0) {
-            return z.never();
-        }
-
-        return z.union([this.nullableIf(z.string(), optional), z.strictObject(allComponents)]);
+        return this.createUnionFilterSchema(z.string(), optional, allComponents, allowedFilterKinds);
     }
 
     private makeStringModeSchema() {
@@ -2171,6 +2169,31 @@ export class InputValidator<Schema extends SchemaDef> {
                 );
             }),
         ) as Partial<T>;
+    }
+
+    private createUnionFilterSchema(
+        valueSchema: ZodType,
+        optional: boolean,
+        components: Record<string, ZodType>,
+        allowedFilterKinds: Set<string> | undefined,
+    ) {
+        // If all filter operators are excluded
+        if (Object.keys(components).length === 0) {
+            // if equality filters are allowed, allow direct value
+            if (!allowedFilterKinds || allowedFilterKinds.has('Equality')) {
+                return this.nullableIf(valueSchema, optional);
+            }
+            // otherwise nothing is allowed
+            return z.never();
+        }
+
+        if (!allowedFilterKinds || allowedFilterKinds.has('Equality')) {
+            // direct value or filter operators
+            return z.union([this.nullableIf(valueSchema, optional), z.strictObject(components)]);
+        } else {
+            // filter operators
+            return z.strictObject(components);
+        }
     }
 
     /**

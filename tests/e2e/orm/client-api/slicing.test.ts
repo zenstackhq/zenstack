@@ -1761,5 +1761,112 @@ describe('Query slicing tests', () => {
                 ).toBeRejectedByValidation(['"equals"']);
             });
         });
+
+        describe('Direct value filter slicing', () => {
+            it('allows direct value filters when Equality kind is included', async () => {
+                const options = {
+                    slicing: {
+                        models: {
+                            User: {
+                                fields: {
+                                    $all: {
+                                        includedFilterKinds: ['Equality'] as const,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    dialect: {} as any,
+                } as const;
+
+                const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+                await db.user.create({ data: { email: 'test@example.com', name: 'Test User' } });
+
+                const user = await db.user.findFirst({
+                    where: { email: 'test@example.com' },
+                });
+                expect(user?.email).toBe('test@example.com');
+            });
+
+            it('rejects direct value filters when Equality kind is excluded', async () => {
+                const options = {
+                    slicing: {
+                        models: {
+                            User: {
+                                fields: {
+                                    $all: {
+                                        includedFilterKinds: ['Range'] as const,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    dialect: {} as any,
+                } as const;
+
+                const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+                await db.user.create({ data: { email: 'test@example.com', name: 'Test User', age: 25 } });
+
+                await expect(
+                    db.user.findFirst({
+                        // @ts-expect-error - direct value shorthand maps to Equality filters
+                        where: { email: 'test@example.com' },
+                    }),
+                ).toBeRejectedByValidation(['"where.email"']);
+            });
+
+            it('still allows unique operations to use direct value filters', async () => {
+                const options = {
+                    slicing: {
+                        models: {
+                            User: {
+                                fields: {
+                                    $all: {
+                                        includedFilterKinds: ['Range'] as const,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    dialect: {} as any,
+                } as const;
+
+                const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+                await db.user.create({ data: { email: 'unique@example.com', name: 'Original Name' } });
+
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - findMany cannot use direct value filters without Equality kind
+                        where: { email: 'unique@example.com' },
+                    }),
+                ).toBeRejectedByValidation(['"where.email"']);
+
+                const uniqueUser = await db.user.findUnique({
+                    where: { email: 'unique@example.com' },
+                });
+                expect(uniqueUser?.name).toBe('Original Name');
+
+                await expect(
+                    db.user.findUnique({
+                        // @ts-expect-error non-unique fields are still sliced
+                        where: { email: 'unique@example.com', age: 10 },
+                    }),
+                ).toBeRejectedByValidation(['"where.age"']);
+
+                const updated = await db.user.update({
+                    where: { email: 'unique@example.com' },
+                    data: { name: 'Updated Name' },
+                });
+                expect(updated.name).toBe('Updated Name');
+
+                const deleted = await db.user.delete({
+                    where: { email: 'unique@example.com' },
+                });
+                expect(deleted.email).toBe('unique@example.com');
+            });
+        });
     });
 });
