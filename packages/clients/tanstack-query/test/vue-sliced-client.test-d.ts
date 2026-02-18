@@ -10,7 +10,7 @@ describe('Vue client sliced client test', () => {
         slicing: {
             includedModels: ['User', 'Post'],
             models: {
-                User: {
+                user: {
                     includedOperations: ['findUnique', 'findMany', 'update'],
                     excludedOperations: ['update'],
                 },
@@ -33,7 +33,7 @@ describe('Vue client sliced client test', () => {
             {
                 slicing: {
                     models: {
-                        User: {
+                        user: {
                             includedOperations: ['findUnique', 'findMany', 'update'];
                         };
                     };
@@ -53,7 +53,7 @@ describe('Vue client sliced client test', () => {
             {
                 slicing: {
                     models: {
-                        User: {
+                        user: {
                             fields: {
                                 $all: {
                                     includedFilterKinds: ['Equality'];
