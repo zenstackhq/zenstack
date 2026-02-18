@@ -170,6 +170,16 @@ export const AllReadOperations = [...CoreReadOperations, 'findUniqueOrThrow', 'f
  */
 export type AllReadOperations = (typeof AllReadOperations)[number];
 
+/**
+ * List of all write operations - simply an alias of CoreWriteOperations.
+ */
+export const AllWriteOperations = CoreWriteOperations;
+
+/**
+ * List of all write operations - simply an alias of CoreWriteOperations.
+ */
+export type AllWriteOperations = CoreWriteOperations;
+
 // context for nested relation operations
 export type FromRelationContext = {
     // the model where the relation field is defined
