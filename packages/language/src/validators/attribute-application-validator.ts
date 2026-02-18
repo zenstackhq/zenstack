@@ -280,6 +280,15 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
         }
     }
 
+    @check('@updatedAt')
+    private _checkUpdatedAt(attr: AttributeApplication, accept: ValidationAcceptor) {
+        const ignoreArg = attr.args.find(arg => arg.$resolvedParam.name === 'ignore');
+        const fieldsArg = attr.args.find(arg => arg.$resolvedParam.name === 'fields');
+        if (ignoreArg && fieldsArg) {
+            accept('error', `\`ignore\` and \`fields\` are mutually exclusive`, { node: attr.$container });
+        }
+    }
+
     @check('@@validate')
     private _checkValidate(attr: AttributeApplication, accept: ValidationAcceptor) {
         const condition = attr.args[0]?.value;

@@ -1149,14 +1149,29 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         const autoUpdatedFields: string[] = [];
         for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
             if (fieldDef.updatedAt && finalData[fieldName] === undefined) {
-                const ignoredFields = new Set(typeof fieldDef.updatedAt === 'boolean' ? [] : fieldDef.updatedAt.ignore);
-                const hasNonIgnoredFields = Object.keys(data).some(
-                    (field) =>
-                        (isScalarField(this.schema, modelDef.name, field) ||
-                            isForeignKeyField(this.schema, modelDef.name, field)) &&
-                        !ignoredFields.has(field),
-                );
-                if (hasNonIgnoredFields) {
+                let hasUpdated = true;
+                if (typeof fieldDef.updatedAt === 'object') {
+                    if (fieldDef.updatedAt.ignore) {
+                        const ignoredFields = new Set(fieldDef.updatedAt.ignore);
+                        const hasNonIgnoredFields = Object.keys(data).some(
+                            (field) =>
+                                (isScalarField(this.schema, modelDef.name, field) ||
+                                    isForeignKeyField(this.schema, modelDef.name, field)) &&
+                                !ignoredFields.has(field),
+                        );
+                        hasUpdated = hasNonIgnoredFields;
+                    } else if (fieldDef.updatedAt.fields) {
+                        const targetFields = new Set(fieldDef.updatedAt.fields);
+                        const hasAnyTargetFields = Object.keys(data).some(
+                            (field) =>
+                                (isScalarField(this.schema, modelDef.name, field) ||
+                                    isForeignKeyField(this.schema, modelDef.name, field)) &&
+                                targetFields.has(field),
+                        );
+                        hasUpdated = hasAnyTargetFields;
+                    }
+                }
+                if (hasUpdated) {
                     if (finalData === data) {
                         finalData = clone(data);
                     }

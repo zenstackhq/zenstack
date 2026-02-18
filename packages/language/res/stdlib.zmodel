@@ -405,9 +405,13 @@ attribute @omit()
  *
  * @param ignore: A list of field names that are not considered when the ORM client is determining whether any
  * updates have been made to a record. An update that only contains ignored fields does not change the
- * timestamp.
+ * timestamp. Mutually exclusive with the `fields` parameter.
+
+ * @param fields: A list of field names that are considered when the ORM client is determining whether any
+ * updates have been made to a record. The timestamp will only change when any of the specified fields
+ * are updated. Mutually exclusive with the `ignore` parameter.
  */
-attribute @updatedAt(ignore: FieldReference[]?) @@@targetField([DateTimeField]) @@@prisma
+attribute @updatedAt(ignore: FieldReference[]?, fields: FieldReference[]?) @@@targetField([DateTimeField]) @@@prisma
 
 /**
  * Add full text index (MySQL only).
