@@ -967,7 +967,7 @@ describe('Query slicing tests', () => {
                 });
                 expect(equalityResult).toHaveLength(1);
 
-                // Range filters
+                // empty filters
                 const rangeResult = await db.user.findMany({
                     where: {},
                 });
@@ -1012,7 +1012,7 @@ describe('Query slicing tests', () => {
                         // @ts-expect-error - gte is not allowed (Range filters excluded)
                         where: { age: { gte: 20 } },
                     }),
-                ).toBeRejectedByValidation(['"gte']);
+                ).toBeRejectedByValidation(['"gte"']);
 
                 // Like filters should cause type error
                 await expect(
@@ -1370,10 +1370,10 @@ describe('Query slicing tests', () => {
 
                 await expect(
                     db.post.findMany({
-                        // @ts-expect-error - user relation filter excluded
-                        where: { user: { is: { email: 'test' } } },
+                        // @ts-expect-error - author relation filter excluded
+                        where: { author: { is: { email: 'test' } } },
                     }),
-                ).toBeRejectedByValidation(['"user"']);
+                ).toBeRejectedByValidation(['"where.author"']);
             });
         });
 
