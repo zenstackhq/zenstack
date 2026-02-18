@@ -554,7 +554,7 @@ describe('Query slicing tests', () => {
             const options = {
                 slicing: {
                     models: {
-                        User: {
+                        user: {
                             includedOperations: ['findMany', 'create'] as const,
                         },
                     },
@@ -581,7 +581,7 @@ describe('Query slicing tests', () => {
             const options = {
                 slicing: {
                     models: {
-                        User: {
+                        user: {
                             excludedOperations: ['delete', 'deleteMany', 'update', 'updateMany'] as const,
                         },
                     },
@@ -611,7 +611,7 @@ describe('Query slicing tests', () => {
             const options = {
                 slicing: {
                     models: {
-                        User: {
+                        user: {
                             includedOperations: ['findMany', 'findUnique', 'create', 'update'] as const,
                             excludedOperations: ['update'] as const,
                         },
@@ -640,7 +640,7 @@ describe('Query slicing tests', () => {
             const options = {
                 slicing: {
                     models: {
-                        User: {
+                        user: {
                             includedOperations: ['findMany', 'create'] as const,
                         },
                     },
@@ -667,7 +667,7 @@ describe('Query slicing tests', () => {
             const options = {
                 slicing: {
                     models: {
-                        User: {
+                        user: {
                             includedOperations: AllReadOperations,
                         },
                     },
@@ -697,7 +697,7 @@ describe('Query slicing tests', () => {
             const options = {
                 slicing: {
                     models: {
-                        User: {
+                        user: {
                             includedOperations: [] as const,
                         },
                     },
@@ -749,7 +749,7 @@ describe('Query slicing tests', () => {
                         $all: {
                             includedOperations: ['findMany', 'count'] as const,
                         },
-                        User: {
+                        user: {
                             includedOperations: ['findMany', 'create', 'update'] as const,
                         },
                     },
@@ -984,7 +984,7 @@ describe('Query slicing tests', () => {
                 const options = {
                     slicing: {
                         models: {
-                            User: {
+                            user: {
                                 fields: {
                                     $all: {
                                         includedFilterKinds: ['Equality'] as const,
@@ -1027,7 +1027,7 @@ describe('Query slicing tests', () => {
                 const options = {
                     slicing: {
                         models: {
-                            User: {
+                            user: {
                                 fields: {
                                     $all: {
                                         excludedFilterKinds: ['Like', 'Range'] as const,
@@ -1070,7 +1070,7 @@ describe('Query slicing tests', () => {
                 const options = {
                     slicing: {
                         models: {
-                            User: {
+                            user: {
                                 fields: {
                                     $all: {
                                         includedFilterKinds: ['Equality', 'Range', 'Like'] as const,
@@ -1112,7 +1112,7 @@ describe('Query slicing tests', () => {
                 const options = {
                     slicing: {
                         models: {
-                            User: {
+                            user: {
                                 fields: {
                                     $all: {
                                         includedFilterKinds: [] as const,
@@ -1155,7 +1155,7 @@ describe('Query slicing tests', () => {
                 const options = {
                     slicing: {
                         models: {
-                            User: {
+                            user: {
                                 fields: {
                                     $all: {
                                         includedFilterKinds: ['Equality', 'Range'] as const,
@@ -1250,7 +1250,7 @@ describe('Query slicing tests', () => {
                                     },
                                 },
                             },
-                            User: {
+                            user: {
                                 fields: {
                                     $all: {
                                         includedFilterKinds: ['Equality', 'Like'] as const,
@@ -1294,7 +1294,7 @@ describe('Query slicing tests', () => {
                 const options = {
                     slicing: {
                         models: {
-                            User: {
+                            user: {
                                 fields: {
                                     $all: {
                                         excludedFilterKinds: ['Relation'] as const,
@@ -1382,7 +1382,7 @@ describe('Query slicing tests', () => {
                 const options = {
                     slicing: {
                         models: {
-                            User: {
+                            user: {
                                 // Field-level: restrict 'name' to only Equality filters
                                 fields: {
                                     name: {
@@ -1429,7 +1429,7 @@ describe('Query slicing tests', () => {
                 const options = {
                     slicing: {
                         models: {
-                            User: {
+                            user: {
                                 fields: {
                                     email: {
                                         excludedFilterKinds: ['Like'] as const,
@@ -1470,7 +1470,7 @@ describe('Query slicing tests', () => {
                 const options = {
                     slicing: {
                         models: {
-                            User: {
+                            user: {
                                 fields: {
                                     name: {
                                         includedFilterKinds: ['Equality', 'Like', 'Range'] as const,
@@ -1512,7 +1512,7 @@ describe('Query slicing tests', () => {
                 const options = {
                     slicing: {
                         models: {
-                            User: {
+                            user: {
                                 fields: {
                                     // $all: only Equality filters for all fields by default
                                     $all: {
@@ -1558,7 +1558,7 @@ describe('Query slicing tests', () => {
                 const options = {
                     slicing: {
                         models: {
-                            User: {
+                            user: {
                                 fields: {
                                     name: {
                                         includedFilterKinds: [] as const,
@@ -1600,7 +1600,7 @@ describe('Query slicing tests', () => {
                 const options = {
                     slicing: {
                         models: {
-                            User: {
+                            user: {
                                 fields: {
                                     name: {
                                         includedFilterKinds: ['Equality'] as const,
@@ -1669,7 +1669,7 @@ describe('Query slicing tests', () => {
                 const options = {
                     slicing: {
                         models: {
-                            User: {
+                            user: {
                                 fields: {
                                     // $all: exclude Range filters for all fields
                                     $all: {
@@ -1725,7 +1725,7 @@ describe('Query slicing tests', () => {
                 const options = {
                     slicing: {
                         models: {
-                            User: {
+                            user: {
                                 fields: {
                                     age: {
                                         includedFilterKinds: ['Range'] as const,
@@ -1830,7 +1830,7 @@ describe('Query slicing tests', () => {
                                     },
                                 },
                             },
-                            User: {
+                            user: {
                                 fields: {
                                     // Level 2: all User fields default to Equality + Range
                                     $all: {
@@ -1896,7 +1896,7 @@ describe('Query slicing tests', () => {
                 const options = {
                     slicing: {
                         models: {
-                            User: {
+                            user: {
                                 fields: {
                                     $all: {
                                         includedFilterKinds: ['Equality'] as const,
@@ -1922,7 +1922,7 @@ describe('Query slicing tests', () => {
                 const options = {
                     slicing: {
                         models: {
-                            User: {
+                            user: {
                                 fields: {
                                     $all: {
                                         includedFilterKinds: ['Range'] as const,
@@ -1950,7 +1950,7 @@ describe('Query slicing tests', () => {
                 const options = {
                     slicing: {
                         models: {
-                            User: {
+                            user: {
                                 fields: {
                                     $all: {
                                         includedFilterKinds: ['Range'] as const,

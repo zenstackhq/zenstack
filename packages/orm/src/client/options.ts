@@ -64,7 +64,7 @@ export type SlicingOptions<Schema extends SchemaDef> = {
         /**
          * Model-specific slicing options.
          */
-        [Model in GetModels<Schema>]?: ModelSlicingOptions<Schema, Model>;
+        [Model in GetModels<Schema> as Uncapitalize<Model>]?: ModelSlicingOptions<Schema, Model>;
     } & {
         /**
          * Slicing options that apply to all models. Model-specific options will override these general

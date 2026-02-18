@@ -1,4 +1,4 @@
-import { invariant } from '@zenstackhq/common-helpers';
+import { invariant, lowerCaseFirst } from '@zenstackhq/common-helpers';
 import type { QueryExecutor } from 'kysely';
 import {
     CompiledQuery,
@@ -791,7 +791,7 @@ function createModelCrudHandler(
     // Filter operations based on slicing configuration
     const slicing = client.$options.slicing;
     if (slicing?.models) {
-        const modelSlicing = slicing.models[model as any];
+        const modelSlicing = slicing.models[lowerCaseFirst(model) as any];
         const allSlicing = slicing.models.$all;
 
         // Determine includedOperations: model-specific takes precedence over $all

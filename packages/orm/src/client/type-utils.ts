@@ -63,14 +63,14 @@ export type GetIncludedOperations<
     Model extends string,
 > = 'models' extends keyof Slicing
     ? Slicing extends { models: infer Config }
-        ? Model extends keyof Config
-            ? 'includedOperations' extends keyof Config[Model]
+        ? Uncapitalize<Model> extends keyof Config
+            ? 'includedOperations' extends keyof Config[Uncapitalize<Model>]
                 ? // 'includedOperations' is specified for the model
-                  Config[Model] extends { includedOperations: readonly [] }
+                  Config[Uncapitalize<Model>] extends { includedOperations: readonly [] }
                     ? // special marker for empty array (mute all)
                       '_none_'
                     : // use the specified includedOperations
-                      Config[Model] extends { includedOperations: readonly (infer IO)[] }
+                      Config[Uncapitalize<Model>] extends { includedOperations: readonly (infer IO)[] }
                       ? IO
                       : never
                 : // fallback to $all if 'includedOperations' not specified for the model
@@ -94,8 +94,8 @@ export type GetAllIncludedOperations<Slicing extends SlicingOptions<any>> = 'mod
 
 type GetExcludedOperations<Slicing extends SlicingOptions<any>, Model extends string> = 'models' extends keyof Slicing
     ? Slicing extends { models: infer Config }
-        ? Model extends keyof Config
-            ? Config[Model] extends { excludedOperations: readonly (infer EO)[] }
+        ? Uncapitalize<Model> extends keyof Config
+            ? Config[Uncapitalize<Model>] extends { excludedOperations: readonly (infer EO)[] }
                 ? EO
                 : // fallback to $all if 'excludedOperations' not specified for the model
                   GetAllExcludedOperations<Slicing>
@@ -208,8 +208,8 @@ type GetFieldIncludedFilterKinds<
 > = S extends {
     models?: infer Config;
 }
-    ? Model extends keyof Config
-        ? GetIncludedFilterKindsFromModelConfig<Config[Model], Field>
+    ? Uncapitalize<Model> extends keyof Config
+        ? GetIncludedFilterKindsFromModelConfig<Config[Uncapitalize<Model>], Field>
         : // Model not in config, fallback to $all
           '$all' extends keyof Config
           ? GetIncludedFilterKindsFromModelConfig<Config['$all'], Field>
@@ -245,8 +245,8 @@ type GetFieldExcludedFilterKinds<
 > = S extends {
     models?: infer Config;
 }
-    ? Model extends keyof Config
-        ? GetExcludedFilterKindsFromModelConfig<Config[Model], Field>
+    ? Uncapitalize<Model> extends keyof Config
+        ? GetExcludedFilterKindsFromModelConfig<Config[Uncapitalize<Model>], Field>
         : // Model not in config, fallback to $all
           '$all' extends keyof Config
           ? GetExcludedFilterKindsFromModelConfig<Config['$all'], Field>

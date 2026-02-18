@@ -1,4 +1,4 @@
-import { enumerate, invariant } from '@zenstackhq/common-helpers';
+import { enumerate, invariant, lowerCaseFirst } from '@zenstackhq/common-helpers';
 import Decimal from 'decimal.js';
 import { match, P } from 'ts-pattern';
 import { z, ZodObject, ZodType } from 'zod';
@@ -2108,7 +2108,7 @@ export class InputValidator<Schema extends SchemaDef> {
         const modelsRecord = slicing.models as Record<string, ModelConfig>;
 
         // Check field-level settings for the specific model
-        const modelConfig = modelsRecord[model];
+        const modelConfig = modelsRecord[lowerCaseFirst(model)];
         if (modelConfig?.fields) {
             const fieldConfig = modelConfig.fields[field];
             if (fieldConfig) {
