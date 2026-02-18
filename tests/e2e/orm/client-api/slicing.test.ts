@@ -1760,6 +1760,135 @@ describe('Query slicing tests', () => {
                     }),
                 ).toBeRejectedByValidation(['"equals"']);
             });
+
+            it('$all.fields specific-field config overrides $all.fields.$all', async () => {
+                // Verifies the precedence level: $all.fields[field] > $all.fields.$all
+                const options = {
+                    slicing: {
+                        models: {
+                            $all: {
+                                fields: {
+                                    // Default for every field on every model: Equality only
+                                    $all: {
+                                        includedFilterKinds: ['Equality'] as const,
+                                    },
+                                    // Field-specific override within $all: 'name' gets Like too
+                                    name: {
+                                        includedFilterKinds: ['Equality', 'Like'] as const,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    dialect: {} as any,
+                } as const;
+
+                const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+                await db.user.create({ data: { email: 'test@example.com', name: 'Test User', age: 25 } });
+
+                // 'name' should allow Like ($all.fields.name wins over $all.fields.$all)
+                const nameLikeResult = await db.user.findMany({
+                    where: { name: { contains: 'Test' } },
+                });
+                expect(nameLikeResult).toHaveLength(1);
+
+                // 'name' still allows Equality
+                const nameEqResult = await db.user.findMany({
+                    where: { name: { equals: 'Test User' } },
+                });
+                expect(nameEqResult).toHaveLength(1);
+
+                // 'email' should only allow Equality (falls back to $all.fields.$all)
+                const emailEqResult = await db.user.findMany({
+                    where: { email: { equals: 'test@example.com' } },
+                });
+                expect(emailEqResult).toHaveLength(1);
+
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - Like not allowed for 'email' ($all.fields.$all)
+                        where: { email: { contains: 'test' } },
+                    }),
+                ).toBeRejectedByValidation(['"contains"']);
+            });
+
+            it('filter kind precedence: model[field] > model.$all > $all[field] > $all.$all', async () => {
+                // Exercises all four levels of the precedence chain end-to-end.
+                const options = {
+                    slicing: {
+                        models: {
+                            $all: {
+                                fields: {
+                                    // Level 4 (lowest): default for all fields on all models
+                                    $all: {
+                                        includedFilterKinds: ['Equality'] as const,
+                                    },
+                                    // Level 3: 'title' field on any model gets Like too
+                                    title: {
+                                        includedFilterKinds: ['Equality', 'Like'] as const,
+                                    },
+                                },
+                            },
+                            User: {
+                                fields: {
+                                    // Level 2: all User fields default to Equality + Range
+                                    $all: {
+                                        includedFilterKinds: ['Equality', 'Range'] as const,
+                                    },
+                                    // Level 1 (highest): User.name also gets Like
+                                    name: {
+                                        includedFilterKinds: ['Equality', 'Like', 'Range'] as const,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    dialect: {} as any,
+                } as const;
+
+                const db = await createTestClient<typeof schema, typeof options>(schema, options);
+
+                await db.user.create({ data: { email: 'test@example.com', name: 'Test User', age: 25 } });
+                const user = await db.user.findFirst({ where: { email: 'test@example.com' } });
+                await db.post.create({ data: { title: 'Test Post', content: 'Content', authorId: user!.id } });
+
+                // Level 1 – User.name: Equality + Like + Range
+                const nameLike = await db.user.findMany({ where: { name: { contains: 'Test' } } });
+                expect(nameLike).toHaveLength(1);
+                const nameRange = await db.user.findMany({ where: { name: { gte: 'A' } } });
+                expect(nameRange).toHaveLength(1);
+
+                // Level 2 – User.email: Equality + Range (User.$all; Like is NOT included)
+                const emailRange = await db.user.findMany({ where: { age: { gte: 20 } } });
+                expect(emailRange).toHaveLength(1);
+                await expect(
+                    db.user.findMany({
+                        // @ts-expect-error - Like not allowed for User.email (User.$all wins over $all.fields.*)
+                        where: { email: { contains: 'test' } },
+                    }),
+                ).toBeRejectedByValidation(['"contains"']);
+
+                // Level 3 – Post.title: Equality + Like ($all.fields.title; Range is NOT included)
+                const titleLike = await db.post.findMany({ where: { title: { contains: 'Test' } } });
+                expect(titleLike).toHaveLength(1);
+                await expect(
+                    db.post.findMany({
+                        // @ts-expect-error - Range not allowed for Post.title ($all.fields.title)
+                        where: { title: { gte: 'A' } },
+                    }),
+                ).toBeRejectedByValidation(['"gte"']);
+
+                // Level 4 – Post.content: Equality only ($all.fields.$all fallback)
+                const contentEq = await db.post.findMany({ where: { content: { equals: 'Content' } } });
+                expect(contentEq).toHaveLength(1);
+                await expect(
+                    db.post.findMany({
+                        // @ts-expect-error - Like not allowed for Post.content ($all.fields.$all)
+                        where: { content: { contains: 'Content' } },
+                    }),
+                ).toBeRejectedByValidation(['"contains"']);
+            });
         });
 
         describe('Direct value filter slicing', () => {

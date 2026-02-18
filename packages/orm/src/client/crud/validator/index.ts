@@ -2086,7 +2086,7 @@ export class InputValidator<Schema extends SchemaDef> {
 
     /**
      * Gets the effective set of allowed FilterKind values for a specific model and field.
-     * Respects the precedence: field-level > model-level $all > global $all.
+     * Respects the precedence: model[field] > model.$all > $all[field] > $all.$all.
      */
     private getEffectiveFilterKinds(model: string | undefined, field: string): string[] | undefined {
         if (!model) {
@@ -2100,16 +2100,23 @@ export class InputValidator<Schema extends SchemaDef> {
             return undefined;
         }
 
+        // A string-indexed view of slicing.models that avoids unsafe 'as any' while still
+        // allowing runtime access by model name. The value shape matches FieldSlicingOptions.
+        type FieldConfig = { includedFilterKinds?: readonly string[]; excludedFilterKinds?: readonly string[] };
+        type FieldsRecord = { $all?: FieldConfig } & Record<string, FieldConfig>;
+        type ModelConfig = { fields?: FieldsRecord };
+        const modelsRecord = slicing.models as Record<string, ModelConfig>;
+
         // Check field-level settings for the specific model
-        const modelConfig = (slicing.models as any)[model];
+        const modelConfig = modelsRecord[model];
         if (modelConfig?.fields) {
             const fieldConfig = modelConfig.fields[field];
             if (fieldConfig) {
                 return this.computeFilterKinds(fieldConfig.includedFilterKinds, fieldConfig.excludedFilterKinds);
             }
 
-            // Fallback to field-level $all
-            const allFieldsConfig = modelConfig.fields.$all;
+            // Fallback to field-level $all for the specific model
+            const allFieldsConfig = modelConfig.fields['$all'];
             if (allFieldsConfig) {
                 return this.computeFilterKinds(
                     allFieldsConfig.includedFilterKinds,
@@ -2119,12 +2126,23 @@ export class InputValidator<Schema extends SchemaDef> {
         }
 
         // Fallback to model-level $all
-        const allModelsConfig = (slicing.models as any).$all;
+        const allModelsConfig = modelsRecord['$all'];
         if (allModelsConfig?.fields) {
-            if (allModelsConfig.fields.$all) {
+            // Check specific field in $all model config before falling back to $all.$all
+            const allModelsFieldConfig = allModelsConfig.fields[field];
+            if (allModelsFieldConfig) {
                 return this.computeFilterKinds(
-                    allModelsConfig.fields.$all.includedFilterKinds,
-                    allModelsConfig.fields.$all.excludedFilterKinds,
+                    allModelsFieldConfig.includedFilterKinds,
+                    allModelsFieldConfig.excludedFilterKinds,
+                );
+            }
+
+            // Fallback to $all.$all
+            const allModelsAllFieldsConfig = allModelsConfig.fields['$all'];
+            if (allModelsAllFieldsConfig) {
+                return this.computeFilterKinds(
+                    allModelsAllFieldsConfig.includedFilterKinds,
+                    allModelsAllFieldsConfig.excludedFilterKinds,
                 );
             }
         }
