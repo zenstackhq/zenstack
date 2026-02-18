@@ -75,6 +75,7 @@ type FieldInfo = {
 
 export class InputValidator<Schema extends SchemaDef> {
     private readonly schemaCache = new Map<string, ZodType>();
+    private readonly allFilterKinds = [...new Set(Object.values(FILTER_PROPERTY_TO_KIND))];
 
     constructor(private readonly client: ClientContract<Schema>) {}
 
@@ -582,7 +583,7 @@ export class InputValidator<Schema extends SchemaDef> {
 
                 // Check if Relation filter kind is allowed
                 const allowedFilterKinds = this.getEffectiveFilterKinds(model, field);
-                if (allowedFilterKinds && !allowedFilterKinds.has('Relation')) {
+                if (allowedFilterKinds && !allowedFilterKinds.includes('Relation')) {
                     // Relation filters are not allowed for this field - use z.never()
                     fieldSchema = z.never();
                 } else {
@@ -906,7 +907,7 @@ export class InputValidator<Schema extends SchemaDef> {
         const allowedFilterKinds = this.getEffectiveFilterKinds(contextModel, field);
 
         // Check if Json filter kind is allowed
-        if (allowedFilterKinds && !allowedFilterKinds.has('Json')) {
+        if (allowedFilterKinds && !allowedFilterKinds.includes('Json')) {
             // Return a never schema if Json filters are not allowed
             return z.never();
         }
@@ -930,7 +931,7 @@ export class InputValidator<Schema extends SchemaDef> {
     private makeDateTimeFilterSchema(
         optional: boolean,
         withAggregations: boolean,
-        allowedFilterKinds: Set<string> | undefined,
+        allowedFilterKinds: string[] | undefined,
     ): ZodType {
         return this.makeCommonPrimitiveFilterSchema(
             z.union([z.iso.datetime(), z.date()]),
@@ -945,7 +946,7 @@ export class InputValidator<Schema extends SchemaDef> {
     private makeBooleanFilterSchema(
         optional: boolean,
         withAggregations: boolean,
-        allowedFilterKinds: Set<string> | undefined,
+        allowedFilterKinds: string[] | undefined,
     ): ZodType {
         const components = this.makeCommonPrimitiveFilterComponents(
             z.boolean(),
@@ -963,7 +964,7 @@ export class InputValidator<Schema extends SchemaDef> {
     private makeBytesFilterSchema(
         optional: boolean,
         withAggregations: boolean,
-        allowedFilterKinds: Set<string> | undefined,
+        allowedFilterKinds: string[] | undefined,
     ): ZodType {
         const baseSchema = z.instanceof(Uint8Array);
         const components = this.makeCommonPrimitiveFilterComponents(
@@ -984,7 +985,7 @@ export class InputValidator<Schema extends SchemaDef> {
         makeThis: () => ZodType,
         supportedOperators: string[] | undefined = undefined,
         withAggregations: Array<'_count' | '_avg' | '_sum' | '_min' | '_max'> | undefined = undefined,
-        allowedFilterKinds: Set<string> | undefined = undefined,
+        allowedFilterKinds: string[] | undefined = undefined,
     ) {
         const commonAggSchema = () =>
             this.makeCommonPrimitiveFilterSchema(baseSchema, false, makeThis, undefined, allowedFilterKinds).optional();
@@ -1022,7 +1023,7 @@ export class InputValidator<Schema extends SchemaDef> {
         optional: boolean,
         makeThis: () => ZodType,
         withAggregations: Array<AggregateOperators> | undefined = undefined,
-        allowedFilterKinds: Set<string> | undefined = undefined,
+        allowedFilterKinds: string[] | undefined = undefined,
     ): z.ZodType {
         const components = this.makeCommonPrimitiveFilterComponents(
             baseSchema,
@@ -1040,7 +1041,7 @@ export class InputValidator<Schema extends SchemaDef> {
         baseSchema: ZodType,
         optional: boolean,
         withAggregations: boolean,
-        allowedFilterKinds: Set<string> | undefined,
+        allowedFilterKinds: string[] | undefined,
     ): ZodType {
         return this.makeCommonPrimitiveFilterSchema(
             baseSchema,
@@ -1054,7 +1055,7 @@ export class InputValidator<Schema extends SchemaDef> {
     private makeStringFilterSchema(
         optional: boolean,
         withAggregations: boolean,
-        allowedFilterKinds: Set<string> | undefined,
+        allowedFilterKinds: string[] | undefined,
     ): ZodType {
         const baseComponents = this.makeCommonPrimitiveFilterComponents(
             z.string(),
@@ -2087,7 +2088,7 @@ export class InputValidator<Schema extends SchemaDef> {
      * Gets the effective set of allowed FilterKind values for a specific model and field.
      * Respects the precedence: field-level > model-level $all > global $all.
      */
-    private getEffectiveFilterKinds(model: string | undefined, field: string): Set<string> | undefined {
+    private getEffectiveFilterKinds(model: string | undefined, field: string): string[] | undefined {
         if (!model) {
             // no restrictions
             return undefined;
@@ -2134,25 +2135,22 @@ export class InputValidator<Schema extends SchemaDef> {
     /**
      * Computes the effective set of filter kinds based on inclusion and exclusion lists.
      */
-    private computeFilterKinds(
-        included: readonly string[] | undefined,
-        excluded: readonly string[] | undefined,
-    ): Set<string> | undefined {
-        let result: Set<string> | undefined;
+    private computeFilterKinds(included: readonly string[] | undefined, excluded: readonly string[] | undefined) {
+        let result: string[] | undefined;
 
         if (included !== undefined) {
             // Start with the included set
-            result = new Set(included);
+            result = [...included];
         }
 
         if (excluded !== undefined) {
             if (!result) {
                 // If no inclusion list, start with all filter kinds
-                result = new Set(['Equality', 'Range', 'Like', 'Json', 'List', 'Relation']);
+                result = [...this.allFilterKinds];
             }
             // Remove excluded kinds
             for (const kind of excluded) {
-                result.delete(kind);
+                result = result.filter((k) => k !== kind);
             }
         }
 
@@ -2164,7 +2162,7 @@ export class InputValidator<Schema extends SchemaDef> {
      */
     private trimFilterOperators<T extends Record<string, any>>(
         operators: T,
-        allowedKinds: Set<string> | undefined,
+        allowedKinds: string[] | undefined,
     ): Partial<T> {
         if (!allowedKinds) {
             return operators; // No restrictions
@@ -2174,7 +2172,7 @@ export class InputValidator<Schema extends SchemaDef> {
             Object.entries(operators).filter(([key, _]) => {
                 return (
                     !(key in FILTER_PROPERTY_TO_KIND) ||
-                    allowedKinds.has(FILTER_PROPERTY_TO_KIND[key as keyof typeof FILTER_PROPERTY_TO_KIND])
+                    allowedKinds.includes(FILTER_PROPERTY_TO_KIND[key as keyof typeof FILTER_PROPERTY_TO_KIND])
                 );
             }),
         ) as Partial<T>;
@@ -2184,19 +2182,19 @@ export class InputValidator<Schema extends SchemaDef> {
         valueSchema: ZodType,
         optional: boolean,
         components: Record<string, ZodType>,
-        allowedFilterKinds: Set<string> | undefined,
+        allowedFilterKinds: string[] | undefined,
     ) {
         // If all filter operators are excluded
         if (Object.keys(components).length === 0) {
             // if equality filters are allowed, allow direct value
-            if (!allowedFilterKinds || allowedFilterKinds.has('Equality')) {
+            if (!allowedFilterKinds || allowedFilterKinds.includes('Equality')) {
                 return this.nullableIf(valueSchema, optional);
             }
             // otherwise nothing is allowed
             return z.never();
         }
 
-        if (!allowedFilterKinds || allowedFilterKinds.has('Equality')) {
+        if (!allowedFilterKinds || allowedFilterKinds.includes('Equality')) {
             // direct value or filter operators
             return z.union([this.nullableIf(valueSchema, optional), z.strictObject(components)]);
         } else {
