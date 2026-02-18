@@ -63,28 +63,25 @@ type HooksOperationsIneligibleForDelegateModels = OperationsIneligibleForDelegat
     ? `use${Capitalize<OperationsIneligibleForDelegateModels>}`
     : never;
 
-/**
- * Trim operations that are ineligible for delegate models from the given model operations type.
- */
-export type TrimDelegateModelOperations<
-    Schema extends SchemaDef,
-    Model extends GetModels<Schema>,
-    T extends Record<string, unknown>,
-> = IsDelegateModel<Schema, Model> extends true ? Omit<T, HooksOperationsIneligibleForDelegateModels> : T;
-
-type Modifiers = '' | 'Suspense' | 'Infinite' | `SuspenseInfinite`;
+type Modifiers = '' | 'Suspense' | 'Infinite' | 'SuspenseInfinite';
 
 /**
- * Trim hooks based on slicing configuration.
+ * Trim CRUD operation hooks to include only eligible operations.
  */
-export type TrimSlicedHooks<
+export type TrimSlicedOperations<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema>,
     T extends Record<string, unknown>,
 > = {
+    // trim operations based on slicing options
     [Key in keyof T as Key extends `use${Modifiers}${Capitalize<GetSlicedOperations<Schema, Model, Options>>}`
-        ? Key
+        ? IsDelegateModel<Schema, Model> extends true
+            ? // trim operations ineligible for delegate models
+              Key extends HooksOperationsIneligibleForDelegateModels
+                ? never
+                : Key
+            : Key
         : never]: T[Key];
 };
 

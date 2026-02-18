@@ -63,8 +63,7 @@ import type {
     ExtraQueryOptions,
     ProcedureReturn,
     QueryContext,
-    TrimDelegateModelOperations,
-    TrimSlicedHooks,
+    TrimSlicedOperations,
     WithOptimistic,
 } from './common/types.js';
 export type { FetchFn } from '@zenstackhq/client-helpers/fetch';
@@ -187,7 +186,7 @@ type ProcedureHookGroup<Schema extends SchemaDef, Options extends QueryOptions<S
           };
 };
 
-export type ProcedureHooks<Schema extends SchemaDef, Options extends QueryOptions<Schema> = QueryOptions<Schema>> =
+export type ProcedureHooks<Schema extends SchemaDef, Options extends QueryOptions<Schema>> =
     Schema['procedures'] extends Record<string, any>
         ? {
               /**
@@ -203,14 +202,11 @@ export type ModelQueryHooks<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
-> = TrimSlicedHooks<
+> = TrimSlicedOperations<
     Schema,
     Model,
     Options,
-    TrimDelegateModelOperations<
-        Schema,
-        Model,
-        {
+    {
         useFindUnique<T extends FindUniqueArgs<Schema, Model, Options>>(
             args: MaybeRefOrGetter<SelectSubset<T, FindUniqueArgs<Schema, Model, Options>>>,
             options?: MaybeRefOrGetter<ModelQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options> | null>>,
@@ -287,7 +283,6 @@ export type ModelQueryHooks<
             options?: MaybeRefOrGetter<ModelQueryOptions<GroupByResult<Schema, Model, T>>>,
         ): ModelQueryResult<GroupByResult<Schema, Model, T>>;
     }
-    >
 >;
 
 /**

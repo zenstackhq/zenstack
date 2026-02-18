@@ -713,7 +713,7 @@ export class InputValidator<Schema extends SchemaDef> {
     }
 
     @cache()
-    private makeTypedJsonFilterSchema(model: string, fieldInfo: FieldInfo) {
+    private makeTypedJsonFilterSchema(contextModel: string | undefined, fieldInfo: FieldInfo) {
         const field = fieldInfo.name;
         const type = fieldInfo.type;
         const optional = !!fieldInfo.optional;
@@ -730,19 +730,20 @@ export class InputValidator<Schema extends SchemaDef> {
             for (const [fieldName, fieldDef] of Object.entries(typeDef.fields)) {
                 if (this.isTypeDefType(fieldDef.type)) {
                     // recursive typed JSON - use same model/field for nested typed JSON
-                    fieldSchemas[fieldName] = this.makeTypedJsonFilterSchema(model, {
-                        ...fieldDef,
-                        name: field,
-                    }).optional();
+                    fieldSchemas[fieldName] = this.makeTypedJsonFilterSchema(contextModel, fieldDef).optional();
                 } else {
                     // enum, array, primitives
                     const enumDef = getEnum(this.schema, fieldDef.type);
                     if (enumDef) {
-                        fieldSchemas[fieldName] = this.makeEnumFilterSchema(model, fieldDef, false).optional();
+                        fieldSchemas[fieldName] = this.makeEnumFilterSchema(contextModel, fieldDef, false).optional();
                     } else if (fieldDef.array) {
-                        fieldSchemas[fieldName] = this.makeArrayFilterSchema(model, fieldDef).optional();
+                        fieldSchemas[fieldName] = this.makeArrayFilterSchema(contextModel, fieldDef).optional();
                     } else {
-                        fieldSchemas[fieldName] = this.makePrimitiveFilterSchema(model, fieldDef, false).optional();
+                        fieldSchemas[fieldName] = this.makePrimitiveFilterSchema(
+                            contextModel,
+                            fieldDef,
+                            false,
+                        ).optional();
                     }
                 }
             }
@@ -751,7 +752,7 @@ export class InputValidator<Schema extends SchemaDef> {
         }
 
         const recursiveSchema = z
-            .lazy(() => this.makeTypedJsonFilterSchema(model, { name: field, type, optional, array: false }))
+            .lazy(() => this.makeTypedJsonFilterSchema(contextModel, { name: field, type, optional, array: false }))
             .optional();
         if (array) {
             // array filter
@@ -773,7 +774,7 @@ export class InputValidator<Schema extends SchemaDef> {
         }
 
         // plain json filter
-        candidates.push(this.makeJsonFilterSchema(model, field, optional));
+        candidates.push(this.makeJsonFilterSchema(contextModel, field, optional));
 
         if (optional) {
             // allow null as well
@@ -790,7 +791,7 @@ export class InputValidator<Schema extends SchemaDef> {
 
     @cache()
     private makeEnumFilterSchema(
-        model: string,
+        model: string | undefined,
         fieldInfo: FieldInfo,
         withAggregations: boolean,
         ignoreSlicing: boolean = false,
@@ -819,7 +820,7 @@ export class InputValidator<Schema extends SchemaDef> {
     }
 
     @cache()
-    private makeArrayFilterSchema(model: string, fieldInfo: FieldInfo) {
+    private makeArrayFilterSchema(model: string | undefined, fieldInfo: FieldInfo) {
         return this.internalMakeArrayFilterSchema(
             model,
             fieldInfo.name,
@@ -827,8 +828,8 @@ export class InputValidator<Schema extends SchemaDef> {
         );
     }
 
-    private internalMakeArrayFilterSchema(model: string, field: string, elementSchema: ZodType) {
-        const allowedFilterKinds = this.getEffectiveFilterKinds(model, field);
+    private internalMakeArrayFilterSchema(contextModel: string | undefined, field: string, elementSchema: ZodType) {
+        const allowedFilterKinds = this.getEffectiveFilterKinds(contextModel, field);
         const operators = {
             equals: elementSchema.array().optional(),
             has: elementSchema.optional(),
@@ -845,12 +846,14 @@ export class InputValidator<Schema extends SchemaDef> {
 
     @cache()
     private makePrimitiveFilterSchema(
-        model: string,
+        contextModel: string | undefined,
         fieldInfo: FieldInfo,
         withAggregations: boolean,
         ignoreSlicing = false,
     ) {
-        const allowedFilterKinds = ignoreSlicing ? undefined : this.getEffectiveFilterKinds(model, fieldInfo.name);
+        const allowedFilterKinds = ignoreSlicing
+            ? undefined
+            : this.getEffectiveFilterKinds(contextModel, fieldInfo.name);
         const type = fieldInfo.type as BuiltinType;
         const optional = !!fieldInfo.optional;
         return match(type)
@@ -866,7 +869,7 @@ export class InputValidator<Schema extends SchemaDef> {
             .with('Boolean', () => this.makeBooleanFilterSchema(optional, withAggregations, allowedFilterKinds))
             .with('DateTime', () => this.makeDateTimeFilterSchema(optional, withAggregations, allowedFilterKinds))
             .with('Bytes', () => this.makeBytesFilterSchema(optional, withAggregations, allowedFilterKinds))
-            .with('Json', () => this.makeJsonFilterSchema(model, fieldInfo.name, optional))
+            .with('Json', () => this.makeJsonFilterSchema(contextModel, fieldInfo.name, optional))
             .with('Unsupported', () => z.never())
             .exhaustive();
     }
@@ -899,8 +902,8 @@ export class InputValidator<Schema extends SchemaDef> {
     }
 
     @cache()
-    private makeJsonFilterSchema(model: string, field: string, optional: boolean) {
-        const allowedFilterKinds = this.getEffectiveFilterKinds(model, field);
+    private makeJsonFilterSchema(contextModel: string | undefined, field: string, optional: boolean) {
+        const allowedFilterKinds = this.getEffectiveFilterKinds(contextModel, field);
 
         // Check if Json filter kind is allowed
         if (allowedFilterKinds && !allowedFilterKinds.has('Json')) {
@@ -2084,10 +2087,16 @@ export class InputValidator<Schema extends SchemaDef> {
      * Gets the effective set of allowed FilterKind values for a specific model and field.
      * Respects the precedence: field-level > model-level $all > global $all.
      */
-    private getEffectiveFilterKinds(model: string, field: string): Set<string> | undefined {
+    private getEffectiveFilterKinds(model: string | undefined, field: string): Set<string> | undefined {
+        if (!model) {
+            // no restrictions
+            return undefined;
+        }
+
         const slicing = this.options.slicing;
         if (!slicing?.models) {
-            return undefined; // No restrictions
+            // no slicing or no model-specific slicing, no restrictions
+            return undefined;
         }
 
         // Check field-level settings for the specific model

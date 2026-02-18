@@ -44,7 +44,7 @@ export type ZModelFunction<Schema extends SchemaDef> = (
 
 /**
  * Options for slicing ORM client's capabilities by including/excluding certain models, operations,
- * fields, or filter kinds.
+ * filters, etc.
  */
 export type SlicingOptions<Schema extends SchemaDef> = {
     /**
@@ -104,9 +104,19 @@ export type ModelSlicingOptions<Schema extends SchemaDef, Model extends GetModel
      */
     excludedOperations?: readonly AllCrudOperations[];
 
+    /**
+     * Field-level slicing options.
+     */
     fields?: {
+        /**
+         * Field-specific slicing options.
+         */
         [Field in GetModelFields<Schema, Model>]?: FieldSlicingOptions;
     } & {
+        /**
+         * Field slicing options that apply to all fields. Field-specific options will override these
+         * general options if both are specified.
+         */
         $all?: FieldSlicingOptions;
     };
 };
@@ -127,7 +137,7 @@ type FieldSlicingOptions = {
 };
 
 /**
- * Default query options without any customization.
+ * Partial ORM client options that defines customizable behaviors.
  */
 export type QueryOptions<Schema extends SchemaDef> = {
     /**
@@ -136,15 +146,15 @@ export type QueryOptions<Schema extends SchemaDef> = {
     omit?: OmitConfig<Schema>;
 
     /**
-     * Options for slicing ORM client's capabilities by including/excluding certain models, operations, filters, etc.
-     */
-    slicing?: SlicingOptions<Schema>;
-
-    /**
      * Whether to allow overriding omit settings at query time. Defaults to `true`. When set to `false`, a
      * query-time `omit` clause that sets the field to `false` (not omitting) will trigger a validation error.
      */
     allowQueryTimeOmitOverride?: boolean;
+
+    /**
+     * Options for slicing ORM client's capabilities by including/excluding certain models, operations, filters, etc.
+     */
+    slicing?: SlicingOptions<Schema>;
 };
 
 /**
@@ -241,6 +251,6 @@ export type HasProcedures<Schema extends SchemaDef> = Schema extends {
     : false;
 
 /**
- * Extract QueryOptions from an object with $options property
+ * Extracts QueryOptions from an object with '$options' property.
  */
 export type GetQueryOptions<T extends { $options: any }> = T['$options'];

@@ -287,7 +287,7 @@ export type WhereInput<
         ? Key extends RelationFields<Schema, Model>
             ? never
             : Key
-        : Key]?: Filter<Schema, Model, Key, Options, WithAggregations>;
+        : Key]?: FieldFilter<Schema, Model, Key, Options, WithAggregations>;
 } & {
     $expr?: (eb: ExpressionBuilder<ToKyselySchema<Schema>, Model>) => OperandExpression<SqlBool>;
 } & {
@@ -296,7 +296,7 @@ export type WhereInput<
     NOT?: OrArray<WhereInput<Schema, Model, Options, ScalarOnly>>;
 };
 
-type Filter<
+type FieldFilter<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends GetModelFields<Schema, Model>,
@@ -306,9 +306,7 @@ type Filter<
 > =
     Field extends RelationFields<Schema, Model>
         ? // relation
-          'Relation' extends AllowedKinds
-            ? RelationFilter<Schema, Model, Field, Options>
-            : never
+          RelationFilter<Schema, Model, Field, Options, AllowedKinds>
         : FieldIsArray<Schema, Model, Field> extends true
           ? // array
             ArrayFilter<Schema, GetModelFieldType<Schema, Model, Field>, AllowedKinds>
@@ -362,14 +360,13 @@ type EnumFilter<
                  * Checks if the enum value is not in the specified list of values.
                  */
                 notIn?: (keyof GetEnum<Schema, T>)[];
-
-                /**
-                 * Builds a negated filter.
-                 */
-                not?: EnumFilter<Schema, T, Nullable, WithAggregations, AllowedKinds>;
             }
-          : {}) &
-          (WithAggregations extends true
+          : {}) & {
+          /**
+           * Builds a negated filter.
+           */
+          not?: EnumFilter<Schema, T, Nullable, WithAggregations, AllowedKinds>;
+      } & (WithAggregations extends true
               ? {
                     /**
                      * Filters against the count of records.
@@ -453,12 +450,7 @@ type CommonPrimitiveFilter<
     Nullable extends boolean,
     WithAggregations extends boolean,
     AllowedKinds extends FilterKind,
-> = {
-    /**
-     * Builds a negated filter.
-     */
-    not?: PrimitiveFilter<T, Nullable, WithAggregations, AllowedKinds>;
-} & ('Equality' extends AllowedKinds
+> = ('Equality' extends AllowedKinds
     ? {
           /**
            * Checks for equality with the specified value.
@@ -503,7 +495,12 @@ type CommonPrimitiveFilter<
                */
               between?: [start: DataType, end: DataType];
           }
-        : {});
+        : {}) & {
+        /**
+         * Builds a negated filter.
+         */
+        not?: PrimitiveFilter<T, Nullable, WithAggregations, AllowedKinds>;
+    };
 
 export type StringFilter<
     Nullable extends boolean,
@@ -639,14 +636,13 @@ export type BytesFilter<
                  * Checks if the value is not in the specified list of values.
                  */
                 notIn?: Uint8Array[];
-
-                /**
-                 * Builds a negated filter.
-                 */
-                not?: BytesFilter<Nullable, WithAggregations, AllowedKinds>;
             }
-          : {}) &
-          (WithAggregations extends true
+          : {}) & {
+          /**
+           * Builds a negated filter.
+           */
+          not?: BytesFilter<Nullable, WithAggregations, AllowedKinds>;
+      } & (WithAggregations extends true
               ? {
                     /**
                      * Filters against the count of records.
@@ -677,14 +673,13 @@ export type BooleanFilter<
                  * Checks for equality with the specified value.
                  */
                 equals?: NullableIf<boolean, Nullable>;
-
-                /**
-                 * Builds a negated filter.
-                 */
-                not?: BooleanFilter<Nullable, WithAggregations, AllowedKinds>;
             }
-          : {}) &
-          (WithAggregations extends true
+          : {}) & {
+          /**
+           * Builds a negated filter.
+           */
+          not?: BooleanFilter<Nullable, WithAggregations, AllowedKinds>;
+      } & (WithAggregations extends true
               ? {
                     /**
                      * Filters against the count of records.
@@ -1073,10 +1068,12 @@ type RelationFilter<
     Model extends GetModels<Schema>,
     Field extends RelationFields<Schema, Model>,
     Options extends QueryOptions<Schema>,
-> =
-    FieldIsArray<Schema, Model, Field> extends true
+    AllowedKinds extends FilterKind,
+> = 'Relation' extends AllowedKinds
+    ? FieldIsArray<Schema, Model, Field> extends true
         ? ToManyRelationFilter<Schema, Model, Field, Options>
-        : ToOneRelationFilter<Schema, Model, Field, Options>;
+        : ToOneRelationFilter<Schema, Model, Field, Options>
+    : never;
 
 //#endregion
 
@@ -1256,7 +1253,8 @@ export type CreateManyAndReturnArgs<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
-> = CreateManyInput<Schema, Model> & SelectIncludeOmit<Schema, Model, true, Options, false>;
+> = CreateManyInput<Schema, Model> & SelectIncludeOmit<Schema, Model, false, Options, false>;
+
 type OptionalWrap<Schema extends SchemaDef, Model extends GetModels<Schema>, T extends object> = Optional<
     T,
     keyof T & OptionalFieldsForCreate<Schema, Model>

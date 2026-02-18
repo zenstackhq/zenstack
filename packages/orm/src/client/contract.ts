@@ -297,16 +297,21 @@ export const CRUD = ['create', 'read', 'update', 'delete'] as const;
  */
 export const CRUD_EXT = [...CRUD, 'post-update'] as const;
 
-//#region Model operations
+// #region Model operations
 
 type SliceOperations<
     T extends Record<string, unknown>,
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends ClientOptions<Schema>,
-> = {
-    [Key in keyof T as Key extends GetSlicedOperations<Schema, Model, Options> ? Key : never]: T[Key];
-};
+> = Omit<
+    {
+        // keep only operations included by slicing options
+        [Key in keyof T as Key extends GetSlicedOperations<Schema, Model, Options> ? Key : never]: T[Key];
+    },
+    // exclude operations not applicable to delegate models
+    IsDelegateModel<Schema, Model> extends true ? OperationsIneligibleForDelegateModels : never
+>;
 
 export type AllModelOperations<
     Schema extends SchemaDef,
@@ -923,11 +928,7 @@ export type ModelOperations<
     Model extends GetModels<Schema>,
     Options extends ClientOptions<Schema> = ClientOptions<Schema>,
     ExtQueryArgs = {},
-> = Omit<
-    SliceOperations<AllModelOperations<Schema, Model, Options, ExtQueryArgs>, Schema, Model, Options>,
-    // exclude operations not applicable to delegate models
-    IsDelegateModel<Schema, Model> extends true ? OperationsIneligibleForDelegateModels : never
->;
+> = SliceOperations<AllModelOperations<Schema, Model, Options, ExtQueryArgs>, Schema, Model, Options>;
 
 //#endregion
 
