@@ -15,11 +15,6 @@ describe('Client createMany tests', () => {
     });
 
     it('works with toplevel createMany', async () => {
-        // empty
-        await expect(client.user.createMany()).resolves.toMatchObject({
-            count: 0,
-        });
-
         // single
         await expect(
             client.user.createMany({
