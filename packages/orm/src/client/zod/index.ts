@@ -1,1 +1,1 @@
-export { createQuerySchemaFactory } from './zod-schema-factory';
+export { createQuerySchemaFactory } from './factory';

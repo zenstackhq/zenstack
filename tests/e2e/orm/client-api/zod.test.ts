@@ -1411,4 +1411,41 @@ describe('Zod schema factory test', () => {
     });
 
     // #endregion
+
+    // #region makeProcedureParamSchema
+
+    describe('makeProcedureParamSchema', () => {
+        it('works with scalar types', () => {
+            const s = client.$zod.makeProcedureParamSchema({ type: 'String' });
+            expect(s.safeParse('hello').success).toBe(true);
+            expect(s.safeParse(42).success).toBe(false);
+        });
+
+        it('works with array types', () => {
+            const s = client.$zod.makeProcedureParamSchema({ type: 'String', array: true });
+            expect(s.safeParse(['a', 'b', 'c']).success).toBe(true);
+            expect(s.safeParse('a').success).toBe(false);
+            expect(s.safeParse([1, 2, 3]).success).toBe(false);
+        });
+
+        it('works with optional types', () => {
+            const s = client.$zod.makeProcedureParamSchema({ type: 'String', optional: true });
+            expect(s.safeParse('hello').success).toBe(true);
+            expect(s.safeParse(undefined).success).toBe(true);
+            expect(s.safeParse(42).success).toBe(false);
+        });
+
+        it('works with array and optional types combined', () => {
+            const s = client.$zod.makeProcedureParamSchema({ type: 'Int', array: true, optional: true });
+            expect(s.safeParse([1, 2, 3]).success).toBe(true);
+            expect(s.safeParse(undefined).success).toBe(true);
+            expect(s.safeParse(1).success).toBe(false);
+        });
+
+        it('throws for unsupported type', () => {
+            expect(() => client.$zod.makeProcedureParamSchema({ type: 'NotAType' })).toThrow();
+        });
+    });
+
+    // #endregion
 });

@@ -44,7 +44,7 @@ import type { ExtClientMembersBase, ExtQueryArgsBase, RuntimePlugin } from './pl
 import type { ZenStackPromise } from './promise';
 import type { ToKysely } from './query-builder';
 import type { GetSlicedModels, GetSlicedOperations, GetSlicedProcedures } from './type-utils';
-import type { ZodSchemaFactory } from './zod/zod-schema-factory';
+import type { ZodSchemaFactory } from './zod/factory';
 
 type TransactionUnsupportedMethods = (typeof TRANSACTION_UNSUPPORTED_METHODS)[number];
 

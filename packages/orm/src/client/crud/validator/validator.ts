@@ -22,7 +22,7 @@ import {
 } from '../../crud-types';
 import { createInvalidInputError } from '../../errors';
 import type { ClientOptions } from '../../options';
-import { ZodSchemaFactory } from '../../zod/zod-schema-factory';
+import { ZodSchemaFactory } from '../../zod/factory';
 
 type GetSchemaFunc<Schema extends SchemaDef> = (model: GetModels<Schema>) => ZodType;
 
