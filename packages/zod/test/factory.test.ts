@@ -60,7 +60,7 @@ describe('SchemaFactory - makeModelSchema', () => {
             // boolean
             expectTypeOf<User['active']>().toEqualTypeOf<boolean>();
 
-            // optional DateTime — FieldTypeZodMap key is 'Date' not 'DateTime', falls to ZodUnknown
+            // DateTime
             expectTypeOf<User['birthdate']>().toEqualTypeOf<Date | null | undefined>();
 
             // optional Bytes

@@ -50,10 +50,9 @@ class SchemaFactory<Schema extends SchemaDef> {
         for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
             if (fieldDef.relation) {
                 const relatedModelName = fieldDef.type;
-                const lazySchema: z.ZodType = z.lazy(() =>
-                    this.applyCardinality(this.makeModelSchema(relatedModelName as GetModels<Schema>), fieldDef),
-                );
-                fields[fieldName] = lazySchema.optional();
+                const lazySchema: z.ZodType = z.lazy(() => this.makeModelSchema(relatedModelName as GetModels<Schema>));
+                // relation fields are always optional
+                fields[fieldName] = this.applyCardinality(lazySchema, fieldDef).optional();
             } else {
                 fields[fieldName] = this.makeScalarFieldSchema(fieldDef);
             }
@@ -115,17 +114,18 @@ class SchemaFactory<Schema extends SchemaDef> {
     }
 
     private applyCardinality(schema: z.ZodType, fieldDef: FieldDef): z.ZodType {
+        let result = schema;
         if (fieldDef.array) {
-            return schema.array();
+            result = result.array();
         }
         if (fieldDef.optional) {
-            return schema.nullable().optional();
+            result = result.nullable().optional();
         }
-        return schema;
+        return result;
     }
 
     makeTypeSchema<Type extends GetTypeDefs<Schema>>(
-        type: GetTypeDefs<Schema>,
+        type: Type,
     ): z.ZodObject<GetTypeDefFieldsShape<Schema, Type>, z.core.$strict> {
         const typeDef = this.schema.requireTypeDef(type);
         const fields: Record<string, z.ZodType> = {};

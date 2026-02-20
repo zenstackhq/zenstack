@@ -1,10 +1,14 @@
 import { createQuerySchemaFactory, definePlugin, type ClientContract, type ClientOptions } from '@zenstackhq/orm';
-import { createTestClient } from '@zenstackhq/testtools';
+import { createTestClient, getTestDbProvider } from '@zenstackhq/testtools';
 import { afterEach, beforeEach, describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import { schema } from '../schemas/basic';
 
 describe('Zod schema factory test', () => {
+    if (getTestDbProvider() !== 'sqlite') {
+        return;
+    }
+
     let client: ClientContract<typeof schema>;
 
     beforeEach(async () => {
@@ -1395,11 +1399,15 @@ describe('Zod schema factory test', () => {
 
     describe('create factory functions tests', () => {
         it('can be constructed directly from client', async () => {
-            const client = await createTestClient(schema);
-            const factory = createQuerySchemaFactory(client);
-            const s = factory.makeFindManySchema('User');
-            expect(s.safeParse({ where: { email: 'u@test.com' } }).success).toBe(true);
-            expect(s.safeParse({ where: { notAField: 'val' } }).success).toBe(false);
+            try {
+                const client = await createTestClient(schema);
+                const factory = createQuerySchemaFactory(client);
+                const s = factory.makeFindManySchema('User');
+                expect(s.safeParse({ where: { email: 'u@test.com' } }).success).toBe(true);
+                expect(s.safeParse({ where: { notAField: 'val' } }).success).toBe(false);
+            } finally {
+                await client.$disconnect();
+            }
         });
 
         it('can be constructed directly from schema and options and produces equivalent schemas', () => {

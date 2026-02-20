@@ -21,13 +21,12 @@ import {
     type UpsertArgs,
 } from '../../crud-types';
 import { createInvalidInputError } from '../../errors';
-import type { ClientOptions } from '../../options';
 import { ZodSchemaFactory } from '../../zod/factory';
 
 type GetSchemaFunc<Schema extends SchemaDef> = (model: GetModels<Schema>) => ZodType;
 
 export class InputValidator<Schema extends SchemaDef> {
-    readonly zodFactory: ZodSchemaFactory<Schema, ClientOptions<Schema>>;
+    readonly zodFactory: ZodSchemaFactory<Schema>;
 
     constructor(private readonly client: ClientContract<Schema>) {
         this.zodFactory = new ZodSchemaFactory(client);

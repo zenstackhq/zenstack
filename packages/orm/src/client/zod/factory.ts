@@ -1473,6 +1473,7 @@ export class ZodSchemaFactory<
                         fieldSchema,
                         z
                             .object({
+                                // TODO: use Decimal/BigInt for incremental updates
                                 set: this.nullableIf(z.number().optional(), !!fieldDef.optional).optional(),
                                 increment: z.number().optional(),
                                 decrement: z.number().optional(),
@@ -1694,7 +1695,7 @@ export class ZodSchemaFactory<
 
         // fields used in `having` must be either in the `by` list, or aggregations
         schema = schema.refine((value: any) => {
-            const bys = typeof value.by === 'string' ? [value.by] : value.by;
+            const bys = enumerate(value.by);
             if (value.having && typeof value.having === 'object') {
                 for (const [key, val] of Object.entries(value.having)) {
                     if (AggregateOperators.includes(key as any)) {
@@ -1721,17 +1722,18 @@ export class ZodSchemaFactory<
 
         // fields used in `orderBy` must be either in the `by` list, or aggregations
         schema = schema.refine((value: any) => {
-            const bys = typeof value.by === 'string' ? [value.by] : value.by;
-            if (
-                value.orderBy &&
-                Object.keys(value.orderBy)
-                    .filter((f) => !AggregateOperators.includes(f as AggregateOperators))
-                    .some((key) => !bys.includes(key))
-            ) {
-                return false;
-            } else {
-                return true;
+            const bys = enumerate(value.by);
+            for (const orderBy of enumerate(value.orderBy)) {
+                if (
+                    orderBy &&
+                    Object.keys(orderBy)
+                        .filter((f) => !AggregateOperators.includes(f as AggregateOperators))
+                        .some((key) => !bys.includes(key))
+                ) {
+                    return false;
+                }
             }
+            return true;
         }, 'fields in "orderBy" must be in "by"');
 
         return schema as ZodType<GroupByArgs<Schema, Model, Options, ExtQueryArgs>>;

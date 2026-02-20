@@ -173,7 +173,7 @@ const accessors: Accessors = {
         const modelDef = _requireModel(this.schema, model);
         const result: Array<{ name: string; def: FieldDef } | { name: string; defs: Record<string, FieldDef> }> = [];
         for (const [key, value] of Object.entries(modelDef.uniqueFields)) {
-            if (typeof value !== 'object') {
+            if (value === null || typeof value !== 'object') {
                 throw new InvalidSchemaError(`Invalid unique field definition for "${model}.${key}"`);
             }
 
