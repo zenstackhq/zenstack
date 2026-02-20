@@ -133,6 +133,10 @@ export class ClientImpl {
         return this.kyselyRaw;
     }
 
+    get $zod() {
+        return this.inputValidator.zodFactory;
+    }
+
     get isTransaction() {
         return this.kysely.isTransaction;
     }

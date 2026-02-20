@@ -1,4 +1,5 @@
 import { invariant } from '@zenstackhq/common-helpers';
+import { match } from 'ts-pattern';
 import { ZodType } from 'zod';
 import { type GetModels, type ProcedureDef, type SchemaDef } from '../../../schema';
 import { formatError } from '../../../utils/zod-utils';
@@ -22,7 +23,6 @@ import {
 import { createInvalidInputError } from '../../errors';
 import type { ClientOptions } from '../../options';
 import { ZodSchemaFactory } from '../../zod/zod-schema-factory';
-import { type CoreCrudOperations } from '../operations/base';
 
 type GetSchemaFunc<Schema extends SchemaDef> = (model: GetModels<Schema>) => ZodType;
 
@@ -38,12 +38,17 @@ export class InputValidator<Schema extends SchemaDef> {
     validateFindArgs(
         model: GetModels<Schema>,
         args: unknown,
-        operation: CoreCrudOperations,
+        operation: 'findFirst' | 'findUnique' | 'findMany',
     ): FindArgs<Schema, GetModels<Schema>, any, true> | undefined {
         return this.validate<FindArgs<Schema, GetModels<Schema>, any, true> | undefined>(
             model,
             operation,
-            (model) => this.zodFactory.makeFindSchema(model, operation),
+            (model) =>
+                match(operation)
+                    .with('findFirst', () => this.zodFactory.makeFindFirstSchema(model))
+                    .with('findUnique', () => this.zodFactory.makeFindUniqueSchema(model))
+                    .with('findMany', () => this.zodFactory.makeFindManySchema(model))
+                    .exhaustive(),
             args,
         );
     }

@@ -10,7 +10,11 @@ export class FindOperationHandler<Schema extends SchemaDef> extends BaseOperatio
 
         // parse args
         let parsedArgs = validateArgs
-            ? this.inputValidator.validateFindArgs(this.model, normalizedArgs, operation)
+            ? this.inputValidator.validateFindArgs(
+                  this.model,
+                  normalizedArgs,
+                  operation as 'findFirst' | 'findUnique' | 'findMany',
+              )
             : (normalizedArgs as any);
 
         if (findOne) {

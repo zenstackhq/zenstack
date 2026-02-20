@@ -4,14 +4,17 @@
     "description": "ZenStack Zod integration",
     "type": "module",
     "scripts": {
-        "build": "tsc --noEmit && tsup-node && pnpm test:generate",
+        "build": "tsc --noEmit && tsup-node",
         "watch": "tsup-node --watch",
         "lint": "eslint src --ext ts",
         "test": "vitest run",
         "pack": "pnpm pack",
         "test:generate": "tsx ../../scripts/test-generate.ts ."
     },
-    "keywords": [],
+    "keywords": [
+        "zenstack",
+        "zod"
+    ],
     "files": [
         "dist"
     ],

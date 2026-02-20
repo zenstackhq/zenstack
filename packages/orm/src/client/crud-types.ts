@@ -50,7 +50,15 @@ import type {
     XOR,
 } from '../utils/type-utils';
 import type { ClientContract } from './contract';
+import type {
+    CoreCreateOperations,
+    CoreCrudOperations,
+    CoreDeleteOperations,
+    CoreReadOperations,
+    CoreUpdateOperations,
+} from './crud/operations/base';
 import type { FilterKind, QueryOptions } from './options';
+import type { ExtQueryArgsBase } from './plugin';
 import type { ToKyselySchema } from './query-builder';
 import type { GetSlicedFilterKindsForField, GetSlicedModels } from './type-utils';
 
@@ -1213,27 +1221,32 @@ export type FindManyArgs<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
-> = FindArgs<Schema, Model, Options, true>;
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+> = FindArgs<Schema, Model, Options, true> & ExtractExtQueryArgs<ExtQueryArgs, 'findMany'>;
 
 export type FindFirstArgs<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
-> = FindArgs<Schema, Model, Options, true>;
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+> = FindArgs<Schema, Model, Options, true> & ExtractExtQueryArgs<ExtQueryArgs, 'findFirst'>;
 
 export type ExistsArgs<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
-> = FilterArgs<Schema, Model, Options>;
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+> = FilterArgs<Schema, Model, Options> & ExtractExtQueryArgs<ExtQueryArgs, 'exists'>;
 
 export type FindUniqueArgs<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
 > = {
     where: WhereUniqueInput<Schema, Model, Options>;
-} & SelectIncludeOmit<Schema, Model, true, Options>;
+} & SelectIncludeOmit<Schema, Model, true, Options> &
+    ExtractExtQueryArgs<ExtQueryArgs, 'findUnique'>;
 
 //#endregion
 
@@ -1243,17 +1256,27 @@ export type CreateArgs<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
 > = {
     data: CreateInput<Schema, Model, Options>;
-} & SelectIncludeOmit<Schema, Model, true, Options>;
+} & SelectIncludeOmit<Schema, Model, true, Options> &
+    ExtractExtQueryArgs<ExtQueryArgs, 'create'>;
 
-export type CreateManyArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = CreateManyInput<Schema, Model>;
+export type CreateManyArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    _Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+> = CreateManyInput<Schema, Model> & ExtractExtQueryArgs<ExtQueryArgs, 'createMany'>;
 
 export type CreateManyAndReturnArgs<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
-> = CreateManyInput<Schema, Model> & SelectIncludeOmit<Schema, Model, false, Options, false>;
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+> = CreateManyInput<Schema, Model> &
+    SelectIncludeOmit<Schema, Model, false, Options, false> &
+    ExtractExtQueryArgs<ExtQueryArgs, 'createManyAndReturn'>;
 
 type OptionalWrap<Schema extends SchemaDef, Model extends GetModels<Schema>, T extends object> = Optional<
     T,
@@ -1460,6 +1483,7 @@ export type UpdateArgs<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
 > = {
     /**
      * The data to update the record with.
@@ -1470,19 +1494,24 @@ export type UpdateArgs<
      * The unique filter to find the record to update.
      */
     where: WhereUniqueInput<Schema, Model, Options>;
-} & SelectIncludeOmit<Schema, Model, true, Options>;
+} & SelectIncludeOmit<Schema, Model, true, Options> &
+    ExtractExtQueryArgs<ExtQueryArgs, 'update'>;
 
 export type UpdateManyArgs<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
-> = UpdateManyPayload<Schema, Model, Options>;
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+> = UpdateManyPayload<Schema, Model, Options> & ExtractExtQueryArgs<ExtQueryArgs, 'updateMany'>;
 
 export type UpdateManyAndReturnArgs<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
-> = UpdateManyPayload<Schema, Model, Options> & SelectIncludeOmit<Schema, Model, false, Options, false>;
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+> = UpdateManyPayload<Schema, Model, Options> &
+    SelectIncludeOmit<Schema, Model, false, Options, false> &
+    ExtractExtQueryArgs<ExtQueryArgs, 'updateManyAndReturn'>;
 
 type UpdateManyPayload<
     Schema extends SchemaDef,
@@ -1510,6 +1539,7 @@ export type UpsertArgs<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
 > = {
     /**
      * The data to create the record if it doesn't exist.
@@ -1525,7 +1555,8 @@ export type UpsertArgs<
      * The unique filter to find the record to update.
      */
     where: WhereUniqueInput<Schema, Model, Options>;
-} & SelectIncludeOmit<Schema, Model, true, Options>;
+} & SelectIncludeOmit<Schema, Model, true, Options> &
+    ExtractExtQueryArgs<ExtQueryArgs, 'upsert'>;
 
 type UpdateScalarInput<
     Schema extends SchemaDef,
@@ -1745,17 +1776,20 @@ export type DeleteArgs<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
 > = {
     /**
      * The unique filter to find the record to delete.
      */
     where: WhereUniqueInput<Schema, Model, Options>;
-} & SelectIncludeOmit<Schema, Model, true, Options>;
+} & SelectIncludeOmit<Schema, Model, true, Options> &
+    ExtractExtQueryArgs<ExtQueryArgs, 'delete'>;
 
 export type DeleteManyArgs<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
 > = {
     /**
      * Filter to select records to delete.
@@ -1766,7 +1800,7 @@ export type DeleteManyArgs<
      * Limits the number of records to delete.
      */
     limit?: number;
-};
+} & ExtractExtQueryArgs<ExtQueryArgs, 'deleteMany'>;
 
 // #endregion
 
@@ -1776,12 +1810,13 @@ export type CountArgs<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
 > = Omit<FindArgs<Schema, Model, Options, true>, 'select' | 'include' | 'distinct' | 'omit'> & {
     /**
      * Selects fields to count
      */
     select?: CountAggregateInput<Schema, Model> | true;
-};
+} & ExtractExtQueryArgs<ExtQueryArgs, 'count'>;
 
 type CountAggregateInput<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
     [Key in NonRelationFields<Schema, Model>]?: true;
@@ -1805,6 +1840,7 @@ export type AggregateArgs<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
 > = {
     /**
      * Filter conditions
@@ -1851,7 +1887,8 @@ export type AggregateArgs<
                * Performs sum value aggregation.
                */
               _sum?: SumAvgInput<Schema, Model, true>;
-          });
+          }) &
+    ExtractExtQueryArgs<ExtQueryArgs, 'aggregate'>;
 
 type NumericFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = keyof {
     [Key in GetModelFields<Schema, Model> as GetModelFieldType<Schema, Model, Key> extends
@@ -1942,6 +1979,7 @@ export type GroupByArgs<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
 > = {
     /**
      * Filter conditions
@@ -1999,7 +2037,8 @@ export type GroupByArgs<
            * Performs sum value aggregation.
            */
           _sum?: SumAvgInput<Schema, Model, true>;
-      });
+      }) &
+    ExtractExtQueryArgs<ExtQueryArgs, 'groupBy'>;
 
 export type GroupByResult<
     Schema extends SchemaDef,
@@ -2345,5 +2384,29 @@ type MapType<Schema extends SchemaDef, T extends string> = T extends keyof TypeM
 type ProviderSupportsDistinct<Schema extends SchemaDef> = Schema['provider']['type'] extends 'postgresql'
     ? true
     : false;
+
+/**
+ * Extracts extended query args for a specific operation.
+ */
+type ExtractExtQueryArgs<ExtQueryArgs, Operation extends CoreCrudOperations> = (Operation extends keyof ExtQueryArgs
+    ? ExtQueryArgs[Operation]
+    : {}) &
+    ('$create' extends keyof ExtQueryArgs
+        ? Operation extends CoreCreateOperations
+            ? ExtQueryArgs['$create']
+            : {}
+        : {}) &
+    ('$read' extends keyof ExtQueryArgs ? (Operation extends CoreReadOperations ? ExtQueryArgs['$read'] : {}) : {}) &
+    ('$update' extends keyof ExtQueryArgs
+        ? Operation extends CoreUpdateOperations
+            ? ExtQueryArgs['$update']
+            : {}
+        : {}) &
+    ('$delete' extends keyof ExtQueryArgs
+        ? Operation extends CoreDeleteOperations
+            ? ExtQueryArgs['$delete']
+            : {}
+        : {}) &
+    ('$all' extends keyof ExtQueryArgs ? ExtQueryArgs['$all'] : {});
 
 // #endregion

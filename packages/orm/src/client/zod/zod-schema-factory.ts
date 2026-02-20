@@ -4,10 +4,33 @@ import Decimal from 'decimal.js';
 import { match, P } from 'ts-pattern';
 import { z, ZodObject, ZodType } from 'zod';
 import { AnyNullClass, DbNullClass, JsonNullClass } from '../../common-types';
-import { type AttributeApplication, type BuiltinType, type FieldDef, type SchemaDef } from '../../schema';
+import {
+    type AttributeApplication,
+    type BuiltinType,
+    type FieldDef,
+    type GetModels,
+    type SchemaDef,
+} from '../../schema';
 import { extractFields } from '../../utils/object-utils';
 import { AggregateOperators, FILTER_PROPERTY_TO_KIND, LOGICAL_COMBINATORS, NUMERIC_FIELD_TYPES } from '../constants';
 import type { ClientContract } from '../contract';
+import type {
+    AggregateArgs,
+    CountArgs,
+    CreateArgs,
+    CreateManyAndReturnArgs,
+    CreateManyArgs,
+    DeleteArgs,
+    DeleteManyArgs,
+    FindFirstArgs,
+    FindManyArgs,
+    FindUniqueArgs,
+    GroupByArgs,
+    UpdateArgs,
+    UpdateManyAndReturnArgs,
+    UpdateManyArgs,
+    UpsertArgs,
+} from '../crud-types';
 import {
     CoreCreateOperations,
     CoreDeleteOperations,
@@ -42,32 +65,54 @@ type FieldInfo = {
 };
 
 /**
+ * Create a factory for generating Zod schemas to validate ORM query inputs.
+ */
+export function createQuerySchemaFactory<
+    Schema extends SchemaDef,
+    Options extends ClientOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+>(client: ClientContract<Schema, Options, ExtQueryArgs>): ZodSchemaFactory<Schema, Options, ExtQueryArgs>;
+
+/**
+ * Create a factory for generating Zod schemas to validate ORM query inputs.
+ */
+export function createQuerySchemaFactory<
+    Schema extends SchemaDef,
+    Options extends ClientOptions<Schema> = ClientOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+>(schema: Schema, options?: Options): ZodSchemaFactory<Schema, Options, ExtQueryArgs>;
+
+export function createQuerySchemaFactory(clientOrSchema: any, options?: any) {
+    return new ZodSchemaFactory(clientOrSchema, options);
+}
+
+/**
  * Factory class responsible for creating and caching Zod schemas for ORM input validation.
  */
 export class ZodSchemaFactory<
     Schema extends SchemaDef,
-    Options extends ClientOptions<Schema>,
+    Options extends ClientOptions<Schema> = ClientOptions<Schema>,
     ExtQueryArgs extends ExtQueryArgsBase = {},
 > {
     private readonly schemaCache = new Map<string, ZodType>();
     private readonly allFilterKinds = [...new Set(Object.values(FILTER_PROPERTY_TO_KIND))];
+    private readonly schema: Schema;
+    private readonly options: Options;
 
-    constructor(
-        // private readonly schema: Schema,
-        // private readonly options: ClientOptions<Schema>,
-        private readonly client: ClientContract<Schema, Options, ExtQueryArgs, any>,
-    ) {}
-
-    private get schema(): Schema {
-        return this.client.$schema;
-    }
-
-    private get options(): Options {
-        return this.client.$options;
+    constructor(client: ClientContract<Schema, Options, ExtQueryArgs, any>);
+    constructor(schema: Schema, options?: Options);
+    constructor(clientOrSchema: any, options?: Options) {
+        if ('$schema' in clientOrSchema) {
+            this.schema = clientOrSchema.$schema;
+            this.options = clientOrSchema.$options;
+        } else {
+            this.schema = clientOrSchema;
+            this.options = options || ({} as Options);
+        }
     }
 
     private get plugins(): RuntimePlugin<Schema, any, any>[] {
-        return this.client.$options.plugins || [];
+        return this.options.plugins ?? [];
     }
 
     private get extraValidationsEnabled() {
@@ -76,11 +121,13 @@ export class ZodSchemaFactory<
 
     // #region Cache Management
 
-    getCache(cacheKey: string) {
+    // @ts-ignore
+    private getCache(cacheKey: string) {
         return this.schemaCache.get(cacheKey);
     }
 
-    setCache(cacheKey: string, schema: ZodType) {
+    // @ts-ignore
+    private setCache(cacheKey: string, schema: ZodType) {
         return this.schemaCache.set(cacheKey, schema);
     }
 
@@ -98,8 +145,32 @@ export class ZodSchemaFactory<
 
     // #region Find
 
+    makeFindUniqueSchema<Model extends GetModels<Schema>>(
+        model: Model,
+    ): ZodType<FindUniqueArgs<Schema, Model, Options, ExtQueryArgs>> {
+        return this.makeFindSchema(model, 'findUnique') as ZodType<
+            FindUniqueArgs<Schema, Model, Options, ExtQueryArgs>
+        >;
+    }
+
+    makeFindFirstSchema<Model extends GetModels<Schema>>(
+        model: Model,
+    ): ZodType<FindFirstArgs<Schema, Model, Options, ExtQueryArgs> | undefined> {
+        return this.makeFindSchema(model, 'findFirst') as ZodType<
+            FindFirstArgs<Schema, Model, Options, ExtQueryArgs> | undefined
+        >;
+    }
+
+    makeFindManySchema<Model extends GetModels<Schema>>(
+        model: Model,
+    ): ZodType<FindManyArgs<Schema, Model, Options, ExtQueryArgs> | undefined> {
+        return this.makeFindSchema(model, 'findMany') as ZodType<
+            FindManyArgs<Schema, Model, Options, ExtQueryArgs> | undefined
+        >;
+    }
+
     @cache()
-    makeFindSchema(model: string, operation: CoreCrudOperations) {
+    private makeFindSchema(model: string, operation: CoreCrudOperations) {
         const fields: Record<string, z.ZodSchema> = {};
         const unique = operation === 'findUnique';
         const findOne = operation === 'findUnique' || operation === 'findFirst';
@@ -191,14 +262,14 @@ export class ZodSchemaFactory<
     }
 
     @cache()
-    private makeEnumSchema(type: string) {
-        const enumDef = getEnum(this.schema, type);
-        invariant(enumDef, `Enum "${type}" not found in schema`);
+    private makeEnumSchema(_enum: string) {
+        const enumDef = getEnum(this.schema, _enum);
+        invariant(enumDef, `Enum "${_enum}" not found in schema`);
         return z.enum(Object.keys(enumDef.values) as [string, ...string[]]);
     }
 
     @cache()
-    private makeTypeDefSchema(type: string): z.ZodType {
+    private makeTypeDefSchema(type: string): ZodType {
         const typeDef = getTypeDef(this.schema, type);
         invariant(typeDef, `Type definition "${type}" not found in schema`);
         const schema = z.looseObject(
@@ -396,11 +467,11 @@ export class ZodSchemaFactory<
         const typeDef = getTypeDef(this.schema, type);
         invariant(typeDef, `Type definition "${type}" not found in schema`);
 
-        const candidates: z.ZodType[] = [];
+        const candidates: ZodType[] = [];
 
         if (!array) {
             // fields filter
-            const fieldSchemas: Record<string, z.ZodType> = {};
+            const fieldSchemas: Record<string, ZodType> = {};
             for (const [fieldName, fieldDef] of Object.entries(typeDef.fields)) {
                 if (this.isTypeDefType(fieldDef.type)) {
                     // recursive typed JSON - use same model/field for nested typed JSON
@@ -548,8 +619,8 @@ export class ZodSchemaFactory<
             .exhaustive();
     }
 
-    private makeJsonValueSchema(nullable: boolean, forFilter: boolean): z.ZodType {
-        const options: z.ZodType[] = [z.string(), z.number(), z.boolean(), z.instanceof(JsonNullClass)];
+    private makeJsonValueSchema(nullable: boolean, forFilter: boolean): ZodType {
+        const options: ZodType[] = [z.string(), z.number(), z.boolean(), z.instanceof(JsonNullClass)];
 
         if (forFilter) {
             options.push(z.instanceof(DbNullClass));
@@ -697,7 +768,7 @@ export class ZodSchemaFactory<
         makeThis: () => ZodType,
         withAggregations: Array<AggregateOperators> | undefined = undefined,
         allowedFilterKinds: string[] | undefined = undefined,
-    ): z.ZodType {
+    ): ZodType {
         const components = this.makeCommonPrimitiveFilterComponents(
             baseSchema,
             optional,
@@ -766,7 +837,7 @@ export class ZodSchemaFactory<
     }
 
     @cache()
-    makeSelectSchema(model: string) {
+    private makeSelectSchema(model: string) {
         const modelDef = requireModel(this.schema, model);
         const fields: Record<string, ZodType> = {};
         for (const field of Object.keys(modelDef.fields)) {
@@ -825,7 +896,7 @@ export class ZodSchemaFactory<
     @cache()
     private makeRelationSelectIncludeSchema(model: string, field: string) {
         const fieldDef = requireField(this.schema, model, field);
-        let objSchema: z.ZodType = z.strictObject({
+        let objSchema: ZodType = z.strictObject({
             ...(fieldDef.array || fieldDef.optional
                 ? {
                       // to-many relations and optional to-one relations are filterable
@@ -865,7 +936,7 @@ export class ZodSchemaFactory<
     }
 
     @cache()
-    makeOmitSchema(model: string) {
+    private makeOmitSchema(model: string) {
         const modelDef = requireModel(this.schema, model);
         const fields: Record<string, ZodType> = {};
         for (const field of Object.keys(modelDef.fields)) {
@@ -884,7 +955,7 @@ export class ZodSchemaFactory<
     }
 
     @cache()
-    makeIncludeSchema(model: string) {
+    private makeIncludeSchema(model: string) {
         const modelDef = requireModel(this.schema, model);
         const fields: Record<string, ZodType> = {};
         for (const field of Object.keys(modelDef.fields)) {
@@ -971,7 +1042,9 @@ export class ZodSchemaFactory<
     // #region Create
 
     @cache()
-    makeCreateSchema(model: string) {
+    makeCreateSchema<Model extends GetModels<Schema>>(
+        model: Model,
+    ): ZodType<CreateArgs<Schema, Model, Options, ExtQueryArgs>> {
         const dataSchema = this.makeCreateDataSchema(model, false);
         const baseSchema = z.strictObject({
             data: dataSchema,
@@ -982,23 +1055,32 @@ export class ZodSchemaFactory<
         let schema: ZodType = this.mergePluginArgsSchema(baseSchema, 'create');
         schema = this.refineForSelectIncludeMutuallyExclusive(schema);
         schema = this.refineForSelectOmitMutuallyExclusive(schema);
-        return schema;
+        return schema as ZodType<CreateArgs<Schema, Model, Options, ExtQueryArgs>>;
     }
 
     @cache()
-    makeCreateManySchema(model: string) {
-        return this.mergePluginArgsSchema(this.makeCreateManyDataSchema(model, []), 'createMany').optional();
+    makeCreateManySchema<Model extends GetModels<Schema>>(
+        model: Model,
+    ): ZodType<CreateManyArgs<Schema, Model, Options, ExtQueryArgs>> {
+        return this.mergePluginArgsSchema(
+            this.makeCreateManyPayloadSchema(model, []),
+            'createMany',
+        ) as unknown as ZodType<CreateManyArgs<Schema, Model, Options, ExtQueryArgs>>;
     }
 
     @cache()
-    makeCreateManyAndReturnSchema(model: string) {
-        const base = this.makeCreateManyDataSchema(model, []);
+    makeCreateManyAndReturnSchema<Model extends GetModels<Schema>>(
+        model: Model,
+    ): ZodType<CreateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs>> {
+        const base = this.makeCreateManyPayloadSchema(model, []);
         let result: ZodObject = base.extend({
             select: this.makeSelectSchema(model).optional().nullable(),
             omit: this.makeOmitSchema(model).optional().nullable(),
         });
         result = this.mergePluginArgsSchema(result, 'createManyAndReturn');
-        return this.refineForSelectOmitMutuallyExclusive(result).optional();
+        return this.refineForSelectOmitMutuallyExclusive(result).optional() as ZodType<
+            CreateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs>
+        >;
     }
 
     @cache()
@@ -1160,7 +1242,7 @@ export class ZodSchemaFactory<
         };
 
         if (array) {
-            fields['createMany'] = this.makeCreateManyDataSchema(fieldType, withoutFields).optional();
+            fields['createMany'] = this.makeCreateManyPayloadSchema(fieldType, withoutFields).optional();
         }
 
         if (mode === 'update') {
@@ -1265,7 +1347,7 @@ export class ZodSchemaFactory<
     }
 
     @cache()
-    private makeCreateManyDataSchema(model: string, withoutFields: string[]) {
+    private makeCreateManyPayloadSchema(model: string, withoutFields: string[]) {
         return z.strictObject({
             data: this.makeCreateDataSchema(model, true, withoutFields, true),
             skipDuplicates: z.boolean().optional(),
@@ -1277,7 +1359,9 @@ export class ZodSchemaFactory<
     // #region Update
 
     @cache()
-    makeUpdateSchema(model: string) {
+    makeUpdateSchema<Model extends GetModels<Schema>>(
+        model: Model,
+    ): ZodType<UpdateArgs<Schema, Model, Options, ExtQueryArgs>> {
         const baseSchema = z.strictObject({
             where: this.makeWhereSchema(model, true),
             data: this.makeUpdateDataSchema(model),
@@ -1288,11 +1372,13 @@ export class ZodSchemaFactory<
         let schema: ZodType = this.mergePluginArgsSchema(baseSchema, 'update');
         schema = this.refineForSelectIncludeMutuallyExclusive(schema);
         schema = this.refineForSelectOmitMutuallyExclusive(schema);
-        return schema;
+        return schema as ZodType<UpdateArgs<Schema, Model, Options, ExtQueryArgs>>;
     }
 
     @cache()
-    makeUpdateManySchema(model: string) {
+    makeUpdateManySchema<Model extends GetModels<Schema>>(
+        model: Model,
+    ): ZodType<UpdateManyArgs<Schema, Model, Options, ExtQueryArgs>> {
         return this.mergePluginArgsSchema(
             z.strictObject({
                 where: this.makeWhereSchema(model, false).optional(),
@@ -1300,23 +1386,27 @@ export class ZodSchemaFactory<
                 limit: z.number().int().nonnegative().optional(),
             }),
             'updateMany',
-        );
+        ) as unknown as ZodType<UpdateManyArgs<Schema, Model, Options, ExtQueryArgs>>;
     }
 
     @cache()
-    makeUpdateManyAndReturnSchema(model: string) {
+    makeUpdateManyAndReturnSchema<Model extends GetModels<Schema>>(
+        model: Model,
+    ): ZodType<UpdateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs>> {
         // plugin extended args schema is merged in `makeUpdateManySchema`
-        const baseSchema: ZodObject = this.makeUpdateManySchema(model);
+        const baseSchema = this.makeUpdateManySchema(model) as unknown as ZodObject;
         let schema: ZodType = baseSchema.extend({
             select: this.makeSelectSchema(model).optional().nullable(),
             omit: this.makeOmitSchema(model).optional().nullable(),
         });
         schema = this.refineForSelectOmitMutuallyExclusive(schema);
-        return schema;
+        return schema as ZodType<UpdateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs>>;
     }
 
     @cache()
-    makeUpsertSchema(model: string) {
+    makeUpsertSchema<Model extends GetModels<Schema>>(
+        model: Model,
+    ): ZodType<UpsertArgs<Schema, Model, Options, ExtQueryArgs>> {
         const baseSchema = z.strictObject({
             where: this.makeWhereSchema(model, true),
             create: this.makeCreateDataSchema(model, false),
@@ -1328,7 +1418,7 @@ export class ZodSchemaFactory<
         let schema: ZodType = this.mergePluginArgsSchema(baseSchema, 'upsert');
         schema = this.refineForSelectIncludeMutuallyExclusive(schema);
         schema = this.refineForSelectOmitMutuallyExclusive(schema);
-        return schema;
+        return schema as ZodType<UpsertArgs<Schema, Model, Options, ExtQueryArgs>>;
     }
 
     @cache()
@@ -1447,7 +1537,9 @@ export class ZodSchemaFactory<
     // #region Delete
 
     @cache()
-    makeDeleteSchema(model: string) {
+    makeDeleteSchema<Model extends GetModels<Schema>>(
+        model: Model,
+    ): ZodType<DeleteArgs<Schema, Model, Options, ExtQueryArgs>> {
         const baseSchema = z.strictObject({
             where: this.makeWhereSchema(model, true),
             select: this.makeSelectSchema(model).optional().nullable(),
@@ -1457,18 +1549,20 @@ export class ZodSchemaFactory<
         let schema: ZodType = this.mergePluginArgsSchema(baseSchema, 'delete');
         schema = this.refineForSelectIncludeMutuallyExclusive(schema);
         schema = this.refineForSelectOmitMutuallyExclusive(schema);
-        return schema;
+        return schema as ZodType<DeleteArgs<Schema, Model, Options, ExtQueryArgs>>;
     }
 
     @cache()
-    makeDeleteManySchema(model: string) {
+    makeDeleteManySchema<Model extends GetModels<Schema>>(
+        model: Model,
+    ): ZodType<DeleteManyArgs<Schema, Model, Options, ExtQueryArgs> | undefined> {
         return this.mergePluginArgsSchema(
             z.strictObject({
                 where: this.makeWhereSchema(model, false).optional(),
                 limit: z.number().int().nonnegative().optional(),
             }),
             'deleteMany',
-        ).optional();
+        ).optional() as unknown as ZodType<DeleteManyArgs<Schema, Model, Options, ExtQueryArgs> | undefined>;
     }
 
     // #endregion
@@ -1476,7 +1570,9 @@ export class ZodSchemaFactory<
     // #region Count
 
     @cache()
-    makeCountSchema(model: string) {
+    makeCountSchema<Model extends GetModels<Schema>>(
+        model: Model,
+    ): ZodType<CountArgs<Schema, Model, Options, ExtQueryArgs> | undefined> {
         return this.mergePluginArgsSchema(
             z.strictObject({
                 where: this.makeWhereSchema(model, false).optional(),
@@ -1486,7 +1582,7 @@ export class ZodSchemaFactory<
                 select: this.makeCountAggregateInputSchema(model).optional(),
             }),
             'count',
-        ).optional();
+        ).optional() as ZodType<CountArgs<Schema, Model, Options, ExtQueryArgs> | undefined>;
     }
 
     @cache()
@@ -1512,7 +1608,9 @@ export class ZodSchemaFactory<
     // #region Aggregate
 
     @cache()
-    makeAggregateSchema(model: string) {
+    makeAggregateSchema<Model extends GetModels<Schema>>(
+        model: Model,
+    ): ZodType<AggregateArgs<Schema, Model, Options, ExtQueryArgs> | undefined> {
         return this.mergePluginArgsSchema(
             z.strictObject({
                 where: this.makeWhereSchema(model, false).optional(),
@@ -1526,11 +1624,11 @@ export class ZodSchemaFactory<
                 _max: this.makeMinMaxInputSchema(model).optional(),
             }),
             'aggregate',
-        ).optional();
+        ).optional() as ZodType<AggregateArgs<Schema, Model, Options, ExtQueryArgs> | undefined>;
     }
 
     @cache()
-    makeSumAvgInputSchema(model: string) {
+    private makeSumAvgInputSchema(model: string) {
         const modelDef = requireModel(this.schema, model);
         return z.strictObject(
             Object.keys(modelDef.fields).reduce(
@@ -1547,7 +1645,7 @@ export class ZodSchemaFactory<
     }
 
     @cache()
-    makeMinMaxInputSchema(model: string) {
+    private makeMinMaxInputSchema(model: string) {
         const modelDef = requireModel(this.schema, model);
         return z.strictObject(
             Object.keys(modelDef.fields).reduce(
@@ -1563,8 +1661,14 @@ export class ZodSchemaFactory<
         );
     }
 
+    // #endregion
+
+    // #region Group By
+
     @cache()
-    makeGroupBySchema(model: string) {
+    makeGroupBySchema<Model extends GetModels<Schema>>(
+        model: Model,
+    ): ZodType<GroupByArgs<Schema, Model, Options, ExtQueryArgs>> {
         const modelDef = requireModel(this.schema, model);
         const nonRelationFields = Object.keys(modelDef.fields).filter((field) => !modelDef.fields[field]?.relation);
         const bySchema =
@@ -1630,7 +1734,7 @@ export class ZodSchemaFactory<
             }
         }, 'fields in "orderBy" must be in "by"');
 
-        return schema;
+        return schema as ZodType<GroupByArgs<Schema, Model, Options, ExtQueryArgs>>;
     }
 
     private onlyAggregationFields(val: object) {
@@ -1660,8 +1764,8 @@ export class ZodSchemaFactory<
     // #region Procedures
 
     @cache()
-    makeProcedureParamSchema(param: { type: string; array?: boolean; optional?: boolean }): z.ZodType {
-        let schema: z.ZodType;
+    makeProcedureParamSchema(param: { type: string; array?: boolean; optional?: boolean }): ZodType {
+        let schema: ZodType;
 
         if (isTypeDef(this.schema, param.type)) {
             schema = this.makeTypeDefSchema(param.type);
@@ -1695,7 +1799,7 @@ export class ZodSchemaFactory<
 
     // #region Plugin Args
 
-    mergePluginArgsSchema(schema: ZodObject, operation: CoreCrudOperations) {
+    private mergePluginArgsSchema(schema: ZodObject, operation: CoreCrudOperations) {
         let result = schema;
         for (const plugin of this.plugins ?? []) {
             if (plugin.queryArgs) {
@@ -1727,14 +1831,8 @@ export class ZodSchemaFactory<
                 '$update' in plugin.queryArgs && plugin.queryArgs['$update'] ? plugin.queryArgs['$update'] : undefined;
 
             if (createSchema && updateSchema) {
-                invariant(
-                    createSchema instanceof z.ZodObject,
-                    'Plugin extended query args schema must be a Zod object',
-                );
-                invariant(
-                    updateSchema instanceof z.ZodObject,
-                    'Plugin extended query args schema must be a Zod object',
-                );
+                invariant(createSchema instanceof ZodObject, 'Plugin extended query args schema must be a Zod object');
+                invariant(updateSchema instanceof ZodObject, 'Plugin extended query args schema must be a Zod object');
                 // merge both schemas (combines their properties)
                 result = createSchema.extend(updateSchema.shape);
             } else if (createSchema) {
@@ -1773,7 +1871,7 @@ export class ZodSchemaFactory<
         }
 
         invariant(
-            result === undefined || result instanceof z.ZodObject,
+            result === undefined || result instanceof ZodObject,
             'Plugin extended query args schema must be a Zod object',
         );
         return result;

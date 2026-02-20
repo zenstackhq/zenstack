@@ -21,9 +21,12 @@ async function main() {
 async function generate(schemaPath: string, options: string[]) {
     const cliPath = path.join(_dirname, '../packages/cli/dist/index.js');
     const RUNTIME = process.env.RUNTIME ?? 'node';
-    execSync(`${RUNTIME} ${cliPath} generate --schema ${schemaPath} ${options.join(' ')}`, {
-        cwd: path.dirname(schemaPath),
-    });
+    execSync(
+        `${RUNTIME} ${cliPath} generate --schema ${schemaPath} ${options.join(' ')} --generate-models=false --generate-input=false`,
+        {
+            cwd: path.dirname(schemaPath),
+        },
+    );
 }
 
 main();
