@@ -1,19 +1,18 @@
 import { invariant } from '@zenstackhq/common-helpers';
-import type {
-    AttributeApplication,
-    BinaryExpression,
-    CallExpression,
-    Expression,
-    FieldExpression,
-    MemberExpression,
-    UnaryExpression,
+import {
+    ExpressionUtils,
+    type AttributeApplication,
+    type BinaryExpression,
+    type CallExpression,
+    type Expression,
+    type FieldExpression,
+    type MemberExpression,
+    type UnaryExpression,
 } from '@zenstackhq/schema';
 import Decimal from 'decimal.js';
 import { match, P } from 'ts-pattern';
 import { z } from 'zod';
-import { ZodIssueCode } from 'zod/v3';
-import { ExpressionUtils } from '../../../schema';
-import { createNotSupportedError } from '../../errors';
+import { ZodSchemaError } from './error';
 
 function getArgValue<T extends string | number | boolean>(expr: Expression | undefined): T | undefined {
     if (!expr || !ExpressionUtils.isLiteral(expr)) {
@@ -167,7 +166,7 @@ export function addDecimalValidation(
                     new Decimal(v);
                 } catch (err) {
                     ctx.addIssue({
-                        code: z.ZodIssueCode.custom,
+                        code: 'custom',
                         message: `Invalid decimal: ${err}`,
                     });
                 }
@@ -184,7 +183,7 @@ export function addDecimalValidation(
             error?.issues.forEach((issue) => {
                 if (op === 'gt' || op === 'gte') {
                     ctx.addIssue({
-                        code: ZodIssueCode.too_small,
+                        code: 'too_small',
                         origin: 'number',
                         minimum: value,
                         type: 'decimal',
@@ -193,7 +192,7 @@ export function addDecimalValidation(
                     });
                 } else {
                     ctx.addIssue({
-                        code: ZodIssueCode.too_big,
+                        code: 'too_big',
                         origin: 'number',
                         maximum: value,
                         type: 'decimal',
@@ -467,7 +466,7 @@ function evalCall(data: any, expr: CallExpression) {
                 return fieldArg.length === 0;
             })
             .otherwise(() => {
-                throw createNotSupportedError(`Unsupported function "${expr.function}"`);
+                throw new ZodSchemaError(`Unsupported function "${expr.function}"`);
             })
     );
 }

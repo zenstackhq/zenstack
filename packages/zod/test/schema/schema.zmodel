@@ -1,0 +1,46 @@
+datasource db {
+    provider = 'sqlite'
+}
+
+enum Status {
+    ACTIVE
+    INACTIVE
+    PENDING
+}
+
+type Address {
+    street String
+    city   String  @length(2)
+    zip    String?
+
+    @@validate(zip == null || length(zip) == 5, "Zip code must be exactly 5 characters", ["zip"])
+}
+
+model User {
+    id        String    @id @default(cuid())
+    email     String    @email
+    username  String    @length(3, 50)
+    website   String?   @url
+    code      String    @startsWith("USR")
+    age       Int       @gt(0) @lte(150)
+    score     Float     @gte(0.0) @lt(100.0)
+    bigNum    BigInt    @gte(0)
+    balance   Decimal   @gt(0)
+    active    Boolean
+    birthdate DateTime?
+    avatar    Bytes?
+    metadata  Json?
+    status    Status
+    address   Address?  @json
+    posts     Post[]
+
+    @@validate(age >= 18, "Must be adult", ["age"])
+}
+
+model Post {
+    id        String  @id @default(cuid())
+    title     String
+    published Boolean
+    author    User?   @relation(fields: [authorId], references: [id])
+    authorId  String?
+}
