@@ -1144,6 +1144,9 @@ importers:
       '@zenstackhq/plugin-policy':
         specifier: workspace:*
         version: link:../../packages/plugins/policy
+      '@zenstackhq/schema':
+        specifier: workspace:*
+        version: link:../../packages/schema
       '@zenstackhq/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk

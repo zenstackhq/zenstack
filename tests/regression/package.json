@@ -18,6 +18,7 @@
     "devDependencies": {
         "@zenstackhq/cli": "workspace:*",
         "@zenstackhq/language": "workspace:*",
+        "@zenstackhq/schema": "workspace:*",
         "@zenstackhq/orm": "workspace:*",
         "@zenstackhq/sdk": "workspace:*",
         "@zenstackhq/plugin-policy": "workspace:*",
