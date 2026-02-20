@@ -22,6 +22,7 @@ import type {
     CreateManyArgs,
     DeleteArgs,
     DeleteManyArgs,
+    ExistsArgs,
     FindFirstArgs,
     FindManyArgs,
     FindUniqueArgs,
@@ -209,11 +210,15 @@ export class ZodSchemaFactory<
     }
 
     @cache()
-    makeExistsSchema(model: string) {
+    makeExistsSchema<Model extends GetModels<Schema>>(
+        model: Model,
+    ): ZodType<ExistsArgs<Schema, Model, Options, ExtQueryArgs> | undefined> {
         const baseSchema = z.strictObject({
             where: this.makeWhereSchema(model, false).optional(),
         });
-        return this.mergePluginArgsSchema(baseSchema, 'exists').optional();
+        return this.mergePluginArgsSchema(baseSchema, 'exists').optional() as ZodType<
+            ExistsArgs<Schema, Model, Options, ExtQueryArgs> | undefined
+        >;
     }
 
     private makeScalarSchema(type: string, attributes?: readonly AttributeApplication[]) {

@@ -38,6 +38,14 @@ describe('Zod schema typing tests', () => {
         expectTypeOf<NonNullable<Args>>().toHaveProperty('take');
     });
 
+    it('makeExistsSchema returns a typed schema', () => {
+        const s = client.$zod.makeExistsSchema('User');
+        type Args = NonNullable<z.infer<typeof s>>;
+        expectTypeOf<Args>().toHaveProperty('where');
+        expectTypeOf<Args>().not.toHaveProperty('select');
+        expectTypeOf<Args>().not.toHaveProperty('include');
+    });
+
     it('makeCreateSchema returns a typed schema', () => {
         const s = client.$zod.makeCreateSchema('User');
         type Args = z.infer<typeof s>;
