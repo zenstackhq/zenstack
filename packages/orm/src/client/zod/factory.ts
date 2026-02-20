@@ -1034,7 +1034,7 @@ export class ZodSchemaFactory<
     private makeDistinctSchema(model: string) {
         const modelDef = requireModel(this.schema, model);
         const nonRelationFields = Object.keys(modelDef.fields).filter((field) => !modelDef.fields[field]?.relation);
-        return this.orArray(z.enum(nonRelationFields as any), true);
+        return nonRelationFields.length > 0 ? this.orArray(z.enum(nonRelationFields as any), true) : z.never();
     }
 
     private makeCursorSchema(model: string) {
