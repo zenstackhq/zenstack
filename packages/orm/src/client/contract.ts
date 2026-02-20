@@ -343,7 +343,7 @@ export type AllModelOperations<
                * ```
                */
               updateManyAndReturn<T extends UpdateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs>>(
-                  args: Subset<T, UpdateManyAndReturnArgs<Schema, Model, Options>>,
+                  args: Subset<T, UpdateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs>>,
               ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options>[]>;
           });
 
