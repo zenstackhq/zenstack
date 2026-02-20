@@ -1,6 +1,5 @@
-import type { Dialect, Expression, ExpressionBuilder, KyselyConfig } from 'kysely';
+import type { Dialect, Expression, ExpressionBuilder, KyselyConfig, OperandExpression } from 'kysely';
 import type { GetModel, GetModelFields, GetModels, ProcedureDef, ScalarFields, SchemaDef } from '../schema';
-import type { PrependParameter } from '../utils/type-utils';
 import type { FilterPropertyToKind } from './constants';
 import type { ClientContract, CRUD_EXT } from './contract';
 import type { GetProcedureNames, ProcedureHandlerFunc } from './crud-types';
@@ -226,10 +225,15 @@ export type OmitConfig<Schema extends SchemaDef> = {
 
 export type ComputedFieldsOptions<Schema extends SchemaDef> = {
     [Model in GetModels<Schema> as 'computedFields' extends keyof GetModel<Schema, Model> ? Model : never]: {
-        [Field in keyof Schema['models'][Model]['computedFields']]: PrependParameter<
-            ExpressionBuilder<ToKyselySchema<Schema>, Model>,
-            Schema['models'][Model]['computedFields'][Field]
-        >;
+        [Field in keyof Schema['models'][Model]['computedFields']]: Schema['models'][Model]['computedFields'][Field] extends infer Func
+            ? Func extends (...args: any[]) => infer R
+                ? (
+                      // inject a first parameter for expression builder
+                      p: ExpressionBuilder<ToKyselySchema<Schema>, Model>,
+                      ...args: Parameters<Func>
+                  ) => OperandExpression<R> // wrap the return type with Kysely `OperandExpression`
+                : never
+            : never;
     };
 };
 

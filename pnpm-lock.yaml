@@ -871,6 +871,9 @@ importers:
       '@zenstackhq/orm':
         specifier: workspace:*
         version: link:../../packages/orm
+      '@zenstackhq/schema':
+        specifier: workspace:*
+        version: link:../../packages/schema
       '@zenstackhq/server':
         specifier: workspace:*
         version: link:../../packages/server
@@ -938,6 +941,9 @@ importers:
       '@zenstackhq/orm':
         specifier: workspace:*
         version: link:../../packages/orm
+      '@zenstackhq/schema':
+        specifier: workspace:*
+        version: link:../../packages/schema
       '@zenstackhq/server':
         specifier: workspace:*
         version: link:../../packages/server
@@ -978,6 +984,9 @@ importers:
       '@zenstackhq/plugin-policy':
         specifier: workspace:*
         version: link:../../packages/plugins/policy
+      '@zenstackhq/schema':
+        specifier: workspace:*
+        version: link:../../packages/schema
       better-sqlite3:
         specifier: 'catalog:'
         version: 12.5.0
@@ -1009,6 +1018,9 @@ importers:
       '@zenstackhq/orm':
         specifier: workspace:*
         version: link:../../packages/orm
+      '@zenstackhq/schema':
+        specifier: workspace:*
+        version: link:../../packages/schema
       '@zenstackhq/server':
         specifier: workspace:*
         version: link:../../packages/server
@@ -1150,6 +1162,9 @@ importers:
       '@zenstackhq/plugin-policy':
         specifier: workspace:*
         version: link:../../packages/plugins/policy
+      '@zenstackhq/schema':
+        specifier: workspace:*
+        version: link:../../packages/schema
       '@zenstackhq/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
@@ -1174,6 +1189,9 @@ importers:
       '@zenstackhq/plugin-policy':
         specifier: workspace:*
         version: link:../../../packages/plugins/policy
+      '@zenstackhq/schema':
+        specifier: workspace:*
+        version: link:../../../packages/schema
       '@zenstackhq/testtools':
         specifier: workspace:*
         version: link:../../../packages/testtools
@@ -1214,6 +1232,9 @@ importers:
       '@zenstackhq/plugin-policy':
         specifier: workspace:*
         version: link:../../../packages/plugins/policy
+      '@zenstackhq/schema':
+        specifier: workspace:*
+        version: link:../../../packages/schema
       '@zenstackhq/testtools':
         specifier: workspace:*
         version: link:../../../packages/testtools

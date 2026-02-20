@@ -20,8 +20,10 @@ type Options = {
     output?: string;
     silent: boolean;
     watch: boolean;
-    lite: boolean;
-    liteOnly: boolean;
+    lite?: boolean;
+    liteOnly?: boolean;
+    generateModels?: boolean;
+    generateInput?: boolean;
 };
 
 /**
@@ -181,11 +183,17 @@ async function runPlugins(schemaFile: string, model: Model, outputPath: string, 
 
             // merge CLI options
             if (provider === '@core/typescript') {
-                if (pluginOptions['lite'] === undefined) {
+                if (options.lite !== undefined) {
                     pluginOptions['lite'] = options.lite;
                 }
-                if (pluginOptions['liteOnly'] === undefined) {
+                if (options.liteOnly !== undefined) {
                     pluginOptions['liteOnly'] = options.liteOnly;
+                }
+                if (options.generateModels !== undefined) {
+                    pluginOptions['generateModels'] = options.generateModels;
+                }
+                if (options.generateInput !== undefined) {
+                    pluginOptions['generateInput'] = options.generateInput;
                 }
             }
 
@@ -196,7 +204,12 @@ async function runPlugins(schemaFile: string, model: Model, outputPath: string, 
     const defaultPlugins = [
         {
             plugin: corePlugins['typescript'],
-            options: { lite: options.lite, liteOnly: options.liteOnly },
+            options: {
+                lite: options.lite,
+                liteOnly: options.liteOnly,
+                generateModels: options.generateModels,
+                generateInput: options.generateInput,
+            },
         },
     ];
     defaultPlugins.forEach(({ plugin, options }) => {

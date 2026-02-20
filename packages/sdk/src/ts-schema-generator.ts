@@ -57,6 +57,8 @@ export type TsSchemaGeneratorOptions = {
     lite?: boolean;
     liteOnly?: boolean;
     importWithFileExtension?: string;
+    generateModelTypes?: boolean;
+    generateInputTypes?: boolean;
 };
 
 export class TsSchemaGenerator {
@@ -72,10 +74,14 @@ export class TsSchemaGenerator {
         this.generateSchema(model, options);
 
         // the model types
-        this.generateModelsAndTypeDefs(model, options);
+        if (options.generateModelTypes !== false) {
+            this.generateModelsAndTypeDefs(model, options);
+        }
 
         // the input types
-        this.generateInputTypes(model, options);
+        if (options.generateInputTypes !== false) {
+            this.generateInputTypes(model, options);
+        }
     }
 
     private generateSchema(model: Model, options: TsSchemaGeneratorOptions) {
@@ -111,31 +117,18 @@ export class TsSchemaGenerator {
     }
 
     private generateSchemaStatements(model: Model, statements: ts.Statement[], lite: boolean) {
-        const hasComputedFields = model.declarations.some(
-            (d) => isDataModel(d) && d.fields.some((f) => hasAttribute(f, '@computed')),
-        );
-
         // Generate schema content first to determine if ExpressionUtils is needed
         const schemaClass = this.createSchemaClass(model, lite);
 
         // Now generate the import declaration with the correct imports
-        // import { type SchemaDef, type OperandExpression, ExpressionUtils } from '@zenstackhq/orm/schema';
-        const runtimeImportDecl = ts.factory.createImportDeclaration(
+        // import { type SchemaDef, ExpressionUtils } from '@zenstackhq/schema';
+        const schemaImportDecl = ts.factory.createImportDeclaration(
             undefined,
             ts.factory.createImportClause(
                 undefined,
                 undefined,
                 ts.factory.createNamedImports([
                     ts.factory.createImportSpecifier(true, undefined, ts.factory.createIdentifier('SchemaDef')),
-                    ...(hasComputedFields
-                        ? [
-                              ts.factory.createImportSpecifier(
-                                  true,
-                                  undefined,
-                                  ts.factory.createIdentifier('OperandExpression'),
-                              ),
-                          ]
-                        : []),
                     ...(this.usedExpressionUtils
                         ? [
                               ts.factory.createImportSpecifier(
@@ -147,9 +140,9 @@ export class TsSchemaGenerator {
                         : []),
                 ]),
             ),
-            ts.factory.createStringLiteral('@zenstackhq/orm/schema'),
+            ts.factory.createStringLiteral('@zenstackhq/schema'),
         );
-        statements.push(runtimeImportDecl);
+        statements.push(schemaImportDecl);
 
         statements.push(schemaClass);
 
@@ -503,9 +496,7 @@ export class TsSchemaGenerator {
                             undefined,
                         ),
                     ],
-                    ts.factory.createTypeReferenceNode('OperandExpression', [
-                        ts.factory.createTypeReferenceNode(this.mapFieldTypeToTSType(field.type)),
-                    ]),
+                    ts.factory.createTypeReferenceNode(this.mapFieldTypeToTSType(field.type)),
                     ts.factory.createBlock(
                         [
                             ts.factory.createThrowStatement(
@@ -524,9 +515,14 @@ export class TsSchemaGenerator {
 
     private createUpdatedAtObject(ignoreArg: AttributeArg) {
         return ts.factory.createObjectLiteralExpression([
-            ts.factory.createPropertyAssignment('ignore', ts.factory.createArrayLiteralExpression(
-                (ignoreArg.value as ArrayExpr).items.map((item) => ts.factory.createStringLiteral((item as ReferenceExpr).target.$refText))
-            ))
+            ts.factory.createPropertyAssignment(
+                'ignore',
+                ts.factory.createArrayLiteralExpression(
+                    (ignoreArg.value as ArrayExpr).items.map((item) =>
+                        ts.factory.createStringLiteral((item as ReferenceExpr).target.$refText),
+                    ),
+                ),
+            ),
         ]);
     }
 
@@ -574,12 +570,13 @@ export class TsSchemaGenerator {
 
         const updatedAtAttrib = getAttribute(field, '@updatedAt') as DataFieldAttribute | undefined;
         if (updatedAtAttrib) {
-            const ignoreArg = updatedAtAttrib.args.find(arg => arg.$resolvedParam?.name === 'ignore');
-            objectFields.push(ts.factory.createPropertyAssignment('updatedAt',
-                ignoreArg
-                    ? this.createUpdatedAtObject(ignoreArg)
-                    : ts.factory.createTrue()
-            ));
+            const ignoreArg = updatedAtAttrib.args.find((arg) => arg.$resolvedParam?.name === 'ignore');
+            objectFields.push(
+                ts.factory.createPropertyAssignment(
+                    'updatedAt',
+                    ignoreArg ? this.createUpdatedAtObject(ignoreArg) : ts.factory.createTrue(),
+                ),
+            );
         }
 
         if (hasAttribute(field, '@omit')) {

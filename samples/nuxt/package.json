@@ -13,6 +13,7 @@
     "dependencies": {
         "@tailwindcss/vite": "^4.1.18",
         "@tanstack/vue-query": "catalog:",
+        "@zenstackhq/schema": "workspace:*",
         "@zenstackhq/orm": "workspace:*",
         "@zenstackhq/server": "workspace:*",
         "@zenstackhq/tanstack-query": "workspace:*",
