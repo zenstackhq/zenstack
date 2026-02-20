@@ -5,7 +5,7 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, type OperandExpression, ExpressionUtils } from "@zenstackhq/orm/schema";
+import { type SchemaDef, ExpressionUtils } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
     provider = {
         type: "sqlite"
@@ -81,7 +81,7 @@ export class SchemaType implements SchemaDef {
             computedFields: {
                 postCount(_context: {
                     modelAlias: string;
-                }): OperandExpression<number> {
+                }): number {
                     throw new Error("This is a stub for computed field");
                 }
             }

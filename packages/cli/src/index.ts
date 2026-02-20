@@ -43,6 +43,14 @@ const proxyAction = async (options: Parameters<typeof actions.proxy>[0]): Promis
     await telemetry.trackCommand('proxy', () => actions.proxy(options));
 };
 
+function triStateBooleanOption(flag: string, description: string) {
+    return new Option(flag, description).choices(['true', 'false']).argParser((value) => {
+        if (value === undefined || value === 'true') return true;
+        if (value === 'false') return false;
+        throw new CliError(`Invalid value for ${flag}: ${value}`);
+    });
+}
+
 function createProgram() {
     const program = new Command('zen')
         .alias('zenstack')
@@ -74,8 +82,20 @@ function createProgram() {
         .addOption(noVersionCheckOption)
         .addOption(new Option('-o, --output <path>', 'default output directory for code generation'))
         .addOption(new Option('-w, --watch', 'enable watch mode').default(false))
-        .addOption(new Option('--lite', 'also generate a lite version of schema without attributes').default(false))
-        .addOption(new Option('--lite-only', 'only generate lite version of schema without attributes').default(false))
+        .addOption(
+            triStateBooleanOption(
+                '--lite [boolean]',
+                'also generate a lite version of schema without attributes, defaults to false',
+            ),
+        )
+        .addOption(
+            triStateBooleanOption(
+                '--lite-only [boolean]',
+                'only generate lite version of schema without attributes, defaults to false',
+            ),
+        )
+        .addOption(triStateBooleanOption('--generate-models [boolean]', 'generate models.ts file, defaults to true'))
+        .addOption(triStateBooleanOption('--generate-input [boolean]', 'generate input.ts file, defaults to true'))
         .addOption(new Option('--silent', 'suppress all output except errors').default(false))
         .action(generateAction);
 

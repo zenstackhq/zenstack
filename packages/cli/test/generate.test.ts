@@ -60,6 +60,40 @@ describe('CLI generate command test', () => {
         expect(fs.existsSync(path.join(workDir, 'bar/schema.ts'))).toBe(true);
     });
 
+    it('should respect plugin lite options', async () => {
+        const modelWithPlugin = `
+plugin typescript {
+    provider = "@core/typescript"
+    lite = true
+}
+
+model User {
+    id String @id @default(cuid())
+}
+`;
+        const { workDir } = await createProject(modelWithPlugin);
+        runCli('generate', workDir);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/schema.ts'))).toBe(true);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/schema-lite.ts'))).toBe(true);
+    });
+
+    it('should respect plugin lite-only options', async () => {
+        const modelWithPlugin = `
+plugin typescript {
+    provider = "@core/typescript"
+    liteOnly = true
+}
+
+model User {
+    id String @id @default(cuid())
+}
+`;
+        const { workDir } = await createProject(modelWithPlugin);
+        runCli('generate', workDir);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/schema.ts'))).toBe(false);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/schema-lite.ts'))).toBe(true);
+    });
+
     it('should respect lite option', async () => {
         const { workDir } = await createProject(model);
         runCli('generate --lite', workDir);
@@ -72,5 +106,115 @@ describe('CLI generate command test', () => {
         runCli('generate --lite-only', workDir);
         expect(fs.existsSync(path.join(workDir, 'zenstack/schema.ts'))).toBe(false);
         expect(fs.existsSync(path.join(workDir, 'zenstack/schema-lite.ts'))).toBe(true);
+    });
+
+    it('should respect explicit liteOnly true option', async () => {
+        const { workDir } = await createProject(model);
+        runCli('generate --lite-only=true', workDir);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/schema.ts'))).toBe(false);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/schema-lite.ts'))).toBe(true);
+    });
+
+    it('should respect explicit liteOnly false option', async () => {
+        const { workDir } = await createProject(model);
+        runCli('generate --lite-only=false', workDir);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/schema.ts'))).toBe(true);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/schema-lite.ts'))).toBe(false);
+    });
+
+    it('should prefer CLI options over @core/typescript plugin settings for lite and liteOnly', async () => {
+        const modelWithPlugin = `
+plugin typescript {
+    provider = "@core/typescript"
+    lite = true
+    liteOnly = true
+}
+
+model User {
+    id String @id @default(cuid())
+}
+`;
+        const { workDir } = await createProject(modelWithPlugin);
+        runCli('generate --lite=false --lite-only=false', workDir);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/schema.ts'))).toBe(true);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/schema-lite.ts'))).toBe(false);
+    });
+
+    it('should generate models.ts and input.ts by default', async () => {
+        const { workDir } = await createProject(model);
+        runCli('generate', workDir);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/schema.ts'))).toBe(true);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/models.ts'))).toBe(true);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/input.ts'))).toBe(true);
+    });
+
+    it('should respect plugin options for generateModels and generateInput by default', async () => {
+        const modelWithPlugin = `
+plugin typescript {
+    provider = "@core/typescript"
+    generateModels = false
+    generateInput = false
+}
+
+model User {
+    id String @id @default(cuid())
+}
+`;
+        const { workDir } = await createProject(modelWithPlugin);
+        runCli('generate', workDir);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/schema.ts'))).toBe(true);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/models.ts'))).toBe(false);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/input.ts'))).toBe(false);
+    });
+
+    it('should generate models.ts when --generate-models=true is passed', async () => {
+        const { workDir } = await createProject(model);
+        runCli('generate --generate-models=true', workDir);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/schema.ts'))).toBe(true);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/models.ts'))).toBe(true);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/input.ts'))).toBe(true);
+    });
+
+    it('should not generate models.ts when --generate-models=false is passed', async () => {
+        const { workDir } = await createProject(model);
+        runCli('generate --generate-models=false', workDir);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/schema.ts'))).toBe(true);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/models.ts'))).toBe(false);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/input.ts'))).toBe(true);
+    });
+
+    it('should generate input.ts when --generate-input=true is passed', async () => {
+        const { workDir } = await createProject(model);
+        runCli('generate --generate-input=true', workDir);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/schema.ts'))).toBe(true);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/models.ts'))).toBe(true);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/input.ts'))).toBe(true);
+    });
+
+    it('should not generate input.ts when --generate-input=false is passed', async () => {
+        const { workDir } = await createProject(model);
+        runCli('generate --generate-input=false', workDir);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/schema.ts'))).toBe(true);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/models.ts'))).toBe(true);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/input.ts'))).toBe(false);
+    });
+
+    it('should prefer CLI options over @core/typescript plugin settings for generateModels and generateInput', async () => {
+        const modelWithPlugin = `
+plugin typescript {
+    provider = "@core/typescript"
+    generateModels = false
+    generateInput = false
+}
+
+model User {
+    id String @id @default(cuid())
+}
+`;
+        const { workDir } = await createProject(modelWithPlugin);
+        runCli('generate --generate-models --generate-input', workDir);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/schema.ts'))).toBe(true);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/models.ts'))).toBe(true);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/input.ts'))).toBe(true);
     });
 });
