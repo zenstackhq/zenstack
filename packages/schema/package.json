@@ -4,7 +4,7 @@
     "description": "ZenStack Runtime Schema",
     "type": "module",
     "scripts": {
-        "build": "tsc --noEmit && tsup-node && pnpm test:generate",
+        "build": "tsc --noEmit && tsup-node",
         "watch": "tsup-node --watch",
         "lint": "eslint src --ext ts",
         "test": "vitest run",
