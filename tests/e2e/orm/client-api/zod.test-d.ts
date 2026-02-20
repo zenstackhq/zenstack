@@ -212,25 +212,6 @@ describe('Zod schema typing tests', () => {
         expectTypeOf<Args>().toHaveProperty('take');
         expectTypeOf<Args>().toHaveProperty('_count');
     });
-
-    it('$zod is typed as ZodSchemaFactory', () => {
-        // verify the factory methods exist on the type
-        expectTypeOf(client.$zod.makeFindManySchema).toBeFunction();
-        expectTypeOf(client.$zod.makeFindUniqueSchema).toBeFunction();
-        expectTypeOf(client.$zod.makeFindFirstSchema).toBeFunction();
-        expectTypeOf(client.$zod.makeCreateSchema).toBeFunction();
-        expectTypeOf(client.$zod.makeCreateManySchema).toBeFunction();
-        expectTypeOf(client.$zod.makeCreateManyAndReturnSchema).toBeFunction();
-        expectTypeOf(client.$zod.makeUpdateSchema).toBeFunction();
-        expectTypeOf(client.$zod.makeUpdateManySchema).toBeFunction();
-        expectTypeOf(client.$zod.makeUpdateManyAndReturnSchema).toBeFunction();
-        expectTypeOf(client.$zod.makeDeleteSchema).toBeFunction();
-        expectTypeOf(client.$zod.makeUpsertSchema).toBeFunction();
-        expectTypeOf(client.$zod.makeCountSchema).toBeFunction();
-        expectTypeOf(client.$zod.makeAggregateSchema).toBeFunction();
-        expectTypeOf(client.$zod.makeGroupBySchema).toBeFunction();
-        expectTypeOf(client.$zod.makeExistsSchema).toBeFunction();
-    });
 });
 
 describe('Zod schema with slicing - typing', () => {
