@@ -308,6 +308,72 @@ function renderEnumPage(enumDecl: Enum): string {
     return lines.join('\n');
 }
 
+interface Relationship {
+    from: string;
+    field: string;
+    to: string;
+    type: string;
+}
+
+function collectRelationships(models: DataModel[]): Relationship[] {
+    const rels: Relationship[] = [];
+    for (const model of models) {
+        for (const field of model.fields) {
+            if (field.type.reference?.ref && isDataModel(field.type.reference.ref)) {
+                const to = field.type.reference.ref.name;
+                let relType: string;
+                if (field.type.array) {
+                    relType = 'One\u2192Many';
+                } else if (field.type.optional) {
+                    relType = 'Many\u2192One?';
+                } else {
+                    relType = 'Many\u2192One';
+                }
+                rels.push({ from: model.name, field: field.name, to, type: relType });
+            }
+        }
+    }
+    return rels;
+}
+
+function renderRelationshipsPage(relations: Relationship[]): string {
+    const lines: string[] = ['# Relationships', ''];
+
+    lines.push('## Cross-Reference', '');
+    lines.push('| Model | Field | Related Model | Type |');
+    lines.push('| --- | --- | --- | --- |');
+    for (const rel of relations) {
+        lines.push(`| ${rel.from} | ${rel.field} | ${rel.to} | ${rel.type} |`);
+    }
+    lines.push('');
+
+    const seen = new Set<string>();
+    const mermaidLines: string[] = [];
+    for (const rel of relations) {
+        const key = [rel.from, rel.to].sort().join('--');
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        let mermaidRel: string;
+        if (rel.type.includes('Many')) {
+            mermaidRel = `    ${rel.from} ||--o{ ${rel.to} : "${rel.field}"`;
+        } else {
+            mermaidRel = `    ${rel.from} ||--|| ${rel.to} : "${rel.field}"`;
+        }
+        mermaidLines.push(mermaidRel);
+    }
+
+    if (mermaidLines.length > 0) {
+        lines.push('## Entity Relationship Diagram', '');
+        lines.push('```mermaid');
+        lines.push('erDiagram');
+        lines.push(...mermaidLines);
+        lines.push('```', '');
+    }
+
+    return lines.join('\n');
+}
+
 const plugin: CliPlugin = {
     name: 'Documentation Generator',
     statusText: 'Generating documentation',
@@ -336,6 +402,14 @@ const plugin: CliPlugin = {
                     renderModelPage(model),
                 );
             }
+        }
+
+        const allRelations = collectRelationships(models);
+        if (allRelations.length > 0) {
+            fs.writeFileSync(
+                path.join(outputDir, 'relationships.md'),
+                renderRelationshipsPage(allRelations),
+            );
         }
 
         const enumsDir = path.join(outputDir, 'enums');

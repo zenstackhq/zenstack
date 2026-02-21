@@ -449,4 +449,39 @@ describe('documentation plugin', () => {
         expect(fs.existsSync(path.join(tmpDir, 'models', 'Content', 'Post.md'))).toBe(true);
         expect(fs.existsSync(path.join(tmpDir, 'models', 'Uncategorized.md'))).toBe(true);
     });
+
+    it('generates relationships.md with cross-reference table and Mermaid diagram', async () => {
+        const model = await loadSchema(`
+            model User {
+                id    String @id @default(cuid())
+                posts Post[]
+            }
+            model Post {
+                id       String @id @default(cuid())
+                author   User   @relation(fields: [authorId], references: [id])
+                authorId String
+                tags     Tag[]
+            }
+            model Tag {
+                id    String @id @default(cuid())
+                posts Post[]
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const relDoc = fs.readFileSync(path.join(tmpDir, 'relationships.md'), 'utf-8');
+        expect(relDoc).toContain('# Relationships');
+        expect(relDoc).toContain('erDiagram');
+        expect(relDoc).toContain('User');
+        expect(relDoc).toContain('Post');
+        expect(relDoc).toContain('Tag');
+    });
 });
