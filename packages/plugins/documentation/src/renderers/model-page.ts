@@ -25,11 +25,16 @@ function isModelReferencedByProc(proc: Procedure, modelName: string): boolean {
 }
 
 export function renderModelPage(model: DataModel, options: RenderOptions, procedures: Procedure[] = [], navigation?: Navigation): string {
+    const docMeta = extractDocMeta(model.attributes);
+    const isDeprecated = !!docMeta.deprecated;
+    const nameDisplay = isDeprecated ? `~~${model.name}~~` : model.name;
+    const badges = isDeprecated ? ' <kbd>Model</kbd> <kbd>Deprecated</kbd>' : ' <kbd>Model</kbd>';
+
     const lines: string[] = [
         ...generatedHeader(),
         breadcrumbs('Models', model.name, '../'),
         '',
-        `# ${model.name} <kbd>Model</kbd>`,
+        `# ${nameDisplay}${badges}`,
         '',
     ];
 
@@ -40,8 +45,6 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
         }
         lines.push('');
     }
-
-    const docMeta = extractDocMeta(model.attributes);
     const sourcePath = getRelativeSourcePath(model, options.schemaDir);
 
     const metaParts: string[] = [];

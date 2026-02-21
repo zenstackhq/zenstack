@@ -1,5 +1,6 @@
 import { isDataModel, isEnum, isProcedure, isTypeDef, type DataModel, type Model } from '@zenstackhq/language/ast';
 import { extractDocMeta, isIgnoredModel, stripCommentPrefix } from '../extractors';
+import type { DocMeta } from '../types';
 import { generatedHeader } from './common';
 
 function extractProcedureDescription(proc: { $cstNode?: { text?: string } }): string {
@@ -21,6 +22,15 @@ function firstSentence(text: string): string {
     if (!text) return '';
     const match = text.match(/^[^.!?\n]+[.!?]?/);
     return match ? match[0].trim() : text.trim();
+}
+
+function formatIndexEntry(name: string, path: string, desc: string, meta: DocMeta): string {
+    const suffix = desc ? ` — ${desc}` : '';
+    if (meta.deprecated) {
+        const reason = meta.deprecated;
+        return `- ~~[${name}](${path})~~ — *Deprecated: ${reason}*${desc ? ` ${desc}` : ''}`;
+    }
+    return `- [${name}](${path})${suffix}`;
 }
 
 function getModelPath(model: DataModel, groupBy: unknown): string {
@@ -86,8 +96,8 @@ export function renderIndexPage(
         lines.push('## Models', '');
         for (const m of models) {
             const desc = firstSentence(stripCommentPrefix(m.comments));
-            const suffix = desc ? ` — ${desc}` : '';
-            lines.push(`- [${m.name}](${getModelPath(m, groupBy)})${suffix}`);
+            const meta = extractDocMeta(m.attributes);
+            lines.push(formatIndexEntry(m.name, getModelPath(m, groupBy), desc, meta));
         }
         lines.push('');
     }
@@ -96,8 +106,8 @@ export function renderIndexPage(
         lines.push('## Views', '');
         for (const v of views) {
             const desc = firstSentence(stripCommentPrefix(v.comments));
-            const suffix = desc ? ` — ${desc}` : '';
-            lines.push(`- [${v.name}](./views/${v.name}.md)${suffix}`);
+            const meta = extractDocMeta(v.attributes);
+            lines.push(formatIndexEntry(v.name, `./views/${v.name}.md`, desc, meta));
         }
         lines.push('');
     }

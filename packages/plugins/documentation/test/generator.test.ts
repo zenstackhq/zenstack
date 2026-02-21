@@ -2329,6 +2329,75 @@ describe('documentation plugin', () => {
         expect(betaDoc).toContain('Next: [Gamma](./Gamma.md)');
     });
 
+    it('deprecated model renders with strikethrough and badge on page heading', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+                @@meta('doc:deprecated', 'Use Account instead')
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('# ~~User~~ <kbd>Model</kbd> <kbd>Deprecated</kbd>');
+    });
+
+    it('deprecated model renders with strikethrough on index page', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+                @@meta('doc:deprecated', 'Use Account instead')
+            }
+            model Account {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const indexContent = fs.readFileSync(path.join(tmpDir, 'index.md'), 'utf-8');
+        expect(indexContent).toContain('~~[User]');
+        expect(indexContent).toContain('Use Account instead');
+        expect(indexContent).not.toMatch(/~~\[Account\]/);
+    });
+
+    it('deprecated view renders with strikethrough and badge', async () => {
+        const model = await loadSchema(`
+            view OldReport {
+                id    String
+                total Int
+                @@meta('doc:deprecated', 'Use ReportV2 instead')
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const viewDoc = fs.readFileSync(path.join(tmpDir, 'views', 'OldReport.md'), 'utf-8');
+        expect(viewDoc).toContain('# ~~OldReport~~ <kbd>View</kbd> <kbd>Deprecated</kbd>');
+    });
+
     it('snapshot: full representative schema output', async () => {
         const model = await loadSchema(`
             /// User roles in the system.

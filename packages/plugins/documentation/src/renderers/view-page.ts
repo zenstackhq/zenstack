@@ -12,11 +12,16 @@ import {
 import type { Navigation, RenderOptions } from '../types';
 
 export function renderViewPage(view: DataModel, options: RenderOptions, navigation?: Navigation): string {
+    const docMeta = extractDocMeta(view.attributes);
+    const isDeprecated = !!docMeta.deprecated;
+    const nameDisplay = isDeprecated ? `~~${view.name}~~` : view.name;
+    const badges = isDeprecated ? ' <kbd>View</kbd> <kbd>Deprecated</kbd>' : ' <kbd>View</kbd>';
+
     const lines: string[] = [
         ...generatedHeader(),
         breadcrumbs('Views', view.name, '../'),
         '',
-        `# ${view.name} <kbd>View</kbd>`,
+        `# ${nameDisplay}${badges}`,
         '',
     ];
 
@@ -27,8 +32,6 @@ export function renderViewPage(view: DataModel, options: RenderOptions, navigati
         }
         lines.push('');
     }
-
-    const docMeta = extractDocMeta(view.attributes);
     const sourcePath = getRelativeSourcePath(view, options.schemaDir);
 
     const metaParts: string[] = [];

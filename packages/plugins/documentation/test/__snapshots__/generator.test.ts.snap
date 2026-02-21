@@ -10,7 +10,7 @@ exports[`documentation plugin > snapshot: full representative schema output > en
 
 > User roles in the system.
 
-**Defined in:** \`../../../../../tmp/zenstack-schema-8f82480b-a6af-44ec-8f31-aceba6b364c8.zmodel\`
+**Defined in:** \`../../../../../tmp/zenstack-schema-f71413c3-57f3-4297-9805-05da2d6081b6.zmodel\`
 
 ## Values
 
@@ -83,7 +83,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 > A blog post.
 
-**Category:** Content · **Defined in:** \`../../../../../tmp/zenstack-schema-8f82480b-a6af-44ec-8f31-aceba6b364c8.zmodel\`
+**Category:** Content · **Defined in:** \`../../../../../tmp/zenstack-schema-f71413c3-57f3-4297-9805-05da2d6081b6.zmodel\`
 
 [Fields](#fields) · [Relationships](#relationships)
 
@@ -143,7 +143,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 > Represents a registered user.
 
-**Category:** Identity · **Since:** 1.0 · **Defined in:** \`../../../../../tmp/zenstack-schema-8f82480b-a6af-44ec-8f31-aceba6b364c8.zmodel\`
+**Category:** Identity · **Since:** 1.0 · **Defined in:** \`../../../../../tmp/zenstack-schema-f71413c3-57f3-4297-9805-05da2d6081b6.zmodel\`
 
 [Fields](#fields) · [Relationships](#relationships) · [Access Policies](#access-policies) · [Indexes](#indexes) · [Validation Rules](#validation-rules)
 
