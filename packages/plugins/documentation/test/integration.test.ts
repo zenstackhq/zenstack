@@ -87,7 +87,7 @@ describe('integration: samples/orm schema', () => {
 
         const postCountLine = userDoc.split('\n').find((l) => l.includes('| postCount'));
         expect(postCountLine).toBeDefined();
-        expect(postCountLine).toContain('**Computed**');
+        expect(postCountLine).toContain('<kbd>computed</kbd>');
 
         expect(userDoc).toContain('## Access Policies');
         expect(userDoc).toContain('Allow');
@@ -219,7 +219,7 @@ describe('integration: showcase schema', () => {
         const userDoc = readDoc(tmpDir, 'models', 'User.md');
 
         const taskCountLine = userDoc.split('\n').find((l) => l.includes('| taskCount'));
-        expect(taskCountLine).toContain('**Computed**');
+        expect(taskCountLine).toContain('<kbd>computed</kbd>');
 
         expect(userDoc).toContain('[Role](../enums/Role.md)');
 

@@ -1072,7 +1072,7 @@ describe('documentation plugin', () => {
         expect(userDoc).toContain('Unique');
     });
 
-    it('marks computed fields with a Computed badge', async () => {
+    it('marks computed fields with kbd badge in Type column', async () => {
         const model = await loadSchema(`
             model User {
                 id        String @id @default(cuid())
@@ -1094,7 +1094,10 @@ describe('documentation plugin', () => {
         const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
         const fullNameLine = userDoc.split('\n').find((l) => l.includes('| fullName'));
         expect(fullNameLine).toBeDefined();
-        expect(fullNameLine).toContain('Computed');
+        expect(fullNameLine).toContain('<kbd>computed</kbd>');
+        expect(fullNameLine).toContain('`String`');
+        // Should not show "**Computed**" in description column anymore
+        expect(fullNameLine).not.toContain('**Computed**');
     });
 
     it('annotates inherited fields with source model', async () => {

@@ -146,14 +146,16 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
                 source = `[${inheritedFrom}](./${inheritedFrom}.md)`;
             }
 
+            let typeCol = getFieldTypeName(field, true);
+            if (isComputed) typeCol += ' <kbd>computed</kbd>';
+
             const descParts: string[] = [];
-            if (isComputed) descParts.push('**Computed**');
             const example = extractFieldDocExample(field);
             if (example) descParts.push(`Example: \`${example}\``);
             if (fieldDescription) descParts.push(fieldDescription);
             const desc = descParts.length > 0 ? descParts.join(' ') : '—';
             lines.push(
-                `| ${field.name} | ${getFieldTypeName(field, true)} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${source} | ${desc} |`,
+                `| ${field.name} | ${typeCol} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${source} | ${desc} |`,
             );
         }
         lines.push('');
