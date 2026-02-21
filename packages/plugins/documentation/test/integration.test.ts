@@ -357,15 +357,15 @@ describe('integration: multi-file schema', () => {
         const tmpDir = await generateDocs(MULTIFILE_SCHEMA);
 
         const userDoc = readDoc(tmpDir, 'models', 'User.md');
-        expect(userDoc).toContain('## Declaration');
+        expect(userDoc).toContain('<summary>Declaration</summary>');
         expect(userDoc).toContain('model User');
 
         const roleDoc = readDoc(tmpDir, 'enums', 'Role.md');
-        expect(roleDoc).toContain('## Declaration');
+        expect(roleDoc).toContain('<summary>Declaration</summary>');
         expect(roleDoc).toContain('enum Role');
 
         const tsDoc = readDoc(tmpDir, 'types', 'Timestamps.md');
-        expect(tsDoc).toContain('## Declaration');
+        expect(tsDoc).toContain('<summary>Declaration</summary>');
         expect(tsDoc).toContain('type Timestamps');
     });
 });

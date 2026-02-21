@@ -61,10 +61,12 @@ export function renderEnumPage(enumDecl: Enum, allModels: DataModel[], options: 
 
     const cstText = enumDecl.$cstNode?.text;
     if (cstText) {
-        lines.push('## Declaration', '');
+        lines.push('<details>');
+        lines.push('<summary>Declaration</summary>', '');
         lines.push('```prisma');
         lines.push(cstText);
         lines.push('```', '');
+        lines.push('</details>', '');
     }
 
     return lines.join('\n');

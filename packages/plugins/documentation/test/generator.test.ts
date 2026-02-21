@@ -325,7 +325,7 @@ describe('documentation plugin', () => {
         });
 
         const enumDoc = fs.readFileSync(path.join(tmpDir, 'enums', 'Role.md'), 'utf-8');
-        expect(enumDoc).toContain('## Declaration');
+        expect(enumDoc).toContain('<summary>Declaration</summary>');
         expect(enumDoc).toContain('```prisma');
         expect(enumDoc).toContain('enum Role {');
         expect(enumDoc).toContain('ADMIN');
@@ -353,7 +353,7 @@ describe('documentation plugin', () => {
         });
 
         const typeDoc = fs.readFileSync(path.join(tmpDir, 'types', 'Timestamps.md'), 'utf-8');
-        expect(typeDoc).toContain('## Declaration');
+        expect(typeDoc).toContain('<summary>Declaration</summary>');
         expect(typeDoc).toContain('```prisma');
         expect(typeDoc).toContain('type Timestamps {');
         expect(typeDoc).toContain('createdAt DateTime');
@@ -468,10 +468,12 @@ describe('documentation plugin', () => {
         });
 
         const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
-        expect(userDoc).toContain('## Declaration');
+        expect(userDoc).toContain('<details>');
+        expect(userDoc).toContain('<summary>Declaration</summary>');
         expect(userDoc).toContain('```prisma');
         expect(userDoc).toContain('model User {');
         expect(userDoc).toContain('id    String @id @default(cuid())');
+        expect(userDoc).toContain('</details>');
     });
 
     it('fields with no description show em-dash instead of blank', async () => {

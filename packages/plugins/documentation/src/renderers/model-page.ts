@@ -203,10 +203,12 @@ export function renderModelPage(model: DataModel, options: RenderOptions): strin
 
     const cstText = model.$cstNode?.text;
     if (cstText) {
-        lines.push('## Declaration', '');
+        lines.push('<details>');
+        lines.push('<summary>Declaration</summary>', '');
         lines.push('```prisma');
         lines.push(cstText);
         lines.push('```', '');
+        lines.push('</details>', '');
     }
 
     return lines.join('\n');

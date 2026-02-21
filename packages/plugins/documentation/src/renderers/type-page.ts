@@ -67,10 +67,12 @@ export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], option
 
     const cstText = typeDef.$cstNode?.text;
     if (cstText) {
-        lines.push('## Declaration', '');
+        lines.push('<details>');
+        lines.push('<summary>Declaration</summary>', '');
         lines.push('```prisma');
         lines.push(cstText);
         lines.push('```', '');
+        lines.push('</details>', '');
     }
 
     return lines.join('\n');
