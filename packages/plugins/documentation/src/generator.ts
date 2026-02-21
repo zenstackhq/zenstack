@@ -9,6 +9,7 @@ import { renderModelPage } from './renderers/model-page';
 import { renderRelationshipsPage } from './renderers/relationships-page';
 import { renderProcedurePage } from './renderers/procedure-page';
 import { renderTypePage } from './renderers/type-page';
+import { renderSkillPage } from './renderers/skill-page';
 import { renderViewPage } from './renderers/view-page';
 import { buildNavList } from './renderers/common';
 import type { GenerationContext } from './types';
@@ -146,4 +147,14 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
         path.join(outputDir, 'index.md'),
         renderIndexPage(context.model, context.pluginOptions, hasRelationships, genCtx),
     );
+
+    if (context.pluginOptions['generateSkill'] === true) {
+        const title = typeof context.pluginOptions['title'] === 'string'
+            ? context.pluginOptions['title']
+            : 'Schema Documentation';
+        fs.writeFileSync(
+            path.join(outputDir, 'SKILL.md'),
+            renderSkillPage(context.model, title, models, views, enums, typeDefs, procedures, hasRelationships),
+        );
+    }
 }

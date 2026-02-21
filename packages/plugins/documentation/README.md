@@ -110,6 +110,7 @@ plugin documentation {
     includePolicies        = true
     includeValidation      = true
     includeIndexes         = true
+    generateSkill          = true
 }
 ```
 
@@ -124,6 +125,7 @@ plugin documentation {
 | `includePolicies` | `boolean` | `true` | Generate access policy tables |
 | `includeValidation` | `boolean` | `true` | Generate validation rule tables |
 | `includeIndexes` | `boolean` | `true` | Generate index/constraint tables |
+| `generateSkill` | `boolean` | `false` | Generate a `SKILL.md` file for AI agent consumption |
 
 ## Enriching Your Documentation
 
@@ -259,6 +261,33 @@ plugin documentation {
 ```
 
 This gives you clean model/enum/type pages with just fields, descriptions, and declarations.
+
+## AI Agent Integration (SKILL.md)
+
+Set `generateSkill = true` to produce a `SKILL.md` alongside the human-readable docs. This file gives AI coding agents (Cursor, Claude Code, Windsurf, and others) instant, project-specific context about your data layer.
+
+```prisma
+plugin documentation {
+    provider      = '@zenstackhq/plugin-documentation'
+    output        = './docs/schema'
+    generateSkill = true
+}
+```
+
+The generated `SKILL.md` includes:
+
+- **YAML frontmatter** with name and description, compatible with the [skills.sh](https://skills.sh/docs) ecosystem
+- **Schema overview** — entity counts at a glance
+- **Compact entity catalog** — every model, enum, type, and view with fields, types, and attributes in a dense, machine-readable format
+- **Relationship map** — flat listing of every model-to-model relationship with cardinality
+- **Access policies** — allow/deny rules per model
+- **Procedure signatures** — params, return types, mutation vs query
+- **Validation constraints** — per-field validation rules
+- **Links to full docs** — each entity links to its full documentation page for deeper context
+
+The SKILL.md format is optimized for LLM consumption: information-dense, no visual formatting, consistent structure. When an agent needs to understand your data layer — to generate a query, build a form, write a migration, or reason about access control — it can read this single file instead of parsing `.zmodel` schemas.
+
+You can install the generated skill into your project's `.agents/skills/` directory, or publish it via `npx skills add` for team-wide use. See the [skills.sh documentation](https://skills.sh/docs) for details.
 
 ## Compatibility
 

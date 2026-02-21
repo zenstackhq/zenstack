@@ -392,6 +392,68 @@ describe('integration: showcase schema', () => {
         expect(broken).toEqual([]);
     });
 
+    it('generates SKILL.md with comprehensive content when generateSkill=true', async () => {
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA, { generateSkill: true });
+
+        const skill = readDoc(tmpDir, 'SKILL.md');
+
+        expect(skill).toMatch(/^---\n/);
+        expect(skill).toContain('name:');
+        expect(skill).toContain('description:');
+
+        expect(skill).toContain('## Schema Overview');
+        expect(skill).toContain('9 models');
+        expect(skill).toContain('3 enums');
+        expect(skill).toContain('2 types');
+        expect(skill).toContain('3 views');
+        expect(skill).toContain('7 procedures');
+
+        expect(skill).toContain('## Models');
+        expect(skill).toContain('### User');
+        expect(skill).toContain('### Organization');
+        expect(skill).toContain('### Task');
+
+        expect(skill).toContain('## Enums');
+        expect(skill).toContain('### Role');
+        expect(skill).toContain('### Priority');
+        expect(skill).toContain('### TaskStatus');
+
+        expect(skill).toContain('## Types');
+        expect(skill).toContain('### Timestamps');
+        expect(skill).toContain('### ProjectStats');
+
+        expect(skill).toContain('## Views');
+        expect(skill).toContain('### UserProfile');
+
+        expect(skill).toContain('## Relationships');
+        expect(skill).toContain('User');
+        expect(skill).toContain('Organization');
+
+        expect(skill).toContain('## Access Policies');
+        expect(skill).toContain("allow('read', true)");
+
+        expect(skill).toContain('## Procedures');
+        expect(skill).toContain('### signUp (mutation)');
+        expect(skill).toContain('### getUser (query)');
+
+        expect(skill).toContain('## Validation');
+        expect(skill).toContain('@email');
+        expect(skill).toContain('@length');
+
+        expect(skill).toContain('## Detailed Documentation');
+        expect(skill).toContain('[Full schema index](./index.md)');
+        expect(skill).toContain('[Relationships and ER diagrams](./relationships.md)');
+
+        expect(skill).toContain('[Full documentation](./models/User.md)');
+        expect(skill).toContain('[Full documentation](./enums/Role.md)');
+        expect(skill).toContain('[Full documentation](./procedures/signUp.md)');
+    });
+
+    it('does not generate SKILL.md by default', async () => {
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
+        expect(fs.existsSync(path.join(tmpDir, 'SKILL.md'))).toBe(false);
+    });
+
     it('includeInternalModels=true includes @@ignore models in output', async () => {
         const tmpDir = await generateFromFile(SHOWCASE_SCHEMA, { includeInternalModels: true });
 

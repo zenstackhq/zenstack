@@ -72,7 +72,8 @@ src/
     ├── enum-page.ts      # Renders enums/<Name>.md
     ├── type-page.ts      # Renders types/<Name>.md
     ├── procedure-page.ts # Renders procedures/<Name>.md
-    └── relationships-page.ts  # Renders relationships.md
+    ├── relationships-page.ts  # Renders relationships.md
+    └── skill-page.ts     # Renders SKILL.md (LLM-optimized reference)
 ```
 
 ### Key interfaces
@@ -231,10 +232,11 @@ test/
 │   ├── enum-page.test.ts        # Enum page (9 tests)
 │   ├── type-view-page.test.ts   # Type + View pages (13 tests)
 │   ├── procedure-page.test.ts   # Procedure page (13 tests)
+│   ├── skill-page.test.ts      # SKILL.md generation (21 tests)
 │   └── snapshot.test.ts         # Full schema snapshot (1 test)
 └── integration/                 # Tests against real schemas
     ├── samples.test.ts          # Sample project schemas (4 tests)
-    ├── showcase.test.ts         # Comprehensive showcase schema (22 tests)
+    ├── showcase.test.ts         # Comprehensive showcase schema (24 tests)
     ├── e2e-schemas.test.ts      # E2E test schemas (6 tests)
     └── multifile.test.ts        # Multi-file import schemas (3 tests)
 ```
