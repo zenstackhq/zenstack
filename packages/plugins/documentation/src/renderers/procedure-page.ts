@@ -1,4 +1,4 @@
-import { isDataModel, isEnum, isTypeDef, type Procedure } from '@zenstackhq/language/ast';
+import { isDataModel, isEnum, type Procedure } from '@zenstackhq/language/ast';
 import { getRelativeSourcePath } from '../extractors';
 import { breadcrumbs, generatedHeader, navigationFooter } from './common';
 import type { Navigation, RenderOptions } from '../types';
@@ -13,10 +13,8 @@ function formatParamType(paramType: Procedure['returnType'], linked: boolean): s
                 typeName = `[${ref.name}](../models/${ref.name}.md)`;
             } else if (isEnum(ref)) {
                 typeName = `[${ref.name}](../enums/${ref.name}.md)`;
-            } else if (isTypeDef(ref)) {
-                typeName = `[${ref.name}](../types/${ref.name}.md)`;
             } else {
-                typeName = ref.name;
+                typeName = `[${ref.name}](../types/${ref.name}.md)`;
             }
         } else {
             typeName = ref.name;

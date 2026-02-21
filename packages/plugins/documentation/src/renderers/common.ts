@@ -30,10 +30,17 @@ export function buildNavList(
 ): Map<string, Navigation> {
     const navMap = new Map<string, Navigation>();
     for (let i = 0; i < sortedNames.length; i++) {
+        const current = sortedNames[i]!;
         const nav: Navigation = {};
-        if (i > 0) nav.prev = { name: sortedNames[i - 1], path: `${pathPrefix}${sortedNames[i - 1]}.md` };
-        if (i < sortedNames.length - 1) nav.next = { name: sortedNames[i + 1], path: `${pathPrefix}${sortedNames[i + 1]}.md` };
-        navMap.set(sortedNames[i], nav);
+        if (i > 0) {
+            const prev = sortedNames[i - 1]!;
+            nav.prev = { name: prev, path: `${pathPrefix}${prev}.md` };
+        }
+        if (i < sortedNames.length - 1) {
+            const next = sortedNames[i + 1]!;
+            nav.next = { name: next, path: `${pathPrefix}${next}.md` };
+        }
+        navMap.set(current, nav);
     }
     return navMap;
 }
