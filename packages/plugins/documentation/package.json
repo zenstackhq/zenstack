@@ -1,0 +1,44 @@
+{
+    "name": "@zenstackhq/plugin-documentation",
+    "version": "3.3.3",
+    "description": "ZenStack Documentation Generator Plugin",
+    "type": "module",
+    "scripts": {
+        "build": "tsc --noEmit && tsup-node",
+        "watch": "tsup-node --watch",
+        "lint": "eslint src --ext ts",
+        "test": "vitest run"
+    },
+    "keywords": [],
+    "author": "ZenStack Team",
+    "license": "MIT",
+    "files": [
+        "dist"
+    ],
+    "exports": {
+        ".": {
+            "import": {
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
+            },
+            "require": {
+                "types": "./dist/index.d.cts",
+                "default": "./dist/index.cjs"
+            }
+        },
+        "./package.json": {
+            "import": "./package.json",
+            "require": "./package.json"
+        }
+    },
+    "dependencies": {
+        "@zenstackhq/language": "workspace:*",
+        "@zenstackhq/sdk": "workspace:*"
+    },
+    "devDependencies": {
+        "@zenstackhq/common-helpers": "workspace:*",
+        "@zenstackhq/eslint-config": "workspace:*",
+        "@zenstackhq/typescript-config": "workspace:*",
+        "@zenstackhq/vitest-config": "workspace:*"
+    }
+}
