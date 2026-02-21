@@ -73,7 +73,9 @@ export function getFieldTypeName(field: DataField, linked: boolean): string {
 
     if (field.type.array) typeName += '[]';
     if (field.type.optional) typeName += '?';
-    return typeName;
+
+    const isScalar = !field.type.reference?.ref;
+    return isScalar ? `\`${typeName}\`` : typeName;
 }
 
 export function getDefaultValue(field: DataField): string {

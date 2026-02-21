@@ -9,7 +9,7 @@ exports[`documentation plugin > snapshot: full representative schema output > en
 
 > User roles in the system.
 
-**Defined in:** \`../../../../../tmp/zenstack-schema-d45f5c58-7177-4d48-859f-b87c8b0f29f8.zmodel\`
+**Defined in:** \`../../../../../tmp/zenstack-schema-bd533154-1b5b-4360-9cd7-0dfddf649bb8.zmodel\`
 
 ## Values
 
@@ -80,7 +80,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 > A blog post.
 
-**Category:** Content · **Defined in:** \`../../../../../tmp/zenstack-schema-d45f5c58-7177-4d48-859f-b87c8b0f29f8.zmodel\`
+**Category:** Content · **Defined in:** \`../../../../../tmp/zenstack-schema-bd533154-1b5b-4360-9cd7-0dfddf649bb8.zmodel\`
 
 [Fields](#fields) · [Relationships](#relationships)
 
@@ -88,11 +88,11 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 | Field | Type | Required | Default | Attributes | Source | Description |
 | --- | --- | --- | --- | --- | --- | --- |
-| id | String | Yes | \`cuid()\` | \`@id\` | — | — |
-| title | String | Yes | — | — | — | The post title. |
-| content | String? | No | — | — | — | — |
+| id | \`String\` | Yes | \`cuid()\` | \`@id\` | — | — |
+| title | \`String\` | Yes | — | — | — | The post title. |
+| content | \`String?\` | No | — | — | — | — |
 | author | [User](./User.md) | Yes | — | \`@relation(fields: [authorId], references: [id])\` | — | — |
-| authorId | String | Yes | — | — | — | — |
+| authorId | \`String\` | Yes | — | — | — | — |
 
 ## Relationships
 
@@ -135,7 +135,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 > Represents a registered user.
 
-**Category:** Identity · **Since:** 1.0 · **Defined in:** \`../../../../../tmp/zenstack-schema-d45f5c58-7177-4d48-859f-b87c8b0f29f8.zmodel\`
+**Category:** Identity · **Since:** 1.0 · **Defined in:** \`../../../../../tmp/zenstack-schema-bd533154-1b5b-4360-9cd7-0dfddf649bb8.zmodel\`
 
 [Fields](#fields) · [Relationships](#relationships) · [Access Policies](#access-policies) · [Indexes](#indexes) · [Validation Rules](#validation-rules)
 
@@ -143,9 +143,9 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 | Field | Type | Required | Default | Attributes | Source | Description |
 | --- | --- | --- | --- | --- | --- | --- |
-| id | String | Yes | \`cuid()\` | \`@id\` | — | — |
-| email | String | Yes | — | \`@unique\`, \`@email\` | — | User's email address. |
-| name | String | Yes | — | — | — | Display name shown in the UI. |
+| id | \`String\` | Yes | \`cuid()\` | \`@id\` | — | — |
+| email | \`String\` | Yes | — | \`@unique\`, \`@email\` | — | User's email address. |
+| name | \`String\` | Yes | — | — | — | Display name shown in the UI. |
 | role | [Role](../enums/Role.md) | Yes | — | — | — | — |
 | posts | [Post](./Post.md)[] | No | — | — | — | — |
 

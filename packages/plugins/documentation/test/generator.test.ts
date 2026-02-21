@@ -387,6 +387,35 @@ describe('documentation plugin', () => {
         expect(typeDoc).not.toContain('classDiagram');
     });
 
+    it('scalar types in fields table are backtick-wrapped', async () => {
+        const model = await loadSchema(`
+            model User {
+                id    String   @id @default(cuid())
+                name  String
+                age   Int?
+                score Float
+                active Boolean @default(true)
+                joined DateTime @default(now())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const doc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(doc).toContain('| `String` |');
+        expect(doc).toContain('| `Int?` |');
+        expect(doc).toContain('| `Float` |');
+        expect(doc).toContain('| `Boolean` |');
+        expect(doc).toContain('| `DateTime` |');
+    });
+
     it('type page fields default to declaration order', async () => {
         const model = await loadSchema(`
             type Metadata {
