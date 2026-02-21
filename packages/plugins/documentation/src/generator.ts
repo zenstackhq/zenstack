@@ -32,6 +32,8 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
         .filter(isDataModel)
         .filter((m) => includeInternal || !isIgnoredModel(m));
 
+    const procedures = context.model.declarations.filter(isProcedure);
+
     const allRelations = collectRelationships(models);
     const hasRelationships = options.includeRelationships && allRelations.length > 0;
 
@@ -53,7 +55,7 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
             }
             fs.writeFileSync(
                 path.join(modelDir, `${model.name}.md`),
-                renderModelPage(model, options),
+                renderModelPage(model, options, procedures),
             );
         }
     }
@@ -90,7 +92,6 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
     }
 
     const proceduresDir = path.join(outputDir, 'procedures');
-    const procedures = context.model.declarations.filter(isProcedure);
     if (procedures.length > 0) {
         fs.mkdirSync(proceduresDir, { recursive: true });
         for (const proc of procedures) {

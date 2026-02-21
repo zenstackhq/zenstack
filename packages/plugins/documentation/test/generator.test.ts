@@ -1456,6 +1456,101 @@ describe('documentation plugin', () => {
         expect(procDoc).not.toContain('## Parameters');
     });
 
+    it('procedure return type links to model page', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+            procedure getUser(id: String): User
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const procDoc = fs.readFileSync(path.join(tmpDir, 'procedures', 'getUser.md'), 'utf-8');
+        expect(procDoc).toContain('[User](../models/User.md)');
+    });
+
+    it('procedure return type links to type page', async () => {
+        const model = await loadSchema(`
+            type Stats {
+                total Int
+            }
+            model User {
+                id String @id @default(cuid())
+            }
+            procedure getStats(): Stats
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const procDoc = fs.readFileSync(path.join(tmpDir, 'procedures', 'getStats.md'), 'utf-8');
+        expect(procDoc).toContain('[Stats](../types/Stats.md)');
+    });
+
+    it('procedure param type links to enum page', async () => {
+        const model = await loadSchema(`
+            enum Role { ADMIN USER }
+            model User {
+                id String @id @default(cuid())
+            }
+            mutation procedure setRole(userId: String, role: Role): User
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const procDoc = fs.readFileSync(path.join(tmpDir, 'procedures', 'setRole.md'), 'utf-8');
+        const roleLine = procDoc.split('\n').find((l: string) => l.includes('| role'));
+        expect(roleLine).toBeDefined();
+        expect(roleLine).toContain('[Role](../enums/Role.md)');
+    });
+
+    it('model page shows Used in Procedures section', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+            procedure getUser(id: String): User
+            mutation procedure signUp(name: String): User
+            procedure listUsers(): User[]
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('## Used in Procedures');
+        expect(userDoc).toContain('[getUser](../procedures/getUser.md)');
+        expect(userDoc).toContain('[signUp](../procedures/signUp.md)');
+        expect(userDoc).toContain('[listUsers](../procedures/listUsers.md)');
+    });
+
     it('index page summary includes procedure count', async () => {
         const model = await loadSchema(`
             model User {

@@ -1,4 +1,4 @@
-import { isDataModel, isTypeDef, type DataModel } from '@zenstackhq/language/ast';
+import { isDataModel, isTypeDef, type DataModel, type Procedure } from '@zenstackhq/language/ast';
 import { getAllFields } from '@zenstackhq/language/utils';
 import {
     extractDocMeta,
@@ -13,7 +13,16 @@ import {
 } from '../extractors';
 import type { RenderOptions } from '../types';
 
-export function renderModelPage(model: DataModel, options: RenderOptions): string {
+function isModelReferencedByProc(proc: Procedure, modelName: string): boolean {
+    if (proc.returnType.reference?.ref?.name === modelName) return true;
+    if (proc.returnType.type === modelName) return true;
+    for (const param of proc.params) {
+        if (param.type.reference?.ref?.name === modelName) return true;
+    }
+    return false;
+}
+
+export function renderModelPage(model: DataModel, options: RenderOptions, procedures: Procedure[] = []): string {
     const lines: string[] = [
         `[Index](../index.md)`,
         '',
@@ -96,6 +105,10 @@ export function renderModelPage(model: DataModel, options: RenderOptions): strin
     if (options.includePolicies && policyAttrs.length > 0) sections.push('Access Policies');
     if (options.includeIndexes && indexAttrs.length > 0) sections.push('Indexes');
     if (options.includeValidation && validationRules.length > 0) sections.push('Validation Rules');
+
+    const referencingProcsForToc = procedures
+        .filter((p) => isModelReferencedByProc(p, model.name));
+    if (referencingProcsForToc.length > 0) sections.push('Used in Procedures');
 
     if (sections.length > 1) {
         for (const section of sections) {
@@ -213,6 +226,19 @@ export function renderModelPage(model: DataModel, options: RenderOptions): strin
         lines.push('| --- | --- |');
         for (const { fieldName, rule } of validationRules) {
             lines.push(`| ${fieldName} | ${rule} |`);
+        }
+        lines.push('');
+    }
+
+    const referencingProcs = procedures
+        .filter((p) => isModelReferencedByProc(p, model.name))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    if (referencingProcs.length > 0) {
+        lines.push('## Used in Procedures', '');
+        for (const proc of referencingProcs) {
+            const kind = proc.mutation ? 'mutation' : 'query';
+            lines.push(`- [${proc.name}](../procedures/${proc.name}.md) — *${kind}*`);
         }
         lines.push('');
     }
