@@ -1478,6 +1478,32 @@ describe('documentation plugin', () => {
         expect(addressLine).toContain('`@json`');
     });
 
+    it('auth() function renders in access policy rules', async () => {
+        const model = await loadSchema(`
+            model User {
+                id    String @id @default(cuid())
+                email String
+                @@auth
+                @@allow('read', true)
+                @@allow('update', auth() == this)
+                @@deny('delete', auth() == this)
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const doc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(doc).toContain('## Access Policies');
+        expect(doc).toContain('`auth() == this`');
+    });
+
     it('all predefined default-value functions render in Default column', async () => {
         const model = await loadSchema(`
             model Defaults {
