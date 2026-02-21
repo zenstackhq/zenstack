@@ -24,4 +24,32 @@ describe('documentation plugin', () => {
 
         expect(fs.existsSync(path.join(tmpDir, 'index.md'))).toBe(true);
     });
+
+    it('index page lists models alpha-sorted with links', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+            model Post {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const indexContent = fs.readFileSync(path.join(tmpDir, 'index.md'), 'utf-8');
+        expect(indexContent).toContain('# Schema Documentation');
+        expect(indexContent).toContain('[Post](./models/Post.md)');
+        expect(indexContent).toContain('[User](./models/User.md)');
+        const postIdx = indexContent.indexOf('[Post]');
+        const userIdx = indexContent.indexOf('[User]');
+        expect(postIdx).toBeLessThan(userIdx);
+    });
 });
