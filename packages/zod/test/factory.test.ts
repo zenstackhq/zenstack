@@ -1,10 +1,10 @@
 import Decimal from 'decimal.js';
 import { describe, expect, expectTypeOf, it } from 'vitest';
-import { createModelSchemaFactory } from '../src/index';
+import { createSchemaFactory } from '../src/index';
 import { schema } from './schema/schema';
 import z from 'zod';
 
-const factory = createModelSchemaFactory(schema);
+const factory = createSchemaFactory(schema);
 
 // A fully valid User object (without relations)
 const validUser = {
