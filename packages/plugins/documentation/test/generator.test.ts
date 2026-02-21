@@ -230,4 +230,34 @@ describe('documentation plugin', () => {
         expect(indexContent).toContain('# My API');
         expect(indexContent).not.toContain('# Schema Documentation');
     });
+
+    it('produces correct directory structure for models and enums', async () => {
+        const model = await loadSchema(`
+            model User {
+                id   String @id @default(cuid())
+                role Role
+            }
+            model Post {
+                id String @id @default(cuid())
+            }
+            enum Role {
+                ADMIN
+                USER
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        expect(fs.existsSync(path.join(tmpDir, 'index.md'))).toBe(true);
+        expect(fs.existsSync(path.join(tmpDir, 'models', 'User.md'))).toBe(true);
+        expect(fs.existsSync(path.join(tmpDir, 'models', 'Post.md'))).toBe(true);
+        expect(fs.existsSync(path.join(tmpDir, 'enums', 'Role.md'))).toBe(true);
+    });
 });
