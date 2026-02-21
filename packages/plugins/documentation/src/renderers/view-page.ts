@@ -1,5 +1,5 @@
 import { type DataModel } from '@zenstackhq/language/ast';
-import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter } from './common';
+import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referenceLink } from './common';
 import {
     extractDocMeta,
     getDefaultValue,
@@ -64,6 +64,7 @@ export function renderViewPage(view: DataModel, options: RenderOptions, navigati
         lines.push('');
     }
 
+    lines.push(...referenceLink('view'));
     lines.push(...declarationBlock(view.$cstNode?.text, sourcePath));
 
     lines.push(...navigationFooter(navigation));

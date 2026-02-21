@@ -1,6 +1,6 @@
 import { isDataModel, isEnum, type Procedure } from '@zenstackhq/language/ast';
 import { getRelativeSourcePath } from '../extractors';
-import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter } from './common';
+import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referenceLink } from './common';
 import type { Navigation, RenderOptions } from '../types';
 
 function formatParamType(paramType: Procedure['returnType'], linked: boolean): string {
@@ -100,6 +100,7 @@ export function renderProcedurePage(proc: Procedure, options: RenderOptions, nav
     lines.push(`    ${procNodeId} --> ret["${retTypeName}${retArray}"]`);
     lines.push('```', '');
 
+    lines.push(...referenceLink('procedure'));
     lines.push(...declarationBlock(proc.$cstNode?.text, sourcePath));
 
     lines.push(...navigationFooter(navigation));

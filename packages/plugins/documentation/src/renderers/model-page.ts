@@ -1,6 +1,6 @@
 import { isDataModel, isTypeDef, type DataModel, type Procedure } from '@zenstackhq/language/ast';
 import { getAllFields } from '@zenstackhq/language/utils';
-import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter } from './common';
+import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referenceLink } from './common';
 import type { Navigation } from '../types';
 import {
     extractDocMeta,
@@ -272,6 +272,7 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
         lines.push('');
     }
 
+    lines.push(...referenceLink('model'));
     lines.push(...declarationBlock(model.$cstNode?.text, sourcePath));
 
     lines.push(...navigationFooter(navigation));

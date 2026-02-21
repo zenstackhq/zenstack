@@ -1,5 +1,5 @@
 import type { DataModel, TypeDef } from '@zenstackhq/language/ast';
-import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter } from './common';
+import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referenceLink } from './common';
 import type { Navigation } from '../types';
 import {
     getDefaultValue,
@@ -84,6 +84,7 @@ export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], option
         lines.push('```', '');
     }
 
+    lines.push(...referenceLink('type'));
     lines.push(...declarationBlock(typeDef.$cstNode?.text, sourcePath));
 
     lines.push(...navigationFooter(navigation));

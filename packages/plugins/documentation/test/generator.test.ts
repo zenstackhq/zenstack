@@ -898,6 +898,94 @@ describe('documentation plugin', () => {
         expect(tocIdx).toBeLessThan(fieldsIdx);
     });
 
+    it('model page includes external ZenStack docs link', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('zenstack.dev');
+        expect(userDoc).toContain('data-model');
+    });
+
+    it('enum page includes external ZenStack docs link', async () => {
+        const model = await loadSchema(`
+            enum Role { ADMIN USER }
+            model User {
+                id String @id @default(cuid())
+                role Role
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const roleDoc = fs.readFileSync(path.join(tmpDir, 'enums', 'Role.md'), 'utf-8');
+        expect(roleDoc).toContain('zenstack.dev');
+        expect(roleDoc).toContain('enum');
+    });
+
+    it('view page includes external ZenStack docs link', async () => {
+        const model = await loadSchema(`
+            view UserInfo {
+                id Int
+                name String
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const viewDoc = fs.readFileSync(path.join(tmpDir, 'views', 'UserInfo.md'), 'utf-8');
+        expect(viewDoc).toContain('zenstack.dev');
+        expect(viewDoc).toContain('view');
+    });
+
+    it('procedure page includes external ZenStack docs link', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+            procedure getUser(id: String): User
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const procDoc = fs.readFileSync(path.join(tmpDir, 'procedures', 'getUser.md'), 'utf-8');
+        expect(procDoc).toContain('zenstack.dev');
+        expect(procDoc).toContain('procedure');
+    });
+
     it('declaration summary includes source file path', async () => {
         const model = await loadSchema(`
             model User {

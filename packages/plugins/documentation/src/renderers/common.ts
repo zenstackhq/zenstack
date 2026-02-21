@@ -30,6 +30,22 @@ export function navigationFooter(nav: Navigation | undefined): string[] {
     return ['---', '', parts.join(' · '), ''];
 }
 
+const ZENSTACK_DOCS_BASE = 'https://zenstack.dev/docs/reference/zmodel';
+
+const ENTITY_DOC_PATHS: Record<string, string> = {
+    model: `${ZENSTACK_DOCS_BASE}/data-model`,
+    enum: `${ZENSTACK_DOCS_BASE}/enum`,
+    type: `${ZENSTACK_DOCS_BASE}/type`,
+    view: `${ZENSTACK_DOCS_BASE}/view`,
+    procedure: `${ZENSTACK_DOCS_BASE}/procedure`,
+};
+
+export function referenceLink(entityType: 'model' | 'enum' | 'type' | 'view' | 'procedure'): string[] {
+    const url = ENTITY_DOC_PATHS[entityType];
+    if (!url) return [];
+    return [`*Learn more about ZModel ${entityType}s in the [ZenStack documentation](${url}).*`, ''];
+}
+
 export function declarationBlock(cstText: string | undefined, sourcePath: string | undefined): string[] {
     if (!cstText) return [];
     const summaryLabel = sourcePath ? `Declaration · <code>${sourcePath}</code>` : 'Declaration';
