@@ -1,6 +1,5 @@
 import type { DataModel, TypeDef } from '@zenstackhq/language/ast';
 import {
-    getAttrName,
     getDefaultValue,
     getFieldAttributes,
     getFieldTypeName,
