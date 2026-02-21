@@ -1,4 +1,4 @@
-import type { GenerationContext, Navigation } from '../types';
+import type { DocMeta, GenerationContext, Navigation } from '../types';
 
 export function generatedHeader(ctx?: GenerationContext): string[] {
     const lines = ['> [!CAUTION]', '> This documentation was auto-generated. Do not edit directly.'];
@@ -60,6 +60,33 @@ export function declarationBlock(cstText: string | undefined, sourcePath: string
         '</details>',
         '',
     ];
+}
+
+export function renderDescription(comments: string[], stripFn: (c: string[]) => string): string[] {
+    const description = stripFn(comments);
+    if (!description) return [];
+    const lines: string[] = [];
+    for (const line of description.split('\n')) {
+        lines.push(`> ${line}`);
+    }
+    lines.push('');
+    return lines;
+}
+
+export function renderMetadata(
+    docMeta: DocMeta,
+    sourcePath: string | undefined,
+    extra?: { mappedTable?: string; dbSchema?: string },
+): string[] {
+    const parts: string[] = [];
+    if (docMeta.category) parts.push(`**Category:** ${docMeta.category}`);
+    if (docMeta.since) parts.push(`**Since:** ${docMeta.since}`);
+    if (docMeta.deprecated) parts.push(`**Deprecated:** ${docMeta.deprecated}`);
+    if (extra?.mappedTable) parts.push(`**Table:** \`${extra.mappedTable}\``);
+    if (extra?.dbSchema) parts.push(`**Schema:** \`${extra.dbSchema}\``);
+    if (sourcePath) parts.push(`**Defined in:** \`${sourcePath}\``);
+    if (parts.length === 0) return [];
+    return [parts.join(' · '), ''];
 }
 
 export function buildNavList(

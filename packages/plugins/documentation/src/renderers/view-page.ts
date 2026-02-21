@@ -1,5 +1,5 @@
 import { type DataModel } from '@zenstackhq/language/ast';
-import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referenceLink } from './common';
+import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referenceLink, renderDescription, renderMetadata } from './common';
 import {
     extractDocMeta,
     getDefaultValue,
@@ -25,24 +25,9 @@ export function renderViewPage(view: DataModel, options: RenderOptions, navigati
         '',
     ];
 
-    const description = stripCommentPrefix(view.comments);
-    if (description) {
-        for (const line of description.split('\n')) {
-            lines.push(`> ${line}`);
-        }
-        lines.push('');
-    }
+    lines.push(...renderDescription(view.comments, stripCommentPrefix));
     const sourcePath = getRelativeSourcePath(view, options.schemaDir);
-
-    const metaParts: string[] = [];
-    if (docMeta.category) metaParts.push(`**Category:** ${docMeta.category}`);
-    if (docMeta.since) metaParts.push(`**Since:** ${docMeta.since}`);
-    if (docMeta.deprecated) metaParts.push(`**Deprecated:** ${docMeta.deprecated}`);
-    if (sourcePath) metaParts.push(`**Defined in:** \`${sourcePath}\``);
-
-    if (metaParts.length > 0) {
-        lines.push(metaParts.join(' · '), '');
-    }
+    lines.push(...renderMetadata(docMeta, sourcePath));
 
     const sortedFields =
         options.fieldOrder === 'alphabetical'

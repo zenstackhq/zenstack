@@ -1,37 +1,16 @@
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import plugin from '../src/index';
-import { findBrokenLinks, loadSchemaFromFile } from './utils';
+import { findBrokenLinks, generateFromFile, readDoc } from './utils';
 
 const SAMPLES_DIR = path.resolve(__dirname, '../../../../samples');
 const E2E_SCHEMAS_DIR = path.resolve(__dirname, '../../../../tests/e2e/orm/schemas');
 const SHOWCASE_SCHEMA = path.resolve(__dirname, '../zenstack/showcase.zmodel');
 const MULTIFILE_SCHEMA = path.resolve(__dirname, '../zenstack/multifile/schema.zmodel');
 
-function readDoc(tmpDir: string, ...segments: string[]): string {
-    return fs.readFileSync(path.join(tmpDir, ...segments), 'utf-8');
-}
-
-async function generateDocs(
-    schemaFile: string,
-    pluginOptions: Record<string, unknown> = {},
-): Promise<string> {
-    const model = await loadSchemaFromFile(schemaFile);
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-int-'));
-    await plugin.generate({
-        schemaFile,
-        model,
-        defaultOutputPath: tmpDir,
-        pluginOptions: { output: tmpDir, ...pluginOptions },
-    });
-    return tmpDir;
-}
-
 describe('integration: samples/shared schema', () => {
     it('generates complete docs from real User/Post schema', async () => {
-        const tmpDir = await generateDocs(path.join(SAMPLES_DIR, 'shared', 'schema.zmodel'));
+        const tmpDir = await generateFromFile(path.join(SAMPLES_DIR, 'shared', 'schema.zmodel'));
 
         expect(fs.existsSync(path.join(tmpDir, 'index.md'))).toBe(true);
         expect(fs.existsSync(path.join(tmpDir, 'models', 'User.md'))).toBe(true);
@@ -59,14 +38,14 @@ describe('integration: samples/shared schema', () => {
     });
 
     it('has zero broken links', async () => {
-        const tmpDir = await generateDocs(path.join(SAMPLES_DIR, 'shared', 'schema.zmodel'));
+        const tmpDir = await generateFromFile(path.join(SAMPLES_DIR, 'shared', 'schema.zmodel'));
         expect(findBrokenLinks(tmpDir)).toEqual([]);
     });
 });
 
 describe('integration: samples/orm schema', () => {
     it('renders enums, computed fields, policies, and relationships', async () => {
-        const tmpDir = await generateDocs(
+        const tmpDir = await generateFromFile(
             path.join(SAMPLES_DIR, 'orm', 'zenstack', 'schema.zmodel'),
         );
 
@@ -98,7 +77,7 @@ describe('integration: samples/orm schema', () => {
     });
 
     it('has zero broken links', async () => {
-        const tmpDir = await generateDocs(
+        const tmpDir = await generateFromFile(
             path.join(SAMPLES_DIR, 'orm', 'zenstack', 'schema.zmodel'),
         );
         expect(findBrokenLinks(tmpDir)).toEqual([]);
@@ -107,7 +86,7 @@ describe('integration: samples/orm schema', () => {
 
 describe('integration: e2e basic schema', () => {
     it('excludes @@ignore models and documents the rest', async () => {
-        const tmpDir = await generateDocs(
+        const tmpDir = await generateFromFile(
             path.join(E2E_SCHEMAS_DIR, 'basic', 'schema.zmodel'),
         );
 
@@ -133,7 +112,7 @@ describe('integration: e2e basic schema', () => {
     });
 
     it('has zero broken links', async () => {
-        const tmpDir = await generateDocs(
+        const tmpDir = await generateFromFile(
             path.join(E2E_SCHEMAS_DIR, 'basic', 'schema.zmodel'),
         );
         expect(findBrokenLinks(tmpDir)).toEqual([]);
@@ -142,7 +121,7 @@ describe('integration: e2e basic schema', () => {
 
 describe('integration: showcase schema', () => {
     it('generates expected file structure with correct model and enum counts', async () => {
-        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
 
         expect(fs.existsSync(path.join(tmpDir, 'index.md'))).toBe(true);
         expect(fs.existsSync(path.join(tmpDir, 'relationships.md'))).toBe(true);
@@ -176,13 +155,13 @@ describe('integration: showcase schema', () => {
     });
 
     it('has zero broken links across all generated files', async () => {
-        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
         const broken = findBrokenLinks(tmpDir);
         expect(broken).toEqual([]);
     });
 
     it('type pages render with fields, Used By, and cross-links to models', async () => {
-        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
 
         const tsDoc = readDoc(tmpDir, 'types', 'Timestamps.md');
         expect(tsDoc).toContain('# Timestamps');
@@ -207,7 +186,7 @@ describe('integration: showcase schema', () => {
     });
 
     it('index page lists all visible models, enums, and relationships link', async () => {
-        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
         const index = readDoc(tmpDir, 'index.md');
 
         expect(index).not.toContain('JobRun');
@@ -223,7 +202,7 @@ describe('integration: showcase schema', () => {
     });
 
     it('renders computed fields, enum type links, policies, validation, and indexes', async () => {
-        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
 
         const userDoc = readDoc(tmpDir, 'models', 'User.md');
 
@@ -246,7 +225,7 @@ describe('integration: showcase schema', () => {
     });
 
     it('renders diverse computed fields across multiple models', async () => {
-        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
 
         const projectDoc = readDoc(tmpDir, 'models', 'Project.md');
         const projectLines = projectDoc.split('\n');
@@ -282,7 +261,7 @@ describe('integration: showcase schema', () => {
     });
 
     it('generates view pages in views/ directory with correct content', async () => {
-        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
 
         // Views appear on index
         const index = readDoc(tmpDir, 'index.md');
@@ -322,7 +301,7 @@ describe('integration: showcase schema', () => {
     });
 
     it('renders @@meta category, since, and deprecated annotations', async () => {
-        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
 
         const orgDoc = readDoc(tmpDir, 'models', 'Organization.md');
         expect(orgDoc).toContain('**Category:** Core');
@@ -337,7 +316,7 @@ describe('integration: showcase schema', () => {
     });
 
     it('renders self-referential relations and @meta doc:example values', async () => {
-        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
 
         const taskDoc = readDoc(tmpDir, 'models', 'Task.md');
         expect(taskDoc).toContain('## Relationships');
@@ -356,7 +335,7 @@ describe('integration: showcase schema', () => {
     });
 
     it('showcase models use diverse default-value functions (cuid, uuid, now)', async () => {
-        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
 
         const userDoc = readDoc(tmpDir, 'models', 'User.md');
         const userIdLine = userDoc.split('\n').find((l) => l.includes('field-id'));
@@ -372,7 +351,7 @@ describe('integration: showcase schema', () => {
     });
 
     it('Task model renders @@validate model-level rule in Validation Rules', async () => {
-        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
 
         const taskDoc = readDoc(tmpDir, 'models', 'Task.md');
         expect(taskDoc).toContain('## Validation Rules');
@@ -381,7 +360,7 @@ describe('integration: showcase schema', () => {
     });
 
     it('Task model renders all validation attributes including @regex, @gt, @lte, @trim', async () => {
-        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
 
         const taskDoc = readDoc(tmpDir, 'models', 'Task.md');
         expect(taskDoc).toContain('## Validation Rules');
@@ -395,7 +374,7 @@ describe('integration: showcase schema', () => {
     });
 
     it('enum pages show descriptions and Used By with correct links', async () => {
-        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
 
         const roleDoc = readDoc(tmpDir, 'enums', 'Role.md');
         expect(roleDoc).toContain('Defines the access level');
@@ -419,7 +398,7 @@ describe('integration: showcase schema', () => {
     });
 
     it('relationships page has cross-reference and Mermaid diagram with links', async () => {
-        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
         const relDoc = readDoc(tmpDir, 'relationships.md');
 
         expect(relDoc).toContain('[Index](./index.md)');
@@ -433,7 +412,7 @@ describe('integration: showcase schema', () => {
     });
 
     it('models without descriptions still render correctly', async () => {
-        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
 
         const tagDoc = readDoc(tmpDir, 'models', 'Tag.md');
         expect(tagDoc).toContain('# Tag');
@@ -443,7 +422,7 @@ describe('integration: showcase schema', () => {
     });
 
     it('generates procedure pages for all declared procedures', async () => {
-        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
 
         const expectedProcedures = [
             'signUp', 'getUser', 'listOrgUsers',
@@ -464,7 +443,7 @@ describe('integration: showcase schema', () => {
     });
 
     it('procedure pages have correct content for mutations and queries', async () => {
-        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
 
         const signUpDoc = readDoc(tmpDir, 'procedures', 'signUp.md');
         expect(signUpDoc).toContain('# signUp');
@@ -495,7 +474,7 @@ describe('integration: showcase schema', () => {
     });
 
     it('procedure pages link to return types and param types correctly', async () => {
-        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
 
         const signUpDoc = readDoc(tmpDir, 'procedures', 'signUp.md');
         expect(signUpDoc).toContain('[Role](../enums/Role.md)');
@@ -507,7 +486,7 @@ describe('integration: showcase schema', () => {
     });
 
     it('model pages show Used in Procedures backlinks', async () => {
-        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
 
         const userDoc = readDoc(tmpDir, 'models', 'User.md');
         expect(userDoc).toContain('## Used in Procedures');
@@ -521,7 +500,7 @@ describe('integration: showcase schema', () => {
     });
 
     it('procedure pages have collapsible declarations and source paths', async () => {
-        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
 
         const signUpDoc = readDoc(tmpDir, 'procedures', 'signUp.md');
         expect(signUpDoc).toContain('<summary>Declaration');
@@ -531,13 +510,13 @@ describe('integration: showcase schema', () => {
     });
 
     it('has zero broken links including procedure pages', async () => {
-        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
         const broken = findBrokenLinks(tmpDir);
         expect(broken).toEqual([]);
     });
 
     it('includeInternalModels=true includes @@ignore models in output', async () => {
-        const tmpDir = await generateDocs(SHOWCASE_SCHEMA, { includeInternalModels: true });
+        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA, { includeInternalModels: true });
 
         const index = readDoc(tmpDir, 'index.md');
         expect(index).toContain('[JobRun]');
@@ -551,7 +530,7 @@ describe('integration: showcase schema', () => {
 
 describe('integration: multi-file schema', () => {
     it('artifacts show correct source file paths for declarations across files', async () => {
-        const tmpDir = await generateDocs(MULTIFILE_SCHEMA);
+        const tmpDir = await generateFromFile(MULTIFILE_SCHEMA);
 
         const userDoc = readDoc(tmpDir, 'models', 'User.md');
         expect(userDoc).toContain('**Defined in:**');
@@ -567,12 +546,12 @@ describe('integration: multi-file schema', () => {
     });
 
     it('has zero broken links across multi-file output', async () => {
-        const tmpDir = await generateDocs(MULTIFILE_SCHEMA);
+        const tmpDir = await generateFromFile(MULTIFILE_SCHEMA);
         expect(findBrokenLinks(tmpDir)).toEqual([]);
     });
 
     it('declaration code blocks show correct source for each file', async () => {
-        const tmpDir = await generateDocs(MULTIFILE_SCHEMA);
+        const tmpDir = await generateFromFile(MULTIFILE_SCHEMA);
 
         const userDoc = readDoc(tmpDir, 'models', 'User.md');
         expect(userDoc).toContain('<summary>Declaration');
@@ -590,7 +569,7 @@ describe('integration: multi-file schema', () => {
 
 describe('integration: e2e procedures schema', () => {
     it('generates procedure pages from real procedures schema', async () => {
-        const tmpDir = await generateDocs(
+        const tmpDir = await generateFromFile(
             path.join(E2E_SCHEMAS_DIR, 'procedures', 'schema.zmodel'),
         );
 
@@ -616,7 +595,7 @@ describe('integration: e2e procedures schema', () => {
     });
 
     it('has zero broken links', async () => {
-        const tmpDir = await generateDocs(
+        const tmpDir = await generateFromFile(
             path.join(E2E_SCHEMAS_DIR, 'procedures', 'schema.zmodel'),
         );
         expect(findBrokenLinks(tmpDir)).toEqual([]);
@@ -625,7 +604,7 @@ describe('integration: e2e procedures schema', () => {
 
 describe('integration: e2e todo schema', () => {
     it('renders validation rules and complex policies', async () => {
-        const tmpDir = await generateDocs(
+        const tmpDir = await generateFromFile(
             path.join(E2E_SCHEMAS_DIR, 'todo', 'schema.zmodel'),
         );
 
@@ -652,7 +631,7 @@ describe('integration: e2e todo schema', () => {
     });
 
     it('has zero broken links', async () => {
-        const tmpDir = await generateDocs(
+        const tmpDir = await generateFromFile(
             path.join(E2E_SCHEMAS_DIR, 'todo', 'schema.zmodel'),
         );
         expect(findBrokenLinks(tmpDir)).toEqual([]);

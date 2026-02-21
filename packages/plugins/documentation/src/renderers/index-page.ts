@@ -1,22 +1,7 @@
 import { isDataModel, isEnum, isProcedure, isTypeDef, type DataModel, type Model } from '@zenstackhq/language/ast';
-import { extractDocMeta, isIgnoredModel, stripCommentPrefix } from '../extractors';
+import { extractDocMeta, extractProcedureComments, isIgnoredModel, stripCommentPrefix } from '../extractors';
 import type { DocMeta, GenerationContext } from '../types';
 import { generatedHeader } from './common';
-
-function extractProcedureDescription(proc: { $cstNode?: { text?: string } }): string {
-    const cstText = proc.$cstNode?.text;
-    if (!cstText) return '';
-    const commentLines: string[] = [];
-    for (const line of cstText.split('\n')) {
-        const trimmed = line.trim();
-        if (trimmed.startsWith('///')) {
-            commentLines.push(trimmed.replace(/^\/\/\/\s?/, ''));
-        } else {
-            break;
-        }
-    }
-    return commentLines.join(' ').trim();
-}
 
 function firstSentence(text: string): string {
     if (!text) return '';
@@ -154,7 +139,7 @@ export function renderIndexPage(
         lines.push('## Procedures', '');
         for (const proc of procedures) {
             const kind = proc.mutation ? 'mutation' : 'query';
-            const desc = firstSentence(extractProcedureDescription(proc));
+            const desc = firstSentence(extractProcedureComments(proc, ' '));
             const descSuffix = desc ? ` — ${desc}` : '';
             lines.push(`- [${proc.name}](./procedures/${proc.name}.md) · *${kind}*${descSuffix}`);
         }

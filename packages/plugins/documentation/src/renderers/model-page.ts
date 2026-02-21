@@ -1,6 +1,6 @@
-import { isDataModel, isTypeDef, type DataModel, type Procedure } from '@zenstackhq/language/ast';
+import { isDataModel, isTypeDef, type DataField, type DataModel, type DataModelAttribute, type Procedure } from '@zenstackhq/language/ast';
 import { getAllFields } from '@zenstackhq/language/utils';
-import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referenceLink } from './common';
+import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referenceLink, renderDescription, renderMetadata } from './common';
 import type { Navigation } from '../types';
 import {
     extractDocMeta,
@@ -15,6 +15,11 @@ import {
 } from '../extractors';
 import type { RenderOptions } from '../types';
 
+interface ValidationRule {
+    fieldName: string;
+    rule: string;
+}
+
 function isModelReferencedByProc(proc: Procedure, modelName: string): boolean {
     if (proc.returnType.reference?.ref?.name === modelName) return true;
     if (proc.returnType.type === modelName) return true;
@@ -22,6 +27,187 @@ function isModelReferencedByProc(proc: Procedure, modelName: string): boolean {
         if (param.type.reference?.ref?.name === modelName) return true;
     }
     return false;
+}
+
+function collectValidationRules(orderedFields: DataField[], modelAttrs: DataModelAttribute[]): ValidationRule[] {
+    const rules: ValidationRule[] = [];
+
+    for (const field of orderedFields) {
+        for (const attr of field.attributes) {
+            const attrDecl = attr.decl.ref;
+            if (!attrDecl) continue;
+            const isValidation = attrDecl.attributes.some(
+                (ia) => ia.decl.ref?.name === '@@@validation',
+            );
+            if (isValidation) {
+                rules.push({ fieldName: field.name, rule: `\`${getAttrName(attr)}\`` });
+            }
+        }
+    }
+
+    const validateAttrs = modelAttrs.filter((a) => a.decl.ref?.name === '@@validate');
+    for (const attr of validateAttrs) {
+        const condition = attr.args[0]?.$cstNode?.text ?? '';
+        const messageArg = attr.args[1]?.$cstNode?.text?.replace(/^['"]|['"]$/g, '');
+        const pathArg = attr.args[2]?.$cstNode?.text;
+
+        const fieldName = pathArg ?? 'Model';
+        let ruleText = `\`${condition}\``;
+        if (messageArg) {
+            ruleText += ` — *${messageArg}*`;
+        }
+        rules.push({ fieldName, rule: ruleText });
+    }
+
+    return rules;
+}
+
+function renderFieldsSection(model: DataModel, orderedFields: DataField[]): string[] {
+    if (orderedFields.length === 0) return [];
+
+    const lines = ['## Fields', '', '| Field | Type | Required | Default | Attributes | Source | Description |', '| --- | --- | --- | --- | --- | --- | --- |'];
+
+    for (const field of orderedFields) {
+        const fieldDescription = stripCommentPrefix(field.comments);
+        const isComputed = field.attributes.some((a) => getAttrName(a) === '@computed');
+        const isIgnored = field.attributes.some((a) => getAttrName(a) === '@ignore');
+        const inheritedFrom =
+            isDataModel(field.$container) && field.$container !== model
+                ? field.$container.name
+                : undefined;
+        const fromMixin = isTypeDef(field.$container) ? field.$container.name : undefined;
+
+        let source = '—';
+        if (fromMixin) {
+            source = `[${fromMixin}](../types/${fromMixin}.md)`;
+        } else if (inheritedFrom) {
+            source = `[${inheritedFrom}](./${inheritedFrom}.md)`;
+        }
+
+        let typeCol = getFieldTypeName(field, true);
+        if (isComputed) typeCol += ' <kbd>computed</kbd>';
+        if (isIgnored) typeCol += ' <kbd>ignored</kbd>';
+
+        const descParts: string[] = [];
+        const example = extractFieldDocExample(field);
+        if (example) descParts.push(`Example: \`${example}\``);
+        if (fieldDescription) descParts.push(fieldDescription);
+        const desc = descParts.length > 0 ? descParts.join(' ') : '—';
+        const fieldAnchor = `<a id="field-${field.name}"></a>`;
+        lines.push(
+            `| ${fieldAnchor}${field.name} | ${typeCol} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${source} | ${desc} |`,
+        );
+    }
+    lines.push('');
+    return lines;
+}
+
+function renderRelationshipsSection(modelName: string, relationFields: DataField[]): string[] {
+    if (relationFields.length === 0) return [];
+
+    const lines = ['## Relationships', '', '| Field | Related Model | Type |', '| --- | --- | --- |'];
+    const mermaidLines: string[] = [];
+    const seenPairs = new Set<string>();
+
+    for (const field of relationFields) {
+        const relatedModel = field.type.reference?.ref?.name ?? '';
+        let relType: string;
+        if (field.type.array) {
+            relType = 'One\u2192Many';
+        } else if (field.type.optional) {
+            relType = 'Many\u2192One?';
+        } else {
+            relType = 'Many\u2192One';
+        }
+        lines.push(`| ${field.name} | [${relatedModel}](./${relatedModel}.md) | ${relType} |`);
+
+        const pairKey = [modelName, relatedModel].sort().join('--');
+        if (!seenPairs.has(pairKey)) {
+            seenPairs.add(pairKey);
+            if (field.type.array) {
+                mermaidLines.push(`    ${modelName} ||--o{ ${relatedModel} : "${field.name}"`);
+            } else {
+                mermaidLines.push(`    ${modelName} }o--|| ${relatedModel} : "${field.name}"`);
+            }
+        }
+    }
+    lines.push('');
+
+    if (mermaidLines.length > 0) {
+        lines.push('```mermaid', 'erDiagram', ...mermaidLines, '```', '');
+    }
+    return lines;
+}
+
+function renderPoliciesSection(policyAttrs: DataModelAttribute[]): string[] {
+    if (policyAttrs.length === 0) return [];
+
+    const lines = [
+        '## Access Policies', '',
+        '> [!IMPORTANT]',
+        '> Operations are **denied by default**. `@@allow` rules grant access; `@@deny` rules override any allow.', '',
+        '| Operation | Rule | Effect |',
+        '| --- | --- | --- |',
+    ];
+
+    for (const attr of policyAttrs) {
+        const attrName = attr.decl.ref?.name ?? '';
+        const effect = attrName === '@@allow' ? 'Allow' : 'Deny';
+        const operationArg = attr.args[0]?.$cstNode?.text ?? '';
+        const operation = operationArg.replace(/^['"]|['"]$/g, '');
+        const condition = attr.args[1]?.$cstNode?.text ?? '';
+        lines.push(`| ${operation} | \`${condition}\` | ${effect} |`);
+    }
+    lines.push('');
+    return lines;
+}
+
+function renderIndexesSection(indexAttrs: DataModelAttribute[]): string[] {
+    if (indexAttrs.length === 0) return [];
+
+    const lines = ['## Indexes', '', '| Fields | Type |', '| --- | --- |'];
+
+    for (const attr of indexAttrs) {
+        const attrName = attr.decl.ref?.name ?? '';
+        let indexType: string;
+        if (attrName === '@@unique') {
+            indexType = 'Unique';
+        } else if (attrName === '@@id') {
+            indexType = 'Primary';
+        } else {
+            indexType = 'Index';
+        }
+        const fieldsArg = attr.args[0]?.$cstNode?.text ?? '';
+        lines.push(`| \`${fieldsArg}\` | ${indexType} |`);
+    }
+    lines.push('');
+    return lines;
+}
+
+function renderValidationSection(rules: ValidationRule[]): string[] {
+    if (rules.length === 0) return [];
+    const lines = ['## Validation Rules', '', '| Field | Rule |', '| --- | --- |'];
+    for (const { fieldName, rule } of rules) {
+        lines.push(`| ${fieldName} | ${rule} |`);
+    }
+    lines.push('');
+    return lines;
+}
+
+function renderProceduresSection(procedures: Procedure[], modelName: string): string[] {
+    const referenced = procedures
+        .filter((p) => isModelReferencedByProc(p, modelName))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    if (referenced.length === 0) return [];
+
+    const lines = ['## Used in Procedures', ''];
+    for (const proc of referenced) {
+        const kind = proc.mutation ? 'mutation' : 'query';
+        lines.push(`- [${proc.name}](../procedures/${proc.name}.md) — *${kind}*`);
+    }
+    lines.push('');
+    return lines;
 }
 
 export function renderModelPage(model: DataModel, options: RenderOptions, procedures: Procedure[] = [], navigation?: Navigation): string {
@@ -45,13 +231,7 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
         '',
     ];
 
-    const description = stripCommentPrefix(model.comments);
-    if (description) {
-        for (const line of description.split('\n')) {
-            lines.push(`> ${line}`);
-        }
-        lines.push('');
-    }
+    lines.push(...renderDescription(model.comments, stripCommentPrefix));
     const sourcePath = getRelativeSourcePath(model, options.schemaDir);
 
     const mapAttr = model.attributes.find((a) => a.decl.ref?.name === '@@map');
@@ -59,17 +239,7 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
     const mappedTable = mapAttr?.args[0]?.$cstNode?.text?.replace(/^['"]|['"]$/g, '');
     const dbSchema = schemaAttr?.args[0]?.$cstNode?.text?.replace(/^['"]|['"]$/g, '');
 
-    const metaParts: string[] = [];
-    if (docMeta.category) metaParts.push(`**Category:** ${docMeta.category}`);
-    if (docMeta.since) metaParts.push(`**Since:** ${docMeta.since}`);
-    if (docMeta.deprecated) metaParts.push(`**Deprecated:** ${docMeta.deprecated}`);
-    if (mappedTable) metaParts.push(`**Table:** \`${mappedTable}\``);
-    if (dbSchema) metaParts.push(`**Schema:** \`${dbSchema}\``);
-    if (sourcePath) metaParts.push(`**Defined in:** \`${sourcePath}\``);
-
-    if (metaParts.length > 0) {
-        lines.push(metaParts.join(' · '), '');
-    }
+    lines.push(...renderMetadata(docMeta, sourcePath, { mappedTable, dbSchema }));
 
     const mixinRefs = model.mixins
         .map((ref) => ref.ref)
@@ -96,41 +266,7 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
         return name === '@@index' || name === '@@unique' || name === '@@id';
     });
 
-    const validationRules: Array<{ fieldName: string; rule: string }> = [];
-    for (const field of orderedFields) {
-        for (const attr of field.attributes) {
-            const attrDecl = attr.decl.ref;
-            if (!attrDecl) continue;
-            const isValidation = attrDecl.attributes.some(
-                (ia) => ia.decl.ref?.name === '@@@validation',
-            );
-            if (isValidation) {
-                validationRules.push({
-                    fieldName: field.name,
-                    rule: `\`${getAttrName(attr)}\``,
-                });
-            }
-        }
-    }
-
-    const validateAttrs = model.attributes.filter((a) => a.decl.ref?.name === '@@validate');
-    for (const attr of validateAttrs) {
-        const condition = attr.args[0]?.$cstNode?.text ?? '';
-        const messageArg = attr.args[1]?.$cstNode?.text?.replace(/^['"]|['"]$/g, '');
-        const pathArg = attr.args[2]?.$cstNode?.text;
-
-        let fieldName = 'Model';
-        if (pathArg) {
-            fieldName = pathArg;
-        }
-
-        let ruleText = `\`${condition}\``;
-        if (messageArg) {
-            ruleText += ` — *${messageArg}*`;
-        }
-
-        validationRules.push({ fieldName, rule: ruleText });
-    }
+    const validationRules = collectValidationRules(orderedFields, model.attributes);
 
     const sections: string[] = [];
     if (mixinRefs.length > 0) sections.push('Mixins');
@@ -140,9 +276,8 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
     if (options.includeIndexes && indexAttrs.length > 0) sections.push('Indexes');
     if (options.includeValidation && validationRules.length > 0) sections.push('Validation Rules');
 
-    const referencingProcsForToc = procedures
-        .filter((p) => isModelReferencedByProc(p, model.name));
-    if (referencingProcsForToc.length > 0) sections.push('Used in Procedures');
+    const referencingProcs = procedures.filter((p) => isModelReferencedByProc(p, model.name));
+    if (referencingProcs.length > 0) sections.push('Used in Procedures');
 
     if (sections.length > 1) {
         const tocLinks = sections.map((s) => {
@@ -160,156 +295,15 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
         lines.push('');
     }
 
-    if (orderedFields.length > 0) {
-        lines.push('## Fields', '');
-        lines.push('| Field | Type | Required | Default | Attributes | Source | Description |');
-        lines.push('| --- | --- | --- | --- | --- | --- | --- |');
-
-        for (const field of orderedFields) {
-            const fieldDescription = stripCommentPrefix(field.comments);
-            const isComputed = field.attributes.some((a) => getAttrName(a) === '@computed');
-            const isIgnored = field.attributes.some((a) => getAttrName(a) === '@ignore');
-            const inheritedFrom =
-                isDataModel(field.$container) && field.$container !== model
-                    ? field.$container.name
-                    : undefined;
-            const fromMixin =
-                isTypeDef(field.$container) ? field.$container.name : undefined;
-
-            let source = '—';
-            if (fromMixin) {
-                source = `[${fromMixin}](../types/${fromMixin}.md)`;
-            } else if (inheritedFrom) {
-                source = `[${inheritedFrom}](./${inheritedFrom}.md)`;
-            }
-
-            let typeCol = getFieldTypeName(field, true);
-            if (isComputed) typeCol += ' <kbd>computed</kbd>';
-            if (isIgnored) typeCol += ' <kbd>ignored</kbd>';
-
-            const descParts: string[] = [];
-            const example = extractFieldDocExample(field);
-            if (example) descParts.push(`Example: \`${example}\``);
-            if (fieldDescription) descParts.push(fieldDescription);
-            const desc = descParts.length > 0 ? descParts.join(' ') : '—';
-            const fieldAnchor = `<a id="field-${field.name}"></a>`;
-            lines.push(
-                `| ${fieldAnchor}${field.name} | ${typeCol} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${source} | ${desc} |`,
-            );
-        }
-        lines.push('');
-    }
-
-    if (options.includeRelationships && relationFields.length > 0) {
-        lines.push('## Relationships', '');
-        lines.push('| Field | Related Model | Type |');
-        lines.push('| --- | --- | --- |');
-
-        const mermaidLines: string[] = [];
-        const seenPairs = new Set<string>();
-
-        for (const field of relationFields) {
-            const relatedModel = field.type.reference?.ref?.name ?? '';
-            let relType: string;
-            if (field.type.array) {
-                relType = 'One\u2192Many';
-            } else if (field.type.optional) {
-                relType = 'Many\u2192One?';
-            } else {
-                relType = 'Many\u2192One';
-            }
-            lines.push(
-                `| ${field.name} | [${relatedModel}](./${relatedModel}.md) | ${relType} |`,
-            );
-
-            const pairKey = [model.name, relatedModel].sort().join('--');
-            if (!seenPairs.has(pairKey)) {
-                seenPairs.add(pairKey);
-                if (field.type.array) {
-                    mermaidLines.push(`    ${model.name} ||--o{ ${relatedModel} : "${field.name}"`);
-                } else {
-                    mermaidLines.push(`    ${model.name} }o--|| ${relatedModel} : "${field.name}"`);
-                }
-            }
-        }
-        lines.push('');
-
-        if (mermaidLines.length > 0) {
-            lines.push('```mermaid');
-            lines.push('erDiagram');
-            lines.push(...mermaidLines);
-            lines.push('```', '');
-        }
-    }
-
-    if (options.includePolicies && policyAttrs.length > 0) {
-        lines.push('## Access Policies', '');
-        lines.push('> [!IMPORTANT]');
-        lines.push(
-            '> Operations are **denied by default**. `@@allow` rules grant access; `@@deny` rules override any allow.',
-            '',
-        );
-        lines.push('| Operation | Rule | Effect |');
-        lines.push('| --- | --- | --- |');
-
-        for (const attr of policyAttrs) {
-            const attrName = attr.decl.ref?.name ?? '';
-            const effect = attrName === '@@allow' ? 'Allow' : 'Deny';
-            const operationArg = attr.args[0]?.$cstNode?.text ?? '';
-            const operation = operationArg.replace(/^['"]|['"]$/g, '');
-            const condition = attr.args[1]?.$cstNode?.text ?? '';
-            lines.push(`| ${operation} | \`${condition}\` | ${effect} |`);
-        }
-        lines.push('');
-    }
-
-    if (options.includeIndexes && indexAttrs.length > 0) {
-        lines.push('## Indexes', '');
-        lines.push('| Fields | Type |');
-        lines.push('| --- | --- |');
-
-        for (const attr of indexAttrs) {
-            const attrName = attr.decl.ref?.name ?? '';
-            let indexType: string;
-            if (attrName === '@@unique') {
-                indexType = 'Unique';
-            } else if (attrName === '@@id') {
-                indexType = 'Primary';
-            } else {
-                indexType = 'Index';
-            }
-            const fieldsArg = attr.args[0]?.$cstNode?.text ?? '';
-            lines.push(`| \`${fieldsArg}\` | ${indexType} |`);
-        }
-        lines.push('');
-    }
-
-    if (options.includeValidation && validationRules.length > 0) {
-        lines.push('## Validation Rules', '');
-        lines.push('| Field | Rule |');
-        lines.push('| --- | --- |');
-        for (const { fieldName, rule } of validationRules) {
-            lines.push(`| ${fieldName} | ${rule} |`);
-        }
-        lines.push('');
-    }
-
-    const referencingProcs = procedures
-        .filter((p) => isModelReferencedByProc(p, model.name))
-        .sort((a, b) => a.name.localeCompare(b.name));
-
-    if (referencingProcs.length > 0) {
-        lines.push('## Used in Procedures', '');
-        for (const proc of referencingProcs) {
-            const kind = proc.mutation ? 'mutation' : 'query';
-            lines.push(`- [${proc.name}](../procedures/${proc.name}.md) — *${kind}*`);
-        }
-        lines.push('');
-    }
+    lines.push(...renderFieldsSection(model, orderedFields));
+    if (options.includeRelationships) lines.push(...renderRelationshipsSection(model.name, relationFields));
+    if (options.includePolicies) lines.push(...renderPoliciesSection(policyAttrs));
+    if (options.includeIndexes) lines.push(...renderIndexesSection(indexAttrs));
+    if (options.includeValidation) lines.push(...renderValidationSection(validationRules));
+    lines.push(...renderProceduresSection(procedures, model.name));
 
     lines.push(...referenceLink('model'));
     lines.push(...declarationBlock(model.$cstNode?.text, sourcePath));
-
     lines.push(...navigationFooter(navigation));
 
     return lines.join('\n');

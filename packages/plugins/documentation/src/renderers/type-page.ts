@@ -1,5 +1,5 @@
 import type { DataModel, TypeDef } from '@zenstackhq/language/ast';
-import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referenceLink } from './common';
+import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referenceLink, renderDescription } from './common';
 import type { Navigation } from '../types';
 import {
     getDefaultValue,
@@ -20,13 +20,7 @@ export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], option
         '',
     ];
 
-    const description = stripCommentPrefix(typeDef.comments);
-    if (description) {
-        for (const line of description.split('\n')) {
-            lines.push(`> ${line}`);
-        }
-        lines.push('');
-    }
+    lines.push(...renderDescription(typeDef.comments, stripCommentPrefix));
 
     const sourcePath = getRelativeSourcePath(typeDef, options.schemaDir);
     if (sourcePath) {

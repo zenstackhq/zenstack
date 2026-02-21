@@ -1,5 +1,5 @@
 import { isDataModel, isEnum, type Procedure } from '@zenstackhq/language/ast';
-import { getRelativeSourcePath } from '../extractors';
+import { extractProcedureComments, getRelativeSourcePath } from '../extractors';
 import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referenceLink } from './common';
 import type { Navigation, RenderOptions } from '../types';
 
@@ -29,21 +29,6 @@ function formatParamType(paramType: Procedure['returnType'], linked: boolean): s
     return typeName;
 }
 
-function extractProcedureComments(proc: Procedure): string {
-    const cstText = proc.$cstNode?.text;
-    if (!cstText) return '';
-    const commentLines: string[] = [];
-    for (const line of cstText.split('\n')) {
-        const trimmed = line.trim();
-        if (trimmed.startsWith('///')) {
-            commentLines.push(trimmed.replace(/^\/\/\/\s?/, ''));
-        } else {
-            break;
-        }
-    }
-    return commentLines.join('\n').trim();
-}
-
 export function renderProcedurePage(proc: Procedure, options: RenderOptions, navigation?: Navigation): string {
     const lines: string[] = [
         ...generatedHeader(options.genCtx),
@@ -55,8 +40,8 @@ export function renderProcedurePage(proc: Procedure, options: RenderOptions, nav
 
     const description = extractProcedureComments(proc);
     if (description) {
-        for (const line of description.split('\n')) {
-            lines.push(`> ${line}`);
+        for (const descLine of description.split('\n')) {
+            lines.push(`> ${descLine}`);
         }
         lines.push('');
     }

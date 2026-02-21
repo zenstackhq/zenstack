@@ -1,5 +1,5 @@
 import { isEnum, type DataModel, type Enum } from '@zenstackhq/language/ast';
-import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referenceLink } from './common';
+import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referenceLink, renderDescription } from './common';
 import { getAllFields } from '@zenstackhq/language/utils';
 import { getRelativeSourcePath, stripCommentPrefix } from '../extractors';
 import type { Navigation, RenderOptions } from '../types';
@@ -13,13 +13,7 @@ export function renderEnumPage(enumDecl: Enum, allModels: DataModel[], options: 
         '',
     ];
 
-    const description = stripCommentPrefix(enumDecl.comments);
-    if (description) {
-        for (const line of description.split('\n')) {
-            lines.push(`> ${line}`);
-        }
-        lines.push('');
-    }
+    lines.push(...renderDescription(enumDecl.comments, stripCommentPrefix));
 
     const sourcePath = getRelativeSourcePath(enumDecl, options.schemaDir);
     if (sourcePath) {

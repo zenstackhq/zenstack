@@ -149,6 +149,24 @@ export function collectRelationships(models: DataModel[]): Relationship[] {
     return rels;
 }
 
+export function extractProcedureComments(
+    proc: { $cstNode?: { text?: string } },
+    joinWith: '\n' | ' ' = '\n',
+): string {
+    const cstText = proc.$cstNode?.text;
+    if (!cstText) return '';
+    const commentLines: string[] = [];
+    for (const line of cstText.split('\n')) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('///')) {
+            commentLines.push(trimmed.replace(/^\/\/\/\s?/, ''));
+        } else {
+            break;
+        }
+    }
+    return commentLines.join(joinWith).trim();
+}
+
 export function resolveRenderOptions(pluginOptions: Record<string, unknown>): import('./types').RenderOptions {
     return {
         includeRelationships: pluginOptions['includeRelationships'] !== false,

@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { expect } from 'vitest';
+import plugin from '../src/index';
 
 const DATASOURCE_PREAMBLE = `
 datasource db {
@@ -36,6 +37,45 @@ export async function loadSchemaFromFile(filePath: string) {
     );
     invariant(r.success);
     return r.model;
+}
+
+export async function generateFromSchema(
+    schema: string,
+    pluginOptions: Record<string, unknown> = {},
+    schemaFile = 'schema.zmodel',
+): Promise<string> {
+    const model = await loadSchema(schema);
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+    await plugin.generate({
+        schemaFile,
+        model,
+        defaultOutputPath: tmpDir,
+        pluginOptions: { output: tmpDir, ...pluginOptions },
+    });
+    return tmpDir;
+}
+
+export async function generateFromFile(
+    schemaFile: string,
+    pluginOptions: Record<string, unknown> = {},
+): Promise<string> {
+    const model = await loadSchemaFromFile(schemaFile);
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+    await plugin.generate({
+        schemaFile,
+        model,
+        defaultOutputPath: tmpDir,
+        pluginOptions: { output: tmpDir, ...pluginOptions },
+    });
+    return tmpDir;
+}
+
+export function readDoc(tmpDir: string, ...segments: string[]): string {
+    return fs.readFileSync(path.join(tmpDir, ...segments), 'utf-8');
+}
+
+export function findFieldLine(doc: string, fieldName: string): string | undefined {
+    return doc.split('\n').find((l) => l.includes(`field-${fieldName}`));
 }
 
 /**
