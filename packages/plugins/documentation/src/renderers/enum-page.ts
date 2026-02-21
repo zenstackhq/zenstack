@@ -1,5 +1,5 @@
 import { isEnum, type DataModel, type Enum } from '@zenstackhq/language/ast';
-import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referenceLink, renderDescription } from './common';
+import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referencesSection, renderDescription, sectionHeading } from './common';
 import { getAllFields } from '@zenstackhq/language/utils';
 import { getRelativeSourcePath, stripCommentPrefix } from '../extractors';
 import type { Navigation, RenderOptions } from '../types';
@@ -20,29 +20,19 @@ export function renderEnumPage(enumDecl: Enum, allModels: DataModel[], options: 
         lines.push(`**Defined in:** \`${sourcePath}\``, '');
     }
 
+    lines.push(...declarationBlock(enumDecl.$cstNode?.text, sourcePath));
+
     if (enumDecl.fields.length > 0) {
-        lines.push('## Values', '');
+        lines.push(...sectionHeading('Values'), '');
         lines.push('| Value | Description |');
         lines.push('| --- | --- |');
 
         for (const field of enumDecl.fields) {
             const fieldDesc = stripCommentPrefix(field.comments) || '—';
-            lines.push(`| ${field.name} | ${fieldDesc} |`);
+            lines.push(`| \`${field.name}\` | ${fieldDesc} |`);
         }
         lines.push('');
     }
-
-    const usedBy = allModels
-        .filter((m) =>
-            getAllFields(m).some(
-                (f) =>
-                    f.type.reference?.ref &&
-                    isEnum(f.type.reference.ref) &&
-                    f.type.reference.ref.name === enumDecl.name,
-            ),
-        )
-        .map((m) => m.name)
-        .sort();
 
     const usageDetails: Array<{ modelName: string; fieldNames: string[] }> = [];
     for (const m of allModels) {
@@ -60,8 +50,8 @@ export function renderEnumPage(enumDecl: Enum, allModels: DataModel[], options: 
     }
     usageDetails.sort((a, b) => a.modelName.localeCompare(b.modelName));
 
-    if (usedBy.length > 0) {
-        lines.push('## Used By', '');
+    if (usageDetails.length > 0) {
+        lines.push(...sectionHeading('Used By'), '');
         for (const { modelName, fieldNames } of usageDetails) {
             const fieldLinks = fieldNames
                 .map((f) => `[\`${f}\`](../models/${modelName}.md#field-${f})`)
@@ -85,9 +75,7 @@ export function renderEnumPage(enumDecl: Enum, allModels: DataModel[], options: 
         lines.push('```', '');
     }
 
-    lines.push(...referenceLink('enum'));
-    lines.push(...declarationBlock(enumDecl.$cstNode?.text, sourcePath));
-
+    lines.push(...referencesSection('enum'));
     lines.push(...navigationFooter(navigation));
 
     return lines.join('\n');

@@ -1,6 +1,6 @@
 import { isDataModel, isEnum, type Procedure } from '@zenstackhq/language/ast';
 import { extractProcedureComments, getRelativeSourcePath } from '../extractors';
-import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referenceLink } from './common';
+import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referencesSection, sectionHeading } from './common';
 import type { Navigation, RenderOptions } from '../types';
 
 function formatParamType(paramType: Procedure['returnType'], linked: boolean): string {
@@ -51,20 +51,22 @@ export function renderProcedurePage(proc: Procedure, options: RenderOptions, nav
         lines.push(`**Defined in:** \`${sourcePath}\``, '');
     }
 
+    lines.push(...declarationBlock(proc.$cstNode?.text, sourcePath));
+
     if (proc.params.length > 0) {
-        lines.push('## Parameters', '');
+        lines.push(...sectionHeading('Parameters'), '');
         lines.push('| Parameter | Type | Required |');
         lines.push('| --- | --- | --- |');
 
         for (const param of proc.params) {
             const required = !param.optional;
             const typeStr = formatParamType(param.type, true);
-            lines.push(`| ${param.name} | ${typeStr} | ${required ? 'Yes' : 'No'} |`);
+            lines.push(`| \`${param.name}\` | ${typeStr} | ${required ? 'Yes' : 'No'} |`);
         }
         lines.push('');
     }
 
-    lines.push('## Returns', '');
+    lines.push(...sectionHeading('Returns'), '');
     lines.push(formatParamType(proc.returnType, true), '');
 
     lines.push('```mermaid');
@@ -85,9 +87,7 @@ export function renderProcedurePage(proc: Procedure, options: RenderOptions, nav
     lines.push(`    ${procNodeId} --> ret["${retTypeName}${retArray}"]`);
     lines.push('```', '');
 
-    lines.push(...referenceLink('procedure'));
-    lines.push(...declarationBlock(proc.$cstNode?.text, sourcePath));
-
+    lines.push(...referencesSection('procedure'));
     lines.push(...navigationFooter(navigation));
 
     return lines.join('\n');

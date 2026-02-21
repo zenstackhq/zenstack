@@ -1,5 +1,5 @@
 import type { DataModel, TypeDef } from '@zenstackhq/language/ast';
-import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referenceLink, renderDescription } from './common';
+import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referencesSection, renderDescription, sectionHeading } from './common';
 import type { Navigation } from '../types';
 import {
     getDefaultValue,
@@ -27,13 +27,15 @@ export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], option
         lines.push(`**Defined in:** \`${sourcePath}\``, '');
     }
 
+    lines.push(...declarationBlock(typeDef.$cstNode?.text, sourcePath));
+
     const sortedFields =
         options.fieldOrder === 'alphabetical'
             ? [...typeDef.fields].sort((a, b) => a.name.localeCompare(b.name))
             : [...typeDef.fields];
 
     if (sortedFields.length > 0) {
-        lines.push('## Fields', '');
+        lines.push(...sectionHeading('Fields'), '');
         lines.push('| Field | Type | Required | Default | Attributes | Description |');
         lines.push('| --- | --- | --- | --- | --- | --- |');
 
@@ -41,7 +43,7 @@ export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], option
             const fieldDescription = stripCommentPrefix(field.comments) || '—';
             const fieldAnchor = `<a id="field-${field.name}"></a>`;
             lines.push(
-                `| ${fieldAnchor}${field.name} | ${getFieldTypeName(field, false)} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${fieldDescription} |`,
+                `| ${fieldAnchor}\`${field.name}\` | ${getFieldTypeName(field, false)} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${fieldDescription} |`,
             );
         }
         lines.push('');
@@ -53,7 +55,7 @@ export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], option
         .sort();
 
     if (usedBy.length > 0) {
-        lines.push('## Used By', '');
+        lines.push(...sectionHeading('Used By'), '');
         const firstField = typeDef.fields[0]?.name;
         for (const name of usedBy) {
             const anchor = firstField ? `#field-${firstField}` : '';
@@ -78,9 +80,7 @@ export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], option
         lines.push('```', '');
     }
 
-    lines.push(...referenceLink('type'));
-    lines.push(...declarationBlock(typeDef.$cstNode?.text, sourcePath));
-
+    lines.push(...referencesSection('type'));
     lines.push(...navigationFooter(navigation));
 
     return lines.join('\n');

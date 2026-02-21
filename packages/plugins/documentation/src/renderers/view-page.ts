@@ -1,5 +1,5 @@
 import { type DataModel } from '@zenstackhq/language/ast';
-import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referenceLink, renderDescription, renderMetadata } from './common';
+import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referencesSection, renderDescription, renderMetadata, sectionHeading } from './common';
 import {
     extractDocMeta,
     getDefaultValue,
@@ -29,13 +29,26 @@ export function renderViewPage(view: DataModel, options: RenderOptions, navigati
     const sourcePath = getRelativeSourcePath(view, options.schemaDir);
     lines.push(...renderMetadata(docMeta, sourcePath));
 
+    lines.push(...declarationBlock(view.$cstNode?.text, sourcePath));
+
+    if (view.fields.length > 0) {
+        lines.push('```mermaid', 'erDiagram');
+        lines.push(`    ${view.name} {`);
+        for (const field of view.fields) {
+            const typeName = field.type.type ?? 'Unknown';
+            lines.push(`        ${typeName} ${field.name}`);
+        }
+        lines.push('    }');
+        lines.push('```', '');
+    }
+
     const sortedFields =
         options.fieldOrder === 'alphabetical'
             ? [...view.fields].sort((a, b) => a.name.localeCompare(b.name))
             : [...view.fields];
 
     if (sortedFields.length > 0) {
-        lines.push('## Fields', '');
+        lines.push(...sectionHeading('Fields'), '');
         lines.push('| Field | Type | Required | Default | Attributes | Description |');
         lines.push('| --- | --- | --- | --- | --- | --- |');
 
@@ -43,15 +56,13 @@ export function renderViewPage(view: DataModel, options: RenderOptions, navigati
             const fieldDescription = stripCommentPrefix(field.comments) || '—';
             const fieldAnchor = `<a id="field-${field.name}"></a>`;
             lines.push(
-                `| ${fieldAnchor}${field.name} | ${getFieldTypeName(field, false)} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${fieldDescription} |`,
+                `| ${fieldAnchor}\`${field.name}\` | ${getFieldTypeName(field, false)} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${fieldDescription} |`,
             );
         }
         lines.push('');
     }
 
-    lines.push(...referenceLink('view'));
-    lines.push(...declarationBlock(view.$cstNode?.text, sourcePath));
-
+    lines.push(...referencesSection('view'));
     lines.push(...navigationFooter(navigation));
 
     return lines.join('\n');

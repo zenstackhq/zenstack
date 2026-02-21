@@ -1,6 +1,6 @@
 import { isDataModel, isTypeDef, type DataField, type DataModel, type DataModelAttribute, type Procedure } from '@zenstackhq/language/ast';
 import { getAllFields } from '@zenstackhq/language/utils';
-import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referenceLink, renderDescription, renderMetadata } from './common';
+import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referencesSection, renderDescription, renderMetadata, sectionHeading } from './common';
 import type { Navigation } from '../types';
 import {
     extractDocMeta,
@@ -62,10 +62,55 @@ function collectValidationRules(orderedFields: DataField[], modelAttrs: DataMode
     return rules;
 }
 
+function collectFKFieldNames(allFields: DataField[]): Set<string> {
+    const fkNames = new Set<string>();
+    for (const field of allFields) {
+        const relationAttr = field.attributes.find((a) => getAttrName(a) === '@relation');
+        if (!relationAttr) continue;
+        const cstText = relationAttr.$cstNode?.text ?? '';
+        const fieldsMatch = cstText.match(/fields:\s*\[([^\]]+)\]/);
+        if (fieldsMatch) {
+            for (const name of fieldsMatch[1]!.split(',').map((s) => s.trim())) {
+                fkNames.add(name);
+            }
+        }
+    }
+    return fkNames;
+}
+
+function renderEntityDiagram(modelName: string, allFields: DataField[]): string[] {
+    const fkNames = collectFKFieldNames(allFields);
+    const scalarFields = allFields.filter(
+        (f) => !(f.type.reference?.ref && isDataModel(f.type.reference.ref)),
+    );
+    if (scalarFields.length === 0) return [];
+
+    const lines = [...sectionHeading('Entity Diagram'), ''];
+    lines.push('```mermaid', 'erDiagram');
+    lines.push(`    ${modelName} {`);
+
+    for (const field of scalarFields) {
+        const typeName = field.type.reference?.ref?.name ?? field.type.type ?? 'Unknown';
+        const hasId = field.attributes.some((a) => getAttrName(a) === '@id');
+        const hasUnique = field.attributes.some((a) => getAttrName(a) === '@unique');
+
+        let annotation = '';
+        if (hasId) annotation = ' PK';
+        else if (hasUnique) annotation = ' UK';
+        else if (fkNames.has(field.name)) annotation = ' FK';
+
+        lines.push(`        ${typeName} ${field.name}${annotation}`);
+    }
+
+    lines.push('    }');
+    lines.push('```', '');
+    return lines;
+}
+
 function renderFieldsSection(model: DataModel, orderedFields: DataField[]): string[] {
     if (orderedFields.length === 0) return [];
 
-    const lines = ['## Fields', '', '| Field | Type | Required | Default | Attributes | Source | Description |', '| --- | --- | --- | --- | --- | --- | --- |'];
+    const lines = [...sectionHeading('Fields'), '', '| Field | Type | Required | Default | Attributes | Source | Description |', '| --- | --- | --- | --- | --- | --- | --- |'];
 
     for (const field of orderedFields) {
         const fieldDescription = stripCommentPrefix(field.comments);
@@ -95,7 +140,7 @@ function renderFieldsSection(model: DataModel, orderedFields: DataField[]): stri
         const desc = descParts.length > 0 ? descParts.join(' ') : '—';
         const fieldAnchor = `<a id="field-${field.name}"></a>`;
         lines.push(
-            `| ${fieldAnchor}${field.name} | ${typeCol} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${source} | ${desc} |`,
+            `| ${fieldAnchor}\`${field.name}\` | ${typeCol} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${source} | ${desc} |`,
         );
     }
     lines.push('');
@@ -105,7 +150,7 @@ function renderFieldsSection(model: DataModel, orderedFields: DataField[]): stri
 function renderRelationshipsSection(modelName: string, relationFields: DataField[]): string[] {
     if (relationFields.length === 0) return [];
 
-    const lines = ['## Relationships', '', '| Field | Related Model | Type |', '| --- | --- | --- |'];
+    const lines = [...sectionHeading('Relationships'), '', '| Field | Related Model | Type |', '| --- | --- | --- |'];
     const mermaidLines: string[] = [];
     const seenPairs = new Set<string>();
 
@@ -119,7 +164,7 @@ function renderRelationshipsSection(modelName: string, relationFields: DataField
         } else {
             relType = 'Many\u2192One';
         }
-        lines.push(`| ${field.name} | [${relatedModel}](./${relatedModel}.md) | ${relType} |`);
+        lines.push(`| \`${field.name}\` | [${relatedModel}](./${relatedModel}.md) | ${relType} |`);
 
         const pairKey = [modelName, relatedModel].sort().join('--');
         if (!seenPairs.has(pairKey)) {
@@ -143,7 +188,7 @@ function renderPoliciesSection(policyAttrs: DataModelAttribute[]): string[] {
     if (policyAttrs.length === 0) return [];
 
     const lines = [
-        '## Access Policies', '',
+        ...sectionHeading('Access Policies'), '',
         '> [!IMPORTANT]',
         '> Operations are **denied by default**. `@@allow` rules grant access; `@@deny` rules override any allow.', '',
         '| Operation | Rule | Effect |',
@@ -165,7 +210,7 @@ function renderPoliciesSection(policyAttrs: DataModelAttribute[]): string[] {
 function renderIndexesSection(indexAttrs: DataModelAttribute[]): string[] {
     if (indexAttrs.length === 0) return [];
 
-    const lines = ['## Indexes', '', '| Fields | Type |', '| --- | --- |'];
+    const lines = [...sectionHeading('Indexes'), '', '| Fields | Type |', '| --- | --- |'];
 
     for (const attr of indexAttrs) {
         const attrName = attr.decl.ref?.name ?? '';
@@ -186,9 +231,10 @@ function renderIndexesSection(indexAttrs: DataModelAttribute[]): string[] {
 
 function renderValidationSection(rules: ValidationRule[]): string[] {
     if (rules.length === 0) return [];
-    const lines = ['## Validation Rules', '', '| Field | Rule |', '| --- | --- |'];
+    const lines = [...sectionHeading('Validation Rules'), '', '| Field | Rule |', '| --- | --- |'];
     for (const { fieldName, rule } of rules) {
-        lines.push(`| ${fieldName} | ${rule} |`);
+        const nameCol = fieldName === 'Model' ? fieldName : `\`${fieldName}\``;
+        lines.push(`| ${nameCol} | ${rule} |`);
     }
     lines.push('');
     return lines;
@@ -201,7 +247,7 @@ function renderProceduresSection(procedures: Procedure[], modelName: string): st
 
     if (referenced.length === 0) return [];
 
-    const lines = ['## Used in Procedures', ''];
+    const lines = [...sectionHeading('Used in Procedures'), ''];
     for (const proc of referenced) {
         const kind = proc.mutation ? 'mutation' : 'query';
         lines.push(`- [${proc.name}](../procedures/${proc.name}.md) — *${kind}*`);
@@ -241,12 +287,17 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
 
     lines.push(...renderMetadata(docMeta, sourcePath, { mappedTable, dbSchema }));
 
+    lines.push(...declarationBlock(model.$cstNode?.text, sourcePath));
+
+    const allFields = getAllFields(model, true);
+
+    lines.push(...renderEntityDiagram(model.name, [...allFields]));
+
     const mixinRefs = model.mixins
         .map((ref) => ref.ref)
         .filter((t): t is NonNullable<typeof t> => t != null)
         .sort((a, b) => a.name.localeCompare(b.name));
 
-    const allFields = getAllFields(model, true);
     const orderedFields =
         options.fieldOrder === 'alphabetical'
             ? [...allFields].sort((a, b) => a.name.localeCompare(b.name))
@@ -288,7 +339,7 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
     }
 
     if (mixinRefs.length > 0) {
-        lines.push('## Mixins', '');
+        lines.push(...sectionHeading('Mixins'), '');
         for (const mixin of mixinRefs) {
             lines.push(`- [${mixin.name}](../types/${mixin.name}.md)`);
         }
@@ -302,8 +353,7 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
     if (options.includeValidation) lines.push(...renderValidationSection(validationRules));
     lines.push(...renderProceduresSection(procedures, model.name));
 
-    lines.push(...referenceLink('model'));
-    lines.push(...declarationBlock(model.$cstNode?.text, sourcePath));
+    lines.push(...referencesSection('model'));
     lines.push(...navigationFooter(navigation));
 
     return lines.join('\n');

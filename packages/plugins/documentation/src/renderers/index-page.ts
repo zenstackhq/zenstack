@@ -96,7 +96,7 @@ export function renderIndexPage(
     }
 
     if (models.length > 0) {
-        lines.push('## Models', '');
+        lines.push('<a id="models"></a>', '', '## 🗃️ Models', '');
         for (const m of models) {
             const desc = firstSentence(stripCommentPrefix(m.comments));
             const meta = extractDocMeta(m.attributes);
@@ -106,7 +106,7 @@ export function renderIndexPage(
     }
 
     if (views.length > 0) {
-        lines.push('## Views', '');
+        lines.push('<a id="views"></a>', '', '## 👁️ Views', '');
         for (const v of views) {
             const desc = firstSentence(stripCommentPrefix(v.comments));
             const meta = extractDocMeta(v.attributes);
@@ -116,7 +116,7 @@ export function renderIndexPage(
     }
 
     if (types.length > 0) {
-        lines.push('## Types', '');
+        lines.push('<a id="types"></a>', '', '## 🧩 Types', '');
         for (const t of types) {
             const desc = firstSentence(stripCommentPrefix(t.comments));
             const suffix = desc ? ` — ${desc}` : '';
@@ -126,7 +126,7 @@ export function renderIndexPage(
     }
 
     if (enums.length > 0) {
-        lines.push('## Enums', '');
+        lines.push('<a id="enums"></a>', '', '## 📋 Enums', '');
         for (const e of enums) {
             const desc = firstSentence(stripCommentPrefix(e.comments));
             const suffix = desc ? ` — ${desc}` : '';
@@ -136,7 +136,7 @@ export function renderIndexPage(
     }
 
     if (procedures.length > 0) {
-        lines.push('## Procedures', '');
+        lines.push('<a id="procedures"></a>', '', '## ⚡ Procedures', '');
         for (const proc of procedures) {
             const kind = proc.mutation ? 'mutation' : 'query';
             const desc = firstSentence(extractProcedureComments(proc, ' '));
@@ -147,7 +147,7 @@ export function renderIndexPage(
     }
 
     if (hasRelationships) {
-        lines.push('## See Also', '');
+        lines.push('<a id="see-also"></a>', '', '## 📎 See Also', '');
         lines.push('- [Relationships](./relationships.md)', '');
     }
 

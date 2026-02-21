@@ -1,5 +1,28 @@
 import type { DocMeta, GenerationContext, Navigation } from '../types';
 
+const SECTION_EMOJI: Record<string, string> = {
+    'Mixins': '🧩',
+    'Entity Diagram': '📊',
+    'Fields': '📋',
+    'Relationships': '🔗',
+    'Access Policies': '🔐',
+    'Indexes': '📇',
+    'Validation Rules': '✅',
+    'Used in Procedures': '⚡',
+    'Values': '📋',
+    'Used By': '🔗',
+    'Parameters': '📥',
+    'Returns': '📤',
+    'References': '📚',
+};
+
+export function sectionHeading(name: string): string[] {
+    const emoji = SECTION_EMOJI[name] ?? '';
+    const anchor = name.toLowerCase().replace(/\s+/g, '-');
+    const prefix = emoji ? `${emoji} ` : '';
+    return [`<a id="${anchor}"></a>`, '', `## ${prefix}${name}`];
+}
+
 export function generatedHeader(ctx?: GenerationContext): string[] {
     const lines = ['> [!CAUTION]', '> This documentation was auto-generated. Do not edit directly.'];
     if (ctx) {
@@ -18,7 +41,7 @@ export function breadcrumbs(
     prefix: string,
 ): string {
     const anchor = entityType.toLowerCase();
-    return `[Index](${prefix}index.md) / [${entityType}](${prefix}index.md#${anchor}) / ${entityName}`;
+    return `[Index](${prefix}index.md) / [${entityType}](${prefix}index.md#${anchor}) / \`${entityName}\``;
 }
 
 export function navigationFooter(nav: Navigation | undefined): string[] {
@@ -40,10 +63,15 @@ const ENTITY_DOC_PATHS: Record<string, string> = {
     procedure: `${ZENSTACK_DOCS_BASE}/procedure`,
 };
 
-export function referenceLink(entityType: 'model' | 'enum' | 'type' | 'view' | 'procedure'): string[] {
+export function referencesSection(entityType: 'model' | 'enum' | 'type' | 'view' | 'procedure'): string[] {
     const url = ENTITY_DOC_PATHS[entityType];
     if (!url) return [];
-    return [`*Learn more about ZModel ${entityType}s in the [ZenStack documentation](${url}).*`, ''];
+    return [
+        '---', '',
+        ...sectionHeading('References'), '',
+        `- [ZModel ${entityType}s — ZenStack documentation](${url})`,
+        '',
+    ];
 }
 
 export function declarationBlock(cstText: string | undefined, sourcePath: string | undefined): string[] {
