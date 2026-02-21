@@ -1,4 +1,4 @@
-import { isDataModel, isEnum, isTypeDef, type DataModel, type Model } from '@zenstackhq/language/ast';
+import { isDataModel, isEnum, isProcedure, isTypeDef, type DataModel, type Model } from '@zenstackhq/language/ast';
 import { extractDocMeta, isIgnoredModel } from '../extractors';
 
 function getModelPath(model: DataModel, groupBy: unknown): string {
@@ -39,12 +39,17 @@ export function renderIndexPage(
         .map((e) => e.name)
         .sort();
 
+    const procedures = astModel.declarations
+        .filter(isProcedure)
+        .sort((a, b) => a.name.localeCompare(b.name));
+
     const lines: string[] = [`# ${title}`, ''];
 
     const summaryParts: string[] = [];
     if (models.length > 0) summaryParts.push(`${models.length} ${models.length === 1 ? 'model' : 'models'}`);
     if (typeNames.length > 0) summaryParts.push(`${typeNames.length} ${typeNames.length === 1 ? 'type' : 'types'}`);
     if (enumNames.length > 0) summaryParts.push(`${enumNames.length} ${enumNames.length === 1 ? 'enum' : 'enums'}`);
+    if (procedures.length > 0) summaryParts.push(`${procedures.length} ${procedures.length === 1 ? 'procedure' : 'procedures'}`);
     if (summaryParts.length > 0) {
         lines.push(`> ${summaryParts.join(' · ')}`, '');
     }
@@ -69,6 +74,15 @@ export function renderIndexPage(
         lines.push('## Enums', '');
         for (const name of enumNames) {
             lines.push(`- [${name}](./enums/${name}.md)`);
+        }
+        lines.push('');
+    }
+
+    if (procedures.length > 0) {
+        lines.push('## Procedures', '');
+        for (const proc of procedures) {
+            const kind = proc.mutation ? 'mutation' : 'query';
+            lines.push(`- [${proc.name}](./procedures/${proc.name}.md) — *${kind}*`);
         }
         lines.push('');
     }

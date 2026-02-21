@@ -1303,6 +1303,54 @@ describe('documentation plugin', () => {
         expect(relDoc).toContain('Employee');
     });
 
+    it('index page lists procedures with query/mutation distinction', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+            procedure getUser(id: String): User
+            mutation procedure signUp(name: String): User
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const indexContent = fs.readFileSync(path.join(tmpDir, 'index.md'), 'utf-8');
+        expect(indexContent).toContain('## Procedures');
+        expect(indexContent).toContain('[getUser](./procedures/getUser.md)');
+        expect(indexContent).toContain('[signUp](./procedures/signUp.md)');
+        expect(indexContent).toContain('query');
+        expect(indexContent).toContain('mutation');
+    });
+
+    it('index page summary includes procedure count', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+            procedure getUser(id: String): User
+            mutation procedure signUp(name: String): User
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const indexContent = fs.readFileSync(path.join(tmpDir, 'index.md'), 'utf-8');
+        expect(indexContent).toContain('2 procedures');
+    });
+
     it('snapshot: full representative schema output', async () => {
         const model = await loadSchema(`
             /// User roles in the system.

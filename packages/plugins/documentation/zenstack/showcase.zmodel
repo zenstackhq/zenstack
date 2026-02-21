@@ -231,6 +231,39 @@ model Activity with Timestamps {
     @@meta('doc:since', '2.0')
 }
 
+// ─── Custom Types ────────────────────────────────────────
+
+/// Aggregated statistics for a project dashboard.
+type ProjectStats {
+    taskCount     Int
+    completedCount Int
+    memberCount   Int
+}
+
+// ─── Procedures ─────────────────────────────────────────
+
+/// Register a new user in the platform.
+/// Creates the user record and sends a welcome email.
+mutation procedure signUp(email: String, name: String, role: Role?): User
+
+/// Retrieve a user by their unique identifier.
+procedure getUser(id: String): User
+
+/// List all users belonging to a given organization.
+procedure listOrgUsers(organizationId: String): User[]
+
+/// Create a new task and assign it to a user in one step.
+mutation procedure createAndAssignTask(title: String, projectId: String, assigneeId: String?, priority: Priority?): Task
+
+/// Get aggregated statistics for a project.
+procedure getProjectStats(projectId: String): ProjectStats
+
+/// Bulk-update the status of multiple tasks at once.
+mutation procedure bulkUpdateTaskStatus(taskIds: String[], status: TaskStatus): Void
+
+/// Archive a project and all its tasks.
+mutation procedure archiveProject(projectId: String): Project
+
 // ─── Internal / Ignored Models ───────────────────────────
 
 /// Tracks background job execution. Internal only — not part of the public API.
