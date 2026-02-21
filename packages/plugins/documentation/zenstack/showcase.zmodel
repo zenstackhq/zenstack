@@ -60,6 +60,8 @@ model Organization with Timestamps {
     slug     String    @unique @length(3, 40) @meta('doc:example', 'acme-corp')
     /// Primary contact email for the organization.
     email    String?   @email
+    /// Total number of users across all teams.
+    memberCount Int       @computed
     users    User[]
     teams    Team[]
     projects Project[]
@@ -141,6 +143,12 @@ model Project with Timestamps {
     /// Detailed description of the project scope and goals.
     description    String?
     archived       Boolean      @default(false)
+    /// Total number of tasks in this project.
+    taskCount      Int          @computed
+    /// Percentage of completed tasks (0.0–1.0).
+    completionRate Float        @computed
+    /// Whether the project has any tasks past their due date.
+    hasOverdueTasks Boolean     @computed
     organization   Organization @relation(fields: [organizationId], references: [id])
     organizationId String
     team           Team?        @relation(fields: [teamId], references: [id])
@@ -167,6 +175,8 @@ model Task with Timestamps {
     status      TaskStatus  @default(TODO)
     priority    Priority    @default(MEDIUM)
     dueDate     DateTime?
+    /// Number of comments on this task.
+    commentCount Int        @computed
     project     Project     @relation(fields: [projectId], references: [id])
     projectId   String
     assignee    User?       @relation(fields: [assigneeId], references: [id])

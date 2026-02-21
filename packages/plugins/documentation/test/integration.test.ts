@@ -236,6 +236,42 @@ describe('integration: showcase schema', () => {
         expect(orgDoc).toContain('## Indexes');
     });
 
+    it('renders diverse computed fields across multiple models', async () => {
+        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+
+        const projectDoc = readDoc(tmpDir, 'models', 'Project.md');
+        const projectLines = projectDoc.split('\n');
+
+        const taskCountLine = projectLines.find((l) => l.includes('| taskCount'));
+        expect(taskCountLine).toBeDefined();
+        expect(taskCountLine).toContain('`Int` <kbd>computed</kbd>');
+        expect(taskCountLine).toContain('Total number of tasks');
+
+        const completionLine = projectLines.find((l) => l.includes('| completionRate'));
+        expect(completionLine).toBeDefined();
+        expect(completionLine).toContain('`Float` <kbd>computed</kbd>');
+        expect(completionLine).toContain('Percentage of completed tasks');
+
+        const overdueLine = projectLines.find((l) => l.includes('| hasOverdueTasks'));
+        expect(overdueLine).toBeDefined();
+        expect(overdueLine).toContain('`Boolean` <kbd>computed</kbd>');
+
+        const taskDoc = readDoc(tmpDir, 'models', 'Task.md');
+        const taskLines = taskDoc.split('\n');
+
+        const commentCountLine = taskLines.find((l) => l.includes('| commentCount'));
+        expect(commentCountLine).toBeDefined();
+        expect(commentCountLine).toContain('`Int` <kbd>computed</kbd>');
+        expect(commentCountLine).toContain('Number of comments');
+
+        const orgDoc = readDoc(tmpDir, 'models', 'Organization.md');
+        const orgLines = orgDoc.split('\n');
+
+        const memberCountLine = orgLines.find((l) => l.includes('| memberCount'));
+        expect(memberCountLine).toBeDefined();
+        expect(memberCountLine).toContain('`Int` <kbd>computed</kbd>');
+    });
+
     it('renders @@meta category, since, and deprecated annotations', async () => {
         const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
 
