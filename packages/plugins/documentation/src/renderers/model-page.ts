@@ -1,4 +1,4 @@
-import { isDataModel, type DataModel } from '@zenstackhq/language/ast';
+import { isDataModel, isTypeDef, type DataModel } from '@zenstackhq/language/ast';
 import { getAllFields } from '@zenstackhq/language/utils';
 import {
     extractDocMeta,
@@ -68,9 +68,13 @@ export function renderModelPage(model: DataModel, options: RenderOptions): strin
                 isDataModel(field.$container) && field.$container !== model
                     ? field.$container.name
                     : undefined;
+            const fromMixin =
+                isTypeDef(field.$container) ? field.$container.name : undefined;
             const descParts: string[] = [];
             if (isComputed) descParts.push('**Computed**');
-            if (inheritedFrom) {
+            if (fromMixin) {
+                descParts.push(`*From [${fromMixin}](../types/${fromMixin}.md)*`);
+            } else if (inheritedFrom) {
                 descParts.push(`*Inherited from [${inheritedFrom}](./${inheritedFrom}.md)*`);
             }
             const example = extractFieldDocExample(field);

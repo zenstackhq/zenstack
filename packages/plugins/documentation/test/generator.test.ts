@@ -200,6 +200,37 @@ describe('documentation plugin', () => {
         expect(userDoc).toContain('[Metadata](../types/Metadata.md)');
     });
 
+    it('fields from mixins show source annotation linking to type page', async () => {
+        const model = await loadSchema(`
+            type Timestamps {
+                createdAt DateTime @default(now())
+                updatedAt DateTime @updatedAt
+            }
+            model User with Timestamps {
+                id    String @id @default(cuid())
+                email String
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        const createdAtLine = userDoc.split('\n').find((l) => l.includes('| createdAt'));
+        expect(createdAtLine).toBeDefined();
+        expect(createdAtLine).toContain('From [Timestamps](../types/Timestamps.md)');
+
+        const emailLine = userDoc.split('\n').find((l) => l.includes('| email'));
+        expect(emailLine).toBeDefined();
+        expect(emailLine).not.toContain('From [');
+    });
+
     it('generates model page with heading and description', async () => {
         const model = await loadSchema(`
             /// Represents a registered user.
