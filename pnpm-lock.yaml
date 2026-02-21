@@ -602,6 +602,28 @@ importers:
         specifier: ^4.1.0
         version: 4.1.12
 
+  packages/plugins/documentation:
+    dependencies:
+      '@zenstackhq/language':
+        specifier: workspace:*
+        version: link:../../language
+      '@zenstackhq/sdk':
+        specifier: workspace:*
+        version: link:../../sdk
+    devDependencies:
+      '@zenstackhq/common-helpers':
+        specifier: workspace:*
+        version: link:../../common-helpers
+      '@zenstackhq/eslint-config':
+        specifier: workspace:*
+        version: link:../../config/eslint-config
+      '@zenstackhq/typescript-config':
+        specifier: workspace:*
+        version: link:../../config/typescript-config
+      '@zenstackhq/vitest-config':
+        specifier: workspace:*
+        version: link:../../config/vitest-config
+
   packages/plugins/policy:
     dependencies:
       '@zenstackhq/common-helpers':
