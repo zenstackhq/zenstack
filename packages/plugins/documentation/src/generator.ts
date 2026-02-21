@@ -1,4 +1,4 @@
-import { isDataModel, isEnum, isTypeDef } from '@zenstackhq/language/ast';
+import { isDataModel, isEnum, isProcedure, isTypeDef } from '@zenstackhq/language/ast';
 import type { CliGeneratorContext } from '@zenstackhq/sdk';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -7,6 +7,7 @@ import { renderEnumPage } from './renderers/enum-page';
 import { renderIndexPage } from './renderers/index-page';
 import { renderModelPage } from './renderers/model-page';
 import { renderRelationshipsPage } from './renderers/relationships-page';
+import { renderProcedurePage } from './renderers/procedure-page';
 import { renderTypePage } from './renderers/type-page';
 
 function resolveOutputDir(context: CliGeneratorContext): string {
@@ -84,6 +85,18 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
             fs.writeFileSync(
                 path.join(enumsDir, `${enumDecl.name}.md`),
                 renderEnumPage(enumDecl, models, options),
+            );
+        }
+    }
+
+    const proceduresDir = path.join(outputDir, 'procedures');
+    const procedures = context.model.declarations.filter(isProcedure);
+    if (procedures.length > 0) {
+        fs.mkdirSync(proceduresDir, { recursive: true });
+        for (const proc of procedures) {
+            fs.writeFileSync(
+                path.join(proceduresDir, `${proc.name}.md`),
+                renderProcedurePage(proc, options),
             );
         }
     }

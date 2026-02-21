@@ -1329,6 +1329,133 @@ describe('documentation plugin', () => {
         expect(indexContent).toContain('mutation');
     });
 
+    it('generates procedure page with heading, badge, and parameters table', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+            /// Register a new user.
+            mutation procedure signUp(email: String, name: String, role: String?): User
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        expect(fs.existsSync(path.join(tmpDir, 'procedures', 'signUp.md'))).toBe(true);
+        const procDoc = fs.readFileSync(path.join(tmpDir, 'procedures', 'signUp.md'), 'utf-8');
+        expect(procDoc).toContain('# signUp');
+        expect(procDoc).toContain('**mutation**');
+        expect(procDoc).toContain('Register a new user.');
+        expect(procDoc).toContain('[Index](../index.md)');
+
+        // Parameters table
+        expect(procDoc).toContain('## Parameters');
+        expect(procDoc).toContain('| email');
+        expect(procDoc).toContain('| name');
+        expect(procDoc).toContain('| role');
+        const roleLine = procDoc.split('\n').find((l: string) => l.includes('| role'));
+        expect(roleLine).toContain('No');
+
+        // Return type
+        expect(procDoc).toContain('## Returns');
+        expect(procDoc).toContain('User');
+    });
+
+    it('generates query procedure page with query badge', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+            procedure getUser(id: String): User
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const procDoc = fs.readFileSync(path.join(tmpDir, 'procedures', 'getUser.md'), 'utf-8');
+        expect(procDoc).toContain('# getUser');
+        expect(procDoc).toContain('**query**');
+        expect(procDoc).not.toContain('**mutation**');
+    });
+
+    it('procedure page handles Void return type', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+            mutation procedure deleteUser(id: String): Void
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const procDoc = fs.readFileSync(path.join(tmpDir, 'procedures', 'deleteUser.md'), 'utf-8');
+        expect(procDoc).toContain('## Returns');
+        expect(procDoc).toContain('`Void`');
+    });
+
+    it('procedure page handles array return type', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+            procedure listUsers(): User[]
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const procDoc = fs.readFileSync(path.join(tmpDir, 'procedures', 'listUsers.md'), 'utf-8');
+        expect(procDoc).toContain('## Returns');
+        expect(procDoc).toContain('User');
+        expect(procDoc).toContain('[]');
+    });
+
+    it('procedure page handles no parameters', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+            procedure listUsers(): User[]
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const procDoc = fs.readFileSync(path.join(tmpDir, 'procedures', 'listUsers.md'), 'utf-8');
+        expect(procDoc).not.toContain('## Parameters');
+    });
+
     it('index page summary includes procedure count', async () => {
         const model = await loadSchema(`
             model User {
