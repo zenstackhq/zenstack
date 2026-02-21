@@ -7,7 +7,7 @@ exports[`documentation plugin > snapshot: full representative schema output > en
 
 > User roles in the system.
 
-**Defined in:** \`../../../../../tmp/zenstack-schema-7efba380-5777-4e82-b7e9-999016eeac1b.zmodel\`
+**Defined in:** \`../../../../../tmp/zenstack-schema-972f957b-2abb-43c9-8881-8163d08e6308.zmodel\`
 
 ## Values
 
@@ -37,6 +37,8 @@ exports[`documentation plugin > snapshot: full representative schema output > en
 exports[`documentation plugin > snapshot: full representative schema output > index.md 1`] = `
 "# Schema Documentation
 
+> 2 models · 1 enum
+
 ## Models
 
 - [Post](./models/Post.md)
@@ -61,7 +63,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 **Category:** Content
 
-**Defined in:** \`../../../../../tmp/zenstack-schema-7efba380-5777-4e82-b7e9-999016eeac1b.zmodel\`
+**Defined in:** \`../../../../../tmp/zenstack-schema-972f957b-2abb-43c9-8881-8163d08e6308.zmodel\`
 
 ## Fields
 
@@ -108,7 +110,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 **Since:** 1.0
 
-**Defined in:** \`../../../../../tmp/zenstack-schema-7efba380-5777-4e82-b7e9-999016eeac1b.zmodel\`
+**Defined in:** \`../../../../../tmp/zenstack-schema-972f957b-2abb-43c9-8881-8163d08e6308.zmodel\`
 
 ## Fields
 

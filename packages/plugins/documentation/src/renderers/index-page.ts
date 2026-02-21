@@ -29,7 +29,25 @@ export function renderIndexPage(
         .filter((m) => includeInternal || !isIgnoredModel(m))
         .sort((a, b) => a.name.localeCompare(b.name));
 
+    const typeNames = astModel.declarations
+        .filter(isTypeDef)
+        .map((t) => t.name)
+        .sort();
+
+    const enumNames = astModel.declarations
+        .filter(isEnum)
+        .map((e) => e.name)
+        .sort();
+
     const lines: string[] = [`# ${title}`, ''];
+
+    const summaryParts: string[] = [];
+    if (models.length > 0) summaryParts.push(`${models.length} ${models.length === 1 ? 'model' : 'models'}`);
+    if (typeNames.length > 0) summaryParts.push(`${typeNames.length} ${typeNames.length === 1 ? 'type' : 'types'}`);
+    if (enumNames.length > 0) summaryParts.push(`${enumNames.length} ${enumNames.length === 1 ? 'enum' : 'enums'}`);
+    if (summaryParts.length > 0) {
+        lines.push(`> ${summaryParts.join(' · ')}`, '');
+    }
 
     if (models.length > 0) {
         lines.push('## Models', '');
@@ -39,27 +57,17 @@ export function renderIndexPage(
         lines.push('');
     }
 
-    const types = astModel.declarations
-        .filter(isTypeDef)
-        .map((t) => t.name)
-        .sort();
-
-    if (types.length > 0) {
+    if (typeNames.length > 0) {
         lines.push('## Types', '');
-        for (const name of types) {
+        for (const name of typeNames) {
             lines.push(`- [${name}](./types/${name}.md)`);
         }
         lines.push('');
     }
 
-    const enums = astModel.declarations
-        .filter(isEnum)
-        .map((e) => e.name)
-        .sort();
-
-    if (enums.length > 0) {
+    if (enumNames.length > 0) {
         lines.push('## Enums', '');
-        for (const name of enums) {
+        for (const name of enumNames) {
             lines.push(`- [${name}](./enums/${name}.md)`);
         }
         lines.push('');

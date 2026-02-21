@@ -25,6 +25,35 @@ describe('documentation plugin', () => {
         expect(fs.existsSync(path.join(tmpDir, 'index.md'))).toBe(true);
     });
 
+    it('index page shows summary line with artifact counts', async () => {
+        const model = await loadSchema(`
+            enum Role { ADMIN MEMBER }
+            type Timestamps {
+                createdAt DateTime @default(now())
+            }
+            model User {
+                id String @id @default(cuid())
+            }
+            model Post {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const indexContent = fs.readFileSync(path.join(tmpDir, 'index.md'), 'utf-8');
+        expect(indexContent).toContain('2 models');
+        expect(indexContent).toContain('1 enum');
+        expect(indexContent).toContain('1 type');
+    });
+
     it('index page lists models alpha-sorted with links', async () => {
         const model = await loadSchema(`
             model User {
