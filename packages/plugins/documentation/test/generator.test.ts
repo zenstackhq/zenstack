@@ -98,4 +98,48 @@ describe('documentation plugin', () => {
         expect(userDoc).toContain('Represents a registered user.');
         expect(userDoc).toContain('Has many posts.');
     });
+
+    it('generates model page with fields table sorted alphabetically', async () => {
+        const model = await loadSchema(`
+            model User {
+                id    String  @id @default(cuid())
+                /// Display name shown in the UI.
+                name  String
+                email String?
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('## Fields');
+        expect(userDoc).toContain('| Field');
+        expect(userDoc).toContain('| email');
+        expect(userDoc).toContain('| id');
+        expect(userDoc).toContain('| name');
+        expect(userDoc).toContain('Display name shown in the UI.');
+        expect(userDoc).toContain('`cuid()`');
+
+        // email is optional
+        const emailLine = userDoc.split('\n').find((l) => l.includes('| email'));
+        expect(emailLine).toContain('No');
+
+        // id is required
+        const idLine = userDoc.split('\n').find((l) => l.includes('| id'));
+        expect(idLine).toContain('Yes');
+
+        // alphabetical order: email < id < name
+        const emailIdx = userDoc.indexOf('| email');
+        const idIdx = userDoc.indexOf('| id');
+        const nameIdx = userDoc.indexOf('| name');
+        expect(emailIdx).toBeLessThan(idIdx);
+        expect(idIdx).toBeLessThan(nameIdx);
+    });
 });
