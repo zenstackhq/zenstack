@@ -1478,6 +1478,52 @@ describe('documentation plugin', () => {
         expect(addressLine).toContain('`@json`');
     });
 
+    it('all predefined default-value functions render in Default column', async () => {
+        const model = await loadSchema(`
+            model Defaults {
+                autoId   Int      @id @default(autoincrement())
+                uid      String   @default(uuid())
+                cid      String   @default(cuid())
+                nid      String   @default(nanoid())
+                uli      String   @default(ulid())
+                created  DateTime @default(now())
+                dbVal    String   @default(dbgenerated())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const doc = fs.readFileSync(path.join(tmpDir, 'models', 'Defaults.md'), 'utf-8');
+
+        const autoIdLine = doc.split('\n').find((l) => l.includes('field-autoId'));
+        expect(autoIdLine).toContain('`autoincrement()`');
+
+        const uidLine = doc.split('\n').find((l) => l.includes('field-uid'));
+        expect(uidLine).toContain('`uuid()`');
+
+        const cidLine = doc.split('\n').find((l) => l.includes('field-cid'));
+        expect(cidLine).toContain('`cuid()`');
+
+        const nidLine = doc.split('\n').find((l) => l.includes('field-nid'));
+        expect(nidLine).toContain('`nanoid()`');
+
+        const uliLine = doc.split('\n').find((l) => l.includes('field-uli'));
+        expect(uliLine).toContain('`ulid()`');
+
+        const createdLine = doc.split('\n').find((l) => l.includes('field-created'));
+        expect(createdLine).toContain('`now()`');
+
+        const dbLine = doc.split('\n').find((l) => l.includes('field-dbVal'));
+        expect(dbLine).toContain('`dbgenerated()`');
+    });
+
     it('model with @@map shows mapped table name in metadata', async () => {
         const model = await loadSchema(`
             model User {
