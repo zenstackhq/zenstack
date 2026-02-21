@@ -994,6 +994,31 @@ describe('documentation plugin', () => {
         expect(userDoc).toContain('Deny');
     });
 
+    it('access policies section includes evaluation note', async () => {
+        const model = await loadSchema(`
+            model User {
+                id   String @id @default(cuid())
+                @@allow('read', true)
+                @@deny('delete', true)
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('## Access Policies');
+        expect(userDoc).toContain('denied by default');
+        expect(userDoc).toContain('@@deny');
+        expect(userDoc).toContain('@@allow');
+    });
+
     it('generates validation rules section', async () => {
         const model = await loadSchema(`
             model User {
