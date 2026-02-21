@@ -54,10 +54,17 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
     }
     const sourcePath = getRelativeSourcePath(model, options.schemaDir);
 
+    const mapAttr = model.attributes.find((a) => a.decl.ref?.name === '@@map');
+    const schemaAttr = model.attributes.find((a) => a.decl.ref?.name === '@@schema');
+    const mappedTable = mapAttr?.args[0]?.$cstNode?.text?.replace(/^['"]|['"]$/g, '');
+    const dbSchema = schemaAttr?.args[0]?.$cstNode?.text?.replace(/^['"]|['"]$/g, '');
+
     const metaParts: string[] = [];
     if (docMeta.category) metaParts.push(`**Category:** ${docMeta.category}`);
     if (docMeta.since) metaParts.push(`**Since:** ${docMeta.since}`);
     if (docMeta.deprecated) metaParts.push(`**Deprecated:** ${docMeta.deprecated}`);
+    if (mappedTable) metaParts.push(`**Table:** \`${mappedTable}\``);
+    if (dbSchema) metaParts.push(`**Schema:** \`${dbSchema}\``);
     if (sourcePath) metaParts.push(`**Defined in:** \`${sourcePath}\``);
 
     if (metaParts.length > 0) {
@@ -69,7 +76,7 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
         .filter((t): t is NonNullable<typeof t> => t != null)
         .sort((a, b) => a.name.localeCompare(b.name));
 
-    const allFields = getAllFields(model);
+    const allFields = getAllFields(model, true);
     const orderedFields =
         options.fieldOrder === 'alphabetical'
             ? [...allFields].sort((a, b) => a.name.localeCompare(b.name))
@@ -142,6 +149,7 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
         for (const field of orderedFields) {
             const fieldDescription = stripCommentPrefix(field.comments);
             const isComputed = field.attributes.some((a) => getAttrName(a) === '@computed');
+            const isIgnored = field.attributes.some((a) => getAttrName(a) === '@ignore');
             const inheritedFrom =
                 isDataModel(field.$container) && field.$container !== model
                     ? field.$container.name
@@ -158,6 +166,7 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
 
             let typeCol = getFieldTypeName(field, true);
             if (isComputed) typeCol += ' <kbd>computed</kbd>';
+            if (isIgnored) typeCol += ' <kbd>ignored</kbd>';
 
             const descParts: string[] = [];
             const example = extractFieldDocExample(field);

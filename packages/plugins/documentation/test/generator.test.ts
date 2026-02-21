@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { loadSchema } from './utils';
+import { loadSchema, loadSchemaFromFile } from './utils';
 import plugin from '../src/index';
 
 describe('documentation plugin', () => {
@@ -1403,6 +1403,80 @@ describe('documentation plugin', () => {
         expect(userDoc).toContain('`@email`');
         expect(userDoc).toContain('| name');
         expect(userDoc).toContain('`@length`');
+    });
+
+    it('model with @@map shows mapped table name in metadata', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+                @@map("users")
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('**Table:** `users`');
+    });
+
+    it('model with @@schema shows database schema in metadata', async () => {
+        const schemaContent = `
+            datasource db {
+                provider = "postgresql"
+                url      = "postgresql://localhost:5432/test"
+                schemas  = ["auth", "public"]
+            }
+            model User {
+                id String @id @default(cuid())
+                @@schema("auth")
+            }
+        `;
+        const tmpSchemaFile = path.join(os.tmpdir(), `zenstack-schema-${crypto.randomUUID()}.zmodel`);
+        fs.writeFileSync(tmpSchemaFile, schemaContent);
+
+        const model = await loadSchemaFromFile(tmpSchemaFile);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: tmpSchemaFile,
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('**Schema:** `auth`');
+    });
+
+    it('field with @ignore shows ignored badge in Type column', async () => {
+        const model = await loadSchema(`
+            model User {
+                id       String @id @default(cuid())
+                internal String @ignore
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        const internalLine = userDoc.split('\n').find((l) => l.includes('field-internal'));
+        expect(internalLine).toBeDefined();
+        expect(internalLine).toContain('<kbd>ignored</kbd>');
     });
 
     it('model with @@auth renders Auth badge on heading', async () => {
