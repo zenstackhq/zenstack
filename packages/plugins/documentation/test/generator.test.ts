@@ -288,4 +288,30 @@ describe('documentation plugin', () => {
         expect(userDoc).toContain('| delete');
         expect(userDoc).toContain('Deny');
     });
+
+    it('generates validation rules section', async () => {
+        const model = await loadSchema(`
+            model User {
+                id    String @id @default(cuid())
+                email String @email
+                name  String @length(1, 100)
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('## Validation Rules');
+        expect(userDoc).toContain('| email');
+        expect(userDoc).toContain('`@email`');
+        expect(userDoc).toContain('| name');
+        expect(userDoc).toContain('`@length`');
+    });
 });

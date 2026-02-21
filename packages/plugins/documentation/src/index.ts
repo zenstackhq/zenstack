@@ -182,6 +182,33 @@ function renderModelPage(model: DataModel): string {
         lines.push('');
     }
 
+    const validationRules: Array<{ fieldName: string; rule: string }> = [];
+    for (const field of sortedFields) {
+        for (const attr of field.attributes) {
+            const attrDecl = attr.decl.ref;
+            if (!attrDecl) continue;
+            const isValidation = attrDecl.attributes.some(
+                (ia) => ia.decl.ref?.name === '@@@validation',
+            );
+            if (isValidation) {
+                validationRules.push({
+                    fieldName: field.name,
+                    rule: `\`${getAttrName(attr)}\``,
+                });
+            }
+        }
+    }
+
+    if (validationRules.length > 0) {
+        lines.push('## Validation Rules', '');
+        lines.push('| Field | Rule |');
+        lines.push('| --- | --- |');
+        for (const { fieldName, rule } of validationRules) {
+            lines.push(`| ${fieldName} | ${rule} |`);
+        }
+        lines.push('');
+    }
+
     return lines.join('\n');
 }
 
