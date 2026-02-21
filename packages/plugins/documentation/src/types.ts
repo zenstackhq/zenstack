@@ -24,6 +24,8 @@ export interface Relationship {
 export interface GenerationContext {
     schemaFile: string;
     generatedAt: string;
+    durationMs?: number;
+    filesGenerated?: number;
 }
 
 export interface NavLink {

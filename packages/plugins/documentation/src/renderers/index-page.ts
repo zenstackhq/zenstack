@@ -151,5 +151,18 @@ export function renderIndexPage(
         lines.push('- [Relationships](./relationships.md)', '');
     }
 
+    if (genCtx?.durationMs != null && genCtx.filesGenerated != null) {
+        lines.push('---', '');
+        lines.push('<details>');
+        lines.push('<summary>Generation Stats</summary>', '');
+        lines.push(`| Metric | Value |`);
+        lines.push(`| --- | --- |`);
+        lines.push(`| **Files** | ${genCtx.filesGenerated} |`);
+        lines.push(`| **Duration** | ${genCtx.durationMs} ms |`);
+        lines.push(`| **Source** | \`${genCtx.schemaFile}\` |`);
+        lines.push(`| **Generated** | ${genCtx.generatedAt} |`);
+        lines.push('', '</details>', '');
+    }
+
     return lines.join('\n');
 }

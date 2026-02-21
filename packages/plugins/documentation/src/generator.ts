@@ -22,6 +22,7 @@ function resolveOutputDir(context: CliGeneratorContext): string {
 }
 
 export async function generate(context: CliGeneratorContext): Promise<void> {
+    const startTime = performance.now();
     const outputDir = resolveOutputDir(context);
     const options = resolveRenderOptions(context.pluginOptions);
     options.schemaDir = path.dirname(path.resolve(context.schemaFile));
@@ -36,6 +37,8 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
 
     fs.mkdirSync(outputDir, { recursive: true });
 
+    let filesGenerated = 0;
+
     const modelsDir = path.join(outputDir, 'models');
     const allDataModels = context.model.declarations
         .filter(isDataModel)
@@ -48,11 +51,6 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
 
     const allRelations = collectRelationships(models);
     const hasRelationships = options.includeRelationships && allRelations.length > 0;
-
-    fs.writeFileSync(
-        path.join(outputDir, 'index.md'),
-        renderIndexPage(context.model, context.pluginOptions, hasRelationships, genCtx),
-    );
 
     if (models.length > 0) {
         fs.mkdirSync(modelsDir, { recursive: true });
@@ -71,6 +69,7 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
                 path.join(modelDir, `${model.name}.md`),
                 renderModelPage(model, options, procedures, modelNav.get(model.name)),
             );
+            filesGenerated++;
         }
     }
 
@@ -84,6 +83,7 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
                 path.join(viewsDir, `${view.name}.md`),
                 renderViewPage(view, options, viewNav.get(view.name)),
             );
+            filesGenerated++;
         }
     }
 
@@ -92,6 +92,7 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
             path.join(outputDir, 'relationships.md'),
             renderRelationshipsPage(allRelations, genCtx),
         );
+        filesGenerated++;
     }
 
     const typesDir = path.join(outputDir, 'types');
@@ -105,6 +106,7 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
                 path.join(typesDir, `${typeDef.name}.md`),
                 renderTypePage(typeDef, models, options, typeNav.get(typeDef.name)),
             );
+            filesGenerated++;
         }
     }
 
@@ -119,6 +121,7 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
                 path.join(enumsDir, `${enumDecl.name}.md`),
                 renderEnumPage(enumDecl, models, options, enumNav.get(enumDecl.name)),
             );
+            filesGenerated++;
         }
     }
 
@@ -132,6 +135,15 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
                 path.join(proceduresDir, `${proc.name}.md`),
                 renderProcedurePage(proc, options, procNav.get(proc.name)),
             );
+            filesGenerated++;
         }
     }
+
+    genCtx.durationMs = Math.round((performance.now() - startTime) * 100) / 100;
+    genCtx.filesGenerated = filesGenerated + 1;
+
+    fs.writeFileSync(
+        path.join(outputDir, 'index.md'),
+        renderIndexPage(context.model, context.pluginOptions, hasRelationships, genCtx),
+    );
 }

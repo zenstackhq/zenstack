@@ -2196,4 +2196,25 @@ describe('documentation plugin', () => {
         expect(roleDoc).toMatchSnapshot('enums/Role.md');
         expect(relDoc).toMatchSnapshot('relationships.md');
     });
+
+    it('index page includes generation stats section', async () => {
+        const tmpDir = await generateFromSchema(`
+            model User {
+                id String @id @default(cuid())
+                posts Post[]
+            }
+            model Post {
+                id       String @id @default(cuid())
+                author   User   @relation(fields: [authorId], references: [id])
+                authorId String
+            }
+        `);
+
+        const indexContent = readDoc(tmpDir, 'index.md');
+
+        expect(indexContent).toContain('Generation Stats');
+        expect(indexContent).toContain('Files');
+        expect(indexContent).toContain('Duration');
+        expect(indexContent).toMatch(/\d+(\.\d+)?\s*ms/);
+    });
 });
