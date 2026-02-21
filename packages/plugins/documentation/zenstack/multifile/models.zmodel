@@ -1,0 +1,19 @@
+import './enums'
+import './mixins'
+
+/// A registered user in the system.
+model User with Timestamps {
+    id    String @id @default(cuid())
+    /// User email address.
+    email String @unique
+    role  Role   @default(MEMBER)
+    posts Post[]
+}
+
+/// A blog post authored by a user.
+model Post with Timestamps {
+    id       String @id @default(cuid())
+    title    String
+    author   User   @relation(fields: [authorId], references: [id])
+    authorId String
+}

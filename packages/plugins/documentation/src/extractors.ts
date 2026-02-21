@@ -10,11 +10,14 @@ import path from 'node:path';
 import type { DocMeta, Relationship } from './types';
 
 interface AstLike {
+    $cstNode?: { root?: { element?: { $document?: { uri?: { fsPath?: string } } } } };
     $container?: AstLike;
     $document?: { uri?: { fsPath?: string } };
 }
 
 export function getSourceFilePath(node: AstLike): string | undefined {
+    const cstDoc = node.$cstNode?.root?.element?.$document?.uri?.fsPath;
+    if (cstDoc) return cstDoc;
     let root: AstLike = node;
     while (root.$container) root = root.$container;
     return root.$document?.uri?.fsPath;

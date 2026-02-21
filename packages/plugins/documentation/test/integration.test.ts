@@ -8,6 +8,7 @@ import { findBrokenLinks, loadSchemaFromFile } from './utils';
 const SAMPLES_DIR = path.resolve(__dirname, '../../../../samples');
 const E2E_SCHEMAS_DIR = path.resolve(__dirname, '../../../../tests/e2e/orm/schemas');
 const SHOWCASE_SCHEMA = path.resolve(__dirname, '../zenstack/showcase.zmodel');
+const MULTIFILE_SCHEMA = path.resolve(__dirname, '../zenstack/multifile/schema.zmodel');
 
 function readDoc(tmpDir: string, ...segments: string[]): string {
     return fs.readFileSync(path.join(tmpDir, ...segments), 'utf-8');
@@ -327,6 +328,45 @@ describe('integration: showcase schema', () => {
         expect(fs.existsSync(path.join(tmpDir, 'models', 'ApiToken.md'))).toBe(true);
 
         expect(findBrokenLinks(tmpDir)).toEqual([]);
+    });
+});
+
+describe('integration: multi-file schema', () => {
+    it('artifacts show correct source file paths for declarations across files', async () => {
+        const tmpDir = await generateDocs(MULTIFILE_SCHEMA);
+
+        const userDoc = readDoc(tmpDir, 'models', 'User.md');
+        expect(userDoc).toContain('**Defined in:**');
+        expect(userDoc).toContain('models.zmodel');
+
+        const roleDoc = readDoc(tmpDir, 'enums', 'Role.md');
+        expect(roleDoc).toContain('**Defined in:**');
+        expect(roleDoc).toContain('enums.zmodel');
+
+        const tsDoc = readDoc(tmpDir, 'types', 'Timestamps.md');
+        expect(tsDoc).toContain('**Defined in:**');
+        expect(tsDoc).toContain('mixins.zmodel');
+    });
+
+    it('has zero broken links across multi-file output', async () => {
+        const tmpDir = await generateDocs(MULTIFILE_SCHEMA);
+        expect(findBrokenLinks(tmpDir)).toEqual([]);
+    });
+
+    it('declaration code blocks show correct source for each file', async () => {
+        const tmpDir = await generateDocs(MULTIFILE_SCHEMA);
+
+        const userDoc = readDoc(tmpDir, 'models', 'User.md');
+        expect(userDoc).toContain('## Declaration');
+        expect(userDoc).toContain('model User');
+
+        const roleDoc = readDoc(tmpDir, 'enums', 'Role.md');
+        expect(roleDoc).toContain('## Declaration');
+        expect(roleDoc).toContain('enum Role');
+
+        const tsDoc = readDoc(tmpDir, 'types', 'Timestamps.md');
+        expect(tsDoc).toContain('## Declaration');
+        expect(tsDoc).toContain('type Timestamps');
     });
 });
 

@@ -1,0 +1,5 @@
+/// Shared timestamp fields applied via mixin.
+type Timestamps {
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
