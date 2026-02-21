@@ -205,6 +205,7 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
 
     if (options.includePolicies && policyAttrs.length > 0) {
         lines.push('## Access Policies', '');
+        lines.push('> [!IMPORTANT]');
         lines.push(
             '> Operations are **denied by default**. `@@allow` rules grant access; `@@deny` rules override any allow.',
             '',

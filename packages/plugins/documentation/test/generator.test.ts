@@ -55,6 +55,52 @@ describe('documentation plugin', () => {
         expect(relDoc).toMatch(headerPattern);
     });
 
+    it('auto-generated header uses GitHub Alert [!CAUTION] syntax', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const indexContent = fs.readFileSync(path.join(tmpDir, 'index.md'), 'utf-8');
+        expect(indexContent).toContain('> [!CAUTION]');
+        expect(indexContent).toContain('> This documentation was auto-generated');
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('> [!CAUTION]');
+    });
+
+    it('access policy note uses GitHub Alert [!IMPORTANT] syntax', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+                @@allow('read', true)
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('> [!IMPORTANT]');
+        expect(userDoc).toContain('denied by default');
+    });
+
     it('entity pages show breadcrumb navigation', async () => {
         const model = await loadSchema(`
             enum Role { ADMIN MEMBER }

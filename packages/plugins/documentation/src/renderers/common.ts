@@ -1,9 +1,7 @@
 import type { Navigation } from '../types';
 
-const GENERATED_NOTICE = '> *This documentation was auto-generated. Do not edit directly.*';
-
 export function generatedHeader(): string[] {
-    return [GENERATED_NOTICE, ''];
+    return ['> [!CAUTION]', '> This documentation was auto-generated. Do not edit directly.', ''];
 }
 
 export function breadcrumbs(
