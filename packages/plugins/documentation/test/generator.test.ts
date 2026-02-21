@@ -1405,6 +1405,56 @@ describe('documentation plugin', () => {
         expect(userDoc).toContain('`@length`');
     });
 
+    it('renders all predefined validation attributes in validation rules section', async () => {
+        const model = await loadSchema(`
+            model Product {
+                id          String  @id @default(cuid())
+                sku         String  @regex('^[A-Z0-9]+$')
+                slug        String  @startsWith('product-')
+                suffix      String  @endsWith('-v2')
+                tags        String  @contains('sale')
+                email       String  @email
+                website     String  @url
+                name        String  @length(1, 100) @trim @lower
+                title       String  @upper
+                dateStr     String  @datetime
+                price       Float   @gt(0)
+                discount    Float   @gte(0)
+                maxQty      Int     @lt(1000)
+                minQty      Int     @lte(500)
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const doc = fs.readFileSync(path.join(tmpDir, 'models', 'Product.md'), 'utf-8');
+        expect(doc).toContain('## Validation Rules');
+
+        const validationSection = doc.split('## Validation Rules')[1]!;
+        expect(validationSection).toContain('`@regex`');
+        expect(validationSection).toContain('`@startsWith`');
+        expect(validationSection).toContain('`@endsWith`');
+        expect(validationSection).toContain('`@contains`');
+        expect(validationSection).toContain('`@email`');
+        expect(validationSection).toContain('`@url`');
+        expect(validationSection).toContain('`@length`');
+        expect(validationSection).toContain('`@trim`');
+        expect(validationSection).toContain('`@lower`');
+        expect(validationSection).toContain('`@upper`');
+        expect(validationSection).toContain('`@datetime`');
+        expect(validationSection).toContain('`@gt`');
+        expect(validationSection).toContain('`@gte`');
+        expect(validationSection).toContain('`@lt`');
+        expect(validationSection).toContain('`@lte`');
+    });
+
     it('generates indexes section from @@index and @@unique', async () => {
         const model = await loadSchema(`
             model User {

@@ -169,12 +169,16 @@ model Project with Timestamps {
 model Task with Timestamps {
     id          String      @id @default(cuid())
     /// Short summary of the task.
-    title       String      @length(1, 200) @meta('doc:example', 'Fix login redirect bug')
+    title       String      @length(1, 200) @trim @meta('doc:example', 'Fix login redirect bug')
     /// Rich-text body with full details.
     body        String?
+    /// Unique slug for URL-friendly references.
+    slug        String?     @regex('^[a-z0-9-]+$')
     status      TaskStatus  @default(TODO)
     priority    Priority    @default(MEDIUM)
     dueDate     DateTime?
+    /// Estimated effort in hours.
+    estimatedHours Float?   @gt(0) @lte(1000)
     /// Number of comments on this task.
     commentCount Int        @computed
     project     Project     @relation(fields: [projectId], references: [id])

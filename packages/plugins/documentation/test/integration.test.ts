@@ -355,6 +355,20 @@ describe('integration: showcase schema', () => {
         expect(emailLine).toContain('jane@acme.com');
     });
 
+    it('Task model renders all validation attributes including @regex, @gt, @lte, @trim', async () => {
+        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+
+        const taskDoc = readDoc(tmpDir, 'models', 'Task.md');
+        expect(taskDoc).toContain('## Validation Rules');
+
+        const validationSection = taskDoc.split('## Validation Rules')[1]!;
+        expect(validationSection).toContain('`@length`');
+        expect(validationSection).toContain('`@trim`');
+        expect(validationSection).toContain('`@regex`');
+        expect(validationSection).toContain('`@gt`');
+        expect(validationSection).toContain('`@lte`');
+    });
+
     it('enum pages show descriptions and Used By with correct links', async () => {
         const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
 
