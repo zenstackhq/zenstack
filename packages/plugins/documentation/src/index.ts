@@ -132,7 +132,23 @@ function extractDocMeta(attributes: DataModelAttribute[]): DocMeta {
     return meta;
 }
 
-function renderModelPage(model: DataModel): string {
+interface RenderOptions {
+    includeRelationships: boolean;
+    includePolicies: boolean;
+    includeValidation: boolean;
+    includeIndexes: boolean;
+}
+
+function resolveRenderOptions(pluginOptions: Record<string, unknown>): RenderOptions {
+    return {
+        includeRelationships: pluginOptions['includeRelationships'] !== false,
+        includePolicies: pluginOptions['includePolicies'] !== false,
+        includeValidation: pluginOptions['includeValidation'] !== false,
+        includeIndexes: pluginOptions['includeIndexes'] !== false,
+    };
+}
+
+function renderModelPage(model: DataModel, options: RenderOptions): string {
     const lines: string[] = [`# ${model.name}`, ''];
 
     const description = stripCommentPrefix(model.comments);
@@ -188,7 +204,7 @@ function renderModelPage(model: DataModel): string {
         return name === '@@allow' || name === '@@deny';
     });
 
-    if (relationFields.length > 0) {
+    if (options.includeRelationships && relationFields.length > 0) {
         lines.push('## Relationships', '');
         lines.push('| Field | Related Model | Type |');
         lines.push('| --- | --- | --- |');
@@ -210,7 +226,7 @@ function renderModelPage(model: DataModel): string {
         lines.push('');
     }
 
-    if (policyAttrs.length > 0) {
+    if (options.includePolicies && policyAttrs.length > 0) {
         lines.push('## Access Policies', '');
         lines.push('| Operation | Rule | Effect |');
         lines.push('| --- | --- | --- |');
@@ -231,7 +247,7 @@ function renderModelPage(model: DataModel): string {
         return name === '@@index' || name === '@@unique' || name === '@@id';
     });
 
-    if (indexAttrs.length > 0) {
+    if (options.includeIndexes && indexAttrs.length > 0) {
         lines.push('## Indexes', '');
         lines.push('| Fields | Type |');
         lines.push('| --- | --- |');
@@ -269,7 +285,7 @@ function renderModelPage(model: DataModel): string {
         }
     }
 
-    if (validationRules.length > 0) {
+    if (options.includeValidation && validationRules.length > 0) {
         lines.push('## Validation Rules', '');
         lines.push('| Field | Rule |');
         lines.push('| --- | --- |');
@@ -379,6 +395,7 @@ const plugin: CliPlugin = {
     statusText: 'Generating documentation',
     async generate(context: CliGeneratorContext) {
         const outputDir = resolveOutputDir(context);
+        const options = resolveRenderOptions(context.pluginOptions);
         fs.mkdirSync(outputDir, { recursive: true });
         fs.writeFileSync(path.join(outputDir, 'index.md'), renderIndexPage(context));
 
@@ -399,13 +416,13 @@ const plugin: CliPlugin = {
                 }
                 fs.writeFileSync(
                     path.join(modelDir, `${model.name}.md`),
-                    renderModelPage(model),
+                    renderModelPage(model, options),
                 );
             }
         }
 
         const allRelations = collectRelationships(models);
-        if (allRelations.length > 0) {
+        if (options.includeRelationships && allRelations.length > 0) {
             fs.writeFileSync(
                 path.join(outputDir, 'relationships.md'),
                 renderRelationshipsPage(allRelations),

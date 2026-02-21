@@ -484,4 +484,45 @@ describe('documentation plugin', () => {
         expect(relDoc).toContain('Post');
         expect(relDoc).toContain('Tag');
     });
+
+    it('omits sections when include* flags are false', async () => {
+        const model = await loadSchema(`
+            model User {
+                id    String @id @default(cuid())
+                email String @email
+                posts Post[]
+
+                @@allow('read', true)
+                @@index([email])
+            }
+            model Post {
+                id       String @id @default(cuid())
+                author   User   @relation(fields: [authorId], references: [id])
+                authorId String
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: {
+                output: tmpDir,
+                includeRelationships: false,
+                includePolicies: false,
+                includeValidation: false,
+                includeIndexes: false,
+            },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).not.toContain('## Relationships');
+        expect(userDoc).not.toContain('## Access Policies');
+        expect(userDoc).not.toContain('## Validation Rules');
+        expect(userDoc).not.toContain('## Indexes');
+
+        expect(fs.existsSync(path.join(tmpDir, 'relationships.md'))).toBe(false);
+    });
 });
