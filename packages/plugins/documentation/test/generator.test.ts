@@ -171,6 +171,35 @@ describe('documentation plugin', () => {
         expect(typeDoc).not.toContain('[Tag]');
     });
 
+    it('model page shows Mixins section linking to type pages', async () => {
+        const model = await loadSchema(`
+            type Timestamps {
+                createdAt DateTime @default(now())
+                updatedAt DateTime @updatedAt
+            }
+            type Metadata {
+                version Int @default(1)
+            }
+            model User with Timestamps, Metadata {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('## Mixins');
+        expect(userDoc).toContain('[Timestamps](../types/Timestamps.md)');
+        expect(userDoc).toContain('[Metadata](../types/Metadata.md)');
+    });
+
     it('generates model page with heading and description', async () => {
         const model = await loadSchema(`
             /// Represents a registered user.

@@ -36,6 +36,19 @@ export function renderModelPage(model: DataModel, options: RenderOptions): strin
         lines.push(`> **Deprecated:** ${docMeta.deprecated}`, '');
     }
 
+    const mixinRefs = model.mixins
+        .map((ref) => ref.ref)
+        .filter((t): t is NonNullable<typeof t> => t != null)
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    if (mixinRefs.length > 0) {
+        lines.push('## Mixins', '');
+        for (const mixin of mixinRefs) {
+            lines.push(`- [${mixin.name}](../types/${mixin.name}.md)`);
+        }
+        lines.push('');
+    }
+
     const allFields = getAllFields(model);
     const sortedFields = [...allFields].sort((a, b) => a.name.localeCompare(b.name));
 
