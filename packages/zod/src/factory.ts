@@ -1,24 +1,23 @@
 import {
+    ExpressionUtils,
     SchemaAccessor,
-    type BuiltinType,
+    type AttributeApplication,
     type FieldDef,
-    type FieldIsArray,
-    type FieldIsRelation,
     type GetEnum,
     type GetEnums,
-    type GetModelFields,
-    type GetModelFieldType,
     type GetModels,
-    type GetTypeDefFields,
-    type GetTypeDefFieldType,
     type GetTypeDefs,
-    type ModelFieldIsOptional,
     type SchemaDef,
-    type TypeDefFieldIsOptional,
 } from '@zenstackhq/schema';
 import Decimal from 'decimal.js';
-import { match } from 'ts-pattern';
 import z from 'zod';
+import { SchemaFactoryError } from './error';
+import type {
+    GetModelCreateFieldsShape,
+    GetModelFieldsShape,
+    GetModelUpdateFieldsShape,
+    GetTypeDefFieldsShape,
+} from './types';
 import {
     addBigIntValidation,
     addCustomValidation,
@@ -41,10 +40,7 @@ class SchemaFactory<Schema extends SchemaDef> {
     makeModelSchema<Model extends GetModels<Schema>>(
         model: Model,
     ): z.ZodObject<GetModelFieldsShape<Schema, Model>, z.core.$strict> {
-        const modelDef = this.schema.models[model];
-        if (!modelDef) {
-            throw new Error(`Model "${model}" not found in schema`);
-        }
+        const modelDef = this.schema.requireModel(model);
         const fields: Record<string, z.ZodType> = {};
 
         for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
@@ -52,17 +48,68 @@ class SchemaFactory<Schema extends SchemaDef> {
                 const relatedModelName = fieldDef.type;
                 const lazySchema: z.ZodType = z.lazy(() => this.makeModelSchema(relatedModelName as GetModels<Schema>));
                 // relation fields are always optional
-                fields[fieldName] = this.applyCardinality(lazySchema, fieldDef).optional();
+                fields[fieldName] = this.applyDescription(
+                    this.applyCardinality(lazySchema, fieldDef).optional(),
+                    fieldDef.attributes,
+                );
             } else {
-                fields[fieldName] = this.makeScalarFieldSchema(fieldDef);
+                fields[fieldName] = this.applyDescription(this.makeScalarFieldSchema(fieldDef), fieldDef.attributes);
             }
         }
 
         const shape = z.strictObject(fields);
-        return addCustomValidation(shape, modelDef.attributes) as unknown as z.ZodObject<
-            GetModelFieldsShape<Schema, Model>,
-            z.core.$strict
-        >;
+        return this.applyDescription(
+            addCustomValidation(shape, modelDef.attributes),
+            modelDef.attributes,
+        ) as unknown as z.ZodObject<GetModelFieldsShape<Schema, Model>, z.core.$strict>;
+    }
+
+    makeModelCreateSchema<Model extends GetModels<Schema>>(
+        model: Model,
+    ): z.ZodObject<GetModelCreateFieldsShape<Schema, Model>, z.core.$strict> {
+        const modelDef = this.schema.requireModel(model);
+        const fields: Record<string, z.ZodType> = {};
+
+        for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
+            if (fieldDef.relation) {
+                continue;
+            }
+
+            let fieldSchema = this.makeScalarFieldSchema(fieldDef);
+            if (fieldDef.optional || fieldDef.default !== undefined || fieldDef.updatedAt) {
+                fieldSchema = fieldSchema.optional();
+            }
+            fields[fieldName] = this.applyDescription(fieldSchema, fieldDef.attributes);
+        }
+
+        const shape = z.strictObject(fields);
+        return this.applyDescription(
+            addCustomValidation(shape, modelDef.attributes),
+            modelDef.attributes,
+        ) as unknown as z.ZodObject<GetModelCreateFieldsShape<Schema, Model>, z.core.$strict>;
+    }
+
+    makeModelUpdateSchema<Model extends GetModels<Schema>>(
+        model: Model,
+    ): z.ZodObject<GetModelUpdateFieldsShape<Schema, Model>, z.core.$strict> {
+        const modelDef = this.schema.requireModel(model);
+        const fields: Record<string, z.ZodType> = {};
+
+        for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
+            if (fieldDef.relation) {
+                continue;
+            }
+
+            let fieldSchema = this.makeScalarFieldSchema(fieldDef);
+            fieldSchema = fieldSchema.optional();
+            fields[fieldName] = this.applyDescription(fieldSchema, fieldDef.attributes);
+        }
+
+        const shape = z.strictObject(fields);
+        return this.applyDescription(
+            addCustomValidation(shape, modelDef.attributes),
+            modelDef.attributes,
+        ) as unknown as z.ZodObject<GetModelUpdateFieldsShape<Schema, Model>, z.core.$strict>;
     }
 
     private makeScalarFieldSchema(fieldDef: FieldDef): z.ZodType {
@@ -80,24 +127,47 @@ class SchemaFactory<Schema extends SchemaDef> {
             return this.applyCardinality(this.makeTypeSchema(type as GetTypeDefs<Schema>), fieldDef);
         }
 
-        const base = match<BuiltinType>(type as BuiltinType)
-            .with('String', () => addStringValidation(z.string(), attributes))
-            .with('Int', () => addNumberValidation(z.number().int(), attributes))
-            .with('Float', () => addNumberValidation(z.number(), attributes))
-            .with('Boolean', () => z.boolean())
-            .with('BigInt', () => addBigIntValidation(z.bigint(), attributes))
-            .with('Decimal', () =>
-                z.union([
+        let base: z.ZodType;
+        switch (type) {
+            case 'String':
+                base = addStringValidation(z.string(), attributes);
+                break;
+            case 'Int':
+                base = addNumberValidation(z.number().int(), attributes);
+                break;
+            case 'Float':
+                base = addNumberValidation(z.number(), attributes);
+                break;
+            case 'Boolean':
+                base = z.boolean();
+                break;
+            case 'BigInt':
+                base = addBigIntValidation(z.bigint(), attributes);
+                break;
+            case 'Decimal':
+                base = z.union([
                     addNumberValidation(z.number(), attributes) as z.ZodNumber,
                     addDecimalValidation(z.string(), attributes, true) as z.ZodString,
                     addDecimalValidation(z.instanceof(Decimal), attributes, true),
-                ]),
-            )
-            .with('DateTime', () => z.union([z.date(), z.iso.datetime()]))
-            .with('Bytes', () => z.instanceof(Uint8Array))
-            .with('Json', () => this.makeJsonSchema())
-            .with('Unsupported', () => z.unknown())
-            .exhaustive();
+                ]);
+                break;
+            case 'DateTime':
+                base = z.union([z.date(), z.iso.datetime()]);
+                break;
+            case 'Bytes':
+                base = z.instanceof(Uint8Array);
+                break;
+            case 'Json':
+                base = this.makeJsonSchema();
+                break;
+            case 'Unsupported':
+                base = z.unknown();
+                break;
+            default: {
+                const _exhaustive: never = type as never;
+                throw new SchemaFactoryError(`Unsupported field type: ${_exhaustive}`);
+            }
+        }
 
         return this.applyCardinality(base, fieldDef);
     }
@@ -131,113 +201,48 @@ class SchemaFactory<Schema extends SchemaDef> {
         const fields: Record<string, z.ZodType> = {};
 
         for (const [fieldName, fieldDef] of Object.entries(typeDef.fields)) {
-            fields[fieldName] = this.makeScalarFieldSchema(fieldDef);
+            fields[fieldName] = this.applyDescription(this.makeScalarFieldSchema(fieldDef), fieldDef.attributes);
         }
 
         const shape = z.strictObject(fields);
-        return addCustomValidation(shape, typeDef.attributes) as unknown as z.ZodObject<
-            GetTypeDefFieldsShape<Schema, Type>,
-            z.core.$strict
-        >;
+        return this.applyDescription(
+            addCustomValidation(shape, typeDef.attributes),
+            typeDef.attributes,
+        ) as unknown as z.ZodObject<GetTypeDefFieldsShape<Schema, Type>, z.core.$strict>;
     }
 
     makeEnumSchema<Enum extends GetEnums<Schema>>(
         _enum: Enum,
     ): z.ZodEnum<{ [Key in keyof GetEnum<Schema, Enum>]: GetEnum<Schema, Enum>[Key] }> {
         const enumDef = this.schema.requireEnum(_enum);
-        return z.enum(Object.keys(enumDef.values) as [string, ...string[]]) as unknown as z.ZodEnum<{
+        const schema = z.enum(Object.keys(enumDef.values) as [string, ...string[]]);
+        return this.applyDescription(schema, enumDef.attributes) as unknown as z.ZodEnum<{
             [Key in keyof GetEnum<Schema, Enum>]: GetEnum<Schema, Enum>[Key];
         }>;
     }
+
+    private getMetaDescription(attributes: readonly AttributeApplication[] | undefined): string | undefined {
+        if (!attributes) return undefined;
+        for (const attr of attributes) {
+            if (attr.name !== '@meta' && attr.name !== '@@meta') continue;
+            const nameExpr = attr.args?.[0]?.value;
+            if (!nameExpr || ExpressionUtils.getLiteralValue(nameExpr) !== 'description') continue;
+            const valueExpr = attr.args?.[1]?.value;
+            if (valueExpr) {
+                return ExpressionUtils.getLiteralValue(valueExpr) as string | undefined;
+            }
+        }
+        return undefined;
+    }
+
+    private applyDescription<T extends z.ZodType>(
+        schema: T,
+        attributes: readonly AttributeApplication[] | undefined,
+    ): T {
+        const description = this.getMetaDescription(attributes);
+        if (description) {
+            return schema.meta({ description }) as T;
+        }
+        return schema;
+    }
 }
-
-type GetModelFieldsShape<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
-    // scalar fields
-    [Field in GetModelFields<Schema, Model> as FieldIsRelation<Schema, Model, Field> extends true
-        ? never
-        : Field]: ZodOptionalAndNullableIf<
-        MapModelFieldToZod<Schema, Model, Field>,
-        ModelFieldIsOptional<Schema, Model, Field>
-    >;
-} & {
-    // relation fields, always optional
-    [Field in GetModelFields<Schema, Model> as FieldIsRelation<Schema, Model, Field> extends true
-        ? Field
-        : never]: ZodNullableIf<
-        z.ZodOptional<
-            ZodArrayIf<
-                z.ZodObject<
-                    GetModelFieldsShape<
-                        Schema,
-                        GetModelFieldType<Schema, Model, Field> extends GetModels<Schema>
-                            ? GetModelFieldType<Schema, Model, Field>
-                            : never
-                    >,
-                    z.core.$strict
-                >,
-                FieldIsArray<Schema, Model, Field>
-            >
-        >,
-        ModelFieldIsOptional<Schema, Model, Field>
-    >;
-};
-
-type GetTypeDefFieldsShape<Schema extends SchemaDef, Type extends GetTypeDefs<Schema>> = {
-    [Field in GetTypeDefFields<Schema, Type>]: ZodOptionalAndNullableIf<
-        MapTypeDefFieldToZod<Schema, Type, Field>,
-        TypeDefFieldIsOptional<Schema, Type, Field>
-    >;
-};
-
-type FieldTypeZodMap = {
-    String: z.ZodString;
-    Int: z.ZodNumber;
-    BigInt: z.ZodBigInt;
-    Float: z.ZodNumber;
-    Decimal: z.ZodType<Decimal>;
-    Boolean: z.ZodBoolean;
-    DateTime: z.ZodType<Date>;
-    Bytes: z.ZodType<Uint8Array>;
-    Json: JsonZodType;
-};
-
-type MapModelFieldToZod<
-    Schema extends SchemaDef,
-    Model extends GetModels<Schema>,
-    Field extends GetModelFields<Schema, Model>,
-    FieldType = GetModelFieldType<Schema, Model, Field>,
-> = MapFieldTypeToZod<Schema, FieldType>;
-
-type MapTypeDefFieldToZod<
-    Schema extends SchemaDef,
-    Type extends GetTypeDefs<Schema>,
-    Field extends GetTypeDefFields<Schema, Type>,
-    FieldType = GetTypeDefFieldType<Schema, Type, Field>,
-> = MapFieldTypeToZod<Schema, FieldType>;
-
-type MapFieldTypeToZod<Schema extends SchemaDef, FieldType> = FieldType extends keyof FieldTypeZodMap
-    ? FieldTypeZodMap[FieldType]
-    : FieldType extends GetEnums<Schema>
-      ? EnumZodType<Schema, FieldType>
-      : FieldType extends GetTypeDefs<Schema>
-        ? z.ZodObject<GetTypeDefFieldsShape<Schema, FieldType>, z.core.$strict>
-        : z.ZodUnknown;
-
-type JsonZodType =
-    | z.ZodObject<Record<string, z.ZodType>, z.core.$loose>
-    | z.ZodArray<z.ZodType>
-    | z.ZodString
-    | z.ZodNumber
-    | z.ZodBoolean
-    | z.ZodNull;
-
-type EnumZodType<Schema extends SchemaDef, EnumName extends GetEnums<Schema>> = z.ZodEnum<{
-    [Key in keyof GetEnum<Schema, EnumName>]: GetEnum<Schema, EnumName>[Key];
-}>;
-
-type ZodOptionalAndNullableIf<T extends z.ZodType, Condition extends boolean> = Condition extends true
-    ? z.ZodOptional<z.ZodNullable<T>>
-    : T;
-
-type ZodNullableIf<T extends z.ZodType, Condition extends boolean> = Condition extends true ? z.ZodNullable<T> : T;
-type ZodArrayIf<T extends z.ZodType, Condition extends boolean> = Condition extends true ? z.ZodArray<T> : T;

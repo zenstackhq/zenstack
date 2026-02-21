@@ -1,4 +1,3 @@
-import { invariant } from '@zenstackhq/common-helpers';
 import {
     ExpressionUtils,
     type AttributeApplication,
@@ -10,9 +9,8 @@ import {
     type UnaryExpression,
 } from '@zenstackhq/schema';
 import Decimal from 'decimal.js';
-import { match, P } from 'ts-pattern';
 import { z } from 'zod';
-import { ZodSchemaError } from './error';
+import { SchemaFactoryError } from './error';
 
 function getArgValue<T extends string | number | boolean>(expr: Expression | undefined): T | undefined {
     if (!expr || !ExpressionUtils.isLiteral(expr)) {
@@ -31,8 +29,8 @@ export function addStringValidation(
 
     let result = schema;
     for (const attr of attributes) {
-        match(attr.name)
-            .with('@length', () => {
+        switch (attr.name) {
+            case '@length': {
                 const min = getArgValue<number>(attr.args?.[0]?.value);
                 if (min !== undefined) {
                     result = result.min(min);
@@ -41,49 +39,55 @@ export function addStringValidation(
                 if (max !== undefined) {
                     result = result.max(max);
                 }
-            })
-            .with('@startsWith', () => {
+                break;
+            }
+            case '@startsWith': {
                 const value = getArgValue<string>(attr.args?.[0]?.value);
                 if (value !== undefined) {
                     result = result.startsWith(value);
                 }
-            })
-            .with('@endsWith', () => {
+                break;
+            }
+            case '@endsWith': {
                 const value = getArgValue<string>(attr.args?.[0]?.value);
                 if (value !== undefined) {
                     result = result.endsWith(value);
                 }
-            })
-            .with('@contains', () => {
+                break;
+            }
+            case '@contains': {
                 const value = getArgValue<string>(attr.args?.[0]?.value);
                 if (value !== undefined) {
                     result = result.includes(value);
                 }
-            })
-            .with('@regex', () => {
+                break;
+            }
+            case '@regex': {
                 const pattern = getArgValue<string>(attr.args?.[0]?.value);
                 if (pattern !== undefined) {
                     result = result.regex(new RegExp(pattern));
                 }
-            })
-            .with('@email', () => {
+                break;
+            }
+            case '@email':
                 result = result.email();
-            })
-            .with('@datetime', () => {
+                break;
+            case '@datetime':
                 result = result.datetime();
-            })
-            .with('@url', () => {
+                break;
+            case '@url':
                 result = result.url();
-            })
-            .with('@trim', () => {
+                break;
+            case '@trim':
                 result = result.trim();
-            })
-            .with('@lower', () => {
+                break;
+            case '@lower':
                 result = result.toLowerCase();
-            })
-            .with('@upper', () => {
+                break;
+            case '@upper':
                 result = result.toUpperCase();
-            });
+                break;
+        }
     }
     return result;
 }
@@ -102,19 +106,20 @@ export function addNumberValidation(
         if (val === undefined) {
             continue;
         }
-        match(attr.name)
-            .with('@gt', () => {
+        switch (attr.name) {
+            case '@gt':
                 result = result.gt(val);
-            })
-            .with('@gte', () => {
+                break;
+            case '@gte':
                 result = result.gte(val);
-            })
-            .with('@lt', () => {
+                break;
+            case '@lt':
                 result = result.lt(val);
-            })
-            .with('@lte', () => {
+                break;
+            case '@lte':
                 result = result.lte(val);
-            });
+                break;
+        }
     }
     return result;
 }
@@ -134,19 +139,20 @@ export function addBigIntValidation(
             continue;
         }
 
-        match(attr.name)
-            .with('@gt', () => {
+        switch (attr.name) {
+            case '@gt':
                 result = result.gt(BigInt(val));
-            })
-            .with('@gte', () => {
+                break;
+            case '@gte':
                 result = result.gte(BigInt(val));
-            })
-            .with('@lt', () => {
+                break;
+            case '@lt':
                 result = result.lt(BigInt(val));
-            })
-            .with('@lte', () => {
+                break;
+            case '@lte':
                 result = result.lte(BigInt(val));
-            });
+                break;
+        }
     }
     return result;
 }
@@ -211,19 +217,20 @@ export function addDecimalValidation(
                 continue;
             }
 
-            match(attr.name)
-                .with('@gt', () => {
+            switch (attr.name) {
+                case '@gt':
                     result = refine(result, 'gt', val);
-                })
-                .with('@gte', () => {
+                    break;
+                case '@gte':
                     result = refine(result, 'gte', val);
-                })
-                .with('@lt', () => {
+                    break;
+                case '@lt':
                     result = refine(result, 'lt', val);
-                })
-                .with('@lte', () => {
+                    break;
+                case '@lte':
                     result = refine(result, 'lte', val);
-                });
+                    break;
+            }
         }
     }
 
@@ -240,18 +247,16 @@ export function addListValidation(
 
     let result = schema;
     for (const attr of attributes) {
-        match(attr.name)
-            .with('@length', () => {
-                const min = getArgValue<number>(attr.args?.[0]?.value);
-                if (min !== undefined) {
-                    result = result.min(min);
-                }
-                const max = getArgValue<number>(attr.args?.[1]?.value);
-                if (max !== undefined) {
-                    result = result.max(max);
-                }
-            })
-            .otherwise(() => {});
+        if (attr.name === '@length') {
+            const min = getArgValue<number>(attr.args?.[0]?.value);
+            if (min !== undefined) {
+                result = result.min(min);
+            }
+            const max = getArgValue<number>(attr.args?.[1]?.value);
+            if (max !== undefined) {
+                result = result.max(max);
+            }
+        }
     }
     return result;
 }
@@ -299,20 +304,28 @@ function applyValidation(
 }
 
 function evalExpression(data: any, expr: Expression): unknown {
-    return match(expr)
-        .with({ kind: 'literal' }, (e) => e.value)
-        .with({ kind: 'array' }, (e) => e.items.map((item) => evalExpression(data, item)))
-        .with({ kind: 'field' }, (e) => evalField(data, e))
-        .with({ kind: 'member' }, (e) => evalMember(data, e))
-        .with({ kind: 'unary' }, (e) => evalUnary(data, e))
-        .with({ kind: 'binary' }, (e) => evalBinary(data, e))
-        .with({ kind: 'call' }, (e) => evalCall(data, e))
-        .with({ kind: 'this' }, () => data ?? null)
-        .with({ kind: 'null' }, () => null)
-        .with({ kind: 'binding' }, () => {
-            throw new Error('Binding expression is not supported in validation expressions');
-        })
-        .exhaustive();
+    switch (expr.kind) {
+        case 'literal':
+            return expr.value;
+        case 'array':
+            return expr.items.map((item) => evalExpression(data, item));
+        case 'field':
+            return evalField(data, expr);
+        case 'member':
+            return evalMember(data, expr);
+        case 'unary':
+            return evalUnary(data, expr);
+        case 'binary':
+            return evalBinary(data, expr);
+        case 'call':
+            return evalCall(data, expr);
+        case 'this':
+            return data ?? null;
+        case 'null':
+            return null;
+        case 'binding':
+            throw new SchemaFactoryError('Binding expression is not supported in validation expressions');
+    }
 }
 
 function evalField(data: any, e: FieldExpression) {
@@ -325,47 +338,53 @@ function evalUnary(data: any, expr: UnaryExpression) {
         case '!':
             return !operand;
         default:
-            throw new Error(`Unsupported unary operator: ${expr.op}`);
+            throw new SchemaFactoryError(`Unsupported unary operator: ${expr.op}`);
     }
 }
 
 function evalBinary(data: any, expr: BinaryExpression) {
     const left = evalExpression(data, expr.left);
     const right = evalExpression(data, expr.right);
-    return match(expr.op)
-        .with('&&', () => Boolean(left) && Boolean(right))
-        .with('||', () => Boolean(left) || Boolean(right))
-        .with('==', () => left == right)
-        .with('!=', () => left != right)
-        .with('<', () => (left as any) < (right as any))
-        .with('<=', () => (left as any) <= (right as any))
-        .with('>', () => (left as any) > (right as any))
-        .with('>=', () => (left as any) >= (right as any))
-        .with('?', () => {
+    switch (expr.op) {
+        case '&&':
+            return Boolean(left) && Boolean(right);
+        case '||':
+            return Boolean(left) || Boolean(right);
+        case '==':
+            return left == right;
+        case '!=':
+            return left != right;
+        case '<':
+            return (left as any) < (right as any);
+        case '<=':
+            return (left as any) <= (right as any);
+        case '>':
+            return (left as any) > (right as any);
+        case '>=':
+            return (left as any) >= (right as any);
+        case '?':
             if (!Array.isArray(left)) {
                 return false;
             }
             return left.some((item) => item === right);
-        })
-        .with('!', () => {
+        case '!':
             if (!Array.isArray(left)) {
                 return false;
             }
             return left.every((item) => item === right);
-        })
-        .with('^', () => {
+        case '^':
             if (!Array.isArray(left)) {
                 return false;
             }
             return !left.some((item) => item === right);
-        })
-        .with('in', () => {
+        case 'in':
             if (!Array.isArray(right)) {
                 return false;
             }
             return right.includes(left);
-        })
-        .exhaustive();
+        default:
+            throw new SchemaFactoryError(`Unsupported binary operator: ${expr.op}`);
+    }
 }
 
 function evalMember(data: any, expr: MemberExpression) {
@@ -380,93 +399,101 @@ function evalMember(data: any, expr: MemberExpression) {
 }
 
 function evalCall(data: any, expr: CallExpression) {
+    const f = expr.function;
     const fieldArg = expr.args?.[0] ? evalExpression(data, expr.args[0]) : undefined;
-    return (
-        match(expr.function)
-            // string functions
-            .with('length', (f) => {
-                if (fieldArg === undefined || fieldArg === null) {
-                    return false;
-                }
-                invariant(
-                    typeof fieldArg === 'string' || Array.isArray(fieldArg),
-                    `"${f}" first argument must be a string or a list`,
-                );
-                return fieldArg.length;
-            })
-            .with(P.union('startsWith', 'endsWith', 'contains'), (f) => {
-                if (fieldArg === undefined || fieldArg === null) {
-                    return false;
-                }
-                invariant(typeof fieldArg === 'string', `"${f}" first argument must be a string`);
-                invariant(expr.args?.[1], `"${f}" requires a search argument`);
 
-                const search = getArgValue<string>(expr.args?.[1])!;
-                const caseInsensitive = getArgValue<boolean>(expr.args?.[2]) ?? false;
+    switch (f) {
+        // string functions
+        case 'length': {
+            if (fieldArg === undefined || fieldArg === null) {
+                return false;
+            }
+            invariant(
+                typeof fieldArg === 'string' || Array.isArray(fieldArg),
+                `"${f}" first argument must be a string or a list`,
+            );
+            return fieldArg.length;
+        }
+        case 'startsWith':
+        case 'endsWith':
+        case 'contains': {
+            if (fieldArg === undefined || fieldArg === null) {
+                return false;
+            }
+            invariant(typeof fieldArg === 'string', `"${f}" first argument must be a string`);
+            invariant(expr.args?.[1], `"${f}" requires a search argument`);
 
-                const matcher = (x: string, y: string) =>
-                    match(f)
-                        .with('startsWith', () => x.startsWith(y))
-                        .with('endsWith', () => x.endsWith(y))
-                        .with('contains', () => x.includes(y))
-                        .exhaustive();
-                return caseInsensitive
-                    ? matcher(fieldArg.toLowerCase(), search.toLowerCase())
-                    : matcher(fieldArg, search);
-            })
-            .with('regex', (f) => {
-                if (fieldArg === undefined || fieldArg === null) {
-                    return false;
-                }
-                invariant(typeof fieldArg === 'string', `"${f}" first argument must be a string`);
-                const pattern = getArgValue<string>(expr.args?.[1])!;
-                invariant(pattern !== undefined, `"${f}" requires a pattern argument`);
-                return new RegExp(pattern).test(fieldArg);
-            })
-            .with(P.union('isEmail', 'isUrl', 'isDateTime'), (f) => {
-                if (fieldArg === undefined || fieldArg === null) {
-                    return false;
-                }
-                invariant(typeof fieldArg === 'string', `"${f}" first argument must be a string`);
-                const fn = match(f)
-                    .with('isEmail', () => 'email' as const)
-                    .with('isUrl', () => 'url' as const)
-                    .with('isDateTime', () => 'datetime' as const)
-                    .exhaustive();
-                return z.string()[fn]().safeParse(fieldArg).success;
-            })
-            // list functions
-            .with(P.union('has', 'hasEvery', 'hasSome'), (f) => {
-                invariant(expr.args?.[1], `${f} requires a search argument`);
-                if (fieldArg === undefined || fieldArg === null) {
-                    return false;
-                }
-                invariant(Array.isArray(fieldArg), `"${f}" first argument must be an array field`);
+            const search = getArgValue<string>(expr.args?.[1])!;
+            const caseInsensitive = getArgValue<boolean>(expr.args?.[2]) ?? false;
 
-                const search = evalExpression(data, expr.args?.[1])!;
-                const matcher = (x: any[], y: any) =>
-                    match(f)
-                        .with('has', () => x.some((item) => item === y))
-                        .with('hasEvery', () => {
-                            invariant(Array.isArray(y), 'hasEvery second argument must be an array');
-                            return y.every((v) => x.some((item) => item === v));
-                        })
-                        .with('hasSome', () => {
-                            invariant(Array.isArray(y), 'hasSome second argument must be an array');
-                            return y.some((v) => x.some((item) => item === v));
-                        })
-                        .exhaustive();
-                return matcher(fieldArg, search);
-            })
-            .with('isEmpty', (f) => {
-                if (fieldArg === undefined || fieldArg === null) {
-                    return false;
+            const applyStringOp = (x: string, y: string) => {
+                switch (f) {
+                    case 'startsWith':
+                        return x.startsWith(y);
+                    case 'endsWith':
+                        return x.endsWith(y);
+                    case 'contains':
+                        return x.includes(y);
                 }
-                invariant(Array.isArray(fieldArg), `"${f}" first argument must be an array field`);
-                return fieldArg.length === 0;
-            })
-            .otherwise(() => {
-                throw new ZodSchemaError(`Unsupported function "${expr.function}"`);
-            })
-    );
+            };
+            return caseInsensitive
+                ? applyStringOp(fieldArg.toLowerCase(), search.toLowerCase())
+                : applyStringOp(fieldArg, search);
+        }
+        case 'regex': {
+            if (fieldArg === undefined || fieldArg === null) {
+                return false;
+            }
+            invariant(typeof fieldArg === 'string', `"${f}" first argument must be a string`);
+            const pattern = getArgValue<string>(expr.args?.[1])!;
+            invariant(pattern !== undefined, `"${f}" requires a pattern argument`);
+            return new RegExp(pattern).test(fieldArg);
+        }
+        case 'isEmail':
+        case 'isUrl':
+        case 'isDateTime': {
+            if (fieldArg === undefined || fieldArg === null) {
+                return false;
+            }
+            invariant(typeof fieldArg === 'string', `"${f}" first argument must be a string`);
+            const fn = f === 'isEmail' ? ('email' as const) : f === 'isUrl' ? ('url' as const) : ('datetime' as const);
+            return z.string()[fn]().safeParse(fieldArg).success;
+        }
+        // list functions
+        case 'has':
+        case 'hasEvery':
+        case 'hasSome': {
+            invariant(expr.args?.[1], `${f} requires a search argument`);
+            if (fieldArg === undefined || fieldArg === null) {
+                return false;
+            }
+            invariant(Array.isArray(fieldArg), `"${f}" first argument must be an array field`);
+
+            const search = evalExpression(data, expr.args?.[1])!;
+            if (f === 'has') {
+                return fieldArg.some((item) => item === search);
+            } else if (f === 'hasEvery') {
+                invariant(Array.isArray(search), 'hasEvery second argument must be an array');
+                return search.every((v) => fieldArg.some((item) => item === v));
+            } else {
+                invariant(Array.isArray(search), 'hasSome second argument must be an array');
+                return search.some((v) => fieldArg.some((item) => item === v));
+            }
+        }
+        case 'isEmpty': {
+            if (fieldArg === undefined || fieldArg === null) {
+                return false;
+            }
+            invariant(Array.isArray(fieldArg), `"${f}" first argument must be an array field`);
+            return fieldArg.length === 0;
+        }
+        default:
+            throw new SchemaFactoryError(`Unsupported function "${f}"`);
+    }
+}
+
+function invariant(condition: unknown, message?: string): asserts condition {
+    if (!condition) {
+        throw new SchemaFactoryError(message ?? 'Invariant failed');
+    }
 }

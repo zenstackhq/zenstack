@@ -552,6 +552,63 @@ describe('SchemaFactory - makeTypeSchema', () => {
     });
 });
 
+describe('SchemaFactory - @meta description', () => {
+    it('applies @@meta description to model schema', () => {
+        const userSchema = factory.makeModelSchema('User');
+        expect(userSchema.meta()?.description).toBe('A user of the system');
+    });
+
+    it('applies @meta description to model field schema', () => {
+        const userSchema = factory.makeModelSchema('User');
+        expect(userSchema.shape.email.meta()?.description).toBe("The user's email address");
+    });
+
+    it('does not set description when @meta("description") is absent', () => {
+        const userSchema = factory.makeModelSchema('User');
+        expect(userSchema.shape.active.meta()?.description).toBeUndefined();
+    });
+
+    it('applies @@meta description to model create schema', () => {
+        const createSchema = factory.makeModelCreateSchema('User');
+        expect(createSchema.meta()?.description).toBe('A user of the system');
+    });
+
+    it('applies @meta description to model create field schema', () => {
+        const createSchema = factory.makeModelCreateSchema('User');
+        expect(createSchema.shape.email.meta()?.description).toBe("The user's email address");
+    });
+
+    it('applies @@meta description to model update schema', () => {
+        const updateSchema = factory.makeModelUpdateSchema('User');
+        expect(updateSchema.meta()?.description).toBe('A user of the system');
+    });
+
+    it('applies @meta description to model update field schema', () => {
+        const updateSchema = factory.makeModelUpdateSchema('User');
+        expect(updateSchema.shape.email.meta()?.description).toBe("The user's email address");
+    });
+
+    it('applies @@meta description to typedef schema', () => {
+        const addressSchema = factory.makeTypeSchema('Address');
+        expect(addressSchema.meta()?.description).toBe('A mailing address');
+    });
+
+    it('applies @meta description to typedef field schema', () => {
+        const addressSchema = factory.makeTypeSchema('Address');
+        expect(addressSchema.shape.street.meta()?.description).toBe('Street address line');
+    });
+
+    it('applies @@meta description to enum schema', () => {
+        const statusSchema = factory.makeEnumSchema('Status');
+        expect(statusSchema.meta()?.description).toBe('User account status');
+    });
+
+    it('does not set description for model without @@meta("description")', () => {
+        const postSchema = factory.makeModelSchema('Post');
+        expect(postSchema.meta()?.description).toBeUndefined();
+    });
+});
+
 describe('SchemaFactory - makeEnumSchema', () => {
     it('accepts all valid enum values', () => {
         const statusSchema = factory.makeEnumSchema('Status');

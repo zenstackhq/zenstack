@@ -33,11 +33,8 @@
         }
     },
     "dependencies": {
-        "@zenstackhq/common-helpers": "workspace:*",
         "@zenstackhq/schema": "workspace:*",
-        "decimal.js": "catalog:",
-        "json-stable-stringify": "^1.3.0",
-        "ts-pattern": "catalog:"
+        "decimal.js": "catalog:"
     },
     "devDependencies": {
         "@zenstackhq/eslint-config": "workspace:*",

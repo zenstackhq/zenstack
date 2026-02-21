@@ -1067,38 +1067,38 @@ describe('Zod schema factory test', () => {
         // --- Find schemas ---
 
         describe('makeFindManySchema with depth', () => {
-            it('depth: 0 rejects relation where filters', () => {
-                const s = client.$zod.makeFindManySchema('User', { depth: 0 });
+            it('relationDepth: 0 rejects relation where filters', () => {
+                const s = client.$zod.makeFindManySchema('User', { relationDepth: 0 });
                 // scalar where still works
                 expect(s.safeParse({ where: { email: 'u@test.com' } }).success).toBe(true);
                 // relation filter rejected
                 expect(s.safeParse({ where: { posts: { some: { published: true } } } }).success).toBe(false);
             });
 
-            it('depth: 0 rejects relation in select', () => {
-                const s = client.$zod.makeFindManySchema('User', { depth: 0 });
+            it('relationDepth: 0 rejects relation in select', () => {
+                const s = client.$zod.makeFindManySchema('User', { relationDepth: 0 });
                 // scalar select works
                 expect(s.safeParse({ select: { id: true, email: true } }).success).toBe(true);
                 // relation select rejected
                 expect(s.safeParse({ select: { posts: true } }).success).toBe(false);
             });
 
-            it('depth: 0 rejects relation in include', () => {
-                const s = client.$zod.makeFindManySchema('User', { depth: 0 });
+            it('relationDepth: 0 rejects relation in include', () => {
+                const s = client.$zod.makeFindManySchema('User', { relationDepth: 0 });
                 // relation include rejected
                 expect(s.safeParse({ include: { posts: true } }).success).toBe(false);
             });
 
-            it('depth: 0 rejects relation in orderBy', () => {
-                const s = client.$zod.makeFindManySchema('User', { depth: 0 });
+            it('relationDepth: 0 rejects relation in orderBy', () => {
+                const s = client.$zod.makeFindManySchema('User', { relationDepth: 0 });
                 // scalar orderBy works
                 expect(s.safeParse({ orderBy: { email: 'asc' } }).success).toBe(true);
                 // relation orderBy rejected
                 expect(s.safeParse({ orderBy: { posts: { _count: 'desc' } } }).success).toBe(false);
             });
 
-            it('depth: 1 allows one level of relation nesting', () => {
-                const s = client.$zod.makeFindManySchema('User', { depth: 1 });
+            it('relationDepth: 1 allows one level of relation nesting', () => {
+                const s = client.$zod.makeFindManySchema('User', { relationDepth: 1 });
                 // relation where allowed
                 expect(s.safeParse({ where: { posts: { some: { published: true } } } }).success).toBe(true);
                 // relation select allowed
@@ -1107,8 +1107,8 @@ describe('Zod schema factory test', () => {
                 expect(s.safeParse({ include: { posts: true } }).success).toBe(true);
             });
 
-            it('depth: 1 rejects two levels of relation nesting in where', () => {
-                const s = client.$zod.makeFindManySchema('User', { depth: 1 });
+            it('relationDepth: 1 rejects two levels of relation nesting in where', () => {
+                const s = client.$zod.makeFindManySchema('User', { relationDepth: 1 });
                 // User -> posts -> comments (2 levels) rejected
                 expect(
                     s.safeParse({
@@ -1117,8 +1117,8 @@ describe('Zod schema factory test', () => {
                 ).toBe(false);
             });
 
-            it('depth: 1 rejects two levels of relation nesting in select', () => {
-                const s = client.$zod.makeFindManySchema('User', { depth: 1 });
+            it('relationDepth: 1 rejects two levels of relation nesting in select', () => {
+                const s = client.$zod.makeFindManySchema('User', { relationDepth: 1 });
                 // nested relation in select rejected - can select posts but posts cannot select comments
                 expect(
                     s.safeParse({
@@ -1127,8 +1127,8 @@ describe('Zod schema factory test', () => {
                 ).toBe(false);
             });
 
-            it('depth: 2 allows two levels of relation nesting', () => {
-                const s = client.$zod.makeFindManySchema('User', { depth: 2 });
+            it('relationDepth: 2 allows two levels of relation nesting', () => {
+                const s = client.$zod.makeFindManySchema('User', { relationDepth: 2 });
                 // User -> posts -> comments (2 levels) allowed
                 expect(
                     s.safeParse({
@@ -1160,16 +1160,16 @@ describe('Zod schema factory test', () => {
         });
 
         describe('makeFindUniqueSchema with depth', () => {
-            it('depth: 0 limits to scalar where', () => {
-                const s = client.$zod.makeFindUniqueSchema('User', { depth: 0 });
+            it('relationDepth: 0 limits to scalar where', () => {
+                const s = client.$zod.makeFindUniqueSchema('User', { relationDepth: 0 });
                 expect(s.safeParse({ where: { id: 'abc' } }).success).toBe(true);
                 expect(s.safeParse({ where: { id: 'abc' }, select: { posts: true } }).success).toBe(false);
             });
         });
 
         describe('makeFindFirstSchema with depth', () => {
-            it('depth: 0 limits to scalar fields', () => {
-                const s = client.$zod.makeFindFirstSchema('User', { depth: 0 });
+            it('relationDepth: 0 limits to scalar fields', () => {
+                const s = client.$zod.makeFindFirstSchema('User', { relationDepth: 0 });
                 expect(s.safeParse({ where: { email: 'u@test.com' } }).success).toBe(true);
                 expect(s.safeParse({ where: { posts: { some: { published: true } } } }).success).toBe(false);
             });
@@ -1178,8 +1178,8 @@ describe('Zod schema factory test', () => {
         // --- Exists schema ---
 
         describe('makeExistsSchema with depth', () => {
-            it('depth: 0 rejects relation filters', () => {
-                const s = client.$zod.makeExistsSchema('User', { depth: 0 });
+            it('relationDepth: 0 rejects relation filters', () => {
+                const s = client.$zod.makeExistsSchema('User', { relationDepth: 0 });
                 expect(s.safeParse({ where: { email: 'u@test.com' } }).success).toBe(true);
                 expect(s.safeParse({ where: { posts: { some: { published: true } } } }).success).toBe(false);
             });
@@ -1188,8 +1188,8 @@ describe('Zod schema factory test', () => {
         // --- Create schemas ---
 
         describe('makeCreateSchema with depth', () => {
-            it('depth: 0 rejects nested relation create', () => {
-                const s = client.$zod.makeCreateSchema('User', { depth: 0 });
+            it('relationDepth: 0 rejects nested relation create', () => {
+                const s = client.$zod.makeCreateSchema('User', { relationDepth: 0 });
                 // scalar-only create works
                 expect(s.safeParse({ data: { email: 'u@test.com' } }).success).toBe(true);
                 // nested relation create rejected
@@ -1203,8 +1203,8 @@ describe('Zod schema factory test', () => {
                 ).toBe(false);
             });
 
-            it('depth: 1 allows one level of nested create', () => {
-                const s = client.$zod.makeCreateSchema('User', { depth: 1 });
+            it('relationDepth: 1 allows one level of nested create', () => {
+                const s = client.$zod.makeCreateSchema('User', { relationDepth: 1 });
                 // one level nested create allowed
                 expect(
                     s.safeParse({
@@ -1216,8 +1216,8 @@ describe('Zod schema factory test', () => {
                 ).toBe(true);
             });
 
-            it('depth: 1 rejects two levels of nested create', () => {
-                const s = client.$zod.makeCreateSchema('User', { depth: 1 });
+            it('relationDepth: 1 rejects two levels of nested create', () => {
+                const s = client.$zod.makeCreateSchema('User', { relationDepth: 1 });
                 // two levels nested create rejected (posts -> comments)
                 expect(
                     s.safeParse({
@@ -1234,8 +1234,8 @@ describe('Zod schema factory test', () => {
                 ).toBe(false);
             });
 
-            it('depth: 0 rejects relation in select', () => {
-                const s = client.$zod.makeCreateSchema('User', { depth: 0 });
+            it('relationDepth: 0 rejects relation in select', () => {
+                const s = client.$zod.makeCreateSchema('User', { relationDepth: 0 });
                 expect(
                     s.safeParse({
                         data: { email: 'u@test.com' },
@@ -1246,8 +1246,8 @@ describe('Zod schema factory test', () => {
         });
 
         describe('makeCreateManySchema with depth', () => {
-            it('depth: 0 accepts scalar-only data', () => {
-                const s = client.$zod.makeCreateManySchema('User', { depth: 0 });
+            it('relationDepth: 0 accepts scalar-only data', () => {
+                const s = client.$zod.makeCreateManySchema('User', { relationDepth: 0 });
                 expect(s.safeParse({ data: [{ email: 'u@test.com' }] }).success).toBe(true);
             });
         });
@@ -1255,8 +1255,8 @@ describe('Zod schema factory test', () => {
         // --- Update schemas ---
 
         describe('makeUpdateSchema with depth', () => {
-            it('depth: 0 rejects nested relation update', () => {
-                const s = client.$zod.makeUpdateSchema('User', { depth: 0 });
+            it('relationDepth: 0 rejects nested relation update', () => {
+                const s = client.$zod.makeUpdateSchema('User', { relationDepth: 0 });
                 // scalar-only update works
                 expect(s.safeParse({ where: { id: 'abc' }, data: { name: 'New Name' } }).success).toBe(true);
                 // nested relation update rejected
@@ -1268,8 +1268,8 @@ describe('Zod schema factory test', () => {
                 ).toBe(false);
             });
 
-            it('depth: 1 allows one level of nested update', () => {
-                const s = client.$zod.makeUpdateSchema('User', { depth: 1 });
+            it('relationDepth: 1 allows one level of nested update', () => {
+                const s = client.$zod.makeUpdateSchema('User', { relationDepth: 1 });
                 expect(
                     s.safeParse({
                         where: { id: 'abc' },
@@ -1280,8 +1280,8 @@ describe('Zod schema factory test', () => {
         });
 
         describe('makeUpsertSchema with depth', () => {
-            it('depth: 0 rejects nested relations in create/update data', () => {
-                const s = client.$zod.makeUpsertSchema('User', { depth: 0 });
+            it('relationDepth: 0 rejects nested relations in create/update data', () => {
+                const s = client.$zod.makeUpsertSchema('User', { relationDepth: 0 });
                 // scalar upsert works
                 expect(
                     s.safeParse({
@@ -1304,8 +1304,8 @@ describe('Zod schema factory test', () => {
         // --- Delete schemas ---
 
         describe('makeDeleteSchema with depth', () => {
-            it('depth: 0 rejects relation in select/include', () => {
-                const s = client.$zod.makeDeleteSchema('User', { depth: 0 });
+            it('relationDepth: 0 rejects relation in select/include', () => {
+                const s = client.$zod.makeDeleteSchema('User', { relationDepth: 0 });
                 expect(s.safeParse({ where: { id: 'abc' } }).success).toBe(true);
                 expect(s.safeParse({ where: { id: 'abc' }, select: { posts: true } }).success).toBe(false);
                 expect(s.safeParse({ where: { id: 'abc' }, include: { posts: true } }).success).toBe(false);
@@ -1313,8 +1313,8 @@ describe('Zod schema factory test', () => {
         });
 
         describe('makeDeleteManySchema with depth', () => {
-            it('depth: 0 rejects relation where filters', () => {
-                const s = client.$zod.makeDeleteManySchema('User', { depth: 0 });
+            it('relationDepth: 0 rejects relation where filters', () => {
+                const s = client.$zod.makeDeleteManySchema('User', { relationDepth: 0 });
                 expect(s.safeParse({ where: { email: 'u@test.com' } }).success).toBe(true);
                 expect(s.safeParse({ where: { posts: { some: { published: true } } } }).success).toBe(false);
             });
@@ -1323,55 +1323,53 @@ describe('Zod schema factory test', () => {
         // --- Count / Aggregate / GroupBy ---
 
         describe('makeCountSchema with depth', () => {
-            it('depth: 0 rejects relation where and orderBy', () => {
-                const s = client.$zod.makeCountSchema('User', { depth: 0 });
+            it('relationDepth: 0 rejects relation where and orderBy', () => {
+                const s = client.$zod.makeCountSchema('User', { relationDepth: 0 });
                 expect(s.safeParse({ where: { email: 'u@test.com' } }).success).toBe(true);
                 expect(s.safeParse({ where: { posts: { some: { published: true } } } }).success).toBe(false);
             });
         });
 
         describe('makeAggregateSchema with depth', () => {
-            it('depth: 0 rejects relation where', () => {
-                const s = client.$zod.makeAggregateSchema('User', { depth: 0 });
+            it('relationDepth: 0 rejects relation where', () => {
+                const s = client.$zod.makeAggregateSchema('User', { relationDepth: 0 });
                 expect(s.safeParse({ where: { email: 'u@test.com' } }).success).toBe(true);
                 expect(s.safeParse({ where: { posts: { some: { published: true } } } }).success).toBe(false);
             });
         });
 
         describe('makeGroupBySchema with depth', () => {
-            it('depth: 0 rejects relation where', () => {
-                const s = client.$zod.makeGroupBySchema('User', { depth: 0 });
+            it('relationDepth: 0 rejects relation where', () => {
+                const s = client.$zod.makeGroupBySchema('User', { relationDepth: 0 });
                 expect(s.safeParse({ by: ['email'], where: { email: 'u@test.com' } }).success).toBe(true);
-                expect(
-                    s.safeParse({ by: ['email'], where: { posts: { some: { published: true } } } }).success,
-                ).toBe(false);
+                expect(s.safeParse({ by: ['email'], where: { posts: { some: { published: true } } } }).success).toBe(
+                    false,
+                );
             });
         });
 
         // --- Where schema directly ---
 
         describe('makeWhereSchema with depth', () => {
-            it('depth: 0 produces scalar-only where', () => {
-                const s = client.$zod.makeWhereSchema('User', false, false, false, { depth: 0 });
+            it('relationDepth: 0 produces scalar-only where', () => {
+                const s = client.$zod.makeWhereSchema('User', false, false, false, { relationDepth: 0 });
                 expect(s.safeParse({ email: 'u@test.com' }).success).toBe(true);
                 expect(s.safeParse({ posts: { some: { published: true } } }).success).toBe(false);
             });
 
-            it('depth: 0 still allows logical operators', () => {
-                const s = client.$zod.makeWhereSchema('User', false, false, false, { depth: 0 });
+            it('relationDepth: 0 still allows logical operators', () => {
+                const s = client.$zod.makeWhereSchema('User', false, false, false, { relationDepth: 0 });
                 expect(s.safeParse({ AND: [{ email: 'a' }, { name: 'b' }] }).success).toBe(true);
                 expect(s.safeParse({ OR: [{ email: 'a' }] }).success).toBe(true);
                 expect(s.safeParse({ NOT: { email: 'a' } }).success).toBe(true);
             });
 
-            it('depth: 1 allows relation filters but not nested relation filters', () => {
-                const s = client.$zod.makeWhereSchema('Post', false, false, false, { depth: 1 });
+            it('relationDepth: 1 allows relation filters but not nested relation filters', () => {
+                const s = client.$zod.makeWhereSchema('Post', false, false, false, { relationDepth: 1 });
                 // Post -> author (1 level) allowed
                 expect(s.safeParse({ author: { email: 'u@test.com' } }).success).toBe(true);
                 // Post -> author -> posts (2 levels) rejected
-                expect(
-                    s.safeParse({ author: { posts: { some: { published: true } } } }).success,
-                ).toBe(false);
+                expect(s.safeParse({ author: { posts: { some: { published: true } } } }).success).toBe(false);
             });
         });
     });

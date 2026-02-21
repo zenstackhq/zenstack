@@ -6,19 +6,22 @@ enum Status {
     ACTIVE
     INACTIVE
     PENDING
+
+    @@meta("description", "User account status")
 }
 
 type Address {
-    street String
+    street String  @meta("description", "Street address line")
     city   String  @length(2)
     zip    String?
 
     @@validate(zip == null || length(zip) == 5, "Zip code must be exactly 5 characters", ["zip"])
+    @@meta("description", "A mailing address")
 }
 
 model User {
     id        String    @id @default(cuid())
-    email     String    @email
+    email     String    @email @meta("description", "The user's email address")
     username  String    @length(3, 50)
     website   String?   @url
     code      String    @startsWith("USR")
@@ -35,6 +38,7 @@ model User {
     posts     Post[]
 
     @@validate(age >= 18, "Must be adult", ["age"])
+    @@meta("description", "A user of the system")
 }
 
 model Post {

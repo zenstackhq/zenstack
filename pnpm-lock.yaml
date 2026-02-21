@@ -834,21 +834,12 @@ importers:
 
   packages/zod:
     dependencies:
-      '@zenstackhq/common-helpers':
-        specifier: workspace:*
-        version: link:../common-helpers
       '@zenstackhq/schema':
         specifier: workspace:*
         version: link:../schema
       decimal.js:
         specifier: 'catalog:'
         version: 10.6.0
-      json-stable-stringify:
-        specifier: ^1.3.0
-        version: 1.3.0
-      ts-pattern:
-        specifier: 'catalog:'
-        version: 5.7.1
     devDependencies:
       '@zenstackhq/eslint-config':
         specifier: workspace:*

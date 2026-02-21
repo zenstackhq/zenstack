@@ -24,7 +24,7 @@ export class SchemaType implements SchemaDef {
                 email: {
                     name: "email",
                     type: "String",
-                    attributes: [{ name: "@email" }]
+                    attributes: [{ name: "@email" }, { name: "@meta", args: [{ name: "name", value: ExpressionUtils.literal("description") }, { name: "value", value: ExpressionUtils.literal("The user's email address") }] }]
                 },
                 username: {
                     name: "username",
@@ -99,7 +99,8 @@ export class SchemaType implements SchemaDef {
                 }
             },
             attributes: [
-                { name: "@@validate", args: [{ name: "value", value: ExpressionUtils.binary(ExpressionUtils.field("age"), ">=", ExpressionUtils.literal(18)) }, { name: "message", value: ExpressionUtils.literal("Must be adult") }, { name: "path", value: ExpressionUtils.array("String", [ExpressionUtils.literal("age")]) }] }
+                { name: "@@validate", args: [{ name: "value", value: ExpressionUtils.binary(ExpressionUtils.field("age"), ">=", ExpressionUtils.literal(18)) }, { name: "message", value: ExpressionUtils.literal("Must be adult") }, { name: "path", value: ExpressionUtils.array("String", [ExpressionUtils.literal("age")]) }] },
+                { name: "@@meta", args: [{ name: "name", value: ExpressionUtils.literal("description") }, { name: "value", value: ExpressionUtils.literal("A user of the system") }] }
             ],
             idFields: ["id"],
             uniqueFields: {
@@ -152,7 +153,8 @@ export class SchemaType implements SchemaDef {
             fields: {
                 street: {
                     name: "street",
-                    type: "String"
+                    type: "String",
+                    attributes: [{ name: "@meta", args: [{ name: "name", value: ExpressionUtils.literal("description") }, { name: "value", value: ExpressionUtils.literal("Street address line") }] }]
                 },
                 city: {
                     name: "city",
@@ -166,7 +168,8 @@ export class SchemaType implements SchemaDef {
                 }
             },
             attributes: [
-                { name: "@@validate", args: [{ name: "value", value: ExpressionUtils.binary(ExpressionUtils.binary(ExpressionUtils.field("zip"), "==", ExpressionUtils._null()), "||", ExpressionUtils.binary(ExpressionUtils.call("length", [ExpressionUtils.field("zip")]), "==", ExpressionUtils.literal(5))) }, { name: "message", value: ExpressionUtils.literal("Zip code must be exactly 5 characters") }, { name: "path", value: ExpressionUtils.array("String", [ExpressionUtils.literal("zip")]) }] }
+                { name: "@@validate", args: [{ name: "value", value: ExpressionUtils.binary(ExpressionUtils.binary(ExpressionUtils.field("zip"), "==", ExpressionUtils._null()), "||", ExpressionUtils.binary(ExpressionUtils.call("length", [ExpressionUtils.field("zip")]), "==", ExpressionUtils.literal(5))) }, { name: "message", value: ExpressionUtils.literal("Zip code must be exactly 5 characters") }, { name: "path", value: ExpressionUtils.array("String", [ExpressionUtils.literal("zip")]) }] },
+                { name: "@@meta", args: [{ name: "name", value: ExpressionUtils.literal("description") }, { name: "value", value: ExpressionUtils.literal("A mailing address") }] }
             ]
         }
     } as const;
@@ -177,7 +180,10 @@ export class SchemaType implements SchemaDef {
                 ACTIVE: "ACTIVE",
                 INACTIVE: "INACTIVE",
                 PENDING: "PENDING"
-            }
+            },
+            attributes: [
+                { name: "@@meta", args: [{ name: "name", value: ExpressionUtils.literal("description") }, { name: "value", value: ExpressionUtils.literal("User account status") }] }
+            ]
         }
     } as const;
     authType = "User" as const;
