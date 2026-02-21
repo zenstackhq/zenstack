@@ -171,6 +171,37 @@ describe('documentation plugin', () => {
         expect(typeDoc).not.toContain('[Tag]');
     });
 
+    it('type page fields default to declaration order', async () => {
+        const model = await loadSchema(`
+            type Metadata {
+                version Int @default(1)
+                createdBy String
+                active Boolean
+            }
+            model User {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const typeDoc = fs.readFileSync(path.join(tmpDir, 'types', 'Metadata.md'), 'utf-8');
+
+        // declaration order: version, createdBy, active
+        const versionIdx = typeDoc.indexOf('| version');
+        const createdByIdx = typeDoc.indexOf('| createdBy');
+        const activeIdx = typeDoc.indexOf('| active');
+        expect(versionIdx).toBeLessThan(createdByIdx);
+        expect(createdByIdx).toBeLessThan(activeIdx);
+    });
+
     it('model page shows Mixins section linking to type pages', async () => {
         const model = await loadSchema(`
             type Timestamps {
@@ -261,7 +292,7 @@ describe('documentation plugin', () => {
         expect(userDoc).toContain('Has many posts.');
     });
 
-    it('generates model page with fields table sorted alphabetically', async () => {
+    it('fields default to declaration order', async () => {
         const model = await loadSchema(`
             model User {
                 id    String  @id @default(cuid())
@@ -282,12 +313,15 @@ describe('documentation plugin', () => {
 
         const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
         expect(userDoc).toContain('## Fields');
-        expect(userDoc).toContain('| Field');
-        expect(userDoc).toContain('| email');
-        expect(userDoc).toContain('| id');
-        expect(userDoc).toContain('| name');
         expect(userDoc).toContain('Display name shown in the UI.');
         expect(userDoc).toContain('`cuid()`');
+
+        // declaration order: id, name, email
+        const idIdx = userDoc.indexOf('| id');
+        const nameIdx = userDoc.indexOf('| name');
+        const emailIdx = userDoc.indexOf('| email');
+        expect(idIdx).toBeLessThan(nameIdx);
+        expect(nameIdx).toBeLessThan(emailIdx);
 
         // email is optional
         const emailLine = userDoc.split('\n').find((l) => l.includes('| email'));
@@ -296,6 +330,27 @@ describe('documentation plugin', () => {
         // id is required
         const idLine = userDoc.split('\n').find((l) => l.includes('| id'));
         expect(idLine).toContain('Yes');
+    });
+
+    it('fieldOrder=alphabetical sorts fields alphabetically', async () => {
+        const model = await loadSchema(`
+            model User {
+                id    String  @id @default(cuid())
+                name  String
+                email String?
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir, fieldOrder: 'alphabetical' },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
 
         // alphabetical order: email < id < name
         const emailIdx = userDoc.indexOf('| email');

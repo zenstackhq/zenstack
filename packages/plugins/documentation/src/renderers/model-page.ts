@@ -50,18 +50,21 @@ export function renderModelPage(model: DataModel, options: RenderOptions): strin
     }
 
     const allFields = getAllFields(model);
-    const sortedFields = [...allFields].sort((a, b) => a.name.localeCompare(b.name));
+    const orderedFields =
+        options.fieldOrder === 'alphabetical'
+            ? [...allFields].sort((a, b) => a.name.localeCompare(b.name))
+            : [...allFields];
 
     const relationFields = allFields
         .filter((f) => f.type.reference?.ref && isDataModel(f.type.reference.ref))
         .sort((a, b) => a.name.localeCompare(b.name));
 
-    if (sortedFields.length > 0) {
+    if (orderedFields.length > 0) {
         lines.push('## Fields', '');
         lines.push('| Field | Type | Required | Default | Attributes | Source | Description |');
         lines.push('| --- | --- | --- | --- | --- | --- | --- |');
 
-        for (const field of sortedFields) {
+        for (const field of orderedFields) {
             const fieldDescription = stripCommentPrefix(field.comments);
             const isComputed = field.attributes.some((a) => getAttrName(a) === '@computed');
             const inheritedFrom =
@@ -160,7 +163,7 @@ export function renderModelPage(model: DataModel, options: RenderOptions): strin
     }
 
     const validationRules: Array<{ fieldName: string; rule: string }> = [];
-    for (const field of sortedFields) {
+    for (const field of orderedFields) {
         for (const attr of field.attributes) {
             const attrDecl = attr.decl.ref;
             if (!attrDecl) continue;

@@ -9,6 +9,7 @@ export interface RenderOptions {
     includePolicies: boolean;
     includeValidation: boolean;
     includeIndexes: boolean;
+    fieldOrder: 'declaration' | 'alphabetical';
 }
 
 export interface Relationship {

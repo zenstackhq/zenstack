@@ -6,8 +6,9 @@ import {
     isFieldRequired,
     stripCommentPrefix,
 } from '../extractors';
+import type { RenderOptions } from '../types';
 
-export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[]): string {
+export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], options: RenderOptions): string {
     const lines: string[] = [
         `[Index](../index.md)`,
         '',
@@ -23,7 +24,10 @@ export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[]): strin
         lines.push('');
     }
 
-    const sortedFields = [...typeDef.fields].sort((a, b) => a.name.localeCompare(b.name));
+    const sortedFields =
+        options.fieldOrder === 'alphabetical'
+            ? [...typeDef.fields].sort((a, b) => a.name.localeCompare(b.name))
+            : [...typeDef.fields];
 
     if (sortedFields.length > 0) {
         lines.push('## Fields', '');

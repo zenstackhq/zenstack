@@ -51,11 +51,11 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 | Field | Type | Required | Default | Attributes | Source | Description |
 | --- | --- | --- | --- | --- | --- | --- |
-| author | [User](./User.md) | Yes | — | \`@relation(fields: fields: [authorId], references: references: [id])\` | — |  |
-| authorId | String | Yes | — | — | — |  |
-| content | String? | No | — | — | — |  |
 | id | String | Yes | \`cuid()\` | \`@id\` | — |  |
 | title | String | Yes | — | — | — | The post title. |
+| content | String? | No | — | — | — |  |
+| author | [User](./User.md) | Yes | — | \`@relation(fields: fields: [authorId], references: references: [id])\` | — |  |
+| authorId | String | Yes | — | — | — |  |
 
 ## Relationships
 
@@ -80,11 +80,11 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 | Field | Type | Required | Default | Attributes | Source | Description |
 | --- | --- | --- | --- | --- | --- | --- |
-| email | String | Yes | — | \`@unique\`, \`@email\` | — | User's email address. |
 | id | String | Yes | \`cuid()\` | \`@id\` | — |  |
+| email | String | Yes | — | \`@unique\`, \`@email\` | — | User's email address. |
 | name | String | Yes | — | — | — | Display name shown in the UI. |
-| posts | [Post](./Post.md)[] | No | — | — | — |  |
 | role | [Role](../enums/Role.md) | Yes | — | — | — |  |
+| posts | [Post](./Post.md)[] | No | — | — | — |  |
 
 ## Relationships
 

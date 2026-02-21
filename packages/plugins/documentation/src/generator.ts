@@ -70,7 +70,7 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
         for (const typeDef of typeDefs) {
             fs.writeFileSync(
                 path.join(typesDir, `${typeDef.name}.md`),
-                renderTypePage(typeDef, models),
+                renderTypePage(typeDef, models, options),
             );
         }
     }

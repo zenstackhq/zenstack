@@ -136,5 +136,6 @@ export function resolveRenderOptions(pluginOptions: Record<string, unknown>): im
         includePolicies: pluginOptions['includePolicies'] !== false,
         includeValidation: pluginOptions['includeValidation'] !== false,
         includeIndexes: pluginOptions['includeIndexes'] !== false,
+        fieldOrder: pluginOptions['fieldOrder'] === 'alphabetical' ? 'alphabetical' : 'declaration',
     };
 }
