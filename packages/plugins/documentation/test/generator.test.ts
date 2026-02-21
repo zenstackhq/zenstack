@@ -142,4 +142,39 @@ describe('documentation plugin', () => {
         expect(emailIdx).toBeLessThan(idIdx);
         expect(idIdx).toBeLessThan(nameIdx);
     });
+
+    it('generates model page with relationships section', async () => {
+        const model = await loadSchema(`
+            model User {
+                id    String @id @default(cuid())
+                posts Post[]
+            }
+            model Post {
+                id       String @id @default(cuid())
+                author   User   @relation(fields: [authorId], references: [id])
+                authorId String
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('## Relationships');
+        expect(userDoc).toContain('| posts');
+        expect(userDoc).toContain('Post');
+        expect(userDoc).toContain('One\u2192Many');
+
+        const postDoc = fs.readFileSync(path.join(tmpDir, 'models', 'Post.md'), 'utf-8');
+        expect(postDoc).toContain('## Relationships');
+        expect(postDoc).toContain('| author');
+        expect(postDoc).toContain('User');
+        expect(postDoc).toContain('Many\u2192One');
+    });
 });

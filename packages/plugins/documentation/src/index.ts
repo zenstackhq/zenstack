@@ -120,6 +120,10 @@ function renderModelPage(model: DataModel): string {
 
     const sortedFields = [...model.fields].sort((a, b) => a.name.localeCompare(b.name));
 
+    const relationFields = model.fields
+        .filter((f) => f.type.reference?.ref && isDataModel(f.type.reference.ref))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
     if (sortedFields.length > 0) {
         lines.push('## Fields', '');
         lines.push('| Field | Type | Required | Default | Attributes | Description |');
@@ -129,6 +133,28 @@ function renderModelPage(model: DataModel): string {
             const fieldDescription = stripCommentPrefix(field.comments);
             lines.push(
                 `| ${field.name} | ${getFieldTypeName(field)} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${fieldDescription} |`,
+            );
+        }
+        lines.push('');
+    }
+
+    if (relationFields.length > 0) {
+        lines.push('## Relationships', '');
+        lines.push('| Field | Related Model | Type |');
+        lines.push('| --- | --- | --- |');
+
+        for (const field of relationFields) {
+            const relatedModel = field.type.reference?.ref?.name ?? '';
+            let relType: string;
+            if (field.type.array) {
+                relType = 'One\u2192Many';
+            } else if (field.type.optional) {
+                relType = 'Many\u2192One?';
+            } else {
+                relType = 'Many\u2192One';
+            }
+            lines.push(
+                `| ${field.name} | [${relatedModel}](./${relatedModel}.md) | ${relType} |`,
             );
         }
         lines.push('');
