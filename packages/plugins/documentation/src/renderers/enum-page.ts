@@ -50,12 +50,42 @@ export function renderEnumPage(enumDecl: Enum, allModels: DataModel[], options: 
         .map((m) => m.name)
         .sort();
 
+    const usageDetails: Array<{ modelName: string; fieldNames: string[] }> = [];
+    for (const m of allModels) {
+        const fields = getAllFields(m)
+            .filter(
+                (f) =>
+                    f.type.reference?.ref &&
+                    isEnum(f.type.reference.ref) &&
+                    f.type.reference.ref.name === enumDecl.name,
+            )
+            .map((f) => f.name);
+        if (fields.length > 0) {
+            usageDetails.push({ modelName: m.name, fieldNames: fields });
+        }
+    }
+    usageDetails.sort((a, b) => a.modelName.localeCompare(b.modelName));
+
     if (usedBy.length > 0) {
         lines.push('## Used By', '');
         for (const name of usedBy) {
             lines.push(`- [${name}](../models/${name}.md)`);
         }
         lines.push('');
+
+        lines.push('```mermaid');
+        lines.push('classDiagram');
+        lines.push(`    class ${enumDecl.name} {`);
+        lines.push(`        <<enumeration>>`);
+        for (const field of enumDecl.fields) {
+            lines.push(`        ${field.name}`);
+        }
+        lines.push('    }');
+        for (const { modelName, fieldNames } of usageDetails) {
+            const label = fieldNames.join(', ');
+            lines.push(`    ${modelName} --> ${enumDecl.name} : ${label}`);
+        }
+        lines.push('```', '');
     }
 
     const cstText = enumDecl.$cstNode?.text;

@@ -1303,6 +1303,64 @@ describe('documentation plugin', () => {
         expect(roleDoc).toContain('[User](../models/User.md)');
     });
 
+    it('enum page includes class diagram showing usage by models', async () => {
+        const model = await loadSchema(`
+            model User {
+                id   String @id @default(cuid())
+                role Role
+            }
+            model Post {
+                id     String @id @default(cuid())
+                status Role
+            }
+            enum Role {
+                ADMIN
+                USER
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const roleDoc = fs.readFileSync(path.join(tmpDir, 'enums', 'Role.md'), 'utf-8');
+        expect(roleDoc).toContain('```mermaid');
+        expect(roleDoc).toContain('classDiagram');
+        expect(roleDoc).toContain('enumeration');
+        expect(roleDoc).toContain('ADMIN');
+        expect(roleDoc).toContain('USER');
+        expect(roleDoc).toContain('Post');
+        expect(roleDoc).toContain('User');
+        expect(roleDoc).toContain('role');
+        expect(roleDoc).toContain('status');
+    });
+
+    it('enum page omits class diagram when no models use it', async () => {
+        const model = await loadSchema(`
+            enum Status { ACTIVE INACTIVE }
+            model User {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const statusDoc = fs.readFileSync(path.join(tmpDir, 'enums', 'Status.md'), 'utf-8');
+        expect(statusDoc).not.toContain('```mermaid');
+    });
+
     it('relationships.md links model names to model pages', async () => {
         const model = await loadSchema(`
             model User {
