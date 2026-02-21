@@ -132,8 +132,12 @@ function renderModelPage(model: DataModel): string {
 
         for (const field of sortedFields) {
             const fieldDescription = stripCommentPrefix(field.comments);
+            const isComputed = field.attributes.some((a) => getAttrName(a) === '@computed');
+            const descParts: string[] = [];
+            if (isComputed) descParts.push('**Computed**');
+            if (fieldDescription) descParts.push(fieldDescription);
             lines.push(
-                `| ${field.name} | ${getFieldTypeName(field)} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${fieldDescription} |`,
+                `| ${field.name} | ${getFieldTypeName(field)} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${descParts.join(' ')} |`,
             );
         }
         lines.push('');

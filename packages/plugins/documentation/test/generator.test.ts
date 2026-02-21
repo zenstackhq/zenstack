@@ -341,4 +341,29 @@ describe('documentation plugin', () => {
         expect(userDoc).toContain('Index');
         expect(userDoc).toContain('Unique');
     });
+
+    it('marks computed fields with a Computed badge', async () => {
+        const model = await loadSchema(`
+            model User {
+                id        String @id @default(cuid())
+                firstName String
+                lastName  String
+                fullName  String @computed
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        const fullNameLine = userDoc.split('\n').find((l) => l.includes('| fullName'));
+        expect(fullNameLine).toBeDefined();
+        expect(fullNameLine).toContain('Computed');
+    });
 });
