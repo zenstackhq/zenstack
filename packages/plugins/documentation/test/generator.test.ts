@@ -200,14 +200,16 @@ describe('documentation plugin', () => {
         expect(userDoc).toContain('[Metadata](../types/Metadata.md)');
     });
 
-    it('fields from mixins show source annotation linking to type page', async () => {
+    it('fields table has Source column linking mixin fields to type page', async () => {
         const model = await loadSchema(`
             type Timestamps {
+                /// Record creation time.
                 createdAt DateTime @default(now())
                 updatedAt DateTime @updatedAt
             }
             model User with Timestamps {
                 id    String @id @default(cuid())
+                /// User email address.
                 email String
             }
         `);
@@ -222,13 +224,17 @@ describe('documentation plugin', () => {
         });
 
         const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('| Source |');
+
         const createdAtLine = userDoc.split('\n').find((l) => l.includes('| createdAt'));
         expect(createdAtLine).toBeDefined();
-        expect(createdAtLine).toContain('From [Timestamps](../types/Timestamps.md)');
+        expect(createdAtLine).toContain('[Timestamps](../types/Timestamps.md)');
+        expect(createdAtLine).toContain('Record creation time.');
 
         const emailLine = userDoc.split('\n').find((l) => l.includes('| email'));
         expect(emailLine).toBeDefined();
-        expect(emailLine).not.toContain('From [');
+        expect(emailLine).toContain('User email address.');
+        expect(emailLine).not.toContain('[Timestamps]');
     });
 
     it('generates model page with heading and description', async () => {
@@ -545,10 +551,15 @@ describe('documentation plugin', () => {
         });
 
         const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('| Source |');
+
         const idLine = userDoc.split('\n').find((l) => l.includes('| id'));
         expect(idLine).toBeDefined();
-        expect(idLine).toContain('Inherited from');
-        expect(idLine).toContain('BaseModel');
+        expect(idLine).toContain('[BaseModel](./BaseModel.md)');
+
+        const emailLine = userDoc.split('\n').find((l) => l.includes('| email'));
+        expect(emailLine).toBeDefined();
+        expect(emailLine).not.toContain('[BaseModel]');
     });
 
     it('renders @@meta doc annotations', async () => {

@@ -193,7 +193,7 @@ describe('integration: showcase schema', () => {
         expect(userDoc).toContain('[Timestamps](../types/Timestamps.md)');
 
         const createdAtLine = userDoc.split('\n').find((l) => l.includes('| createdAt'));
-        expect(createdAtLine).toContain('From [Timestamps](../types/Timestamps.md)');
+        expect(createdAtLine).toContain('[Timestamps](../types/Timestamps.md)');
     });
 
     it('index page lists all visible models, enums, and relationships link', async () => {

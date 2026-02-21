@@ -58,8 +58,8 @@ export function renderModelPage(model: DataModel, options: RenderOptions): strin
 
     if (sortedFields.length > 0) {
         lines.push('## Fields', '');
-        lines.push('| Field | Type | Required | Default | Attributes | Description |');
-        lines.push('| --- | --- | --- | --- | --- | --- |');
+        lines.push('| Field | Type | Required | Default | Attributes | Source | Description |');
+        lines.push('| --- | --- | --- | --- | --- | --- | --- |');
 
         for (const field of sortedFields) {
             const fieldDescription = stripCommentPrefix(field.comments);
@@ -70,18 +70,21 @@ export function renderModelPage(model: DataModel, options: RenderOptions): strin
                     : undefined;
             const fromMixin =
                 isTypeDef(field.$container) ? field.$container.name : undefined;
+
+            let source = '—';
+            if (fromMixin) {
+                source = `[${fromMixin}](../types/${fromMixin}.md)`;
+            } else if (inheritedFrom) {
+                source = `[${inheritedFrom}](./${inheritedFrom}.md)`;
+            }
+
             const descParts: string[] = [];
             if (isComputed) descParts.push('**Computed**');
-            if (fromMixin) {
-                descParts.push(`*From [${fromMixin}](../types/${fromMixin}.md)*`);
-            } else if (inheritedFrom) {
-                descParts.push(`*Inherited from [${inheritedFrom}](./${inheritedFrom}.md)*`);
-            }
             const example = extractFieldDocExample(field);
             if (example) descParts.push(`Example: \`${example}\``);
             if (fieldDescription) descParts.push(fieldDescription);
             lines.push(
-                `| ${field.name} | ${getFieldTypeName(field, true)} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${descParts.join(' ')} |`,
+                `| ${field.name} | ${getFieldTypeName(field, true)} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${source} | ${descParts.join(' ')} |`,
             );
         }
         lines.push('');
