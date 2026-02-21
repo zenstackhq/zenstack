@@ -163,6 +163,9 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
         lines.push('| Field | Related Model | Type |');
         lines.push('| --- | --- | --- |');
 
+        const mermaidLines: string[] = [];
+        const seenPairs = new Set<string>();
+
         for (const field of relationFields) {
             const relatedModel = field.type.reference?.ref?.name ?? '';
             let relType: string;
@@ -176,8 +179,25 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
             lines.push(
                 `| ${field.name} | [${relatedModel}](./${relatedModel}.md) | ${relType} |`,
             );
+
+            const pairKey = [model.name, relatedModel].sort().join('--');
+            if (!seenPairs.has(pairKey)) {
+                seenPairs.add(pairKey);
+                if (field.type.array) {
+                    mermaidLines.push(`    ${model.name} ||--o{ ${relatedModel} : "${field.name}"`);
+                } else {
+                    mermaidLines.push(`    ${model.name} }o--|| ${relatedModel} : "${field.name}"`);
+                }
+            }
         }
         lines.push('');
+
+        if (mermaidLines.length > 0) {
+            lines.push('```mermaid');
+            lines.push('erDiagram');
+            lines.push(...mermaidLines);
+            lines.push('```', '');
+        }
     }
 
     if (options.includePolicies && policyAttrs.length > 0) {

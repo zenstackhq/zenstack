@@ -742,7 +742,7 @@ describe('documentation plugin', () => {
         expect(idIdx).toBeLessThan(nameIdx);
     });
 
-    it('generates model page with relationships section', async () => {
+    it('generates model page with relationships section and mini ER diagram', async () => {
         const model = await loadSchema(`
             model User {
                 id    String @id @default(cuid())
@@ -770,11 +770,21 @@ describe('documentation plugin', () => {
         expect(userDoc).toContain('Post');
         expect(userDoc).toContain('One\u2192Many');
 
+        // Mini ER diagram
+        expect(userDoc).toContain('```mermaid');
+        expect(userDoc).toContain('erDiagram');
+        expect(userDoc).toContain('User');
+        expect(userDoc).toContain('Post');
+
         const postDoc = fs.readFileSync(path.join(tmpDir, 'models', 'Post.md'), 'utf-8');
         expect(postDoc).toContain('## Relationships');
         expect(postDoc).toContain('| author');
         expect(postDoc).toContain('User');
         expect(postDoc).toContain('Many\u2192One');
+
+        // Post also gets a diagram
+        expect(postDoc).toContain('```mermaid');
+        expect(postDoc).toContain('erDiagram');
 
         const authorLine = postDoc.split('\n').find((l) => l.includes('| author') && l.includes('@relation'));
         expect(authorLine).toBeDefined();
