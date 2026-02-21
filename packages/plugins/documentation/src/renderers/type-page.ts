@@ -15,7 +15,7 @@ export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], option
         ...generatedHeader(),
         breadcrumbs('Types', typeDef.name, '../'),
         '',
-        `# ${typeDef.name}`,
+        `# ${typeDef.name} <kbd>Type</kbd>`,
         '',
     ];
 

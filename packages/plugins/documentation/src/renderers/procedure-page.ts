@@ -51,12 +51,9 @@ export function renderProcedurePage(proc: Procedure, options: RenderOptions): st
         ...generatedHeader(),
         breadcrumbs('Procedures', proc.name, '../'),
         '',
-        `# ${proc.name}`,
+        `# ${proc.name} <kbd>${proc.mutation ? 'Mutation' : 'Query'}</kbd>`,
         '',
     ];
-
-    const kind = proc.mutation ? 'mutation' : 'query';
-    lines.push(`> **${kind}**`, '');
 
     const description = extractProcedureComments(proc);
     if (description) {

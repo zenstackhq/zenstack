@@ -94,6 +94,45 @@ describe('documentation plugin', () => {
         expect(procDoc).toContain('[Procedures](../index.md#procedures)');
     });
 
+    it('entity pages show type badge via kbd tag', async () => {
+        const model = await loadSchema(`
+            enum Role { ADMIN MEMBER }
+            type Timestamps {
+                createdAt DateTime @default(now())
+            }
+            model User {
+                id   String @id @default(cuid())
+                role Role
+            }
+            procedure getUser(id: String): User
+            mutation procedure signUp(name: String): User
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('<kbd>Model</kbd>');
+
+        const roleDoc = fs.readFileSync(path.join(tmpDir, 'enums', 'Role.md'), 'utf-8');
+        expect(roleDoc).toContain('<kbd>Enum</kbd>');
+
+        const tsDoc = fs.readFileSync(path.join(tmpDir, 'types', 'Timestamps.md'), 'utf-8');
+        expect(tsDoc).toContain('<kbd>Type</kbd>');
+
+        const queryDoc = fs.readFileSync(path.join(tmpDir, 'procedures', 'getUser.md'), 'utf-8');
+        expect(queryDoc).toContain('<kbd>Query</kbd>');
+
+        const mutDoc = fs.readFileSync(path.join(tmpDir, 'procedures', 'signUp.md'), 'utf-8');
+        expect(mutDoc).toContain('<kbd>Mutation</kbd>');
+    });
+
     it('produces an index.md file', async () => {
         const model = await loadSchema(`
             model User {
@@ -1438,7 +1477,7 @@ describe('documentation plugin', () => {
         expect(fs.existsSync(path.join(tmpDir, 'procedures', 'signUp.md'))).toBe(true);
         const procDoc = fs.readFileSync(path.join(tmpDir, 'procedures', 'signUp.md'), 'utf-8');
         expect(procDoc).toContain('# signUp');
-        expect(procDoc).toContain('**mutation**');
+        expect(procDoc).toContain('<kbd>Mutation</kbd>');
         expect(procDoc).toContain('Register a new user.');
         expect(procDoc).toContain('[Index](../index.md)');
 
@@ -1474,8 +1513,8 @@ describe('documentation plugin', () => {
 
         const procDoc = fs.readFileSync(path.join(tmpDir, 'procedures', 'getUser.md'), 'utf-8');
         expect(procDoc).toContain('# getUser');
-        expect(procDoc).toContain('**query**');
-        expect(procDoc).not.toContain('**mutation**');
+        expect(procDoc).toContain('<kbd>Query</kbd>');
+        expect(procDoc).not.toContain('<kbd>Mutation</kbd>');
     });
 
     it('procedure page handles Void return type', async () => {

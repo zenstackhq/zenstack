@@ -9,7 +9,7 @@ export function renderEnumPage(enumDecl: Enum, allModels: DataModel[], options: 
         ...generatedHeader(),
         breadcrumbs('Enums', enumDecl.name, '../'),
         '',
-        `# ${enumDecl.name}`,
+        `# ${enumDecl.name} <kbd>Enum</kbd>`,
         '',
     ];
 

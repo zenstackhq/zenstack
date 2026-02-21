@@ -344,7 +344,7 @@ describe('integration: showcase schema', () => {
 
         const signUpDoc = readDoc(tmpDir, 'procedures', 'signUp.md');
         expect(signUpDoc).toContain('# signUp');
-        expect(signUpDoc).toContain('**mutation**');
+        expect(signUpDoc).toContain('<kbd>Mutation</kbd>');
         expect(signUpDoc).toContain('Register a new user');
         expect(signUpDoc).toContain('## Parameters');
         expect(signUpDoc).toContain('| email');
@@ -355,18 +355,18 @@ describe('integration: showcase schema', () => {
 
         const getUserDoc = readDoc(tmpDir, 'procedures', 'getUser.md');
         expect(getUserDoc).toContain('# getUser');
-        expect(getUserDoc).toContain('**query**');
+        expect(getUserDoc).toContain('<kbd>Query</kbd>');
         expect(getUserDoc).toContain('## Returns');
         expect(getUserDoc).toContain('[User](../models/User.md)');
 
         const bulkDoc = readDoc(tmpDir, 'procedures', 'bulkUpdateTaskStatus.md');
-        expect(bulkDoc).toContain('**mutation**');
+        expect(bulkDoc).toContain('<kbd>Mutation</kbd>');
         expect(bulkDoc).toContain('| taskIds');
         expect(bulkDoc).toContain('| status');
         expect(bulkDoc).toContain('`Void`');
 
         const statsDoc = readDoc(tmpDir, 'procedures', 'getProjectStats.md');
-        expect(statsDoc).toContain('**query**');
+        expect(statsDoc).toContain('<kbd>Query</kbd>');
         expect(statsDoc).toContain('[ProjectStats](../types/ProjectStats.md)');
     });
 
@@ -480,7 +480,7 @@ describe('integration: e2e procedures schema', () => {
         expect(index).toContain('[createMultiple]');
 
         const signUpDoc = readDoc(tmpDir, 'procedures', 'signUp.md');
-        expect(signUpDoc).toContain('**mutation**');
+        expect(signUpDoc).toContain('<kbd>Mutation</kbd>');
         expect(signUpDoc).toContain('[User](../models/User.md)');
         expect(signUpDoc).toContain('[Role](../enums/Role.md)');
 

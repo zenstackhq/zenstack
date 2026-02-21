@@ -28,7 +28,7 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
         ...generatedHeader(),
         breadcrumbs('Models', model.name, '../'),
         '',
-        `# ${model.name}`,
+        `# ${model.name} <kbd>Model</kbd>`,
         '',
     ];
 
