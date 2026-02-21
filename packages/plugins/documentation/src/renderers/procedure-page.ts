@@ -1,5 +1,6 @@
 import { isDataModel, isEnum, isTypeDef, type Procedure } from '@zenstackhq/language/ast';
 import { getRelativeSourcePath } from '../extractors';
+import { generatedHeader } from './common';
 import type { RenderOptions } from '../types';
 
 function formatParamType(paramType: Procedure['returnType'], linked: boolean): string {
@@ -47,6 +48,7 @@ function extractProcedureComments(proc: Procedure): string {
 
 export function renderProcedurePage(proc: Procedure, options: RenderOptions): string {
     const lines: string[] = [
+        ...generatedHeader(),
         `[Index](../index.md)`,
         '',
         `# ${proc.name}`,

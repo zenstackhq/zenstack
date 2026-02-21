@@ -1,10 +1,12 @@
 import { isEnum, type DataModel, type Enum } from '@zenstackhq/language/ast';
+import { generatedHeader } from './common';
 import { getAllFields } from '@zenstackhq/language/utils';
 import { getRelativeSourcePath, stripCommentPrefix } from '../extractors';
 import type { RenderOptions } from '../types';
 
 export function renderEnumPage(enumDecl: Enum, allModels: DataModel[], options: RenderOptions): string {
     const lines: string[] = [
+        ...generatedHeader(),
         `[Index](../index.md)`,
         '',
         `# ${enumDecl.name}`,

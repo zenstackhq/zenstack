@@ -1,5 +1,6 @@
 import { isDataModel, isEnum, isProcedure, isTypeDef, type DataModel, type Model } from '@zenstackhq/language/ast';
 import { extractDocMeta, isIgnoredModel } from '../extractors';
+import { generatedHeader } from './common';
 
 function getModelPath(model: DataModel, groupBy: unknown): string {
     if (groupBy === 'category') {
@@ -43,7 +44,7 @@ export function renderIndexPage(
         .filter(isProcedure)
         .sort((a, b) => a.name.localeCompare(b.name));
 
-    const lines: string[] = [`# ${title}`, ''];
+    const lines: string[] = [...generatedHeader(), `# ${title}`, ''];
 
     const summaryParts: string[] = [];
     if (models.length > 0) summaryParts.push(`${models.length} ${models.length === 1 ? 'model' : 'models'}`);

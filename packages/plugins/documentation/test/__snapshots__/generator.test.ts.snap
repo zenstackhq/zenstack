@@ -1,7 +1,9 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`documentation plugin > snapshot: full representative schema output > enums/Role.md 1`] = `
-"[Index](../index.md)
+"> *This documentation was auto-generated. Do not edit directly.*
+
+[Index](../index.md)
 
 # Role
 
@@ -9,7 +11,7 @@ exports[`documentation plugin > snapshot: full representative schema output > en
 
 | | |
 | --- | --- |
-| **Defined in** | \`../../../../../tmp/zenstack-schema-56c975af-0d99-4228-86ca-1e50a5c707af.zmodel\` |
+| **Defined in** | \`../../../../../tmp/zenstack-schema-fa45289a-4feb-46b5-a051-0dec7883a44f.zmodel\` |
 
 ## Values
 
@@ -40,7 +42,9 @@ exports[`documentation plugin > snapshot: full representative schema output > en
 `;
 
 exports[`documentation plugin > snapshot: full representative schema output > index.md 1`] = `
-"# Schema Documentation
+"> *This documentation was auto-generated. Do not edit directly.*
+
+# Schema Documentation
 
 > 2 models · 1 enum
 
@@ -60,7 +64,9 @@ exports[`documentation plugin > snapshot: full representative schema output > in
 `;
 
 exports[`documentation plugin > snapshot: full representative schema output > models/Post.md 1`] = `
-"[Index](../index.md)
+"> *This documentation was auto-generated. Do not edit directly.*
+
+[Index](../index.md)
 
 # Post
 
@@ -69,7 +75,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 | | |
 | --- | --- |
 | **Category** | Content |
-| **Defined in** | \`../../../../../tmp/zenstack-schema-56c975af-0d99-4228-86ca-1e50a5c707af.zmodel\` |
+| **Defined in** | \`../../../../../tmp/zenstack-schema-fa45289a-4feb-46b5-a051-0dec7883a44f.zmodel\` |
 
 - [Fields](#fields)
 - [Relationships](#relationships)
@@ -112,7 +118,9 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 `;
 
 exports[`documentation plugin > snapshot: full representative schema output > models/User.md 1`] = `
-"[Index](../index.md)
+"> *This documentation was auto-generated. Do not edit directly.*
+
+[Index](../index.md)
 
 # User
 
@@ -122,7 +130,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 | --- | --- |
 | **Category** | Identity |
 | **Since** | 1.0 |
-| **Defined in** | \`../../../../../tmp/zenstack-schema-56c975af-0d99-4228-86ca-1e50a5c707af.zmodel\` |
+| **Defined in** | \`../../../../../tmp/zenstack-schema-fa45289a-4feb-46b5-a051-0dec7883a44f.zmodel\` |
 
 - [Fields](#fields)
 - [Relationships](#relationships)
@@ -192,7 +200,9 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 `;
 
 exports[`documentation plugin > snapshot: full representative schema output > relationships.md 1`] = `
-"[Index](./index.md)
+"> *This documentation was auto-generated. Do not edit directly.*
+
+[Index](./index.md)
 
 # Relationships
 

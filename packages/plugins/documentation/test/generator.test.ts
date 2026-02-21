@@ -6,6 +6,55 @@ import { loadSchema } from './utils';
 import plugin from '../src/index';
 
 describe('documentation plugin', () => {
+    it('all pages include auto-generated header with do-not-edit warning', async () => {
+        const model = await loadSchema(`
+            enum Role { ADMIN MEMBER }
+            type Timestamps {
+                createdAt DateTime @default(now())
+            }
+            model User {
+                id   String @id @default(cuid())
+                role Role
+                posts Post[]
+            }
+            model Post {
+                id       String @id @default(cuid())
+                author   User   @relation(fields: [authorId], references: [id])
+                authorId String
+            }
+            procedure getUser(id: String): User
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const headerPattern = /auto-generated.*do not edit/i;
+
+        const indexContent = fs.readFileSync(path.join(tmpDir, 'index.md'), 'utf-8');
+        expect(indexContent).toMatch(headerPattern);
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toMatch(headerPattern);
+
+        const roleDoc = fs.readFileSync(path.join(tmpDir, 'enums', 'Role.md'), 'utf-8');
+        expect(roleDoc).toMatch(headerPattern);
+
+        const tsDoc = fs.readFileSync(path.join(tmpDir, 'types', 'Timestamps.md'), 'utf-8');
+        expect(tsDoc).toMatch(headerPattern);
+
+        const procDoc = fs.readFileSync(path.join(tmpDir, 'procedures', 'getUser.md'), 'utf-8');
+        expect(procDoc).toMatch(headerPattern);
+
+        const relDoc = fs.readFileSync(path.join(tmpDir, 'relationships.md'), 'utf-8');
+        expect(relDoc).toMatch(headerPattern);
+    });
+
     it('produces an index.md file', async () => {
         const model = await loadSchema(`
             model User {

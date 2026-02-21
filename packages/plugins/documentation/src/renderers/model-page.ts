@@ -1,5 +1,6 @@
 import { isDataModel, isTypeDef, type DataModel, type Procedure } from '@zenstackhq/language/ast';
 import { getAllFields } from '@zenstackhq/language/utils';
+import { generatedHeader } from './common';
 import {
     extractDocMeta,
     extractFieldDocExample,
@@ -24,6 +25,7 @@ function isModelReferencedByProc(proc: Procedure, modelName: string): boolean {
 
 export function renderModelPage(model: DataModel, options: RenderOptions, procedures: Procedure[] = []): string {
     const lines: string[] = [
+        ...generatedHeader(),
         `[Index](../index.md)`,
         '',
         `# ${model.name}`,
