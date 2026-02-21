@@ -189,5 +189,13 @@ export function renderModelPage(model: DataModel, options: RenderOptions): strin
         lines.push('');
     }
 
+    const cstText = model.$cstNode?.text;
+    if (cstText) {
+        lines.push('## Declaration', '');
+        lines.push('```prisma');
+        lines.push(cstText);
+        lines.push('```', '');
+    }
+
     return lines.join('\n');
 }

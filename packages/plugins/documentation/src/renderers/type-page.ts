@@ -56,5 +56,13 @@ export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], option
         lines.push('');
     }
 
+    const cstText = typeDef.$cstNode?.text;
+    if (cstText) {
+        lines.push('## Declaration', '');
+        lines.push('```prisma');
+        lines.push(cstText);
+        lines.push('```', '');
+    }
+
     return lines.join('\n');
 }

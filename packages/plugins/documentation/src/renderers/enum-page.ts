@@ -50,5 +50,13 @@ export function renderEnumPage(enumDecl: Enum, allModels: DataModel[]): string {
         lines.push('');
     }
 
+    const cstText = enumDecl.$cstNode?.text;
+    if (cstText) {
+        lines.push('## Declaration', '');
+        lines.push('```prisma');
+        lines.push(cstText);
+        lines.push('```', '');
+    }
+
     return lines.join('\n');
 }

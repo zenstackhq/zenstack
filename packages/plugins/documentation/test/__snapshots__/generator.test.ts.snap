@@ -17,6 +17,18 @@ exports[`documentation plugin > snapshot: full representative schema output > en
 ## Used By
 
 - [User](../models/User.md)
+
+## Declaration
+
+\`\`\`prisma
+/// User roles in the system.
+            enum Role {
+                /// Administrator with full access
+                ADMIN
+                /// Standard user
+                USER
+            }
+\`\`\`
 "
 `;
 
@@ -62,6 +74,22 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 | Field | Related Model | Type |
 | --- | --- | --- |
 | author | [User](./User.md) | Many→One |
+
+## Declaration
+
+\`\`\`prisma
+/// A blog post.
+            model Post {
+                id       String @id @default(cuid())
+                /// The post title.
+                title    String
+                content  String?
+                author   User   @relation(fields: [authorId], references: [id])
+                authorId String
+
+                @@meta('doc:category', 'Content')
+            }
+\`\`\`
 "
 `;
 
@@ -110,6 +138,27 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 | Field | Rule |
 | --- | --- |
 | email | \`@email\` |
+
+## Declaration
+
+\`\`\`prisma
+/// Represents a registered user.
+            model User {
+                id    String @id @default(cuid())
+                /// User's email address.
+                email String @unique @email
+                /// Display name shown in the UI.
+                name  String
+                role  Role
+                posts Post[]
+
+                @@allow('read', true)
+                @@deny('delete', true)
+                @@index([email])
+                @@meta('doc:category', 'Identity')
+                @@meta('doc:since', '1.0')
+            }
+\`\`\`
 "
 `;
 

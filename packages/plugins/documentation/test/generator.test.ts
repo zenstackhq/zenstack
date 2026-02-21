@@ -202,6 +202,63 @@ describe('documentation plugin', () => {
         expect(createdByIdx).toBeLessThan(activeIdx);
     });
 
+    it('enum page includes declaration code block', async () => {
+        const model = await loadSchema(`
+            /// User roles in the system.
+            enum Role {
+                ADMIN
+                MEMBER
+            }
+            model User {
+                id   String @id @default(cuid())
+                role Role
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const enumDoc = fs.readFileSync(path.join(tmpDir, 'enums', 'Role.md'), 'utf-8');
+        expect(enumDoc).toContain('## Declaration');
+        expect(enumDoc).toContain('```prisma');
+        expect(enumDoc).toContain('enum Role {');
+        expect(enumDoc).toContain('ADMIN');
+    });
+
+    it('type page includes declaration code block', async () => {
+        const model = await loadSchema(`
+            /// Shared timestamp fields.
+            type Timestamps {
+                createdAt DateTime @default(now())
+                updatedAt DateTime @updatedAt
+            }
+            model User {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const typeDoc = fs.readFileSync(path.join(tmpDir, 'types', 'Timestamps.md'), 'utf-8');
+        expect(typeDoc).toContain('## Declaration');
+        expect(typeDoc).toContain('```prisma');
+        expect(typeDoc).toContain('type Timestamps {');
+        expect(typeDoc).toContain('createdAt DateTime');
+    });
+
     it('model page shows Mixins section linking to type pages', async () => {
         const model = await loadSchema(`
             type Timestamps {
@@ -290,6 +347,31 @@ describe('documentation plugin', () => {
         expect(userDoc).toContain('# User');
         expect(userDoc).toContain('Represents a registered user.');
         expect(userDoc).toContain('Has many posts.');
+    });
+
+    it('model page includes declaration code block', async () => {
+        const model = await loadSchema(`
+            /// A registered user.
+            model User {
+                id    String @id @default(cuid())
+                email String
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('## Declaration');
+        expect(userDoc).toContain('```prisma');
+        expect(userDoc).toContain('model User {');
+        expect(userDoc).toContain('id    String @id @default(cuid())');
     });
 
     it('fields default to declaration order', async () => {
