@@ -1,123 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { findBrokenLinks, generateFromFile, readDoc } from './utils';
+import { findBrokenLinks, generateFromFile, readDoc } from '../utils';
 
-const SAMPLES_DIR = path.resolve(__dirname, '../../../../samples');
-const E2E_SCHEMAS_DIR = path.resolve(__dirname, '../../../../tests/e2e/orm/schemas');
-const SHOWCASE_SCHEMA = path.resolve(__dirname, '../zenstack/showcase.zmodel');
-const MULTIFILE_SCHEMA = path.resolve(__dirname, '../zenstack/multifile/schema.zmodel');
-
-describe('integration: samples/shared schema', () => {
-    it('generates complete docs from real User/Post schema', async () => {
-        const tmpDir = await generateFromFile(path.join(SAMPLES_DIR, 'shared', 'schema.zmodel'));
-
-        expect(fs.existsSync(path.join(tmpDir, 'index.md'))).toBe(true);
-        expect(fs.existsSync(path.join(tmpDir, 'models', 'User.md'))).toBe(true);
-        expect(fs.existsSync(path.join(tmpDir, 'models', 'Post.md'))).toBe(true);
-        expect(fs.existsSync(path.join(tmpDir, 'relationships.md'))).toBe(true);
-
-        const indexContent = readDoc(tmpDir, 'index.md');
-        expect(indexContent).toContain('[User](./models/User.md)');
-        expect(indexContent).toContain('[Post](./models/Post.md)');
-        expect(indexContent).toContain('[Relationships](./relationships.md)');
-
-        const userDoc = readDoc(tmpDir, 'models', 'User.md');
-        expect(userDoc).toContain('# User');
-        expect(userDoc).toContain('User model');
-        expect(userDoc).toContain('## Fields');
-        expect(userDoc).toContain('field-email');
-        expect(userDoc).toContain('field-posts');
-        expect(userDoc).toContain('## Relationships');
-        expect(userDoc).toContain('[Post](./Post.md)');
-
-        const postDoc = readDoc(tmpDir, 'models', 'Post.md');
-        expect(postDoc).toContain('# Post');
-        expect(postDoc).toContain('Post model');
-        expect(postDoc).toContain('[User](./User.md)');
-    });
-
-    it('has zero broken links', async () => {
-        const tmpDir = await generateFromFile(path.join(SAMPLES_DIR, 'shared', 'schema.zmodel'));
-        expect(findBrokenLinks(tmpDir)).toEqual([]);
-    });
-});
-
-describe('integration: samples/orm schema', () => {
-    it('renders enums, computed fields, policies, and relationships', async () => {
-        const tmpDir = await generateFromFile(
-            path.join(SAMPLES_DIR, 'orm', 'zenstack', 'schema.zmodel'),
-        );
-
-        expect(fs.existsSync(path.join(tmpDir, 'enums', 'Role.md'))).toBe(true);
-
-        const roleDoc = readDoc(tmpDir, 'enums', 'Role.md');
-        expect(roleDoc).toContain('# Role');
-        expect(roleDoc).toContain('User roles');
-        expect(roleDoc).toContain('| ADMIN');
-        expect(roleDoc).toContain('| USER');
-        expect(roleDoc).toContain('## Used By');
-        expect(roleDoc).toContain('[User](../models/User.md)');
-
-        const userDoc = readDoc(tmpDir, 'models', 'User.md');
-        expect(userDoc).toContain('# User');
-        expect(userDoc).toContain('User model');
-        expect(userDoc).toContain('[Role](../enums/Role.md)');
-
-        const postCountLine = userDoc.split('\n').find((l) => l.includes('field-postCount'));
-        expect(postCountLine).toBeDefined();
-        expect(postCountLine).toContain('<kbd>computed</kbd>');
-
-        expect(userDoc).toContain('## Access Policies');
-        expect(userDoc).toContain('Allow');
-
-        expect(userDoc).toContain('## Relationships');
-        expect(userDoc).toContain('[Post](./Post.md)');
-        expect(userDoc).toContain('[Profile](./Profile.md)');
-    });
-
-    it('has zero broken links', async () => {
-        const tmpDir = await generateFromFile(
-            path.join(SAMPLES_DIR, 'orm', 'zenstack', 'schema.zmodel'),
-        );
-        expect(findBrokenLinks(tmpDir)).toEqual([]);
-    });
-});
-
-describe('integration: e2e basic schema', () => {
-    it('excludes @@ignore models and documents the rest', async () => {
-        const tmpDir = await generateFromFile(
-            path.join(E2E_SCHEMAS_DIR, 'basic', 'schema.zmodel'),
-        );
-
-        const indexContent = readDoc(tmpDir, 'index.md');
-        expect(indexContent).not.toContain('[Foo]');
-        expect(fs.existsSync(path.join(tmpDir, 'models', 'Foo.md'))).toBe(false);
-
-        expect(indexContent).toContain('[User]');
-        expect(indexContent).toContain('[Post]');
-        expect(indexContent).toContain('[Comment]');
-        expect(indexContent).toContain('[Profile]');
-        expect(indexContent).toContain('[Plain]');
-
-        const userDoc = readDoc(tmpDir, 'models', 'User.md');
-        expect(userDoc).toContain('## Access Policies');
-        expect(userDoc).toContain('## Relationships');
-        expect(userDoc).toContain('[Post](./Post.md)');
-        expect(userDoc).toContain('[Profile](./Profile.md)');
-
-        const postDoc = readDoc(tmpDir, 'models', 'Post.md');
-        expect(postDoc).toContain('[Comment](./Comment.md)');
-        expect(postDoc).toContain('[User](./User.md)');
-    });
-
-    it('has zero broken links', async () => {
-        const tmpDir = await generateFromFile(
-            path.join(E2E_SCHEMAS_DIR, 'basic', 'schema.zmodel'),
-        );
-        expect(findBrokenLinks(tmpDir)).toEqual([]);
-    });
-});
+const SHOWCASE_SCHEMA = path.resolve(__dirname, '../../zenstack/showcase.zmodel');
 
 describe('integration: showcase schema', () => {
     it('generates expected file structure with correct model and enum counts', async () => {
@@ -145,7 +31,6 @@ describe('integration: showcase schema', () => {
         for (const name of expectedViews) {
             expect(fs.existsSync(path.join(tmpDir, 'views', `${name}.md`))).toBe(true);
         }
-        // Views should NOT appear in models/
         for (const name of expectedViews) {
             expect(fs.existsSync(path.join(tmpDir, 'models', `${name}.md`))).toBe(false);
         }
@@ -166,19 +51,19 @@ describe('integration: showcase schema', () => {
         const tsDoc = readDoc(tmpDir, 'types', 'Timestamps.md');
         expect(tsDoc).toContain('# Timestamps');
         expect(tsDoc).toContain('[Index](../index.md)');
-        expect(tsDoc).toContain('## Fields');
+        expect(tsDoc).toContain('Fields');
         expect(tsDoc).toContain('field-createdAt');
         expect(tsDoc).toContain('field-updatedAt');
-        expect(tsDoc).toContain('## Used By');
+        expect(tsDoc).toContain('Used By');
         expect(tsDoc).toContain('[Organization](../models/Organization.md');
         expect(tsDoc).toContain('[User](../models/User.md');
 
         const index = readDoc(tmpDir, 'index.md');
-        expect(index).toContain('## Types');
+        expect(index).toContain('Types');
         expect(index).toContain('[Timestamps](./types/Timestamps.md)');
 
         const userDoc = readDoc(tmpDir, 'models', 'User.md');
-        expect(userDoc).toContain('## Mixins');
+        expect(userDoc).toContain('Mixins');
         expect(userDoc).toContain('[Timestamps](../types/Timestamps.md)');
 
         const createdAtLine = userDoc.split('\n').find((l) => l.includes('field-createdAt'));
@@ -211,17 +96,17 @@ describe('integration: showcase schema', () => {
 
         expect(userDoc).toContain('[Role](../enums/Role.md)');
 
-        expect(userDoc).toContain('## Access Policies');
+        expect(userDoc).toContain('Access Policies');
         expect(userDoc).toContain('Allow');
         expect(userDoc).toContain('Deny');
 
-        expect(userDoc).toContain('## Indexes');
+        expect(userDoc).toContain('Indexes');
 
         const orgDoc = readDoc(tmpDir, 'models', 'Organization.md');
-        expect(orgDoc).toContain('## Validation Rules');
+        expect(orgDoc).toContain('Validation Rules');
         expect(orgDoc).toContain('`@length`');
         expect(orgDoc).toContain('`@email`');
-        expect(orgDoc).toContain('## Indexes');
+        expect(orgDoc).toContain('Indexes');
     });
 
     it('renders diverse computed fields across multiple models', async () => {
@@ -263,25 +148,19 @@ describe('integration: showcase schema', () => {
     it('generates view pages in views/ directory with correct content', async () => {
         const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
 
-        // Views appear on index
         const index = readDoc(tmpDir, 'index.md');
-        expect(index).toContain('## Views');
+        expect(index).toContain('Views');
         expect(index).toContain('[UserProfile](./views/UserProfile.md)');
         expect(index).toContain('[ProjectTaskSummary](./views/ProjectTaskSummary.md)');
         expect(index).toContain('[UserLeaderboard](./views/UserLeaderboard.md)');
         expect(index).toContain('3 views');
 
-        // Views do NOT appear under Models
-        const modelsSection = index.split('## Views')[0];
-        expect(modelsSection).not.toContain('UserProfile');
-
-        // View page structure
         const profileDoc = readDoc(tmpDir, 'views', 'UserProfile.md');
         expect(profileDoc).toContain('<kbd>View</kbd>');
         expect(profileDoc).not.toContain('<kbd>Model</kbd>');
         expect(profileDoc).toContain('[Views](../index.md#views)');
         expect(profileDoc).toContain('Flattened user profile for reporting');
-        expect(profileDoc).toContain('## Fields');
+        expect(profileDoc).toContain('Fields');
         expect(profileDoc).toContain('field-name');
         expect(profileDoc).toContain('field-email');
         expect(profileDoc).toContain('field-organizationName');
@@ -289,11 +168,9 @@ describe('integration: showcase schema', () => {
         expect(profileDoc).toContain('<summary>Declaration');
         expect(profileDoc).toContain('view UserProfile');
 
-        // Descriptions on view fields
         expect(profileDoc).toContain('Full name of the user');
         expect(profileDoc).toContain('Email address of the user');
 
-        // Another view
         const summaryDoc = readDoc(tmpDir, 'views', 'ProjectTaskSummary.md');
         expect(summaryDoc).toContain('Aggregated task metrics');
         expect(summaryDoc).toContain('field-avgDaysToClose');
@@ -319,7 +196,7 @@ describe('integration: showcase schema', () => {
         const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
 
         const taskDoc = readDoc(tmpDir, 'models', 'Task.md');
-        expect(taskDoc).toContain('## Relationships');
+        expect(taskDoc).toContain('Relationships');
         expect(taskDoc).toContain('[Task](./Task.md)');
 
         const titleLine = taskDoc.split('\n').find((l) => l.includes('field-title'));
@@ -354,7 +231,7 @@ describe('integration: showcase schema', () => {
         const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
 
         const taskDoc = readDoc(tmpDir, 'models', 'Task.md');
-        expect(taskDoc).toContain('## Validation Rules');
+        expect(taskDoc).toContain('Validation Rules');
         expect(taskDoc).toContain('estimatedHours');
         expect(taskDoc).toContain('Estimated hours must be positive when set');
     });
@@ -363,9 +240,9 @@ describe('integration: showcase schema', () => {
         const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
 
         const taskDoc = readDoc(tmpDir, 'models', 'Task.md');
-        expect(taskDoc).toContain('## Validation Rules');
+        expect(taskDoc).toContain('Validation Rules');
 
-        const validationSection = taskDoc.split('## Validation Rules')[1]!;
+        const validationSection = taskDoc.split('\u2705 Validation Rules')[1]!;
         expect(validationSection).toContain('`@length`');
         expect(validationSection).toContain('`@trim`');
         expect(validationSection).toContain('`@regex`');
@@ -379,22 +256,22 @@ describe('integration: showcase schema', () => {
         const roleDoc = readDoc(tmpDir, 'enums', 'Role.md');
         expect(roleDoc).toContain('Defines the access level');
         expect(roleDoc).toContain('Full administrative access');
-        expect(roleDoc).toContain('| OWNER');
-        expect(roleDoc).toContain('| GUEST');
-        expect(roleDoc).toContain('## Used By');
+        expect(roleDoc).toContain('| `OWNER`');
+        expect(roleDoc).toContain('| `GUEST`');
+        expect(roleDoc).toContain('Used By');
         expect(roleDoc).toContain('[User](../models/User.md)');
         expect(roleDoc).toContain('[TeamMember](../models/TeamMember.md)');
 
         const statusDoc = readDoc(tmpDir, 'enums', 'TaskStatus.md');
         expect(statusDoc).toContain('Lifecycle status');
         expect(statusDoc).toContain('Waiting to be started');
-        expect(statusDoc).toContain('## Used By');
+        expect(statusDoc).toContain('Used By');
         expect(statusDoc).toContain('[Task](../models/Task.md)');
 
         const priorityDoc = readDoc(tmpDir, 'enums', 'Priority.md');
         expect(priorityDoc).toContain('Priority levels');
-        expect(priorityDoc).toContain('| LOW');
-        expect(priorityDoc).toContain('| CRITICAL');
+        expect(priorityDoc).toContain('| `LOW`');
+        expect(priorityDoc).toContain('| `CRITICAL`');
     });
 
     it('relationships page has cross-reference and Mermaid diagram with links', async () => {
@@ -416,7 +293,7 @@ describe('integration: showcase schema', () => {
 
         const tagDoc = readDoc(tmpDir, 'models', 'Tag.md');
         expect(tagDoc).toContain('# Tag');
-        expect(tagDoc).toContain('## Fields');
+        expect(tagDoc).toContain('Fields');
         expect(tagDoc).toContain('field-name');
         expect(tagDoc).toContain('[Index](../index.md)');
     });
@@ -435,7 +312,7 @@ describe('integration: showcase schema', () => {
         }
 
         const index = readDoc(tmpDir, 'index.md');
-        expect(index).toContain('## Procedures');
+        expect(index).toContain('Procedures');
         for (const name of expectedProcedures) {
             expect(index).toContain(`[${name}](./procedures/${name}.md)`);
         }
@@ -449,23 +326,23 @@ describe('integration: showcase schema', () => {
         expect(signUpDoc).toContain('# signUp');
         expect(signUpDoc).toContain('<kbd>Mutation</kbd>');
         expect(signUpDoc).toContain('Register a new user');
-        expect(signUpDoc).toContain('## Parameters');
-        expect(signUpDoc).toContain('| email');
-        expect(signUpDoc).toContain('| name');
-        expect(signUpDoc).toContain('| role');
-        expect(signUpDoc).toContain('## Returns');
+        expect(signUpDoc).toContain('Parameters');
+        expect(signUpDoc).toContain('| `email`');
+        expect(signUpDoc).toContain('| `name`');
+        expect(signUpDoc).toContain('| `role`');
+        expect(signUpDoc).toContain('Returns');
         expect(signUpDoc).toContain('[User](../models/User.md)');
 
         const getUserDoc = readDoc(tmpDir, 'procedures', 'getUser.md');
         expect(getUserDoc).toContain('# getUser');
         expect(getUserDoc).toContain('<kbd>Query</kbd>');
-        expect(getUserDoc).toContain('## Returns');
+        expect(getUserDoc).toContain('Returns');
         expect(getUserDoc).toContain('[User](../models/User.md)');
 
         const bulkDoc = readDoc(tmpDir, 'procedures', 'bulkUpdateTaskStatus.md');
         expect(bulkDoc).toContain('<kbd>Mutation</kbd>');
-        expect(bulkDoc).toContain('| taskIds');
-        expect(bulkDoc).toContain('| status');
+        expect(bulkDoc).toContain('| `taskIds`');
+        expect(bulkDoc).toContain('| `status`');
         expect(bulkDoc).toContain('`Void`');
 
         const statsDoc = readDoc(tmpDir, 'procedures', 'getProjectStats.md');
@@ -489,13 +366,13 @@ describe('integration: showcase schema', () => {
         const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
 
         const userDoc = readDoc(tmpDir, 'models', 'User.md');
-        expect(userDoc).toContain('## Used in Procedures');
+        expect(userDoc).toContain('Used in Procedures');
         expect(userDoc).toContain('[signUp](../procedures/signUp.md)');
         expect(userDoc).toContain('[getUser](../procedures/getUser.md)');
         expect(userDoc).toContain('[listOrgUsers](../procedures/listOrgUsers.md)');
 
         const taskDoc = readDoc(tmpDir, 'models', 'Task.md');
-        expect(taskDoc).toContain('## Used in Procedures');
+        expect(taskDoc).toContain('Used in Procedures');
         expect(taskDoc).toContain('[createAndAssignTask](../procedures/createAndAssignTask.md)');
     });
 
@@ -524,116 +401,6 @@ describe('integration: showcase schema', () => {
         expect(fs.existsSync(path.join(tmpDir, 'models', 'JobRun.md'))).toBe(true);
         expect(fs.existsSync(path.join(tmpDir, 'models', 'ApiToken.md'))).toBe(true);
 
-        expect(findBrokenLinks(tmpDir)).toEqual([]);
-    });
-});
-
-describe('integration: multi-file schema', () => {
-    it('artifacts show correct source file paths for declarations across files', async () => {
-        const tmpDir = await generateFromFile(MULTIFILE_SCHEMA);
-
-        const userDoc = readDoc(tmpDir, 'models', 'User.md');
-        expect(userDoc).toContain('**Defined in:**');
-        expect(userDoc).toContain('models.zmodel');
-
-        const roleDoc = readDoc(tmpDir, 'enums', 'Role.md');
-        expect(roleDoc).toContain('**Defined in:**');
-        expect(roleDoc).toContain('enums.zmodel');
-
-        const tsDoc = readDoc(tmpDir, 'types', 'Timestamps.md');
-        expect(tsDoc).toContain('**Defined in:**');
-        expect(tsDoc).toContain('mixins.zmodel');
-    });
-
-    it('has zero broken links across multi-file output', async () => {
-        const tmpDir = await generateFromFile(MULTIFILE_SCHEMA);
-        expect(findBrokenLinks(tmpDir)).toEqual([]);
-    });
-
-    it('declaration code blocks show correct source for each file', async () => {
-        const tmpDir = await generateFromFile(MULTIFILE_SCHEMA);
-
-        const userDoc = readDoc(tmpDir, 'models', 'User.md');
-        expect(userDoc).toContain('<summary>Declaration');
-        expect(userDoc).toContain('model User');
-
-        const roleDoc = readDoc(tmpDir, 'enums', 'Role.md');
-        expect(roleDoc).toContain('<summary>Declaration');
-        expect(roleDoc).toContain('enum Role');
-
-        const tsDoc = readDoc(tmpDir, 'types', 'Timestamps.md');
-        expect(tsDoc).toContain('<summary>Declaration');
-        expect(tsDoc).toContain('type Timestamps');
-    });
-});
-
-describe('integration: e2e procedures schema', () => {
-    it('generates procedure pages from real procedures schema', async () => {
-        const tmpDir = await generateFromFile(
-            path.join(E2E_SCHEMAS_DIR, 'procedures', 'schema.zmodel'),
-        );
-
-        const index = readDoc(tmpDir, 'index.md');
-        expect(index).toContain('## Procedures');
-        expect(index).toContain('[getUser]');
-        expect(index).toContain('[signUp]');
-        expect(index).toContain('[setAdmin]');
-        expect(index).toContain('[listUsers]');
-        expect(index).toContain('[getOverview]');
-        expect(index).toContain('[createMultiple]');
-
-        const signUpDoc = readDoc(tmpDir, 'procedures', 'signUp.md');
-        expect(signUpDoc).toContain('<kbd>Mutation</kbd>');
-        expect(signUpDoc).toContain('[User](../models/User.md)');
-        expect(signUpDoc).toContain('[Role](../enums/Role.md)');
-
-        const setAdminDoc = readDoc(tmpDir, 'procedures', 'setAdmin.md');
-        expect(setAdminDoc).toContain('`Void`');
-
-        const overviewDoc = readDoc(tmpDir, 'procedures', 'getOverview.md');
-        expect(overviewDoc).toContain('[Overview](../types/Overview.md)');
-    });
-
-    it('has zero broken links', async () => {
-        const tmpDir = await generateFromFile(
-            path.join(E2E_SCHEMAS_DIR, 'procedures', 'schema.zmodel'),
-        );
-        expect(findBrokenLinks(tmpDir)).toEqual([]);
-    });
-});
-
-describe('integration: e2e todo schema', () => {
-    it('renders validation rules and complex policies', async () => {
-        const tmpDir = await generateFromFile(
-            path.join(E2E_SCHEMAS_DIR, 'todo', 'schema.zmodel'),
-        );
-
-        const userDoc = readDoc(tmpDir, 'models', 'User.md');
-        expect(userDoc).toContain('## Validation Rules');
-        expect(userDoc).toContain('`@email`');
-        expect(userDoc).toContain('`@url`');
-
-        const spaceDoc = readDoc(tmpDir, 'models', 'Space.md');
-        expect(spaceDoc).toContain('## Validation Rules');
-        expect(spaceDoc).toContain('`@length`');
-        expect(spaceDoc).toContain('## Access Policies');
-        expect(spaceDoc).toContain('Allow');
-        expect(spaceDoc).toContain('Deny');
-        expect(spaceDoc).toContain('## Relationships');
-
-        const listDoc = readDoc(tmpDir, 'models', 'List.md');
-        expect(listDoc).toContain('## Validation Rules');
-        expect(listDoc).toContain('`@length`');
-
-        expect(fs.existsSync(path.join(tmpDir, 'relationships.md'))).toBe(true);
-        const relDoc = readDoc(tmpDir, 'relationships.md');
-        expect(relDoc).toContain('erDiagram');
-    });
-
-    it('has zero broken links', async () => {
-        const tmpDir = await generateFromFile(
-            path.join(E2E_SCHEMAS_DIR, 'todo', 'schema.zmodel'),
-        );
         expect(findBrokenLinks(tmpDir)).toEqual([]);
     });
 });

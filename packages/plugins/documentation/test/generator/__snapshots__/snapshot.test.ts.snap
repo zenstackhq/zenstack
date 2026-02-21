@@ -1,0 +1,344 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`documentation plugin: snapshot > snapshot: full representative schema output > enums/Role.md 1`] = `
+"> [!CAUTION]
+> This documentation was auto-generated. Do not edit directly.
+> **Source:** \`schema.zmodel\` · **Generated:** <REDACTED>
+
+[Index](../index.md) / [Enums](../index.md#enums) / \`Role\`
+
+# Role <kbd>Enum</kbd>
+
+> User roles in the system.
+
+**Defined in:** \`../../../../../tmp/<REDACTED>.zmodel\`
+
+<details>
+<summary>Declaration · <code>../../../../../tmp/<REDACTED>.zmodel</code></summary>
+
+\`\`\`prisma
+/// User roles in the system.
+            enum Role {
+                /// Administrator with full access
+                ADMIN
+                /// Standard user
+                USER
+            }
+\`\`\`
+
+</details>
+
+<a id="values"></a>
+
+## 📋 Values
+
+| Value | Description |
+| --- | --- |
+| \`ADMIN\` | Administrator with full access |
+| \`USER\` | Standard user |
+
+<a id="used-by"></a>
+
+## 🔗 Used By
+
+- [User](../models/User.md) — [\`role\`](../models/User.md#field-role)
+
+\`\`\`mermaid
+classDiagram
+    class Role {
+        <<enumeration>>
+        ADMIN
+        USER
+    }
+    User --> Role : role
+\`\`\`
+
+---
+
+<a id="references"></a>
+
+## 📚 References
+
+- [ZModel enums — ZenStack documentation](https://zenstack.dev/docs/reference/zmodel/enum)
+"
+`;
+
+exports[`documentation plugin: snapshot > snapshot: full representative schema output > index.md 1`] = `
+"> [!CAUTION]
+> This documentation was auto-generated. Do not edit directly.
+> **Source:** \`schema.zmodel\` · **Generated:** <REDACTED>
+
+# Schema Documentation
+
+This documentation describes a [ZModel](https://zenstack.dev/docs/reference/zmodel/overview) schema — the data modeling language used by [ZenStack](https://zenstack.dev/).
+
+> 2 models · 1 enum
+
+[Models](#models) · [Enums](#enums) · [Relationships](./relationships.md)
+
+<a id="models"></a>
+
+## 🗃️ Models
+
+- [Post](./models/Post.md) — A blog post.
+- [User](./models/User.md) — Represents a registered user.
+
+<a id="enums"></a>
+
+## 📋 Enums
+
+- [Role](./enums/Role.md) — User roles in the system.
+
+<a id="see-also"></a>
+
+## 📎 See Also
+
+- [Relationships](./relationships.md)
+
+---
+
+<details>
+<summary>Generation Stats</summary>
+
+| Metric | Value |
+| --- | --- |
+| **Files** | 5 |
+| **Duration** | <REDACTED> ms |
+| **Source** | \`schema.zmodel\` |
+| **Generated** | <REDACTED> |
+
+</details>
+"
+`;
+
+exports[`documentation plugin: snapshot > snapshot: full representative schema output > models/Post.md 1`] = `
+"> [!CAUTION]
+> This documentation was auto-generated. Do not edit directly.
+> **Source:** \`schema.zmodel\` · **Generated:** <REDACTED>
+
+[Index](../index.md) / [Models](../index.md#models) / \`Post\`
+
+# Post <kbd>Model</kbd>
+
+> A blog post.
+
+**Category:** Content · **Defined in:** \`../../../../../tmp/<REDACTED>.zmodel\`
+
+<details>
+<summary>Declaration · <code>../../../../../tmp/<REDACTED>.zmodel</code></summary>
+
+\`\`\`prisma
+/// A blog post.
+            model Post {
+                id       String @id @default(cuid())
+                /// The post title.
+                title    String
+                content  String?
+                author   User   @relation(fields: [authorId], references: [id])
+                authorId String
+
+                @@meta('doc:category', 'Content')
+            }
+\`\`\`
+
+</details>
+
+<a id="entity-diagram"></a>
+
+## 📊 Entity Diagram
+
+\`\`\`mermaid
+erDiagram
+    Post {
+        String id PK
+        String title
+        String content
+        String authorId FK
+    }
+\`\`\`
+
+[Fields](#fields) · [Relationships](#relationships)
+
+<a id="fields"></a>
+
+## 📋 Fields
+
+| Field | Type | Required | Default | Attributes | Source | Description |
+| --- | --- | --- | --- | --- | --- | --- |
+| <a id="field-id"></a>\`id\` | \`String\` | Yes | \`cuid()\` | \`@id\` | — | — |
+| <a id="field-title"></a>\`title\` | \`String\` | Yes | — | — | — | The post title. |
+| <a id="field-content"></a>\`content\` | \`String?\` | No | — | — | — | — |
+| <a id="field-author"></a>\`author\` | [User](./User.md) | Yes | — | \`@relation(fields: [authorId], references: [id])\` | — | — |
+| <a id="field-authorId"></a>\`authorId\` | \`String\` | Yes | — | — | — | — |
+
+<a id="relationships"></a>
+
+## 🔗 Relationships
+
+| Field | Related Model | Type |
+| --- | --- | --- |
+| \`author\` | [User](./User.md) | Many→One |
+
+\`\`\`mermaid
+erDiagram
+    Post }o--|| User : "author"
+\`\`\`
+
+---
+
+<a id="references"></a>
+
+## 📚 References
+
+- [ZModel models — ZenStack documentation](https://zenstack.dev/docs/reference/zmodel/data-model)
+
+---
+
+Next: [User](./User.md)
+"
+`;
+
+exports[`documentation plugin: snapshot > snapshot: full representative schema output > models/User.md 1`] = `
+"> [!CAUTION]
+> This documentation was auto-generated. Do not edit directly.
+> **Source:** \`schema.zmodel\` · **Generated:** <REDACTED>
+
+[Index](../index.md) / [Models](../index.md#models) / \`User\`
+
+# User <kbd>Model</kbd>
+
+> Represents a registered user.
+
+**Category:** Identity · **Since:** 1.0 · **Defined in:** \`../../../../../tmp/<REDACTED>.zmodel\`
+
+<details>
+<summary>Declaration · <code>../../../../../tmp/<REDACTED>.zmodel</code></summary>
+
+\`\`\`prisma
+/// Represents a registered user.
+            model User {
+                id    String @id @default(cuid())
+                /// User's email address.
+                email String @unique @email
+                /// Display name shown in the UI.
+                name  String
+                role  Role
+                posts Post[]
+
+                @@allow('read', true)
+                @@deny('delete', true)
+                @@index([email])
+                @@meta('doc:category', 'Identity')
+                @@meta('doc:since', '1.0')
+            }
+\`\`\`
+
+</details>
+
+<a id="entity-diagram"></a>
+
+## 📊 Entity Diagram
+
+\`\`\`mermaid
+erDiagram
+    User {
+        String id PK
+        String email UK
+        String name
+        Role role
+    }
+\`\`\`
+
+[Fields](#fields) · [Relationships](#relationships) · [Access Policies](#access-policies) · [Indexes](#indexes) · [Validation Rules](#validation-rules)
+
+<a id="fields"></a>
+
+## 📋 Fields
+
+| Field | Type | Required | Default | Attributes | Source | Description |
+| --- | --- | --- | --- | --- | --- | --- |
+| <a id="field-id"></a>\`id\` | \`String\` | Yes | \`cuid()\` | \`@id\` | — | — |
+| <a id="field-email"></a>\`email\` | \`String\` | Yes | — | \`@unique\`, \`@email\` | — | User's email address. |
+| <a id="field-name"></a>\`name\` | \`String\` | Yes | — | — | — | Display name shown in the UI. |
+| <a id="field-role"></a>\`role\` | [Role](../enums/Role.md) | Yes | — | — | — | — |
+| <a id="field-posts"></a>\`posts\` | [Post](./Post.md)[] | No | — | — | — | — |
+
+<a id="relationships"></a>
+
+## 🔗 Relationships
+
+| Field | Related Model | Type |
+| --- | --- | --- |
+| \`posts\` | [Post](./Post.md) | One→Many |
+
+\`\`\`mermaid
+erDiagram
+    User ||--o{ Post : "posts"
+\`\`\`
+
+<a id="access-policies"></a>
+
+## 🔐 Access Policies
+
+> [!IMPORTANT]
+> Operations are **denied by default**. \`@@allow\` rules grant access; \`@@deny\` rules override any allow.
+
+| Operation | Rule | Effect |
+| --- | --- | --- |
+| read | \`true\` | Allow |
+| delete | \`true\` | Deny |
+
+<a id="indexes"></a>
+
+## 📇 Indexes
+
+| Fields | Type |
+| --- | --- |
+| \`[email]\` | Index |
+
+<a id="validation-rules"></a>
+
+## ✅ Validation Rules
+
+| Field | Rule |
+| --- | --- |
+| \`email\` | \`@email\` |
+
+---
+
+<a id="references"></a>
+
+## 📚 References
+
+- [ZModel models — ZenStack documentation](https://zenstack.dev/docs/reference/zmodel/data-model)
+
+---
+
+Previous: [Post](./Post.md)
+"
+`;
+
+exports[`documentation plugin: snapshot > snapshot: full representative schema output > relationships.md 1`] = `
+"> [!CAUTION]
+> This documentation was auto-generated. Do not edit directly.
+> **Source:** \`schema.zmodel\` · **Generated:** <REDACTED>
+
+[Index](./index.md) / Relationships
+
+# Relationships
+
+## Cross-Reference
+
+| Model | Field | Related Model | Type |
+| --- | --- | --- | --- |
+| [User](./models/User.md) | posts | [Post](./models/Post.md) | One→Many |
+| [Post](./models/Post.md) | author | [User](./models/User.md) | Many→One |
+
+## Entity Relationship Diagram
+
+\`\`\`mermaid
+erDiagram
+    User ||--o{ Post : "posts"
+\`\`\`
+"
+`;
