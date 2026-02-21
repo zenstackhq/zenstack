@@ -62,6 +62,19 @@ export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], option
             lines.push(`- [${name}](../models/${name}.md)`);
         }
         lines.push('');
+
+        lines.push('```mermaid');
+        lines.push('classDiagram');
+        lines.push(`    class ${typeDef.name} {`);
+        lines.push(`        <<mixin>>`);
+        for (const field of typeDef.fields) {
+            lines.push(`        ${field.type.type ?? 'Unknown'} ${field.name}`);
+        }
+        lines.push('    }');
+        for (const name of usedBy) {
+            lines.push(`    ${name} ..|> ${typeDef.name} : uses`);
+        }
+        lines.push('```', '');
     }
 
     const cstText = typeDef.$cstNode?.text;

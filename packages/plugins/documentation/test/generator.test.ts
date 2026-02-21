@@ -327,6 +327,66 @@ describe('documentation plugin', () => {
         expect(typeDoc).not.toContain('[Tag]');
     });
 
+    it('type page includes class diagram showing mixin usage', async () => {
+        const model = await loadSchema(`
+            type Timestamps {
+                createdAt DateTime @default(now())
+                updatedAt DateTime @updatedAt
+            }
+            model User with Timestamps {
+                id String @id @default(cuid())
+            }
+            model Post with Timestamps {
+                id String @id @default(cuid())
+            }
+            model Tag {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const typeDoc = fs.readFileSync(path.join(tmpDir, 'types', 'Timestamps.md'), 'utf-8');
+        expect(typeDoc).toContain('```mermaid');
+        expect(typeDoc).toContain('classDiagram');
+        expect(typeDoc).toContain('Timestamps');
+        expect(typeDoc).toContain('mixin');
+        expect(typeDoc).toContain('Post');
+        expect(typeDoc).toContain('User');
+        expect(typeDoc).not.toMatch(/Tag/);
+    });
+
+    it('type page omits class diagram when no models use it', async () => {
+        const model = await loadSchema(`
+            type Metadata {
+                version Int @default(1)
+            }
+            model User {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const typeDoc = fs.readFileSync(path.join(tmpDir, 'types', 'Metadata.md'), 'utf-8');
+        expect(typeDoc).not.toContain('```mermaid');
+        expect(typeDoc).not.toContain('classDiagram');
+    });
+
     it('type page fields default to declaration order', async () => {
         const model = await loadSchema(`
             type Metadata {
