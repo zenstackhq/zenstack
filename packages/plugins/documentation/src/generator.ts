@@ -9,6 +9,7 @@ import { renderModelPage } from './renderers/model-page';
 import { renderRelationshipsPage } from './renderers/relationships-page';
 import { renderProcedurePage } from './renderers/procedure-page';
 import { renderTypePage } from './renderers/type-page';
+import { renderViewPage } from './renderers/view-page';
 import { buildNavList } from './renderers/common';
 
 function resolveOutputDir(context: CliGeneratorContext): string {
@@ -74,7 +75,7 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
         for (const view of views) {
             fs.writeFileSync(
                 path.join(viewsDir, `${view.name}.md`),
-                renderModelPage(view, options, procedures, viewNav.get(view.name)),
+                renderViewPage(view, options, viewNav.get(view.name)),
             );
         }
     }

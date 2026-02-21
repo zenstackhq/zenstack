@@ -7,7 +7,7 @@ export function generatedHeader(): string[] {
 }
 
 export function breadcrumbs(
-    entityType: 'Models' | 'Enums' | 'Types' | 'Procedures',
+    entityType: 'Models' | 'Views' | 'Enums' | 'Types' | 'Procedures',
     entityName: string,
     prefix: string,
 ): string {

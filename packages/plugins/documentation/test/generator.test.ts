@@ -226,6 +226,75 @@ describe('documentation plugin', () => {
         expect(fs.existsSync(path.join(tmpDir, 'views', 'ActiveUsers.md'))).toBe(true);
     });
 
+    it('view page renders with View badge, breadcrumb, and fields', async () => {
+        const model = await loadSchema(`
+            /// Flattened user info for reporting.
+            view UserInfo {
+                id    Int
+                email String
+                name  String
+            }
+            model User {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const viewDoc = fs.readFileSync(path.join(tmpDir, 'views', 'UserInfo.md'), 'utf-8');
+
+        // View badge, not Model
+        expect(viewDoc).toContain('<kbd>View</kbd>');
+        expect(viewDoc).not.toContain('<kbd>Model</kbd>');
+
+        // Proper breadcrumb with Views category
+        expect(viewDoc).toContain('[Views](../index.md#views)');
+        expect(viewDoc).not.toContain('[Models]');
+
+        // Description
+        expect(viewDoc).toContain('Flattened user info for reporting');
+
+        // Fields table
+        expect(viewDoc).toContain('## Fields');
+        expect(viewDoc).toContain('| id');
+        expect(viewDoc).toContain('| email');
+        expect(viewDoc).toContain('| name');
+        expect(viewDoc).toContain('`Int`');
+        expect(viewDoc).toContain('`String`');
+    });
+
+    it('view page includes declaration block', async () => {
+        const model = await loadSchema(`
+            view ActiveUsers {
+                id    Int
+                count Int
+            }
+            model User {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const viewDoc = fs.readFileSync(path.join(tmpDir, 'views', 'ActiveUsers.md'), 'utf-8');
+        expect(viewDoc).toContain('<summary>Declaration</summary>');
+        expect(viewDoc).toContain('view ActiveUsers');
+    });
+
     it('index page lists models alpha-sorted with links', async () => {
         const model = await loadSchema(`
             model User {
