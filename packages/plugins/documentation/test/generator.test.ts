@@ -260,4 +260,32 @@ describe('documentation plugin', () => {
         expect(fs.existsSync(path.join(tmpDir, 'models', 'Post.md'))).toBe(true);
         expect(fs.existsSync(path.join(tmpDir, 'enums', 'Role.md'))).toBe(true);
     });
+
+    it('generates access policies section from @@allow and @@deny', async () => {
+        const model = await loadSchema(`
+            model User {
+                id    String @id @default(cuid())
+                email String
+
+                @@allow('read', true)
+                @@deny('delete', true)
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('## Access Policies');
+        expect(userDoc).toContain('| read');
+        expect(userDoc).toContain('Allow');
+        expect(userDoc).toContain('| delete');
+        expect(userDoc).toContain('Deny');
+    });
 });

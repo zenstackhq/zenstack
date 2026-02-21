@@ -139,6 +139,11 @@ function renderModelPage(model: DataModel): string {
         lines.push('');
     }
 
+    const policyAttrs = model.attributes.filter((a) => {
+        const name = a.decl.ref?.name ?? '';
+        return name === '@@allow' || name === '@@deny';
+    });
+
     if (relationFields.length > 0) {
         lines.push('## Relationships', '');
         lines.push('| Field | Related Model | Type |');
@@ -157,6 +162,22 @@ function renderModelPage(model: DataModel): string {
             lines.push(
                 `| ${field.name} | [${relatedModel}](./${relatedModel}.md) | ${relType} |`,
             );
+        }
+        lines.push('');
+    }
+
+    if (policyAttrs.length > 0) {
+        lines.push('## Access Policies', '');
+        lines.push('| Operation | Rule | Effect |');
+        lines.push('| --- | --- | --- |');
+
+        for (const attr of policyAttrs) {
+            const attrName = attr.decl.ref?.name ?? '';
+            const effect = attrName === '@@allow' ? 'Allow' : 'Deny';
+            const operationArg = attr.args[0]?.$cstNode?.text ?? '';
+            const operation = operationArg.replace(/^['"]|['"]$/g, '');
+            const condition = attr.args[1]?.$cstNode?.text ?? '';
+            lines.push(`| ${operation} | \`${condition}\` | ${effect} |`);
         }
         lines.push('');
     }
