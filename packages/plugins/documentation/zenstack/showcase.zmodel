@@ -274,6 +274,42 @@ mutation procedure bulkUpdateTaskStatus(taskIds: String[], status: TaskStatus): 
 /// Archive a project and all its tasks.
 mutation procedure archiveProject(projectId: String): Project
 
+// ─── Views ──────────────────────────────────────────────
+
+/// Flattened user profile for reporting dashboards.
+/// Backed by a SQL view joining User, Organization, and TeamMember.
+view UserProfile {
+    id               Int
+    /// Full name of the user.
+    name             String
+    /// Email address of the user.
+    email            String
+    /// Name of the organization the user belongs to.
+    organizationName String
+    /// Number of teams the user is a member of.
+    teamCount        Int
+}
+
+/// Aggregated task metrics per project for analytics dashboards.
+view ProjectTaskSummary {
+    projectId      String
+    /// Name of the project.
+    projectName    String
+    totalTasks     Int
+    completedTasks Int
+    openTasks      Int
+    /// Average days to completion for finished tasks.
+    avgDaysToClose Float
+}
+
+/// Leaderboard view ranking users by completed task count.
+view UserLeaderboard {
+    userId         String
+    userName       String
+    completedTasks Int
+    rank           Int
+}
+
 // ─── Internal / Ignored Models ───────────────────────────
 
 /// Tracks background job execution. Internal only — not part of the public API.

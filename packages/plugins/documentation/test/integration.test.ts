@@ -272,6 +272,46 @@ describe('integration: showcase schema', () => {
         expect(memberCountLine).toContain('`Int` <kbd>computed</kbd>');
     });
 
+    it('generates view pages in views/ directory with correct content', async () => {
+        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+
+        // Views appear on index
+        const index = readDoc(tmpDir, 'index.md');
+        expect(index).toContain('## Views');
+        expect(index).toContain('[UserProfile](./views/UserProfile.md)');
+        expect(index).toContain('[ProjectTaskSummary](./views/ProjectTaskSummary.md)');
+        expect(index).toContain('[UserLeaderboard](./views/UserLeaderboard.md)');
+        expect(index).toContain('3 views');
+
+        // Views do NOT appear under Models
+        const modelsSection = index.split('## Views')[0];
+        expect(modelsSection).not.toContain('UserProfile');
+
+        // View page structure
+        const profileDoc = readDoc(tmpDir, 'views', 'UserProfile.md');
+        expect(profileDoc).toContain('<kbd>View</kbd>');
+        expect(profileDoc).not.toContain('<kbd>Model</kbd>');
+        expect(profileDoc).toContain('[Views](../index.md#views)');
+        expect(profileDoc).toContain('Flattened user profile for reporting');
+        expect(profileDoc).toContain('## Fields');
+        expect(profileDoc).toContain('| name');
+        expect(profileDoc).toContain('| email');
+        expect(profileDoc).toContain('| organizationName');
+        expect(profileDoc).toContain('| teamCount');
+        expect(profileDoc).toContain('<summary>Declaration</summary>');
+        expect(profileDoc).toContain('view UserProfile');
+
+        // Descriptions on view fields
+        expect(profileDoc).toContain('Full name of the user');
+        expect(profileDoc).toContain('Email address of the user');
+
+        // Another view
+        const summaryDoc = readDoc(tmpDir, 'views', 'ProjectTaskSummary.md');
+        expect(summaryDoc).toContain('Aggregated task metrics');
+        expect(summaryDoc).toContain('| avgDaysToClose');
+        expect(summaryDoc).toContain('`Float`');
+    });
+
     it('renders @@meta category, since, and deprecated annotations', async () => {
         const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
 
