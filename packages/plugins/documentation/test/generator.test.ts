@@ -1661,6 +1661,58 @@ describe('documentation plugin', () => {
         expect(procDoc).not.toContain('## Parameters');
     });
 
+    it('procedure page includes flowchart showing data flow', async () => {
+        const model = await loadSchema(`
+            enum Role { ADMIN USER }
+            model User {
+                id String @id @default(cuid())
+            }
+            mutation procedure signUp(email: String, name: String, role: Role?): User
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const procDoc = fs.readFileSync(path.join(tmpDir, 'procedures', 'signUp.md'), 'utf-8');
+        expect(procDoc).toContain('```mermaid');
+        expect(procDoc).toContain('flowchart LR');
+        expect(procDoc).toContain('email');
+        expect(procDoc).toContain('name');
+        expect(procDoc).toContain('role');
+        expect(procDoc).toContain('signUp');
+        expect(procDoc).toContain('User');
+    });
+
+    it('procedure flowchart works with no params and Void return', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+            mutation procedure clearCache(): Void
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const procDoc = fs.readFileSync(path.join(tmpDir, 'procedures', 'clearCache.md'), 'utf-8');
+        expect(procDoc).toContain('```mermaid');
+        expect(procDoc).toContain('flowchart LR');
+        expect(procDoc).toContain('clearCache');
+        expect(procDoc).toContain('Void');
+    });
+
     it('procedure return type links to model page', async () => {
         const model = await loadSchema(`
             model User {

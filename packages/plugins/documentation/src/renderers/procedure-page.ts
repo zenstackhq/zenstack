@@ -84,6 +84,24 @@ export function renderProcedurePage(proc: Procedure, options: RenderOptions): st
     lines.push('## Returns', '');
     lines.push(formatParamType(proc.returnType, true), '');
 
+    lines.push('```mermaid');
+    lines.push('flowchart LR');
+    const procNodeId = `proc["${proc.name}"]`;
+    if (proc.params.length > 0) {
+        for (const param of proc.params) {
+            const typeName = param.type.reference?.ref?.name ?? param.type.type ?? 'Unknown';
+            const suffix = param.optional ? '?' : '';
+            const arrayMark = param.type.array ? '[]' : '';
+            lines.push(`    ${param.name}["${param.name}: ${typeName}${arrayMark}${suffix}"] --> ${procNodeId}`);
+        }
+    } else {
+        lines.push(`    input((" ")) --> ${procNodeId}`);
+    }
+    const retTypeName = proc.returnType.reference?.ref?.name ?? proc.returnType.type ?? 'Unknown';
+    const retArray = proc.returnType.array ? '[]' : '';
+    lines.push(`    ${procNodeId} --> ret["${retTypeName}${retArray}"]`);
+    lines.push('```', '');
+
     const cstText = proc.$cstNode?.text;
     if (cstText) {
         lines.push('<details>');
