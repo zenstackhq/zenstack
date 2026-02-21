@@ -6,6 +6,7 @@ import {
     type DataModel,
     type Enum,
 } from '@zenstackhq/language/ast';
+import { getAllFields } from '@zenstackhq/language/utils';
 import type { CliGeneratorContext, CliPlugin } from '@zenstackhq/sdk';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -119,9 +120,10 @@ function renderModelPage(model: DataModel): string {
         lines.push('');
     }
 
-    const sortedFields = [...model.fields].sort((a, b) => a.name.localeCompare(b.name));
+    const allFields = getAllFields(model);
+    const sortedFields = [...allFields].sort((a, b) => a.name.localeCompare(b.name));
 
-    const relationFields = model.fields
+    const relationFields = allFields
         .filter((f) => f.type.reference?.ref && isDataModel(f.type.reference.ref))
         .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -133,8 +135,15 @@ function renderModelPage(model: DataModel): string {
         for (const field of sortedFields) {
             const fieldDescription = stripCommentPrefix(field.comments);
             const isComputed = field.attributes.some((a) => getAttrName(a) === '@computed');
+            const inheritedFrom =
+                isDataModel(field.$container) && field.$container !== model
+                    ? field.$container.name
+                    : undefined;
             const descParts: string[] = [];
             if (isComputed) descParts.push('**Computed**');
+            if (inheritedFrom) {
+                descParts.push(`*Inherited from [${inheritedFrom}](./${inheritedFrom}.md)*`);
+            }
             if (fieldDescription) descParts.push(fieldDescription);
             lines.push(
                 `| ${field.name} | ${getFieldTypeName(field)} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${descParts.join(' ')} |`,

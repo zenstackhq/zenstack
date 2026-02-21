@@ -366,4 +366,32 @@ describe('documentation plugin', () => {
         expect(fullNameLine).toBeDefined();
         expect(fullNameLine).toContain('Computed');
     });
+
+    it('annotates inherited fields with source model', async () => {
+        const model = await loadSchema(`
+            model BaseModel {
+                id   String @id @default(cuid())
+                type String
+                @@delegate(type)
+            }
+            model User extends BaseModel {
+                email String
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        const idLine = userDoc.split('\n').find((l) => l.includes('| id'));
+        expect(idLine).toBeDefined();
+        expect(idLine).toContain('Inherited from');
+        expect(idLine).toContain('BaseModel');
+    });
 });
