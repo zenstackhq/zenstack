@@ -19,3 +19,13 @@ export interface Relationship {
     to: string;
     type: string;
 }
+
+export interface NavLink {
+    name: string;
+    path: string;
+}
+
+export interface Navigation {
+    prev?: NavLink;
+    next?: NavLink;
+}

@@ -9,6 +9,7 @@ import { renderModelPage } from './renderers/model-page';
 import { renderRelationshipsPage } from './renderers/relationships-page';
 import { renderProcedurePage } from './renderers/procedure-page';
 import { renderTypePage } from './renderers/type-page';
+import { buildNavList } from './renderers/common';
 
 function resolveOutputDir(context: CliGeneratorContext): string {
     const output = context.pluginOptions['output'];
@@ -44,6 +45,8 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
 
     if (models.length > 0) {
         fs.mkdirSync(modelsDir, { recursive: true });
+        const sortedModelNames = [...models].sort((a, b) => a.name.localeCompare(b.name)).map((m) => m.name);
+        const modelNav = buildNavList(sortedModelNames, './');
         for (const model of models) {
             let modelDir = modelsDir;
             if (groupBy === 'category') {
@@ -55,7 +58,7 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
             }
             fs.writeFileSync(
                 path.join(modelDir, `${model.name}.md`),
-                renderModelPage(model, options, procedures),
+                renderModelPage(model, options, procedures, modelNav.get(model.name)),
             );
         }
     }
@@ -71,10 +74,12 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
     const typeDefs = context.model.declarations.filter(isTypeDef);
     if (typeDefs.length > 0) {
         fs.mkdirSync(typesDir, { recursive: true });
+        const sortedTypeNames = [...typeDefs].sort((a, b) => a.name.localeCompare(b.name)).map((t) => t.name);
+        const typeNav = buildNavList(sortedTypeNames, './');
         for (const typeDef of typeDefs) {
             fs.writeFileSync(
                 path.join(typesDir, `${typeDef.name}.md`),
-                renderTypePage(typeDef, models, options),
+                renderTypePage(typeDef, models, options, typeNav.get(typeDef.name)),
             );
         }
     }
@@ -83,10 +88,12 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
     const enums = context.model.declarations.filter(isEnum);
     if (enums.length > 0) {
         fs.mkdirSync(enumsDir, { recursive: true });
+        const sortedEnumNames = [...enums].sort((a, b) => a.name.localeCompare(b.name)).map((e) => e.name);
+        const enumNav = buildNavList(sortedEnumNames, './');
         for (const enumDecl of enums) {
             fs.writeFileSync(
                 path.join(enumsDir, `${enumDecl.name}.md`),
-                renderEnumPage(enumDecl, models, options),
+                renderEnumPage(enumDecl, models, options, enumNav.get(enumDecl.name)),
             );
         }
     }
@@ -94,10 +101,12 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
     const proceduresDir = path.join(outputDir, 'procedures');
     if (procedures.length > 0) {
         fs.mkdirSync(proceduresDir, { recursive: true });
+        const sortedProcNames = [...procedures].sort((a, b) => a.name.localeCompare(b.name)).map((p) => p.name);
+        const procNav = buildNavList(sortedProcNames, './');
         for (const proc of procedures) {
             fs.writeFileSync(
                 path.join(proceduresDir, `${proc.name}.md`),
-                renderProcedurePage(proc, options),
+                renderProcedurePage(proc, options, procNav.get(proc.name)),
             );
         }
     }

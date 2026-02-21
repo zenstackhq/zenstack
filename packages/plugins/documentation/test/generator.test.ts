@@ -2055,6 +2055,68 @@ describe('documentation plugin', () => {
         expect(indexContent).toContain('[User](./models/User.md)');
     });
 
+    it('model pages include prev/next navigation footer', async () => {
+        const model = await loadSchema(`
+            model Activity {
+                id String @id @default(cuid())
+            }
+            model Post {
+                id String @id @default(cuid())
+            }
+            model User {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const activityDoc = fs.readFileSync(path.join(tmpDir, 'models', 'Activity.md'), 'utf-8');
+        expect(activityDoc).toContain('Next: [Post](./Post.md)');
+        expect(activityDoc).not.toContain('Previous:');
+
+        const postDoc = fs.readFileSync(path.join(tmpDir, 'models', 'Post.md'), 'utf-8');
+        expect(postDoc).toContain('Previous: [Activity](./Activity.md)');
+        expect(postDoc).toContain('Next: [User](./User.md)');
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('Previous: [Post](./Post.md)');
+        expect(userDoc).not.toContain('Next:');
+    });
+
+    it('enum pages include prev/next navigation footer', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+            enum Alpha { A B }
+            enum Beta { X Y }
+            enum Gamma { P Q }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const alphaDoc = fs.readFileSync(path.join(tmpDir, 'enums', 'Alpha.md'), 'utf-8');
+        expect(alphaDoc).toContain('Next: [Beta](./Beta.md)');
+
+        const betaDoc = fs.readFileSync(path.join(tmpDir, 'enums', 'Beta.md'), 'utf-8');
+        expect(betaDoc).toContain('Previous: [Alpha](./Alpha.md)');
+        expect(betaDoc).toContain('Next: [Gamma](./Gamma.md)');
+    });
+
     it('snapshot: full representative schema output', async () => {
         const model = await loadSchema(`
             /// User roles in the system.

@@ -1,5 +1,6 @@
 import type { DataModel, TypeDef } from '@zenstackhq/language/ast';
-import { breadcrumbs, generatedHeader } from './common';
+import { breadcrumbs, generatedHeader, navigationFooter } from './common';
+import type { Navigation } from '../types';
 import {
     getDefaultValue,
     getFieldAttributes,
@@ -10,7 +11,7 @@ import {
 } from '../extractors';
 import type { RenderOptions } from '../types';
 
-export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], options: RenderOptions): string {
+export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], options: RenderOptions, navigation?: Navigation): string {
     const lines: string[] = [
         ...generatedHeader(),
         breadcrumbs('Types', typeDef.name, '../'),
@@ -86,6 +87,8 @@ export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], option
         lines.push('```', '');
         lines.push('</details>', '');
     }
+
+    lines.push(...navigationFooter(navigation));
 
     return lines.join('\n');
 }

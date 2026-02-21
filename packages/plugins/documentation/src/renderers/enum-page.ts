@@ -1,10 +1,10 @@
 import { isEnum, type DataModel, type Enum } from '@zenstackhq/language/ast';
-import { breadcrumbs, generatedHeader } from './common';
+import { breadcrumbs, generatedHeader, navigationFooter } from './common';
 import { getAllFields } from '@zenstackhq/language/utils';
 import { getRelativeSourcePath, stripCommentPrefix } from '../extractors';
-import type { RenderOptions } from '../types';
+import type { Navigation, RenderOptions } from '../types';
 
-export function renderEnumPage(enumDecl: Enum, allModels: DataModel[], options: RenderOptions): string {
+export function renderEnumPage(enumDecl: Enum, allModels: DataModel[], options: RenderOptions, navigation?: Navigation): string {
     const lines: string[] = [
         ...generatedHeader(),
         breadcrumbs('Enums', enumDecl.name, '../'),
@@ -97,6 +97,8 @@ export function renderEnumPage(enumDecl: Enum, allModels: DataModel[], options: 
         lines.push('```', '');
         lines.push('</details>', '');
     }
+
+    lines.push(...navigationFooter(navigation));
 
     return lines.join('\n');
 }

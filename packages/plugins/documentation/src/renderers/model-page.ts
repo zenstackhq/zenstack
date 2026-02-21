@@ -1,6 +1,7 @@
 import { isDataModel, isTypeDef, type DataModel, type Procedure } from '@zenstackhq/language/ast';
 import { getAllFields } from '@zenstackhq/language/utils';
-import { breadcrumbs, generatedHeader } from './common';
+import { breadcrumbs, generatedHeader, navigationFooter } from './common';
+import type { Navigation } from '../types';
 import {
     extractDocMeta,
     extractFieldDocExample,
@@ -23,7 +24,7 @@ function isModelReferencedByProc(proc: Procedure, modelName: string): boolean {
     return false;
 }
 
-export function renderModelPage(model: DataModel, options: RenderOptions, procedures: Procedure[] = []): string {
+export function renderModelPage(model: DataModel, options: RenderOptions, procedures: Procedure[] = [], navigation?: Navigation): string {
     const lines: string[] = [
         ...generatedHeader(),
         breadcrumbs('Models', model.name, '../'),
@@ -273,6 +274,8 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
         lines.push('```', '');
         lines.push('</details>', '');
     }
+
+    lines.push(...navigationFooter(navigation));
 
     return lines.join('\n');
 }

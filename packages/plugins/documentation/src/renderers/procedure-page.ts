@@ -1,7 +1,7 @@
 import { isDataModel, isEnum, isTypeDef, type Procedure } from '@zenstackhq/language/ast';
 import { getRelativeSourcePath } from '../extractors';
-import { breadcrumbs, generatedHeader } from './common';
-import type { RenderOptions } from '../types';
+import { breadcrumbs, generatedHeader, navigationFooter } from './common';
+import type { Navigation, RenderOptions } from '../types';
 
 function formatParamType(paramType: Procedure['returnType'], linked: boolean): string {
     let typeName: string;
@@ -46,7 +46,7 @@ function extractProcedureComments(proc: Procedure): string {
     return commentLines.join('\n').trim();
 }
 
-export function renderProcedurePage(proc: Procedure, options: RenderOptions): string {
+export function renderProcedurePage(proc: Procedure, options: RenderOptions, navigation?: Navigation): string {
     const lines: string[] = [
         ...generatedHeader(),
         breadcrumbs('Procedures', proc.name, '../'),
@@ -111,6 +111,8 @@ export function renderProcedurePage(proc: Procedure, options: RenderOptions): st
         lines.push('```', '');
         lines.push('</details>', '');
     }
+
+    lines.push(...navigationFooter(navigation));
 
     return lines.join('\n');
 }
