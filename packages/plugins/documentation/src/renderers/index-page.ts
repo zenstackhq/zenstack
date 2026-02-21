@@ -46,9 +46,16 @@ export function renderIndexPage(
     const includeInternal = pluginOptions['includeInternalModels'] === true;
     const groupBy = pluginOptions['groupBy'];
 
-    const models = astModel.declarations
+    const allDataModels = astModel.declarations
         .filter(isDataModel)
-        .filter((m) => includeInternal || !isIgnoredModel(m))
+        .filter((m) => includeInternal || !isIgnoredModel(m));
+
+    const models = allDataModels
+        .filter((m) => !m.isView)
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    const views = allDataModels
+        .filter((m) => m.isView)
         .sort((a, b) => a.name.localeCompare(b.name));
 
     const types = astModel.declarations
@@ -67,6 +74,7 @@ export function renderIndexPage(
 
     const summaryParts: string[] = [];
     if (models.length > 0) summaryParts.push(`${models.length} ${models.length === 1 ? 'model' : 'models'}`);
+    if (views.length > 0) summaryParts.push(`${views.length} ${views.length === 1 ? 'view' : 'views'}`);
     if (types.length > 0) summaryParts.push(`${types.length} ${types.length === 1 ? 'type' : 'types'}`);
     if (enums.length > 0) summaryParts.push(`${enums.length} ${enums.length === 1 ? 'enum' : 'enums'}`);
     if (procedures.length > 0) summaryParts.push(`${procedures.length} ${procedures.length === 1 ? 'procedure' : 'procedures'}`);
@@ -80,6 +88,16 @@ export function renderIndexPage(
             const desc = firstSentence(stripCommentPrefix(m.comments));
             const suffix = desc ? ` — ${desc}` : '';
             lines.push(`- [${m.name}](${getModelPath(m, groupBy)})${suffix}`);
+        }
+        lines.push('');
+    }
+
+    if (views.length > 0) {
+        lines.push('## Views', '');
+        for (const v of views) {
+            const desc = firstSentence(stripCommentPrefix(v.comments));
+            const suffix = desc ? ` — ${desc}` : '';
+            lines.push(`- [${v.name}](./views/${v.name}.md)${suffix}`);
         }
         lines.push('');
     }

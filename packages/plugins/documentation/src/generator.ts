@@ -29,9 +29,12 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
     fs.mkdirSync(outputDir, { recursive: true });
 
     const modelsDir = path.join(outputDir, 'models');
-    const models = context.model.declarations
+    const allDataModels = context.model.declarations
         .filter(isDataModel)
         .filter((m) => includeInternal || !isIgnoredModel(m));
+
+    const models = allDataModels.filter((m) => !m.isView);
+    const views = allDataModels.filter((m) => m.isView);
 
     const procedures = context.model.declarations.filter(isProcedure);
 
@@ -59,6 +62,19 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
             fs.writeFileSync(
                 path.join(modelDir, `${model.name}.md`),
                 renderModelPage(model, options, procedures, modelNav.get(model.name)),
+            );
+        }
+    }
+
+    const viewsDir = path.join(outputDir, 'views');
+    if (views.length > 0) {
+        fs.mkdirSync(viewsDir, { recursive: true });
+        const sortedViewNames = [...views].sort((a, b) => a.name.localeCompare(b.name)).map((v) => v.name);
+        const viewNav = buildNavList(sortedViewNames, './');
+        for (const view of views) {
+            fs.writeFileSync(
+                path.join(viewsDir, `${view.name}.md`),
+                renderModelPage(view, options, procedures, viewNav.get(view.name)),
             );
         }
     }

@@ -181,6 +181,51 @@ describe('documentation plugin', () => {
         expect(indexContent).toContain('1 type');
     });
 
+    it('index page lists views in a separate section from models', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+            view UserInfo {
+                id    Int
+                email String
+                name  String
+            }
+            view ActiveUsers {
+                id    Int
+                count Int
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const indexContent = fs.readFileSync(path.join(tmpDir, 'index.md'), 'utf-8');
+
+        // Views should appear under their own section
+        expect(indexContent).toContain('## Views');
+        expect(indexContent).toContain('[ActiveUsers](./views/ActiveUsers.md)');
+        expect(indexContent).toContain('[UserInfo](./views/UserInfo.md)');
+
+        // Views should NOT appear in the models section
+        const modelsSection = indexContent.split('## Views')[0];
+        expect(modelsSection).not.toContain('UserInfo');
+        expect(modelsSection).not.toContain('ActiveUsers');
+
+        // Summary should count views
+        expect(indexContent).toContain('2 views');
+
+        // View files should exist in views/ directory
+        expect(fs.existsSync(path.join(tmpDir, 'views', 'UserInfo.md'))).toBe(true);
+        expect(fs.existsSync(path.join(tmpDir, 'views', 'ActiveUsers.md'))).toBe(true);
+    });
+
     it('index page lists models alpha-sorted with links', async () => {
         const model = await loadSchema(`
             model User {
