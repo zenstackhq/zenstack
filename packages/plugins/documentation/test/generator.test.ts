@@ -79,6 +79,32 @@ describe('documentation plugin', () => {
         expect(userDoc).toContain('> [!CAUTION]');
     });
 
+    it('header includes schema file path and generation date', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: '/app/zenstack/schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const indexContent = fs.readFileSync(path.join(tmpDir, 'index.md'), 'utf-8');
+        expect(indexContent).toContain('schema.zmodel');
+        // Should contain a date-like string in the header area
+        expect(indexContent).toMatch(/Generated.*\d{4}-\d{2}-\d{2}/);
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('schema.zmodel');
+        expect(userDoc).toMatch(/Generated.*\d{4}-\d{2}-\d{2}/);
+    });
+
     it('access policy note uses GitHub Alert [!IMPORTANT] syntax', async () => {
         const model = await loadSchema(`
             model User {

@@ -3,6 +3,7 @@
 exports[`documentation plugin > snapshot: full representative schema output > enums/Role.md 1`] = `
 "> [!CAUTION]
 > This documentation was auto-generated. Do not edit directly.
+> **Source:** \`schema.zmodel\` · **Generated:** 2026-02-21
 
 [Index](../index.md) / [Enums](../index.md#enums) / Role
 
@@ -10,7 +11,7 @@ exports[`documentation plugin > snapshot: full representative schema output > en
 
 > User roles in the system.
 
-**Defined in:** \`../../../../../tmp/zenstack-schema-af4227a0-5776-4603-91c4-95722354062d.zmodel\`
+**Defined in:** \`../../../../../tmp/zenstack-schema-69e72f21-d034-4bee-8164-b26e7e9e6e07.zmodel\`
 
 ## Values
 
@@ -53,6 +54,7 @@ classDiagram
 exports[`documentation plugin > snapshot: full representative schema output > index.md 1`] = `
 "> [!CAUTION]
 > This documentation was auto-generated. Do not edit directly.
+> **Source:** \`schema.zmodel\` · **Generated:** 2026-02-21
 
 # Schema Documentation
 
@@ -76,6 +78,7 @@ exports[`documentation plugin > snapshot: full representative schema output > in
 exports[`documentation plugin > snapshot: full representative schema output > models/Post.md 1`] = `
 "> [!CAUTION]
 > This documentation was auto-generated. Do not edit directly.
+> **Source:** \`schema.zmodel\` · **Generated:** 2026-02-21
 
 [Index](../index.md) / [Models](../index.md#models) / Post
 
@@ -83,7 +86,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 > A blog post.
 
-**Category:** Content · **Defined in:** \`../../../../../tmp/zenstack-schema-af4227a0-5776-4603-91c4-95722354062d.zmodel\`
+**Category:** Content · **Defined in:** \`../../../../../tmp/zenstack-schema-69e72f21-d034-4bee-8164-b26e7e9e6e07.zmodel\`
 
 [Fields](#fields) · [Relationships](#relationships)
 
@@ -136,6 +139,7 @@ Next: [User](./User.md)
 exports[`documentation plugin > snapshot: full representative schema output > models/User.md 1`] = `
 "> [!CAUTION]
 > This documentation was auto-generated. Do not edit directly.
+> **Source:** \`schema.zmodel\` · **Generated:** 2026-02-21
 
 [Index](../index.md) / [Models](../index.md#models) / User
 
@@ -143,7 +147,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 > Represents a registered user.
 
-**Category:** Identity · **Since:** 1.0 · **Defined in:** \`../../../../../tmp/zenstack-schema-af4227a0-5776-4603-91c4-95722354062d.zmodel\`
+**Category:** Identity · **Since:** 1.0 · **Defined in:** \`../../../../../tmp/zenstack-schema-69e72f21-d034-4bee-8164-b26e7e9e6e07.zmodel\`
 
 [Fields](#fields) · [Relationships](#relationships) · [Access Policies](#access-policies) · [Indexes](#indexes) · [Validation Rules](#validation-rules)
 
@@ -223,6 +227,7 @@ Previous: [Post](./Post.md)
 exports[`documentation plugin > snapshot: full representative schema output > relationships.md 1`] = `
 "> [!CAUTION]
 > This documentation was auto-generated. Do not edit directly.
+> **Source:** \`schema.zmodel\` · **Generated:** 2026-02-21
 
 [Index](./index.md) / Relationships
 

@@ -1,7 +1,15 @@
-import type { Navigation } from '../types';
+import type { GenerationContext, Navigation } from '../types';
 
-export function generatedHeader(): string[] {
-    return ['> [!CAUTION]', '> This documentation was auto-generated. Do not edit directly.', ''];
+export function generatedHeader(ctx?: GenerationContext): string[] {
+    const lines = ['> [!CAUTION]', '> This documentation was auto-generated. Do not edit directly.'];
+    if (ctx) {
+        const parts: string[] = [];
+        if (ctx.schemaFile) parts.push(`**Source:** \`${ctx.schemaFile}\``);
+        parts.push(`**Generated:** ${ctx.generatedAt}`);
+        lines.push(`> ${parts.join(' · ')}`);
+    }
+    lines.push('');
+    return lines;
 }
 
 export function breadcrumbs(

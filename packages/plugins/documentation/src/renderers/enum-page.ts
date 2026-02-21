@@ -6,7 +6,7 @@ import type { Navigation, RenderOptions } from '../types';
 
 export function renderEnumPage(enumDecl: Enum, allModels: DataModel[], options: RenderOptions, navigation?: Navigation): string {
     const lines: string[] = [
-        ...generatedHeader(),
+        ...generatedHeader(options.genCtx),
         breadcrumbs('Enums', enumDecl.name, '../'),
         '',
         `# ${enumDecl.name} <kbd>Enum</kbd>`,

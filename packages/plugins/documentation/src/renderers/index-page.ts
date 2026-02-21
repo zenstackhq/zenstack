@@ -1,6 +1,6 @@
 import { isDataModel, isEnum, isProcedure, isTypeDef, type DataModel, type Model } from '@zenstackhq/language/ast';
 import { extractDocMeta, isIgnoredModel, stripCommentPrefix } from '../extractors';
-import type { DocMeta } from '../types';
+import type { DocMeta, GenerationContext } from '../types';
 import { generatedHeader } from './common';
 
 function extractProcedureDescription(proc: { $cstNode?: { text?: string } }): string {
@@ -47,6 +47,7 @@ export function renderIndexPage(
     astModel: Model,
     pluginOptions: Record<string, unknown>,
     hasRelationships: boolean,
+    genCtx?: GenerationContext,
 ): string {
     const title =
         typeof pluginOptions['title'] === 'string'
@@ -80,7 +81,7 @@ export function renderIndexPage(
         .filter(isProcedure)
         .sort((a, b) => a.name.localeCompare(b.name));
 
-    const lines: string[] = [...generatedHeader(), `# ${title}`, ''];
+    const lines: string[] = [...generatedHeader(genCtx), `# ${title}`, ''];
 
     const summaryParts: string[] = [];
     if (models.length > 0) summaryParts.push(`${models.length} ${models.length === 1 ? 'model' : 'models'}`);

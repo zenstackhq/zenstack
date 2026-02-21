@@ -18,7 +18,7 @@ export function renderViewPage(view: DataModel, options: RenderOptions, navigati
     const badges = isDeprecated ? ' <kbd>View</kbd> <kbd>Deprecated</kbd>' : ' <kbd>View</kbd>';
 
     const lines: string[] = [
-        ...generatedHeader(),
+        ...generatedHeader(options.genCtx),
         breadcrumbs('Views', view.name, '../'),
         '',
         `# ${nameDisplay}${badges}`,

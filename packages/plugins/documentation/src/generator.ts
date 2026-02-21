@@ -11,6 +11,7 @@ import { renderProcedurePage } from './renderers/procedure-page';
 import { renderTypePage } from './renderers/type-page';
 import { renderViewPage } from './renderers/view-page';
 import { buildNavList } from './renderers/common';
+import type { GenerationContext } from './types';
 
 function resolveOutputDir(context: CliGeneratorContext): string {
     const output = context.pluginOptions['output'];
@@ -26,6 +27,12 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
     options.schemaDir = path.dirname(path.resolve(context.schemaFile));
     const includeInternal = context.pluginOptions['includeInternalModels'] === true;
     const groupBy = context.pluginOptions['groupBy'];
+
+    const genCtx: GenerationContext = {
+        schemaFile: path.basename(context.schemaFile),
+        generatedAt: new Date().toISOString().split('T')[0]!,
+    };
+    options.genCtx = genCtx;
 
     fs.mkdirSync(outputDir, { recursive: true });
 
@@ -44,7 +51,7 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
 
     fs.writeFileSync(
         path.join(outputDir, 'index.md'),
-        renderIndexPage(context.model, context.pluginOptions, hasRelationships),
+        renderIndexPage(context.model, context.pluginOptions, hasRelationships, genCtx),
     );
 
     if (models.length > 0) {
@@ -83,7 +90,7 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
     if (hasRelationships) {
         fs.writeFileSync(
             path.join(outputDir, 'relationships.md'),
-            renderRelationshipsPage(allRelations),
+            renderRelationshipsPage(allRelations, genCtx),
         );
     }
 

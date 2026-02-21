@@ -1,9 +1,9 @@
-import type { Relationship } from '../types';
+import type { GenerationContext, Relationship } from '../types';
 import { generatedHeader } from './common';
 
-export function renderRelationshipsPage(relations: Relationship[]): string {
+export function renderRelationshipsPage(relations: Relationship[], genCtx?: GenerationContext): string {
     const lines: string[] = [
-        ...generatedHeader(),
+        ...generatedHeader(genCtx),
         '[Index](./index.md) / Relationships',
         '',
         '# Relationships',

@@ -46,7 +46,7 @@ function extractProcedureComments(proc: Procedure): string {
 
 export function renderProcedurePage(proc: Procedure, options: RenderOptions, navigation?: Navigation): string {
     const lines: string[] = [
-        ...generatedHeader(),
+        ...generatedHeader(options.genCtx),
         breadcrumbs('Procedures', proc.name, '../'),
         '',
         `# ${proc.name} <kbd>${proc.mutation ? 'Mutation' : 'Query'}</kbd>`,

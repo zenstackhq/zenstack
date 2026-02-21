@@ -11,6 +11,7 @@ export interface RenderOptions {
     includeIndexes: boolean;
     fieldOrder: 'declaration' | 'alphabetical';
     schemaDir?: string;
+    genCtx?: GenerationContext;
 }
 
 export interface Relationship {
@@ -18,6 +19,11 @@ export interface Relationship {
     field: string;
     to: string;
     type: string;
+}
+
+export interface GenerationContext {
+    schemaFile: string;
+    generatedAt: string;
 }
 
 export interface NavLink {

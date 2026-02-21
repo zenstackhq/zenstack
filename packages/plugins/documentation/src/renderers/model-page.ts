@@ -31,7 +31,7 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
     const badges = isDeprecated ? ' <kbd>Model</kbd> <kbd>Deprecated</kbd>' : ' <kbd>Model</kbd>';
 
     const lines: string[] = [
-        ...generatedHeader(),
+        ...generatedHeader(options.genCtx),
         breadcrumbs('Models', model.name, '../'),
         '',
         `# ${nameDisplay}${badges}`,

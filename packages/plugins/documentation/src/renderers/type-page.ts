@@ -13,7 +13,7 @@ import type { RenderOptions } from '../types';
 
 export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], options: RenderOptions, navigation?: Navigation): string {
     const lines: string[] = [
-        ...generatedHeader(),
+        ...generatedHeader(options.genCtx),
         breadcrumbs('Types', typeDef.name, '../'),
         '',
         `# ${typeDef.name} <kbd>Type</kbd>`,
