@@ -162,6 +162,15 @@ describe('integration: showcase schema', () => {
 
         expect(fs.existsSync(path.join(tmpDir, 'types', 'Timestamps.md'))).toBe(true);
 
+        const expectedViews = ['UserProfile', 'ProjectTaskSummary', 'UserLeaderboard'];
+        for (const name of expectedViews) {
+            expect(fs.existsSync(path.join(tmpDir, 'views', `${name}.md`))).toBe(true);
+        }
+        // Views should NOT appear in models/
+        for (const name of expectedViews) {
+            expect(fs.existsSync(path.join(tmpDir, 'models', `${name}.md`))).toBe(false);
+        }
+
         expect(fs.existsSync(path.join(tmpDir, 'models', 'JobRun.md'))).toBe(false);
         expect(fs.existsSync(path.join(tmpDir, 'models', 'ApiToken.md'))).toBe(false);
     });
