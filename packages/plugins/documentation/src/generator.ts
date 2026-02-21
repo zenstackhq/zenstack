@@ -20,6 +20,7 @@ function resolveOutputDir(context: CliGeneratorContext): string {
 export async function generate(context: CliGeneratorContext): Promise<void> {
     const outputDir = resolveOutputDir(context);
     const options = resolveRenderOptions(context.pluginOptions);
+    options.schemaDir = path.dirname(path.resolve(context.schemaFile));
     const includeInternal = context.pluginOptions['includeInternalModels'] === true;
     const groupBy = context.pluginOptions['groupBy'];
 
@@ -82,7 +83,7 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
         for (const enumDecl of enums) {
             fs.writeFileSync(
                 path.join(enumsDir, `${enumDecl.name}.md`),
-                renderEnumPage(enumDecl, models),
+                renderEnumPage(enumDecl, models, options),
             );
         }
     }

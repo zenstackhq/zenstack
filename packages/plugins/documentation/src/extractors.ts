@@ -6,7 +6,26 @@ import {
     type DataModel,
     type DataModelAttribute,
 } from '@zenstackhq/language/ast';
+import path from 'node:path';
 import type { DocMeta, Relationship } from './types';
+
+interface AstLike {
+    $container?: AstLike;
+    $document?: { uri?: { fsPath?: string } };
+}
+
+export function getSourceFilePath(node: AstLike): string | undefined {
+    let root: AstLike = node;
+    while (root.$container) root = root.$container;
+    return root.$document?.uri?.fsPath;
+}
+
+export function formatDefinedIn(node: AstLike, schemaDir: string | undefined): string | undefined {
+    const absPath = getSourceFilePath(node);
+    if (!absPath) return undefined;
+    const display = schemaDir ? path.relative(schemaDir, absPath) : path.basename(absPath);
+    return `**Defined in:** \`${display}\``;
+}
 
 export function stripCommentPrefix(comments: string[]): string {
     return comments

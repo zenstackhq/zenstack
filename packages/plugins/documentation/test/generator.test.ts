@@ -202,6 +202,77 @@ describe('documentation plugin', () => {
         expect(createdByIdx).toBeLessThan(activeIdx);
     });
 
+    it('model page shows source file path', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('**Defined in:**');
+        expect(userDoc).toContain('.zmodel');
+    });
+
+    it('enum page shows source file path', async () => {
+        const model = await loadSchema(`
+            enum Role {
+                ADMIN
+                MEMBER
+            }
+            model User {
+                id   String @id @default(cuid())
+                role Role
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const enumDoc = fs.readFileSync(path.join(tmpDir, 'enums', 'Role.md'), 'utf-8');
+        expect(enumDoc).toContain('**Defined in:**');
+        expect(enumDoc).toContain('.zmodel');
+    });
+
+    it('type page shows source file path', async () => {
+        const model = await loadSchema(`
+            type Timestamps {
+                createdAt DateTime @default(now())
+            }
+            model User {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const typeDoc = fs.readFileSync(path.join(tmpDir, 'types', 'Timestamps.md'), 'utf-8');
+        expect(typeDoc).toContain('**Defined in:**');
+        expect(typeDoc).toContain('.zmodel');
+    });
+
     it('enum page includes declaration code block', async () => {
         const model = await loadSchema(`
             /// User roles in the system.

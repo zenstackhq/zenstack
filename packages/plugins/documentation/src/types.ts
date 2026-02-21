@@ -10,6 +10,7 @@ export interface RenderOptions {
     includeValidation: boolean;
     includeIndexes: boolean;
     fieldOrder: 'declaration' | 'alphabetical';
+    schemaDir?: string;
 }
 
 export interface Relationship {

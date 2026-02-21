@@ -1,8 +1,9 @@
 import { isEnum, type DataModel, type Enum } from '@zenstackhq/language/ast';
 import { getAllFields } from '@zenstackhq/language/utils';
-import { stripCommentPrefix } from '../extractors';
+import { formatDefinedIn, stripCommentPrefix } from '../extractors';
+import type { RenderOptions } from '../types';
 
-export function renderEnumPage(enumDecl: Enum, allModels: DataModel[]): string {
+export function renderEnumPage(enumDecl: Enum, allModels: DataModel[], options: RenderOptions): string {
     const lines: string[] = [
         `[Index](../index.md)`,
         '',
@@ -17,6 +18,9 @@ export function renderEnumPage(enumDecl: Enum, allModels: DataModel[]): string {
         }
         lines.push('');
     }
+
+    const definedIn = formatDefinedIn(enumDecl, options.schemaDir);
+    if (definedIn) lines.push(definedIn, '');
 
     if (enumDecl.fields.length > 0) {
         lines.push('## Values', '');

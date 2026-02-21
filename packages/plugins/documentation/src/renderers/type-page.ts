@@ -1,5 +1,6 @@
 import type { DataModel, TypeDef } from '@zenstackhq/language/ast';
 import {
+    formatDefinedIn,
     getDefaultValue,
     getFieldAttributes,
     getFieldTypeName,
@@ -23,6 +24,9 @@ export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], option
         }
         lines.push('');
     }
+
+    const definedIn = formatDefinedIn(typeDef, options.schemaDir);
+    if (definedIn) lines.push(definedIn, '');
 
     const sortedFields =
         options.fieldOrder === 'alphabetical'

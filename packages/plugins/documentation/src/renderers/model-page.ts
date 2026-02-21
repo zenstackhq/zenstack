@@ -3,6 +3,7 @@ import { getAllFields } from '@zenstackhq/language/utils';
 import {
     extractDocMeta,
     extractFieldDocExample,
+    formatDefinedIn,
     getAttrName,
     getDefaultValue,
     getFieldAttributes,
@@ -35,6 +36,9 @@ export function renderModelPage(model: DataModel, options: RenderOptions): strin
     if (docMeta.deprecated) {
         lines.push(`> **Deprecated:** ${docMeta.deprecated}`, '');
     }
+
+    const definedIn = formatDefinedIn(model, options.schemaDir);
+    if (definedIn) lines.push(definedIn, '');
 
     const mixinRefs = model.mixins
         .map((ref) => ref.ref)
