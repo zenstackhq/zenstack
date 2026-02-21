@@ -6,6 +6,7 @@ import {
     type DataModel,
     type DataModelAttribute,
     type Enum,
+    type Model,
 } from '@zenstackhq/language/ast';
 import { getAllFields } from '@zenstackhq/language/utils';
 import type { CliGeneratorContext, CliPlugin } from '@zenstackhq/sdk';
@@ -20,43 +21,6 @@ function resolveOutputDir(context: CliGeneratorContext): string {
     return path.resolve(context.defaultOutputPath);
 }
 
-function renderIndexPage(context: CliGeneratorContext): string {
-    const title =
-        typeof context.pluginOptions['title'] === 'string'
-            ? context.pluginOptions['title']
-            : 'Schema Documentation';
-
-    const models = context.model.declarations
-        .filter(isDataModel)
-        .map((m) => m.name)
-        .sort();
-
-    const lines: string[] = [`# ${title}`, ''];
-
-    if (models.length > 0) {
-        lines.push('## Models', '');
-        for (const name of models) {
-            lines.push(`- [${name}](./models/${name}.md)`);
-        }
-        lines.push('');
-    }
-
-    const enums = context.model.declarations
-        .filter(isEnum)
-        .map((e) => e.name)
-        .sort();
-
-    if (enums.length > 0) {
-        lines.push('## Enums', '');
-        for (const name of enums) {
-            lines.push(`- [${name}](./enums/${name}.md)`);
-        }
-        lines.push('');
-    }
-
-    return lines.join('\n');
-}
-
 function stripCommentPrefix(comments: string[]): string {
     return comments
         .map((c) => c.replace(/^\/\/\/\s?/, ''))
@@ -64,19 +28,8 @@ function stripCommentPrefix(comments: string[]): string {
         .trim();
 }
 
-function getFieldTypeName(field: DataField): string {
-    let typeName: string;
-    if (field.type.reference?.ref) {
-        typeName = field.type.reference.ref.name;
-    } else if (field.type.type) {
-        typeName = field.type.type;
-    } else {
-        typeName = 'Unknown';
-    }
-
-    if (field.type.array) typeName += '[]';
-    if (field.type.optional) typeName += '?';
-    return typeName;
+function isIgnoredModel(model: DataModel): boolean {
+    return model.attributes.some((a) => a.decl.ref?.name === '@@ignore');
 }
 
 function getAttrName(attr: DataFieldAttribute): string {
@@ -93,6 +46,32 @@ function formatAttrArgs(attr: DataFieldAttribute): string {
     return `(${parts.join(', ')})`;
 }
 
+function getFieldTypeName(field: DataField, linked: boolean): string {
+    let typeName: string;
+    if (field.type.reference?.ref) {
+        const ref = field.type.reference.ref;
+        if (linked) {
+            if (isDataModel(ref)) {
+                typeName = `[${ref.name}](./${ref.name}.md)`;
+            } else if (isEnum(ref)) {
+                typeName = `[${ref.name}](../enums/${ref.name}.md)`;
+            } else {
+                typeName = ref.name;
+            }
+        } else {
+            typeName = ref.name;
+        }
+    } else if (field.type.type) {
+        typeName = field.type.type;
+    } else {
+        typeName = 'Unknown';
+    }
+
+    if (field.type.array) typeName += '[]';
+    if (field.type.optional) typeName += '?';
+    return typeName;
+}
+
 function getDefaultValue(field: DataField): string {
     const defaultAttr = field.attributes.find((a) => getAttrName(a) === '@default');
     const firstArg = defaultAttr?.args[0];
@@ -102,7 +81,10 @@ function getDefaultValue(field: DataField): string {
 
 function getFieldAttributes(field: DataField): string {
     const attrs = field.attributes
-        .filter((a) => getAttrName(a) !== '@default')
+        .filter((a) => {
+            const name = getAttrName(a);
+            return name !== '@default' && name !== '@computed' && name !== '@meta';
+        })
         .map((a) => `\`${getAttrName(a)}${formatAttrArgs(a)}\``);
     return attrs.length > 0 ? attrs.join(', ') : '\u2014';
 }
@@ -133,6 +115,19 @@ function extractDocMeta(attributes: DataModelAttribute[]): DocMeta {
     return meta;
 }
 
+function extractFieldDocExample(field: DataField): string | undefined {
+    for (const attr of field.attributes) {
+        if (getAttrName(attr) !== '@meta') continue;
+        const keyArg = attr.args[0]?.$cstNode?.text ?? '';
+        const key = keyArg.replace(/^['"]|['"]$/g, '');
+        if (key === 'doc:example') {
+            const valArg = attr.args[1]?.$cstNode?.text ?? '';
+            return valArg.replace(/^['"]|['"]$/g, '');
+        }
+    }
+    return undefined;
+}
+
 interface RenderOptions {
     includeRelationships: boolean;
     includePolicies: boolean;
@@ -149,8 +144,72 @@ function resolveRenderOptions(pluginOptions: Record<string, unknown>): RenderOpt
     };
 }
 
+function getModelPath(model: DataModel, groupBy: unknown): string {
+    if (groupBy === 'category') {
+        const meta = extractDocMeta(model.attributes);
+        if (meta.category) {
+            return `./models/${meta.category}/${model.name}.md`;
+        }
+    }
+    return `./models/${model.name}.md`;
+}
+
+function renderIndexPage(
+    astModel: Model,
+    pluginOptions: Record<string, unknown>,
+    hasRelationships: boolean,
+): string {
+    const title =
+        typeof pluginOptions['title'] === 'string'
+            ? pluginOptions['title']
+            : 'Schema Documentation';
+
+    const includeInternal = pluginOptions['includeInternalModels'] === true;
+    const groupBy = pluginOptions['groupBy'];
+
+    const models = astModel.declarations
+        .filter(isDataModel)
+        .filter((m) => includeInternal || !isIgnoredModel(m))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    const lines: string[] = [`# ${title}`, ''];
+
+    if (models.length > 0) {
+        lines.push('## Models', '');
+        for (const m of models) {
+            lines.push(`- [${m.name}](${getModelPath(m, groupBy)})`);
+        }
+        lines.push('');
+    }
+
+    const enums = astModel.declarations
+        .filter(isEnum)
+        .map((e) => e.name)
+        .sort();
+
+    if (enums.length > 0) {
+        lines.push('## Enums', '');
+        for (const name of enums) {
+            lines.push(`- [${name}](./enums/${name}.md)`);
+        }
+        lines.push('');
+    }
+
+    if (hasRelationships) {
+        lines.push('## See Also', '');
+        lines.push('- [Relationships](./relationships.md)', '');
+    }
+
+    return lines.join('\n');
+}
+
 function renderModelPage(model: DataModel, options: RenderOptions): string {
-    const lines: string[] = [`# ${model.name}`, ''];
+    const lines: string[] = [
+        `[Index](../index.md)`,
+        '',
+        `# ${model.name}`,
+        '',
+    ];
 
     const description = stripCommentPrefix(model.comments);
     if (description) {
@@ -192,9 +251,11 @@ function renderModelPage(model: DataModel, options: RenderOptions): string {
             if (inheritedFrom) {
                 descParts.push(`*Inherited from [${inheritedFrom}](./${inheritedFrom}.md)*`);
             }
+            const example = extractFieldDocExample(field);
+            if (example) descParts.push(`Example: \`${example}\``);
             if (fieldDescription) descParts.push(fieldDescription);
             lines.push(
-                `| ${field.name} | ${getFieldTypeName(field)} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${descParts.join(' ')} |`,
+                `| ${field.name} | ${getFieldTypeName(field, true)} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${descParts.join(' ')} |`,
             );
         }
         lines.push('');
@@ -299,8 +360,13 @@ function renderModelPage(model: DataModel, options: RenderOptions): string {
     return lines.join('\n');
 }
 
-function renderEnumPage(enumDecl: Enum): string {
-    const lines: string[] = [`# ${enumDecl.name}`, ''];
+function renderEnumPage(enumDecl: Enum, allModels: DataModel[]): string {
+    const lines: string[] = [
+        `[Index](../index.md)`,
+        '',
+        `# ${enumDecl.name}`,
+        '',
+    ];
 
     const description = stripCommentPrefix(enumDecl.comments);
     if (description) {
@@ -318,6 +384,23 @@ function renderEnumPage(enumDecl: Enum): string {
         for (const field of enumDecl.fields) {
             const fieldDesc = stripCommentPrefix(field.comments);
             lines.push(`| ${field.name} | ${fieldDesc} |`);
+        }
+        lines.push('');
+    }
+
+    const usedBy = allModels
+        .filter((m) =>
+            getAllFields(m).some(
+                (f) => f.type.reference?.ref && isEnum(f.type.reference.ref) && f.type.reference.ref.name === enumDecl.name,
+            ),
+        )
+        .map((m) => m.name)
+        .sort();
+
+    if (usedBy.length > 0) {
+        lines.push('## Used By', '');
+        for (const name of usedBy) {
+            lines.push(`- [${name}](../models/${name}.md)`);
         }
         lines.push('');
     }
@@ -354,13 +437,20 @@ function collectRelationships(models: DataModel[]): Relationship[] {
 }
 
 function renderRelationshipsPage(relations: Relationship[]): string {
-    const lines: string[] = ['# Relationships', ''];
+    const lines: string[] = [
+        '[Index](./index.md)',
+        '',
+        '# Relationships',
+        '',
+    ];
 
     lines.push('## Cross-Reference', '');
     lines.push('| Model | Field | Related Model | Type |');
     lines.push('| --- | --- | --- | --- |');
     for (const rel of relations) {
-        lines.push(`| ${rel.from} | ${rel.field} | ${rel.to} | ${rel.type} |`);
+        lines.push(
+            `| [${rel.from}](./models/${rel.from}.md) | ${rel.field} | [${rel.to}](./models/${rel.to}.md) | ${rel.type} |`,
+        );
     }
     lines.push('');
 
@@ -397,12 +487,23 @@ const plugin: CliPlugin = {
     async generate(context: CliGeneratorContext) {
         const outputDir = resolveOutputDir(context);
         const options = resolveRenderOptions(context.pluginOptions);
+        const includeInternal = context.pluginOptions['includeInternalModels'] === true;
+        const groupBy = context.pluginOptions['groupBy'];
+
         fs.mkdirSync(outputDir, { recursive: true });
-        fs.writeFileSync(path.join(outputDir, 'index.md'), renderIndexPage(context));
 
         const modelsDir = path.join(outputDir, 'models');
-        const models = context.model.declarations.filter(isDataModel);
-        const groupBy = context.pluginOptions['groupBy'];
+        const models = context.model.declarations
+            .filter(isDataModel)
+            .filter((m) => includeInternal || !isIgnoredModel(m));
+
+        const allRelations = collectRelationships(models);
+        const hasRelationships = options.includeRelationships && allRelations.length > 0;
+
+        fs.writeFileSync(
+            path.join(outputDir, 'index.md'),
+            renderIndexPage(context.model, context.pluginOptions, hasRelationships),
+        );
 
         if (models.length > 0) {
             fs.mkdirSync(modelsDir, { recursive: true });
@@ -422,8 +523,7 @@ const plugin: CliPlugin = {
             }
         }
 
-        const allRelations = collectRelationships(models);
-        if (options.includeRelationships && allRelations.length > 0) {
+        if (hasRelationships) {
             fs.writeFileSync(
                 path.join(outputDir, 'relationships.md'),
                 renderRelationshipsPage(allRelations),
@@ -437,7 +537,7 @@ const plugin: CliPlugin = {
             for (const enumDecl of enums) {
                 fs.writeFileSync(
                     path.join(enumsDir, `${enumDecl.name}.md`),
-                    renderEnumPage(enumDecl),
+                    renderEnumPage(enumDecl, models),
                 );
             }
         }

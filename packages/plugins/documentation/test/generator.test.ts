@@ -526,6 +526,305 @@ describe('documentation plugin', () => {
         expect(fs.existsSync(path.join(tmpDir, 'relationships.md'))).toBe(false);
     });
 
+    it('links field types to model and enum pages', async () => {
+        const model = await loadSchema(`
+            model User {
+                id    String @id @default(cuid())
+                role  Role
+                posts Post[]
+            }
+            model Post {
+                id       String @id @default(cuid())
+                author   User   @relation(fields: [authorId], references: [id])
+                authorId String
+            }
+            enum Role {
+                ADMIN
+                USER
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        const roleLine = userDoc.split('\n').find((l) => l.includes('| role'));
+        expect(roleLine).toContain('[Role](../enums/Role.md)');
+
+        const postsLine = userDoc.split('\n').find((l) => l.includes('| posts'));
+        expect(postsLine).toContain('[Post](./Post.md)');
+
+        const postDoc = fs.readFileSync(path.join(tmpDir, 'models', 'Post.md'), 'utf-8');
+        const authorLine = postDoc.split('\n').find((l) => l.includes('| author'));
+        expect(authorLine).toContain('[User](./User.md)');
+
+        const idLine = userDoc.split('\n').find((l) => l.includes('| id'));
+        expect(idLine).not.toContain('[String]');
+    });
+
+    it('model pages link back to index', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('[Index](../index.md)');
+    });
+
+    it('enum pages link back to index and show used-by models', async () => {
+        const model = await loadSchema(`
+            model User {
+                id   String @id @default(cuid())
+                role Role
+            }
+            model Post {
+                id     String @id @default(cuid())
+                status Role
+            }
+            enum Role {
+                ADMIN
+                USER
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const roleDoc = fs.readFileSync(path.join(tmpDir, 'enums', 'Role.md'), 'utf-8');
+        expect(roleDoc).toContain('[Index](../index.md)');
+        expect(roleDoc).toContain('## Used By');
+        expect(roleDoc).toContain('[Post](../models/Post.md)');
+        expect(roleDoc).toContain('[User](../models/User.md)');
+    });
+
+    it('relationships.md links model names to model pages', async () => {
+        const model = await loadSchema(`
+            model User {
+                id    String @id @default(cuid())
+                posts Post[]
+            }
+            model Post {
+                id       String @id @default(cuid())
+                author   User   @relation(fields: [authorId], references: [id])
+                authorId String
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const relDoc = fs.readFileSync(path.join(tmpDir, 'relationships.md'), 'utf-8');
+        expect(relDoc).toContain('[Index](./index.md)');
+        expect(relDoc).toContain('[User](./models/User.md)');
+        expect(relDoc).toContain('[Post](./models/Post.md)');
+    });
+
+    it('index page links to relationships.md', async () => {
+        const model = await loadSchema(`
+            model User {
+                id    String @id @default(cuid())
+                posts Post[]
+            }
+            model Post {
+                id       String @id @default(cuid())
+                author   User   @relation(fields: [authorId], references: [id])
+                authorId String
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const indexContent = fs.readFileSync(path.join(tmpDir, 'index.md'), 'utf-8');
+        expect(indexContent).toContain('[Relationships](./relationships.md)');
+    });
+
+    it('groupBy=category produces correct index links', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+                @@meta('doc:category', 'Identity')
+            }
+            model Post {
+                id String @id @default(cuid())
+                @@meta('doc:category', 'Content')
+            }
+            model Uncategorized {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir, groupBy: 'category' },
+        });
+
+        const indexContent = fs.readFileSync(path.join(tmpDir, 'index.md'), 'utf-8');
+        expect(indexContent).toContain('[User](./models/Identity/User.md)');
+        expect(indexContent).toContain('[Post](./models/Content/Post.md)');
+        expect(indexContent).toContain('[Uncategorized](./models/Uncategorized.md)');
+    });
+
+    it('field @meta doc:example shows example in fields table', async () => {
+        const model = await loadSchema(`
+            model User {
+                id    String @id @default(cuid())
+                email String @meta('doc:example', 'jane@example.com')
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        const emailLine = userDoc.split('\n').find((l) => l.includes('| email'));
+        expect(emailLine).toContain('jane@example.com');
+    });
+
+    it('includeInternalModels=false excludes @@ignore models', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+            model Internal {
+                id String @id @default(cuid())
+                @@ignore
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const indexContent = fs.readFileSync(path.join(tmpDir, 'index.md'), 'utf-8');
+        expect(indexContent).toContain('[User]');
+        expect(indexContent).not.toContain('[Internal]');
+        expect(fs.existsSync(path.join(tmpDir, 'models', 'Internal.md'))).toBe(false);
+    });
+
+    it('includeInternalModels=true includes @@ignore models', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+            model Internal {
+                id String @id @default(cuid())
+                @@ignore
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir, includeInternalModels: true },
+        });
+
+        const indexContent = fs.readFileSync(path.join(tmpDir, 'index.md'), 'utf-8');
+        expect(indexContent).toContain('[Internal]');
+        expect(fs.existsSync(path.join(tmpDir, 'models', 'Internal.md'))).toBe(true);
+    });
+
+    it('handles model with no fields gracefully', async () => {
+        const model = await loadSchema(`
+            model Empty {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const doc = fs.readFileSync(path.join(tmpDir, 'models', 'Empty.md'), 'utf-8');
+        expect(doc).toContain('# Empty');
+        expect(doc).toContain('## Fields');
+    });
+
+    it('handles self-referential relations', async () => {
+        const model = await loadSchema(`
+            model Employee {
+                id        String    @id @default(cuid())
+                managerId String?
+                manager   Employee? @relation("ManagerReports", fields: [managerId], references: [id])
+                reports   Employee[] @relation("ManagerReports")
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const doc = fs.readFileSync(path.join(tmpDir, 'models', 'Employee.md'), 'utf-8');
+        expect(doc).toContain('## Relationships');
+        expect(doc).toContain('[Employee](./Employee.md)');
+
+        const relDoc = fs.readFileSync(path.join(tmpDir, 'relationships.md'), 'utf-8');
+        expect(relDoc).toContain('Employee');
+    });
+
     it('snapshot: full representative schema output', async () => {
         const model = await loadSchema(`
             /// User roles in the system.

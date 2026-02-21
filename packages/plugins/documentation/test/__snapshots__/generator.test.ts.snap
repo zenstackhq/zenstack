@@ -1,7 +1,9 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`documentation plugin > snapshot: full representative schema output > enums/Role.md 1`] = `
-"# Role
+"[Index](../index.md)
+
+# Role
 
 > User roles in the system.
 
@@ -11,6 +13,10 @@ exports[`documentation plugin > snapshot: full representative schema output > en
 | --- | --- |
 | ADMIN | Administrator with full access |
 | USER | Standard user |
+
+## Used By
+
+- [User](../models/User.md)
 "
 `;
 
@@ -25,11 +31,17 @@ exports[`documentation plugin > snapshot: full representative schema output > in
 ## Enums
 
 - [Role](./enums/Role.md)
+
+## See Also
+
+- [Relationships](./relationships.md)
 "
 `;
 
 exports[`documentation plugin > snapshot: full representative schema output > models/Post.md 1`] = `
-"# Post
+"[Index](../index.md)
+
+# Post
 
 > A blog post.
 
@@ -39,7 +51,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 | Field | Type | Required | Default | Attributes | Description |
 | --- | --- | --- | --- | --- | --- |
-| author | User | Yes | — | \`@relation(fields: fields: [authorId], references: references: [id])\` |  |
+| author | [User](./User.md) | Yes | — | \`@relation(fields: fields: [authorId], references: references: [id])\` |  |
 | authorId | String | Yes | — | — |  |
 | content | String? | No | — | — |  |
 | id | String | Yes | \`cuid()\` | \`@id\` |  |
@@ -54,7 +66,9 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 `;
 
 exports[`documentation plugin > snapshot: full representative schema output > models/User.md 1`] = `
-"# User
+"[Index](../index.md)
+
+# User
 
 > Represents a registered user.
 
@@ -69,8 +83,8 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 | email | String | Yes | — | \`@unique\`, \`@email\` | User's email address. |
 | id | String | Yes | \`cuid()\` | \`@id\` |  |
 | name | String | Yes | — | — | Display name shown in the UI. |
-| posts | Post[] | No | — | — |  |
-| role | Role | Yes | — | — |  |
+| posts | [Post](./Post.md)[] | No | — | — |  |
+| role | [Role](../enums/Role.md) | Yes | — | — |  |
 
 ## Relationships
 
@@ -100,14 +114,16 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 `;
 
 exports[`documentation plugin > snapshot: full representative schema output > relationships.md 1`] = `
-"# Relationships
+"[Index](./index.md)
+
+# Relationships
 
 ## Cross-Reference
 
 | Model | Field | Related Model | Type |
 | --- | --- | --- | --- |
-| User | posts | Post | One→Many |
-| Post | author | User | Many→One |
+| [User](./models/User.md) | posts | [Post](./models/Post.md) | One→Many |
+| [Post](./models/Post.md) | author | [User](./models/User.md) | Many→One |
 
 ## Entity Relationship Diagram
 
