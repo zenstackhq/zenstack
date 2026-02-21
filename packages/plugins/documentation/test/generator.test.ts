@@ -209,4 +209,25 @@ describe('documentation plugin', () => {
         expect(enumDoc).toContain('Standard access');
         expect(enumDoc).toContain('| GUEST');
     });
+
+    it('uses custom title from plugin options', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir, title: 'My API' },
+        });
+
+        const indexContent = fs.readFileSync(path.join(tmpDir, 'index.md'), 'utf-8');
+        expect(indexContent).toContain('# My API');
+        expect(indexContent).not.toContain('# Schema Documentation');
+    });
 });
