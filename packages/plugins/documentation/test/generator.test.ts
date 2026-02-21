@@ -1405,6 +1405,79 @@ describe('documentation plugin', () => {
         expect(userDoc).toContain('`@length`');
     });
 
+    it('@map field attribute renders in Attributes column', async () => {
+        const model = await loadSchema(`
+            model User {
+                id   String @id @default(cuid())
+                name String @map("user_name")
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const doc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        const nameLine = doc.split('\n').find((l) => l.includes('field-name'));
+        expect(nameLine).toBeDefined();
+        expect(nameLine).toContain('@map');
+    });
+
+    it('@updatedAt field attribute renders in Attributes column', async () => {
+        const model = await loadSchema(`
+            model Post {
+                id        String   @id @default(cuid())
+                updatedAt DateTime @updatedAt
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const doc = fs.readFileSync(path.join(tmpDir, 'models', 'Post.md'), 'utf-8');
+        const updatedAtLine = doc.split('\n').find((l) => l.includes('field-updatedAt'));
+        expect(updatedAtLine).toBeDefined();
+        expect(updatedAtLine).toContain('`@updatedAt`');
+    });
+
+    it('@json field attribute renders in Attributes column on a model', async () => {
+        const model = await loadSchema(`
+            type Address {
+                street String
+                city   String
+            }
+            model User {
+                id      String  @id @default(cuid())
+                address Address @json
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const doc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        const addressLine = doc.split('\n').find((l) => l.includes('field-address'));
+        expect(addressLine).toBeDefined();
+        expect(addressLine).toContain('`@json`');
+    });
+
     it('model with @@map shows mapped table name in metadata', async () => {
         const model = await loadSchema(`
             model User {
