@@ -1,4 +1,5 @@
 import { isDataModel, isEnum, isTypeDef, type Procedure } from '@zenstackhq/language/ast';
+import { getRelativeSourcePath } from '../extractors';
 import type { RenderOptions } from '../types';
 
 function formatParamType(paramType: Procedure['returnType'], linked: boolean): string {
@@ -44,7 +45,7 @@ function extractProcedureComments(proc: Procedure): string {
     return commentLines.join('\n').trim();
 }
 
-export function renderProcedurePage(proc: Procedure, _options: RenderOptions): string {
+export function renderProcedurePage(proc: Procedure, options: RenderOptions): string {
     const lines: string[] = [
         `[Index](../index.md)`,
         '',
@@ -76,8 +77,26 @@ export function renderProcedurePage(proc: Procedure, _options: RenderOptions): s
         lines.push('');
     }
 
+    const sourcePath = getRelativeSourcePath(proc, options.schemaDir);
+    if (sourcePath) {
+        lines.push('| | |');
+        lines.push('| --- | --- |');
+        lines.push(`| **Defined in** | \`${sourcePath}\` |`);
+        lines.push('');
+    }
+
     lines.push('## Returns', '');
     lines.push(formatParamType(proc.returnType, true), '');
+
+    const cstText = proc.$cstNode?.text;
+    if (cstText) {
+        lines.push('<details>');
+        lines.push('<summary>Declaration</summary>', '');
+        lines.push('```prisma');
+        lines.push(cstText);
+        lines.push('```', '');
+        lines.push('</details>', '');
+    }
 
     return lines.join('\n');
 }

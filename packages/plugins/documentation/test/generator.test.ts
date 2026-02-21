@@ -1551,6 +1551,54 @@ describe('documentation plugin', () => {
         expect(userDoc).toContain('[listUsers](../procedures/listUsers.md)');
     });
 
+    it('procedure page includes collapsible declaration block', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+            /// Sign up a new user.
+            mutation procedure signUp(email: String, name: String): User
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const procDoc = fs.readFileSync(path.join(tmpDir, 'procedures', 'signUp.md'), 'utf-8');
+        expect(procDoc).toContain('<details>');
+        expect(procDoc).toContain('<summary>Declaration</summary>');
+        expect(procDoc).toContain('```prisma');
+        expect(procDoc).toContain('mutation procedure signUp');
+        expect(procDoc).toContain('</details>');
+    });
+
+    it('procedure page shows source file path', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+            procedure getUser(id: String): User
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const procDoc = fs.readFileSync(path.join(tmpDir, 'procedures', 'getUser.md'), 'utf-8');
+        expect(procDoc).toContain('| **Defined in** |');
+        expect(procDoc).toContain('.zmodel');
+    });
+
     it('index page summary includes procedure count', async () => {
         const model = await loadSchema(`
             model User {
