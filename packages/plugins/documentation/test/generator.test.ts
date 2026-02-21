@@ -1413,7 +1413,7 @@ describe('documentation plugin', () => {
         });
 
         const relDoc = fs.readFileSync(path.join(tmpDir, 'relationships.md'), 'utf-8');
-        expect(relDoc).toContain('[Index](./index.md)');
+        expect(relDoc).toContain('[Index](./index.md) / Relationships');
         expect(relDoc).toContain('[User](./models/User.md)');
         expect(relDoc).toContain('[Post](./models/Post.md)');
     });

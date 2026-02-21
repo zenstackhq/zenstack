@@ -9,7 +9,7 @@ exports[`documentation plugin > snapshot: full representative schema output > en
 
 > User roles in the system.
 
-**Defined in:** \`../../../../../tmp/zenstack-schema-bd533154-1b5b-4360-9cd7-0dfddf649bb8.zmodel\`
+**Defined in:** \`../../../../../tmp/zenstack-schema-576f7cae-5edb-43fb-b519-3b541c09fd10.zmodel\`
 
 ## Values
 
@@ -80,7 +80,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 > A blog post.
 
-**Category:** Content · **Defined in:** \`../../../../../tmp/zenstack-schema-bd533154-1b5b-4360-9cd7-0dfddf649bb8.zmodel\`
+**Category:** Content · **Defined in:** \`../../../../../tmp/zenstack-schema-576f7cae-5edb-43fb-b519-3b541c09fd10.zmodel\`
 
 [Fields](#fields) · [Relationships](#relationships)
 
@@ -135,7 +135,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 > Represents a registered user.
 
-**Category:** Identity · **Since:** 1.0 · **Defined in:** \`../../../../../tmp/zenstack-schema-bd533154-1b5b-4360-9cd7-0dfddf649bb8.zmodel\`
+**Category:** Identity · **Since:** 1.0 · **Defined in:** \`../../../../../tmp/zenstack-schema-576f7cae-5edb-43fb-b519-3b541c09fd10.zmodel\`
 
 [Fields](#fields) · [Relationships](#relationships) · [Access Policies](#access-policies) · [Indexes](#indexes) · [Validation Rules](#validation-rules)
 
@@ -208,7 +208,7 @@ erDiagram
 exports[`documentation plugin > snapshot: full representative schema output > relationships.md 1`] = `
 "> *This documentation was auto-generated. Do not edit directly.*
 
-[Index](./index.md)
+[Index](./index.md) / Relationships
 
 # Relationships
 

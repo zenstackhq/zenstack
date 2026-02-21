@@ -4,7 +4,7 @@ import { generatedHeader } from './common';
 export function renderRelationshipsPage(relations: Relationship[]): string {
     const lines: string[] = [
         ...generatedHeader(),
-        '[Index](./index.md)',
+        '[Index](./index.md) / Relationships',
         '',
         '# Relationships',
         '',
