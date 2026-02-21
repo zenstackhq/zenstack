@@ -1100,6 +1100,55 @@ describe('documentation plugin', () => {
         expect(fullNameLine).not.toContain('**Computed**');
     });
 
+    it('renders multiple computed field types with badge and description', async () => {
+        const model = await loadSchema(`
+            model Project {
+                id             String  @id @default(cuid())
+                name           String
+                /// Total number of tasks in this project.
+                taskCount      Int     @computed
+                /// Percentage of tasks that are completed.
+                completionRate Float   @computed
+                /// Whether the project has any overdue tasks.
+                isOverdue      Boolean @computed
+                /// Full display label combining name and status.
+                displayLabel   String  @computed
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const doc = fs.readFileSync(path.join(tmpDir, 'models', 'Project.md'), 'utf-8');
+        const lines = doc.split('\n');
+
+        const taskCountLine = lines.find((l) => l.includes('| taskCount'));
+        expect(taskCountLine).toContain('`Int` <kbd>computed</kbd>');
+        expect(taskCountLine).toContain('Total number of tasks');
+
+        const completionLine = lines.find((l) => l.includes('| completionRate'));
+        expect(completionLine).toContain('`Float` <kbd>computed</kbd>');
+        expect(completionLine).toContain('Percentage of tasks');
+
+        const overdueLine = lines.find((l) => l.includes('| isOverdue'));
+        expect(overdueLine).toContain('`Boolean` <kbd>computed</kbd>');
+        expect(overdueLine).toContain('overdue tasks');
+
+        const displayLine = lines.find((l) => l.includes('| displayLabel'));
+        expect(displayLine).toContain('`String` <kbd>computed</kbd>');
+        expect(displayLine).toContain('Full display label');
+
+        // Non-computed fields should NOT have the badge
+        const nameLine = lines.find((l) => l.includes('| name'));
+        expect(nameLine).not.toContain('<kbd>computed</kbd>');
+    });
+
     it('annotates inherited fields with source model', async () => {
         const model = await loadSchema(`
             model BaseModel {
