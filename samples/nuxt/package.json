@@ -6,15 +6,15 @@
         "generate": "zen generate --lite",
         "db:init": "pnpm generate && zen db push && npx tsx zenstack/seed.ts",
         "dev": "nuxt dev --port 3302",
-        "build": "pnpm generate && nuxt build",
+        "build": "pnpm generate && nuxt typecheck",
         "preview": "nuxt preview",
         "postinstall": "nuxt prepare"
     },
     "dependencies": {
         "@tailwindcss/vite": "^4.1.18",
         "@tanstack/vue-query": "catalog:",
-        "@zenstackhq/schema": "workspace:*",
         "@zenstackhq/orm": "workspace:*",
+        "@zenstackhq/schema": "workspace:*",
         "@zenstackhq/server": "workspace:*",
         "@zenstackhq/tanstack-query": "workspace:*",
         "better-sqlite3": "catalog:",
@@ -26,6 +26,7 @@
     },
     "devDependencies": {
         "@types/better-sqlite3": "catalog:",
-        "@zenstackhq/cli": "workspace:*"
+        "@zenstackhq/cli": "workspace:*",
+        "vue-tsc": "^3.2.5"
     }
 }
