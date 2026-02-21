@@ -1,4 +1,4 @@
-import { isDataModel } from '@zenstackhq/language/ast';
+import { isDataModel, isEnum } from '@zenstackhq/language/ast';
 import type { CliGeneratorContext, CliPlugin } from '@zenstackhq/sdk';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -28,6 +28,19 @@ function renderIndexPage(context: CliGeneratorContext): string {
         lines.push('## Models', '');
         for (const name of models) {
             lines.push(`- [${name}](./models/${name}.md)`);
+        }
+        lines.push('');
+    }
+
+    const enums = context.model.declarations
+        .filter(isEnum)
+        .map((e) => e.name)
+        .sort();
+
+    if (enums.length > 0) {
+        lines.push('## Enums', '');
+        for (const name of enums) {
+            lines.push(`- [${name}](./enums/${name}.md)`);
         }
         lines.push('');
     }

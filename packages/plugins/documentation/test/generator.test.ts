@@ -52,4 +52,26 @@ describe('documentation plugin', () => {
         const userIdx = indexContent.indexOf('[User]');
         expect(postIdx).toBeLessThan(userIdx);
     });
+
+    it('index page lists enums alpha-sorted with links', async () => {
+        const model = await loadSchema(`
+            enum Role {
+                ADMIN
+                USER
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const indexContent = fs.readFileSync(path.join(tmpDir, 'index.md'), 'utf-8');
+        expect(indexContent).toContain('## Enums');
+        expect(indexContent).toContain('[Role](./enums/Role.md)');
+    });
 });
