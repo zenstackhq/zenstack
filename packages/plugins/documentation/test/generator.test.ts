@@ -525,4 +525,66 @@ describe('documentation plugin', () => {
 
         expect(fs.existsSync(path.join(tmpDir, 'relationships.md'))).toBe(false);
     });
+
+    it('snapshot: full representative schema output', async () => {
+        const model = await loadSchema(`
+            /// User roles in the system.
+            enum Role {
+                /// Administrator with full access
+                ADMIN
+                /// Standard user
+                USER
+            }
+
+            /// Represents a registered user.
+            model User {
+                id    String @id @default(cuid())
+                /// User's email address.
+                email String @unique @email
+                /// Display name shown in the UI.
+                name  String
+                role  Role
+                posts Post[]
+
+                @@allow('read', true)
+                @@deny('delete', true)
+                @@index([email])
+                @@meta('doc:category', 'Identity')
+                @@meta('doc:since', '1.0')
+            }
+
+            /// A blog post.
+            model Post {
+                id       String @id @default(cuid())
+                /// The post title.
+                title    String
+                content  String?
+                author   User   @relation(fields: [authorId], references: [id])
+                authorId String
+
+                @@meta('doc:category', 'Content')
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const indexContent = fs.readFileSync(path.join(tmpDir, 'index.md'), 'utf-8');
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        const postDoc = fs.readFileSync(path.join(tmpDir, 'models', 'Post.md'), 'utf-8');
+        const roleDoc = fs.readFileSync(path.join(tmpDir, 'enums', 'Role.md'), 'utf-8');
+        const relDoc = fs.readFileSync(path.join(tmpDir, 'relationships.md'), 'utf-8');
+
+        expect(indexContent).toMatchSnapshot('index.md');
+        expect(userDoc).toMatchSnapshot('models/User.md');
+        expect(postDoc).toMatchSnapshot('models/Post.md');
+        expect(roleDoc).toMatchSnapshot('enums/Role.md');
+        expect(relDoc).toMatchSnapshot('relationships.md');
+    });
 });

@@ -1,0 +1,119 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`documentation plugin > snapshot: full representative schema output > enums/Role.md 1`] = `
+"# Role
+
+> User roles in the system.
+
+## Values
+
+| Value | Description |
+| --- | --- |
+| ADMIN | Administrator with full access |
+| USER | Standard user |
+"
+`;
+
+exports[`documentation plugin > snapshot: full representative schema output > index.md 1`] = `
+"# Schema Documentation
+
+## Models
+
+- [Post](./models/Post.md)
+- [User](./models/User.md)
+
+## Enums
+
+- [Role](./enums/Role.md)
+"
+`;
+
+exports[`documentation plugin > snapshot: full representative schema output > models/Post.md 1`] = `
+"# Post
+
+> A blog post.
+
+**Category:** Content
+
+## Fields
+
+| Field | Type | Required | Default | Attributes | Description |
+| --- | --- | --- | --- | --- | --- |
+| author | User | Yes | — | \`@relation(fields: fields: [authorId], references: references: [id])\` |  |
+| authorId | String | Yes | — | — |  |
+| content | String? | No | — | — |  |
+| id | String | Yes | \`cuid()\` | \`@id\` |  |
+| title | String | Yes | — | — | The post title. |
+
+## Relationships
+
+| Field | Related Model | Type |
+| --- | --- | --- |
+| author | [User](./User.md) | Many→One |
+"
+`;
+
+exports[`documentation plugin > snapshot: full representative schema output > models/User.md 1`] = `
+"# User
+
+> Represents a registered user.
+
+**Category:** Identity
+
+**Since:** 1.0
+
+## Fields
+
+| Field | Type | Required | Default | Attributes | Description |
+| --- | --- | --- | --- | --- | --- |
+| email | String | Yes | — | \`@unique\`, \`@email\` | User's email address. |
+| id | String | Yes | \`cuid()\` | \`@id\` |  |
+| name | String | Yes | — | — | Display name shown in the UI. |
+| posts | Post[] | No | — | — |  |
+| role | Role | Yes | — | — |  |
+
+## Relationships
+
+| Field | Related Model | Type |
+| --- | --- | --- |
+| posts | [Post](./Post.md) | One→Many |
+
+## Access Policies
+
+| Operation | Rule | Effect |
+| --- | --- | --- |
+| read | \`true\` | Allow |
+| delete | \`true\` | Deny |
+
+## Indexes
+
+| Fields | Type |
+| --- | --- |
+| \`[email]\` | Index |
+
+## Validation Rules
+
+| Field | Rule |
+| --- | --- |
+| email | \`@email\` |
+"
+`;
+
+exports[`documentation plugin > snapshot: full representative schema output > relationships.md 1`] = `
+"# Relationships
+
+## Cross-Reference
+
+| Model | Field | Related Model | Type |
+| --- | --- | --- | --- |
+| User | posts | Post | One→Many |
+| Post | author | User | Many→One |
+
+## Entity Relationship Diagram
+
+\`\`\`mermaid
+erDiagram
+    User ||--o{ Post : "posts"
+\`\`\`
+"
+`;
