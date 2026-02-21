@@ -318,11 +318,21 @@ const plugin: CliPlugin = {
 
         const modelsDir = path.join(outputDir, 'models');
         const models = context.model.declarations.filter(isDataModel);
+        const groupBy = context.pluginOptions['groupBy'];
+
         if (models.length > 0) {
             fs.mkdirSync(modelsDir, { recursive: true });
             for (const model of models) {
+                let modelDir = modelsDir;
+                if (groupBy === 'category') {
+                    const meta = extractDocMeta(model.attributes);
+                    if (meta.category) {
+                        modelDir = path.join(modelsDir, meta.category);
+                        fs.mkdirSync(modelDir, { recursive: true });
+                    }
+                }
                 fs.writeFileSync(
-                    path.join(modelsDir, `${model.name}.md`),
+                    path.join(modelDir, `${model.name}.md`),
                     renderModelPage(model),
                 );
             }

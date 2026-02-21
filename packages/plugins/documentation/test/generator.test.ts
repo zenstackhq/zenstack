@@ -420,4 +420,33 @@ describe('documentation plugin', () => {
         expect(userDoc).toContain('**Since:** 2.0');
         expect(userDoc).toContain('Use Account instead');
     });
+
+    it('groups models by category when groupBy = category', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+                @@meta('doc:category', 'Identity')
+            }
+            model Post {
+                id String @id @default(cuid())
+                @@meta('doc:category', 'Content')
+            }
+            model Uncategorized {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir, groupBy: 'category' },
+        });
+
+        expect(fs.existsSync(path.join(tmpDir, 'models', 'Identity', 'User.md'))).toBe(true);
+        expect(fs.existsSync(path.join(tmpDir, 'models', 'Content', 'Post.md'))).toBe(true);
+        expect(fs.existsSync(path.join(tmpDir, 'models', 'Uncategorized.md'))).toBe(true);
+    });
 });
