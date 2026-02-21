@@ -47,11 +47,7 @@ export function getAttrName(attr: DataFieldAttribute): string {
 
 export function formatAttrArgs(attr: DataFieldAttribute): string {
     if (attr.args.length === 0) return '';
-    const parts = attr.args.map((arg) => {
-        const text = arg.$cstNode?.text ?? '';
-        if (arg.name) return `${arg.name}: ${text}`;
-        return text;
-    });
+    const parts = attr.args.map((arg) => arg.$cstNode?.text ?? '');
     return `(${parts.join(', ')})`;
 }
 

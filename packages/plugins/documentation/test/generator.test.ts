@@ -546,6 +546,13 @@ describe('documentation plugin', () => {
         expect(postDoc).toContain('| author');
         expect(postDoc).toContain('User');
         expect(postDoc).toContain('Many\u2192One');
+
+        const authorLine = postDoc.split('\n').find((l) => l.includes('| author') && l.includes('@relation'));
+        expect(authorLine).toBeDefined();
+        expect(authorLine).toContain('fields: [authorId]');
+        expect(authorLine).not.toContain('fields: fields:');
+        expect(authorLine).toContain('references: [id]');
+        expect(authorLine).not.toContain('references: references:');
     });
 
     it('generates enum page with heading, description, and values', async () => {
