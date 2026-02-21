@@ -113,6 +113,25 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
         }
     }
 
+    const validateAttrs = model.attributes.filter((a) => a.decl.ref?.name === '@@validate');
+    for (const attr of validateAttrs) {
+        const condition = attr.args[0]?.$cstNode?.text ?? '';
+        const messageArg = attr.args[1]?.$cstNode?.text?.replace(/^['"]|['"]$/g, '');
+        const pathArg = attr.args[2]?.$cstNode?.text;
+
+        let fieldName = 'Model';
+        if (pathArg) {
+            fieldName = pathArg;
+        }
+
+        let ruleText = `\`${condition}\``;
+        if (messageArg) {
+            ruleText += ` — *${messageArg}*`;
+        }
+
+        validationRules.push({ fieldName, rule: ruleText });
+    }
+
     const sections: string[] = [];
     if (mixinRefs.length > 0) sections.push('Mixins');
     if (orderedFields.length > 0) sections.push('Fields');

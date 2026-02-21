@@ -1724,6 +1724,55 @@ describe('documentation plugin', () => {
         expect(validationSection).toContain('`@lte`');
     });
 
+    it('@@validate model-level rule renders in validation rules section', async () => {
+        const model = await loadSchema(`
+            model Event {
+                id        String   @id @default(cuid())
+                startDate DateTime
+                endDate   DateTime
+                @@validate(startDate < endDate, "Start must precede end")
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const doc = fs.readFileSync(path.join(tmpDir, 'models', 'Event.md'), 'utf-8');
+        expect(doc).toContain('## Validation Rules');
+        expect(doc).toContain('startDate < endDate');
+        expect(doc).toContain('Start must precede end');
+    });
+
+    it('@@validate with validation functions renders expression text', async () => {
+        const model = await loadSchema(`
+            model User {
+                id    String @id @default(cuid())
+                email String
+                name  String
+                @@validate(contains(name, 'test'))
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const doc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(doc).toContain('## Validation Rules');
+        expect(doc).toContain("contains(name, 'test')");
+    });
+
     it('generates indexes section from @@index and @@unique', async () => {
         const model = await loadSchema(`
             model User {
