@@ -1,6 +1,6 @@
 import { isEnum, type DataModel, type Enum } from '@zenstackhq/language/ast';
 import { getAllFields } from '@zenstackhq/language/utils';
-import { formatDefinedIn, stripCommentPrefix } from '../extractors';
+import { getRelativeSourcePath, stripCommentPrefix } from '../extractors';
 import type { RenderOptions } from '../types';
 
 export function renderEnumPage(enumDecl: Enum, allModels: DataModel[], options: RenderOptions): string {
@@ -19,8 +19,13 @@ export function renderEnumPage(enumDecl: Enum, allModels: DataModel[], options: 
         lines.push('');
     }
 
-    const definedIn = formatDefinedIn(enumDecl, options.schemaDir);
-    if (definedIn) lines.push(definedIn, '');
+    const sourcePath = getRelativeSourcePath(enumDecl, options.schemaDir);
+    if (sourcePath) {
+        lines.push('| | |');
+        lines.push('| --- | --- |');
+        lines.push(`| **Defined in** | \`${sourcePath}\` |`);
+        lines.push('');
+    }
 
     if (enumDecl.fields.length > 0) {
         lines.push('## Values', '');

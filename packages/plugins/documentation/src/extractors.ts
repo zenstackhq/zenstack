@@ -23,11 +23,10 @@ export function getSourceFilePath(node: AstLike): string | undefined {
     return root.$document?.uri?.fsPath;
 }
 
-export function formatDefinedIn(node: AstLike, schemaDir: string | undefined): string | undefined {
+export function getRelativeSourcePath(node: AstLike, schemaDir: string | undefined): string | undefined {
     const absPath = getSourceFilePath(node);
     if (!absPath) return undefined;
-    const display = schemaDir ? path.relative(schemaDir, absPath) : path.basename(absPath);
-    return `**Defined in:** \`${display}\``;
+    return schemaDir ? path.relative(schemaDir, absPath) : path.basename(absPath);
 }
 
 export function stripCommentPrefix(comments: string[]): string {

@@ -240,15 +240,15 @@ describe('integration: showcase schema', () => {
         const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
 
         const orgDoc = readDoc(tmpDir, 'models', 'Organization.md');
-        expect(orgDoc).toContain('**Category:** Core');
-        expect(orgDoc).toContain('**Since:** 1.0');
+        expect(orgDoc).toContain('| **Category** | Core |');
+        expect(orgDoc).toContain('| **Since** | 1.0 |');
 
         const userDoc = readDoc(tmpDir, 'models', 'User.md');
-        expect(userDoc).toContain('**Category:** Identity');
+        expect(userDoc).toContain('| **Category** | Identity |');
 
         const activityDoc = readDoc(tmpDir, 'models', 'Activity.md');
-        expect(activityDoc).toContain('**Category:** Audit');
-        expect(activityDoc).toContain('**Since:** 2.0');
+        expect(activityDoc).toContain('| **Category** | Audit |');
+        expect(activityDoc).toContain('| **Since** | 2.0 |');
     });
 
     it('renders self-referential relations and @meta doc:example values', async () => {
@@ -336,15 +336,15 @@ describe('integration: multi-file schema', () => {
         const tmpDir = await generateDocs(MULTIFILE_SCHEMA);
 
         const userDoc = readDoc(tmpDir, 'models', 'User.md');
-        expect(userDoc).toContain('**Defined in:**');
+        expect(userDoc).toContain('| **Defined in** |');
         expect(userDoc).toContain('models.zmodel');
 
         const roleDoc = readDoc(tmpDir, 'enums', 'Role.md');
-        expect(roleDoc).toContain('**Defined in:**');
+        expect(roleDoc).toContain('| **Defined in** |');
         expect(roleDoc).toContain('enums.zmodel');
 
         const tsDoc = readDoc(tmpDir, 'types', 'Timestamps.md');
-        expect(tsDoc).toContain('**Defined in:**');
+        expect(tsDoc).toContain('| **Defined in** |');
         expect(tsDoc).toContain('mixins.zmodel');
     });
 

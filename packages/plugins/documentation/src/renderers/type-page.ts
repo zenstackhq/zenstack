@@ -1,10 +1,10 @@
 import type { DataModel, TypeDef } from '@zenstackhq/language/ast';
 import {
-    formatDefinedIn,
     getDefaultValue,
     getFieldAttributes,
     getFieldTypeName,
     isFieldRequired,
+    getRelativeSourcePath,
     stripCommentPrefix,
 } from '../extractors';
 import type { RenderOptions } from '../types';
@@ -25,8 +25,13 @@ export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], option
         lines.push('');
     }
 
-    const definedIn = formatDefinedIn(typeDef, options.schemaDir);
-    if (definedIn) lines.push(definedIn, '');
+    const sourcePath = getRelativeSourcePath(typeDef, options.schemaDir);
+    if (sourcePath) {
+        lines.push('| | |');
+        lines.push('| --- | --- |');
+        lines.push(`| **Defined in** | \`${sourcePath}\` |`);
+        lines.push('');
+    }
 
     const sortedFields =
         options.fieldOrder === 'alphabetical'

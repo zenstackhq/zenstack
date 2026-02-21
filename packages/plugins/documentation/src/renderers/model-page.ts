@@ -3,11 +3,11 @@ import { getAllFields } from '@zenstackhq/language/utils';
 import {
     extractDocMeta,
     extractFieldDocExample,
-    formatDefinedIn,
     getAttrName,
     getDefaultValue,
     getFieldAttributes,
     getFieldTypeName,
+    getRelativeSourcePath,
     isFieldRequired,
     stripCommentPrefix,
 } from '../extractors';
@@ -30,15 +30,22 @@ export function renderModelPage(model: DataModel, options: RenderOptions): strin
     }
 
     const docMeta = extractDocMeta(model.attributes);
+    const sourcePath = getRelativeSourcePath(model, options.schemaDir);
 
-    if (docMeta.category) lines.push(`**Category:** ${docMeta.category}`, '');
-    if (docMeta.since) lines.push(`**Since:** ${docMeta.since}`, '');
-    if (docMeta.deprecated) {
-        lines.push(`> **Deprecated:** ${docMeta.deprecated}`, '');
+    const metaRows: Array<[string, string]> = [];
+    if (docMeta.category) metaRows.push(['**Category**', docMeta.category]);
+    if (docMeta.since) metaRows.push(['**Since**', docMeta.since]);
+    if (docMeta.deprecated) metaRows.push(['**Deprecated**', docMeta.deprecated]);
+    if (sourcePath) metaRows.push(['**Defined in**', `\`${sourcePath}\``]);
+
+    if (metaRows.length > 0) {
+        lines.push('| | |');
+        lines.push('| --- | --- |');
+        for (const [label, value] of metaRows) {
+            lines.push(`| ${label} | ${value} |`);
+        }
+        lines.push('');
     }
-
-    const definedIn = formatDefinedIn(model, options.schemaDir);
-    if (definedIn) lines.push(definedIn, '');
 
     const mixinRefs = model.mixins
         .map((ref) => ref.ref)

@@ -248,7 +248,7 @@ describe('documentation plugin', () => {
         });
 
         const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
-        expect(userDoc).toContain('**Defined in:**');
+        expect(userDoc).toContain('| **Defined in** |');
         expect(userDoc).toContain('.zmodel');
     });
 
@@ -274,7 +274,7 @@ describe('documentation plugin', () => {
         });
 
         const enumDoc = fs.readFileSync(path.join(tmpDir, 'enums', 'Role.md'), 'utf-8');
-        expect(enumDoc).toContain('**Defined in:**');
+        expect(enumDoc).toContain('| **Defined in** |');
         expect(enumDoc).toContain('.zmodel');
     });
 
@@ -298,7 +298,7 @@ describe('documentation plugin', () => {
         });
 
         const typeDoc = fs.readFileSync(path.join(tmpDir, 'types', 'Timestamps.md'), 'utf-8');
-        expect(typeDoc).toContain('**Defined in:**');
+        expect(typeDoc).toContain('| **Defined in** |');
         expect(typeDoc).toContain('.zmodel');
     });
 
@@ -830,7 +830,7 @@ describe('documentation plugin', () => {
         expect(emailLine).not.toContain('[BaseModel]');
     });
 
-    it('renders @@meta doc annotations', async () => {
+    it('renders metadata as compact table', async () => {
         const model = await loadSchema(`
             model User {
                 id String @id @default(cuid())
@@ -851,9 +851,10 @@ describe('documentation plugin', () => {
         });
 
         const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
-        expect(userDoc).toContain('**Category:** Identity');
-        expect(userDoc).toContain('**Since:** 2.0');
-        expect(userDoc).toContain('Use Account instead');
+        expect(userDoc).toContain('| **Category** | Identity |');
+        expect(userDoc).toContain('| **Since** | 2.0 |');
+        expect(userDoc).toContain('| **Deprecated** | Use Account instead |');
+        expect(userDoc).toContain('| **Defined in** |');
     });
 
     it('groups models by category when groupBy = category', async () => {
