@@ -482,8 +482,8 @@ describe('documentation plugin', () => {
 
         const typeDoc = fs.readFileSync(path.join(tmpDir, 'types', 'Timestamps.md'), 'utf-8');
         expect(typeDoc).toContain('## Used By');
-        expect(typeDoc).toContain('[Post](../models/Post.md)');
-        expect(typeDoc).toContain('[User](../models/User.md)');
+        expect(typeDoc).toContain('[Post](../models/Post.md');
+        expect(typeDoc).toContain('[User](../models/User.md');
         expect(typeDoc).not.toContain('[Tag]');
     });
 
@@ -2398,6 +2398,68 @@ describe('documentation plugin', () => {
         const viewDoc = fs.readFileSync(path.join(tmpDir, 'views', 'UserProfile.md'), 'utf-8');
         expect(viewDoc).toContain('<a id="field-id"></a>');
         expect(viewDoc).toContain('<a id="field-email"></a>');
+    });
+
+    it('enum Used By deep-links to specific field anchors on model pages', async () => {
+        const model = await loadSchema(`
+            model User {
+                id   String @id @default(cuid())
+                role Role
+            }
+            model Post {
+                id     String @id @default(cuid())
+                status Role
+            }
+            enum Role {
+                ADMIN
+                USER
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const roleDoc = fs.readFileSync(path.join(tmpDir, 'enums', 'Role.md'), 'utf-8');
+        expect(roleDoc).toContain('## Used By');
+        // Each field should deep-link to the field anchor on the model page
+        expect(roleDoc).toContain('../models/Post.md#field-status');
+        expect(roleDoc).toContain('../models/User.md#field-role');
+    });
+
+    it('type Used By deep-links to specific field anchors on model pages', async () => {
+        const model = await loadSchema(`
+            type Timestamps {
+                createdAt DateTime @default(now())
+                updatedAt DateTime @updatedAt
+            }
+            model User with Timestamps {
+                id String @id @default(cuid())
+            }
+            model Post with Timestamps {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const typeDoc = fs.readFileSync(path.join(tmpDir, 'types', 'Timestamps.md'), 'utf-8');
+        expect(typeDoc).toContain('## Used By');
+        // Deep-link to inherited fields on model pages
+        expect(typeDoc).toContain('../models/Post.md#field-createdAt');
+        expect(typeDoc).toContain('../models/User.md#field-createdAt');
     });
 
     it('deprecated model renders with strikethrough and badge on page heading', async () => {

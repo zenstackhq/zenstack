@@ -60,8 +60,13 @@ export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], option
 
     if (usedBy.length > 0) {
         lines.push('## Used By', '');
+        const firstField = typeDef.fields[0]?.name;
         for (const name of usedBy) {
-            lines.push(`- [${name}](../models/${name}.md)`);
+            const anchor = firstField ? `#field-${firstField}` : '';
+            const fieldLinks = typeDef.fields
+                .map((f) => `[\`${f.name}\`](../models/${name}.md#field-${f.name})`)
+                .join(', ');
+            lines.push(`- [${name}](../models/${name}.md${anchor}) — ${fieldLinks}`);
         }
         lines.push('');
 

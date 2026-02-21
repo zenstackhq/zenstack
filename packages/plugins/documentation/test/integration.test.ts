@@ -191,8 +191,8 @@ describe('integration: showcase schema', () => {
         expect(tsDoc).toContain('field-createdAt');
         expect(tsDoc).toContain('field-updatedAt');
         expect(tsDoc).toContain('## Used By');
-        expect(tsDoc).toContain('[Organization](../models/Organization.md)');
-        expect(tsDoc).toContain('[User](../models/User.md)');
+        expect(tsDoc).toContain('[Organization](../models/Organization.md');
+        expect(tsDoc).toContain('[User](../models/User.md');
 
         const index = readDoc(tmpDir, 'index.md');
         expect(index).toContain('## Types');

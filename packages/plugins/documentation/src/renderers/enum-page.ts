@@ -68,8 +68,11 @@ export function renderEnumPage(enumDecl: Enum, allModels: DataModel[], options: 
 
     if (usedBy.length > 0) {
         lines.push('## Used By', '');
-        for (const name of usedBy) {
-            lines.push(`- [${name}](../models/${name}.md)`);
+        for (const { modelName, fieldNames } of usageDetails) {
+            const fieldLinks = fieldNames
+                .map((f) => `[\`${f}\`](../models/${modelName}.md#field-${f})`)
+                .join(', ');
+            lines.push(`- [${modelName}](../models/${modelName}.md) — ${fieldLinks}`);
         }
         lines.push('');
 
