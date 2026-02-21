@@ -318,6 +318,100 @@ describe('integration: showcase schema', () => {
         expect(tagDoc).toContain('[Index](../index.md)');
     });
 
+    it('generates procedure pages for all declared procedures', async () => {
+        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+
+        const expectedProcedures = [
+            'signUp', 'getUser', 'listOrgUsers',
+            'createAndAssignTask', 'getProjectStats',
+            'bulkUpdateTaskStatus', 'archiveProject',
+        ];
+
+        for (const name of expectedProcedures) {
+            expect(fs.existsSync(path.join(tmpDir, 'procedures', `${name}.md`))).toBe(true);
+        }
+
+        const index = readDoc(tmpDir, 'index.md');
+        expect(index).toContain('## Procedures');
+        for (const name of expectedProcedures) {
+            expect(index).toContain(`[${name}](./procedures/${name}.md)`);
+        }
+        expect(index).toContain('7 procedures');
+    });
+
+    it('procedure pages have correct content for mutations and queries', async () => {
+        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+
+        const signUpDoc = readDoc(tmpDir, 'procedures', 'signUp.md');
+        expect(signUpDoc).toContain('# signUp');
+        expect(signUpDoc).toContain('**mutation**');
+        expect(signUpDoc).toContain('Register a new user');
+        expect(signUpDoc).toContain('## Parameters');
+        expect(signUpDoc).toContain('| email');
+        expect(signUpDoc).toContain('| name');
+        expect(signUpDoc).toContain('| role');
+        expect(signUpDoc).toContain('## Returns');
+        expect(signUpDoc).toContain('[User](../models/User.md)');
+
+        const getUserDoc = readDoc(tmpDir, 'procedures', 'getUser.md');
+        expect(getUserDoc).toContain('# getUser');
+        expect(getUserDoc).toContain('**query**');
+        expect(getUserDoc).toContain('## Returns');
+        expect(getUserDoc).toContain('[User](../models/User.md)');
+
+        const bulkDoc = readDoc(tmpDir, 'procedures', 'bulkUpdateTaskStatus.md');
+        expect(bulkDoc).toContain('**mutation**');
+        expect(bulkDoc).toContain('| taskIds');
+        expect(bulkDoc).toContain('| status');
+        expect(bulkDoc).toContain('`Void`');
+
+        const statsDoc = readDoc(tmpDir, 'procedures', 'getProjectStats.md');
+        expect(statsDoc).toContain('**query**');
+        expect(statsDoc).toContain('[ProjectStats](../types/ProjectStats.md)');
+    });
+
+    it('procedure pages link to return types and param types correctly', async () => {
+        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+
+        const signUpDoc = readDoc(tmpDir, 'procedures', 'signUp.md');
+        expect(signUpDoc).toContain('[Role](../enums/Role.md)');
+        expect(signUpDoc).toContain('[User](../models/User.md)');
+
+        const createDoc = readDoc(tmpDir, 'procedures', 'createAndAssignTask.md');
+        expect(createDoc).toContain('[Priority](../enums/Priority.md)');
+        expect(createDoc).toContain('[Task](../models/Task.md)');
+    });
+
+    it('model pages show Used in Procedures backlinks', async () => {
+        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+
+        const userDoc = readDoc(tmpDir, 'models', 'User.md');
+        expect(userDoc).toContain('## Used in Procedures');
+        expect(userDoc).toContain('[signUp](../procedures/signUp.md)');
+        expect(userDoc).toContain('[getUser](../procedures/getUser.md)');
+        expect(userDoc).toContain('[listOrgUsers](../procedures/listOrgUsers.md)');
+
+        const taskDoc = readDoc(tmpDir, 'models', 'Task.md');
+        expect(taskDoc).toContain('## Used in Procedures');
+        expect(taskDoc).toContain('[createAndAssignTask](../procedures/createAndAssignTask.md)');
+    });
+
+    it('procedure pages have collapsible declarations and source paths', async () => {
+        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+
+        const signUpDoc = readDoc(tmpDir, 'procedures', 'signUp.md');
+        expect(signUpDoc).toContain('<summary>Declaration</summary>');
+        expect(signUpDoc).toContain('mutation procedure signUp');
+        expect(signUpDoc).toContain('| **Defined in** |');
+        expect(signUpDoc).toContain('.zmodel');
+    });
+
+    it('has zero broken links including procedure pages', async () => {
+        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const broken = findBrokenLinks(tmpDir);
+        expect(broken).toEqual([]);
+    });
+
     it('includeInternalModels=true includes @@ignore models in output', async () => {
         const tmpDir = await generateDocs(SHOWCASE_SCHEMA, { includeInternalModels: true });
 
@@ -367,6 +461,41 @@ describe('integration: multi-file schema', () => {
         const tsDoc = readDoc(tmpDir, 'types', 'Timestamps.md');
         expect(tsDoc).toContain('<summary>Declaration</summary>');
         expect(tsDoc).toContain('type Timestamps');
+    });
+});
+
+describe('integration: e2e procedures schema', () => {
+    it('generates procedure pages from real procedures schema', async () => {
+        const tmpDir = await generateDocs(
+            path.join(E2E_SCHEMAS_DIR, 'procedures', 'schema.zmodel'),
+        );
+
+        const index = readDoc(tmpDir, 'index.md');
+        expect(index).toContain('## Procedures');
+        expect(index).toContain('[getUser]');
+        expect(index).toContain('[signUp]');
+        expect(index).toContain('[setAdmin]');
+        expect(index).toContain('[listUsers]');
+        expect(index).toContain('[getOverview]');
+        expect(index).toContain('[createMultiple]');
+
+        const signUpDoc = readDoc(tmpDir, 'procedures', 'signUp.md');
+        expect(signUpDoc).toContain('**mutation**');
+        expect(signUpDoc).toContain('[User](../models/User.md)');
+        expect(signUpDoc).toContain('[Role](../enums/Role.md)');
+
+        const setAdminDoc = readDoc(tmpDir, 'procedures', 'setAdmin.md');
+        expect(setAdminDoc).toContain('`Void`');
+
+        const overviewDoc = readDoc(tmpDir, 'procedures', 'getOverview.md');
+        expect(overviewDoc).toContain('[Overview](../types/Overview.md)');
+    });
+
+    it('has zero broken links', async () => {
+        const tmpDir = await generateDocs(
+            path.join(E2E_SCHEMAS_DIR, 'procedures', 'schema.zmodel'),
+        );
+        expect(findBrokenLinks(tmpDir)).toEqual([]);
     });
 });
 
