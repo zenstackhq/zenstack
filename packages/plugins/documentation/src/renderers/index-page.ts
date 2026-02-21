@@ -83,6 +83,12 @@ export function renderIndexPage(
 
     const lines: string[] = [...generatedHeader(genCtx), `# ${title}`, ''];
 
+    lines.push(
+        'This documentation describes a [ZModel](https://zenstack.dev/docs/reference/zmodel/overview) schema' +
+        ' — the data modeling language used by [ZenStack](https://zenstack.dev/).',
+        '',
+    );
+
     const summaryParts: string[] = [];
     if (models.length > 0) summaryParts.push(`${models.length} ${models.length === 1 ? 'model' : 'models'}`);
     if (views.length > 0) summaryParts.push(`${views.length} ${views.length === 1 ? 'view' : 'views'}`);
@@ -91,6 +97,17 @@ export function renderIndexPage(
     if (procedures.length > 0) summaryParts.push(`${procedures.length} ${procedures.length === 1 ? 'procedure' : 'procedures'}`);
     if (summaryParts.length > 0) {
         lines.push(`> ${summaryParts.join(' · ')}`, '');
+    }
+
+    const tocParts: string[] = [];
+    if (models.length > 0) tocParts.push('[Models](#models)');
+    if (views.length > 0) tocParts.push('[Views](#views)');
+    if (types.length > 0) tocParts.push('[Types](#types)');
+    if (enums.length > 0) tocParts.push('[Enums](#enums)');
+    if (procedures.length > 0) tocParts.push('[Procedures](#procedures)');
+    if (hasRelationships) tocParts.push('[Relationships](./relationships.md)');
+    if (tocParts.length > 0) {
+        lines.push(tocParts.join(' · '), '');
     }
 
     if (models.length > 0) {

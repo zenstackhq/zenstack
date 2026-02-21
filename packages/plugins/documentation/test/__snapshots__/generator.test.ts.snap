@@ -11,7 +11,7 @@ exports[`documentation plugin > snapshot: full representative schema output > en
 
 > User roles in the system.
 
-**Defined in:** \`../../../../../tmp/zenstack-schema-ba7816d4-5e98-4592-98b7-82b4d4f7741b.zmodel\`
+**Defined in:** \`../../../../../tmp/zenstack-schema-6f4545f5-b731-4c41-8f01-55e18fe5722f.zmodel\`
 
 ## Values
 
@@ -37,7 +37,7 @@ classDiagram
 *Learn more about ZModel enums in the [ZenStack documentation](https://zenstack.dev/docs/reference/zmodel/enum).*
 
 <details>
-<summary>Declaration · <code>../../../../../tmp/zenstack-schema-ba7816d4-5e98-4592-98b7-82b4d4f7741b.zmodel</code></summary>
+<summary>Declaration · <code>../../../../../tmp/zenstack-schema-6f4545f5-b731-4c41-8f01-55e18fe5722f.zmodel</code></summary>
 
 \`\`\`prisma
 /// User roles in the system.
@@ -60,7 +60,11 @@ exports[`documentation plugin > snapshot: full representative schema output > in
 
 # Schema Documentation
 
+This documentation describes a [ZModel](https://zenstack.dev/docs/reference/zmodel/overview) schema — the data modeling language used by [ZenStack](https://zenstack.dev/).
+
 > 2 models · 1 enum
+
+[Models](#models) · [Enums](#enums) · [Relationships](./relationships.md)
 
 ## Models
 
@@ -88,7 +92,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 > A blog post.
 
-**Category:** Content · **Defined in:** \`../../../../../tmp/zenstack-schema-ba7816d4-5e98-4592-98b7-82b4d4f7741b.zmodel\`
+**Category:** Content · **Defined in:** \`../../../../../tmp/zenstack-schema-6f4545f5-b731-4c41-8f01-55e18fe5722f.zmodel\`
 
 [Fields](#fields) · [Relationships](#relationships)
 
@@ -116,7 +120,7 @@ erDiagram
 *Learn more about ZModel models in the [ZenStack documentation](https://zenstack.dev/docs/reference/zmodel/data-model).*
 
 <details>
-<summary>Declaration · <code>../../../../../tmp/zenstack-schema-ba7816d4-5e98-4592-98b7-82b4d4f7741b.zmodel</code></summary>
+<summary>Declaration · <code>../../../../../tmp/zenstack-schema-6f4545f5-b731-4c41-8f01-55e18fe5722f.zmodel</code></summary>
 
 \`\`\`prisma
 /// A blog post.
@@ -151,7 +155,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 > Represents a registered user.
 
-**Category:** Identity · **Since:** 1.0 · **Defined in:** \`../../../../../tmp/zenstack-schema-ba7816d4-5e98-4592-98b7-82b4d4f7741b.zmodel\`
+**Category:** Identity · **Since:** 1.0 · **Defined in:** \`../../../../../tmp/zenstack-schema-6f4545f5-b731-4c41-8f01-55e18fe5722f.zmodel\`
 
 [Fields](#fields) · [Relationships](#relationships) · [Access Policies](#access-policies) · [Indexes](#indexes) · [Validation Rules](#validation-rules)
 
@@ -201,7 +205,7 @@ erDiagram
 *Learn more about ZModel models in the [ZenStack documentation](https://zenstack.dev/docs/reference/zmodel/data-model).*
 
 <details>
-<summary>Declaration · <code>../../../../../tmp/zenstack-schema-ba7816d4-5e98-4592-98b7-82b4d4f7741b.zmodel</code></summary>
+<summary>Declaration · <code>../../../../../tmp/zenstack-schema-6f4545f5-b731-4c41-8f01-55e18fe5722f.zmodel</code></summary>
 
 \`\`\`prisma
 /// Represents a registered user.

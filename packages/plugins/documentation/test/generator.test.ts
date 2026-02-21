@@ -898,6 +898,69 @@ describe('documentation plugin', () => {
         expect(tocIdx).toBeLessThan(fieldsIdx);
     });
 
+    it('index page has horizontal TOC with links to present sections', async () => {
+        const model = await loadSchema(`
+            enum Role { ADMIN USER }
+            type Timestamps {
+                createdAt DateTime @default(now())
+            }
+            model User {
+                id   String @id @default(cuid())
+                role Role
+                posts Post[]
+            }
+            model Post {
+                id       String @id @default(cuid())
+                author   User   @relation(fields: [authorId], references: [id])
+                authorId String
+            }
+            procedure getUser(id: String): User
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const indexContent = fs.readFileSync(path.join(tmpDir, 'index.md'), 'utf-8');
+        // TOC should appear before any ## heading and link to sections
+        expect(indexContent).toContain('[Models](#models)');
+        expect(indexContent).toContain('[Enums](#enums)');
+        expect(indexContent).toContain('[Types](#types)');
+        expect(indexContent).toContain('[Procedures](#procedures)');
+
+        // TOC should be a single line with dots/middot separating
+        const tocLine = indexContent.split('\n').find((l) => l.includes('[Models](#models)'));
+        expect(tocLine).toBeDefined();
+        expect(tocLine).toContain('[Enums](#enums)');
+    });
+
+    it('index page includes introductory context paragraph', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: '/app/project/schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const indexContent = fs.readFileSync(path.join(tmpDir, 'index.md'), 'utf-8');
+        // Should have contextual intro text
+        expect(indexContent).toContain('ZModel');
+        expect(indexContent).toContain('zenstack.dev');
+    });
+
     it('model page includes external ZenStack docs link', async () => {
         const model = await loadSchema(`
             model User {
