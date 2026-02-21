@@ -375,7 +375,7 @@ describe('documentation plugin', () => {
         });
 
         const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
-        expect(userDoc).toContain('| **Defined in** |');
+        expect(userDoc).toContain('**Defined in:**');
         expect(userDoc).toContain('.zmodel');
     });
 
@@ -401,7 +401,7 @@ describe('documentation plugin', () => {
         });
 
         const enumDoc = fs.readFileSync(path.join(tmpDir, 'enums', 'Role.md'), 'utf-8');
-        expect(enumDoc).toContain('| **Defined in** |');
+        expect(enumDoc).toContain('**Defined in:**');
         expect(enumDoc).toContain('.zmodel');
     });
 
@@ -425,7 +425,7 @@ describe('documentation plugin', () => {
         });
 
         const typeDoc = fs.readFileSync(path.join(tmpDir, 'types', 'Timestamps.md'), 'utf-8');
-        expect(typeDoc).toContain('| **Defined in** |');
+        expect(typeDoc).toContain('**Defined in:**');
         expect(typeDoc).toContain('.zmodel');
     });
 
@@ -999,7 +999,7 @@ describe('documentation plugin', () => {
         expect(emailLine).not.toContain('[BaseModel]');
     });
 
-    it('renders metadata as compact table', async () => {
+    it('renders metadata as inline key-value pairs without empty table headers', async () => {
         const model = await loadSchema(`
             model User {
                 id String @id @default(cuid())
@@ -1020,10 +1020,11 @@ describe('documentation plugin', () => {
         });
 
         const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
-        expect(userDoc).toContain('| **Category** | Identity |');
-        expect(userDoc).toContain('| **Since** | 2.0 |');
-        expect(userDoc).toContain('| **Deprecated** | Use Account instead |');
-        expect(userDoc).toContain('| **Defined in** |');
+        expect(userDoc).toContain('**Category:** Identity');
+        expect(userDoc).toContain('**Since:** 2.0');
+        expect(userDoc).toContain('**Deprecated:** Use Account instead');
+        expect(userDoc).toContain('**Defined in:**');
+        expect(userDoc).not.toContain('| | |');
     });
 
     it('groups models by category when groupBy = category', async () => {
@@ -1722,7 +1723,7 @@ describe('documentation plugin', () => {
         });
 
         const procDoc = fs.readFileSync(path.join(tmpDir, 'procedures', 'getUser.md'), 'utf-8');
-        expect(procDoc).toContain('| **Defined in** |');
+        expect(procDoc).toContain('**Defined in:**');
         expect(procDoc).toContain('.zmodel');
     });
 

@@ -29,10 +29,7 @@ export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], option
 
     const sourcePath = getRelativeSourcePath(typeDef, options.schemaDir);
     if (sourcePath) {
-        lines.push('| | |');
-        lines.push('| --- | --- |');
-        lines.push(`| **Defined in** | \`${sourcePath}\` |`);
-        lines.push('');
+        lines.push(`**Defined in:** \`${sourcePath}\``, '');
     }
 
     const sortedFields =

@@ -78,10 +78,7 @@ export function renderProcedurePage(proc: Procedure, options: RenderOptions): st
 
     const sourcePath = getRelativeSourcePath(proc, options.schemaDir);
     if (sourcePath) {
-        lines.push('| | |');
-        lines.push('| --- | --- |');
-        lines.push(`| **Defined in** | \`${sourcePath}\` |`);
-        lines.push('');
+        lines.push(`**Defined in:** \`${sourcePath}\``, '');
     }
 
     lines.push('## Returns', '');

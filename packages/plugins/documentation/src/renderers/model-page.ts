@@ -43,19 +43,14 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
     const docMeta = extractDocMeta(model.attributes);
     const sourcePath = getRelativeSourcePath(model, options.schemaDir);
 
-    const metaRows: Array<[string, string]> = [];
-    if (docMeta.category) metaRows.push(['**Category**', docMeta.category]);
-    if (docMeta.since) metaRows.push(['**Since**', docMeta.since]);
-    if (docMeta.deprecated) metaRows.push(['**Deprecated**', docMeta.deprecated]);
-    if (sourcePath) metaRows.push(['**Defined in**', `\`${sourcePath}\``]);
+    const metaParts: string[] = [];
+    if (docMeta.category) metaParts.push(`**Category:** ${docMeta.category}`);
+    if (docMeta.since) metaParts.push(`**Since:** ${docMeta.since}`);
+    if (docMeta.deprecated) metaParts.push(`**Deprecated:** ${docMeta.deprecated}`);
+    if (sourcePath) metaParts.push(`**Defined in:** \`${sourcePath}\``);
 
-    if (metaRows.length > 0) {
-        lines.push('| | |');
-        lines.push('| --- | --- |');
-        for (const [label, value] of metaRows) {
-            lines.push(`| ${label} | ${value} |`);
-        }
-        lines.push('');
+    if (metaParts.length > 0) {
+        lines.push(metaParts.join(' · '), '');
     }
 
     const mixinRefs = model.mixins

@@ -23,10 +23,7 @@ export function renderEnumPage(enumDecl: Enum, allModels: DataModel[], options: 
 
     const sourcePath = getRelativeSourcePath(enumDecl, options.schemaDir);
     if (sourcePath) {
-        lines.push('| | |');
-        lines.push('| --- | --- |');
-        lines.push(`| **Defined in** | \`${sourcePath}\` |`);
-        lines.push('');
+        lines.push(`**Defined in:** \`${sourcePath}\``, '');
     }
 
     if (enumDecl.fields.length > 0) {

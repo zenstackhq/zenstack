@@ -9,9 +9,7 @@ exports[`documentation plugin > snapshot: full representative schema output > en
 
 > User roles in the system.
 
-| | |
-| --- | --- |
-| **Defined in** | \`../../../../../tmp/zenstack-schema-37c2d817-8141-4782-9519-d1e4ba34da8a.zmodel\` |
+**Defined in:** \`../../../../../tmp/zenstack-schema-67dcc67a-0c98-4354-8661-73996f395c02.zmodel\`
 
 ## Values
 
@@ -72,10 +70,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 > A blog post.
 
-| | |
-| --- | --- |
-| **Category** | Content |
-| **Defined in** | \`../../../../../tmp/zenstack-schema-37c2d817-8141-4782-9519-d1e4ba34da8a.zmodel\` |
+**Category:** Content · **Defined in:** \`../../../../../tmp/zenstack-schema-67dcc67a-0c98-4354-8661-73996f395c02.zmodel\`
 
 - [Fields](#fields)
 - [Relationships](#relationships)
@@ -126,11 +121,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 > Represents a registered user.
 
-| | |
-| --- | --- |
-| **Category** | Identity |
-| **Since** | 1.0 |
-| **Defined in** | \`../../../../../tmp/zenstack-schema-37c2d817-8141-4782-9519-d1e4ba34da8a.zmodel\` |
+**Category:** Identity · **Since:** 1.0 · **Defined in:** \`../../../../../tmp/zenstack-schema-67dcc67a-0c98-4354-8661-73996f395c02.zmodel\`
 
 - [Fields](#fields)
 - [Relationships](#relationships)
