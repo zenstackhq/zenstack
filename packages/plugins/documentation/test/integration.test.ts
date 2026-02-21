@@ -159,14 +159,41 @@ describe('integration: showcase schema', () => {
             expect(fs.existsSync(path.join(tmpDir, 'enums', `${name}.md`))).toBe(true);
         }
 
+        expect(fs.existsSync(path.join(tmpDir, 'types', 'Timestamps.md'))).toBe(true);
+
         expect(fs.existsSync(path.join(tmpDir, 'models', 'JobRun.md'))).toBe(false);
         expect(fs.existsSync(path.join(tmpDir, 'models', 'ApiToken.md'))).toBe(false);
     });
 
-    it('has zero broken links across all 14 generated files', async () => {
+    it('has zero broken links across all generated files', async () => {
         const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
         const broken = findBrokenLinks(tmpDir);
         expect(broken).toEqual([]);
+    });
+
+    it('type pages render with fields, Used By, and cross-links to models', async () => {
+        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+
+        const tsDoc = readDoc(tmpDir, 'types', 'Timestamps.md');
+        expect(tsDoc).toContain('# Timestamps');
+        expect(tsDoc).toContain('[Index](../index.md)');
+        expect(tsDoc).toContain('## Fields');
+        expect(tsDoc).toContain('| createdAt');
+        expect(tsDoc).toContain('| updatedAt');
+        expect(tsDoc).toContain('## Used By');
+        expect(tsDoc).toContain('[Organization](../models/Organization.md)');
+        expect(tsDoc).toContain('[User](../models/User.md)');
+
+        const index = readDoc(tmpDir, 'index.md');
+        expect(index).toContain('## Types');
+        expect(index).toContain('[Timestamps](./types/Timestamps.md)');
+
+        const userDoc = readDoc(tmpDir, 'models', 'User.md');
+        expect(userDoc).toContain('## Mixins');
+        expect(userDoc).toContain('[Timestamps](../types/Timestamps.md)');
+
+        const createdAtLine = userDoc.split('\n').find((l) => l.includes('| createdAt'));
+        expect(createdAtLine).toContain('From [Timestamps](../types/Timestamps.md)');
     });
 
     it('index page lists all visible models, enums, and relationships link', async () => {
