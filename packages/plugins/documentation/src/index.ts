@@ -4,6 +4,7 @@ import {
     type DataField,
     type DataFieldAttribute,
     type DataModel,
+    type DataModelAttribute,
     type Enum,
 } from '@zenstackhq/language/ast';
 import { getAllFields } from '@zenstackhq/language/utils';
@@ -109,6 +110,28 @@ function isFieldRequired(field: DataField): boolean {
     return !field.type.optional && !field.type.array;
 }
 
+interface DocMeta {
+    category?: string;
+    since?: string;
+    deprecated?: string;
+}
+
+function extractDocMeta(attributes: DataModelAttribute[]): DocMeta {
+    const meta: DocMeta = {};
+    for (const attr of attributes) {
+        if (attr.decl.ref?.name !== '@@meta') continue;
+        const nameArg = attr.args[0]?.$cstNode?.text ?? '';
+        const key = nameArg.replace(/^['"]|['"]$/g, '');
+        const valueArg = attr.args[1]?.$cstNode?.text ?? '';
+        const value = valueArg.replace(/^['"]|['"]$/g, '');
+
+        if (key === 'doc:category') meta.category = value;
+        else if (key === 'doc:since') meta.since = value;
+        else if (key === 'doc:deprecated') meta.deprecated = value;
+    }
+    return meta;
+}
+
 function renderModelPage(model: DataModel): string {
     const lines: string[] = [`# ${model.name}`, ''];
 
@@ -118,6 +141,14 @@ function renderModelPage(model: DataModel): string {
             lines.push(`> ${line}`);
         }
         lines.push('');
+    }
+
+    const docMeta = extractDocMeta(model.attributes);
+
+    if (docMeta.category) lines.push(`**Category:** ${docMeta.category}`, '');
+    if (docMeta.since) lines.push(`**Since:** ${docMeta.since}`, '');
+    if (docMeta.deprecated) {
+        lines.push(`> **Deprecated:** ${docMeta.deprecated}`, '');
     }
 
     const allFields = getAllFields(model);

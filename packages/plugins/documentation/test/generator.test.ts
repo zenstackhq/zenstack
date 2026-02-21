@@ -394,4 +394,30 @@ describe('documentation plugin', () => {
         expect(idLine).toContain('Inherited from');
         expect(idLine).toContain('BaseModel');
     });
+
+    it('renders @@meta doc annotations', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+
+                @@meta('doc:category', 'Identity')
+                @@meta('doc:since', '2.0')
+                @@meta('doc:deprecated', 'Use Account instead')
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('**Category:** Identity');
+        expect(userDoc).toContain('**Since:** 2.0');
+        expect(userDoc).toContain('Use Account instead');
+    });
 });
