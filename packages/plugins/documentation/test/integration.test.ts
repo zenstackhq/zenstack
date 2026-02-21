@@ -307,7 +307,7 @@ describe('integration: showcase schema', () => {
         expect(profileDoc).toContain('field-email');
         expect(profileDoc).toContain('field-organizationName');
         expect(profileDoc).toContain('field-teamCount');
-        expect(profileDoc).toContain('<summary>Declaration</summary>');
+        expect(profileDoc).toContain('<summary>Declaration');
         expect(profileDoc).toContain('view UserProfile');
 
         // Descriptions on view fields
@@ -485,7 +485,7 @@ describe('integration: showcase schema', () => {
         const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
 
         const signUpDoc = readDoc(tmpDir, 'procedures', 'signUp.md');
-        expect(signUpDoc).toContain('<summary>Declaration</summary>');
+        expect(signUpDoc).toContain('<summary>Declaration');
         expect(signUpDoc).toContain('mutation procedure signUp');
         expect(signUpDoc).toContain('**Defined in:**');
         expect(signUpDoc).toContain('.zmodel');
@@ -536,15 +536,15 @@ describe('integration: multi-file schema', () => {
         const tmpDir = await generateDocs(MULTIFILE_SCHEMA);
 
         const userDoc = readDoc(tmpDir, 'models', 'User.md');
-        expect(userDoc).toContain('<summary>Declaration</summary>');
+        expect(userDoc).toContain('<summary>Declaration');
         expect(userDoc).toContain('model User');
 
         const roleDoc = readDoc(tmpDir, 'enums', 'Role.md');
-        expect(roleDoc).toContain('<summary>Declaration</summary>');
+        expect(roleDoc).toContain('<summary>Declaration');
         expect(roleDoc).toContain('enum Role');
 
         const tsDoc = readDoc(tmpDir, 'types', 'Timestamps.md');
-        expect(tsDoc).toContain('<summary>Declaration</summary>');
+        expect(tsDoc).toContain('<summary>Declaration');
         expect(tsDoc).toContain('type Timestamps');
     });
 });

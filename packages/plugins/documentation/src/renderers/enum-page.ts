@@ -1,5 +1,5 @@
 import { isEnum, type DataModel, type Enum } from '@zenstackhq/language/ast';
-import { breadcrumbs, generatedHeader, navigationFooter } from './common';
+import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter } from './common';
 import { getAllFields } from '@zenstackhq/language/utils';
 import { getRelativeSourcePath, stripCommentPrefix } from '../extractors';
 import type { Navigation, RenderOptions } from '../types';
@@ -91,15 +91,7 @@ export function renderEnumPage(enumDecl: Enum, allModels: DataModel[], options: 
         lines.push('```', '');
     }
 
-    const cstText = enumDecl.$cstNode?.text;
-    if (cstText) {
-        lines.push('<details>');
-        lines.push('<summary>Declaration</summary>', '');
-        lines.push('```prisma');
-        lines.push(cstText);
-        lines.push('```', '');
-        lines.push('</details>', '');
-    }
+    lines.push(...declarationBlock(enumDecl.$cstNode?.text, sourcePath));
 
     lines.push(...navigationFooter(navigation));
 

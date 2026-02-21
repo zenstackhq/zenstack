@@ -363,7 +363,7 @@ describe('documentation plugin', () => {
         });
 
         const viewDoc = fs.readFileSync(path.join(tmpDir, 'views', 'ActiveUsers.md'), 'utf-8');
-        expect(viewDoc).toContain('<summary>Declaration</summary>');
+        expect(viewDoc).toContain('<summary>Declaration');
         expect(viewDoc).toContain('view ActiveUsers');
     });
 
@@ -727,7 +727,7 @@ describe('documentation plugin', () => {
         });
 
         const enumDoc = fs.readFileSync(path.join(tmpDir, 'enums', 'Role.md'), 'utf-8');
-        expect(enumDoc).toContain('<summary>Declaration</summary>');
+        expect(enumDoc).toContain('<summary>Declaration');
         expect(enumDoc).toContain('```prisma');
         expect(enumDoc).toContain('enum Role {');
         expect(enumDoc).toContain('ADMIN');
@@ -755,7 +755,7 @@ describe('documentation plugin', () => {
         });
 
         const typeDoc = fs.readFileSync(path.join(tmpDir, 'types', 'Timestamps.md'), 'utf-8');
-        expect(typeDoc).toContain('<summary>Declaration</summary>');
+        expect(typeDoc).toContain('<summary>Declaration');
         expect(typeDoc).toContain('```prisma');
         expect(typeDoc).toContain('type Timestamps {');
         expect(typeDoc).toContain('createdAt DateTime');
@@ -898,6 +898,29 @@ describe('documentation plugin', () => {
         expect(tocIdx).toBeLessThan(fieldsIdx);
     });
 
+    it('declaration summary includes source file path', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        // The <summary> should include the source file
+        const summaryLine = userDoc.split('\n').find((l) => l.includes('<summary>'));
+        expect(summaryLine).toContain('Declaration');
+        expect(summaryLine).toContain('.zmodel');
+    });
+
     it('model page includes declaration code block', async () => {
         const model = await loadSchema(`
             /// A registered user.
@@ -918,7 +941,7 @@ describe('documentation plugin', () => {
 
         const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
         expect(userDoc).toContain('<details>');
-        expect(userDoc).toContain('<summary>Declaration</summary>');
+        expect(userDoc).toContain('<summary>Declaration');
         expect(userDoc).toContain('```prisma');
         expect(userDoc).toContain('model User {');
         expect(userDoc).toContain('id    String @id @default(cuid())');
@@ -2178,13 +2201,13 @@ describe('documentation plugin', () => {
 
         const procDoc = fs.readFileSync(path.join(tmpDir, 'procedures', 'signUp.md'), 'utf-8');
         expect(procDoc).toContain('<details>');
-        expect(procDoc).toContain('<summary>Declaration</summary>');
+        expect(procDoc).toContain('<summary>Declaration');
         expect(procDoc).toContain('```prisma');
         expect(procDoc).toContain('mutation procedure signUp');
         expect(procDoc).toContain('</details>');
     });
 
-    it('procedure page shows source file path', async () => {
+    it('procedure page shows Defined In before Parameters, not between params and returns', async () => {
         const model = await loadSchema(`
             model User {
                 id String @id @default(cuid())
@@ -2204,6 +2227,15 @@ describe('documentation plugin', () => {
         const procDoc = fs.readFileSync(path.join(tmpDir, 'procedures', 'getUser.md'), 'utf-8');
         expect(procDoc).toContain('**Defined in:**');
         expect(procDoc).toContain('.zmodel');
+        // "Defined in" should appear before ## Parameters (top metadata area)
+        const definedIdx = procDoc.indexOf('**Defined in:**');
+        const paramsIdx = procDoc.indexOf('## Parameters');
+        const returnsIdx = procDoc.indexOf('## Returns');
+        if (paramsIdx !== -1) {
+            expect(definedIdx).toBeLessThan(paramsIdx);
+        }
+        // And definitely before Returns
+        expect(definedIdx).toBeLessThan(returnsIdx);
     });
 
     it('index page summary includes procedure count', async () => {

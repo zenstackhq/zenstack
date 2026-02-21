@@ -1,6 +1,6 @@
 import { isDataModel, isTypeDef, type DataModel, type Procedure } from '@zenstackhq/language/ast';
 import { getAllFields } from '@zenstackhq/language/utils';
-import { breadcrumbs, generatedHeader, navigationFooter } from './common';
+import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter } from './common';
 import type { Navigation } from '../types';
 import {
     extractDocMeta,
@@ -272,15 +272,7 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
         lines.push('');
     }
 
-    const cstText = model.$cstNode?.text;
-    if (cstText) {
-        lines.push('<details>');
-        lines.push('<summary>Declaration</summary>', '');
-        lines.push('```prisma');
-        lines.push(cstText);
-        lines.push('```', '');
-        lines.push('</details>', '');
-    }
+    lines.push(...declarationBlock(model.$cstNode?.text, sourcePath));
 
     lines.push(...navigationFooter(navigation));
 

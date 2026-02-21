@@ -1,6 +1,6 @@
 import { isDataModel, isEnum, type Procedure } from '@zenstackhq/language/ast';
 import { getRelativeSourcePath } from '../extractors';
-import { breadcrumbs, generatedHeader, navigationFooter } from './common';
+import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter } from './common';
 import type { Navigation, RenderOptions } from '../types';
 
 function formatParamType(paramType: Procedure['returnType'], linked: boolean): string {
@@ -61,6 +61,11 @@ export function renderProcedurePage(proc: Procedure, options: RenderOptions, nav
         lines.push('');
     }
 
+    const sourcePath = getRelativeSourcePath(proc, options.schemaDir);
+    if (sourcePath) {
+        lines.push(`**Defined in:** \`${sourcePath}\``, '');
+    }
+
     if (proc.params.length > 0) {
         lines.push('## Parameters', '');
         lines.push('| Parameter | Type | Required |');
@@ -72,11 +77,6 @@ export function renderProcedurePage(proc: Procedure, options: RenderOptions, nav
             lines.push(`| ${param.name} | ${typeStr} | ${required ? 'Yes' : 'No'} |`);
         }
         lines.push('');
-    }
-
-    const sourcePath = getRelativeSourcePath(proc, options.schemaDir);
-    if (sourcePath) {
-        lines.push(`**Defined in:** \`${sourcePath}\``, '');
     }
 
     lines.push('## Returns', '');
@@ -100,15 +100,7 @@ export function renderProcedurePage(proc: Procedure, options: RenderOptions, nav
     lines.push(`    ${procNodeId} --> ret["${retTypeName}${retArray}"]`);
     lines.push('```', '');
 
-    const cstText = proc.$cstNode?.text;
-    if (cstText) {
-        lines.push('<details>');
-        lines.push('<summary>Declaration</summary>', '');
-        lines.push('```prisma');
-        lines.push(cstText);
-        lines.push('```', '');
-        lines.push('</details>', '');
-    }
+    lines.push(...declarationBlock(proc.$cstNode?.text, sourcePath));
 
     lines.push(...navigationFooter(navigation));
 

@@ -30,6 +30,22 @@ export function navigationFooter(nav: Navigation | undefined): string[] {
     return ['---', '', parts.join(' · '), ''];
 }
 
+export function declarationBlock(cstText: string | undefined, sourcePath: string | undefined): string[] {
+    if (!cstText) return [];
+    const summaryLabel = sourcePath ? `Declaration · <code>${sourcePath}</code>` : 'Declaration';
+    return [
+        '<details>',
+        `<summary>${summaryLabel}</summary>`,
+        '',
+        '```prisma',
+        cstText,
+        '```',
+        '',
+        '</details>',
+        '',
+    ];
+}
+
 export function buildNavList(
     sortedNames: string[],
     pathPrefix: string,

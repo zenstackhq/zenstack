@@ -1,5 +1,5 @@
 import type { DataModel, TypeDef } from '@zenstackhq/language/ast';
-import { breadcrumbs, generatedHeader, navigationFooter } from './common';
+import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter } from './common';
 import type { Navigation } from '../types';
 import {
     getDefaultValue,
@@ -84,15 +84,7 @@ export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], option
         lines.push('```', '');
     }
 
-    const cstText = typeDef.$cstNode?.text;
-    if (cstText) {
-        lines.push('<details>');
-        lines.push('<summary>Declaration</summary>', '');
-        lines.push('```prisma');
-        lines.push(cstText);
-        lines.push('```', '');
-        lines.push('</details>', '');
-    }
+    lines.push(...declarationBlock(typeDef.$cstNode?.text, sourcePath));
 
     lines.push(...navigationFooter(navigation));
 

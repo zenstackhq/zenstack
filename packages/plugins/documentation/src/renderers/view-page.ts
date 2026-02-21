@@ -1,5 +1,5 @@
 import { type DataModel } from '@zenstackhq/language/ast';
-import { breadcrumbs, generatedHeader, navigationFooter } from './common';
+import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter } from './common';
 import {
     extractDocMeta,
     getDefaultValue,
@@ -64,15 +64,7 @@ export function renderViewPage(view: DataModel, options: RenderOptions, navigati
         lines.push('');
     }
 
-    const cstText = view.$cstNode?.text;
-    if (cstText) {
-        lines.push('<details>');
-        lines.push('<summary>Declaration</summary>', '');
-        lines.push('```prisma');
-        lines.push(cstText);
-        lines.push('```', '');
-        lines.push('</details>', '');
-    }
+    lines.push(...declarationBlock(view.$cstNode?.text, sourcePath));
 
     lines.push(...navigationFooter(navigation));
 
