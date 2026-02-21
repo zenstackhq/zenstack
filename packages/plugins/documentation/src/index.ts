@@ -95,8 +95,9 @@ function formatAttrArgs(attr: DataFieldAttribute): string {
 
 function getDefaultValue(field: DataField): string {
     const defaultAttr = field.attributes.find((a) => getAttrName(a) === '@default');
-    if (!defaultAttr || defaultAttr.args.length === 0) return '\u2014';
-    return `\`${defaultAttr.args[0].$cstNode?.text ?? ''}\``;
+    const firstArg = defaultAttr?.args[0];
+    if (!firstArg) return '\u2014';
+    return `\`${firstArg.$cstNode?.text ?? ''}\``;
 }
 
 function getFieldAttributes(field: DataField): string {
