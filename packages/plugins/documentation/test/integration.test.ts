@@ -47,8 +47,8 @@ describe('integration: samples/shared schema', () => {
         expect(userDoc).toContain('# User');
         expect(userDoc).toContain('User model');
         expect(userDoc).toContain('## Fields');
-        expect(userDoc).toContain('| email');
-        expect(userDoc).toContain('| posts');
+        expect(userDoc).toContain('field-email');
+        expect(userDoc).toContain('field-posts');
         expect(userDoc).toContain('## Relationships');
         expect(userDoc).toContain('[Post](./Post.md)');
 
@@ -85,7 +85,7 @@ describe('integration: samples/orm schema', () => {
         expect(userDoc).toContain('User model');
         expect(userDoc).toContain('[Role](../enums/Role.md)');
 
-        const postCountLine = userDoc.split('\n').find((l) => l.includes('| postCount'));
+        const postCountLine = userDoc.split('\n').find((l) => l.includes('field-postCount'));
         expect(postCountLine).toBeDefined();
         expect(postCountLine).toContain('<kbd>computed</kbd>');
 
@@ -188,8 +188,8 @@ describe('integration: showcase schema', () => {
         expect(tsDoc).toContain('# Timestamps');
         expect(tsDoc).toContain('[Index](../index.md)');
         expect(tsDoc).toContain('## Fields');
-        expect(tsDoc).toContain('| createdAt');
-        expect(tsDoc).toContain('| updatedAt');
+        expect(tsDoc).toContain('field-createdAt');
+        expect(tsDoc).toContain('field-updatedAt');
         expect(tsDoc).toContain('## Used By');
         expect(tsDoc).toContain('[Organization](../models/Organization.md)');
         expect(tsDoc).toContain('[User](../models/User.md)');
@@ -202,7 +202,7 @@ describe('integration: showcase schema', () => {
         expect(userDoc).toContain('## Mixins');
         expect(userDoc).toContain('[Timestamps](../types/Timestamps.md)');
 
-        const createdAtLine = userDoc.split('\n').find((l) => l.includes('| createdAt'));
+        const createdAtLine = userDoc.split('\n').find((l) => l.includes('field-createdAt'));
         expect(createdAtLine).toContain('[Timestamps](../types/Timestamps.md)');
     });
 
@@ -227,7 +227,7 @@ describe('integration: showcase schema', () => {
 
         const userDoc = readDoc(tmpDir, 'models', 'User.md');
 
-        const taskCountLine = userDoc.split('\n').find((l) => l.includes('| taskCount'));
+        const taskCountLine = userDoc.split('\n').find((l) => l.includes('field-taskCount'));
         expect(taskCountLine).toContain('<kbd>computed</kbd>');
 
         expect(userDoc).toContain('[Role](../enums/Role.md)');
@@ -251,24 +251,24 @@ describe('integration: showcase schema', () => {
         const projectDoc = readDoc(tmpDir, 'models', 'Project.md');
         const projectLines = projectDoc.split('\n');
 
-        const taskCountLine = projectLines.find((l) => l.includes('| taskCount'));
+        const taskCountLine = projectLines.find((l) => l.includes('field-taskCount'));
         expect(taskCountLine).toBeDefined();
         expect(taskCountLine).toContain('`Int` <kbd>computed</kbd>');
         expect(taskCountLine).toContain('Total number of tasks');
 
-        const completionLine = projectLines.find((l) => l.includes('| completionRate'));
+        const completionLine = projectLines.find((l) => l.includes('field-completionRate'));
         expect(completionLine).toBeDefined();
         expect(completionLine).toContain('`Float` <kbd>computed</kbd>');
         expect(completionLine).toContain('Percentage of completed tasks');
 
-        const overdueLine = projectLines.find((l) => l.includes('| hasOverdueTasks'));
+        const overdueLine = projectLines.find((l) => l.includes('field-hasOverdueTasks'));
         expect(overdueLine).toBeDefined();
         expect(overdueLine).toContain('`Boolean` <kbd>computed</kbd>');
 
         const taskDoc = readDoc(tmpDir, 'models', 'Task.md');
         const taskLines = taskDoc.split('\n');
 
-        const commentCountLine = taskLines.find((l) => l.includes('| commentCount'));
+        const commentCountLine = taskLines.find((l) => l.includes('field-commentCount'));
         expect(commentCountLine).toBeDefined();
         expect(commentCountLine).toContain('`Int` <kbd>computed</kbd>');
         expect(commentCountLine).toContain('Number of comments');
@@ -276,7 +276,7 @@ describe('integration: showcase schema', () => {
         const orgDoc = readDoc(tmpDir, 'models', 'Organization.md');
         const orgLines = orgDoc.split('\n');
 
-        const memberCountLine = orgLines.find((l) => l.includes('| memberCount'));
+        const memberCountLine = orgLines.find((l) => l.includes('field-memberCount'));
         expect(memberCountLine).toBeDefined();
         expect(memberCountLine).toContain('`Int` <kbd>computed</kbd>');
     });
@@ -303,10 +303,10 @@ describe('integration: showcase schema', () => {
         expect(profileDoc).toContain('[Views](../index.md#views)');
         expect(profileDoc).toContain('Flattened user profile for reporting');
         expect(profileDoc).toContain('## Fields');
-        expect(profileDoc).toContain('| name');
-        expect(profileDoc).toContain('| email');
-        expect(profileDoc).toContain('| organizationName');
-        expect(profileDoc).toContain('| teamCount');
+        expect(profileDoc).toContain('field-name');
+        expect(profileDoc).toContain('field-email');
+        expect(profileDoc).toContain('field-organizationName');
+        expect(profileDoc).toContain('field-teamCount');
         expect(profileDoc).toContain('<summary>Declaration</summary>');
         expect(profileDoc).toContain('view UserProfile');
 
@@ -317,7 +317,7 @@ describe('integration: showcase schema', () => {
         // Another view
         const summaryDoc = readDoc(tmpDir, 'views', 'ProjectTaskSummary.md');
         expect(summaryDoc).toContain('Aggregated task metrics');
-        expect(summaryDoc).toContain('| avgDaysToClose');
+        expect(summaryDoc).toContain('field-avgDaysToClose');
         expect(summaryDoc).toContain('`Float`');
     });
 
@@ -343,15 +343,15 @@ describe('integration: showcase schema', () => {
         expect(taskDoc).toContain('## Relationships');
         expect(taskDoc).toContain('[Task](./Task.md)');
 
-        const titleLine = taskDoc.split('\n').find((l) => l.includes('| title'));
+        const titleLine = taskDoc.split('\n').find((l) => l.includes('field-title'));
         expect(titleLine).toContain('Fix login redirect bug');
 
         const orgDoc = readDoc(tmpDir, 'models', 'Organization.md');
-        const slugLine = orgDoc.split('\n').find((l) => l.includes('| slug'));
+        const slugLine = orgDoc.split('\n').find((l) => l.includes('field-slug'));
         expect(slugLine).toContain('acme-corp');
 
         const userDoc = readDoc(tmpDir, 'models', 'User.md');
-        const emailLine = userDoc.split('\n').find((l) => l.includes('| email'));
+        const emailLine = userDoc.split('\n').find((l) => l.includes('field-email'));
         expect(emailLine).toContain('jane@acme.com');
     });
 
@@ -399,7 +399,7 @@ describe('integration: showcase schema', () => {
         const tagDoc = readDoc(tmpDir, 'models', 'Tag.md');
         expect(tagDoc).toContain('# Tag');
         expect(tagDoc).toContain('## Fields');
-        expect(tagDoc).toContain('| name');
+        expect(tagDoc).toContain('field-name');
         expect(tagDoc).toContain('[Index](../index.md)');
     });
 

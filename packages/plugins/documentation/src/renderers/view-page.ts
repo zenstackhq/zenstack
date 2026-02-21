@@ -56,8 +56,9 @@ export function renderViewPage(view: DataModel, options: RenderOptions, navigati
 
         for (const field of sortedFields) {
             const fieldDescription = stripCommentPrefix(field.comments) || '—';
+            const fieldAnchor = `<a id="field-${field.name}"></a>`;
             lines.push(
-                `| ${field.name} | ${getFieldTypeName(field, false)} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${fieldDescription} |`,
+                `| ${fieldAnchor}${field.name} | ${getFieldTypeName(field, false)} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${fieldDescription} |`,
             );
         }
         lines.push('');

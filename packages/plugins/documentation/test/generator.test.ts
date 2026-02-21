@@ -309,9 +309,9 @@ describe('documentation plugin', () => {
 
         // Fields table
         expect(viewDoc).toContain('## Fields');
-        expect(viewDoc).toContain('| id');
-        expect(viewDoc).toContain('| email');
-        expect(viewDoc).toContain('| name');
+        expect(viewDoc).toContain('field-id');
+        expect(viewDoc).toContain('field-email');
+        expect(viewDoc).toContain('field-name');
         expect(viewDoc).toContain('`Int`');
         expect(viewDoc).toContain('`String`');
     });
@@ -450,8 +450,8 @@ describe('documentation plugin', () => {
         expect(typeDoc).toContain('Common timestamp fields');
         expect(typeDoc).toContain('[Index](../index.md)');
         expect(typeDoc).toContain('## Fields');
-        expect(typeDoc).toContain('| createdAt');
-        expect(typeDoc).toContain('| updatedAt');
+        expect(typeDoc).toContain('field-createdAt');
+        expect(typeDoc).toContain('field-updatedAt');
     });
 
     it('type page shows Used By section linking to models that use it', async () => {
@@ -600,9 +600,9 @@ describe('documentation plugin', () => {
         const typeDoc = fs.readFileSync(path.join(tmpDir, 'types', 'Metadata.md'), 'utf-8');
 
         // declaration order: version, createdBy, active
-        const versionIdx = typeDoc.indexOf('| version');
-        const createdByIdx = typeDoc.indexOf('| createdBy');
-        const activeIdx = typeDoc.indexOf('| active');
+        const versionIdx = typeDoc.indexOf('field-version');
+        const createdByIdx = typeDoc.indexOf('field-createdBy');
+        const activeIdx = typeDoc.indexOf('field-active');
         expect(versionIdx).toBeLessThan(createdByIdx);
         expect(createdByIdx).toBeLessThan(activeIdx);
     });
@@ -790,12 +790,12 @@ describe('documentation plugin', () => {
         const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
         expect(userDoc).toContain('| Source |');
 
-        const createdAtLine = userDoc.split('\n').find((l) => l.includes('| createdAt'));
+        const createdAtLine = userDoc.split('\n').find((l) => l.includes('field-createdAt'));
         expect(createdAtLine).toBeDefined();
         expect(createdAtLine).toContain('[Timestamps](../types/Timestamps.md)');
         expect(createdAtLine).toContain('Record creation time.');
 
-        const emailLine = userDoc.split('\n').find((l) => l.includes('| email'));
+        const emailLine = userDoc.split('\n').find((l) => l.includes('field-email'));
         expect(emailLine).toBeDefined();
         expect(emailLine).toContain('User email address.');
         expect(emailLine).not.toContain('[Timestamps]');
@@ -917,7 +917,7 @@ describe('documentation plugin', () => {
         });
 
         const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
-        const idLine = userDoc.split('\n').find((l) => l.includes('| id'));
+        const idLine = userDoc.split('\n').find((l) => l.includes('field-id'));
         expect(idLine).toBeDefined();
         // Last column should be — not empty
         expect(idLine).toMatch(/\| — \|$/);
@@ -948,18 +948,18 @@ describe('documentation plugin', () => {
         expect(userDoc).toContain('`cuid()`');
 
         // declaration order: id, name, email
-        const idIdx = userDoc.indexOf('| id');
-        const nameIdx = userDoc.indexOf('| name');
-        const emailIdx = userDoc.indexOf('| email');
+        const idIdx = userDoc.indexOf('field-id');
+        const nameIdx = userDoc.indexOf('field-name');
+        const emailIdx = userDoc.indexOf('field-email');
         expect(idIdx).toBeLessThan(nameIdx);
         expect(nameIdx).toBeLessThan(emailIdx);
 
         // email is optional
-        const emailLine = userDoc.split('\n').find((l) => l.includes('| email'));
+        const emailLine = userDoc.split('\n').find((l) => l.includes('field-email'));
         expect(emailLine).toContain('No');
 
         // id is required
-        const idLine = userDoc.split('\n').find((l) => l.includes('| id'));
+        const idLine = userDoc.split('\n').find((l) => l.includes('field-id'));
         expect(idLine).toContain('Yes');
     });
 
@@ -984,9 +984,9 @@ describe('documentation plugin', () => {
         const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
 
         // alphabetical order: email < id < name
-        const emailIdx = userDoc.indexOf('| email');
-        const idIdx = userDoc.indexOf('| id');
-        const nameIdx = userDoc.indexOf('| name');
+        const emailIdx = userDoc.indexOf('field-email');
+        const idIdx = userDoc.indexOf('field-id');
+        const nameIdx = userDoc.indexOf('field-name');
         expect(emailIdx).toBeLessThan(idIdx);
         expect(idIdx).toBeLessThan(nameIdx);
     });
@@ -1035,7 +1035,7 @@ describe('documentation plugin', () => {
         expect(postDoc).toContain('```mermaid');
         expect(postDoc).toContain('erDiagram');
 
-        const authorLine = postDoc.split('\n').find((l) => l.includes('| author') && l.includes('@relation'));
+        const authorLine = postDoc.split('\n').find((l) => l.includes('field-author') && l.includes('@relation'));
         expect(authorLine).toBeDefined();
         expect(authorLine).toContain('fields: [authorId]');
         expect(authorLine).not.toContain('fields: fields:');
@@ -1252,7 +1252,7 @@ describe('documentation plugin', () => {
         });
 
         const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
-        const fullNameLine = userDoc.split('\n').find((l) => l.includes('| fullName'));
+        const fullNameLine = userDoc.split('\n').find((l) => l.includes('field-fullName'));
         expect(fullNameLine).toBeDefined();
         expect(fullNameLine).toContain('<kbd>computed</kbd>');
         expect(fullNameLine).toContain('`String`');
@@ -1288,24 +1288,24 @@ describe('documentation plugin', () => {
         const doc = fs.readFileSync(path.join(tmpDir, 'models', 'Project.md'), 'utf-8');
         const lines = doc.split('\n');
 
-        const taskCountLine = lines.find((l) => l.includes('| taskCount'));
+        const taskCountLine = lines.find((l) => l.includes('field-taskCount'));
         expect(taskCountLine).toContain('`Int` <kbd>computed</kbd>');
         expect(taskCountLine).toContain('Total number of tasks');
 
-        const completionLine = lines.find((l) => l.includes('| completionRate'));
+        const completionLine = lines.find((l) => l.includes('field-completionRate'));
         expect(completionLine).toContain('`Float` <kbd>computed</kbd>');
         expect(completionLine).toContain('Percentage of tasks');
 
-        const overdueLine = lines.find((l) => l.includes('| isOverdue'));
+        const overdueLine = lines.find((l) => l.includes('field-isOverdue'));
         expect(overdueLine).toContain('`Boolean` <kbd>computed</kbd>');
         expect(overdueLine).toContain('overdue tasks');
 
-        const displayLine = lines.find((l) => l.includes('| displayLabel'));
+        const displayLine = lines.find((l) => l.includes('field-displayLabel'));
         expect(displayLine).toContain('`String` <kbd>computed</kbd>');
         expect(displayLine).toContain('Full display label');
 
         // Non-computed fields should NOT have the badge
-        const nameLine = lines.find((l) => l.includes('| name'));
+        const nameLine = lines.find((l) => l.includes('field-name'));
         expect(nameLine).not.toContain('<kbd>computed</kbd>');
     });
 
@@ -1333,11 +1333,11 @@ describe('documentation plugin', () => {
         const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
         expect(userDoc).toContain('| Source |');
 
-        const idLine = userDoc.split('\n').find((l) => l.includes('| id'));
+        const idLine = userDoc.split('\n').find((l) => l.includes('field-id'));
         expect(idLine).toBeDefined();
         expect(idLine).toContain('[BaseModel](./BaseModel.md)');
 
-        const emailLine = userDoc.split('\n').find((l) => l.includes('| email'));
+        const emailLine = userDoc.split('\n').find((l) => l.includes('field-email'));
         expect(emailLine).toBeDefined();
         expect(emailLine).not.toContain('[BaseModel]');
     });
@@ -1503,17 +1503,17 @@ describe('documentation plugin', () => {
         });
 
         const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
-        const roleLine = userDoc.split('\n').find((l) => l.includes('| role'));
+        const roleLine = userDoc.split('\n').find((l) => l.includes('field-role'));
         expect(roleLine).toContain('[Role](../enums/Role.md)');
 
-        const postsLine = userDoc.split('\n').find((l) => l.includes('| posts'));
+        const postsLine = userDoc.split('\n').find((l) => l.includes('field-posts'));
         expect(postsLine).toContain('[Post](./Post.md)');
 
         const postDoc = fs.readFileSync(path.join(tmpDir, 'models', 'Post.md'), 'utf-8');
-        const authorLine = postDoc.split('\n').find((l) => l.includes('| author'));
+        const authorLine = postDoc.split('\n').find((l) => l.includes('field-author'));
         expect(authorLine).toContain('[User](./User.md)');
 
-        const idLine = userDoc.split('\n').find((l) => l.includes('| id'));
+        const idLine = userDoc.split('\n').find((l) => l.includes('field-id'));
         expect(idLine).not.toContain('[String]');
     });
 
@@ -1729,7 +1729,7 @@ describe('documentation plugin', () => {
         });
 
         const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
-        const emailLine = userDoc.split('\n').find((l) => l.includes('| email'));
+        const emailLine = userDoc.split('\n').find((l) => l.includes('field-email'));
         expect(emailLine).toContain('jane@example.com');
     });
 
@@ -2327,6 +2327,77 @@ describe('documentation plugin', () => {
         const betaDoc = fs.readFileSync(path.join(tmpDir, 'enums', 'Beta.md'), 'utf-8');
         expect(betaDoc).toContain('Previous: [Alpha](./Alpha.md)');
         expect(betaDoc).toContain('Next: [Gamma](./Gamma.md)');
+    });
+
+    it('model field rows include anchor IDs', async () => {
+        const model = await loadSchema(`
+            model User {
+                id    String @id @default(cuid())
+                email String @unique
+                name  String?
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('<a id="field-id"></a>');
+        expect(userDoc).toContain('<a id="field-email"></a>');
+        expect(userDoc).toContain('<a id="field-name"></a>');
+    });
+
+    it('type field rows include anchor IDs', async () => {
+        const model = await loadSchema(`
+            type Timestamps {
+                createdAt DateTime @default(now())
+                updatedAt DateTime @updatedAt
+            }
+            model User {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const typeDoc = fs.readFileSync(path.join(tmpDir, 'types', 'Timestamps.md'), 'utf-8');
+        expect(typeDoc).toContain('<a id="field-createdAt"></a>');
+        expect(typeDoc).toContain('<a id="field-updatedAt"></a>');
+    });
+
+    it('view field rows include anchor IDs', async () => {
+        const model = await loadSchema(`
+            view UserProfile {
+                id    String
+                email String
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const viewDoc = fs.readFileSync(path.join(tmpDir, 'views', 'UserProfile.md'), 'utf-8');
+        expect(viewDoc).toContain('<a id="field-id"></a>');
+        expect(viewDoc).toContain('<a id="field-email"></a>');
     });
 
     it('deprecated model renders with strikethrough and badge on page heading', async () => {

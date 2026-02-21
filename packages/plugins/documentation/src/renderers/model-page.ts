@@ -157,8 +157,9 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
             if (example) descParts.push(`Example: \`${example}\``);
             if (fieldDescription) descParts.push(fieldDescription);
             const desc = descParts.length > 0 ? descParts.join(' ') : '—';
+            const fieldAnchor = `<a id="field-${field.name}"></a>`;
             lines.push(
-                `| ${field.name} | ${typeCol} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${source} | ${desc} |`,
+                `| ${fieldAnchor}${field.name} | ${typeCol} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${source} | ${desc} |`,
             );
         }
         lines.push('');

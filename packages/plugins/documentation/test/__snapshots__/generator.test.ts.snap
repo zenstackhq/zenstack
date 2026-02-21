@@ -10,7 +10,7 @@ exports[`documentation plugin > snapshot: full representative schema output > en
 
 > User roles in the system.
 
-**Defined in:** \`../../../../../tmp/zenstack-schema-f71413c3-57f3-4297-9805-05da2d6081b6.zmodel\`
+**Defined in:** \`../../../../../tmp/zenstack-schema-02644d28-c863-4ab2-8d19-13073b4a2dda.zmodel\`
 
 ## Values
 
@@ -83,7 +83,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 > A blog post.
 
-**Category:** Content · **Defined in:** \`../../../../../tmp/zenstack-schema-f71413c3-57f3-4297-9805-05da2d6081b6.zmodel\`
+**Category:** Content · **Defined in:** \`../../../../../tmp/zenstack-schema-02644d28-c863-4ab2-8d19-13073b4a2dda.zmodel\`
 
 [Fields](#fields) · [Relationships](#relationships)
 
@@ -91,11 +91,11 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 | Field | Type | Required | Default | Attributes | Source | Description |
 | --- | --- | --- | --- | --- | --- | --- |
-| id | \`String\` | Yes | \`cuid()\` | \`@id\` | — | — |
-| title | \`String\` | Yes | — | — | — | The post title. |
-| content | \`String?\` | No | — | — | — | — |
-| author | [User](./User.md) | Yes | — | \`@relation(fields: [authorId], references: [id])\` | — | — |
-| authorId | \`String\` | Yes | — | — | — | — |
+| <a id="field-id"></a>id | \`String\` | Yes | \`cuid()\` | \`@id\` | — | — |
+| <a id="field-title"></a>title | \`String\` | Yes | — | — | — | The post title. |
+| <a id="field-content"></a>content | \`String?\` | No | — | — | — | — |
+| <a id="field-author"></a>author | [User](./User.md) | Yes | — | \`@relation(fields: [authorId], references: [id])\` | — | — |
+| <a id="field-authorId"></a>authorId | \`String\` | Yes | — | — | — | — |
 
 ## Relationships
 
@@ -143,7 +143,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 > Represents a registered user.
 
-**Category:** Identity · **Since:** 1.0 · **Defined in:** \`../../../../../tmp/zenstack-schema-f71413c3-57f3-4297-9805-05da2d6081b6.zmodel\`
+**Category:** Identity · **Since:** 1.0 · **Defined in:** \`../../../../../tmp/zenstack-schema-02644d28-c863-4ab2-8d19-13073b4a2dda.zmodel\`
 
 [Fields](#fields) · [Relationships](#relationships) · [Access Policies](#access-policies) · [Indexes](#indexes) · [Validation Rules](#validation-rules)
 
@@ -151,11 +151,11 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 | Field | Type | Required | Default | Attributes | Source | Description |
 | --- | --- | --- | --- | --- | --- | --- |
-| id | \`String\` | Yes | \`cuid()\` | \`@id\` | — | — |
-| email | \`String\` | Yes | — | \`@unique\`, \`@email\` | — | User's email address. |
-| name | \`String\` | Yes | — | — | — | Display name shown in the UI. |
-| role | [Role](../enums/Role.md) | Yes | — | — | — | — |
-| posts | [Post](./Post.md)[] | No | — | — | — | — |
+| <a id="field-id"></a>id | \`String\` | Yes | \`cuid()\` | \`@id\` | — | — |
+| <a id="field-email"></a>email | \`String\` | Yes | — | \`@unique\`, \`@email\` | — | User's email address. |
+| <a id="field-name"></a>name | \`String\` | Yes | — | — | — | Display name shown in the UI. |
+| <a id="field-role"></a>role | [Role](../enums/Role.md) | Yes | — | — | — | — |
+| <a id="field-posts"></a>posts | [Post](./Post.md)[] | No | — | — | — | — |
 
 ## Relationships
 
