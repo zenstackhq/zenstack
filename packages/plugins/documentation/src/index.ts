@@ -182,6 +182,32 @@ function renderModelPage(model: DataModel): string {
         lines.push('');
     }
 
+    const indexAttrs = model.attributes.filter((a) => {
+        const name = a.decl.ref?.name ?? '';
+        return name === '@@index' || name === '@@unique' || name === '@@id';
+    });
+
+    if (indexAttrs.length > 0) {
+        lines.push('## Indexes', '');
+        lines.push('| Fields | Type |');
+        lines.push('| --- | --- |');
+
+        for (const attr of indexAttrs) {
+            const attrName = attr.decl.ref?.name ?? '';
+            let indexType: string;
+            if (attrName === '@@unique') {
+                indexType = 'Unique';
+            } else if (attrName === '@@id') {
+                indexType = 'Primary';
+            } else {
+                indexType = 'Index';
+            }
+            const fieldsArg = attr.args[0]?.$cstNode?.text ?? '';
+            lines.push(`| \`${fieldsArg}\` | ${indexType} |`);
+        }
+        lines.push('');
+    }
+
     const validationRules: Array<{ fieldName: string; rule: string }> = [];
     for (const field of sortedFields) {
         for (const attr of field.attributes) {

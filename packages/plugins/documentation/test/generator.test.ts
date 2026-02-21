@@ -314,4 +314,31 @@ describe('documentation plugin', () => {
         expect(userDoc).toContain('| name');
         expect(userDoc).toContain('`@length`');
     });
+
+    it('generates indexes section from @@index and @@unique', async () => {
+        const model = await loadSchema(`
+            model User {
+                id    String @id @default(cuid())
+                email String @unique
+                name  String
+
+                @@index([name])
+                @@unique([email, name])
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('## Indexes');
+        expect(userDoc).toContain('Index');
+        expect(userDoc).toContain('Unique');
+    });
 });
