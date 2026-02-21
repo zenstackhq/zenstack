@@ -1,0 +1,258 @@
+datasource db {
+    provider = 'sqlite'
+    url      = 'file:./dev.db'
+}
+
+plugin policy {
+    provider = '../../policy/plugin.zmodel'
+}
+
+// ─── Enums ───────────────────────────────────────────────
+
+/// Defines the access level of a user within an organization.
+enum Role {
+    /// Full administrative access — can manage billing, members, and settings.
+    OWNER
+    /// Can manage projects and team members.
+    ADMIN
+    /// Standard team member with project access.
+    MEMBER
+    /// View-only access to public resources.
+    GUEST
+}
+
+/// Priority levels for tasks.
+enum Priority {
+    LOW
+    MEDIUM
+    HIGH
+    CRITICAL
+}
+
+/// Lifecycle status of a task.
+enum TaskStatus {
+    /// Waiting to be started.
+    TODO
+    /// Actively being worked on.
+    IN_PROGRESS
+    /// Submitted for peer review.
+    IN_REVIEW
+    /// Completed and closed.
+    DONE
+}
+
+// ─── Mixins ──────────────────────────────────────────────
+
+type Timestamps {
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+// ─── Core Models ─────────────────────────────────────────
+
+/// An organization is the top-level tenant in the system.
+/// All users, teams, and projects belong to exactly one organization.
+model Organization with Timestamps {
+    id       String    @id @default(cuid())
+    /// The public display name of the organization.
+    name     String    @length(2, 100)
+    /// URL-safe identifier used in routing.
+    slug     String    @unique @length(3, 40) @meta('doc:example', 'acme-corp')
+    /// Primary contact email for the organization.
+    email    String?   @email
+    users    User[]
+    teams    Team[]
+    projects Project[]
+
+    @@allow('read', true)
+    @@allow('update,delete', users?[role == 'OWNER'])
+    @@index([slug])
+    @@meta('doc:category', 'Core')
+    @@meta('doc:since', '1.0')
+}
+
+/// A registered user in the platform.
+/// Users belong to an organization and may be members of multiple teams.
+model User with Timestamps {
+    id             String         @id @default(cuid())
+    /// Email address used for login.
+    email          String         @unique @email @meta('doc:example', 'jane@acme.com')
+    /// Full name displayed in the UI.
+    name           String         @length(1, 120)
+    /// URL to the user's avatar image.
+    avatarUrl      String?        @url
+    role           Role           @default(MEMBER)
+    taskCount      Int            @computed
+    organization   Organization   @relation(fields: [organizationId], references: [id])
+    organizationId String
+    memberships    TeamMember[]
+    assignedTasks  Task[]
+    comments       Comment[]
+    activities     Activity[]
+
+    @@allow('read', true)
+    @@allow('update', this == auth())
+    @@deny('delete', role == 'OWNER')
+    @@index([email])
+    @@unique([email, organizationId])
+    @@meta('doc:category', 'Identity')
+    @@meta('doc:since', '1.0')
+}
+
+/// A team groups users within an organization for project collaboration.
+model Team with Timestamps {
+    id             String         @id @default(cuid())
+    /// Team display name.
+    name           String         @length(1, 80)
+    /// Optional description of the team's purpose.
+    description    String?
+    organization   Organization   @relation(fields: [organizationId], references: [id])
+    organizationId String
+    members        TeamMember[]
+    projects       Project[]
+
+    @@allow('read', true)
+    @@allow('create,update,delete', members?[role == 'ADMIN' || role == 'OWNER'])
+    @@meta('doc:category', 'Identity')
+    @@meta('doc:since', '1.0')
+}
+
+/// Represents a user's membership in a team with a specific role.
+model TeamMember with Timestamps {
+    id     String @id @default(cuid())
+    user   User   @relation(fields: [userId], references: [id])
+    userId String
+    team   Team   @relation(fields: [teamId], references: [id])
+    teamId String
+    role   Role   @default(MEMBER)
+
+    @@unique([userId, teamId])
+    @@allow('read', true)
+    @@meta('doc:category', 'Identity')
+}
+
+// ─── Work Models ─────────────────────────────────────────
+
+/// A project organizes tasks under a team within an organization.
+model Project with Timestamps {
+    id             String       @id @default(cuid())
+    /// The project name.
+    name           String       @length(1, 100)
+    /// Detailed description of the project scope and goals.
+    description    String?
+    archived       Boolean      @default(false)
+    organization   Organization @relation(fields: [organizationId], references: [id])
+    organizationId String
+    team           Team?        @relation(fields: [teamId], references: [id])
+    teamId         String?
+    tasks          Task[]
+    tags           Tag[]
+
+    @@allow('read', true)
+    @@allow('create,update', true)
+    @@deny('delete', archived)
+    @@index([organizationId])
+    @@meta('doc:category', 'Work')
+    @@meta('doc:since', '1.0')
+}
+
+/// A unit of work within a project.
+/// Tasks support self-referential parent/child hierarchy for sub-tasks.
+model Task with Timestamps {
+    id          String      @id @default(cuid())
+    /// Short summary of the task.
+    title       String      @length(1, 200) @meta('doc:example', 'Fix login redirect bug')
+    /// Rich-text body with full details.
+    body        String?
+    status      TaskStatus  @default(TODO)
+    priority    Priority    @default(MEDIUM)
+    dueDate     DateTime?
+    project     Project     @relation(fields: [projectId], references: [id])
+    projectId   String
+    assignee    User?       @relation(fields: [assigneeId], references: [id])
+    assigneeId  String?
+    /// Parent task — allows nesting sub-tasks.
+    parent      Task?       @relation("SubTasks", fields: [parentId], references: [id])
+    parentId    String?
+    children    Task[]      @relation("SubTasks")
+    comments    Comment[]
+    tags        Tag[]
+    activities  Activity[]
+
+    @@allow('read', true)
+    @@allow('create,update', true)
+    @@deny('delete', status == 'DONE')
+    @@index([projectId])
+    @@index([assigneeId])
+    @@meta('doc:category', 'Work')
+    @@meta('doc:since', '1.0')
+}
+
+/// A comment on a task. Comments do not have descriptions intentionally
+/// to test the plugin's handling of undocumented fields.
+model Comment with Timestamps {
+    id       String @id @default(cuid())
+    body     String
+    task     Task   @relation(fields: [taskId], references: [id])
+    taskId   String
+    author   User   @relation(fields: [authorId], references: [id])
+    authorId String
+
+    @@allow('read', true)
+    @@allow('create', true)
+    @@allow('update,delete', author == auth())
+    @@meta('doc:category', 'Work')
+}
+
+/// A label that can be attached to tasks and projects for categorization.
+model Tag {
+    id       String    @id @default(cuid())
+    name     String    @unique @length(1, 50)
+    color    String?   @meta('doc:example', '#3b82f6')
+    tasks    Task[]
+    projects Project[]
+}
+
+// ─── Activity / Audit ────────────────────────────────────
+
+/// Records significant events for audit and activity feed purposes.
+model Activity with Timestamps {
+    id     String  @id @default(cuid())
+    action String
+    detail String?
+    user   User    @relation(fields: [userId], references: [id])
+    userId String
+    task   Task?   @relation(fields: [taskId], references: [id])
+    taskId String?
+
+    @@allow('read', true)
+    @@deny('update,delete', true)
+    @@meta('doc:category', 'Audit')
+    @@meta('doc:since', '2.0')
+}
+
+// ─── Internal / Ignored Models ───────────────────────────
+
+/// Tracks background job execution. Internal only — not part of the public API.
+model JobRun {
+    id        String   @id @default(cuid())
+    jobName   String
+    status    String
+    startedAt DateTime @default(now())
+    payload   Json?
+
+    @@ignore
+    @@meta('doc:category', 'Internal')
+}
+
+/// Stores API keys for service-to-service authentication.
+/// Deprecated in favor of OAuth2 client credentials.
+model ApiToken {
+    id        String   @id @default(cuid())
+    token     String   @unique
+    expiresAt DateTime
+    revoked   Boolean  @default(false)
+
+    @@ignore
+    @@meta('doc:deprecated', 'Use OAuth2 client credentials instead')
+}

@@ -7,6 +7,7 @@ import { findBrokenLinks, loadSchemaFromFile } from './utils';
 
 const SAMPLES_DIR = path.resolve(__dirname, '../../../../samples');
 const E2E_SCHEMAS_DIR = path.resolve(__dirname, '../../../../tests/e2e/orm/schemas');
+const SHOWCASE_SCHEMA = path.resolve(__dirname, '../zenstack/showcase.zmodel');
 
 function readDoc(tmpDir: string, ...segments: string[]): string {
     return fs.readFileSync(path.join(tmpDir, ...segments), 'utf-8');
@@ -134,6 +135,170 @@ describe('integration: e2e basic schema', () => {
         const tmpDir = await generateDocs(
             path.join(E2E_SCHEMAS_DIR, 'basic', 'schema.zmodel'),
         );
+        expect(findBrokenLinks(tmpDir)).toEqual([]);
+    });
+});
+
+describe('integration: showcase schema', () => {
+    it('generates expected file structure with correct model and enum counts', async () => {
+        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+
+        expect(fs.existsSync(path.join(tmpDir, 'index.md'))).toBe(true);
+        expect(fs.existsSync(path.join(tmpDir, 'relationships.md'))).toBe(true);
+
+        const expectedModels = [
+            'Activity', 'Comment', 'Organization', 'Project',
+            'Tag', 'Task', 'Team', 'TeamMember', 'User',
+        ];
+        for (const name of expectedModels) {
+            expect(fs.existsSync(path.join(tmpDir, 'models', `${name}.md`))).toBe(true);
+        }
+
+        const expectedEnums = ['Priority', 'Role', 'TaskStatus'];
+        for (const name of expectedEnums) {
+            expect(fs.existsSync(path.join(tmpDir, 'enums', `${name}.md`))).toBe(true);
+        }
+
+        expect(fs.existsSync(path.join(tmpDir, 'models', 'JobRun.md'))).toBe(false);
+        expect(fs.existsSync(path.join(tmpDir, 'models', 'ApiToken.md'))).toBe(false);
+    });
+
+    it('has zero broken links across all 14 generated files', async () => {
+        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const broken = findBrokenLinks(tmpDir);
+        expect(broken).toEqual([]);
+    });
+
+    it('index page lists all visible models, enums, and relationships link', async () => {
+        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const index = readDoc(tmpDir, 'index.md');
+
+        expect(index).not.toContain('JobRun');
+        expect(index).not.toContain('ApiToken');
+
+        for (const name of ['Activity', 'Comment', 'Organization', 'Project', 'Tag', 'Task', 'Team', 'TeamMember', 'User']) {
+            expect(index).toContain(`[${name}]`);
+        }
+        for (const name of ['Priority', 'Role', 'TaskStatus']) {
+            expect(index).toContain(`[${name}](./enums/${name}.md)`);
+        }
+        expect(index).toContain('[Relationships](./relationships.md)');
+    });
+
+    it('renders computed fields, enum type links, policies, validation, and indexes', async () => {
+        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+
+        const userDoc = readDoc(tmpDir, 'models', 'User.md');
+
+        const taskCountLine = userDoc.split('\n').find((l) => l.includes('| taskCount'));
+        expect(taskCountLine).toContain('**Computed**');
+
+        expect(userDoc).toContain('[Role](../enums/Role.md)');
+
+        expect(userDoc).toContain('## Access Policies');
+        expect(userDoc).toContain('Allow');
+        expect(userDoc).toContain('Deny');
+
+        expect(userDoc).toContain('## Indexes');
+
+        const orgDoc = readDoc(tmpDir, 'models', 'Organization.md');
+        expect(orgDoc).toContain('## Validation Rules');
+        expect(orgDoc).toContain('`@length`');
+        expect(orgDoc).toContain('`@email`');
+        expect(orgDoc).toContain('## Indexes');
+    });
+
+    it('renders @@meta category, since, and deprecated annotations', async () => {
+        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+
+        const orgDoc = readDoc(tmpDir, 'models', 'Organization.md');
+        expect(orgDoc).toContain('**Category:** Core');
+        expect(orgDoc).toContain('**Since:** 1.0');
+
+        const userDoc = readDoc(tmpDir, 'models', 'User.md');
+        expect(userDoc).toContain('**Category:** Identity');
+
+        const activityDoc = readDoc(tmpDir, 'models', 'Activity.md');
+        expect(activityDoc).toContain('**Category:** Audit');
+        expect(activityDoc).toContain('**Since:** 2.0');
+    });
+
+    it('renders self-referential relations and @meta doc:example values', async () => {
+        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+
+        const taskDoc = readDoc(tmpDir, 'models', 'Task.md');
+        expect(taskDoc).toContain('## Relationships');
+        expect(taskDoc).toContain('[Task](./Task.md)');
+
+        const titleLine = taskDoc.split('\n').find((l) => l.includes('| title'));
+        expect(titleLine).toContain('Fix login redirect bug');
+
+        const orgDoc = readDoc(tmpDir, 'models', 'Organization.md');
+        const slugLine = orgDoc.split('\n').find((l) => l.includes('| slug'));
+        expect(slugLine).toContain('acme-corp');
+
+        const userDoc = readDoc(tmpDir, 'models', 'User.md');
+        const emailLine = userDoc.split('\n').find((l) => l.includes('| email'));
+        expect(emailLine).toContain('jane@acme.com');
+    });
+
+    it('enum pages show descriptions and Used By with correct links', async () => {
+        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+
+        const roleDoc = readDoc(tmpDir, 'enums', 'Role.md');
+        expect(roleDoc).toContain('Defines the access level');
+        expect(roleDoc).toContain('Full administrative access');
+        expect(roleDoc).toContain('| OWNER');
+        expect(roleDoc).toContain('| GUEST');
+        expect(roleDoc).toContain('## Used By');
+        expect(roleDoc).toContain('[User](../models/User.md)');
+        expect(roleDoc).toContain('[TeamMember](../models/TeamMember.md)');
+
+        const statusDoc = readDoc(tmpDir, 'enums', 'TaskStatus.md');
+        expect(statusDoc).toContain('Lifecycle status');
+        expect(statusDoc).toContain('Waiting to be started');
+        expect(statusDoc).toContain('## Used By');
+        expect(statusDoc).toContain('[Task](../models/Task.md)');
+
+        const priorityDoc = readDoc(tmpDir, 'enums', 'Priority.md');
+        expect(priorityDoc).toContain('Priority levels');
+        expect(priorityDoc).toContain('| LOW');
+        expect(priorityDoc).toContain('| CRITICAL');
+    });
+
+    it('relationships page has cross-reference and Mermaid diagram with links', async () => {
+        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+        const relDoc = readDoc(tmpDir, 'relationships.md');
+
+        expect(relDoc).toContain('[Index](./index.md)');
+        expect(relDoc).toContain('## Cross-Reference');
+        expect(relDoc).toContain('[Organization](./models/Organization.md)');
+        expect(relDoc).toContain('[User](./models/User.md)');
+        expect(relDoc).toContain('[Task](./models/Task.md)');
+
+        expect(relDoc).toContain('## Entity Relationship Diagram');
+        expect(relDoc).toContain('erDiagram');
+    });
+
+    it('models without descriptions still render correctly', async () => {
+        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+
+        const tagDoc = readDoc(tmpDir, 'models', 'Tag.md');
+        expect(tagDoc).toContain('# Tag');
+        expect(tagDoc).toContain('## Fields');
+        expect(tagDoc).toContain('| name');
+        expect(tagDoc).toContain('[Index](../index.md)');
+    });
+
+    it('includeInternalModels=true includes @@ignore models in output', async () => {
+        const tmpDir = await generateDocs(SHOWCASE_SCHEMA, { includeInternalModels: true });
+
+        const index = readDoc(tmpDir, 'index.md');
+        expect(index).toContain('[JobRun]');
+        expect(index).toContain('[ApiToken]');
+        expect(fs.existsSync(path.join(tmpDir, 'models', 'JobRun.md'))).toBe(true);
+        expect(fs.existsSync(path.join(tmpDir, 'models', 'ApiToken.md'))).toBe(true);
+
         expect(findBrokenLinks(tmpDir)).toEqual([]);
     });
 });
