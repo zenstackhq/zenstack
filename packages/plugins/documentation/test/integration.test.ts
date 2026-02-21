@@ -355,6 +355,22 @@ describe('integration: showcase schema', () => {
         expect(emailLine).toContain('jane@acme.com');
     });
 
+    it('showcase models use diverse default-value functions (cuid, uuid, now)', async () => {
+        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+
+        const userDoc = readDoc(tmpDir, 'models', 'User.md');
+        const userIdLine = userDoc.split('\n').find((l) => l.includes('field-id'));
+        expect(userIdLine).toContain('`cuid()`');
+
+        const activityDoc = readDoc(tmpDir, 'models', 'Activity.md');
+        const actIdLine = activityDoc.split('\n').find((l) => l.includes('field-id'));
+        expect(actIdLine).toContain('`uuid()`');
+
+        const tsDoc = readDoc(tmpDir, 'types', 'Timestamps.md');
+        const createdLine = tsDoc.split('\n').find((l) => l.includes('field-createdAt'));
+        expect(createdLine).toContain('`now()`');
+    });
+
     it('Task model renders all validation attributes including @regex, @gt, @lte, @trim', async () => {
         const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
 

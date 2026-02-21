@@ -231,7 +231,7 @@ model Tag {
 
 /// Records significant events for audit and activity feed purposes.
 model Activity with Timestamps {
-    id     String  @id @default(cuid())
+    id     String  @id @default(uuid())
     action String
     detail String?
     user   User    @relation(fields: [userId], references: [id])
