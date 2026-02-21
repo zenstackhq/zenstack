@@ -576,7 +576,7 @@ describe('documentation plugin', () => {
         expect(userDoc).toContain('Has many posts.');
     });
 
-    it('model page includes table of contents with anchor links', async () => {
+    it('model page includes horizontal table of contents with anchor links', async () => {
         const model = await loadSchema(`
             enum Role { ADMIN MEMBER }
             model User {
@@ -604,14 +604,21 @@ describe('documentation plugin', () => {
         });
 
         const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
-        expect(userDoc).toContain('- [Fields](#fields)');
-        expect(userDoc).toContain('- [Relationships](#relationships)');
-        expect(userDoc).toContain('- [Access Policies](#access-policies)');
-        expect(userDoc).toContain('- [Indexes](#indexes)');
-        expect(userDoc).toContain('- [Validation Rules](#validation-rules)');
+        expect(userDoc).toContain('[Fields](#fields)');
+        expect(userDoc).toContain('[Relationships](#relationships)');
+        expect(userDoc).toContain('[Access Policies](#access-policies)');
+        expect(userDoc).toContain('[Indexes](#indexes)');
+        expect(userDoc).toContain('[Validation Rules](#validation-rules)');
+
+        // TOC should be on a single line separated by middle dots
+        const tocLine = userDoc.split('\n').find((l: string) => l.includes('[Fields](#fields)') && l.includes(' · '));
+        expect(tocLine).toBeDefined();
+
+        // No bullet-list style TOC
+        expect(userDoc).not.toContain('- [Fields](#fields)');
 
         // TOC should appear before the first ## heading
-        const tocIdx = userDoc.indexOf('- [Fields](#fields)');
+        const tocIdx = userDoc.indexOf('[Fields](#fields)');
         const fieldsIdx = userDoc.indexOf('## Fields');
         expect(tocIdx).toBeLessThan(fieldsIdx);
     });

@@ -108,11 +108,11 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
     if (referencingProcsForToc.length > 0) sections.push('Used in Procedures');
 
     if (sections.length > 1) {
-        for (const section of sections) {
-            const anchor = section.toLowerCase().replace(/\s+/g, '-');
-            lines.push(`- [${section}](#${anchor})`);
-        }
-        lines.push('');
+        const tocLinks = sections.map((s) => {
+            const anchor = s.toLowerCase().replace(/\s+/g, '-');
+            return `[${s}](#${anchor})`;
+        });
+        lines.push(tocLinks.join(' · '), '');
     }
 
     if (mixinRefs.length > 0) {
