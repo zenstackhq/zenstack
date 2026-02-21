@@ -177,4 +177,36 @@ describe('documentation plugin', () => {
         expect(postDoc).toContain('User');
         expect(postDoc).toContain('Many\u2192One');
     });
+
+    it('generates enum page with heading, description, and values', async () => {
+        const model = await loadSchema(`
+            /// User roles in the system.
+            enum Role {
+                /// Full access
+                ADMIN
+                /// Standard access
+                USER
+                GUEST
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const enumDoc = fs.readFileSync(path.join(tmpDir, 'enums', 'Role.md'), 'utf-8');
+        expect(enumDoc).toContain('# Role');
+        expect(enumDoc).toContain('User roles in the system.');
+        expect(enumDoc).toContain('## Values');
+        expect(enumDoc).toContain('| ADMIN');
+        expect(enumDoc).toContain('Full access');
+        expect(enumDoc).toContain('| USER');
+        expect(enumDoc).toContain('Standard access');
+        expect(enumDoc).toContain('| GUEST');
+    });
 });

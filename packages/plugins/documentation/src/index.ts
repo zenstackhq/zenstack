@@ -4,6 +4,7 @@ import {
     type DataField,
     type DataFieldAttribute,
     type DataModel,
+    type Enum,
 } from '@zenstackhq/language/ast';
 import type { CliGeneratorContext, CliPlugin } from '@zenstackhq/sdk';
 import fs from 'node:fs';
@@ -163,6 +164,32 @@ function renderModelPage(model: DataModel): string {
     return lines.join('\n');
 }
 
+function renderEnumPage(enumDecl: Enum): string {
+    const lines: string[] = [`# ${enumDecl.name}`, ''];
+
+    const description = stripCommentPrefix(enumDecl.comments);
+    if (description) {
+        for (const line of description.split('\n')) {
+            lines.push(`> ${line}`);
+        }
+        lines.push('');
+    }
+
+    if (enumDecl.fields.length > 0) {
+        lines.push('## Values', '');
+        lines.push('| Value | Description |');
+        lines.push('| --- | --- |');
+
+        for (const field of enumDecl.fields) {
+            const fieldDesc = stripCommentPrefix(field.comments);
+            lines.push(`| ${field.name} | ${fieldDesc} |`);
+        }
+        lines.push('');
+    }
+
+    return lines.join('\n');
+}
+
 const plugin: CliPlugin = {
     name: 'Documentation Generator',
     statusText: 'Generating documentation',
@@ -179,6 +206,18 @@ const plugin: CliPlugin = {
                 fs.writeFileSync(
                     path.join(modelsDir, `${model.name}.md`),
                     renderModelPage(model),
+                );
+            }
+        }
+
+        const enumsDir = path.join(outputDir, 'enums');
+        const enums = context.model.declarations.filter(isEnum);
+        if (enums.length > 0) {
+            fs.mkdirSync(enumsDir, { recursive: true });
+            for (const enumDecl of enums) {
+                fs.writeFileSync(
+                    path.join(enumsDir, `${enumDecl.name}.md`),
+                    renderEnumPage(enumDecl),
                 );
             }
         }
