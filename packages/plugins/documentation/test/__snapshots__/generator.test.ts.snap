@@ -3,7 +3,7 @@
 exports[`documentation plugin > snapshot: full representative schema output > enums/Role.md 1`] = `
 "> *This documentation was auto-generated. Do not edit directly.*
 
-[Index](../index.md)
+[Index](../index.md) / [Enums](../index.md#enums) / Role
 
 # Role
 
@@ -11,7 +11,7 @@ exports[`documentation plugin > snapshot: full representative schema output > en
 
 | | |
 | --- | --- |
-| **Defined in** | \`../../../../../tmp/zenstack-schema-fa45289a-4feb-46b5-a051-0dec7883a44f.zmodel\` |
+| **Defined in** | \`../../../../../tmp/zenstack-schema-e5b9c32f-8757-418e-9431-9f5c075f33c4.zmodel\` |
 
 ## Values
 
@@ -66,7 +66,7 @@ exports[`documentation plugin > snapshot: full representative schema output > in
 exports[`documentation plugin > snapshot: full representative schema output > models/Post.md 1`] = `
 "> *This documentation was auto-generated. Do not edit directly.*
 
-[Index](../index.md)
+[Index](../index.md) / [Models](../index.md#models) / Post
 
 # Post
 
@@ -75,7 +75,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 | | |
 | --- | --- |
 | **Category** | Content |
-| **Defined in** | \`../../../../../tmp/zenstack-schema-fa45289a-4feb-46b5-a051-0dec7883a44f.zmodel\` |
+| **Defined in** | \`../../../../../tmp/zenstack-schema-e5b9c32f-8757-418e-9431-9f5c075f33c4.zmodel\` |
 
 - [Fields](#fields)
 - [Relationships](#relationships)
@@ -120,7 +120,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 exports[`documentation plugin > snapshot: full representative schema output > models/User.md 1`] = `
 "> *This documentation was auto-generated. Do not edit directly.*
 
-[Index](../index.md)
+[Index](../index.md) / [Models](../index.md#models) / User
 
 # User
 
@@ -130,7 +130,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 | --- | --- |
 | **Category** | Identity |
 | **Since** | 1.0 |
-| **Defined in** | \`../../../../../tmp/zenstack-schema-fa45289a-4feb-46b5-a051-0dec7883a44f.zmodel\` |
+| **Defined in** | \`../../../../../tmp/zenstack-schema-e5b9c32f-8757-418e-9431-9f5c075f33c4.zmodel\` |
 
 - [Fields](#fields)
 - [Relationships](#relationships)

@@ -56,7 +56,9 @@ export function findBrokenLinks(
         while ((match = linkPattern.exec(content)) !== null) {
             const href = match[2];
             if (href.startsWith('http') || href.startsWith('#')) continue;
-            const resolved = path.resolve(path.dirname(mdFile), href);
+            const filePart = href.split('#')[0];
+            if (!filePart) continue;
+            const resolved = path.resolve(path.dirname(mdFile), filePart);
             if (!fs.existsSync(resolved)) {
                 broken.push({
                     source: path.relative(outputDir, mdFile),

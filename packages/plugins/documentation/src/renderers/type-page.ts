@@ -1,5 +1,5 @@
 import type { DataModel, TypeDef } from '@zenstackhq/language/ast';
-import { generatedHeader } from './common';
+import { breadcrumbs, generatedHeader } from './common';
 import {
     getDefaultValue,
     getFieldAttributes,
@@ -13,7 +13,7 @@ import type { RenderOptions } from '../types';
 export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], options: RenderOptions): string {
     const lines: string[] = [
         ...generatedHeader(),
-        `[Index](../index.md)`,
+        breadcrumbs('Types', typeDef.name, '../'),
         '',
         `# ${typeDef.name}`,
         '',

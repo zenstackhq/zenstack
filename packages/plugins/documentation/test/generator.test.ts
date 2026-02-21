@@ -55,6 +55,45 @@ describe('documentation plugin', () => {
         expect(relDoc).toMatch(headerPattern);
     });
 
+    it('entity pages show breadcrumb navigation', async () => {
+        const model = await loadSchema(`
+            enum Role { ADMIN MEMBER }
+            type Timestamps {
+                createdAt DateTime @default(now())
+            }
+            model User {
+                id   String @id @default(cuid())
+                role Role
+            }
+            procedure getUser(id: String): User
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('[Index](../index.md)');
+        expect(userDoc).toContain('[Models](../index.md#models)');
+
+        const roleDoc = fs.readFileSync(path.join(tmpDir, 'enums', 'Role.md'), 'utf-8');
+        expect(roleDoc).toContain('[Index](../index.md)');
+        expect(roleDoc).toContain('[Enums](../index.md#enums)');
+
+        const tsDoc = fs.readFileSync(path.join(tmpDir, 'types', 'Timestamps.md'), 'utf-8');
+        expect(tsDoc).toContain('[Index](../index.md)');
+        expect(tsDoc).toContain('[Types](../index.md#types)');
+
+        const procDoc = fs.readFileSync(path.join(tmpDir, 'procedures', 'getUser.md'), 'utf-8');
+        expect(procDoc).toContain('[Index](../index.md)');
+        expect(procDoc).toContain('[Procedures](../index.md#procedures)');
+    });
+
     it('produces an index.md file', async () => {
         const model = await loadSchema(`
             model User {
