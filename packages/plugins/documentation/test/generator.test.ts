@@ -74,4 +74,28 @@ describe('documentation plugin', () => {
         expect(indexContent).toContain('## Enums');
         expect(indexContent).toContain('[Role](./enums/Role.md)');
     });
+
+    it('generates model page with heading and description', async () => {
+        const model = await loadSchema(`
+            /// Represents a registered user.
+            /// Has many posts.
+            model User {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('# User');
+        expect(userDoc).toContain('Represents a registered user.');
+        expect(userDoc).toContain('Has many posts.');
+    });
 });

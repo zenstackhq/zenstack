@@ -1,4 +1,4 @@
-import { isDataModel, isEnum } from '@zenstackhq/language/ast';
+import { isDataModel, isEnum, type DataModel } from '@zenstackhq/language/ast';
 import type { CliGeneratorContext, CliPlugin } from '@zenstackhq/sdk';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -48,6 +48,27 @@ function renderIndexPage(context: CliGeneratorContext): string {
     return lines.join('\n');
 }
 
+function stripCommentPrefix(comments: string[]): string {
+    return comments
+        .map((c) => c.replace(/^\/\/\/\s?/, ''))
+        .join('\n')
+        .trim();
+}
+
+function renderModelPage(model: DataModel): string {
+    const lines: string[] = [`# ${model.name}`, ''];
+
+    const description = stripCommentPrefix(model.comments);
+    if (description) {
+        for (const line of description.split('\n')) {
+            lines.push(`> ${line}`);
+        }
+        lines.push('');
+    }
+
+    return lines.join('\n');
+}
+
 const plugin: CliPlugin = {
     name: 'Documentation Generator',
     statusText: 'Generating documentation',
@@ -55,6 +76,18 @@ const plugin: CliPlugin = {
         const outputDir = resolveOutputDir(context);
         fs.mkdirSync(outputDir, { recursive: true });
         fs.writeFileSync(path.join(outputDir, 'index.md'), renderIndexPage(context));
+
+        const modelsDir = path.join(outputDir, 'models');
+        const models = context.model.declarations.filter(isDataModel);
+        if (models.length > 0) {
+            fs.mkdirSync(modelsDir, { recursive: true });
+            for (const model of models) {
+                fs.writeFileSync(
+                    path.join(modelsDir, `${model.name}.md`),
+                    renderModelPage(model),
+                );
+            }
+        }
     },
 };
 
