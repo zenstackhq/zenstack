@@ -1936,6 +1936,71 @@ describe('documentation plugin', () => {
         expect(indexContent).toContain('2 procedures');
     });
 
+    it('index page shows entity descriptions inline', async () => {
+        const model = await loadSchema(`
+            /// A registered user in the platform.
+            model User {
+                id String @id @default(cuid())
+            }
+            /// Tracks system events.
+            model Activity {
+                id String @id @default(cuid())
+            }
+            /// Roles available in the system.
+            enum Role {
+                ADMIN
+                USER
+            }
+            /// Common timestamp fields.
+            type Timestamps {
+                createdAt DateTime @default(now())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const indexContent = fs.readFileSync(path.join(tmpDir, 'index.md'), 'utf-8');
+        expect(indexContent).toContain('[Activity](./models/Activity.md)');
+        expect(indexContent).toContain('Tracks system events');
+        expect(indexContent).toContain('[User](./models/User.md)');
+        expect(indexContent).toContain('A registered user in the platform');
+        expect(indexContent).toContain('Roles available in the system');
+        expect(indexContent).toContain('Common timestamp fields');
+    });
+
+    it('index page handles entities without descriptions', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+            /// Has a description.
+            model Post {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const indexContent = fs.readFileSync(path.join(tmpDir, 'index.md'), 'utf-8');
+        expect(indexContent).toContain('[Post](./models/Post.md)');
+        expect(indexContent).toContain('Has a description');
+        expect(indexContent).toContain('[User](./models/User.md)');
+    });
+
     it('snapshot: full representative schema output', async () => {
         const model = await loadSchema(`
             /// User roles in the system.

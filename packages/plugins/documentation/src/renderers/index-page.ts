@@ -1,6 +1,27 @@
 import { isDataModel, isEnum, isProcedure, isTypeDef, type DataModel, type Model } from '@zenstackhq/language/ast';
-import { extractDocMeta, isIgnoredModel } from '../extractors';
+import { extractDocMeta, isIgnoredModel, stripCommentPrefix } from '../extractors';
 import { generatedHeader } from './common';
+
+function extractProcedureDescription(proc: { $cstNode?: { text?: string } }): string {
+    const cstText = proc.$cstNode?.text;
+    if (!cstText) return '';
+    const commentLines: string[] = [];
+    for (const line of cstText.split('\n')) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('///')) {
+            commentLines.push(trimmed.replace(/^\/\/\/\s?/, ''));
+        } else {
+            break;
+        }
+    }
+    return commentLines.join(' ').trim();
+}
+
+function firstSentence(text: string): string {
+    if (!text) return '';
+    const match = text.match(/^[^.!?\n]+[.!?]?/);
+    return match ? match[0].trim() : text.trim();
+}
 
 function getModelPath(model: DataModel, groupBy: unknown): string {
     if (groupBy === 'category') {
@@ -30,15 +51,13 @@ export function renderIndexPage(
         .filter((m) => includeInternal || !isIgnoredModel(m))
         .sort((a, b) => a.name.localeCompare(b.name));
 
-    const typeNames = astModel.declarations
+    const types = astModel.declarations
         .filter(isTypeDef)
-        .map((t) => t.name)
-        .sort();
+        .sort((a, b) => a.name.localeCompare(b.name));
 
-    const enumNames = astModel.declarations
+    const enums = astModel.declarations
         .filter(isEnum)
-        .map((e) => e.name)
-        .sort();
+        .sort((a, b) => a.name.localeCompare(b.name));
 
     const procedures = astModel.declarations
         .filter(isProcedure)
@@ -48,8 +67,8 @@ export function renderIndexPage(
 
     const summaryParts: string[] = [];
     if (models.length > 0) summaryParts.push(`${models.length} ${models.length === 1 ? 'model' : 'models'}`);
-    if (typeNames.length > 0) summaryParts.push(`${typeNames.length} ${typeNames.length === 1 ? 'type' : 'types'}`);
-    if (enumNames.length > 0) summaryParts.push(`${enumNames.length} ${enumNames.length === 1 ? 'enum' : 'enums'}`);
+    if (types.length > 0) summaryParts.push(`${types.length} ${types.length === 1 ? 'type' : 'types'}`);
+    if (enums.length > 0) summaryParts.push(`${enums.length} ${enums.length === 1 ? 'enum' : 'enums'}`);
     if (procedures.length > 0) summaryParts.push(`${procedures.length} ${procedures.length === 1 ? 'procedure' : 'procedures'}`);
     if (summaryParts.length > 0) {
         lines.push(`> ${summaryParts.join(' · ')}`, '');
@@ -58,23 +77,29 @@ export function renderIndexPage(
     if (models.length > 0) {
         lines.push('## Models', '');
         for (const m of models) {
-            lines.push(`- [${m.name}](${getModelPath(m, groupBy)})`);
+            const desc = firstSentence(stripCommentPrefix(m.comments));
+            const suffix = desc ? ` — ${desc}` : '';
+            lines.push(`- [${m.name}](${getModelPath(m, groupBy)})${suffix}`);
         }
         lines.push('');
     }
 
-    if (typeNames.length > 0) {
+    if (types.length > 0) {
         lines.push('## Types', '');
-        for (const name of typeNames) {
-            lines.push(`- [${name}](./types/${name}.md)`);
+        for (const t of types) {
+            const desc = firstSentence(stripCommentPrefix(t.comments));
+            const suffix = desc ? ` — ${desc}` : '';
+            lines.push(`- [${t.name}](./types/${t.name}.md)${suffix}`);
         }
         lines.push('');
     }
 
-    if (enumNames.length > 0) {
+    if (enums.length > 0) {
         lines.push('## Enums', '');
-        for (const name of enumNames) {
-            lines.push(`- [${name}](./enums/${name}.md)`);
+        for (const e of enums) {
+            const desc = firstSentence(stripCommentPrefix(e.comments));
+            const suffix = desc ? ` — ${desc}` : '';
+            lines.push(`- [${e.name}](./enums/${e.name}.md)${suffix}`);
         }
         lines.push('');
     }
@@ -83,7 +108,9 @@ export function renderIndexPage(
         lines.push('## Procedures', '');
         for (const proc of procedures) {
             const kind = proc.mutation ? 'mutation' : 'query';
-            lines.push(`- [${proc.name}](./procedures/${proc.name}.md) — *${kind}*`);
+            const desc = firstSentence(extractProcedureDescription(proc));
+            const descSuffix = desc ? ` — ${desc}` : '';
+            lines.push(`- [${proc.name}](./procedures/${proc.name}.md) · *${kind}*${descSuffix}`);
         }
         lines.push('');
     }
