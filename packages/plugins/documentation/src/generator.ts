@@ -1,4 +1,4 @@
-import { isDataModel, isEnum } from '@zenstackhq/language/ast';
+import { isDataModel, isEnum, isTypeDef } from '@zenstackhq/language/ast';
 import type { CliGeneratorContext } from '@zenstackhq/sdk';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -7,6 +7,7 @@ import { renderEnumPage } from './renderers/enum-page';
 import { renderIndexPage } from './renderers/index-page';
 import { renderModelPage } from './renderers/model-page';
 import { renderRelationshipsPage } from './renderers/relationships-page';
+import { renderTypePage } from './renderers/type-page';
 
 function resolveOutputDir(context: CliGeneratorContext): string {
     const output = context.pluginOptions['output'];
@@ -60,6 +61,18 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
             path.join(outputDir, 'relationships.md'),
             renderRelationshipsPage(allRelations),
         );
+    }
+
+    const typesDir = path.join(outputDir, 'types');
+    const typeDefs = context.model.declarations.filter(isTypeDef);
+    if (typeDefs.length > 0) {
+        fs.mkdirSync(typesDir, { recursive: true });
+        for (const typeDef of typeDefs) {
+            fs.writeFileSync(
+                path.join(typesDir, `${typeDef.name}.md`),
+                renderTypePage(typeDef, models),
+            );
+        }
     }
 
     const enumsDir = path.join(outputDir, 'enums');

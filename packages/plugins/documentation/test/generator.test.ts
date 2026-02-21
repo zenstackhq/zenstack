@@ -107,6 +107,37 @@ describe('documentation plugin', () => {
         expect(metaIdx).toBeLessThan(tsIdx);
     });
 
+    it('generates type page with heading, description, and fields table', async () => {
+        const model = await loadSchema(`
+            /// Common timestamp fields for all models.
+            type Timestamps {
+                createdAt DateTime @default(now())
+                updatedAt DateTime @updatedAt
+            }
+            model User {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        expect(fs.existsSync(path.join(tmpDir, 'types', 'Timestamps.md'))).toBe(true);
+        const typeDoc = fs.readFileSync(path.join(tmpDir, 'types', 'Timestamps.md'), 'utf-8');
+        expect(typeDoc).toContain('# Timestamps');
+        expect(typeDoc).toContain('Common timestamp fields');
+        expect(typeDoc).toContain('[Index](../index.md)');
+        expect(typeDoc).toContain('## Fields');
+        expect(typeDoc).toContain('| createdAt');
+        expect(typeDoc).toContain('| updatedAt');
+    });
+
     it('generates model page with heading and description', async () => {
         const model = await loadSchema(`
             /// Represents a registered user.
