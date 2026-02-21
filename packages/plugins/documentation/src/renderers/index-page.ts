@@ -1,4 +1,4 @@
-import { isDataModel, isEnum, type DataModel, type Model } from '@zenstackhq/language/ast';
+import { isDataModel, isEnum, isTypeDef, type DataModel, type Model } from '@zenstackhq/language/ast';
 import { extractDocMeta, isIgnoredModel } from '../extractors';
 
 function getModelPath(model: DataModel, groupBy: unknown): string {
@@ -35,6 +35,19 @@ export function renderIndexPage(
         lines.push('## Models', '');
         for (const m of models) {
             lines.push(`- [${m.name}](${getModelPath(m, groupBy)})`);
+        }
+        lines.push('');
+    }
+
+    const types = astModel.declarations
+        .filter(isTypeDef)
+        .map((t) => t.name)
+        .sort();
+
+    if (types.length > 0) {
+        lines.push('## Types', '');
+        for (const name of types) {
+            lines.push(`- [${name}](./types/${name}.md)`);
         }
         lines.push('');
     }

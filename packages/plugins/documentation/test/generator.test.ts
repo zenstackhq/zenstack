@@ -75,6 +75,38 @@ describe('documentation plugin', () => {
         expect(indexContent).toContain('[Role](./enums/Role.md)');
     });
 
+    it('index page lists types alpha-sorted with links', async () => {
+        const model = await loadSchema(`
+            type Timestamps {
+                createdAt DateTime @default(now())
+                updatedAt DateTime @updatedAt
+            }
+            type Metadata {
+                version Int @default(1)
+            }
+            model User {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const indexContent = fs.readFileSync(path.join(tmpDir, 'index.md'), 'utf-8');
+        expect(indexContent).toContain('## Types');
+        expect(indexContent).toContain('[Metadata](./types/Metadata.md)');
+        expect(indexContent).toContain('[Timestamps](./types/Timestamps.md)');
+        const metaIdx = indexContent.indexOf('[Metadata]');
+        const tsIdx = indexContent.indexOf('[Timestamps]');
+        expect(metaIdx).toBeLessThan(tsIdx);
+    });
+
     it('generates model page with heading and description', async () => {
         const model = await loadSchema(`
             /// Represents a registered user.
