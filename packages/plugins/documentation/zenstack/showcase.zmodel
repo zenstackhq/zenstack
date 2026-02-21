@@ -196,6 +196,7 @@ model Task with Timestamps {
     @@allow('read', true)
     @@allow('create,update', true)
     @@deny('delete', status == 'DONE')
+    @@validate(estimatedHours == null || estimatedHours > 0, "Estimated hours must be positive when set")
     @@index([projectId])
     @@index([assigneeId])
     @@meta('doc:category', 'Work')

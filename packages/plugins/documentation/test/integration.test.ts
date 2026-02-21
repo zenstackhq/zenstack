@@ -371,6 +371,15 @@ describe('integration: showcase schema', () => {
         expect(createdLine).toContain('`now()`');
     });
 
+    it('Task model renders @@validate model-level rule in Validation Rules', async () => {
+        const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
+
+        const taskDoc = readDoc(tmpDir, 'models', 'Task.md');
+        expect(taskDoc).toContain('## Validation Rules');
+        expect(taskDoc).toContain('estimatedHours');
+        expect(taskDoc).toContain('Estimated hours must be positive when set');
+    });
+
     it('Task model renders all validation attributes including @regex, @gt, @lte, @trim', async () => {
         const tmpDir = await generateDocs(SHOWCASE_SCHEMA);
 
