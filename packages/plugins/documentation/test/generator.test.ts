@@ -445,6 +445,30 @@ describe('documentation plugin', () => {
         expect(userDoc).toContain('id    String @id @default(cuid())');
     });
 
+    it('fields with no description show em-dash instead of blank', async () => {
+        const model = await loadSchema(`
+            model User {
+                id    String @id @default(cuid())
+                email String
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        const idLine = userDoc.split('\n').find((l) => l.includes('| id'));
+        expect(idLine).toBeDefined();
+        // Last column should be — not empty
+        expect(idLine).toMatch(/\| — \|$/);
+    });
+
     it('fields default to declaration order', async () => {
         const model = await loadSchema(`
             model User {

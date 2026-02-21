@@ -90,8 +90,9 @@ export function renderModelPage(model: DataModel, options: RenderOptions): strin
             const example = extractFieldDocExample(field);
             if (example) descParts.push(`Example: \`${example}\``);
             if (fieldDescription) descParts.push(fieldDescription);
+            const desc = descParts.length > 0 ? descParts.join(' ') : '—';
             lines.push(
-                `| ${field.name} | ${getFieldTypeName(field, true)} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${source} | ${descParts.join(' ')} |`,
+                `| ${field.name} | ${getFieldTypeName(field, true)} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${source} | ${desc} |`,
             );
         }
         lines.push('');

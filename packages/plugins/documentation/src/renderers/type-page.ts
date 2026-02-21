@@ -39,7 +39,7 @@ export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], option
         lines.push('| --- | --- | --- | --- | --- | --- |');
 
         for (const field of sortedFields) {
-            const fieldDescription = stripCommentPrefix(field.comments);
+            const fieldDescription = stripCommentPrefix(field.comments) || '—';
             lines.push(
                 `| ${field.name} | ${getFieldTypeName(field, false)} | ${isFieldRequired(field) ? 'Yes' : 'No'} | ${getDefaultValue(field)} | ${getFieldAttributes(field)} | ${fieldDescription} |`,
             );

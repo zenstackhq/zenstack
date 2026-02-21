@@ -7,7 +7,7 @@ exports[`documentation plugin > snapshot: full representative schema output > en
 
 > User roles in the system.
 
-**Defined in:** \`../../../../../tmp/zenstack-schema-46c83599-5f3d-4a61-bc5c-eee1bf1198ba.zmodel\`
+**Defined in:** \`../../../../../tmp/zenstack-schema-7efba380-5777-4e82-b7e9-999016eeac1b.zmodel\`
 
 ## Values
 
@@ -61,17 +61,17 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 **Category:** Content
 
-**Defined in:** \`../../../../../tmp/zenstack-schema-46c83599-5f3d-4a61-bc5c-eee1bf1198ba.zmodel\`
+**Defined in:** \`../../../../../tmp/zenstack-schema-7efba380-5777-4e82-b7e9-999016eeac1b.zmodel\`
 
 ## Fields
 
 | Field | Type | Required | Default | Attributes | Source | Description |
 | --- | --- | --- | --- | --- | --- | --- |
-| id | String | Yes | \`cuid()\` | \`@id\` | — |  |
+| id | String | Yes | \`cuid()\` | \`@id\` | — | — |
 | title | String | Yes | — | — | — | The post title. |
-| content | String? | No | — | — | — |  |
-| author | [User](./User.md) | Yes | — | \`@relation(fields: [authorId], references: [id])\` | — |  |
-| authorId | String | Yes | — | — | — |  |
+| content | String? | No | — | — | — | — |
+| author | [User](./User.md) | Yes | — | \`@relation(fields: [authorId], references: [id])\` | — | — |
+| authorId | String | Yes | — | — | — | — |
 
 ## Relationships
 
@@ -108,17 +108,17 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 **Since:** 1.0
 
-**Defined in:** \`../../../../../tmp/zenstack-schema-46c83599-5f3d-4a61-bc5c-eee1bf1198ba.zmodel\`
+**Defined in:** \`../../../../../tmp/zenstack-schema-7efba380-5777-4e82-b7e9-999016eeac1b.zmodel\`
 
 ## Fields
 
 | Field | Type | Required | Default | Attributes | Source | Description |
 | --- | --- | --- | --- | --- | --- | --- |
-| id | String | Yes | \`cuid()\` | \`@id\` | — |  |
+| id | String | Yes | \`cuid()\` | \`@id\` | — | — |
 | email | String | Yes | — | \`@unique\`, \`@email\` | — | User's email address. |
 | name | String | Yes | — | — | — | Display name shown in the UI. |
-| role | [Role](../enums/Role.md) | Yes | — | — | — |  |
-| posts | [Post](./Post.md)[] | No | — | — | — |  |
+| role | [Role](../enums/Role.md) | Yes | — | — | — | — |
+| posts | [Post](./Post.md)[] | No | — | — | — | — |
 
 ## Relationships
 

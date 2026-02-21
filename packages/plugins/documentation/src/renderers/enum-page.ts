@@ -28,7 +28,7 @@ export function renderEnumPage(enumDecl: Enum, allModels: DataModel[], options: 
         lines.push('| --- | --- |');
 
         for (const field of enumDecl.fields) {
-            const fieldDesc = stripCommentPrefix(field.comments);
+            const fieldDesc = stripCommentPrefix(field.comments) || '—';
             lines.push(`| ${field.name} | ${fieldDesc} |`);
         }
         lines.push('');
