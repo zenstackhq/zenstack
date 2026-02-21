@@ -138,6 +138,39 @@ describe('documentation plugin', () => {
         expect(typeDoc).toContain('| updatedAt');
     });
 
+    it('type page shows Used By section linking to models that use it', async () => {
+        const model = await loadSchema(`
+            type Timestamps {
+                createdAt DateTime @default(now())
+                updatedAt DateTime @updatedAt
+            }
+            model User with Timestamps {
+                id String @id @default(cuid())
+            }
+            model Post with Timestamps {
+                id String @id @default(cuid())
+            }
+            model Tag {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const typeDoc = fs.readFileSync(path.join(tmpDir, 'types', 'Timestamps.md'), 'utf-8');
+        expect(typeDoc).toContain('## Used By');
+        expect(typeDoc).toContain('[Post](../models/Post.md)');
+        expect(typeDoc).toContain('[User](../models/User.md)');
+        expect(typeDoc).not.toContain('[Tag]');
+    });
+
     it('generates model page with heading and description', async () => {
         const model = await loadSchema(`
             /// Represents a registered user.

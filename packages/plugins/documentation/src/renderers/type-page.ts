@@ -40,5 +40,18 @@ export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[]): strin
         lines.push('');
     }
 
+    const usedBy = _allModels
+        .filter((m) => m.mixins.some((ref) => ref.ref?.name === typeDef.name))
+        .map((m) => m.name)
+        .sort();
+
+    if (usedBy.length > 0) {
+        lines.push('## Used By', '');
+        for (const name of usedBy) {
+            lines.push(`- [${name}](../models/${name}.md)`);
+        }
+        lines.push('');
+    }
+
     return lines.join('\n');
 }
