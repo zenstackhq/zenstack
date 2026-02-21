@@ -449,6 +449,46 @@ describe('documentation plugin', () => {
         expect(userDoc).toContain('Has many posts.');
     });
 
+    it('model page includes table of contents with anchor links', async () => {
+        const model = await loadSchema(`
+            enum Role { ADMIN MEMBER }
+            model User {
+                id    String @id @default(cuid())
+                email String @unique @email
+                role  Role
+                posts Post[]
+                @@allow('read', true)
+                @@index([email])
+            }
+            model Post {
+                id       String @id @default(cuid())
+                author   User   @relation(fields: [authorId], references: [id])
+                authorId String
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('- [Fields](#fields)');
+        expect(userDoc).toContain('- [Relationships](#relationships)');
+        expect(userDoc).toContain('- [Access Policies](#access-policies)');
+        expect(userDoc).toContain('- [Indexes](#indexes)');
+        expect(userDoc).toContain('- [Validation Rules](#validation-rules)');
+
+        // TOC should appear before the first ## heading
+        const tocIdx = userDoc.indexOf('- [Fields](#fields)');
+        const fieldsIdx = userDoc.indexOf('## Fields');
+        expect(tocIdx).toBeLessThan(fieldsIdx);
+    });
+
     it('model page includes declaration code block', async () => {
         const model = await loadSchema(`
             /// A registered user.

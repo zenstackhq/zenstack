@@ -52,14 +52,6 @@ export function renderModelPage(model: DataModel, options: RenderOptions): strin
         .filter((t): t is NonNullable<typeof t> => t != null)
         .sort((a, b) => a.name.localeCompare(b.name));
 
-    if (mixinRefs.length > 0) {
-        lines.push('## Mixins', '');
-        for (const mixin of mixinRefs) {
-            lines.push(`- [${mixin.name}](../types/${mixin.name}.md)`);
-        }
-        lines.push('');
-    }
-
     const allFields = getAllFields(model);
     const orderedFields =
         options.fieldOrder === 'alphabetical'
@@ -69,6 +61,57 @@ export function renderModelPage(model: DataModel, options: RenderOptions): strin
     const relationFields = allFields
         .filter((f) => f.type.reference?.ref && isDataModel(f.type.reference.ref))
         .sort((a, b) => a.name.localeCompare(b.name));
+
+    const policyAttrs = model.attributes.filter((a) => {
+        const name = a.decl.ref?.name ?? '';
+        return name === '@@allow' || name === '@@deny';
+    });
+
+    const indexAttrs = model.attributes.filter((a) => {
+        const name = a.decl.ref?.name ?? '';
+        return name === '@@index' || name === '@@unique' || name === '@@id';
+    });
+
+    const validationRules: Array<{ fieldName: string; rule: string }> = [];
+    for (const field of orderedFields) {
+        for (const attr of field.attributes) {
+            const attrDecl = attr.decl.ref;
+            if (!attrDecl) continue;
+            const isValidation = attrDecl.attributes.some(
+                (ia) => ia.decl.ref?.name === '@@@validation',
+            );
+            if (isValidation) {
+                validationRules.push({
+                    fieldName: field.name,
+                    rule: `\`${getAttrName(attr)}\``,
+                });
+            }
+        }
+    }
+
+    const sections: string[] = [];
+    if (mixinRefs.length > 0) sections.push('Mixins');
+    if (orderedFields.length > 0) sections.push('Fields');
+    if (options.includeRelationships && relationFields.length > 0) sections.push('Relationships');
+    if (options.includePolicies && policyAttrs.length > 0) sections.push('Access Policies');
+    if (options.includeIndexes && indexAttrs.length > 0) sections.push('Indexes');
+    if (options.includeValidation && validationRules.length > 0) sections.push('Validation Rules');
+
+    if (sections.length > 1) {
+        for (const section of sections) {
+            const anchor = section.toLowerCase().replace(/\s+/g, '-');
+            lines.push(`- [${section}](#${anchor})`);
+        }
+        lines.push('');
+    }
+
+    if (mixinRefs.length > 0) {
+        lines.push('## Mixins', '');
+        for (const mixin of mixinRefs) {
+            lines.push(`- [${mixin.name}](../types/${mixin.name}.md)`);
+        }
+        lines.push('');
+    }
 
     if (orderedFields.length > 0) {
         lines.push('## Fields', '');
@@ -104,11 +147,6 @@ export function renderModelPage(model: DataModel, options: RenderOptions): strin
         }
         lines.push('');
     }
-
-    const policyAttrs = model.attributes.filter((a) => {
-        const name = a.decl.ref?.name ?? '';
-        return name === '@@allow' || name === '@@deny';
-    });
 
     if (options.includeRelationships && relationFields.length > 0) {
         lines.push('## Relationships', '');
@@ -148,11 +186,6 @@ export function renderModelPage(model: DataModel, options: RenderOptions): strin
         lines.push('');
     }
 
-    const indexAttrs = model.attributes.filter((a) => {
-        const name = a.decl.ref?.name ?? '';
-        return name === '@@index' || name === '@@unique' || name === '@@id';
-    });
-
     if (options.includeIndexes && indexAttrs.length > 0) {
         lines.push('## Indexes', '');
         lines.push('| Fields | Type |');
@@ -172,23 +205,6 @@ export function renderModelPage(model: DataModel, options: RenderOptions): strin
             lines.push(`| \`${fieldsArg}\` | ${indexType} |`);
         }
         lines.push('');
-    }
-
-    const validationRules: Array<{ fieldName: string; rule: string }> = [];
-    for (const field of orderedFields) {
-        for (const attr of field.attributes) {
-            const attrDecl = attr.decl.ref;
-            if (!attrDecl) continue;
-            const isValidation = attrDecl.attributes.some(
-                (ia) => ia.decl.ref?.name === '@@@validation',
-            );
-            if (isValidation) {
-                validationRules.push({
-                    fieldName: field.name,
-                    rule: `\`${getAttrName(attr)}\``,
-                });
-            }
-        }
     }
 
     if (options.includeValidation && validationRules.length > 0) {

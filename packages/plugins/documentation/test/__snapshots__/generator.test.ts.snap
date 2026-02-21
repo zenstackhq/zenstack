@@ -9,7 +9,7 @@ exports[`documentation plugin > snapshot: full representative schema output > en
 
 | | |
 | --- | --- |
-| **Defined in** | \`../../../../../tmp/zenstack-schema-ead5e180-7631-461e-994c-25acb6d4cb07.zmodel\` |
+| **Defined in** | \`../../../../../tmp/zenstack-schema-dd23e3a7-bf0f-4ab5-bd86-70df424104f5.zmodel\` |
 
 ## Values
 
@@ -69,7 +69,10 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 | | |
 | --- | --- |
 | **Category** | Content |
-| **Defined in** | \`../../../../../tmp/zenstack-schema-ead5e180-7631-461e-994c-25acb6d4cb07.zmodel\` |
+| **Defined in** | \`../../../../../tmp/zenstack-schema-dd23e3a7-bf0f-4ab5-bd86-70df424104f5.zmodel\` |
+
+- [Fields](#fields)
+- [Relationships](#relationships)
 
 ## Fields
 
@@ -119,7 +122,13 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 | --- | --- |
 | **Category** | Identity |
 | **Since** | 1.0 |
-| **Defined in** | \`../../../../../tmp/zenstack-schema-ead5e180-7631-461e-994c-25acb6d4cb07.zmodel\` |
+| **Defined in** | \`../../../../../tmp/zenstack-schema-dd23e3a7-bf0f-4ab5-bd86-70df424104f5.zmodel\` |
+
+- [Fields](#fields)
+- [Relationships](#relationships)
+- [Access Policies](#access-policies)
+- [Indexes](#indexes)
+- [Validation Rules](#validation-rules)
 
 ## Fields
 
