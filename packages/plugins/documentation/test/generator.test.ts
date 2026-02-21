@@ -1405,6 +1405,56 @@ describe('documentation plugin', () => {
         expect(userDoc).toContain('`@length`');
     });
 
+    it('model with @@auth renders Auth badge on heading', async () => {
+        const model = await loadSchema(`
+            model User {
+                id String @id @default(cuid())
+                email String
+                @@auth
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const userDoc = fs.readFileSync(path.join(tmpDir, 'models', 'User.md'), 'utf-8');
+        expect(userDoc).toContain('<kbd>Auth</kbd>');
+        expect(userDoc).toContain('<kbd>Model</kbd>');
+    });
+
+    it('model with @@delegate renders Delegate badge on heading', async () => {
+        const model = await loadSchema(`
+            enum AssetType { IMAGE VIDEO }
+            model Asset {
+                id   String    @id @default(cuid())
+                type AssetType
+                @@delegate(type)
+            }
+            model Image extends Asset {
+                url String
+            }
+        `);
+
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'doc-plugin-'));
+
+        await plugin.generate({
+            schemaFile: 'schema.zmodel',
+            model,
+            defaultOutputPath: tmpDir,
+            pluginOptions: { output: tmpDir },
+        });
+
+        const assetDoc = fs.readFileSync(path.join(tmpDir, 'models', 'Asset.md'), 'utf-8');
+        expect(assetDoc).toContain('<kbd>Delegate</kbd>');
+        expect(assetDoc).toContain('<kbd>Model</kbd>');
+    });
+
     it('renders all predefined validation attributes in validation rules section', async () => {
         const model = await loadSchema(`
             model Product {

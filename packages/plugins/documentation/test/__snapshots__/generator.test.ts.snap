@@ -11,7 +11,7 @@ exports[`documentation plugin > snapshot: full representative schema output > en
 
 > User roles in the system.
 
-**Defined in:** \`../../../../../tmp/zenstack-schema-0a7ab6b0-1b9c-46fb-9621-375899795d82.zmodel\`
+**Defined in:** \`../../../../../tmp/zenstack-schema-b43b3fe7-1db4-423b-ae37-c22fbad0bca4.zmodel\`
 
 ## Values
 
@@ -37,7 +37,7 @@ classDiagram
 *Learn more about ZModel enums in the [ZenStack documentation](https://zenstack.dev/docs/reference/zmodel/enum).*
 
 <details>
-<summary>Declaration · <code>../../../../../tmp/zenstack-schema-0a7ab6b0-1b9c-46fb-9621-375899795d82.zmodel</code></summary>
+<summary>Declaration · <code>../../../../../tmp/zenstack-schema-b43b3fe7-1db4-423b-ae37-c22fbad0bca4.zmodel</code></summary>
 
 \`\`\`prisma
 /// User roles in the system.
@@ -92,7 +92,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 > A blog post.
 
-**Category:** Content · **Defined in:** \`../../../../../tmp/zenstack-schema-0a7ab6b0-1b9c-46fb-9621-375899795d82.zmodel\`
+**Category:** Content · **Defined in:** \`../../../../../tmp/zenstack-schema-b43b3fe7-1db4-423b-ae37-c22fbad0bca4.zmodel\`
 
 [Fields](#fields) · [Relationships](#relationships)
 
@@ -120,7 +120,7 @@ erDiagram
 *Learn more about ZModel models in the [ZenStack documentation](https://zenstack.dev/docs/reference/zmodel/data-model).*
 
 <details>
-<summary>Declaration · <code>../../../../../tmp/zenstack-schema-0a7ab6b0-1b9c-46fb-9621-375899795d82.zmodel</code></summary>
+<summary>Declaration · <code>../../../../../tmp/zenstack-schema-b43b3fe7-1db4-423b-ae37-c22fbad0bca4.zmodel</code></summary>
 
 \`\`\`prisma
 /// A blog post.
@@ -155,7 +155,7 @@ exports[`documentation plugin > snapshot: full representative schema output > mo
 
 > Represents a registered user.
 
-**Category:** Identity · **Since:** 1.0 · **Defined in:** \`../../../../../tmp/zenstack-schema-0a7ab6b0-1b9c-46fb-9621-375899795d82.zmodel\`
+**Category:** Identity · **Since:** 1.0 · **Defined in:** \`../../../../../tmp/zenstack-schema-b43b3fe7-1db4-423b-ae37-c22fbad0bca4.zmodel\`
 
 [Fields](#fields) · [Relationships](#relationships) · [Access Policies](#access-policies) · [Indexes](#indexes) · [Validation Rules](#validation-rules)
 
@@ -205,7 +205,7 @@ erDiagram
 *Learn more about ZModel models in the [ZenStack documentation](https://zenstack.dev/docs/reference/zmodel/data-model).*
 
 <details>
-<summary>Declaration · <code>../../../../../tmp/zenstack-schema-0a7ab6b0-1b9c-46fb-9621-375899795d82.zmodel</code></summary>
+<summary>Declaration · <code>../../../../../tmp/zenstack-schema-b43b3fe7-1db4-423b-ae37-c22fbad0bca4.zmodel</code></summary>
 
 \`\`\`prisma
 /// Represents a registered user.

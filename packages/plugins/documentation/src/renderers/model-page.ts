@@ -28,7 +28,14 @@ export function renderModelPage(model: DataModel, options: RenderOptions, proced
     const docMeta = extractDocMeta(model.attributes);
     const isDeprecated = !!docMeta.deprecated;
     const nameDisplay = isDeprecated ? `~~${model.name}~~` : model.name;
-    const badges = isDeprecated ? ' <kbd>Model</kbd> <kbd>Deprecated</kbd>' : ' <kbd>Model</kbd>';
+
+    const badgeParts = ['<kbd>Model</kbd>'];
+    const hasAuth = model.attributes.some((a) => a.decl.ref?.name === '@@auth');
+    const hasDelegate = model.attributes.some((a) => a.decl.ref?.name === '@@delegate');
+    if (hasAuth) badgeParts.push('<kbd>Auth</kbd>');
+    if (hasDelegate) badgeParts.push('<kbd>Delegate</kbd>');
+    if (isDeprecated) badgeParts.push('<kbd>Deprecated</kbd>');
+    const badges = ' ' + badgeParts.join(' ');
 
     const lines: string[] = [
         ...generatedHeader(options.genCtx),
