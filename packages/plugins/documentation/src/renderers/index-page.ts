@@ -120,8 +120,8 @@ export function renderIndexPage(
         lines.push('<a id="types"></a>', '', '## 🧩 Types', '');
         for (const t of types) {
             const desc = firstSentence(stripCommentPrefix(t.comments));
-            const suffix = desc ? ` — ${desc}` : '';
-            lines.push(`- [${t.name}](./types/${t.name}.md)${suffix}`);
+            const meta = extractDocMeta(t.attributes);
+            lines.push(formatIndexEntry(t.name, `./types/${t.name}.md`, desc, meta));
         }
         lines.push('');
     }
@@ -130,8 +130,8 @@ export function renderIndexPage(
         lines.push('<a id="enums"></a>', '', '## 📋 Enums', '');
         for (const e of enums) {
             const desc = firstSentence(stripCommentPrefix(e.comments));
-            const suffix = desc ? ` — ${desc}` : '';
-            lines.push(`- [${e.name}](./enums/${e.name}.md)${suffix}`);
+            const meta = extractDocMeta(e.attributes);
+            lines.push(formatIndexEntry(e.name, `./enums/${e.name}.md`, desc, meta));
         }
         lines.push('');
     }
