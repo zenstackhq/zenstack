@@ -226,6 +226,25 @@ describe('documentation plugin: index page', () => {
         expect(indexContent).toContain('[Uncategorized](./models/Uncategorized.md)');
     });
 
+    it('deprecated model with description uses consistent em dash formatting', async () => {
+        const tmpDir = await generateFromSchema(`
+            /// Old user model.
+            model OldUser {
+                id String @id @default(cuid())
+                @@meta('doc:deprecated', 'Use UserV2 instead')
+            }
+            model UserV2 {
+                id String @id @default(cuid())
+            }
+        `);
+
+        const indexContent = readDoc(tmpDir, 'index.md');
+        expect(indexContent).toContain('~~[OldUser]');
+        expect(indexContent).toContain('*Deprecated: Use UserV2 instead*');
+        expect(indexContent).toContain('— Old user model');
+        expect(indexContent).not.toMatch(/\*Deprecated: Use UserV2 instead\* Old user/);
+    });
+
     it('index page lists procedures with query/mutation distinction', async () => {
         const tmpDir = await generateFromSchema(`
             model User {

@@ -13,7 +13,7 @@ function formatIndexEntry(name: string, path: string, desc: string, meta: DocMet
     const suffix = desc ? ` — ${desc}` : '';
     if (meta.deprecated) {
         const reason = meta.deprecated;
-        return `- ~~[${name}](${path})~~ — *Deprecated: ${reason}*${desc ? ` ${desc}` : ''}`;
+        return `- ~~[${name}](${path})~~ — *Deprecated: ${reason}*${desc ? ` — ${desc}` : ''}`;
     }
     return `- [${name}](${path})${suffix}`;
 }
