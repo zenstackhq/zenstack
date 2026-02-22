@@ -287,7 +287,20 @@ The generated `SKILL.md` includes:
 
 The SKILL.md format is optimized for LLM consumption: information-dense, no visual formatting, consistent structure. When an agent needs to understand your data layer — to generate a query, build a form, write a migration, or reason about access control — it can read this single file instead of parsing `.zmodel` schemas.
 
-You can install the generated skill into your project's `.agents/skills/` directory, or publish it via `npx skills add` for team-wide use. See the [skills.sh documentation](https://skills.sh/docs) for details.
+To make the generated skill discoverable by AI agents, place it in a named subdirectory:
+
+```bash
+mkdir -p .agents/skills/my-project
+cp docs/schema/SKILL.md .agents/skills/my-project/SKILL.md
+```
+
+To share it with your team, commit the skill directory and have teammates install it via:
+
+```bash
+npx skills add <owner>/<repo>
+```
+
+See the [skills.sh documentation](https://skills.sh/docs) for details.
 
 ## Compatibility
 
