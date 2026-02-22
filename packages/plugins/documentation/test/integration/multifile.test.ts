@@ -1,13 +1,17 @@
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { findBrokenLinks, generateFromFile, readDoc } from '../utils';
 
 const MULTIFILE_SCHEMA = path.resolve(__dirname, '../../zenstack/multifile/schema.zmodel');
 
 describe('integration: multi-file schema', () => {
-    it('artifacts show correct source file paths for declarations across files', async () => {
-        const tmpDir = await generateFromFile(MULTIFILE_SCHEMA);
+    let tmpDir: string;
 
+    beforeAll(async () => {
+        tmpDir = await generateFromFile(MULTIFILE_SCHEMA);
+    });
+
+    it('artifacts show correct source file paths for declarations across files', () => {
         const userDoc = readDoc(tmpDir, 'models', 'User.md');
         expect(userDoc).toContain('**Defined in:**');
         expect(userDoc).toContain('models.zmodel');
@@ -21,14 +25,11 @@ describe('integration: multi-file schema', () => {
         expect(tsDoc).toContain('mixins.zmodel');
     });
 
-    it('has zero broken links across multi-file output', async () => {
-        const tmpDir = await generateFromFile(MULTIFILE_SCHEMA);
+    it('has zero broken links across multi-file output', () => {
         expect(findBrokenLinks(tmpDir)).toEqual([]);
     });
 
-    it('declaration code blocks show correct source for each file', async () => {
-        const tmpDir = await generateFromFile(MULTIFILE_SCHEMA);
-
+    it('declaration code blocks show correct source for each file', () => {
         const userDoc = readDoc(tmpDir, 'models', 'User.md');
         expect(userDoc).toContain('<summary>Declaration');
         expect(userDoc).toContain('model User');
