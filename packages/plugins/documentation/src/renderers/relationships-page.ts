@@ -11,15 +11,17 @@ export function renderRelationshipsPage(relations: Relationship[], genCtx?: Gene
         '',
     ];
 
-    lines.push('## Cross-Reference', '');
-    lines.push('| Model | Field | Related Model | Type |');
-    lines.push('| --- | --- | --- | --- |');
-    for (const rel of relations) {
-        lines.push(
-            `| [${rel.from}](./models/${rel.from}.md) | ${rel.field} | [${rel.to}](./models/${rel.to}.md) | ${rel.type} |`,
-        );
+    if (relations.length > 0) {
+        lines.push('## Cross-Reference', '');
+        lines.push('| Model | Field | Related Model | Type |');
+        lines.push('| --- | --- | --- | --- |');
+        for (const rel of relations) {
+            lines.push(
+                `| [${rel.from}](./models/${rel.from}.md) | ${rel.field} | [${rel.to}](./models/${rel.to}.md) | ${rel.type} |`,
+            );
+        }
+        lines.push('');
     }
-    lines.push('');
 
     const seen = new Set<string>();
     const mermaidLines: string[] = [];
