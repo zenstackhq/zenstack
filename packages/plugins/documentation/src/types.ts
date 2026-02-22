@@ -18,12 +18,15 @@ export interface RenderOptions {
     genCtx?: GenerationContext;
 }
 
+/** Cardinality of a relationship, inferred from field type properties. */
+export type RelationType = 'One→Many' | 'Many→One' | 'Many→One?';
+
 /** A single relationship between two data models. */
 export interface Relationship {
     from: string;
     field: string;
     to: string;
-    type: string;
+    type: RelationType;
 }
 
 /** Metadata captured during a generation run, rendered in index page footer. */

@@ -7,7 +7,7 @@ import {
     type DataModelAttribute,
 } from '@zenstackhq/language/ast';
 import path from 'node:path';
-import type { DocMeta, Relationship, RenderOptions } from './types';
+import type { DocMeta, Relationship, RelationType, RenderOptions } from './types';
 
 interface AstLike {
     $cstNode?: { root?: { element?: { $document?: { uri?: { fsPath?: string } } } } };
@@ -150,7 +150,7 @@ export function collectRelationships(models: DataModel[]): Relationship[] {
         for (const field of model.fields) {
             if (field.type.reference?.ref && isDataModel(field.type.reference.ref)) {
                 const to = field.type.reference.ref.name;
-                let relType: string;
+                let relType: RelationType;
                 if (field.type.array) {
                     relType = 'One\u2192Many';
                 } else if (field.type.optional) {

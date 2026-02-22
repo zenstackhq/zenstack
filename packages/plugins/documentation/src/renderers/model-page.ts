@@ -1,7 +1,7 @@
 import { isDataModel, isTypeDef, type DataField, type DataModel, type DataModelAttribute, type Procedure } from '@zenstackhq/language/ast';
 import { getAllFields } from '@zenstackhq/language/utils';
 import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referencesSection, renderDescription, renderMetadata, sectionHeading } from './common';
-import type { Navigation } from '../types';
+import type { Navigation, RelationType } from '../types';
 import {
     extractDocMeta,
     extractFieldDocExample,
@@ -157,7 +157,7 @@ function renderRelationshipsSection(modelName: string, relationFields: DataField
 
     for (const field of relationFields) {
         const relatedModel = field.type.reference?.ref?.name ?? '';
-        let relType: string;
+        let relType: RelationType;
         if (field.type.array) {
             relType = 'One\u2192Many';
         } else if (field.type.optional) {

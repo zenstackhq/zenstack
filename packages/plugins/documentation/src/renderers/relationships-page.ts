@@ -31,7 +31,7 @@ export function renderRelationshipsPage(relations: Relationship[], genCtx?: Gene
         seen.add(key);
 
         let mermaidRel: string;
-        if (rel.type.startsWith('One')) {
+        if (rel.type === 'One→Many') {
             mermaidRel = `    ${rel.from} ||--o{ ${rel.to} : "${rel.field}"`;
         } else {
             mermaidRel = `    ${rel.from} }o--|| ${rel.to} : "${rel.field}"`;
