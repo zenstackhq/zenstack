@@ -11,10 +11,10 @@ exports[`documentation plugin: snapshot > snapshot: full representative schema o
 
 > User roles in the system.
 
-**Defined in:** \`../../../../../tmp/<REDACTED>.zmodel\`
+**Defined in:** \`<REDACTED>.zmodel\`
 
 <details>
-<summary>Declaration · <code>../../../../../tmp/<REDACTED>.zmodel</code></summary>
+<summary>Declaration · <REDACTED>.zmodel</code></summary>
 
 \`\`\`prisma
 /// User roles in the system.
@@ -122,10 +122,10 @@ exports[`documentation plugin: snapshot > snapshot: full representative schema o
 
 > A blog post.
 
-**Category:** Content · **Defined in:** \`../../../../../tmp/<REDACTED>.zmodel\`
+**Category:** Content · **Defined in:** \`<REDACTED>.zmodel\`
 
 <details>
-<summary>Declaration · <code>../../../../../tmp/<REDACTED>.zmodel</code></summary>
+<summary>Declaration · <REDACTED>.zmodel</code></summary>
 
 \`\`\`prisma
 /// A blog post.
@@ -209,10 +209,10 @@ exports[`documentation plugin: snapshot > snapshot: full representative schema o
 
 > Represents a registered user.
 
-**Category:** Identity · **Since:** 1.0 · **Defined in:** \`../../../../../tmp/<REDACTED>.zmodel\`
+**Category:** Identity · **Since:** 1.0 · **Defined in:** \`<REDACTED>.zmodel\`
 
 <details>
-<summary>Declaration · <code>../../../../../tmp/<REDACTED>.zmodel</code></summary>
+<summary>Declaration · <REDACTED>.zmodel</code></summary>
 
 \`\`\`prisma
 /// Represents a registered user.

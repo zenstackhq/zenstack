@@ -4,7 +4,7 @@ import { generateFromSchema, readDoc } from '../utils';
 function stabilize(content: string): string {
     return content
         .replace(/zenstack-schema-[a-f0-9-]+\.zmodel/g, 'zenstack-schema-<UUID>.zmodel')
-        .replace(/\/tmp\/[^\s`"')]+\.zmodel/g, '/tmp/<REDACTED>.zmodel')
+        .replace(/[^\s`"')]*[/\\]zenstack-schema-[^\s`"')]+\.zmodel/g, '<REDACTED>.zmodel')
         .replace(/\*\*Duration\*\* \| [\d.]+ ms/g, '**Duration** | <REDACTED> ms')
         .replace(/\*\*Generated\*\* \| \d{4}-\d{2}-\d{2}/g, '**Generated** | <REDACTED>')
         .replace(/Generated:\*\* \d{4}-\d{2}-\d{2}/g, 'Generated:** <REDACTED>');
