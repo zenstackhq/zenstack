@@ -8,7 +8,7 @@ This guide covers how the plugin works internally, how the codebase is organized
 
 The plugin is a pure function: **ZModel AST in, Markdown files out**.
 
-```
+```text
 schema.zmodel
       │
       ▼
@@ -58,7 +58,7 @@ The `generate` function lives in `src/generator.ts`. It is the orchestrator:
 
 ### Source layout
 
-```
+```text
 src/
 ├── index.ts              # CliPlugin default export
 ├── generator.ts          # Orchestrator — walks AST, writes files
@@ -222,7 +222,7 @@ The array-push-join pattern was chosen over template engines for three reasons:
 
 Tests are split by feature area, mirroring the renderer structure:
 
-```
+```text
 test/
 ├── utils.ts                     # Shared helpers
 ├── generator/                   # Unit tests by page type
