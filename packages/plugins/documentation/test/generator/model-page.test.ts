@@ -158,7 +158,7 @@ describe('documentation plugin: model page', () => {
 
         const userDoc = readDoc(tmpDir, 'models', 'User.md');
         expect(userDoc).toContain('zenstack.dev');
-        expect(userDoc).toContain('data-model');
+        expect(userDoc).toContain('/zmodel/model');
     });
 
     it('declaration summary includes source file path', async () => {

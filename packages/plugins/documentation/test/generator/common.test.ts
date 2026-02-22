@@ -304,4 +304,33 @@ describe('documentation plugin: common features', () => {
         const viewDoc = readDoc(tmpDir, 'views', 'OldReport.md');
         expect(viewDoc).toContain('# ~~OldReport~~ <kbd>View</kbd> <kbd>Deprecated</kbd>');
     });
+
+    it('references section links to correct ZenStack documentation URLs', async () => {
+        const tmpDir = await generateFromSchema(`
+            enum Role { ADMIN USER }
+            type Timestamps {
+                createdAt DateTime @default(now())
+            }
+            view UserSummary {
+                id Int
+            }
+            model User with Timestamps {
+                id   String @id @default(cuid())
+                role Role
+            }
+        `);
+
+        const modelDoc = readDoc(tmpDir, 'models', 'User.md');
+        expect(modelDoc).toContain('https://zenstack.dev/docs/reference/zmodel/model');
+        expect(modelDoc).not.toContain('/data-model');
+
+        const enumDoc = readDoc(tmpDir, 'enums', 'Role.md');
+        expect(enumDoc).toContain('https://zenstack.dev/docs/reference/zmodel/enum');
+
+        const typeDoc = readDoc(tmpDir, 'types', 'Timestamps.md');
+        expect(typeDoc).toContain('https://zenstack.dev/docs/reference/zmodel/type');
+
+        const viewDoc = readDoc(tmpDir, 'views', 'UserSummary.md');
+        expect(viewDoc).toContain('https://zenstack.dev/docs/reference/zmodel/view');
+    });
 });

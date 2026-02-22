@@ -60,11 +60,11 @@ export function navigationFooter(nav: Navigation | undefined): string[] {
 const ZENSTACK_DOCS_BASE = 'https://zenstack.dev/docs/reference/zmodel';
 
 const ENTITY_DOC_PATHS: Record<string, string> = {
-    model: `${ZENSTACK_DOCS_BASE}/data-model`,
+    model: `${ZENSTACK_DOCS_BASE}/model`,
     enum: `${ZENSTACK_DOCS_BASE}/enum`,
     type: `${ZENSTACK_DOCS_BASE}/type`,
     view: `${ZENSTACK_DOCS_BASE}/view`,
-    procedure: `${ZENSTACK_DOCS_BASE}/procedure`,
+    procedure: 'https://zenstack.dev/docs/category/reference',
 };
 
 /** Renders a "References" section linking to the official ZenStack documentation for the entity type. */
