@@ -554,9 +554,11 @@ describe('documentation plugin: model page', () => {
         `);
 
         const doc = readDoc(tmpDir, 'models', 'Product.md');
-        expect(doc).toContain('Validation Rules');
+        expect(doc).toContain('✅ Validation Rules');
 
-        const validationSection = doc.split('\u2705 Validation Rules')[1]!;
+        const parts = doc.split('✅ Validation Rules');
+        expect(parts).toHaveLength(2);
+        const validationSection = parts[1]!;
         expect(validationSection).toContain('`@regex`');
         expect(validationSection).toContain('`@startsWith`');
         expect(validationSection).toContain('`@endsWith`');
