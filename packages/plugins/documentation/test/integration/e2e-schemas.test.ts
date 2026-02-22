@@ -1,16 +1,20 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { findBrokenLinks, generateFromFile, readDoc } from '../utils';
 
 const E2E_SCHEMAS_DIR = path.resolve(__dirname, '../../../../../tests/e2e/orm/schemas');
 
 describe('integration: e2e basic schema', () => {
-    it('excludes @@ignore models and documents the rest', async () => {
-        const tmpDir = await generateFromFile(
+    let tmpDir: string;
+
+    beforeAll(async () => {
+        tmpDir = await generateFromFile(
             path.join(E2E_SCHEMAS_DIR, 'basic', 'schema.zmodel'),
         );
+    });
 
+    it('excludes @@ignore models and documents the rest', () => {
         const indexContent = readDoc(tmpDir, 'index.md');
         expect(indexContent).not.toContain('[Foo]');
         expect(fs.existsSync(path.join(tmpDir, 'models', 'Foo.md'))).toBe(false);
@@ -32,20 +36,21 @@ describe('integration: e2e basic schema', () => {
         expect(postDoc).toContain('[User](./User.md)');
     });
 
-    it('has zero broken links', async () => {
-        const tmpDir = await generateFromFile(
-            path.join(E2E_SCHEMAS_DIR, 'basic', 'schema.zmodel'),
-        );
+    it('has zero broken links', () => {
         expect(findBrokenLinks(tmpDir)).toEqual([]);
     });
 });
 
 describe('integration: e2e procedures schema', () => {
-    it('generates procedure pages from real procedures schema', async () => {
-        const tmpDir = await generateFromFile(
+    let tmpDir: string;
+
+    beforeAll(async () => {
+        tmpDir = await generateFromFile(
             path.join(E2E_SCHEMAS_DIR, 'procedures', 'schema.zmodel'),
         );
+    });
 
+    it('generates procedure pages from real procedures schema', () => {
         const index = readDoc(tmpDir, 'index.md');
         expect(index).toContain('Procedures');
         expect(index).toContain('[getUser]');
@@ -67,20 +72,21 @@ describe('integration: e2e procedures schema', () => {
         expect(overviewDoc).toContain('[Overview](../types/Overview.md)');
     });
 
-    it('has zero broken links', async () => {
-        const tmpDir = await generateFromFile(
-            path.join(E2E_SCHEMAS_DIR, 'procedures', 'schema.zmodel'),
-        );
+    it('has zero broken links', () => {
         expect(findBrokenLinks(tmpDir)).toEqual([]);
     });
 });
 
 describe('integration: e2e todo schema', () => {
-    it('renders validation rules and complex policies', async () => {
-        const tmpDir = await generateFromFile(
+    let tmpDir: string;
+
+    beforeAll(async () => {
+        tmpDir = await generateFromFile(
             path.join(E2E_SCHEMAS_DIR, 'todo', 'schema.zmodel'),
         );
+    });
 
+    it('renders validation rules and complex policies', () => {
         const userDoc = readDoc(tmpDir, 'models', 'User.md');
         expect(userDoc).toContain('Validation Rules');
         expect(userDoc).toContain('`@email`');
@@ -103,10 +109,7 @@ describe('integration: e2e todo schema', () => {
         expect(relDoc).toContain('erDiagram');
     });
 
-    it('has zero broken links', async () => {
-        const tmpDir = await generateFromFile(
-            path.join(E2E_SCHEMAS_DIR, 'todo', 'schema.zmodel'),
-        );
+    it('has zero broken links', () => {
         expect(findBrokenLinks(tmpDir)).toEqual([]);
     });
 });
