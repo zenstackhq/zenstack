@@ -49,7 +49,7 @@ function collectValidationRules(orderedFields: DataField[], modelAttrs: DataMode
     for (const attr of validateAttrs) {
         const condition = attr.args[0]?.$cstNode?.text ?? '';
         const messageArg = attr.args[1]?.$cstNode?.text?.replace(/^['"]|['"]$/g, '');
-        const pathArg = attr.args[2]?.$cstNode?.text;
+        const pathArg = attr.args[2]?.$cstNode?.text?.replace(/^['"]|['"]$/g, '');
 
         const fieldName = pathArg ?? 'Model';
         let ruleText = `\`${condition}\``;
