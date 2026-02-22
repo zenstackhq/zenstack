@@ -11,7 +11,7 @@ This plugin turns your schema into a documentation site that:
 - **Stays in sync** — regenerated on every `zenstack generate`, so docs never go stale
 - **Surfaces hidden knowledge** — access policies, validation constraints, and indexes are documented automatically, not just fields and types
 - **Onboards new engineers** — a browsable reference with cross-links, ER diagrams, and field descriptions means less time asking "what does this model do?"
-- **Works with your tools** — outputs standard Markdown with Mermaid diagrams, compatible with GitHub, GitLab, Notion, Obsidian, Docusaurus, VitePress, and any Markdown renderer
+- **Works with your tools** — outputs standard Markdown with Mermaid diagrams, compatible with GitHub, GitLab, Obsidian, Docusaurus, VitePress, and any Markdown renderer that supports fenced Mermaid blocks (Notion renders plain Markdown but not Mermaid natively)
 
 ## Quick Start
 
