@@ -73,7 +73,8 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
             if (groupBy === 'category') {
                 const meta = extractDocMeta(model.attributes);
                 if (meta.category) {
-                    modelDir = path.join(modelsDir, meta.category);
+                    const safeName = meta.category.replace(/[/\\]/g, '_');
+                    modelDir = path.join(modelsDir, safeName);
                     fs.mkdirSync(modelDir, { recursive: true });
                 }
             }
