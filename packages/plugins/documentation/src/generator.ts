@@ -11,7 +11,7 @@ import { renderProcedurePage } from './renderers/procedure-page';
 import { renderTypePage } from './renderers/type-page';
 import { renderSkillPage } from './renderers/skill-page';
 import { renderViewPage } from './renderers/view-page';
-import { buildNavList } from './renderers/common';
+import { buildNavList, buildCategoryNavList } from './renderers/common';
 import type { GenerationContext } from './types';
 
 function resolveOutputDir(context: CliGeneratorContext): string {
@@ -64,9 +64,11 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
 
     if (models.length > 0) {
         fs.mkdirSync(modelsDir, { recursive: true });
-        const sortedModelNames = [...models].sort((a, b) => a.name.localeCompare(b.name)).map((m) => m.name);
-        const modelNav = buildNavList(sortedModelNames, './');
-        for (const model of models) {
+        const sortedModels = [...models].sort((a, b) => a.name.localeCompare(b.name));
+        const sortedModelNames = sortedModels.map((m) => m.name);
+
+        const modelDirMap = new Map<string, string>();
+        for (const model of sortedModels) {
             let modelDir = modelsDir;
             if (groupBy === 'category') {
                 const meta = extractDocMeta(model.attributes);
@@ -75,6 +77,16 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
                     fs.mkdirSync(modelDir, { recursive: true });
                 }
             }
+            modelDirMap.set(model.name, modelDir);
+        }
+
+        const usesCategoryDirs = groupBy === 'category';
+        const modelNav = usesCategoryDirs
+            ? buildCategoryNavList(sortedModelNames, modelDirMap)
+            : buildNavList(sortedModelNames, './');
+
+        for (const model of sortedModels) {
+            const modelDir = modelDirMap.get(model.name)!;
             writeFile(
                 path.join(modelDir, `${model.name}.md`),
                 renderModelPage(model, options, procedures, modelNav.get(model.name)),

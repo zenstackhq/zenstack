@@ -1,3 +1,4 @@
+import nodePath from 'node:path';
 import type { DocMeta, GenerationContext, Navigation } from '../types';
 
 const SECTION_EMOJI: Record<string, string> = {
@@ -141,6 +142,37 @@ export function buildNavList(
         if (i < sortedNames.length - 1) {
             const next = sortedNames[i + 1]!;
             nav.next = { name: next, path: `${pathPrefix}${next}.md` };
+        }
+        navMap.set(current, nav);
+    }
+    return navMap;
+}
+
+/**
+ * Builds navigation with correct relative paths when models live in different
+ * subdirectories (e.g. `groupBy=category`). Each link is computed relative to
+ * the current model's output directory.
+ */
+export function buildCategoryNavList(
+    sortedNames: string[],
+    dirMap: Map<string, string>,
+): Map<string, Navigation> {
+    const navMap = new Map<string, Navigation>();
+    for (let i = 0; i < sortedNames.length; i++) {
+        const current = sortedNames[i]!;
+        const currentDir = dirMap.get(current)!;
+        const nav: Navigation = {};
+        if (i > 0) {
+            const prev = sortedNames[i - 1]!;
+            const prevDir = dirMap.get(prev)!;
+            const rel = nodePath.relative(currentDir, nodePath.join(prevDir, `${prev}.md`));
+            nav.prev = { name: prev, path: rel };
+        }
+        if (i < sortedNames.length - 1) {
+            const next = sortedNames[i + 1]!;
+            const nextDir = dirMap.get(next)!;
+            const rel = nodePath.relative(currentDir, nodePath.join(nextDir, `${next}.md`));
+            nav.next = { name: next, path: rel };
         }
         navMap.set(current, nav);
     }

@@ -874,6 +874,36 @@ describe('documentation plugin: model page', () => {
         expect(userDoc).not.toContain('Next:');
     });
 
+    it('model nav links are correct with groupBy=category across subdirectories', async () => {
+        const tmpDir = await generateFromSchema(`
+            model Alpha {
+                id String @id @default(cuid())
+                @@meta('doc:category', 'GroupA')
+            }
+            model Beta {
+                id String @id @default(cuid())
+                @@meta('doc:category', 'GroupB')
+            }
+            model Gamma {
+                id String @id @default(cuid())
+            }
+        `, { groupBy: 'category' });
+
+        const alphaDoc = readDoc(tmpDir, 'models', 'GroupA', 'Alpha.md');
+        expect(alphaDoc).toContain('Next: [Beta]');
+        expect(alphaDoc).toContain('../GroupB/Beta.md');
+
+        const betaDoc = readDoc(tmpDir, 'models', 'GroupB', 'Beta.md');
+        expect(betaDoc).toContain('Previous: [Alpha]');
+        expect(betaDoc).toContain('../GroupA/Alpha.md');
+        expect(betaDoc).toContain('Next: [Gamma]');
+        expect(betaDoc).toContain('../Gamma.md');
+
+        const gammaDoc = readDoc(tmpDir, 'models', 'Gamma.md');
+        expect(gammaDoc).toContain('Previous: [Beta]');
+        expect(gammaDoc).toContain('GroupB/Beta.md');
+    });
+
     it('model field rows include anchor IDs', async () => {
         const tmpDir = await generateFromSchema(`
             model User {
