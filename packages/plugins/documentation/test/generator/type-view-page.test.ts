@@ -216,7 +216,7 @@ describe('documentation plugin: view page', () => {
         expect(viewDoc).toContain('`String`');
     });
 
-    it('view page Mermaid diagram shows reference type names instead of Unknown', async () => {
+    it('view page Mermaid diagram renders primitive field types correctly', async () => {
         const tmpDir = await generateFromSchema(`
             model User {
                 id    String @id @default(cuid())
@@ -260,8 +260,7 @@ describe('documentation plugin: view page', () => {
         `);
 
         const viewDoc = readDoc(tmpDir, 'views', 'UserInfo.md');
-        expect(viewDoc).toContain('zenstack.dev');
-        expect(viewDoc).toContain('view');
+        expect(viewDoc).toContain('https://zenstack.dev/docs/reference/zmodel/view');
     });
 
     it('view field rows include anchor IDs', async () => {
