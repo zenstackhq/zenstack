@@ -829,7 +829,7 @@ describe('documentation plugin: model page', () => {
         expect(emailLine).toContain('jane@example.com');
     });
 
-    it('handles model with no fields gracefully', async () => {
+    it('handles model with only an id field gracefully', async () => {
         const tmpDir = await generateFromSchema(`
             model Empty {
                 id String @id @default(cuid())
