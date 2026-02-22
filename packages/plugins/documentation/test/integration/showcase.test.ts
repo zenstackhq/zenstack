@@ -240,9 +240,11 @@ describe('integration: showcase schema', () => {
         const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
 
         const taskDoc = readDoc(tmpDir, 'models', 'Task.md');
-        expect(taskDoc).toContain('Validation Rules');
+        expect(taskDoc).toContain('✅ Validation Rules');
 
-        const validationSection = taskDoc.split('\u2705 Validation Rules')[1]!;
+        const parts = taskDoc.split('✅ Validation Rules');
+        expect(parts).toHaveLength(2);
+        const validationSection = parts[1]!;
         expect(validationSection).toContain('`@length`');
         expect(validationSection).toContain('`@trim`');
         expect(validationSection).toContain('`@regex`');
