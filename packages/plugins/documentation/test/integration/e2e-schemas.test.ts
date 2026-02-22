@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { findBrokenLinks, generateFromFile, readDoc } from '../utils';
 
 const E2E_SCHEMAS_DIR = path.resolve(__dirname, '../../../../../tests/e2e/orm/schemas');
@@ -12,6 +12,10 @@ describe('integration: e2e basic schema', () => {
         tmpDir = await generateFromFile(
             path.join(E2E_SCHEMAS_DIR, 'basic', 'schema.zmodel'),
         );
+    });
+
+    afterAll(() => {
+        if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
     });
 
     it('excludes @@ignore models and documents the rest', () => {
@@ -50,6 +54,10 @@ describe('integration: e2e procedures schema', () => {
         );
     });
 
+    afterAll(() => {
+        if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
     it('generates procedure pages from real procedures schema', () => {
         const index = readDoc(tmpDir, 'index.md');
         expect(index).toContain('Procedures');
@@ -84,6 +92,10 @@ describe('integration: e2e todo schema', () => {
         tmpDir = await generateFromFile(
             path.join(E2E_SCHEMAS_DIR, 'todo', 'schema.zmodel'),
         );
+    });
+
+    afterAll(() => {
+        if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
     });
 
     it('renders validation rules and complex policies', () => {

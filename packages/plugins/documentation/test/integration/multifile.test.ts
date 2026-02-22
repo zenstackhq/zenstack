@@ -1,5 +1,6 @@
+import fs from 'node:fs';
 import path from 'node:path';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { findBrokenLinks, generateFromFile, readDoc } from '../utils';
 
 const MULTIFILE_SCHEMA = path.resolve(__dirname, '../../zenstack/multifile/schema.zmodel');
@@ -9,6 +10,10 @@ describe('integration: multi-file schema', () => {
 
     beforeAll(async () => {
         tmpDir = await generateFromFile(MULTIFILE_SCHEMA);
+    });
+
+    afterAll(() => {
+        if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
     });
 
     it('artifacts show correct source file paths for declarations across files', () => {
