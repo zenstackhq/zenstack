@@ -116,7 +116,7 @@ plugin documentation {
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `output` | `string` | *(required)* | Directory to write generated docs |
+| `output` | `string` | ZenStack default output path | Directory to write generated docs |
 | `title` | `string` | `"Schema Documentation"` | Heading on the index page |
 | `fieldOrder` | `"declaration"` or `"alphabetical"` | `"declaration"` | How fields are ordered in tables |
 | `groupBy` | `"category"` | *(none)* | Group models into subdirectories by their `@@meta('doc:category')` value |
