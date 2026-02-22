@@ -149,14 +149,6 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
         }
     }
 
-    genCtx.durationMs = Math.round((performance.now() - startTime) * 100) / 100;
-    genCtx.filesGenerated = filesGenerated + 1;
-
-    writeFile(
-        path.join(outputDir, 'index.md'),
-        renderIndexPage(context.model, context.pluginOptions, hasRelationships, genCtx),
-    );
-
     if (context.pluginOptions['generateSkill'] === true) {
         const title = typeof context.pluginOptions['title'] === 'string'
             ? context.pluginOptions['title']
@@ -165,7 +157,17 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
             path.join(outputDir, 'SKILL.md'),
             renderSkillPage(context.model, title, models, views, enums, typeDefs, procedures, hasRelationships),
         );
+        filesGenerated++;
     }
+
+    filesGenerated++;
+    genCtx.durationMs = Math.round((performance.now() - startTime) * 100) / 100;
+    genCtx.filesGenerated = filesGenerated;
+
+    writeFile(
+        path.join(outputDir, 'index.md'),
+        renderIndexPage(context.model, context.pluginOptions, hasRelationships, genCtx),
+    );
 }
 
 function writeFile(filePath: string, content: string): void {

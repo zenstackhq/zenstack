@@ -322,4 +322,27 @@ describe('documentation plugin: index page', () => {
         expect(indexContent).toContain('Duration');
         expect(indexContent).toMatch(/\d+(\.\d+)?\s*ms/);
     });
+
+    it('filesGenerated count includes SKILL.md when generateSkill is enabled', async () => {
+        const withoutSkill = await generateFromSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+        `);
+        const withSkill = await generateFromSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+        `, { generateSkill: true });
+
+        const indexWithout = readDoc(withoutSkill, 'index.md');
+        const indexWith = readDoc(withSkill, 'index.md');
+
+        const countWithout = indexWithout.match(/\*\*Files\*\* \| (\d+)/);
+        const countWith = indexWith.match(/\*\*Files\*\* \| (\d+)/);
+
+        expect(countWithout).not.toBeNull();
+        expect(countWith).not.toBeNull();
+        expect(Number(countWith![1])).toBe(Number(countWithout![1]) + 1);
+    });
 });
