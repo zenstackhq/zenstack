@@ -411,11 +411,18 @@ describe('documentation plugin: SKILL.md', () => {
         );
         const skill = readDoc(tmpDir, 'SKILL.md');
 
-        const userSection = skill.split('#### User')[1]!.split('####')[0]!;
+        expect(skill).toContain('#### User');
+        expect(skill).toContain('#### Post');
+
+        const userParts = skill.split('#### User');
+        expect(userParts.length).toBeGreaterThanOrEqual(2);
+        const userSection = userParts[1]!.split('####')[0]!;
         expect(userSection).toContain('Relationships:');
         expect(userSection).toContain('posts → Post (has many)');
 
-        const postSection = skill.split('#### Post')[1]!.split('####')[0]!;
+        const postParts = skill.split('#### Post');
+        expect(postParts.length).toBeGreaterThanOrEqual(2);
+        const postSection = postParts[1]!.split('####')[0]!;
         expect(postSection).toContain('author → User (required)');
     });
 
