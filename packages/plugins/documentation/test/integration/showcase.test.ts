@@ -397,56 +397,69 @@ describe('integration: showcase schema', () => {
 
         const skill = readDoc(tmpDir, 'SKILL.md');
 
+        // Frontmatter
         expect(skill).toMatch(/^---\n/);
         expect(skill).toContain('name:');
         expect(skill).toContain('description:');
 
+        // Overview
         expect(skill).toContain('## Schema Overview');
         expect(skill).toContain('9 models');
         expect(skill).toContain('3 enums');
         expect(skill).toContain('2 types');
         expect(skill).toContain('3 views');
         expect(skill).toContain('7 procedures');
+        expect(skill).toContain('Key entities:');
 
-        expect(skill).toContain('## Models');
-        expect(skill).toContain('### User');
-        expect(skill).toContain('### Organization');
-        expect(skill).toContain('### Task');
+        // Conventions
+        expect(skill).toContain('## Conventions');
+        expect(skill).toContain('**IDs**');
+        expect(skill).toContain('**Mixins**');
+        expect(skill).toContain('Timestamps');
+        expect(skill).toContain('**Computed fields**');
 
-        expect(skill).toContain('## Enums');
-        expect(skill).toContain('### Role');
-        expect(skill).toContain('### Priority');
-        expect(skill).toContain('### TaskStatus');
-
-        expect(skill).toContain('## Types');
-        expect(skill).toContain('### Timestamps');
-        expect(skill).toContain('### ProjectStats');
-
-        expect(skill).toContain('## Views');
-        expect(skill).toContain('### UserProfile');
-
-        expect(skill).toContain('## Relationships');
-        expect(skill).toContain('User');
-        expect(skill).toContain('Organization');
-
-        expect(skill).toContain('## Access Policies');
+        // Constraints
+        expect(skill).toContain('## Constraints You Must Respect');
+        expect(skill).toContain('### Access Policies');
         expect(skill).toContain("allow('read', true)");
-
-        expect(skill).toContain('## Procedures');
-        expect(skill).toContain('### signUp (mutation)');
-        expect(skill).toContain('### getUser (query)');
-
-        expect(skill).toContain('## Validation');
+        expect(skill).toContain('### Validation');
         expect(skill).toContain('@email');
         expect(skill).toContain('@length');
 
+        // Workflow
+        expect(skill).toContain('## How To Use This Schema');
+        expect(skill).toContain('### Calling procedures');
+        expect(skill).toContain('signUp');
+        expect(skill).toContain('mutation');
+        expect(skill).toContain('getUser');
+        expect(skill).toContain('query');
+
+        // Entity Reference
+        expect(skill).toContain('## Entity Reference');
+        expect(skill).toContain('### Models');
+        expect(skill).toContain('#### User');
+        expect(skill).toContain('#### Organization');
+        expect(skill).toContain('#### Task');
+        expect(skill).toContain('### Enums');
+        expect(skill).toContain('#### Role');
+        expect(skill).toContain('#### Priority');
+        expect(skill).toContain('#### TaskStatus');
+        expect(skill).toContain('### Types');
+        expect(skill).toContain('#### Timestamps');
+        expect(skill).toContain('#### ProjectStats');
+        expect(skill).toContain('### Views');
+        expect(skill).toContain('#### UserProfile');
+        expect(skill).toContain('### Relationships');
+        expect(skill).toContain('User');
+        expect(skill).toContain('Organization');
+
+        // Links
         expect(skill).toContain('## Detailed Documentation');
         expect(skill).toContain('[Full schema index](./index.md)');
         expect(skill).toContain('[Relationships and ER diagrams](./relationships.md)');
-
         expect(skill).toContain('[Full documentation](./models/User.md)');
         expect(skill).toContain('[Full documentation](./enums/Role.md)');
-        expect(skill).toContain('[Full documentation](./procedures/signUp.md)');
+        expect(skill).toContain('procedures/signUp.md');
     });
 
     it('does not generate SKILL.md by default', async () => {
