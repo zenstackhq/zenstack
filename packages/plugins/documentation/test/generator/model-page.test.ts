@@ -749,6 +749,30 @@ describe('documentation plugin: model page', () => {
         expect(relDoc).toContain('Tag');
     });
 
+    it('relationships ER diagram uses correct Mermaid cardinality notation', async () => {
+        const tmpDir = await generateFromSchema(`
+            model User {
+                id      String @id @default(cuid())
+                posts   Post[]
+                profile Profile?
+            }
+            model Post {
+                id       String @id @default(cuid())
+                author   User   @relation(fields: [authorId], references: [id])
+                authorId String
+            }
+            model Profile {
+                id     String @id @default(cuid())
+                user   User   @relation(fields: [userId], references: [id])
+                userId String @unique
+            }
+        `);
+
+        const relDoc = readDoc(tmpDir, 'relationships.md');
+        expect(relDoc).toContain('||--o{');
+        expect(relDoc).toContain('}o--||');
+    });
+
     it('relationships.md links model names to model pages', async () => {
         const tmpDir = await generateFromSchema(`
             model User {

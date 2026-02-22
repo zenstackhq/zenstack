@@ -31,10 +31,10 @@ export function renderRelationshipsPage(relations: Relationship[], genCtx?: Gene
         seen.add(key);
 
         let mermaidRel: string;
-        if (rel.type.includes('Many')) {
+        if (rel.type.startsWith('One')) {
             mermaidRel = `    ${rel.from} ||--o{ ${rel.to} : "${rel.field}"`;
         } else {
-            mermaidRel = `    ${rel.from} ||--|| ${rel.to} : "${rel.field}"`;
+            mermaidRel = `    ${rel.from} }o--|| ${rel.to} : "${rel.field}"`;
         }
         mermaidLines.push(mermaidRel);
     }
