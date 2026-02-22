@@ -12,7 +12,7 @@ import {
 import type { RenderOptions } from '../types';
 
 /** Renders a full documentation page for a type definition, including fields, mixin usage, and a class diagram. */
-export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], options: RenderOptions, navigation?: Navigation): string {
+export function renderTypePage(typeDef: TypeDef, allModels: DataModel[], options: RenderOptions, navigation?: Navigation): string {
     const lines: string[] = [
         ...generatedHeader(options.genCtx),
         breadcrumbs('Types', typeDef.name, '../'),
@@ -50,7 +50,7 @@ export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], option
         lines.push('');
     }
 
-    const usedBy = _allModels
+    const usedBy = allModels
         .filter((m) => m.mixins.some((ref) => ref.ref?.name === typeDef.name))
         .sort((a, b) => a.name.localeCompare(b.name));
 
