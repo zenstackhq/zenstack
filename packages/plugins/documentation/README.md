@@ -38,7 +38,7 @@ That's it. Every entity in your schema now has its own documentation page.
 
 ### A structured doc site
 
-```
+```text
 docs/schema/
 ├── index.md              # Overview with counts, descriptions, and navigation
 ├── relationships.md      # Full ER diagram + cross-reference table
@@ -236,7 +236,7 @@ plugin documentation {
 ```
 
 This produces:
-```
+```text
 docs/schema/models/
 ├── Identity/
 │   └── User.md
