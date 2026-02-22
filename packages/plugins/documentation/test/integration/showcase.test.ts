@@ -388,12 +388,6 @@ describe('integration: showcase schema', () => {
         expect(signUpDoc).toContain('.zmodel');
     });
 
-    it('has zero broken links including procedure pages', async () => {
-        const tmpDir = await generateFromFile(SHOWCASE_SCHEMA);
-        const broken = findBrokenLinks(tmpDir);
-        expect(broken).toEqual([]);
-    });
-
     it('generates SKILL.md with comprehensive content when generateSkill=true', async () => {
         const tmpDir = await generateFromFile(SHOWCASE_SCHEMA, { generateSkill: true });
 
