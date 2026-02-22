@@ -245,6 +245,8 @@ docs/schema/models/
 └── Uncategorized.md
 ```
 
+Models without a `@@meta('doc:category')` annotation are combined into a single `Uncategorized.md` page. Assign a category to give each model its own page in a named subdirectory.
+
 ### Minimal output for simpler schemas
 
 Turn off sections you don't need:
