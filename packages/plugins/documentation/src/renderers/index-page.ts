@@ -28,6 +28,7 @@ function getModelPath(model: DataModel, groupBy: unknown): string {
     return `./models/${model.name}.md`;
 }
 
+/** Renders the top-level index page listing all models, views, types, enums, and procedures. */
 export function renderIndexPage(
     astModel: Model,
     pluginOptions: Record<string, unknown>,

@@ -4,6 +4,7 @@ import { getAllFields } from '@zenstackhq/language/utils';
 import { getRelativeSourcePath, stripCommentPrefix } from '../extractors';
 import type { Navigation, RenderOptions } from '../types';
 
+/** Renders a full documentation page for an enum, including values, usage, and a class diagram. */
 export function renderEnumPage(enumDecl: Enum, allModels: DataModel[], options: RenderOptions, navigation?: Navigation): string {
     const lines: string[] = [
         ...generatedHeader(options.genCtx),

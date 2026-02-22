@@ -66,24 +66,54 @@ describe('documentation plugin: SKILL.md', () => {
         expect(skill).toContain('1 enum');
     });
 
-    it('shows key entities with descriptions in overview', async () => {
+    it('lists ALL entities in overview, not capped', async () => {
         const tmpDir = await generateFromSchema(
             `
-            /// A registered user in the platform.
+            /// M1.
+            model M1 { id String @id @default(cuid()) }
+            /// M2.
+            model M2 { id String @id @default(cuid()) }
+            /// M3.
+            model M3 { id String @id @default(cuid()) }
+            /// M4.
+            model M4 { id String @id @default(cuid()) }
+            /// M5.
+            model M5 { id String @id @default(cuid()) }
+            /// M6.
+            model M6 { id String @id @default(cuid()) }
+            /// M7.
+            model M7 { id String @id @default(cuid()) }
+            /// M8.
+            model M8 { id String @id @default(cuid()) }
+            /// M9.
+            model M9 { id String @id @default(cuid()) }
+            /// M10.
+            model M10 { id String @id @default(cuid()) }
+        `,
+            { generateSkill: true },
+        );
+        const skill = readDoc(tmpDir, 'SKILL.md');
+        expect(skill).toContain('**M10**');
+        expect(skill).not.toContain('...and');
+    });
+
+    it('includes views in overview alongside models', async () => {
+        const tmpDir = await generateFromSchema(
+            `
+            /// A user.
             model User {
                 id String @id @default(cuid())
             }
-            /// A blog post.
-            model Post {
-                id String @id @default(cuid())
+            /// A report view.
+            view UserReport {
+                id Int
             }
         `,
             { generateSkill: true },
         );
         const skill = readDoc(tmpDir, 'SKILL.md');
-        expect(skill).toContain('Key entities:');
-        expect(skill).toContain('**User** — A registered user in the platform.');
-        expect(skill).toContain('**Post** — A blog post.');
+        expect(skill).toContain('**User** (Model)');
+        expect(skill).toContain('**UserReport** (View)');
     });
 
     // --- Conventions section ---
@@ -141,6 +171,25 @@ describe('documentation plugin: SKILL.md', () => {
         expect(skill).toContain('**Computed fields**');
         expect(skill).toContain('User.postCount');
         expect(skill).toContain('Never set them directly');
+    });
+
+    it('uses actual FK field names in relations convention', async () => {
+        const tmpDir = await generateFromSchema(
+            `
+            model User {
+                id    String @id @default(cuid())
+                posts Post[]
+            }
+            model Post {
+                id       String @id @default(cuid())
+                author   User   @relation(fields: [authorId], references: [id])
+                authorId String
+            }
+        `,
+            { generateSkill: true },
+        );
+        const skill = readDoc(tmpDir, 'SKILL.md');
+        expect(skill).toContain('`authorId`');
     });
 
     // --- Constraints section ---
@@ -256,9 +305,9 @@ describe('documentation plugin: SKILL.md', () => {
         expect(skill).toContain('→ User');
     });
 
-    // --- Entity Reference section ---
+    // --- Entity Reference: full declarations ---
 
-    it('lists models in Entity Reference with fields', async () => {
+    it('renders models as full prisma declaration blocks with /// comments', async () => {
         const tmpDir = await generateFromSchema(
             `
             /// A registered user.
@@ -267,14 +316,6 @@ describe('documentation plugin: SKILL.md', () => {
                 /// User's email address.
                 email String @unique
                 name  String
-                posts Post[]
-            }
-            model Post {
-                id       String @id @default(cuid())
-                title    String
-                content  String?
-                author   User   @relation(fields: [authorId], references: [id])
-                authorId String
             }
         `,
             { generateSkill: true },
@@ -283,64 +324,15 @@ describe('documentation plugin: SKILL.md', () => {
         expect(skill).toContain('## Entity Reference');
         expect(skill).toContain('### Models');
         expect(skill).toContain('#### User');
-        expect(skill).toContain('#### Post');
-        expect(skill).toContain('id: String @id @default(cuid())');
-        expect(skill).toContain('email: String @unique');
-        expect(skill).toContain('content: String?');
-        expect(skill).toContain('posts: Post[]');
+        expect(skill).toContain('```prisma');
+        expect(skill).toContain('/// A registered user.');
+        expect(skill).toContain('model User {');
+        expect(skill).toContain("/// User's email address.");
+        expect(skill).toContain('    email String @unique');
+        expect(skill).toContain('}');
     });
 
-    it('shows field descriptions inline in entity reference', async () => {
-        const tmpDir = await generateFromSchema(
-            `
-            model User {
-                id    String @id @default(cuid())
-                /// User's email address.
-                email String @unique
-            }
-        `,
-            { generateSkill: true },
-        );
-        const skill = readDoc(tmpDir, 'SKILL.md');
-        const emailLine = skill.split('\n').find((l: string) => l.includes('email:'));
-        expect(emailLine).toContain("User's email address");
-    });
-
-    it('shows model description in entity reference', async () => {
-        const tmpDir = await generateFromSchema(
-            `
-            /// A registered user in the platform.
-            model User {
-                id String @id @default(cuid())
-            }
-        `,
-            { generateSkill: true },
-        );
-        const skill = readDoc(tmpDir, 'SKILL.md');
-        expect(skill).toContain('A registered user in the platform.');
-    });
-
-    it('shows inline relations summary per model in entity reference', async () => {
-        const tmpDir = await generateFromSchema(
-            `
-            model User {
-                id    String @id @default(cuid())
-                posts Post[]
-            }
-            model Post {
-                id       String @id @default(cuid())
-                author   User   @relation(fields: [authorId], references: [id])
-                authorId String
-            }
-        `,
-            { generateSkill: true },
-        );
-        const skill = readDoc(tmpDir, 'SKILL.md');
-        expect(skill).toContain('Relations:');
-        expect(skill).toContain('posts → Post');
-    });
-
-    it('lists enums in Entity Reference', async () => {
+    it('renders enums as full prisma declaration blocks with /// comments', async () => {
         const tmpDir = await generateFromSchema(
             `
             /// User roles.
@@ -357,13 +349,15 @@ describe('documentation plugin: SKILL.md', () => {
         const skill = readDoc(tmpDir, 'SKILL.md');
         expect(skill).toContain('### Enums');
         expect(skill).toContain('#### Role');
-        expect(skill).toContain('User roles.');
-        expect(skill).toContain('ADMIN — Full access');
-        expect(skill).toContain('USER — Standard user');
-        expect(skill).toContain('GUEST');
+        expect(skill).toContain('```prisma');
+        expect(skill).toContain('/// User roles.');
+        expect(skill).toContain('enum Role {');
+        expect(skill).toContain('/// Full access');
+        expect(skill).toContain('    ADMIN');
+        expect(skill).toContain('    GUEST');
     });
 
-    it('lists types in Entity Reference', async () => {
+    it('renders types as full prisma declaration blocks', async () => {
         const tmpDir = await generateFromSchema(
             `
             /// Shared timestamp fields.
@@ -377,12 +371,12 @@ describe('documentation plugin: SKILL.md', () => {
         const skill = readDoc(tmpDir, 'SKILL.md');
         expect(skill).toContain('### Types');
         expect(skill).toContain('#### Timestamps');
-        expect(skill).toContain('Shared timestamp fields.');
-        expect(skill).toContain('createdAt: DateTime @default(now())');
-        expect(skill).toContain('updatedAt: DateTime @updatedAt');
+        expect(skill).toContain('/// Shared timestamp fields.');
+        expect(skill).toContain('type Timestamps {');
+        expect(skill).toContain('    createdAt DateTime @default(now())');
     });
 
-    it('lists views in Entity Reference', async () => {
+    it('renders views as full prisma declaration blocks', async () => {
         const tmpDir = await generateFromSchema(
             `
             /// User reporting view.
@@ -396,13 +390,11 @@ describe('documentation plugin: SKILL.md', () => {
         const skill = readDoc(tmpDir, 'SKILL.md');
         expect(skill).toContain('### Views');
         expect(skill).toContain('#### UserReport');
-        expect(skill).toContain('User reporting view.');
-        expect(skill).toContain('id: Int');
+        expect(skill).toContain('/// User reporting view.');
+        expect(skill).toContain('view UserReport {');
     });
 
-    // --- Relationships ---
-
-    it('includes relationship map', async () => {
+    it('includes relationships directly under model declaration', async () => {
         const tmpDir = await generateFromSchema(
             `
             model User {
@@ -418,31 +410,67 @@ describe('documentation plugin: SKILL.md', () => {
             { generateSkill: true },
         );
         const skill = readDoc(tmpDir, 'SKILL.md');
-        expect(skill).toContain('### Relationships');
-        expect(skill).toMatch(/User\.posts\s.*\s*Post/);
-        expect(skill).toMatch(/Post\.author\s.*\s*User/);
+
+        const userSection = skill.split('#### User')[1]!.split('####')[0]!;
+        expect(userSection).toContain('Relationships:');
+        expect(userSection).toContain('posts → Post (has many)');
+
+        const postSection = skill.split('#### Post')[1]!.split('####')[0]!;
+        expect(postSection).toContain('author → User (required)');
     });
 
-    // --- Links ---
-
-    it('links to full documentation pages for each model', async () => {
+    it('includes model-level attributes in declaration block', async () => {
         const tmpDir = await generateFromSchema(
             `
             model User {
                 id String @id @default(cuid())
+                email String @unique
+
+                @@allow('read', true)
+                @@index([email])
             }
-            model Post {
+        `,
+            { generateSkill: true },
+        );
+        const skill = readDoc(tmpDir, 'SKILL.md');
+        expect(skill).toContain("@@allow('read', true)");
+        expect(skill).toContain('@@index([email])');
+    });
+
+    it('shows with clause in model declaration', async () => {
+        const tmpDir = await generateFromSchema(
+            `
+            type Timestamps {
+                createdAt DateTime @default(now())
+                updatedAt DateTime @updatedAt
+            }
+            model User with Timestamps {
                 id String @id @default(cuid())
             }
         `,
             { generateSkill: true },
         );
         const skill = readDoc(tmpDir, 'SKILL.md');
-        expect(skill).toContain('[Full documentation](./models/User.md)');
-        expect(skill).toContain('[Full documentation](./models/Post.md)');
+        expect(skill).toContain('model User with Timestamps {');
     });
 
-    it('links to full documentation for enums', async () => {
+    // --- Links with entity name and type ---
+
+    it('uses entity name and type in link text for models', async () => {
+        const tmpDir = await generateFromSchema(
+            `
+            model User {
+                id String @id @default(cuid())
+            }
+        `,
+            { generateSkill: true },
+        );
+        const skill = readDoc(tmpDir, 'SKILL.md');
+        expect(skill).toContain('[User (Model)](./models/User.md)');
+        expect(skill).not.toContain('[Full documentation]');
+    });
+
+    it('uses entity name and type in link text for enums', async () => {
         const tmpDir = await generateFromSchema(
             `
             enum Role { ADMIN USER }
@@ -450,10 +478,36 @@ describe('documentation plugin: SKILL.md', () => {
             { generateSkill: true },
         );
         const skill = readDoc(tmpDir, 'SKILL.md');
-        expect(skill).toContain('[Full documentation](./enums/Role.md)');
+        expect(skill).toContain('[Role (Enum)](./enums/Role.md)');
     });
 
-    it('links to full documentation for procedures', async () => {
+    it('uses entity name and type in link text for types', async () => {
+        const tmpDir = await generateFromSchema(
+            `
+            type Timestamps {
+                createdAt DateTime @default(now())
+            }
+        `,
+            { generateSkill: true },
+        );
+        const skill = readDoc(tmpDir, 'SKILL.md');
+        expect(skill).toContain('[Timestamps (Type)](./types/Timestamps.md)');
+    });
+
+    it('uses entity name and type in link text for views', async () => {
+        const tmpDir = await generateFromSchema(
+            `
+            view UserReport {
+                id Int
+            }
+        `,
+            { generateSkill: true },
+        );
+        const skill = readDoc(tmpDir, 'SKILL.md');
+        expect(skill).toContain('[UserReport (View)](./views/UserReport.md)');
+    });
+
+    it('uses entity name and type in procedure links', async () => {
         const tmpDir = await generateFromSchema(
             `
             model User {
@@ -464,8 +518,10 @@ describe('documentation plugin: SKILL.md', () => {
             { generateSkill: true },
         );
         const skill = readDoc(tmpDir, 'SKILL.md');
-        expect(skill).toContain('procedures/getUser.md');
+        expect(skill).toContain('[getUser (Procedure)](./procedures/getUser.md)');
     });
+
+    // --- Footer ---
 
     it('includes a Detailed Documentation section linking to index and relationships', async () => {
         const tmpDir = await generateFromSchema(

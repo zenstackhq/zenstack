@@ -1,4 +1,4 @@
-import { isDataModel, type DataModel, type Enum, type Model, type Procedure, type TypeDef } from '@zenstackhq/language/ast';
+import { isDataModel, type DataModel, type DataField, type Enum, type Model, type Procedure, type TypeDef } from '@zenstackhq/language/ast';
 import { stripCommentPrefix, getAttrName, formatAttrArgs, extractProcedureComments } from '../extractors';
 
 interface SkillCounts {
@@ -23,7 +23,7 @@ function formatCountSummary(counts: SkillCounts): string {
     return parts.join(', ');
 }
 
-function compactFieldLine(field: { name: string; type: { type?: string; reference?: { ref?: { name: string } }; array?: boolean; optional?: boolean }; comments?: string[]; attributes?: Array<{ decl: { ref?: { name: string } }; args: Array<{ $cstNode?: { text?: string } }> }> }): string {
+function fieldDeclarationLine(field: DataField): string {
     let typeName = field.type.reference?.ref?.name ?? field.type.type ?? 'Unknown';
     if (field.type.array) typeName += '[]';
     if (field.type.optional) typeName += '?';
@@ -36,14 +36,95 @@ function compactFieldLine(field: { name: string; type: { type?: string; referenc
         .map(a => `${getAttrName(a)}${formatAttrArgs(a)}`)
         .join(' ');
 
-    const description = field.comments ? stripCommentPrefix(field.comments) : '';
     const attrPart = attrs ? ` ${attrs}` : '';
-    const descPart = description ? `  — ${description}` : '';
-
-    return `  ${field.name}: ${typeName}${attrPart}${descPart}`;
+    return `    ${field.name} ${typeName}${attrPart}`;
 }
 
-// --- Analysis helpers: extract patterns from the AST ---
+function renderModelDeclaration(model: DataModel, keyword: 'model' | 'view'): string[] {
+    const lines: string[] = [];
+    const desc = stripCommentPrefix(model.comments);
+    if (desc) {
+        for (const dLine of desc.split('\n')) {
+            lines.push(`/// ${dLine}`);
+        }
+    }
+
+    const mixinPart = model.mixins.length > 0
+        ? ` with ${model.mixins.map(m => m.ref?.name ?? '').filter(Boolean).join(', ')}`
+        : '';
+
+    lines.push(`${keyword} ${model.name}${mixinPart} {`);
+    for (const field of model.fields) {
+        const fieldDesc = stripCommentPrefix(field.comments);
+        if (fieldDesc) {
+            lines.push(`    /// ${fieldDesc}`);
+        }
+        lines.push(fieldDeclarationLine(field));
+    }
+
+    for (const attr of model.attributes) {
+        const name = attr.decl.ref?.name;
+        if (!name || name.startsWith('@@@')) continue;
+        const args = attr.args.map(a => a.$cstNode?.text ?? '').join(', ');
+        lines.push(`    ${name}(${args})`);
+    }
+
+    lines.push('}');
+    return lines;
+}
+
+function renderEnumDeclaration(e: Enum): string[] {
+    const lines: string[] = [];
+    const desc = stripCommentPrefix(e.comments);
+    if (desc) {
+        for (const dLine of desc.split('\n')) {
+            lines.push(`/// ${dLine}`);
+        }
+    }
+    lines.push(`enum ${e.name} {`);
+    for (const field of e.fields) {
+        const valDesc = stripCommentPrefix(field.comments);
+        if (valDesc) {
+            lines.push(`    /// ${valDesc}`);
+        }
+        lines.push(`    ${field.name}`);
+    }
+    lines.push('}');
+    return lines;
+}
+
+function renderTypeDeclaration(td: TypeDef): string[] {
+    const lines: string[] = [];
+    const desc = stripCommentPrefix(td.comments);
+    if (desc) {
+        for (const dLine of desc.split('\n')) {
+            lines.push(`/// ${dLine}`);
+        }
+    }
+    lines.push(`type ${td.name} {`);
+    for (const field of td.fields) {
+        const fieldDesc = stripCommentPrefix(field.comments);
+        if (fieldDesc) {
+            lines.push(`    /// ${fieldDesc}`);
+        }
+        lines.push(fieldDeclarationLine(field));
+    }
+    lines.push('}');
+    return lines;
+}
+
+function modelRelationLines(model: DataModel): string[] {
+    const rels = model.fields.filter(f => f.type.reference?.ref && isDataModel(f.type.reference.ref));
+    if (rels.length === 0) return [];
+    return rels.map(f => {
+        const ref = f.type.reference?.ref;
+        if (!ref) return '';
+        const card = f.type.array ? 'has many' : f.type.optional ? 'optional' : 'required';
+        return `- ${f.name} → ${ref.name} (${card})`;
+    }).filter(Boolean);
+}
+
+// --- Analysis helpers ---
 
 function detectIdConvention(models: DataModel[]): string {
     const defaults = new Map<string, number>();
@@ -93,6 +174,30 @@ function detectComputedFields(models: DataModel[]): string[] {
     return computed;
 }
 
+function detectFKExamples(models: DataModel[]): string[] {
+    const fks: string[] = [];
+    for (const m of models) {
+        for (const f of m.fields) {
+            if (!(f.type.reference?.ref && isDataModel(f.type.reference.ref))) continue;
+            if (f.type.array) continue;
+            const relAttr = f.attributes.find(a => getAttrName(a) === '@relation');
+            if (!relAttr) continue;
+            const fieldsArg = relAttr.args.find(a => {
+                const text = a.$cstNode?.text ?? '';
+                return text.includes('fields:') || text.startsWith('[');
+            });
+            if (!fieldsArg) continue;
+            const text = fieldsArg.$cstNode?.text ?? '';
+            const bracketMatch = text.match(/\[([^\]]+)\]/);
+            if (!bracketMatch) continue;
+            for (const fk of bracketMatch[1]!.split(',').map(s => s.trim())) {
+                if (fk && !fks.includes(fk)) fks.push(fk);
+            }
+        }
+    }
+    return fks;
+}
+
 function hasAuthRules(models: DataModel[]): boolean {
     return models.some(m =>
         m.attributes.some(a => {
@@ -116,7 +221,7 @@ function renderFrontmatter(title: string): string[] {
     ];
 }
 
-function renderOverview(title: string, counts: SkillCounts, models: DataModel[]): string[] {
+function renderOverview(title: string, counts: SkillCounts, models: DataModel[], views: DataModel[]): string[] {
     const lines: string[] = [];
     lines.push(`# ${title} — Schema Skill`);
     lines.push('');
@@ -127,15 +232,14 @@ function renderOverview(title: string, counts: SkillCounts, models: DataModel[])
     lines.push(`This schema contains ${formatCountSummary(counts)}.`);
     lines.push('');
 
-    const described = models.filter(m => stripCommentPrefix(m.comments));
-    if (described.length > 0) {
-        lines.push('Key entities:');
-        for (const m of described.slice(0, 8)) {
-            const desc = stripCommentPrefix(m.comments).split('\n')[0]!;
-            lines.push(`- **${m.name}** — ${desc}`);
-        }
-        if (described.length > 8) {
-            lines.push(`- ...and ${described.length - 8} more (see Entity Reference below)`);
+    const allEntities = [...models, ...views].sort((a, b) => a.name.localeCompare(b.name));
+    if (allEntities.length > 0) {
+        lines.push('Entities:');
+        for (const m of allEntities) {
+            const desc = stripCommentPrefix(m.comments);
+            const kind = m.isView ? 'View' : 'Model';
+            const descPart = desc ? ` — ${desc.split('\n')[0]}` : '';
+            lines.push(`- **${m.name}** (${kind})${descPart}`);
         }
         lines.push('');
     }
@@ -172,7 +276,11 @@ function renderConventions(models: DataModel[], typeDefs: TypeDef[]): string[] {
         m.fields.some(f => f.type.reference?.ref && isDataModel(f.type.reference.ref)),
     );
     if (modelsWithRelations.length > 0) {
-        lines.push(`- **Relations**: ${modelsWithRelations.length} of ${models.length} models have relationships. When creating records, always provide required foreign key fields (e.g. \`organizationId\`, \`userId\`).`);
+        const fkExamples = detectFKExamples(models);
+        const fkExamplePart = fkExamples.length > 0
+            ? ` (e.g. \`${fkExamples.slice(0, 3).join('`, `')}\`)`
+            : '';
+        lines.push(`- **Relations**: ${modelsWithRelations.length} of ${models.length} models have relationships. When creating records, always provide required foreign key fields${fkExamplePart}.`);
     }
 
     lines.push('');
@@ -257,7 +365,7 @@ function renderConstraints(models: DataModel[]): string[] {
     return lines;
 }
 
-function renderWorkflow(models: DataModel[], procedures: Procedure[], hasRelationships: boolean): string[] {
+function renderWorkflow(procedures: Procedure[], hasRelationships: boolean): string[] {
     const lines: string[] = [];
     lines.push('## How To Use This Schema');
     lines.push('');
@@ -268,7 +376,7 @@ function renderWorkflow(models: DataModel[], procedures: Procedure[], hasRelatio
     lines.push('2. Check its fields for types, optionality, and defaults');
     lines.push('3. Check access policies — will the operation be allowed for the current user?');
     lines.push('4. Check validation — will the input values pass schema-level validation?');
-    lines.push('5. For full field details, follow the `[Full documentation]` link');
+    lines.push('5. For full field details, follow the entity documentation link');
     lines.push('');
 
     if (procedures.length > 0) {
@@ -289,7 +397,7 @@ function renderWorkflow(models: DataModel[], procedures: Procedure[], hasRelatio
             if (proc.returnType.array) returnType += '[]';
             const desc = extractProcedureComments(proc, ' ');
             const descPart = desc ? ` — ${desc}` : '';
-            lines.push(`- \`${proc.name}(${params}) → ${returnType}\` *(${kind})*${descPart} — [details](./procedures/${proc.name}.md)`);
+            lines.push(`- \`${proc.name}(${params}) → ${returnType}\` *(${kind})*${descPart} — [${proc.name} (Procedure)](./procedures/${proc.name}.md)`);
         }
         lines.push('');
     }
@@ -315,7 +423,7 @@ function renderWorkflow(models: DataModel[], procedures: Procedure[], hasRelatio
     return lines;
 }
 
-// --- Reference appendix ---
+// --- Entity Reference ---
 
 function renderEntityReference(models: DataModel[], enums: Enum[], typeDefs: TypeDef[], views: DataModel[]): string[] {
     const lines: string[] = [];
@@ -323,35 +431,26 @@ function renderEntityReference(models: DataModel[], enums: Enum[], typeDefs: Typ
     lines.push('');
     lines.push('## Entity Reference');
     lines.push('');
-    lines.push('Compact field listings for every entity. For formatted tables, diagrams, and cross-links, follow the `[Full documentation]` links.');
-    lines.push('');
 
     if (models.length > 0) {
         lines.push('### Models');
         lines.push('');
         for (const model of [...models].sort((a, b) => a.name.localeCompare(b.name))) {
-            const desc = stripCommentPrefix(model.comments);
-            const descPart = desc ? ` — ${desc.split('\n')[0]}` : '';
-            lines.push(`#### ${model.name}${descPart}`);
+            lines.push(`#### ${model.name}`);
             lines.push('');
-            lines.push('```');
-            for (const field of model.fields) {
-                lines.push(compactFieldLine(field));
-            }
+            lines.push('```prisma');
+            lines.push(...renderModelDeclaration(model, 'model'));
             lines.push('```');
             lines.push('');
 
-            const rels = model.fields.filter(f => f.type.reference?.ref && isDataModel(f.type.reference.ref));
+            const rels = modelRelationLines(model);
             if (rels.length > 0) {
-                lines.push('Relations: ' + rels.map(f => {
-                    const target = f.type.reference!.ref!.name;
-                    const card = f.type.array ? 'has many' : f.type.optional ? 'optional' : 'required';
-                    return `${f.name} → ${target} (${card})`;
-                }).join(', '));
+                lines.push('Relationships:');
+                for (const r of rels) lines.push(r);
                 lines.push('');
             }
 
-            lines.push(`[Full documentation](./models/${model.name}.md)`);
+            lines.push(`[${model.name} (Model)](./models/${model.name}.md)`);
             lines.push('');
         }
     }
@@ -360,17 +459,13 @@ function renderEntityReference(models: DataModel[], enums: Enum[], typeDefs: Typ
         lines.push('### Enums');
         lines.push('');
         for (const e of [...enums].sort((a, b) => a.name.localeCompare(b.name))) {
-            const desc = stripCommentPrefix(e.comments);
-            const descPart = desc ? ` — ${desc.split('\n')[0]}` : '';
-            lines.push(`#### ${e.name}${descPart}`);
+            lines.push(`#### ${e.name}`);
             lines.push('');
-            for (const field of e.fields) {
-                const valDesc = stripCommentPrefix(field.comments);
-                const vDescPart = valDesc ? ` — ${valDesc}` : '';
-                lines.push(`- ${field.name}${vDescPart}`);
-            }
+            lines.push('```prisma');
+            lines.push(...renderEnumDeclaration(e));
+            lines.push('```');
             lines.push('');
-            lines.push(`[Full documentation](./enums/${e.name}.md)`);
+            lines.push(`[${e.name} (Enum)](./enums/${e.name}.md)`);
             lines.push('');
         }
     }
@@ -379,17 +474,13 @@ function renderEntityReference(models: DataModel[], enums: Enum[], typeDefs: Typ
         lines.push('### Types');
         lines.push('');
         for (const td of [...typeDefs].sort((a, b) => a.name.localeCompare(b.name))) {
-            const desc = stripCommentPrefix(td.comments);
-            const descPart = desc ? ` — ${desc.split('\n')[0]}` : '';
-            lines.push(`#### ${td.name}${descPart}`);
+            lines.push(`#### ${td.name}`);
             lines.push('');
-            lines.push('```');
-            for (const field of td.fields) {
-                lines.push(compactFieldLine(field));
-            }
+            lines.push('```prisma');
+            lines.push(...renderTypeDeclaration(td));
             lines.push('```');
             lines.push('');
-            lines.push(`[Full documentation](./types/${td.name}.md)`);
+            lines.push(`[${td.name} (Type)](./types/${td.name}.md)`);
             lines.push('');
         }
     }
@@ -398,51 +489,17 @@ function renderEntityReference(models: DataModel[], enums: Enum[], typeDefs: Typ
         lines.push('### Views');
         lines.push('');
         for (const view of [...views].sort((a, b) => a.name.localeCompare(b.name))) {
-            const desc = stripCommentPrefix(view.comments);
-            const descPart = desc ? ` — ${desc.split('\n')[0]}` : '';
-            lines.push(`#### ${view.name}${descPart}`);
+            lines.push(`#### ${view.name}`);
             lines.push('');
-            lines.push('```');
-            for (const field of view.fields) {
-                lines.push(compactFieldLine(field));
-            }
+            lines.push('```prisma');
+            lines.push(...renderModelDeclaration(view, 'view'));
             lines.push('```');
             lines.push('');
-            lines.push(`[Full documentation](./views/${view.name}.md)`);
+            lines.push(`[${view.name} (View)](./views/${view.name}.md)`);
             lines.push('');
         }
     }
 
-    return lines;
-}
-
-function renderRelationshipsSection(models: DataModel[]): string[] {
-    const rels: Array<{ from: string; field: string; to: string; cardinality: string }> = [];
-    for (const model of models) {
-        for (const field of model.fields) {
-            if (field.type.reference?.ref && isDataModel(field.type.reference.ref)) {
-                const to = field.type.reference.ref.name;
-                let cardinality: string;
-                if (field.type.array) {
-                    cardinality = 'has many';
-                } else if (field.type.optional) {
-                    cardinality = 'belongs to (optional)';
-                } else {
-                    cardinality = 'belongs to';
-                }
-                rels.push({ from: model.name, field: field.name, to, cardinality });
-            }
-        }
-    }
-    if (rels.length === 0) return [];
-
-    const lines: string[] = [];
-    lines.push('### Relationships');
-    lines.push('');
-    for (const rel of rels) {
-        lines.push(`- ${rel.from}.${rel.field} → ${rel.to} (${rel.cardinality})`);
-    }
-    lines.push('');
     return lines;
 }
 
@@ -462,8 +519,13 @@ function renderFooter(hasRelationships: boolean): string[] {
     return lines;
 }
 
-// --- Main export ---
-
+/**
+ * Renders a `SKILL.md` file — an AI-agent-readable schema reference designed for
+ * use as a skill definition in tools like Cursor, Claude Code, and skills.sh.
+ *
+ * The output includes a schema overview, detected conventions, access/validation constraints,
+ * workflow guidance, and a full entity reference with prisma declaration blocks.
+ */
 export function renderSkillPage(
     _schema: Model,
     title: string,
@@ -485,12 +547,11 @@ export function renderSkillPage(
     const lines: string[] = [];
 
     lines.push(...renderFrontmatter(title));
-    lines.push(...renderOverview(title, counts, models));
+    lines.push(...renderOverview(title, counts, models, views));
     lines.push(...renderConventions(models, typeDefs));
     lines.push(...renderConstraints(models));
-    lines.push(...renderWorkflow(models, procedures, hasRelationships));
+    lines.push(...renderWorkflow(procedures, hasRelationships));
     lines.push(...renderEntityReference(models, enums, typeDefs, views));
-    lines.push(...renderRelationshipsSection(models));
     lines.push(...renderFooter(hasRelationships));
 
     return lines.join('\n');

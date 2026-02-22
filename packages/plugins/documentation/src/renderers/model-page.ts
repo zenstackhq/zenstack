@@ -256,6 +256,7 @@ function renderProceduresSection(procedures: Procedure[], modelName: string): st
     return lines;
 }
 
+/** Renders a full documentation page for a data model, including fields, relationships, policies, validation, and procedures. */
 export function renderModelPage(model: DataModel, options: RenderOptions, procedures: Procedure[] = [], navigation?: Navigation): string {
     const docMeta = extractDocMeta(model.attributes);
     const isDeprecated = !!docMeta.deprecated;

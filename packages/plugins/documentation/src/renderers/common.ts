@@ -16,6 +16,7 @@ const SECTION_EMOJI: Record<string, string> = {
     'References': '📚',
 };
 
+/** Returns an anchor element and a level-2 heading with an emoji prefix for the given section name. */
 export function sectionHeading(name: string): string[] {
     const emoji = SECTION_EMOJI[name] ?? '';
     const anchor = name.toLowerCase().replace(/\s+/g, '-');
@@ -23,6 +24,7 @@ export function sectionHeading(name: string): string[] {
     return [`<a id="${anchor}"></a>`, '', `## ${prefix}${name}`];
 }
 
+/** Renders the auto-generated header banner with optional source file and generation date. */
 export function generatedHeader(ctx?: GenerationContext): string[] {
     const lines = ['> [!CAUTION]', '> This documentation was auto-generated. Do not edit directly.'];
     if (ctx) {
@@ -35,6 +37,7 @@ export function generatedHeader(ctx?: GenerationContext): string[] {
     return lines;
 }
 
+/** Renders an Index / Category / Entity breadcrumb trail. */
 export function breadcrumbs(
     entityType: 'Models' | 'Views' | 'Enums' | 'Types' | 'Procedures',
     entityName: string,
@@ -44,6 +47,7 @@ export function breadcrumbs(
     return `[Index](${prefix}index.md) / [${entityType}](${prefix}index.md#${anchor}) / \`${entityName}\``;
 }
 
+/** Renders previous/next navigation links at the bottom of entity pages. */
 export function navigationFooter(nav: Navigation | undefined): string[] {
     if (!nav) return [];
     const parts: string[] = [];
@@ -63,6 +67,7 @@ const ENTITY_DOC_PATHS: Record<string, string> = {
     procedure: `${ZENSTACK_DOCS_BASE}/procedure`,
 };
 
+/** Renders a "References" section linking to the official ZenStack documentation for the entity type. */
 export function referencesSection(entityType: 'model' | 'enum' | 'type' | 'view' | 'procedure'): string[] {
     const url = ENTITY_DOC_PATHS[entityType];
     if (!url) return [];
@@ -74,6 +79,7 @@ export function referencesSection(entityType: 'model' | 'enum' | 'type' | 'view'
     ];
 }
 
+/** Renders a collapsible `<details>` block containing the raw ZModel declaration and optional source path. */
 export function declarationBlock(cstText: string | undefined, sourcePath: string | undefined): string[] {
     if (!cstText) return [];
     const summaryLabel = sourcePath ? `Declaration · <code>${sourcePath}</code>` : 'Declaration';
@@ -90,6 +96,7 @@ export function declarationBlock(cstText: string | undefined, sourcePath: string
     ];
 }
 
+/** Renders a blockquoted description from doc-comments. */
 export function renderDescription(comments: string[], stripFn: (c: string[]) => string): string[] {
     const description = stripFn(comments);
     if (!description) return [];
@@ -101,6 +108,7 @@ export function renderDescription(comments: string[], stripFn: (c: string[]) => 
     return lines;
 }
 
+/** Renders category, since, deprecated, table mapping, and source path metadata as a single line. */
 export function renderMetadata(
     docMeta: DocMeta,
     sourcePath: string | undefined,
@@ -117,6 +125,7 @@ export function renderMetadata(
     return [parts.join(' · '), ''];
 }
 
+/** Builds a `Map<name, Navigation>` with prev/next links for a sorted list of entity names. */
 export function buildNavList(
     sortedNames: string[],
     pathPrefix: string,

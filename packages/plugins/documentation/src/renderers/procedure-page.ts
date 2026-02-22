@@ -1,9 +1,10 @@
-import { isDataModel, isEnum, type Procedure } from '@zenstackhq/language/ast';
+import { isDataModel, isEnum, type FunctionParamType, type Procedure } from '@zenstackhq/language/ast';
 import { extractProcedureComments, getRelativeSourcePath } from '../extractors';
 import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referencesSection, sectionHeading } from './common';
 import type { Navigation, RenderOptions } from '../types';
 
-function formatParamType(paramType: Procedure['returnType'], linked: boolean): string {
+/** Formats a procedure parameter or return type as a display string, optionally linking to model/enum/type pages. */
+function formatParamType(paramType: FunctionParamType, linked: boolean): string {
     let typeName: string;
 
     if (paramType.reference?.ref) {
@@ -29,6 +30,7 @@ function formatParamType(paramType: Procedure['returnType'], linked: boolean): s
     return typeName;
 }
 
+/** Renders a full documentation page for a procedure declaration. */
 export function renderProcedurePage(proc: Procedure, options: RenderOptions, navigation?: Navigation): string {
     const lines: string[] = [
         ...generatedHeader(options.genCtx),

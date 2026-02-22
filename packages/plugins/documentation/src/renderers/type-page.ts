@@ -11,6 +11,7 @@ import {
 } from '../extractors';
 import type { RenderOptions } from '../types';
 
+/** Renders a full documentation page for a type definition, including fields, mixin usage, and a class diagram. */
 export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], options: RenderOptions, navigation?: Navigation): string {
     const lines: string[] = [
         ...generatedHeader(options.genCtx),

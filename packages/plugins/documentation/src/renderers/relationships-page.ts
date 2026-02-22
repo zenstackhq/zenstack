@@ -1,6 +1,7 @@
 import type { GenerationContext, Relationship } from '../types';
 import { generatedHeader } from './common';
 
+/** Renders the relationships overview page with a cross-reference table and a Mermaid ER diagram. */
 export function renderRelationshipsPage(relations: Relationship[], genCtx?: GenerationContext): string {
     const lines: string[] = [
         ...generatedHeader(genCtx),

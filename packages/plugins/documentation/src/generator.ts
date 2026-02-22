@@ -22,6 +22,11 @@ function resolveOutputDir(context: CliGeneratorContext): string {
     return path.resolve(context.defaultOutputPath);
 }
 
+/**
+ * Main entry point for the documentation generator plugin.
+ * Reads the ZModel AST from `context`, renders markdown pages for every entity,
+ * and writes them into the configured output directory.
+ */
 export async function generate(context: CliGeneratorContext): Promise<void> {
     const startTime = performance.now();
     const outputDir = resolveOutputDir(context);
@@ -36,7 +41,11 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
     };
     options.genCtx = genCtx;
 
-    fs.mkdirSync(outputDir, { recursive: true });
+    try {
+        fs.mkdirSync(outputDir, { recursive: true });
+    } catch (err) {
+        throw new Error(`Failed to create output directory "${outputDir}": ${err instanceof Error ? err.message : String(err)}`);
+    }
 
     let filesGenerated = 0;
 
@@ -66,7 +75,7 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
                     fs.mkdirSync(modelDir, { recursive: true });
                 }
             }
-            fs.writeFileSync(
+            writeFile(
                 path.join(modelDir, `${model.name}.md`),
                 renderModelPage(model, options, procedures, modelNav.get(model.name)),
             );
@@ -80,7 +89,7 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
         const sortedViewNames = [...views].sort((a, b) => a.name.localeCompare(b.name)).map((v) => v.name);
         const viewNav = buildNavList(sortedViewNames, './');
         for (const view of views) {
-            fs.writeFileSync(
+            writeFile(
                 path.join(viewsDir, `${view.name}.md`),
                 renderViewPage(view, options, viewNav.get(view.name)),
             );
@@ -89,7 +98,7 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
     }
 
     if (hasRelationships) {
-        fs.writeFileSync(
+        writeFile(
             path.join(outputDir, 'relationships.md'),
             renderRelationshipsPage(allRelations, genCtx),
         );
@@ -103,7 +112,7 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
         const sortedTypeNames = [...typeDefs].sort((a, b) => a.name.localeCompare(b.name)).map((t) => t.name);
         const typeNav = buildNavList(sortedTypeNames, './');
         for (const typeDef of typeDefs) {
-            fs.writeFileSync(
+            writeFile(
                 path.join(typesDir, `${typeDef.name}.md`),
                 renderTypePage(typeDef, models, options, typeNav.get(typeDef.name)),
             );
@@ -118,7 +127,7 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
         const sortedEnumNames = [...enums].sort((a, b) => a.name.localeCompare(b.name)).map((e) => e.name);
         const enumNav = buildNavList(sortedEnumNames, './');
         for (const enumDecl of enums) {
-            fs.writeFileSync(
+            writeFile(
                 path.join(enumsDir, `${enumDecl.name}.md`),
                 renderEnumPage(enumDecl, models, options, enumNav.get(enumDecl.name)),
             );
@@ -132,7 +141,7 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
         const sortedProcNames = [...procedures].sort((a, b) => a.name.localeCompare(b.name)).map((p) => p.name);
         const procNav = buildNavList(sortedProcNames, './');
         for (const proc of procedures) {
-            fs.writeFileSync(
+            writeFile(
                 path.join(proceduresDir, `${proc.name}.md`),
                 renderProcedurePage(proc, options, procNav.get(proc.name)),
             );
@@ -143,7 +152,7 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
     genCtx.durationMs = Math.round((performance.now() - startTime) * 100) / 100;
     genCtx.filesGenerated = filesGenerated + 1;
 
-    fs.writeFileSync(
+    writeFile(
         path.join(outputDir, 'index.md'),
         renderIndexPage(context.model, context.pluginOptions, hasRelationships, genCtx),
     );
@@ -152,9 +161,17 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
         const title = typeof context.pluginOptions['title'] === 'string'
             ? context.pluginOptions['title']
             : 'Schema Documentation';
-        fs.writeFileSync(
+        writeFile(
             path.join(outputDir, 'SKILL.md'),
             renderSkillPage(context.model, title, models, views, enums, typeDefs, procedures, hasRelationships),
         );
+    }
+}
+
+function writeFile(filePath: string, content: string): void {
+    try {
+        fs.writeFileSync(filePath, content);
+    } catch (err) {
+        throw new Error(`Failed to write "${filePath}": ${err instanceof Error ? err.message : String(err)}`);
     }
 }

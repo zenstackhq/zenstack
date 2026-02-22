@@ -402,14 +402,18 @@ describe('integration: showcase schema', () => {
         expect(skill).toContain('name:');
         expect(skill).toContain('description:');
 
-        // Overview
+        // Overview lists ALL entities with type labels
         expect(skill).toContain('## Schema Overview');
         expect(skill).toContain('9 models');
         expect(skill).toContain('3 enums');
         expect(skill).toContain('2 types');
         expect(skill).toContain('3 views');
         expect(skill).toContain('7 procedures');
-        expect(skill).toContain('Key entities:');
+        expect(skill).toContain('Entities:');
+        expect(skill).toContain('**User** (Model)');
+        expect(skill).toContain('**Organization** (Model)');
+        expect(skill).toContain('**UserProfile** (View)');
+        expect(skill).not.toContain('...and');
 
         // Conventions
         expect(skill).toContain('## Conventions');
@@ -434,31 +438,42 @@ describe('integration: showcase schema', () => {
         expect(skill).toContain('getUser');
         expect(skill).toContain('query');
 
-        // Entity Reference
+        // Entity Reference: full declarations in prisma code blocks
         expect(skill).toContain('## Entity Reference');
         expect(skill).toContain('### Models');
         expect(skill).toContain('#### User');
         expect(skill).toContain('#### Organization');
         expect(skill).toContain('#### Task');
+        expect(skill).toContain('```prisma');
+        expect(skill).toContain('model User');
+        expect(skill).toContain('model Organization');
         expect(skill).toContain('### Enums');
         expect(skill).toContain('#### Role');
+        expect(skill).toContain('enum Role {');
         expect(skill).toContain('#### Priority');
         expect(skill).toContain('#### TaskStatus');
         expect(skill).toContain('### Types');
         expect(skill).toContain('#### Timestamps');
+        expect(skill).toContain('type Timestamps {');
         expect(skill).toContain('#### ProjectStats');
         expect(skill).toContain('### Views');
         expect(skill).toContain('#### UserProfile');
-        expect(skill).toContain('### Relationships');
-        expect(skill).toContain('User');
-        expect(skill).toContain('Organization');
+        expect(skill).toContain('view UserProfile {');
 
-        // Links
+        // Relationships inline under models
+        expect(skill).toContain('Relationships:');
+
+        // Links use entity name and type, not "Full documentation"
+        expect(skill).toContain('[User (Model)](./models/User.md)');
+        expect(skill).toContain('[Role (Enum)](./enums/Role.md)');
+        expect(skill).toContain('[Timestamps (Type)](./types/Timestamps.md)');
+        expect(skill).toContain('[UserProfile (View)](./views/UserProfile.md)');
+        expect(skill).not.toContain('[Full documentation]');
+
+        // Footer
         expect(skill).toContain('## Detailed Documentation');
         expect(skill).toContain('[Full schema index](./index.md)');
         expect(skill).toContain('[Relationships and ER diagrams](./relationships.md)');
-        expect(skill).toContain('[Full documentation](./models/User.md)');
-        expect(skill).toContain('[Full documentation](./enums/Role.md)');
         expect(skill).toContain('procedures/signUp.md');
     });
 

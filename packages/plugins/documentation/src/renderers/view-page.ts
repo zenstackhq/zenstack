@@ -11,6 +11,7 @@ import {
 } from '../extractors';
 import type { Navigation, RenderOptions } from '../types';
 
+/** Renders a full documentation page for a database view, including an ER diagram and fields table. */
 export function renderViewPage(view: DataModel, options: RenderOptions, navigation?: Navigation): string {
     const docMeta = extractDocMeta(view.attributes);
     const isDeprecated = !!docMeta.deprecated;
