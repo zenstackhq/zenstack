@@ -52,18 +52,18 @@ export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], option
 
     const usedBy = _allModels
         .filter((m) => m.mixins.some((ref) => ref.ref?.name === typeDef.name))
-        .map((m) => m.name)
-        .sort();
+        .sort((a, b) => a.name.localeCompare(b.name));
 
     if (usedBy.length > 0) {
         lines.push(...sectionHeading('Used By'), '');
         const firstField = typeDef.fields[0]?.name;
-        for (const name of usedBy) {
+        for (const m of usedBy) {
+            const dir = m.isView ? 'views' : 'models';
             const anchor = firstField ? `#field-${firstField}` : '';
             const fieldLinks = typeDef.fields
-                .map((f) => `[\`${f.name}\`](../models/${name}.md#field-${f.name})`)
+                .map((f) => `[\`${f.name}\`](../${dir}/${m.name}.md#field-${f.name})`)
                 .join(', ');
-            lines.push(`- [${name}](../models/${name}.md${anchor}) — ${fieldLinks}`);
+            lines.push(`- [${m.name}](../${dir}/${m.name}.md${anchor}) — ${fieldLinks}`);
         }
         lines.push('');
 
@@ -75,8 +75,8 @@ export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], option
             lines.push(`        ${field.type.type ?? 'Unknown'} ${field.name}`);
         }
         lines.push('    }');
-        for (const name of usedBy) {
-            lines.push(`    ${name} ..|> ${typeDef.name} : uses`);
+        for (const m of usedBy) {
+            lines.push(`    ${m.name} ..|> ${typeDef.name} : uses`);
         }
         lines.push('```', '');
     }

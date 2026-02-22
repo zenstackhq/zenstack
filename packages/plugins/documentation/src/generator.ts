@@ -114,7 +114,7 @@ export async function generate(context: CliGeneratorContext): Promise<void> {
         for (const typeDef of typeDefs) {
             writeFile(
                 path.join(typesDir, `${typeDef.name}.md`),
-                renderTypePage(typeDef, models, options, typeNav.get(typeDef.name)),
+                renderTypePage(typeDef, [...models, ...views], options, typeNav.get(typeDef.name)),
             );
             filesGenerated++;
         }
