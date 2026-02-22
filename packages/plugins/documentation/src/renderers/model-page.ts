@@ -1,7 +1,7 @@
 import { isDataModel, isTypeDef, type DataField, type DataModel, type DataModelAttribute, type Procedure } from '@zenstackhq/language/ast';
 import { getAllFields } from '@zenstackhq/language/utils';
 import { breadcrumbs, declarationBlock, generatedHeader, navigationFooter, referencesSection, renderDescription, renderMetadata, sectionHeading } from './common';
-import type { Navigation, RelationType } from '../types';
+import type { Navigation, RelationType, RenderOptions } from '../types';
 import {
     extractDocMeta,
     extractFieldDocExample,
@@ -13,7 +13,6 @@ import {
     isFieldRequired,
     stripCommentPrefix,
 } from '../extractors';
-import type { RenderOptions } from '../types';
 
 interface ValidationRule {
     fieldName: string;
