@@ -40,6 +40,7 @@ import {
     ReferenceNode,
     SelectionNode,
     SelectQueryNode,
+    sql,
     TableNode,
     ValueListNode,
     ValueNode,
@@ -187,7 +188,8 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         if (context.contextValue) {
             // if we're transforming against a value object, fields should be evaluated directly
             const fieldDef = QueryUtils.requireField(this.schema, context.modelOrType, expr.field);
-            return this.transformValue(context.contextValue[expr.field], fieldDef.type as BuiltinType);
+            const node = this.transformValue(context.contextValue[expr.field], fieldDef.type as BuiltinType);
+            return this.applyNativeTypeCast(node, fieldDef);
         }
 
         const fieldDef = QueryUtils.requireField(this.schema, context.modelOrType, expr.field);
@@ -802,13 +804,35 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 curr = ValueNode.createImmediate(null);
                 break;
             }
-            currType = QueryUtils.requireField(this.schema, currType, field).type;
+            const fieldDef = QueryUtils.requireField(this.schema, currType, field);
+            currType = fieldDef.type;
             if (i === expr.members.length - 1) {
                 // last segment (which is the value), make sure it's transformed
                 curr = this.transformValue(curr, currType as BuiltinType);
+                // apply native type cast if needed (e.g., @db.Uuid on PostgreSQL)
+                curr = this.applyNativeTypeCast(curr, fieldDef);
             }
         }
         return curr;
+    }
+
+    /**
+     * Applies a native database type cast to a value node if needed.
+     *
+     * When policy expressions compare auth() member values against typed columns,
+     * the parameterized values are sent with their JavaScript types (e.g., text for strings).
+     * Some database-specific column types require explicit casting — for instance, PostgreSQL
+     * raises "operator does not exist: text = uuid" when comparing a text parameter against
+     * a uuid column. This method inspects the field's native type attributes (e.g., @db.Uuid)
+     * and wraps the node with an appropriate SQL cast.
+     */
+    private applyNativeTypeCast(node: OperationNode, fieldDef: FieldDef): OperationNode {
+        if (this.schema.provider.type === 'postgresql' && fieldDef.attributes) {
+            if (fieldDef.attributes.some((attr) => attr.name === '@db.Uuid')) {
+                return sql`${new ExpressionWrapper(node)}::uuid`.toOperationNode();
+            }
+        }
+        return node;
     }
 
     private transformRelationAccess(
