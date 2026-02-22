@@ -828,6 +828,26 @@ describe('documentation plugin: model page', () => {
         expect(userDoc).toContain('[listUsers](../procedures/listUsers.md)');
     });
 
+    it('model page detects procedure reference via param type (array and non-array)', async () => {
+        const tmpDir = await generateFromSchema(`
+            model User {
+                id String @id @default(cuid())
+            }
+            model Post {
+                id String @id @default(cuid())
+            }
+            procedure findByUser(user: User): Post[]
+        `);
+
+        const userDoc = readDoc(tmpDir, 'models', 'User.md');
+        expect(userDoc).toContain('Used in Procedures');
+        expect(userDoc).toContain('[findByUser](../procedures/findByUser.md)');
+
+        const postDoc = readDoc(tmpDir, 'models', 'Post.md');
+        expect(postDoc).toContain('Used in Procedures');
+        expect(postDoc).toContain('[findByUser](../procedures/findByUser.md)');
+    });
+
     it('model pages include prev/next navigation footer', async () => {
         const tmpDir = await generateFromSchema(`
             model Activity {

@@ -25,6 +25,7 @@ function isModelReferencedByProc(proc: Procedure, modelName: string): boolean {
     if (proc.returnType.type === modelName) return true;
     for (const param of proc.params) {
         if (param.type.reference?.ref?.name === modelName) return true;
+        if (param.type.type === modelName) return true;
     }
     return false;
 }
