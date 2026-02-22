@@ -26,7 +26,7 @@ export function renderRelationshipsPage(relations: Relationship[], genCtx?: Gene
     const seen = new Set<string>();
     const mermaidLines: string[] = [];
     for (const rel of relations) {
-        const key = [rel.from, rel.to].sort().join('--');
+        const key = `${[rel.from, rel.to].sort().join('--')}::${rel.field}`;
         if (seen.has(key)) continue;
         seen.add(key);
 

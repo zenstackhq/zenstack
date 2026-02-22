@@ -773,6 +773,28 @@ describe('documentation plugin: model page', () => {
         expect(relDoc).toContain('}o--||');
     });
 
+    it('relationships ER diagram preserves multiple relationships between same model pair', async () => {
+        const tmpDir = await generateFromSchema(`
+            model User {
+                id         String @id @default(cuid())
+                posts      Post[] @relation("author")
+                pinnedPost Post?  @relation("pinned")
+            }
+            model Post {
+                id          String @id @default(cuid())
+                author      User   @relation("author", fields: [authorId], references: [id])
+                authorId    String
+                pinnedBy    User?  @relation("pinned", fields: [pinnedById], references: [id])
+                pinnedById  String? @unique
+            }
+        `);
+
+        const relDoc = readDoc(tmpDir, 'relationships.md');
+        const mermaidSection = relDoc.split('```mermaid')[1] ?? '';
+        const postUserLines = mermaidSection.split('\n').filter((l) => l.includes('Post') && l.includes('User'));
+        expect(postUserLines.length).toBeGreaterThanOrEqual(2);
+    });
+
     it('relationships.md links model names to model pages', async () => {
         const tmpDir = await generateFromSchema(`
             model User {

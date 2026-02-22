@@ -339,6 +339,7 @@ exports[`documentation plugin: snapshot > snapshot: full representative schema o
 \`\`\`mermaid
 erDiagram
     User ||--o{ Post : "posts"
+    Post }o--|| User : "author"
 \`\`\`
 "
 `;
