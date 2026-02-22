@@ -36,7 +36,7 @@ export function renderViewPage(view: DataModel, options: RenderOptions, navigati
         lines.push('```mermaid', 'erDiagram');
         lines.push(`    ${view.name} {`);
         for (const field of view.fields) {
-            const typeName = field.type.type ?? 'Unknown';
+            const typeName = field.type.reference?.ref?.name ?? field.type.type ?? 'Unknown';
             lines.push(`        ${typeName} ${field.name}`);
         }
         lines.push('    }');

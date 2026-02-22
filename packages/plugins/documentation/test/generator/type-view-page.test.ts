@@ -216,6 +216,25 @@ describe('documentation plugin: view page', () => {
         expect(viewDoc).toContain('`String`');
     });
 
+    it('view page Mermaid diagram shows reference type names instead of Unknown', async () => {
+        const tmpDir = await generateFromSchema(`
+            model User {
+                id    String @id @default(cuid())
+                email String
+            }
+            view UserSummary {
+                id    Int
+                name  String
+            }
+        `);
+
+        const viewDoc = readDoc(tmpDir, 'views', 'UserSummary.md');
+        expect(viewDoc).toContain('```mermaid');
+        expect(viewDoc).not.toContain('Unknown');
+        expect(viewDoc).toContain('Int id');
+        expect(viewDoc).toContain('String name');
+    });
+
     it('view page includes declaration block', async () => {
         const tmpDir = await generateFromSchema(`
             view ActiveUsers {

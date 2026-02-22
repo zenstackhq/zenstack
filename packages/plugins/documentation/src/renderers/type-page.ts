@@ -72,7 +72,8 @@ export function renderTypePage(typeDef: TypeDef, _allModels: DataModel[], option
         lines.push(`    class ${typeDef.name} {`);
         lines.push(`        <<mixin>>`);
         for (const field of typeDef.fields) {
-            lines.push(`        ${field.type.type ?? 'Unknown'} ${field.name}`);
+            const typeName = field.type.reference?.ref?.name ?? field.type.type ?? 'Unknown';
+            lines.push(`        ${typeName} ${field.name}`);
         }
         lines.push('    }');
         for (const m of usedBy) {
