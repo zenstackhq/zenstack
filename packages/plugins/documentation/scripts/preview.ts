@@ -1,9 +1,10 @@
 import { loadDocument } from '@zenstackhq/language';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import plugin from '../src/index';
 
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const schemaFile = path.resolve(__dirname, '../zenstack/showcase.zmodel');
 const outputDir = path.resolve(__dirname, '../preview-output');
 const policyPlugin = path.resolve(__dirname, '../../policy/plugin.zmodel');
