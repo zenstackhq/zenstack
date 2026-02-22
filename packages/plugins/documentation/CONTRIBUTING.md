@@ -226,17 +226,17 @@ Tests are split by feature area, mirroring the renderer structure:
 test/
 ├── utils.ts                     # Shared helpers
 ├── generator/                   # Unit tests by page type
-│   ├── common.test.ts           # Cross-page features (14 tests)
-│   ├── index-page.test.ts       # Index page (17 tests)
-│   ├── model-page.test.ts       # Model page (43 tests)
+│   ├── common.test.ts           # Cross-page features (15 tests)
+│   ├── index-page.test.ts       # Index page (19 tests)
+│   ├── model-page.test.ts       # Model page (47 tests)
 │   ├── enum-page.test.ts        # Enum page (9 tests)
-│   ├── type-view-page.test.ts   # Type + View pages (13 tests)
+│   ├── type-view-page.test.ts   # Type + View pages (14 tests)
 │   ├── procedure-page.test.ts   # Procedure page (13 tests)
-│   ├── skill-page.test.ts      # SKILL.md generation (21 tests)
+│   ├── skill-page.test.ts      # SKILL.md generation (30 tests)
 │   └── snapshot.test.ts         # Full schema snapshot (1 test)
 └── integration/                 # Tests against real schemas
     ├── samples.test.ts          # Sample project schemas (4 tests)
-    ├── showcase.test.ts         # Comprehensive showcase schema (24 tests)
+    ├── showcase.test.ts         # Comprehensive showcase schema (23 tests)
     ├── e2e-schemas.test.ts      # E2E test schemas (6 tests)
     └── multifile.test.ts        # Multi-file import schemas (3 tests)
 ```
@@ -322,11 +322,11 @@ The plugin package is at `packages/plugins/documentation/`.
 ### Build
 
 ```bash
-# Build this package only
+# Build this package only (run from packages/plugins/documentation/)
 pnpm build
 
 # Build from repo root (builds all packages via Turbo)
-pnpm build
+cd /path/to/zenstack && pnpm build
 ```
 
 The build uses `tsup-node` for bundling and `tsc --noEmit` for type checking.
@@ -362,12 +362,6 @@ npx zenstack generate
 ```
 
 Then browse the generated Markdown files or render them with your preferred viewer.
-
-## Historical context
-
-- **RFC**: `RFC.md` in this directory contains the original design document, including motivation, decisions, and the phased implementation plan
-- **Agent Guide**: `AGENT_GUIDE.md` contains step-by-step implementation instructions and an AST cheat sheet, useful as a reference when navigating the ZModel AST
-- **TODO**: `TODO.md` tracks the original implementation checklist
 
 ## Frequently touched files
 
