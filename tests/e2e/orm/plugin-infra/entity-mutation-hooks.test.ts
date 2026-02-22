@@ -692,3 +692,45 @@ describe('Entity mutation hooks tests', () => {
         });
     });
 });
+
+describe('Entity mutation hooks - delegate model interaction', () => {
+    it('update on child model succeeds with afterEntityMutation plugin', async () => {
+        console.log('RUNNING!!!!');
+        const client = await createTestClient(
+            `
+model Base {
+    id Int @id @default(autoincrement())
+    orgId Int
+    type String
+    @@delegate(type)
+}
+
+model Child extends Base {
+    childField Int
+}
+`,
+        );
+
+        const withPlugin = client.$use({
+            id: 'test',
+            onEntityMutation: {
+                afterEntityMutation() {},
+            },
+        });
+
+        const created = await withPlugin.child.create({
+            data: { orgId: 1, childField: 10 },
+        });
+
+        const updated = await withPlugin.child.update({
+            where: { id: created.id },
+            data: { orgId: 2, childField: 20 },
+        });
+
+        expect(updated).toBeTruthy();
+        expect(updated.orgId).toBe(2);
+        expect(updated.childField).toBe(20);
+
+        await client.$disconnect();
+    });
+});
