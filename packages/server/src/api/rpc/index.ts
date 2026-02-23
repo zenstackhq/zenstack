@@ -7,6 +7,8 @@ import z from 'zod';
 import { fromError } from 'zod-validation-error/v4';
 import type { ApiHandler, LogConfig, RequestContext, Response } from '../../types';
 import { getProcedureDef, mapProcedureArgs, PROCEDURE_ROUTE_PREFIXES } from '../common/procedures';
+
+const TRANSACTION_ROUTE_PREFIX = '$transaction' as const;
 import { loggerSchema } from '../common/schemas';
 import { processSuperJsonRequestPayload, unmarshalQ } from '../common/utils';
 import { log, registerCustomSerializers } from '../utils';
@@ -67,6 +69,14 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
                 method: method.toUpperCase(),
                 proc: op,
                 query,
+                requestBody,
+            });
+        }
+
+        if (model === TRANSACTION_ROUTE_PREFIX) {
+            return this.handleTransaction({
+                client,
+                method: method.toUpperCase(),
                 requestBody,
             });
         }
@@ -182,6 +192,99 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
             } else {
                 return this.makeGenericErrorResponse(err);
             }
+        }
+    }
+
+    private async handleTransaction({
+        client,
+        method,
+        requestBody,
+    }: {
+        client: ClientContract<Schema>;
+        method: string;
+        requestBody?: unknown;
+    }): Promise<Response> {
+        if (method !== 'POST') {
+            return this.makeBadInputErrorResponse('invalid request method, only POST is supported');
+        }
+
+        if (!requestBody || !Array.isArray(requestBody) || requestBody.length === 0) {
+            return this.makeBadInputErrorResponse('request body must be a non-empty array of operations');
+        }
+
+        const VALID_OPS = new Set([
+            'create',
+            'createMany',
+            'createManyAndReturn',
+            'upsert',
+            'findFirst',
+            'findUnique',
+            'findMany',
+            'aggregate',
+            'groupBy',
+            'count',
+            'exists',
+            'update',
+            'updateMany',
+            'updateManyAndReturn',
+            'delete',
+            'deleteMany',
+        ]);
+
+        for (let i = 0; i < requestBody.length; i++) {
+            const item = requestBody[i];
+            if (!item || typeof item !== 'object') {
+                return this.makeBadInputErrorResponse(`operation at index ${i} must be an object`);
+            }
+            const { model: itemModel, op: itemOp, args: itemArgs } = item as any;
+            if (!itemModel || typeof itemModel !== 'string') {
+                return this.makeBadInputErrorResponse(`operation at index ${i} is missing a valid "model" field`);
+            }
+            if (!itemOp || typeof itemOp !== 'string') {
+                return this.makeBadInputErrorResponse(`operation at index ${i} is missing a valid "op" field`);
+            }
+            if (!VALID_OPS.has(itemOp)) {
+                return this.makeBadInputErrorResponse(`operation at index ${i} has invalid op: ${itemOp}`);
+            }
+            if (!this.isValidModel(client, lowerCaseFirst(itemModel))) {
+                return this.makeBadInputErrorResponse(`operation at index ${i} has unknown model: ${itemModel}`);
+            }
+            if (itemArgs !== undefined && itemArgs !== null && typeof itemArgs !== 'object') {
+                return this.makeBadInputErrorResponse(`operation at index ${i} has invalid "args" field`);
+            }
+        }
+
+        const promises = (requestBody as any[]).map((item) => {
+            const model = lowerCaseFirst(item.model as string);
+            const op = item.op as string;
+            const args = item.args ?? {};
+            return (client as any)[model][op](args);
+        });
+
+        try {
+            log(this.options.log, 'debug', () => `handling "$transaction" request with ${promises.length} operations`);
+
+            const clientResult = await client.$transaction(promises as any);
+
+            const { json, meta } = SuperJSON.serialize(clientResult);
+            const responseBody: any = { data: json };
+            if (meta) {
+                responseBody.meta = { serialization: meta };
+            }
+
+            const response = { status: 200, body: responseBody };
+            log(
+                this.options.log,
+                'debug',
+                () => `sending response for "$transaction" request: ${safeJSONStringify(response)}`,
+            );
+            return response;
+        } catch (err) {
+            log(this.options.log, 'error', `error occurred when handling "$transaction" request`, err);
+            if (err instanceof ORMError) {
+                return this.makeORMErrorResponse(err);
+            }
+            return this.makeGenericErrorResponse(err);
         }
     }
 
