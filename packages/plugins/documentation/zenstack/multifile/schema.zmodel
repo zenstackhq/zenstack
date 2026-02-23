@@ -1,0 +1,12 @@
+import './enums'
+import './mixins'
+import './models'
+
+datasource db {
+    provider = 'sqlite'
+    url      = 'file:./dev.db'
+}
+
+plugin policy {
+    provider = '../../../policy/plugin.zmodel'
+}

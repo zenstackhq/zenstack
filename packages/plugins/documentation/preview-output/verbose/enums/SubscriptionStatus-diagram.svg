@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 224.70000000000002 349" width="224.70000000000002" height="349" style="--bg:#FFFFFF;--fg:#27272A;background:var(--bg)">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap');
+  text { font-family: 'Inter', system-ui, sans-serif; }
+  .mono { font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace; }
+  svg {
+    /* Derived from --bg and --fg (overridable via --line, --accent, etc.) */
+    --_text:          var(--fg);
+    --_text-sec:      var(--muted, color-mix(in srgb, var(--fg) 60%, var(--bg)));
+    --_text-muted:    var(--muted, color-mix(in srgb, var(--fg) 40%, var(--bg)));
+    --_text-faint:    color-mix(in srgb, var(--fg) 25%, var(--bg));
+    --_line:          var(--line, color-mix(in srgb, var(--fg) 30%, var(--bg)));
+    --_arrow:         var(--accent, color-mix(in srgb, var(--fg) 50%, var(--bg)));
+    --_node-fill:     var(--surface, color-mix(in srgb, var(--fg) 3%, var(--bg)));
+    --_node-stroke:   var(--border, color-mix(in srgb, var(--fg) 20%, var(--bg)));
+    --_group-fill:    var(--bg);
+    --_group-hdr:     color-mix(in srgb, var(--fg) 5%, var(--bg));
+    --_inner-stroke:  color-mix(in srgb, var(--fg) 12%, var(--bg));
+    --_key-badge:     color-mix(in srgb, var(--fg) 10%, var(--bg));
+  }
+</style>
+<defs>
+  <marker id="cls-inherit" markerWidth="12" markerHeight="10" refX="12" refY="5" orient="auto-start-reverse">
+    <polygon points="0 0, 12 5, 0 10" fill="var(--bg)" stroke="var(--_arrow)" stroke-width="1.5" />
+  </marker>
+  <marker id="cls-composition" markerWidth="12" markerHeight="10" refX="0" refY="5" orient="auto-start-reverse">
+    <polygon points="6 0, 12 5, 6 10, 0 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="1" />
+  </marker>
+  <marker id="cls-aggregation" markerWidth="12" markerHeight="10" refX="0" refY="5" orient="auto-start-reverse">
+    <polygon points="6 0, 12 5, 6 10, 0 5" fill="var(--bg)" stroke="var(--_arrow)" stroke-width="1.5" />
+  </marker>
+  <marker id="cls-arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto-start-reverse">
+    <polyline points="0 0, 8 3, 0 6" fill="none" stroke="var(--_arrow)" stroke-width="1.5" />
+  </marker>
+</defs>
+<polyline points="112.35000000000001,88 112.35000000000001,165" fill="none" stroke="var(--_line)" stroke-width="0.75" marker-end="url(#cls-arrow)" />
+<rect x="40" y="165" width="144.70000000000002" height="144" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="40" y="165" width="144.70000000000002" height="48" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="112.35000000000001" y="177" text-anchor="middle" dy="0.35em" font-size="10" font-weight="500" font-style="italic" fill="var(--_text-muted)">&lt;&lt;enumeration&gt;&gt;</text>
+<text x="112.35000000000001" y="195" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">SubscriptionStatus</text>
+<line x1="40" y1="213" x2="184.70000000000002" y2="213" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<text x="48" y="227" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">TRIALING</tspan></text>
+<text x="48" y="247" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">ACTIVE</tspan></text>
+<text x="48" y="267" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">PAST_DUE</tspan></text>
+<text x="48" y="287" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">CANCELED</tspan></text>
+<line x1="40" y1="301" x2="184.70000000000002" y2="301" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<rect x="52.35000000000001" y="40" width="120" height="48" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="52.35000000000001" y="40" width="120" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="112.35000000000001" y="56" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">Subscription</text>
+<line x1="52.35000000000001" y1="72" x2="172.35000000000002" y2="72" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<line x1="52.35000000000001" y1="80" x2="172.35000000000002" y2="80" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<text x="112.35000000000001" y="118.5" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-muted)">status</text>
+</svg>

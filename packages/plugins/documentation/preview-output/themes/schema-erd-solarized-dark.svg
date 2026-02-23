@@ -1,0 +1,343 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500.0800000000002 949.75" width="1500.0800000000002" height="949.75" style="--bg:#002b36;--fg:#839496;--line:#586e75;--accent:#268bd2;--muted:#586e75;background:var(--bg)">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap');
+  text { font-family: 'Inter', system-ui, sans-serif; }
+  .mono { font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace; }
+  svg {
+    /* Derived from --bg and --fg (overridable via --line, --accent, etc.) */
+    --_text:          var(--fg);
+    --_text-sec:      var(--muted, color-mix(in srgb, var(--fg) 60%, var(--bg)));
+    --_text-muted:    var(--muted, color-mix(in srgb, var(--fg) 40%, var(--bg)));
+    --_text-faint:    color-mix(in srgb, var(--fg) 25%, var(--bg));
+    --_line:          var(--line, color-mix(in srgb, var(--fg) 30%, var(--bg)));
+    --_arrow:         var(--accent, color-mix(in srgb, var(--fg) 50%, var(--bg)));
+    --_node-fill:     var(--surface, color-mix(in srgb, var(--fg) 3%, var(--bg)));
+    --_node-stroke:   var(--border, color-mix(in srgb, var(--fg) 20%, var(--bg)));
+    --_group-fill:    var(--bg);
+    --_group-hdr:     color-mix(in srgb, var(--fg) 5%, var(--bg));
+    --_inner-stroke:  color-mix(in srgb, var(--fg) 12%, var(--bg));
+    --_key-badge:     color-mix(in srgb, var(--fg) 10%, var(--bg));
+  }
+</style>
+<defs>
+</defs>
+<polyline points="180,621.75 239.02,621.75 239.02,441 628.84,441" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="180,621.75 239.02,621.75 239.02,626.5 298.03999999999996,626.5" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="180,621.75 239.02,621.75 239.02,802.5 726.64,802.5 726.64,865.75" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="824.4399999999999,441 906.34,441 906.34,312 1072.84,312 1072.84,292" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="824.4399999999999,441 906.34,441 906.34,651.5 1072.84,651.5 1072.84,718" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="824.4399999999999,441 906.34,441 906.34,128.5 1382.0800000000002,128.5 1382.0800000000002,160" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="824.4399999999999,441 906.34,441 906.34,761.5 1382.0800000000002,761.5 1382.0800000000002,697.5" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="493.64,626.5 561.24,626.5 561.24,202 1072.84,202 1072.84,172" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="493.64,626.5 726.64,626.5 726.64,635.75" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="824.4399999999999,750.75 906.34,750.75 906.34,459.5 1072.84,459.5 1072.84,422" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="824.4399999999999,750.75 906.34,750.75 906.34,875 1382.0800000000002,875 1382.0800000000002,909.75" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="1157.4399999999998,570 1230.76,570 1230.76,100 1304.0800000000002,100" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="1157.4399999999998,570 1230.76,570 1230.76,790 1382.0800000000002,790 1382.0800000000002,811.75" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="1157.4399999999998,570 1382.0800000000002,570 1382.0800000000002,555.5" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<rect x="1310.68" y="555.5" width="142.8" height="142" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="1310.68" y="555.5" width="142.8" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="1382.0800000000002" y="571.5" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">Activity</text>
+<line x1="1310.68" y1="587.5" x2="1453.48" y2="587.5" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<rect x="1316.68" y="591.5" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="1325.9" y="598.5" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">PK</text>
+<text x="1343.1200000000001" y="598.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="1445.48" y="598.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+<text x="1318.68" y="620.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="1445.48" y="620.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">action</tspan></text>
+<text x="1318.68" y="642.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="1445.48" y="642.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">detail</tspan></text>
+<rect x="1316.68" y="657.5" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="1325.9" y="664.5" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+<text x="1343.1200000000001" y="664.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="1445.48" y="664.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">userId</tspan></text>
+<rect x="1316.68" y="679.5" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="1325.9" y="686.5" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+<text x="1343.1200000000001" y="686.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="1445.48" y="686.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">taskId</tspan></text>
+<rect x="1304.0800000000002" y="40" width="156" height="120" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="1304.0800000000002" y="40" width="156" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="1382.0800000000002" y="56" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">Comment</text>
+<line x1="1304.0800000000002" y1="72" x2="1460.0800000000002" y2="72" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<rect x="1310.0800000000002" y="76" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="1319.3000000000002" y="83" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">PK</text>
+<text x="1336.5200000000002" y="83" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="1452.0800000000002" y="83" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+<text x="1312.0800000000002" y="105" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="1452.0800000000002" y="105" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">body</tspan></text>
+<rect x="1310.0800000000002" y="120" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="1319.3000000000002" y="127" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+<text x="1336.5200000000002" y="127" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="1452.0800000000002" y="127" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">taskId</tspan></text>
+<rect x="1310.0800000000002" y="142" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="1319.3000000000002" y="149" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+<text x="1336.5200000000002" y="149" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="1452.0800000000002" y="149" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">authorId</tspan></text>
+<rect x="40" y="550.75" width="140" height="142" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="40" y="550.75" width="140" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="110" y="566.75" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">Organization</text>
+<line x1="40" y1="582.75" x2="180" y2="582.75" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<rect x="46" y="586.75" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="55.22" y="593.75" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">PK</text>
+<text x="72.44" y="593.75" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="172" y="593.75" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+<text x="48" y="615.75" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="172" y="615.75" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">name</tspan></text>
+<rect x="46" y="630.75" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="55.22" y="637.75" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">UK</text>
+<text x="72.44" y="637.75" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="172" y="637.75" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">slug</tspan></text>
+<text x="48" y="659.75" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="172" y="659.75" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">email</tspan></text>
+<text x="48" y="681.75" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">Int</tspan></text>
+<text x="172" y="681.75" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">memberCount</tspan></text>
+<rect x="628.84" y="635.75" width="195.6" height="230" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="628.84" y="635.75" width="195.6" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="726.64" y="651.75" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">Project</text>
+<line x1="628.84" y1="667.75" x2="824.44" y2="667.75" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<rect x="634.84" y="671.75" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="644.0600000000001" y="678.75" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">PK</text>
+<text x="661.28" y="678.75" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="816.44" y="678.75" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+<text x="636.84" y="700.75" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="816.44" y="700.75" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">name</tspan></text>
+<text x="636.84" y="722.75" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="816.44" y="722.75" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">description</tspan></text>
+<text x="636.84" y="744.75" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">Boolean</tspan></text>
+<text x="816.44" y="744.75" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">archived</tspan></text>
+<text x="636.84" y="766.75" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">Int</tspan></text>
+<text x="816.44" y="766.75" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">taskCount</tspan></text>
+<text x="636.84" y="788.75" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">Float</tspan></text>
+<text x="816.44" y="788.75" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">completionRate</tspan></text>
+<text x="636.84" y="810.75" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">Boolean</tspan></text>
+<text x="816.44" y="810.75" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">hasOverdueTasks</tspan></text>
+<rect x="634.84" y="825.75" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="644.0600000000001" y="832.75" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+<text x="661.28" y="832.75" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="816.44" y="832.75" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">organizationId</tspan></text>
+<rect x="634.84" y="847.75" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="644.0600000000001" y="854.75" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+<text x="661.28" y="854.75" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="816.44" y="854.75" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">teamId</tspan></text>
+<rect x="1312.0800000000002" y="811.75" width="140" height="98" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="1312.0800000000002" y="811.75" width="140" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="1382.0800000000002" y="827.75" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">Tag</text>
+<line x1="1312.0800000000002" y1="843.75" x2="1452.0800000000002" y2="843.75" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<rect x="1318.0800000000002" y="847.75" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="1327.3000000000002" y="854.75" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">PK</text>
+<text x="1344.5200000000002" y="854.75" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="1444.0800000000002" y="854.75" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+<rect x="1318.0800000000002" y="869.75" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="1327.3000000000002" y="876.75" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">UK</text>
+<text x="1344.5200000000002" y="876.75" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="1444.0800000000002" y="876.75" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">name</tspan></text>
+<text x="1320.0800000000002" y="898.75" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="1444.0800000000002" y="898.75" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">color</tspan></text>
+<rect x="988.2399999999999" y="422" width="169.2" height="296" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="988.2399999999999" y="422" width="169.2" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="1072.84" y="438" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">Task</text>
+<line x1="988.2399999999999" y1="454" x2="1157.4399999999998" y2="454" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<rect x="994.2399999999999" y="458" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="1003.4599999999999" y="465" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">PK</text>
+<text x="1020.6799999999998" y="465" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="1149.4399999999998" y="465" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+<text x="996.2399999999999" y="487" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="1149.4399999999998" y="487" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">title</tspan></text>
+<text x="996.2399999999999" y="509" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="1149.4399999999998" y="509" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">body</tspan></text>
+<text x="996.2399999999999" y="531" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="1149.4399999999998" y="531" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">slug</tspan></text>
+<text x="996.2399999999999" y="553" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">TaskStatus</tspan></text>
+<text x="1149.4399999999998" y="553" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">status</tspan></text>
+<text x="996.2399999999999" y="575" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">Priority</tspan></text>
+<text x="1149.4399999999998" y="575" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">priority</tspan></text>
+<text x="996.2399999999999" y="597" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">DateTime</tspan></text>
+<text x="1149.4399999999998" y="597" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">dueDate</tspan></text>
+<text x="996.2399999999999" y="619" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">Float</tspan></text>
+<text x="1149.4399999999998" y="619" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">estimatedHours</tspan></text>
+<text x="996.2399999999999" y="641" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">Int</tspan></text>
+<text x="1149.4399999999998" y="641" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">commentCount</tspan></text>
+<rect x="994.2399999999999" y="656" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="1003.4599999999999" y="663" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+<text x="1020.6799999999998" y="663" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="1149.4399999999998" y="663" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">projectId</tspan></text>
+<rect x="994.2399999999999" y="678" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="1003.4599999999999" y="685" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+<text x="1020.6799999999998" y="685" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="1149.4399999999998" y="685" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">assigneeId</tspan></text>
+<rect x="994.2399999999999" y="700" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="1003.4599999999999" y="707" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+<text x="1020.6799999999998" y="707" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="1149.4399999999998" y="707" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">parentId</tspan></text>
+<rect x="298.03999999999996" y="566.5" width="195.6" height="120" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="298.03999999999996" y="566.5" width="195.6" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="395.84" y="582.5" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">Team</text>
+<line x1="298.03999999999996" y1="598.5" x2="493.64" y2="598.5" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<rect x="304.03999999999996" y="602.5" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="313.26" y="609.5" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">PK</text>
+<text x="330.47999999999996" y="609.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="485.64" y="609.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+<text x="306.03999999999996" y="631.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="485.64" y="631.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">name</tspan></text>
+<text x="306.03999999999996" y="653.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="485.64" y="653.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">description</tspan></text>
+<rect x="304.03999999999996" y="668.5" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="313.26" y="675.5" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+<text x="330.47999999999996" y="675.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="485.64" y="675.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">organizationId</tspan></text>
+<rect x="1001.4399999999999" y="172" width="142.8" height="120" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="1001.4399999999999" y="172" width="142.8" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="1072.84" y="188" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">TeamMember</text>
+<line x1="1001.4399999999999" y1="204" x2="1144.24" y2="204" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<rect x="1007.4399999999999" y="208" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="1016.66" y="215" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">PK</text>
+<text x="1033.8799999999999" y="215" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="1136.24" y="215" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+<rect x="1007.4399999999999" y="230" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="1016.66" y="237" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+<text x="1033.8799999999999" y="237" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="1136.24" y="237" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">userId</tspan></text>
+<rect x="1007.4399999999999" y="252" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="1016.66" y="259" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+<text x="1033.8799999999999" y="259" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="1136.24" y="259" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">teamId</tspan></text>
+<text x="1009.4399999999999" y="281" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">Role</tspan></text>
+<text x="1136.24" y="281" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">role</tspan></text>
+<rect x="628.84" y="348" width="195.6" height="186" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="628.84" y="348" width="195.6" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="726.64" y="364" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">User</text>
+<line x1="628.84" y1="380" x2="824.44" y2="380" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<rect x="634.84" y="384" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="644.0600000000001" y="391" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">PK</text>
+<text x="661.28" y="391" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="816.44" y="391" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+<rect x="634.84" y="406" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="644.0600000000001" y="413" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">UK</text>
+<text x="661.28" y="413" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="816.44" y="413" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">email</tspan></text>
+<text x="636.84" y="435" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="816.44" y="435" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">name</tspan></text>
+<text x="636.84" y="457" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="816.44" y="457" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">avatarUrl</tspan></text>
+<text x="636.84" y="479" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">Role</tspan></text>
+<text x="816.44" y="479" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">role</tspan></text>
+<text x="636.84" y="501" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">Int</tspan></text>
+<text x="816.44" y="501" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">taskCount</tspan></text>
+<rect x="634.84" y="516" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="644.0600000000001" y="523" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+<text x="661.28" y="523" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="816.44" y="523" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">organizationId</tspan></text>
+<line x1="184" y1="615.75" x2="184" y2="627.75" stroke="var(--_line)" stroke-width="1" />
+<line x1="188" y1="615.75" x2="188" y2="627.75" stroke="var(--_line)" stroke-width="1" />
+<line x1="624.84" y1="448" x2="612.84" y2="441" stroke="var(--_line)" stroke-width="1" />
+<line x1="624.84" y1="441" x2="612.84" y2="441" stroke="var(--_line)" stroke-width="1" />
+<line x1="624.84" y1="434" x2="612.84" y2="441" stroke="var(--_line)" stroke-width="1" />
+<circle cx="608.84" cy="441" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="184" y1="615.75" x2="184" y2="627.75" stroke="var(--_line)" stroke-width="1" />
+<line x1="188" y1="615.75" x2="188" y2="627.75" stroke="var(--_line)" stroke-width="1" />
+<line x1="294.03999999999996" y1="633.5" x2="282.03999999999996" y2="626.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="294.03999999999996" y1="626.5" x2="282.03999999999996" y2="626.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="294.03999999999996" y1="619.5" x2="282.03999999999996" y2="626.5" stroke="var(--_line)" stroke-width="1" />
+<circle cx="278.03999999999996" cy="626.5" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="184" y1="615.75" x2="184" y2="627.75" stroke="var(--_line)" stroke-width="1" />
+<line x1="188" y1="615.75" x2="188" y2="627.75" stroke="var(--_line)" stroke-width="1" />
+<line x1="719.64" y1="861.75" x2="726.64" y2="849.75" stroke="var(--_line)" stroke-width="1" />
+<line x1="726.64" y1="861.75" x2="726.64" y2="849.75" stroke="var(--_line)" stroke-width="1" />
+<line x1="733.64" y1="861.75" x2="726.64" y2="849.75" stroke="var(--_line)" stroke-width="1" />
+<circle cx="726.64" cy="845.75" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="828.4399999999999" y1="435" x2="828.4399999999999" y2="447" stroke="var(--_line)" stroke-width="1" />
+<line x1="832.4399999999999" y1="435" x2="832.4399999999999" y2="447" stroke="var(--_line)" stroke-width="1" />
+<line x1="1079.84" y1="296" x2="1072.84" y2="308" stroke="var(--_line)" stroke-width="1" />
+<line x1="1072.84" y1="296" x2="1072.84" y2="308" stroke="var(--_line)" stroke-width="1" />
+<line x1="1065.84" y1="296" x2="1072.84" y2="308" stroke="var(--_line)" stroke-width="1" />
+<circle cx="1072.84" cy="312" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="828.4399999999999" y1="435" x2="828.4399999999999" y2="447" stroke="var(--_line)" stroke-width="1" />
+<line x1="832.4399999999999" y1="435" x2="832.4399999999999" y2="447" stroke="var(--_line)" stroke-width="1" />
+<line x1="1065.84" y1="714" x2="1072.84" y2="702" stroke="var(--_line)" stroke-width="1" />
+<line x1="1072.84" y1="714" x2="1072.84" y2="702" stroke="var(--_line)" stroke-width="1" />
+<line x1="1079.84" y1="714" x2="1072.84" y2="702" stroke="var(--_line)" stroke-width="1" />
+<circle cx="1072.84" cy="698" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="828.4399999999999" y1="435" x2="828.4399999999999" y2="447" stroke="var(--_line)" stroke-width="1" />
+<line x1="832.4399999999999" y1="435" x2="832.4399999999999" y2="447" stroke="var(--_line)" stroke-width="1" />
+<line x1="1375.0800000000002" y1="156" x2="1382.0800000000002" y2="144" stroke="var(--_line)" stroke-width="1" />
+<line x1="1382.0800000000002" y1="156" x2="1382.0800000000002" y2="144" stroke="var(--_line)" stroke-width="1" />
+<line x1="1389.0800000000002" y1="156" x2="1382.0800000000002" y2="144" stroke="var(--_line)" stroke-width="1" />
+<circle cx="1382.0800000000002" cy="140" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="828.4399999999999" y1="435" x2="828.4399999999999" y2="447" stroke="var(--_line)" stroke-width="1" />
+<line x1="832.4399999999999" y1="435" x2="832.4399999999999" y2="447" stroke="var(--_line)" stroke-width="1" />
+<line x1="1389.0800000000002" y1="701.5" x2="1382.0800000000002" y2="713.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="1382.0800000000002" y1="701.5" x2="1382.0800000000002" y2="713.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="1375.0800000000002" y1="701.5" x2="1382.0800000000002" y2="713.5" stroke="var(--_line)" stroke-width="1" />
+<circle cx="1382.0800000000002" cy="717.5" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="497.64" y1="620.5" x2="497.64" y2="632.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="501.64" y1="620.5" x2="501.64" y2="632.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="1079.84" y1="176" x2="1072.84" y2="188" stroke="var(--_line)" stroke-width="1" />
+<line x1="1072.84" y1="176" x2="1072.84" y2="188" stroke="var(--_line)" stroke-width="1" />
+<line x1="1065.84" y1="176" x2="1072.84" y2="188" stroke="var(--_line)" stroke-width="1" />
+<circle cx="1072.84" cy="192" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="497.64" y1="620.5" x2="497.64" y2="632.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="501.64" y1="620.5" x2="501.64" y2="632.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="719.64" y1="631.75" x2="726.64" y2="619.75" stroke="var(--_line)" stroke-width="1" />
+<line x1="726.64" y1="631.75" x2="726.64" y2="619.75" stroke="var(--_line)" stroke-width="1" />
+<line x1="733.64" y1="631.75" x2="726.64" y2="619.75" stroke="var(--_line)" stroke-width="1" />
+<circle cx="726.64" cy="615.75" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="828.4399999999999" y1="744.75" x2="828.4399999999999" y2="756.75" stroke="var(--_line)" stroke-width="1" />
+<line x1="832.4399999999999" y1="744.75" x2="832.4399999999999" y2="756.75" stroke="var(--_line)" stroke-width="1" />
+<line x1="1079.84" y1="426" x2="1072.84" y2="438" stroke="var(--_line)" stroke-width="1" />
+<line x1="1072.84" y1="426" x2="1072.84" y2="438" stroke="var(--_line)" stroke-width="1" />
+<line x1="1065.84" y1="426" x2="1072.84" y2="438" stroke="var(--_line)" stroke-width="1" />
+<circle cx="1072.84" cy="442" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="828.4399999999999" y1="744.75" x2="828.4399999999999" y2="756.75" stroke="var(--_line)" stroke-width="1" />
+<line x1="832.4399999999999" y1="744.75" x2="832.4399999999999" y2="756.75" stroke="var(--_line)" stroke-width="1" />
+<line x1="1375.0800000000002" y1="905.75" x2="1382.0800000000002" y2="893.75" stroke="var(--_line)" stroke-width="1" />
+<line x1="1382.0800000000002" y1="905.75" x2="1382.0800000000002" y2="893.75" stroke="var(--_line)" stroke-width="1" />
+<line x1="1389.0800000000002" y1="905.75" x2="1382.0800000000002" y2="893.75" stroke="var(--_line)" stroke-width="1" />
+<circle cx="1382.0800000000002" cy="889.75" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="1161.4399999999998" y1="564" x2="1161.4399999999998" y2="576" stroke="var(--_line)" stroke-width="1" />
+<line x1="1165.4399999999998" y1="564" x2="1165.4399999999998" y2="576" stroke="var(--_line)" stroke-width="1" />
+<line x1="1300.0800000000002" y1="107" x2="1288.0800000000002" y2="100" stroke="var(--_line)" stroke-width="1" />
+<line x1="1300.0800000000002" y1="100" x2="1288.0800000000002" y2="100" stroke="var(--_line)" stroke-width="1" />
+<line x1="1300.0800000000002" y1="93" x2="1288.0800000000002" y2="100" stroke="var(--_line)" stroke-width="1" />
+<circle cx="1284.0800000000002" cy="100" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="1161.4399999999998" y1="564" x2="1161.4399999999998" y2="576" stroke="var(--_line)" stroke-width="1" />
+<line x1="1165.4399999999998" y1="564" x2="1165.4399999999998" y2="576" stroke="var(--_line)" stroke-width="1" />
+<line x1="1375.0800000000002" y1="807.75" x2="1382.0800000000002" y2="795.75" stroke="var(--_line)" stroke-width="1" />
+<line x1="1382.0800000000002" y1="807.75" x2="1382.0800000000002" y2="795.75" stroke="var(--_line)" stroke-width="1" />
+<line x1="1389.0800000000002" y1="807.75" x2="1382.0800000000002" y2="795.75" stroke="var(--_line)" stroke-width="1" />
+<circle cx="1382.0800000000002" cy="791.75" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="1161.4399999999998" y1="564" x2="1161.4399999999998" y2="576" stroke="var(--_line)" stroke-width="1" />
+<line x1="1165.4399999999998" y1="564" x2="1165.4399999999998" y2="576" stroke="var(--_line)" stroke-width="1" />
+<line x1="1389.0800000000002" y1="559.5" x2="1382.0800000000002" y2="571.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="1382.0800000000002" y1="559.5" x2="1382.0800000000002" y2="571.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="1375.0800000000002" y1="559.5" x2="1382.0800000000002" y2="571.5" stroke="var(--_line)" stroke-width="1" />
+<circle cx="1382.0800000000002" cy="575.5" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<rect x="290.02500000000003" y="432.5" width="48.04" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="314.045" y="441" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;users&quot;</text>
+<rect x="215" y="615.625" width="48.04" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="239.02" y="624.125" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;teams&quot;</text>
+<rect x="361.96999999999997" y="794" width="65.2" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="394.57" y="802.5" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;projects&quot;</text>
+<rect x="865.1600000000001" y="315.7000000000001" width="82.36" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="906.34" y="324.2000000000001" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;memberships&quot;</text>
+<rect x="859.44" y="613.3" width="93.8" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="906.34" y="621.8" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;assignedTasks&quot;</text>
+<rect x="930.16" y="120" width="65.2" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="962.76" y="128.5" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;comments&quot;</text>
+<rect x="936.6899999999999" y="753" width="76.64" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="975.01" y="761.5" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;activities&quot;</text>
+<rect x="556.2499999999999" y="193.5" width="59.480000000000004" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="585.9899999999999" y="202" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;members&quot;</text>
+<rect x="582.165" y="618" width="65.2" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="614.765" y="626.5" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;projects&quot;</text>
+<rect x="882.32" y="535.575" width="48.04" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="906.34" y="544.075" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;tasks&quot;</text>
+<rect x="1037.35" y="866.5" width="42.32" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="1058.51" y="875" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;tags&quot;</text>
+<rect x="1198.16" y="326.5" width="65.2" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="1230.76" y="335" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;comments&quot;</text>
+<rect x="1209.6" y="721.375" width="42.32" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="1230.76" y="729.875" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;tags&quot;</text>
+<rect x="1238.69" y="561.5" width="76.64" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="1277.01" y="570" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;activities&quot;</text>
+</svg>

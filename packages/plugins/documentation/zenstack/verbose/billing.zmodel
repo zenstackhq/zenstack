@@ -1,0 +1,102 @@
+import './enums'
+import './mixins'
+import './identity'
+
+/// A subscription linking a workspace to a billing plan.
+///
+/// Each workspace can have at most one active subscription at a time.
+/// When a workspace upgrades or downgrades, the current subscription
+/// is canceled and a new one is created with the updated plan details.
+///
+/// Subscriptions integrate with Stripe via `stripeSubscriptionId`.
+/// The `currentPeriodStart` and `currentPeriodEnd` fields are synced
+/// from the Stripe webhook `invoice.paid` event and define the
+/// window during which the workspace has access to paid features.
+///
+/// Canceled subscriptions retain access until `currentPeriodEnd`.
+/// Past-due subscriptions enter a 7-day grace period before the
+/// system downgrades the workspace to the free tier.
+model Subscription with Timestamps {
+    id                    String             @id @default(cuid())
+    /// Current lifecycle status of the subscription.
+    status                SubscriptionStatus @default(TRIALING)
+    /// Human-readable plan name displayed in the billing UI.
+    planName              String             @length(1, 100) @meta('doc:example', 'Team Pro')
+    /// Billing amount in the smallest currency unit (e.g. cents for USD).
+    /// Null during trial periods.
+    priceAmountCents      Int?
+    /// ISO 4217 currency code for the subscription price.
+    currency              String             @default("usd") @length(3, 3) @lower @meta('doc:example', 'usd')
+    /// How often the subscription renews.
+    billingInterval       BillingInterval    @default(MONTHLY)
+    /// Start of the current billing period. Updated on each renewal.
+    currentPeriodStart    DateTime
+    /// End of the current billing period. Access continues until this date
+    /// even after cancellation.
+    currentPeriodEnd      DateTime
+    /// When the trial period ends. Null if the subscription started
+    /// without a trial.
+    trialEndsAt           DateTime?
+    /// When the subscription was canceled by the user or system.
+    /// Null if the subscription has not been canceled.
+    canceledAt            DateTime?
+    /// Stripe subscription ID for payment integration.
+    /// Used to reconcile webhook events with local records.
+    stripeSubscriptionId  String?            @unique @meta('doc:example', 'sub_1NqOAaLkdIwHu7ixeRlAkP7z')
+    /// Stripe customer ID associated with this workspace's billing account.
+    stripeCustomerId      String?            @meta('doc:example', 'cus_OZnBhPLsNa3kJQ')
+    workspace             Workspace          @relation(fields: [workspaceId], references: [id])
+    workspaceId           String
+    invoices              Invoice[]
+
+    @@allow('read', workspace.members?[userId == auth().id])
+    @@allow('create,update', workspace.members?[role == 'OWNER'])
+    @@deny('delete', status == 'ACTIVE')
+    @@index([workspaceId])
+    @@index([stripeSubscriptionId])
+    @@meta('doc:category', 'Billing')
+    @@meta('doc:since', '2.0')
+}
+
+/// An invoice generated for a subscription billing cycle.
+///
+/// Invoices are created automatically by the billing system when a
+/// subscription renews. They can also be created manually by admins
+/// for one-off charges (e.g. overage fees, professional services).
+///
+/// The `paidAt` timestamp is set when payment is confirmed via the
+/// Stripe `invoice.payment_succeeded` webhook. Invoices without
+/// `paidAt` are considered outstanding.
+model Invoice with Timestamps {
+    id                String       @id @default(cuid())
+    /// Sequential invoice number within the workspace, formatted as
+    /// `INV-YYYY-NNNN` (e.g. `INV-2025-0042`).
+    invoiceNumber     String       @unique @meta('doc:example', 'INV-2025-0042')
+    /// Invoice amount in the smallest currency unit.
+    amountCents       Int
+    /// ISO 4217 currency code matching the subscription currency.
+    currency          String       @default("usd") @length(3, 3) @lower
+    /// When the invoice was fully paid. Null if outstanding or failed.
+    paidAt            DateTime?
+    /// When the invoice payment was last attempted. Used to prevent
+    /// retrying too frequently.
+    lastPaymentAttempt DateTime?
+    /// Number of times payment has been attempted. Capped at 10 retries.
+    paymentAttempts   Int          @default(0)
+    /// Stripe invoice ID for reconciliation.
+    stripeInvoiceId   String?      @unique @meta('doc:example', 'in_1NqOBcLkdIwHu7ixBIGPr4Z3')
+    /// Optional human-readable memo attached to the invoice.
+    memo              String?
+    subscription      Subscription @relation(fields: [subscriptionId], references: [id])
+    subscriptionId    String
+
+    @@allow('read', subscription.workspace.members?[userId == auth().id])
+    @@deny('update', paidAt != null)
+    @@deny('delete', true)
+    @@index([subscriptionId])
+    @@index([invoiceNumber])
+    @@validate(amountCents > 0, "Invoice amount must be positive")
+    @@validate(paymentAttempts >= 0 && paymentAttempts <= 10, "Payment attempts must be between 0 and 10")
+    @@meta('doc:category', 'Billing')
+    @@meta('doc:since', '2.0')
+}
