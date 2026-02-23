@@ -7,11 +7,29 @@ import z from 'zod';
 import { fromError } from 'zod-validation-error/v4';
 import type { ApiHandler, LogConfig, RequestContext, Response } from '../../types';
 import { getProcedureDef, mapProcedureArgs, PROCEDURE_ROUTE_PREFIXES } from '../common/procedures';
-
-const TRANSACTION_ROUTE_PREFIX = '$transaction' as const;
 import { loggerSchema } from '../common/schemas';
 import { processSuperJsonRequestPayload, unmarshalQ } from '../common/utils';
 import { log, registerCustomSerializers } from '../utils';
+
+const TRANSACTION_ROUTE_PREFIX = '$transaction' as const;
+const VALID_OPS = new Set([
+    'create',
+    'createMany',
+    'createManyAndReturn',
+    'upsert',
+    'findFirst',
+    'findUnique',
+    'findMany',
+    'aggregate',
+    'groupBy',
+    'count',
+    'exists',
+    'update',
+    'updateMany',
+    'updateManyAndReturn',
+    'delete',
+    'deleteMany',
+]);
 
 registerCustomSerializers();
 
@@ -77,6 +95,7 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
             return this.handleTransaction({
                 client,
                 method: method.toUpperCase(),
+                type: op,
                 requestBody,
             });
         }
@@ -198,38 +217,27 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
     private async handleTransaction({
         client,
         method,
+        type,
         requestBody,
     }: {
         client: ClientContract<Schema>;
         method: string;
+        type: string;
         requestBody?: unknown;
     }): Promise<Response> {
         if (method !== 'POST') {
             return this.makeBadInputErrorResponse('invalid request method, only POST is supported');
         }
 
+        if (type !== 'sequential') {
+            return this.makeBadInputErrorResponse(`unsupported transaction type: ${type}`);
+        }
+
         if (!requestBody || !Array.isArray(requestBody) || requestBody.length === 0) {
             return this.makeBadInputErrorResponse('request body must be a non-empty array of operations');
         }
 
-        const VALID_OPS = new Set([
-            'create',
-            'createMany',
-            'createManyAndReturn',
-            'upsert',
-            'findFirst',
-            'findUnique',
-            'findMany',
-            'aggregate',
-            'groupBy',
-            'count',
-            'exists',
-            'update',
-            'updateMany',
-            'updateManyAndReturn',
-            'delete',
-            'deleteMany',
-        ]);
+        const processedOps: Array<{ model: string; op: string; args: unknown }> = [];
 
         for (let i = 0; i < requestBody.length; i++) {
             const item = requestBody[i];
@@ -252,16 +260,19 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
             if (itemArgs !== undefined && itemArgs !== null && typeof itemArgs !== 'object') {
                 return this.makeBadInputErrorResponse(`operation at index ${i} has invalid "args" field`);
             }
+
+            const { result: processedArgs, error: argsError } = await this.processRequestPayload(itemArgs ?? {});
+            if (argsError) {
+                return this.makeBadInputErrorResponse(`operation at index ${i}: ${argsError}`);
+            }
+            processedOps.push({ model: lowerCaseFirst(itemModel), op: itemOp, args: processedArgs });
         }
 
-        const promises = (requestBody as any[]).map((item) => {
-            const model = lowerCaseFirst(item.model as string);
-            const op = item.op as string;
-            const args = item.args ?? {};
-            return (client as any)[model][op](args);
-        });
-
         try {
+            const promises = processedOps.map(({ model, op, args }) => {
+                return (client as any)[model][op](args);
+            });
+
             log(this.options.log, 'debug', () => `handling "$transaction" request with ${promises.length} operations`);
 
             const clientResult = await client.$transaction(promises as any);

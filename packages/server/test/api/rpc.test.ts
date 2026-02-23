@@ -950,6 +950,55 @@ procedure echoOverview(o: Overview): Overview
             expect(r.error.message).toMatch(/validation error/i);
         });
 
+        it('deserializes SuperJSON-encoded args per operation', async () => {
+            const handleRequest = makeHandler();
+
+            // Clean up
+            await rawClient.post.deleteMany();
+            await rawClient.user.deleteMany();
+
+            // Serialize args containing a Date so they need SuperJSON deserialization
+            const publishedAt = new Date('2025-01-15T00:00:00.000Z');
+            const serialized = SuperJSON.serialize({
+                data: { id: 'txuser3', email: 'txuser3@abc.com' },
+            });
+            const serializedPost = SuperJSON.serialize({
+                data: { id: 'txpost3', title: 'Dated Post', authorId: 'txuser3', publishedAt },
+            });
+
+            const r = await handleRequest({
+                method: 'post',
+                path: '/$transaction/sequential',
+                requestBody: [
+                    {
+                        model: 'User',
+                        op: 'create',
+                        args: { ...(serialized.json as any), meta: { serialization: serialized.meta } },
+                    },
+                    {
+                        model: 'Post',
+                        op: 'create',
+                        args: { ...(serializedPost.json as any), meta: { serialization: serializedPost.meta } },
+                    },
+                ],
+                client: rawClient,
+            });
+
+            expect(r.status).toBe(200);
+            expect(r.data).toHaveLength(2);
+            expect(r.data[0]).toMatchObject({ id: 'txuser3' });
+            expect(r.data[1]).toMatchObject({ id: 'txpost3' });
+
+            // Verify the Date was stored correctly
+            const post = await (rawClient as any).post.findUnique({ where: { id: 'txpost3' } });
+            expect(post?.publishedAt instanceof Date).toBe(true);
+            expect((post?.publishedAt as Date)?.toISOString()).toBe(publishedAt.toISOString());
+
+            // Clean up
+            await rawClient.post.deleteMany();
+            await rawClient.user.deleteMany();
+        });
+
         it('rolls back all operations when one fails', async () => {
             const handleRequest = makeHandler();
 
