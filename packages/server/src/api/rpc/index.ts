@@ -1,5 +1,5 @@
 import { lowerCaseFirst, safeJSONStringify } from '@zenstackhq/common-helpers';
-import { ORMError, ORMErrorReason, type ClientContract } from '@zenstackhq/orm';
+import { CoreCrudOperations, ORMError, ORMErrorReason, type ClientContract } from '@zenstackhq/orm';
 import type { SchemaDef } from '@zenstackhq/orm/schema';
 import SuperJSON from 'superjson';
 import { match } from 'ts-pattern';
@@ -12,24 +12,7 @@ import { processSuperJsonRequestPayload, unmarshalQ } from '../common/utils';
 import { log, registerCustomSerializers } from '../utils';
 
 const TRANSACTION_ROUTE_PREFIX = '$transaction' as const;
-const VALID_OPS = new Set([
-    'create',
-    'createMany',
-    'createManyAndReturn',
-    'upsert',
-    'findFirst',
-    'findUnique',
-    'findMany',
-    'aggregate',
-    'groupBy',
-    'count',
-    'exists',
-    'update',
-    'updateMany',
-    'updateManyAndReturn',
-    'delete',
-    'deleteMany',
-]);
+const VALID_OPS = new Set(CoreCrudOperations as unknown as string[]);
 
 registerCustomSerializers();
 
