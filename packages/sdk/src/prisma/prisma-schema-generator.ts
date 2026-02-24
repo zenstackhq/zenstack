@@ -176,10 +176,23 @@ export class PrismaSchemaGenerator {
 
     private generateDefaultGenerator(prisma: PrismaModel) {
         const gen = prisma.addGenerator('client', [{ name: 'provider', text: '"prisma-client-js"' }]);
+
+        const previewFeatures: string[] = [];
+
         const dataSource = this.zmodel.declarations.find(isDataSource);
         if (dataSource?.fields.some((f) => f.name === 'extensions')) {
-            // enable "postgresqlExtensions" preview feature
-            gen.fields.push({ name: 'previewFeatures', text: '["postgresqlExtensions"]' });
+            previewFeatures.push('postgresqlExtensions');
+        }
+
+        if (this.zmodel.declarations.some((d) => isDataModel(d) && d.isView)) {
+            previewFeatures.push('views');
+        }
+
+        if (previewFeatures.length > 0) {
+            gen.fields.push({
+                name: 'previewFeatures',
+                text: JSON.stringify(previewFeatures),
+            });
         }
     }
 
