@@ -1215,7 +1215,7 @@ export type FindArgs<
               : {})
     : {}) &
     (AllowFilter extends true ? FilterArgs<Schema, Model, Options> : {}) &
-    SelectIncludeOmit<Schema, Model, Collection, Options>;
+    SelectIncludeOmit<Schema, Model, true, Options>;
 
 export type FindManyArgs<
     Schema extends SchemaDef,
