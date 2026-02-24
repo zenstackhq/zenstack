@@ -216,10 +216,7 @@ export class ZodSchemaFactory<
             } else {
                 fields['take'] = this.makeTakeSchema().optional();
             }
-            fields['orderBy'] = this.orArray(
-                this.makeOrderBySchema(model, true, false, options),
-                true,
-            ).optional();
+            fields['orderBy'] = this.orArray(this.makeOrderBySchema(model, true, false, options), true).optional();
             fields['cursor'] = this.makeCursorSchema(model, options).optional();
             fields['distinct'] = this.makeDistinctSchema(model).optional();
         }
@@ -228,6 +225,7 @@ export class ZodSchemaFactory<
         let result: ZodType = this.mergePluginArgsSchema(baseSchema, operation);
         result = this.refineForSelectIncludeMutuallyExclusive(result);
         result = this.refineForSelectOmitMutuallyExclusive(result);
+        result = this.refineForSelectHasTruthyField(result);
 
         if (!unique) {
             result = result.optional();
@@ -988,6 +986,7 @@ export class ZodSchemaFactory<
 
         objSchema = this.refineForSelectIncludeMutuallyExclusive(objSchema);
         objSchema = this.refineForSelectOmitMutuallyExclusive(objSchema);
+        objSchema = this.refineForSelectHasTruthyField(objSchema);
 
         return z.union([z.boolean(), objSchema]);
     }
@@ -1039,7 +1038,12 @@ export class ZodSchemaFactory<
     }
 
     @cache()
-    private makeOrderBySchema(model: string, withRelation: boolean, WithAggregation: boolean, options?: CreateSchemaOptions) {
+    private makeOrderBySchema(
+        model: string,
+        withRelation: boolean,
+        WithAggregation: boolean,
+        options?: CreateSchemaOptions,
+    ) {
         const modelDef = requireModel(this.schema, model);
         const fields: Record<string, ZodType> = {};
         const sort = z.union([z.literal('asc'), z.literal('desc')]);
@@ -1050,7 +1054,12 @@ export class ZodSchemaFactory<
                 // relations
                 if (withRelation && this.shouldIncludeRelations(options)) {
                     fields[field] = z.lazy(() => {
-                        let relationOrderBy = this.makeOrderBySchema(fieldDef.type, withRelation, WithAggregation, nextOpts);
+                        let relationOrderBy = this.makeOrderBySchema(
+                            fieldDef.type,
+                            withRelation,
+                            WithAggregation,
+                            nextOpts,
+                        );
                         if (fieldDef.array) {
                             relationOrderBy = relationOrderBy.extend({
                                 _count: sort,
@@ -1119,6 +1128,7 @@ export class ZodSchemaFactory<
         let schema: ZodType = this.mergePluginArgsSchema(baseSchema, 'create');
         schema = this.refineForSelectIncludeMutuallyExclusive(schema);
         schema = this.refineForSelectOmitMutuallyExclusive(schema);
+        schema = this.refineForSelectHasTruthyField(schema);
         return schema as ZodType<CreateArgs<Schema, Model, Options, ExtQueryArgs>>;
     }
 
@@ -1144,9 +1154,9 @@ export class ZodSchemaFactory<
             omit: this.makeOmitSchema(model).optional().nullable(),
         });
         result = this.mergePluginArgsSchema(result, 'createManyAndReturn');
-        return this.refineForSelectOmitMutuallyExclusive(result).optional() as ZodType<
-            CreateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs>
-        >;
+        return this.refineForSelectHasTruthyField(
+            this.refineForSelectOmitMutuallyExclusive(result),
+        ).optional() as ZodType<CreateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs>>;
     }
 
     @cache()
@@ -1315,12 +1325,7 @@ export class ZodSchemaFactory<
 
             connect: this.makeConnectDataSchema(fieldType, array, options).optional(),
 
-            connectOrCreate: this.makeConnectOrCreateDataSchema(
-                fieldType,
-                array,
-                withoutFields,
-                options,
-            ).optional(),
+            connectOrCreate: this.makeConnectOrCreateDataSchema(fieldType, array, withoutFields, options).optional(),
         };
 
         if (array) {
@@ -1379,12 +1384,7 @@ export class ZodSchemaFactory<
                     true,
                 ).optional();
 
-                fields['deleteMany'] = this.makeDeleteRelationDataSchema(
-                    fieldType,
-                    true,
-                    false,
-                    options,
-                ).optional();
+                fields['deleteMany'] = this.makeDeleteRelationDataSchema(fieldType, true, false, options).optional();
             }
         }
 
@@ -1393,18 +1393,12 @@ export class ZodSchemaFactory<
 
     @cache()
     private makeSetDataSchema(model: string, canBeArray: boolean, options?: CreateSchemaOptions) {
-        return this.orArray(
-            this.makeWhereSchema(model, true, false, false, options),
-            canBeArray,
-        );
+        return this.orArray(this.makeWhereSchema(model, true, false, false, options), canBeArray);
     }
 
     @cache()
     private makeConnectDataSchema(model: string, canBeArray: boolean, options?: CreateSchemaOptions) {
-        return this.orArray(
-            this.makeWhereSchema(model, true, false, false, options),
-            canBeArray,
-        );
+        return this.orArray(this.makeWhereSchema(model, true, false, false, options), canBeArray);
     }
 
     @cache()
@@ -1476,6 +1470,7 @@ export class ZodSchemaFactory<
         let schema: ZodType = this.mergePluginArgsSchema(baseSchema, 'update');
         schema = this.refineForSelectIncludeMutuallyExclusive(schema);
         schema = this.refineForSelectOmitMutuallyExclusive(schema);
+        schema = this.refineForSelectHasTruthyField(schema);
         return schema as ZodType<UpdateArgs<Schema, Model, Options, ExtQueryArgs>>;
     }
 
@@ -1506,6 +1501,7 @@ export class ZodSchemaFactory<
             omit: this.makeOmitSchema(model).optional().nullable(),
         });
         schema = this.refineForSelectOmitMutuallyExclusive(schema);
+        schema = this.refineForSelectHasTruthyField(schema);
         return schema as ZodType<UpdateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs>>;
     }
 
@@ -1525,6 +1521,7 @@ export class ZodSchemaFactory<
         let schema: ZodType = this.mergePluginArgsSchema(baseSchema, 'upsert');
         schema = this.refineForSelectIncludeMutuallyExclusive(schema);
         schema = this.refineForSelectOmitMutuallyExclusive(schema);
+        schema = this.refineForSelectHasTruthyField(schema);
         return schema as ZodType<UpsertArgs<Schema, Model, Options, ExtQueryArgs>>;
     }
 
@@ -1666,6 +1663,7 @@ export class ZodSchemaFactory<
         let schema: ZodType = this.mergePluginArgsSchema(baseSchema, 'delete');
         schema = this.refineForSelectIncludeMutuallyExclusive(schema);
         schema = this.refineForSelectOmitMutuallyExclusive(schema);
+        schema = this.refineForSelectHasTruthyField(schema);
         return schema as ZodType<DeleteArgs<Schema, Model, Options, ExtQueryArgs>>;
     }
 
@@ -2028,6 +2026,16 @@ export class ZodSchemaFactory<
             (value: any) => !(value['select'] && value['omit']),
             '"select" and "omit" cannot be used together',
         );
+    }
+
+    private refineForSelectHasTruthyField(schema: ZodType) {
+        return schema.refine((value: any) => {
+            const select = value['select'];
+            if (!select || typeof select !== 'object') {
+                return true;
+            }
+            return Object.values(select).some((v) => v);
+        }, '"select" must have at least one truthy value');
     }
 
     private nullableIf(schema: ZodType, nullable: boolean) {
