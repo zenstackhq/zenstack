@@ -240,7 +240,7 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
             if (!this.isValidModel(client, lowerCaseFirst(itemModel))) {
                 return this.makeBadInputErrorResponse(`operation at index ${i} has unknown model: ${itemModel}`);
             }
-            if (itemArgs !== undefined && itemArgs !== null && typeof itemArgs !== 'object') {
+            if (itemArgs !== undefined && itemArgs !== null && (typeof itemArgs !== 'object' || Array.isArray(itemArgs))) {
                 return this.makeBadInputErrorResponse(`operation at index ${i} has invalid "args" field`);
             }
 
