@@ -12,6 +12,5 @@ export default defineConfig({
             provider: 'v8',
             exclude: ['tests/**', 'samples/**', 'packages/**/tests/**'],
         },
-        printConsoleStack: false,
     },
 });
