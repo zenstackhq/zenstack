@@ -1,0 +1,200 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1201.3 707.75" width="1201.3" height="707.75" style="--bg:#FFFFFF;--fg:#27272A;background:var(--bg)">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap');
+  text { font-family: 'Inter', system-ui, sans-serif; }
+  .mono { font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace; }
+  svg {
+    /* Derived from --bg and --fg (overridable via --line, --accent, etc.) */
+    --_text:          var(--fg);
+    --_text-sec:      var(--muted, color-mix(in srgb, var(--fg) 60%, var(--bg)));
+    --_text-muted:    var(--muted, color-mix(in srgb, var(--fg) 40%, var(--bg)));
+    --_text-faint:    color-mix(in srgb, var(--fg) 25%, var(--bg));
+    --_line:          var(--line, color-mix(in srgb, var(--fg) 30%, var(--bg)));
+    --_arrow:         var(--accent, color-mix(in srgb, var(--fg) 50%, var(--bg)));
+    --_node-fill:     var(--surface, color-mix(in srgb, var(--fg) 3%, var(--bg)));
+    --_node-stroke:   var(--border, color-mix(in srgb, var(--fg) 20%, var(--bg)));
+    --_group-fill:    var(--bg);
+    --_group-hdr:     color-mix(in srgb, var(--fg) 5%, var(--bg));
+    --_inner-stroke:  color-mix(in srgb, var(--fg) 12%, var(--bg));
+    --_key-badge:     color-mix(in srgb, var(--fg) 10%, var(--bg));
+  }
+</style>
+<defs>
+</defs>
+<polyline points="483.8,187 594.3,187 594.3,67 725.4499999999999,67" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="483.8,187 594.3,187 594.3,541.75 795.4499999999999,541.75 795.4499999999999,545" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="483.8,187 594.3,187 594.3,151.75 1091.3,151.75 1091.3,479.5" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="483.8,187 594.3,187 594.3,222.25 725.4499999999999,222.25" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="483.8,187 594.3,187 594.3,326.25 704.8,326.25" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="180,457 261.9,457 261.9,95.5 795.4499999999999,95.5 795.4499999999999,94" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="180,457 261.9,457 261.9,430.25 343.8,430.25" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="180,457 261.9,457 261.9,570.25 795.4499999999999,570.25 795.4499999999999,545" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="180,457 261.9,457 261.9,640.75 343.8,640.75" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="180,457 261.9,457 261.9,492.25 1091.3,492.25 1091.3,479.5" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="483.8,640.75 795.4499999999999,640.75 795.4499999999999,599" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="865.4499999999999,572 1091.3,572 1091.3,533.5" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="1021.3,506.5 1021.3,506.5 1021.3,569.75 1091.3,569.75 1091.3,577 1161.3,577 1161.3,562.5 1091.3,562.5 1091.3,533.5" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="483.8,430.25 725.4499999999999,430.25" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<rect x="343.8" y="160" width="140" height="54" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="343.8" y="160" width="140" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="413.8" y="176" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">User</text>
+<line x1="343.8" y1="192" x2="483.8" y2="192" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<text x="413.8" y="203" text-anchor="middle" dy="0.35em" font-size="11" fill="var(--_text-faint)" font-style="italic">(no attributes)</text>
+<rect x="725.4499999999999" y="40" width="140" height="54" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="725.4499999999999" y="40" width="140" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="795.4499999999999" y="56" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">WorkspaceMember</text>
+<line x1="725.4499999999999" y1="72" x2="865.4499999999999" y2="72" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<text x="795.4499999999999" y="83" text-anchor="middle" dy="0.35em" font-size="11" fill="var(--_text-faint)" font-style="italic">(no attributes)</text>
+<rect x="725.4499999999999" y="545" width="140" height="54" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="725.4499999999999" y="545" width="140" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="795.4499999999999" y="561" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">Article</text>
+<line x1="725.4499999999999" y1="577" x2="865.4499999999999" y2="577" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<text x="795.4499999999999" y="588" text-anchor="middle" dy="0.35em" font-size="11" fill="var(--_text-faint)" font-style="italic">(no attributes)</text>
+<rect x="1021.3" y="479.5" width="140" height="54" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="1021.3" y="479.5" width="140" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="1091.3" y="495.5" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">Comment</text>
+<line x1="1021.3" y1="511.5" x2="1161.3" y2="511.5" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<text x="1091.3" y="522.5" text-anchor="middle" dy="0.35em" font-size="11" fill="var(--_text-faint)" font-style="italic">(no attributes)</text>
+<rect x="725.4499999999999" y="195.25" width="140" height="54" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="725.4499999999999" y="195.25" width="140" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="795.4499999999999" y="211.25" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">Notification</text>
+<line x1="725.4499999999999" y1="227.25" x2="865.4499999999999" y2="227.25" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<text x="795.4499999999999" y="238.25" text-anchor="middle" dy="0.35em" font-size="11" fill="var(--_text-faint)" font-style="italic">(no attributes)</text>
+<rect x="704.8" y="299.25" width="181.3" height="54" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="704.8" y="299.25" width="181.3" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="795.4499999999999" y="315.25" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">NotificationPreference</text>
+<line x1="704.8" y1="331.25" x2="886.0999999999999" y2="331.25" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<text x="795.4499999999999" y="342.25" text-anchor="middle" dy="0.35em" font-size="11" fill="var(--_text-faint)" font-style="italic">(no attributes)</text>
+<rect x="40" y="430" width="140" height="54" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="40" y="430" width="140" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="110" y="446" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">Workspace</text>
+<line x1="40" y1="462" x2="180" y2="462" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<text x="110" y="473" text-anchor="middle" dy="0.35em" font-size="11" fill="var(--_text-faint)" font-style="italic">(no attributes)</text>
+<rect x="343.8" y="403.25" width="140" height="54" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="343.8" y="403.25" width="140" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="413.8" y="419.25" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">Subscription</text>
+<line x1="343.8" y1="435.25" x2="483.8" y2="435.25" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<text x="413.8" y="446.25" text-anchor="middle" dy="0.35em" font-size="11" fill="var(--_text-faint)" font-style="italic">(no attributes)</text>
+<rect x="343.8" y="613.75" width="140" height="54" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="343.8" y="613.75" width="140" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="413.8" y="629.75" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">Category</text>
+<line x1="343.8" y1="645.75" x2="483.8" y2="645.75" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<text x="413.8" y="656.75" text-anchor="middle" dy="0.35em" font-size="11" fill="var(--_text-faint)" font-style="italic">(no attributes)</text>
+<rect x="725.4499999999999" y="403.25" width="140" height="54" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="725.4499999999999" y="403.25" width="140" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="795.4499999999999" y="419.25" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">Invoice</text>
+<line x1="725.4499999999999" y1="435.25" x2="865.4499999999999" y2="435.25" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<text x="795.4499999999999" y="446.25" text-anchor="middle" dy="0.35em" font-size="11" fill="var(--_text-faint)" font-style="italic">(no attributes)</text>
+<line x1="487.8" y1="181" x2="487.8" y2="193" stroke="var(--_line)" stroke-width="1" />
+<line x1="491.8" y1="181" x2="491.8" y2="193" stroke="var(--_line)" stroke-width="1" />
+<line x1="721.4499999999999" y1="74" x2="709.4499999999999" y2="67" stroke="var(--_line)" stroke-width="1" />
+<line x1="721.4499999999999" y1="67" x2="709.4499999999999" y2="67" stroke="var(--_line)" stroke-width="1" />
+<line x1="721.4499999999999" y1="60" x2="709.4499999999999" y2="67" stroke="var(--_line)" stroke-width="1" />
+<circle cx="705.4499999999999" cy="67" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="487.8" y1="181" x2="487.8" y2="193" stroke="var(--_line)" stroke-width="1" />
+<line x1="491.8" y1="181" x2="491.8" y2="193" stroke="var(--_line)" stroke-width="1" />
+<line x1="788.4499999999999" y1="541" x2="795.4499999999999" y2="529" stroke="var(--_line)" stroke-width="1" />
+<line x1="795.4499999999999" y1="541" x2="795.4499999999999" y2="529" stroke="var(--_line)" stroke-width="1" />
+<line x1="802.4499999999999" y1="541" x2="795.4499999999999" y2="529" stroke="var(--_line)" stroke-width="1" />
+<circle cx="795.4499999999999" cy="525" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="487.8" y1="181" x2="487.8" y2="193" stroke="var(--_line)" stroke-width="1" />
+<line x1="491.8" y1="181" x2="491.8" y2="193" stroke="var(--_line)" stroke-width="1" />
+<line x1="1084.3" y1="475.5" x2="1091.3" y2="463.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="1091.3" y1="475.5" x2="1091.3" y2="463.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="1098.3" y1="475.5" x2="1091.3" y2="463.5" stroke="var(--_line)" stroke-width="1" />
+<circle cx="1091.3" cy="459.5" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="487.8" y1="181" x2="487.8" y2="193" stroke="var(--_line)" stroke-width="1" />
+<line x1="491.8" y1="181" x2="491.8" y2="193" stroke="var(--_line)" stroke-width="1" />
+<line x1="721.4499999999999" y1="229.25" x2="709.4499999999999" y2="222.25" stroke="var(--_line)" stroke-width="1" />
+<line x1="721.4499999999999" y1="222.25" x2="709.4499999999999" y2="222.25" stroke="var(--_line)" stroke-width="1" />
+<line x1="721.4499999999999" y1="215.25" x2="709.4499999999999" y2="222.25" stroke="var(--_line)" stroke-width="1" />
+<circle cx="705.4499999999999" cy="222.25" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="487.8" y1="181" x2="487.8" y2="193" stroke="var(--_line)" stroke-width="1" />
+<line x1="491.8" y1="181" x2="491.8" y2="193" stroke="var(--_line)" stroke-width="1" />
+<line x1="700.8" y1="333.25" x2="688.8" y2="326.25" stroke="var(--_line)" stroke-width="1" />
+<line x1="700.8" y1="326.25" x2="688.8" y2="326.25" stroke="var(--_line)" stroke-width="1" />
+<line x1="700.8" y1="319.25" x2="688.8" y2="326.25" stroke="var(--_line)" stroke-width="1" />
+<circle cx="684.8" cy="326.25" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="184" y1="451" x2="184" y2="463" stroke="var(--_line)" stroke-width="1" />
+<line x1="188" y1="451" x2="188" y2="463" stroke="var(--_line)" stroke-width="1" />
+<line x1="802.4499999999999" y1="98" x2="795.4499999999999" y2="110" stroke="var(--_line)" stroke-width="1" />
+<line x1="795.4499999999999" y1="98" x2="795.4499999999999" y2="110" stroke="var(--_line)" stroke-width="1" />
+<line x1="788.4499999999999" y1="98" x2="795.4499999999999" y2="110" stroke="var(--_line)" stroke-width="1" />
+<circle cx="795.4499999999999" cy="114" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="184" y1="451" x2="184" y2="463" stroke="var(--_line)" stroke-width="1" />
+<line x1="188" y1="451" x2="188" y2="463" stroke="var(--_line)" stroke-width="1" />
+<line x1="339.8" y1="437.25" x2="327.8" y2="430.25" stroke="var(--_line)" stroke-width="1" />
+<line x1="339.8" y1="430.25" x2="327.8" y2="430.25" stroke="var(--_line)" stroke-width="1" />
+<line x1="339.8" y1="423.25" x2="327.8" y2="430.25" stroke="var(--_line)" stroke-width="1" />
+<circle cx="323.8" cy="430.25" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="184" y1="451" x2="184" y2="463" stroke="var(--_line)" stroke-width="1" />
+<line x1="188" y1="451" x2="188" y2="463" stroke="var(--_line)" stroke-width="1" />
+<line x1="802.4499999999999" y1="549" x2="795.4499999999999" y2="561" stroke="var(--_line)" stroke-width="1" />
+<line x1="795.4499999999999" y1="549" x2="795.4499999999999" y2="561" stroke="var(--_line)" stroke-width="1" />
+<line x1="788.4499999999999" y1="549" x2="795.4499999999999" y2="561" stroke="var(--_line)" stroke-width="1" />
+<circle cx="795.4499999999999" cy="565" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="184" y1="451" x2="184" y2="463" stroke="var(--_line)" stroke-width="1" />
+<line x1="188" y1="451" x2="188" y2="463" stroke="var(--_line)" stroke-width="1" />
+<line x1="339.8" y1="647.75" x2="327.8" y2="640.75" stroke="var(--_line)" stroke-width="1" />
+<line x1="339.8" y1="640.75" x2="327.8" y2="640.75" stroke="var(--_line)" stroke-width="1" />
+<line x1="339.8" y1="633.75" x2="327.8" y2="640.75" stroke="var(--_line)" stroke-width="1" />
+<circle cx="323.8" cy="640.75" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="184" y1="451" x2="184" y2="463" stroke="var(--_line)" stroke-width="1" />
+<line x1="188" y1="451" x2="188" y2="463" stroke="var(--_line)" stroke-width="1" />
+<line x1="1098.3" y1="483.5" x2="1091.3" y2="495.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="1091.3" y1="483.5" x2="1091.3" y2="495.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="1084.3" y1="483.5" x2="1091.3" y2="495.5" stroke="var(--_line)" stroke-width="1" />
+<circle cx="1091.3" cy="499.5" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="487.8" y1="634.75" x2="487.8" y2="646.75" stroke="var(--_line)" stroke-width="1" />
+<line x1="491.8" y1="634.75" x2="491.8" y2="646.75" stroke="var(--_line)" stroke-width="1" />
+<line x1="802.4499999999999" y1="603" x2="795.4499999999999" y2="615" stroke="var(--_line)" stroke-width="1" />
+<line x1="795.4499999999999" y1="603" x2="795.4499999999999" y2="615" stroke="var(--_line)" stroke-width="1" />
+<line x1="788.4499999999999" y1="603" x2="795.4499999999999" y2="615" stroke="var(--_line)" stroke-width="1" />
+<circle cx="795.4499999999999" cy="619" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="869.4499999999999" y1="566" x2="869.4499999999999" y2="578" stroke="var(--_line)" stroke-width="1" />
+<line x1="873.4499999999999" y1="566" x2="873.4499999999999" y2="578" stroke="var(--_line)" stroke-width="1" />
+<line x1="1098.3" y1="537.5" x2="1091.3" y2="549.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="1091.3" y1="537.5" x2="1091.3" y2="549.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="1084.3" y1="537.5" x2="1091.3" y2="549.5" stroke="var(--_line)" stroke-width="1" />
+<circle cx="1091.3" cy="553.5" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+
+<line x1="1098.3" y1="537.5" x2="1091.3" y2="549.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="1091.3" y1="537.5" x2="1091.3" y2="549.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="1084.3" y1="537.5" x2="1091.3" y2="549.5" stroke="var(--_line)" stroke-width="1" />
+<circle cx="1091.3" cy="553.5" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="487.8" y1="424.25" x2="487.8" y2="436.25" stroke="var(--_line)" stroke-width="1" />
+<line x1="491.8" y1="424.25" x2="491.8" y2="436.25" stroke="var(--_line)" stroke-width="1" />
+<line x1="721.4499999999999" y1="437.25" x2="709.4499999999999" y2="430.25" stroke="var(--_line)" stroke-width="1" />
+<line x1="721.4499999999999" y1="430.25" x2="709.4499999999999" y2="430.25" stroke="var(--_line)" stroke-width="1" />
+<line x1="721.4499999999999" y1="423.25" x2="709.4499999999999" y2="430.25" stroke="var(--_line)" stroke-width="1" />
+<circle cx="705.4499999999999" cy="430.25" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<rect x="553.12" y="108.17499999999998" width="82.36" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="594.3" y="116.67499999999998" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;memberships&quot;</text>
+<rect x="561.6999999999999" y="402.825" width="65.2" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="594.3" y="411.325" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;articles&quot;</text>
+<rect x="901.1999999999999" y="143.25" width="65.2" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="933.8" y="151.75" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;comments&quot;</text>
+<rect x="547.4" y="206.45000000000002" width="93.8" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="594.3" y="214.95000000000002" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;notifications&quot;</text>
+<rect x="518.8" y="248.125" width="151" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="594.3" y="256.625" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;notificationPreferences&quot;</text>
+<rect x="277.98499999999996" y="87" width="59.480000000000004" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="307.72499999999997" y="95.5" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;members&quot;</text>
+<rect x="214.99999999999997" y="435.12499999999994" width="93.8" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="261.9" y="443.62499999999994" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;subscriptions&quot;</text>
+<rect x="411.12499999999994" y="561.75" width="65.2" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="443.72499999999997" y="570.25" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;articles&quot;</text>
+<rect x="223.57999999999998" y="540.375" width="76.64" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="261.9" y="548.875" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;categories&quot;</text>
+<rect x="591.8" y="483.75" width="65.2" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="624.4" y="492.25" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;comments&quot;</text>
+<rect x="627.9" y="632.25" width="65.2" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="660.5" y="640.75" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;articles&quot;</text>
+<rect x="965.025" y="563.5" width="65.2" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="997.625" y="572" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;comments&quot;</text>
+<rect x="1083.06" y="568.5" width="59.480000000000004" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="1112.8" y="577" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;replies&quot;</text>
+<rect x="572.025" y="421.75" width="65.2" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="604.625" y="430.25" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;invoices&quot;</text>
+</svg>

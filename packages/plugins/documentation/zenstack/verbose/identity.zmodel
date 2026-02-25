@@ -1,0 +1,130 @@
+import './enums'
+import './mixins'
+import './content'
+import './billing'
+import './notifications'
+
+/// A registered user account in the platform.
+///
+/// Users authenticate via email/password or SSO. Each user belongs
+/// to one or more workspaces through `WorkspaceMember` join records.
+/// A user's `primaryEmail` is used for login and transactional emails;
+/// additional email aliases can be added but are not modeled here.
+///
+/// The `displayName` is shown throughout the UI (comments, bylines,
+/// mentions). The `handle` is the URL-safe unique identifier used in
+/// `@mention` syntax and profile URLs.
+model User with Timestamps, SoftDeletable {
+    id              String            @id @default(cuid())
+    /// Primary email address used for authentication and notifications.
+    /// Must be verified before the account is fully activated.
+    primaryEmail    String            @unique @email @meta('doc:example', 'alex.chen@example.com')
+    /// User-facing display name shown in the UI. Can contain spaces,
+    /// emoji, and Unicode characters.
+    displayName     String            @length(1, 120) @meta('doc:example', 'Alex Chen')
+    /// URL-safe unique handle for mentions and profile URLs.
+    /// Lowercase alphanumeric and hyphens only. Immutable after first set.
+    handle          String            @unique @length(3, 30) @regex('^[a-z0-9][a-z0-9-]*[a-z0-9]$') @lower @meta('doc:example', 'alex-chen')
+    /// URL to the user's profile avatar. Served via CDN with automatic
+    /// resizing. Falls back to Gravatar if not set.
+    avatarUrl       String?           @url
+    /// IANA timezone identifier for date/time localization.
+    timezone        String            @default("UTC") @meta('doc:example', 'America/New_York')
+    /// ISO 639-1 language code for UI localization.
+    locale          String            @default("en") @length(2, 10)
+    /// Whether the user has completed email verification.
+    emailVerified   Boolean           @default(false)
+    /// When the user last logged in. Null if never logged in.
+    lastLoginAt     DateTime?
+    memberships     WorkspaceMember[]
+    articles        Article[]
+    comments        Comment[]
+    notifications              Notification[]
+    notificationPreferences    NotificationPreference[]
+
+    @@allow('read', true)
+    @@allow('update', this == auth())
+    @@deny('update', deletedAt != null)
+    @@deny('delete', true)
+    @@index([primaryEmail])
+    @@index([handle])
+    @@meta('doc:category', 'Identity')
+    @@meta('doc:since', '1.0')
+}
+
+/// A collaborative workspace that groups users, content, and billing.
+///
+/// Workspaces are the top-level tenant boundary. All content, billing,
+/// and permissions are scoped to a workspace. A user can be a member of
+/// multiple workspaces, each with a different role.
+///
+/// The workspace `slug` is used in URLs (`app.example.com/:slug`)
+/// and must be globally unique. Once set, it can only be changed by
+/// an OWNER — and the old slug is reserved for 30 days to prevent
+/// broken links.
+model Workspace with Timestamps {
+    id              String            @id @default(cuid())
+    /// Human-readable workspace name. Displayed in the sidebar,
+    /// page titles, and email subjects.
+    name            String            @length(2, 100) @meta('doc:example', 'Acme Engineering')
+    /// URL-safe workspace identifier used in routing.
+    /// Lowercase alphanumeric and hyphens only. Globally unique.
+    slug            String            @unique @length(3, 40) @regex('^[a-z0-9][a-z0-9-]*[a-z0-9]$') @lower @meta('doc:example', 'acme-eng')
+    /// Optional longer description shown on the workspace settings page.
+    description     String?
+    /// URL to the workspace logo. Displayed in the sidebar and
+    /// public-facing pages. Recommended size: 256x256px.
+    logoUrl         String?           @url
+    /// Maximum number of members allowed. Enforced at the application
+    /// layer. Null means unlimited (enterprise plans only).
+    memberLimit     Int?
+    /// Whether the workspace is on a paid plan with active billing.
+    /// Free-tier workspaces have reduced limits on storage and members.
+    isPaid          Boolean           @default(false)
+    members         WorkspaceMember[]
+    subscriptions   Subscription[]
+    articles        Article[]
+    categories      Category[]
+    comments        Comment[]
+
+    @@allow('read', members?[user == auth()])
+    @@allow('update', members?[role == 'OWNER' || role == 'ADMIN'])
+    @@deny('delete', subscriptions?[status == 'ACTIVE'])
+    @@index([slug])
+    @@meta('doc:category', 'Identity')
+    @@meta('doc:since', '1.0')
+}
+
+/// Represents a user's membership in a workspace with an assigned role.
+///
+/// This is the join table between User and Workspace. A user can have
+/// at most one membership per workspace. The `role` determines what
+/// the user can see and do within that workspace.
+///
+/// When a user is invited, a membership record is created with
+/// `joinedAt` set to null. It is populated when the user accepts
+/// the invitation.
+model WorkspaceMember with Timestamps {
+    id            String        @id @default(cuid())
+    /// The role assigned to this member within the workspace.
+    /// Determines permissions for content, settings, and billing.
+    role          WorkspaceRole @default(MEMBER)
+    /// When the member formally accepted the invitation.
+    /// Null indicates a pending invitation.
+    joinedAt      DateTime?
+    /// Optional title or job function shown on the member's
+    /// workspace profile (e.g. "Senior Engineer", "Content Lead").
+    title         String?       @length(0, 100) @meta('doc:example', 'Senior Engineer')
+    user          User          @relation(fields: [userId], references: [id])
+    userId        String
+    workspace     Workspace     @relation(fields: [workspaceId], references: [id])
+    workspaceId   String
+
+    @@unique([userId, workspaceId])
+    @@allow('read', workspace.members?[user == auth()])
+    @@allow('create', workspace.members?[role == 'OWNER' || role == 'ADMIN'])
+    @@allow('update', workspace.members?[role == 'OWNER' || role == 'ADMIN'])
+    @@deny('delete', role == 'OWNER')
+    @@meta('doc:category', 'Identity')
+    @@meta('doc:since', '1.0')
+}

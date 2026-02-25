@@ -1,0 +1,135 @@
+erDiagram
+    Article {
+        String id PK
+        String title
+        String slug
+        String body
+        String excerpt
+        ArticleStatus status
+        DateTime publishedAt
+        Int viewCount
+        Int readingTimeMin
+        Int commentCount
+        String metaTitle
+        String metaDescription
+        String tags
+        Boolean featured
+        String authorId FK
+        String workspaceId FK
+        String categoryId FK
+    }
+    AuditLog {
+        String id PK
+        String action
+        String description
+        Json payload
+        String ipAddress
+        String userAgent
+        String actorId
+        String resourceId
+        String resourceType
+    }
+    Category {
+        String id PK
+        String name
+        String slug
+        Int sortOrder
+        String description
+        String workspaceId FK
+    }
+    Comment {
+        String id PK
+        String body
+        String parentId FK
+        String authorId FK
+        String articleId FK
+        String workspaceId FK
+    }
+    Invoice {
+        String id PK
+        String invoiceNumber UK
+        Int amountCents
+        String currency
+        DateTime paidAt
+        DateTime lastPaymentAttempt
+        Int paymentAttempts
+        String stripeInvoiceId UK
+        String memo
+        String subscriptionId FK
+    }
+    Notification {
+        String id PK
+        String type
+        String title
+        String body
+        NotificationChannel channel
+        NotificationSeverity severity
+        Boolean read
+        String actionUrl
+        DateTime readAt
+        String recipientId FK
+    }
+    NotificationPreference {
+        String id PK
+        String type
+        NotificationChannel channel
+        Boolean enabled
+        String userId FK
+    }
+    Subscription {
+        String id PK
+        SubscriptionStatus status
+        String planName
+        Int priceAmountCents
+        String currency
+        BillingInterval billingInterval
+        DateTime currentPeriodStart
+        DateTime currentPeriodEnd
+        DateTime trialEndsAt
+        DateTime canceledAt
+        String stripeSubscriptionId UK
+        String stripeCustomerId
+        String workspaceId FK
+    }
+    User {
+        String id PK
+        String primaryEmail UK
+        String displayName
+        String handle UK
+        String avatarUrl
+        String timezone
+        String locale
+        Boolean emailVerified
+        DateTime lastLoginAt
+    }
+    Workspace {
+        String id PK
+        String name
+        String slug UK
+        String description
+        String logoUrl
+        Int memberLimit
+        Boolean isPaid
+    }
+    WorkspaceMember {
+        String id PK
+        WorkspaceRole role
+        DateTime joinedAt
+        String title
+        String userId FK
+        String workspaceId FK
+    }
+    User ||--o{ WorkspaceMember : "memberships"
+    User ||--o{ Article : "articles"
+    User ||--o{ Comment : "comments"
+    User ||--o{ Notification : "notifications"
+    User ||--o{ NotificationPreference : "notificationPreferences"
+    Workspace ||--o{ WorkspaceMember : "members"
+    Workspace ||--o{ Subscription : "subscriptions"
+    Workspace ||--o{ Article : "articles"
+    Workspace ||--o{ Category : "categories"
+    Workspace ||--o{ Comment : "comments"
+    Category ||--o{ Article : "articles"
+    Article ||--o{ Comment : "comments"
+    Comment }o--|| Comment : "parent"
+    Subscription ||--o{ Invoice : "invoices"

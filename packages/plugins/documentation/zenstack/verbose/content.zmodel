@@ -1,0 +1,222 @@
+import './enums'
+import './mixins'
+import './identity'
+
+/// A content category for organizing articles within a workspace.
+///
+/// Categories form a flat (non-hierarchical) taxonomy. Each workspace
+/// can define its own categories. An article can belong to at most one
+/// category. Categories without articles are hidden from the public
+/// navigation but remain visible in the admin panel.
+model Category with Timestamps {
+    id            String    @id @default(cuid())
+    /// Display name for the category, shown in navigation and filters.
+    name          String    @length(1, 80) @meta('doc:example', 'Engineering Blog')
+    /// URL-safe identifier used in routes (`/blog/:categorySlug/:articleSlug`).
+    slug          String    @length(2, 60) @regex('^[a-z0-9][a-z0-9-]*[a-z0-9]$') @lower @meta('doc:example', 'engineering-blog')
+    /// Ordering weight for display. Lower values appear first.
+    /// Categories with equal weight are sorted alphabetically.
+    sortOrder     Int       @default(0)
+    /// Optional description shown at the top of the category listing page.
+    description   String?
+    workspace     Workspace @relation(fields: [workspaceId], references: [id])
+    workspaceId   String
+    articles      Article[]
+
+    @@unique([slug, workspaceId])
+    @@allow('read', true)
+    @@allow('create,update,delete', workspace.members?[role == 'OWNER' || role == 'ADMIN'])
+    @@index([workspaceId])
+    @@meta('doc:category', 'Content')
+    @@meta('doc:since', '1.0')
+}
+
+/// A long-form content article published within a workspace.
+///
+/// Articles are the primary content unit. They support a full editorial
+/// workflow: authors create drafts, submit them for review, and editors
+/// publish or request revisions.
+///
+/// The `body` field stores Markdown content. The `excerpt` is auto-generated
+/// from the first 280 characters of the body if not explicitly set.
+///
+/// SEO metadata (`metaTitle`, `metaDescription`) is optional but
+/// recommended for published articles. If omitted, the `title` and
+/// `excerpt` are used as fallbacks by the frontend renderer.
+///
+/// Revision history is not modeled explicitly — the application layer
+/// stores diffs in an append-only audit log (see `AuditLog`).
+model Article with Timestamps, SoftDeletable {
+    id              String        @id @default(cuid())
+    /// Article headline displayed in listings and the article page.
+    title           String        @length(1, 200) @meta('doc:example', 'Migrating to ZenStack v3: A Practical Guide')
+    /// URL-safe article slug, unique within its workspace.
+    slug            String        @length(2, 120) @regex('^[a-z0-9][a-z0-9-]*[a-z0-9]$') @lower @meta('doc:example', 'migrating-to-zenstack-v3')
+    /// Full article body in Markdown format.
+    body            String
+    /// Short summary shown in listings and social media previews.
+    /// Auto-generated from `body` if not explicitly provided.
+    excerpt         String?       @length(0, 500)
+    /// Current editorial status. Controls visibility and edit permissions.
+    status          ArticleStatus @default(DRAFT)
+    /// When the article was first published. Set automatically on the
+    /// DRAFT → PUBLISHED transition and never updated thereafter.
+    publishedAt     DateTime?
+    /// Number of times the article has been viewed. Incremented by
+    /// the analytics middleware, not by the ORM.
+    viewCount       Int           @default(0)
+    /// Estimated reading time in minutes, computed from word count.
+    readingTimeMin  Int           @computed
+    /// Number of comments on this article.
+    commentCount    Int           @computed
+    /// SEO: custom page title for search engine results. Falls back
+    /// to `title` if not set.
+    metaTitle       String?       @length(0, 70)
+    /// SEO: meta description for search engine results. Falls back
+    /// to `excerpt` if not set.
+    metaDescription String?       @length(0, 160)
+    /// Comma-separated list of tags for filtering and discovery.
+    tags            String?       @meta('doc:example', 'migration,zenstack,orm')
+    /// Whether the article is featured on the workspace homepage.
+    featured        Boolean       @default(false)
+    author          User          @relation(fields: [authorId], references: [id])
+    authorId        String
+    workspace       Workspace     @relation(fields: [workspaceId], references: [id])
+    workspaceId     String
+    category        Category?     @relation(fields: [categoryId], references: [id])
+    categoryId      String?
+    comments        Comment[]
+
+    @@unique([slug, workspaceId])
+    @@allow('read', status == 'PUBLISHED' || workspace.members?[user == auth()])
+    @@allow('create', workspace.members?[user == auth()])
+    @@allow('update', author == auth() || workspace.members?[role == 'ADMIN' || role == 'OWNER'])
+    @@deny('update', status == 'IN_REVIEW' && author == auth())
+    @@deny('delete', status == 'PUBLISHED')
+    @@validate(publishedAt == null || status == 'PUBLISHED' || status == 'ARCHIVED', "publishedAt can only be set for published or archived articles")
+    @@index([workspaceId, status])
+    @@index([authorId])
+    @@index([publishedAt])
+    @@meta('doc:category', 'Content')
+    @@meta('doc:since', '1.0')
+}
+
+/// A threaded comment on an article.
+///
+/// Comments support one level of nesting via `parentId`. Top-level
+/// comments have `parentId` set to null. Replies are displayed
+/// in chronological order beneath their parent.
+///
+/// Soft-deletion is used so that reply threads remain coherent
+/// even after a parent comment is removed. Deleted comments display
+/// as "[deleted]" in the UI.
+model Comment with Timestamps, SoftDeletable {
+    id          String    @id @default(cuid())
+    /// Comment body in Markdown format. Supports inline formatting
+    /// and `@mention` syntax for notifying other users.
+    body        String    @length(1, 5000)
+    /// Parent comment for threaded replies. Null for top-level comments.
+    parent      Comment?  @relation("Replies", fields: [parentId], references: [id])
+    parentId    String?
+    /// Replies to this comment.
+    replies     Comment[] @relation("Replies")
+    author      User      @relation(fields: [authorId], references: [id])
+    authorId    String
+    article     Article   @relation(fields: [articleId], references: [id])
+    articleId   String
+    workspace   Workspace @relation(fields: [workspaceId], references: [id])
+    workspaceId String
+
+    @@allow('read', article.status == 'PUBLISHED' || workspace.members?[user == auth()])
+    @@allow('create', workspace.members?[user == auth()])
+    @@allow('update', author == auth() && deletedAt == null)
+    @@deny('delete', true)
+    @@index([articleId])
+    @@index([authorId])
+    @@meta('doc:category', 'Content')
+    @@meta('doc:since', '1.0')
+}
+
+/// A record in the append-only audit log for compliance and debugging.
+///
+/// Every significant state change in the system generates an audit log
+/// entry. Entries are immutable — they cannot be updated or deleted,
+/// even by owners. The log is retained for 7 years per compliance
+/// requirements.
+///
+/// The `payload` field stores a JSON snapshot of the changed fields
+/// (before/after values). The `ipAddress` and `userAgent` fields are
+/// captured for security forensics.
+model AuditLog with Timestamps {
+    id          String   @id @default(cuid())
+    /// Machine-readable action identifier (e.g. `article.published`,
+    /// `member.invited`, `subscription.canceled`).
+    action      String   @length(1, 100) @meta('doc:example', 'article.published')
+    /// Human-readable description of what changed.
+    description String?
+    /// JSON payload containing before/after field values.
+    payload     Json?
+    /// IP address of the client that initiated the action.
+    ipAddress   String?  @meta('doc:example', '203.0.113.42')
+    /// User-Agent header from the originating request.
+    userAgent   String?
+    /// ID of the user who performed the action. Null for system-initiated
+    /// events (e.g. scheduled jobs, webhook handlers).
+    actorId     String?
+    /// Fully qualified resource identifier (e.g. `article:clx9abc123`).
+    resourceId  String?  @meta('doc:example', 'article:clx9abc123def')
+    /// Resource type for filtering (e.g. `article`, `subscription`, `member`).
+    resourceType String? @meta('doc:example', 'article')
+
+    @@allow('read', true)
+    @@deny('create,update,delete', true)
+    @@index([action])
+    @@index([resourceType, resourceId])
+    @@index([actorId])
+    @@meta('doc:category', 'Audit')
+    @@meta('doc:since', '1.0')
+}
+
+// ─── Views ──────────────────────────────────────────────
+
+/// Aggregated article metrics for the workspace analytics dashboard.
+///
+/// Backed by a SQL view that joins Article, Comment, and User.
+/// Refreshed on each query — not materialized. For high-traffic
+/// workspaces, consider caching at the application layer.
+view ArticleAnalytics {
+    articleId     String
+    /// Title of the article.
+    title         String
+    /// Current editorial status.
+    status        String
+    /// Display name of the author.
+    authorName    String
+    /// Total number of views.
+    viewCount     Int
+    /// Total number of comments.
+    commentCount  Int
+    /// When the article was published, or null if unpublished.
+    publishedAt   DateTime?
+    /// Days since publication. Null for unpublished articles.
+    daysSincePublished Int?
+}
+
+/// Per-member activity summary for workspace admin dashboards.
+///
+/// Shows each member's contribution metrics: articles written,
+/// comments posted, and last activity timestamp. Useful for
+/// identifying inactive members and top contributors.
+view MemberActivity {
+    userId          String
+    /// Display name of the member.
+    displayName     String
+    /// The member's role in the workspace.
+    role            String
+    /// Total articles authored by this member.
+    articleCount    Int
+    /// Total comments posted by this member.
+    commentCount    Int
+    /// When the member last created or updated content.
+    lastActiveAt    DateTime?
+}

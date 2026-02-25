@@ -1,0 +1,91 @@
+/// Defines the access level of a user within a workspace.
+///
+/// Roles follow a strict hierarchy: OWNER > ADMIN > MEMBER > VIEWER.
+/// Higher roles inherit all permissions of lower roles. The OWNER role
+/// cannot be assigned — it is granted automatically to the workspace creator.
+enum WorkspaceRole {
+    /// Full control over workspace settings, billing, and member management.
+    /// Automatically assigned to the workspace creator. Cannot be revoked.
+    OWNER
+    /// Can manage members, integrations, and most workspace settings.
+    /// Cannot modify billing or transfer ownership.
+    ADMIN
+    /// Standard access to workspace resources. Can create and edit
+    /// their own content, comment on others' content, and participate
+    /// in workflows.
+    MEMBER
+    /// Read-only access. Can view content and download exports
+    /// but cannot create, edit, or comment.
+    VIEWER
+}
+
+/// Billing interval for subscription plans.
+///
+/// All plans offer both monthly and annual billing. Annual billing
+/// provides a ~17% discount compared to monthly. Enterprise plans
+/// use custom invoicing and are not tied to a standard interval.
+enum BillingInterval {
+    /// Billed on the same day each month.
+    MONTHLY
+    /// Billed once per year. Includes two months free vs. monthly.
+    ANNUAL
+}
+
+/// Current status of a subscription lifecycle.
+///
+/// Subscriptions follow this state machine:
+/// TRIALING → ACTIVE → (PAST_DUE → ACTIVE | CANCELED) → CANCELED
+/// Canceled subscriptions remain accessible until the period end date.
+enum SubscriptionStatus {
+    /// Free trial period. Full feature access, no payment method required.
+    TRIALING
+    /// Paid and active. All plan features available.
+    ACTIVE
+    /// Payment failed. A 7-day grace period allows retry before suspension.
+    PAST_DUE
+    /// Terminated by user or system. Read-only access until period end.
+    CANCELED
+}
+
+/// Lifecycle status of a published article.
+///
+/// Content follows a linear publishing workflow:
+/// DRAFT → IN_REVIEW → PUBLISHED → ARCHIVED
+/// Articles can return from ARCHIVED to DRAFT for re-publishing.
+enum ArticleStatus {
+    /// Initial state. Only visible to the author and workspace admins.
+    DRAFT
+    /// Submitted for editorial review. Locked from further edits by the author.
+    IN_REVIEW
+    /// Live and publicly accessible (subject to workspace visibility settings).
+    PUBLISHED
+    /// Removed from public listings but still accessible via direct URL.
+    /// Can be moved back to DRAFT for revision.
+    ARCHIVED
+}
+
+/// Delivery channel for user notifications.
+///
+/// Users can configure per-channel preferences for each notification type.
+/// EMAIL and PUSH are opt-in; IN_APP is always enabled and cannot be disabled.
+enum NotificationChannel {
+    /// Displayed in the notification center within the application.
+    IN_APP
+    /// Sent to the user's primary email address.
+    EMAIL
+    /// Delivered via browser or mobile push notification.
+    PUSH
+}
+
+/// Severity level of a notification.
+///
+/// Determines visual treatment and default delivery behavior.
+/// CRITICAL notifications bypass "Do Not Disturb" settings.
+enum NotificationSeverity {
+    /// Informational. No action required.
+    INFO
+    /// Requires attention but is not urgent.
+    WARNING
+    /// Requires immediate action. Bypasses DND settings.
+    CRITICAL
+}

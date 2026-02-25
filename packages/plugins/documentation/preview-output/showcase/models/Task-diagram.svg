@@ -1,0 +1,211 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 558.44 1259" width="558.44" height="1259" style="--bg:#FFFFFF;--fg:#27272A;background:var(--bg)">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap');
+  text { font-family: 'Inter', system-ui, sans-serif; }
+  .mono { font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace; }
+  svg {
+    /* Derived from --bg and --fg (overridable via --line, --accent, etc.) */
+    --_text:          var(--fg);
+    --_text-sec:      var(--muted, color-mix(in srgb, var(--fg) 60%, var(--bg)));
+    --_text-muted:    var(--muted, color-mix(in srgb, var(--fg) 40%, var(--bg)));
+    --_text-faint:    color-mix(in srgb, var(--fg) 25%, var(--bg));
+    --_line:          var(--line, color-mix(in srgb, var(--fg) 30%, var(--bg)));
+    --_arrow:         var(--accent, color-mix(in srgb, var(--fg) 50%, var(--bg)));
+    --_node-fill:     var(--surface, color-mix(in srgb, var(--fg) 3%, var(--bg)));
+    --_node-stroke:   var(--border, color-mix(in srgb, var(--fg) 20%, var(--bg)));
+    --_group-fill:    var(--bg);
+    --_group-hdr:     color-mix(in srgb, var(--fg) 5%, var(--bg));
+    --_inner-stroke:  color-mix(in srgb, var(--fg) 12%, var(--bg));
+    --_key-badge:     color-mix(in srgb, var(--fg) 10%, var(--bg));
+  }
+</style>
+<defs>
+</defs>
+<polyline points="215.79999999999998,320 295.72,320 295.72,207.5 369.04,207.5" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="46.599999999999994,320 46.60000000000001,320 46.60000000000001,636.25 131.2,636.25 131.2,643.5 215.8,643.5 215.8,629 131.2,629 131.2,600" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="215.79999999999998,320 295.72,320 295.72,432.5 369.04,432.5" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<polyline points="215.79999999999998,320 295.72,320 295.72,613.5 373.74,613.5" fill="none" stroke="var(--_line)" stroke-width="0.75" />
+<rect x="46.599999999999994" y="40" width="169.2" height="560" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="46.599999999999994" y="40" width="169.2" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="131.2" y="56" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">Task</text>
+<line x1="46.599999999999994" y1="72" x2="215.79999999999998" y2="72" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<text x="54.599999999999994" y="83" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">DateTime</tspan></text>
+<text x="207.79999999999998" y="83" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">createdAt</tspan></text>
+<text x="54.599999999999994" y="105" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">DateTime</tspan></text>
+<text x="207.79999999999998" y="105" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">updatedAt</tspan></text>
+<rect x="52.599999999999994" y="120" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="61.81999999999999" y="127" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">PK</text>
+<text x="79.03999999999999" y="127" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="207.79999999999998" y="127" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+<text x="54.599999999999994" y="149" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="207.79999999999998" y="149" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">title</tspan></text>
+<text x="54.599999999999994" y="171" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="207.79999999999998" y="171" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">body</tspan></text>
+<text x="54.599999999999994" y="193" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="207.79999999999998" y="193" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">slug</tspan></text>
+<text x="54.599999999999994" y="215" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">TaskStatus</tspan></text>
+<text x="207.79999999999998" y="215" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">status</tspan></text>
+<text x="54.599999999999994" y="237" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">Priority</tspan></text>
+<text x="207.79999999999998" y="237" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">priority</tspan></text>
+<text x="54.599999999999994" y="259" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">DateTime</tspan></text>
+<text x="207.79999999999998" y="259" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">dueDate</tspan></text>
+<text x="54.599999999999994" y="281" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">Float</tspan></text>
+<text x="207.79999999999998" y="281" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">estimatedHours</tspan></text>
+<text x="54.599999999999994" y="303" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">Int</tspan></text>
+<text x="207.79999999999998" y="303" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">commentCount</tspan></text>
+<rect x="52.599999999999994" y="318" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="61.81999999999999" y="325" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+<text x="79.03999999999999" y="325" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="207.79999999999998" y="325" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">projectId</tspan></text>
+<rect x="52.599999999999994" y="340" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="61.81999999999999" y="347" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+<text x="79.03999999999999" y="347" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="207.79999999999998" y="347" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">assigneeId</tspan></text>
+<rect x="52.599999999999994" y="362" width="18.439999999999998" height="14" rx="2" ry="2" fill="var(--_key-badge)" />
+<text x="61.81999999999999" y="369" text-anchor="middle" dy="0.35em" font-size="9" font-weight="600" fill="var(--_text-sec)">FK</text>
+<text x="79.03999999999999" y="369" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="207.79999999999998" y="369" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">parentId</tspan></text>
+<text x="54.599999999999994" y="391" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">DateTime</tspan></text>
+<text x="207.79999999999998" y="391" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">createdAt</tspan></text>
+<text x="54.599999999999994" y="413" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">DateTime</tspan></text>
+<text x="207.79999999999998" y="413" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">updatedAt</tspan></text>
+<text x="54.599999999999994" y="435" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="207.79999999999998" y="435" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+<text x="54.599999999999994" y="457" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="207.79999999999998" y="457" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">title</tspan></text>
+<text x="54.599999999999994" y="479" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="207.79999999999998" y="479" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">body</tspan></text>
+<text x="54.599999999999994" y="501" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="207.79999999999998" y="501" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">slug</tspan></text>
+<text x="54.599999999999994" y="523" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">TaskStatus</tspan></text>
+<text x="207.79999999999998" y="523" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">status</tspan></text>
+<text x="54.599999999999994" y="545" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">Priority</tspan></text>
+<text x="207.79999999999998" y="545" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">priority</tspan></text>
+<text x="54.599999999999994" y="567" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">DateTime</tspan></text>
+<text x="207.79999999999998" y="567" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">dueDate</tspan></text>
+<text x="54.599999999999994" y="589" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">Float</tspan></text>
+<text x="207.79999999999998" y="589" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">estimatedHours</tspan></text>
+<rect x="369.04" y="114.5" width="149.39999999999998" height="186" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="369.04" y="114.5" width="149.39999999999998" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="443.74" y="130.5" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">Activity</text>
+<line x1="369.04" y1="146.5" x2="518.44" y2="146.5" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<text x="377.04" y="157.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">DateTime</tspan></text>
+<text x="510.44000000000005" y="157.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">createdAt</tspan></text>
+<text x="377.04" y="179.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">DateTime</tspan></text>
+<text x="510.44000000000005" y="179.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">updatedAt</tspan></text>
+<text x="377.04" y="201.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="510.44000000000005" y="201.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+<text x="377.04" y="223.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="510.44000000000005" y="223.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">action</tspan></text>
+<text x="377.04" y="245.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="510.44000000000005" y="245.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">detail</tspan></text>
+<text x="377.04" y="267.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="510.44000000000005" y="267.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">userId</tspan></text>
+<text x="377.04" y="289.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="510.44000000000005" y="289.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">taskId</tspan></text>
+<rect x="46.599999999999994" y="687" width="169.2" height="230" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="46.599999999999994" y="687" width="169.2" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="131.2" y="703" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">User</text>
+<line x1="46.599999999999994" y1="719" x2="215.79999999999998" y2="719" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<text x="54.599999999999994" y="730" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">DateTime</tspan></text>
+<text x="207.79999999999998" y="730" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">createdAt</tspan></text>
+<text x="54.599999999999994" y="752" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">DateTime</tspan></text>
+<text x="207.79999999999998" y="752" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">updatedAt</tspan></text>
+<text x="54.599999999999994" y="774" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="207.79999999999998" y="774" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+<text x="54.599999999999994" y="796" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="207.79999999999998" y="796" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">email</tspan></text>
+<text x="54.599999999999994" y="818" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="207.79999999999998" y="818" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">name</tspan></text>
+<text x="54.599999999999994" y="840" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="207.79999999999998" y="840" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">avatarUrl</tspan></text>
+<text x="54.599999999999994" y="862" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">Role</tspan></text>
+<text x="207.79999999999998" y="862" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">role</tspan></text>
+<text x="54.599999999999994" y="884" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">Int</tspan></text>
+<text x="207.79999999999998" y="884" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">taskCount</tspan></text>
+<text x="54.599999999999994" y="906" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="207.79999999999998" y="906" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">organizationId</tspan></text>
+<rect x="369.04" y="350.5" width="149.39999999999998" height="164" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="369.04" y="350.5" width="149.39999999999998" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="443.74" y="366.5" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">Comment</text>
+<line x1="369.04" y1="382.5" x2="518.44" y2="382.5" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<text x="377.04" y="393.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">DateTime</tspan></text>
+<text x="510.44000000000005" y="393.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">createdAt</tspan></text>
+<text x="377.04" y="415.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">DateTime</tspan></text>
+<text x="510.44000000000005" y="415.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">updatedAt</tspan></text>
+<text x="377.04" y="437.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="510.44000000000005" y="437.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+<text x="377.04" y="459.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="510.44000000000005" y="459.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">body</tspan></text>
+<text x="377.04" y="481.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="510.44000000000005" y="481.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">taskId</tspan></text>
+<text x="377.04" y="503.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="510.44000000000005" y="503.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">authorId</tspan></text>
+<rect x="39.999999999999986" y="967" width="182.4" height="252" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="39.999999999999986" y="967" width="182.4" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="131.2" y="983" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">Project</text>
+<line x1="39.999999999999986" y1="999" x2="222.39999999999998" y2="999" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<text x="47.999999999999986" y="1010" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">DateTime</tspan></text>
+<text x="214.39999999999998" y="1010" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">createdAt</tspan></text>
+<text x="47.999999999999986" y="1032" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">DateTime</tspan></text>
+<text x="214.39999999999998" y="1032" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">updatedAt</tspan></text>
+<text x="47.999999999999986" y="1054" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="214.39999999999998" y="1054" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+<text x="47.999999999999986" y="1076" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="214.39999999999998" y="1076" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">name</tspan></text>
+<text x="47.999999999999986" y="1098" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="214.39999999999998" y="1098" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">description</tspan></text>
+<text x="47.999999999999986" y="1120" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">Boolean</tspan></text>
+<text x="214.39999999999998" y="1120" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">archived</tspan></text>
+<text x="47.999999999999986" y="1142" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">Int</tspan></text>
+<text x="214.39999999999998" y="1142" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">taskCount</tspan></text>
+<text x="47.999999999999986" y="1164" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">Float</tspan></text>
+<text x="214.39999999999998" y="1164" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">completionRate</tspan></text>
+<text x="47.999999999999986" y="1186" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">Boolean</tspan></text>
+<text x="214.39999999999998" y="1186" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">hasOverdueTasks</tspan></text>
+<text x="47.999999999999986" y="1208" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="214.39999999999998" y="1208" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">organizationId</tspan></text>
+<rect x="373.74" y="564.5" width="140" height="98" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+<rect x="373.74" y="564.5" width="140" height="32" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+<text x="443.74" y="580.5" text-anchor="middle" dy="0.35em" font-size="13" font-weight="700" fill="var(--_text)">Tag</text>
+<line x1="373.74" y1="596.5" x2="513.74" y2="596.5" stroke="var(--_node-stroke)" stroke-width="0.75" />
+<text x="381.74" y="607.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="505.74" y="607.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">id</tspan></text>
+<text x="381.74" y="629.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="505.74" y="629.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">name</tspan></text>
+<text x="381.74" y="651.5" class="mono" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-muted)">String</tspan></text>
+<text x="505.74" y="651.5" class="mono" text-anchor="end" dy="0.35em" font-size="11" font-weight="400"><tspan fill="var(--_text-sec)">color</tspan></text>
+<line x1="219.79999999999998" y1="314" x2="219.79999999999998" y2="326" stroke="var(--_line)" stroke-width="1" />
+<line x1="223.79999999999998" y1="314" x2="223.79999999999998" y2="326" stroke="var(--_line)" stroke-width="1" />
+<line x1="365.04" y1="214.5" x2="353.04" y2="207.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="365.04" y1="207.5" x2="353.04" y2="207.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="365.04" y1="200.5" x2="353.04" y2="207.5" stroke="var(--_line)" stroke-width="1" />
+<circle cx="349.04" cy="207.5" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="50.599999999999994" y1="314" x2="50.599999999999994" y2="326" stroke="var(--_line)" stroke-width="1" />
+<line x1="54.599999999999994" y1="314" x2="54.599999999999994" y2="326" stroke="var(--_line)" stroke-width="1" />
+<line x1="138.2" y1="604" x2="131.2" y2="616" stroke="var(--_line)" stroke-width="1" />
+<line x1="131.2" y1="604" x2="131.2" y2="616" stroke="var(--_line)" stroke-width="1" />
+<line x1="124.19999999999999" y1="604" x2="131.2" y2="616" stroke="var(--_line)" stroke-width="1" />
+<circle cx="131.2" cy="620" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="219.79999999999998" y1="314" x2="219.79999999999998" y2="326" stroke="var(--_line)" stroke-width="1" />
+<line x1="223.79999999999998" y1="314" x2="223.79999999999998" y2="326" stroke="var(--_line)" stroke-width="1" />
+<line x1="365.04" y1="439.5" x2="353.04" y2="432.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="365.04" y1="432.5" x2="353.04" y2="432.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="365.04" y1="425.5" x2="353.04" y2="432.5" stroke="var(--_line)" stroke-width="1" />
+<circle cx="349.04" cy="432.5" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<line x1="219.79999999999998" y1="314" x2="219.79999999999998" y2="326" stroke="var(--_line)" stroke-width="1" />
+<line x1="223.79999999999998" y1="314" x2="223.79999999999998" y2="326" stroke="var(--_line)" stroke-width="1" />
+<line x1="369.74" y1="620.5" x2="357.74" y2="613.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="369.74" y1="613.5" x2="357.74" y2="613.5" stroke="var(--_line)" stroke-width="1" />
+<line x1="369.74" y1="606.5" x2="357.74" y2="613.5" stroke="var(--_line)" stroke-width="1" />
+<circle cx="353.74" cy="613.5" r="4" fill="var(--bg)" stroke="var(--_line)" stroke-width="1" />
+<rect x="257.40000000000003" y="258.55000000000007" width="76.64" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="295.72" y="267.05000000000007" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;activities&quot;</text>
+<rect x="14.000000000000007" y="621.9" width="65.2" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="46.60000000000001" y="630.4" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;children&quot;</text>
+<rect x="263.12" y="364.44999999999993" width="65.2" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="295.72" y="372.94999999999993" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;comments&quot;</text>
+<rect x="274.56" y="457.29999999999995" width="42.32" height="17" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="0.5" />
+<text x="295.72" y="465.79999999999995" text-anchor="middle" dy="0.35em" font-size="11" font-weight="400" fill="var(--_text-muted)">&quot;tags&quot;</text>
+</svg>

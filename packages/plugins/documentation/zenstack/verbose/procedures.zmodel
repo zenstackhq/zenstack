@@ -1,0 +1,94 @@
+import './enums'
+import './identity'
+import './content'
+import './billing'
+
+/// Invite a new member to a workspace.
+///
+/// Sends an invitation email to the specified address. If the user
+/// already has an account, the invitation is linked immediately.
+/// Otherwise, a pending membership is created and fulfilled when
+/// the user signs up.
+///
+/// Only workspace OWNERs and ADMINs can invite new members.
+/// The invited user's role cannot exceed the inviter's role
+/// (e.g. an ADMIN cannot invite an OWNER).
+mutation procedure inviteMember(
+    workspaceId: String,
+    email: String,
+    role: WorkspaceRole?
+): WorkspaceMember
+
+/// Publish an article, transitioning it from DRAFT to PUBLISHED.
+///
+/// Sets `publishedAt` to the current timestamp and makes the
+/// article visible to all readers. The article must be in DRAFT
+/// or IN_REVIEW status — already-published articles cannot be
+/// re-published (use `unpublishArticle` first).
+///
+/// Triggers notifications to all workspace members who have
+/// subscribed to the article's category.
+mutation procedure publishArticle(
+    articleId: String
+): Article
+
+/// Unpublish a live article, moving it back to DRAFT status.
+///
+/// The article becomes invisible to public readers but retains
+/// all its content, comments, and metadata. The `publishedAt`
+/// field is preserved for historical reference.
+mutation procedure unpublishArticle(
+    articleId: String
+): Article
+
+/// Cancel a workspace subscription.
+///
+/// The workspace retains access to paid features until
+/// `currentPeriodEnd`. After that date, the workspace is
+/// downgraded to the free tier automatically.
+///
+/// Cancellation sends a Stripe API call to stop future renewals
+/// and records the `canceledAt` timestamp locally.
+mutation procedure cancelSubscription(
+    subscriptionId: String
+): Subscription
+
+/// Retrieve workspace analytics including article counts,
+/// total views, and member activity metrics.
+///
+/// Returns aggregated statistics computed from the underlying
+/// views. Results are cached for 5 minutes to reduce database load.
+procedure getWorkspaceAnalytics(
+    workspaceId: String
+): WorkspaceAnalytics
+
+/// Search articles within a workspace by title and body content.
+///
+/// Performs a case-insensitive full-text search across the `title`
+/// and `body` fields of published articles. Results are ordered
+/// by relevance score (title matches ranked higher than body matches).
+///
+/// Supports pagination via `offset` and `limit`. Maximum `limit` is 100.
+procedure searchArticles(
+    workspaceId: String,
+    query: String,
+    offset: Int?,
+    limit: Int?
+): Article[]
+
+// ─── Custom Types ───────────────────────────────────────
+
+/// Aggregated workspace-level analytics returned by `getWorkspaceAnalytics`.
+///
+/// This type is not persisted — it is computed on demand from
+/// the underlying Article, Comment, and WorkspaceMember tables.
+type WorkspaceAnalytics {
+    /// Total number of articles in the workspace (all statuses).
+    totalArticles     Int
+    /// Number of currently published articles.
+    publishedArticles Int
+    /// Sum of `viewCount` across all published articles.
+    totalViews        Int
+    /// Number of active workspace members (accepted invitation).
+    activeMemberCount Int
+}

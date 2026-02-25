@@ -1,0 +1,26 @@
+/// Standard timestamp fields applied to all persistent entities.
+///
+/// `createdAt` is set once on insert and never modified.
+/// `updatedAt` is bumped automatically by the ORM on every write.
+/// Downstream consumers (analytics, sync) rely on `updatedAt`
+/// for incremental change detection.
+type Timestamps {
+    /// When the record was first created. Immutable after insert.
+    createdAt DateTime @default(now())
+    /// When the record was last modified. Updated automatically.
+    updatedAt DateTime @updatedAt
+}
+
+/// Adds soft-delete capability to a model.
+///
+/// Soft-deleted records are excluded from default queries via
+/// access policies. The `deletedAt` timestamp is used for
+/// data retention compliance — records older than the
+/// configured retention window are permanently purged by a
+/// background job.
+type SoftDeletable {
+    /// When the record was soft-deleted, or null if active.
+    deletedAt DateTime?
+    /// The ID of the user who performed the deletion, for audit purposes.
+    deletedBy String?
+}

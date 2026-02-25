@@ -1,0 +1,87 @@
+erDiagram
+    Activity {
+        String id PK
+        String action
+        String detail
+        String userId FK
+        String taskId FK
+    }
+    Comment {
+        String id PK
+        String body
+        String taskId FK
+        String authorId FK
+    }
+    Organization {
+        String id PK
+        String name
+        String slug UK
+        String email
+        Int memberCount
+    }
+    Project {
+        String id PK
+        String name
+        String description
+        Boolean archived
+        Int taskCount
+        Float completionRate
+        Boolean hasOverdueTasks
+        String organizationId FK
+        String teamId FK
+    }
+    Tag {
+        String id PK
+        String name UK
+        String color
+    }
+    Task {
+        String id PK
+        String title
+        String body
+        String slug
+        TaskStatus status
+        Priority priority
+        DateTime dueDate
+        Float estimatedHours
+        Int commentCount
+        String projectId FK
+        String assigneeId FK
+        String parentId FK
+    }
+    Team {
+        String id PK
+        String name
+        String description
+        String organizationId FK
+    }
+    TeamMember {
+        String id PK
+        String userId FK
+        String teamId FK
+        Role role
+    }
+    User {
+        String id PK
+        String email UK
+        String name
+        String avatarUrl
+        Role role
+        Int taskCount
+        String organizationId FK
+    }
+    Organization ||--o{ User : "users"
+    Organization ||--o{ Team : "teams"
+    Organization ||--o{ Project : "projects"
+    User ||--o{ TeamMember : "memberships"
+    User ||--o{ Task : "assignedTasks"
+    User ||--o{ Comment : "comments"
+    User ||--o{ Activity : "activities"
+    Team ||--o{ TeamMember : "members"
+    Team ||--o{ Project : "projects"
+    Project ||--o{ Task : "tasks"
+    Project ||--o{ Tag : "tags"
+    Task }o--|| Task : "parent"
+    Task ||--o{ Comment : "comments"
+    Task ||--o{ Tag : "tags"
+    Task ||--o{ Activity : "activities"

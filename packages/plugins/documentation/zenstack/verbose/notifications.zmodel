@@ -1,0 +1,71 @@
+import './enums'
+import './mixins'
+import './identity'
+
+/// A notification delivered to a user.
+///
+/// Notifications are created by the application layer in response to
+/// events (e.g. comment on your article, workspace invitation, payment
+/// failure). They can be delivered across multiple channels based on
+/// the user's `NotificationPreference` settings.
+///
+/// Notifications are never deleted — they are marked as read and
+/// eventually archived by a background cleanup job after 90 days.
+model Notification with Timestamps {
+    id          String               @id @default(cuid())
+    /// Machine-readable notification type for filtering and routing.
+    /// Convention: `resource.event` (e.g. `comment.created`, `invoice.failed`).
+    type        String               @length(1, 80) @meta('doc:example', 'comment.created')
+    /// Human-readable notification title shown in the notification center.
+    title       String               @length(1, 200) @meta('doc:example', 'New comment on your article')
+    /// Optional body text with additional context.
+    body        String?
+    /// How the notification was delivered.
+    channel     NotificationChannel  @default(IN_APP)
+    /// Visual severity for UI treatment and delivery behavior.
+    severity    NotificationSeverity @default(INFO)
+    /// Whether the user has seen/dismissed this notification.
+    read        Boolean              @default(false)
+    /// Deep link URL to the relevant resource in the application.
+    actionUrl   String?              @url @meta('doc:example', '/articles/migrating-to-zenstack-v3#comment-abc')
+    /// When the user dismissed or read the notification. Null if unread.
+    readAt      DateTime?
+    recipient   User                 @relation(fields: [recipientId], references: [id])
+    recipientId String
+
+    @@allow('read', recipient == auth())
+    @@allow('update', recipient == auth())
+    @@deny('create,delete', true)
+    @@index([recipientId, read])
+    @@index([recipientId, createdAt])
+    @@meta('doc:category', 'Notifications')
+    @@meta('doc:since', '2.0')
+}
+
+/// Per-user notification delivery preferences.
+///
+/// Each record controls whether a specific notification type is
+/// delivered via a given channel. If no preference exists for a
+/// type/channel combination, the system default applies:
+/// - IN_APP: always on (cannot be disabled)
+/// - EMAIL: on for CRITICAL, off for INFO/WARNING
+/// - PUSH: off by default
+///
+/// Preferences are workspace-independent — they apply globally
+/// to the user's account.
+model NotificationPreference with Timestamps {
+    id          String              @id @default(cuid())
+    /// The notification type this preference applies to.
+    /// Use `*` as a wildcard to set defaults for all types.
+    type        String              @length(1, 80) @meta('doc:example', 'comment.created')
+    /// The delivery channel this preference controls.
+    channel     NotificationChannel
+    /// Whether delivery via this channel is enabled.
+    enabled     Boolean             @default(true)
+    user        User                @relation(fields: [userId], references: [id])
+    userId      String
+
+    @@unique([userId, type, channel])
+    @@meta('doc:category', 'Notifications')
+    @@meta('doc:since', '2.0')
+}
