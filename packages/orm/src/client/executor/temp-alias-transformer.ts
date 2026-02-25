@@ -17,7 +17,7 @@ export class TempAliasTransformer extends OperationNodeTransformer {
         if (node.name.startsWith(TEMP_ALIAS_PREFIX)) {
             let mapped = this.aliasMap.get(node.name);
             if (!mapped) {
-                mapped = `$t${this.aliasMap.size + 1}`;
+                mapped = `$$t${this.aliasMap.size + 1}`;
                 this.aliasMap.set(node.name, mapped);
             }
             return IdentifierNode.create(mapped);
