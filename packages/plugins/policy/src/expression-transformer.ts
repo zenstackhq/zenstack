@@ -403,7 +403,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
 
         return this.transform(expr.left, {
             ...context,
-            memberSelect: SelectionNode.create(AliasNode.create(predicateResult, IdentifierNode.create('$t'))),
+            memberSelect: SelectionNode.create(AliasNode.create(predicateResult, IdentifierNode.create('_'))),
             memberFilter: predicateFilter,
         });
     }
@@ -776,7 +776,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
 
         return {
             ...receiver,
-            selections: [SelectionNode.create(AliasNode.create(currNode!, IdentifierNode.create('$t')))],
+            selections: [SelectionNode.create(AliasNode.create(currNode!, IdentifierNode.create('_')))],
         };
     }
 

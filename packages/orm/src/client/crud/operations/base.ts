@@ -260,7 +260,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                     .exists(
                         this.dialect
                             .buildSelectModel(model, model)
-                            .select(sql.lit(1).as('$t'))
+                            .select(sql.lit(1).as('_'))
                             .where(() => this.dialect.buildFilter(model, model, filter)),
                     )
                     .as('$exists'),

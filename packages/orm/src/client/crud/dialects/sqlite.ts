@@ -441,7 +441,7 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
         return this.eb.exists(
             this.eb
                 .selectFrom(this.eb.fn('json_each', [receiver]).as('$items'))
-                .select(this.eb.lit(1).as('$t'))
+                .select(this.eb.lit(1).as('_'))
                 .where(buildFilter(this.eb.ref('$items.value'))),
         );
     }
