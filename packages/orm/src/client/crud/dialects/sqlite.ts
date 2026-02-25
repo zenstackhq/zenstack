@@ -25,6 +25,7 @@ import {
     requireField,
     requireIdFields,
     requireModel,
+    tmpAlias,
 } from '../../query-utils';
 import { BaseCrudDialect } from './base-dialect';
 
@@ -201,7 +202,7 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
         const relationModel = relationFieldDef.type as GetModels<Schema>;
         const relationModelDef = requireModel(this.schema, relationModel);
 
-        const subQueryName = `${parentAlias}$${relationField}`;
+        const subQueryName = tmpAlias(`${parentAlias}$${relationField}`);
         let tbl: SelectQueryBuilder<any, any, any>;
 
         if (this.canJoinWithoutNestedSelect(relationModelDef, payload)) {
@@ -214,7 +215,7 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
             // need to make a nested select on relation model
             tbl = eb.selectFrom(() => {
                 // nested query name
-                const selectModelAlias = `${parentAlias}$${relationField}$sub`;
+                const selectModelAlias = tmpAlias(`${parentAlias}$${relationField}$sub`);
 
                 // select all fields
                 let selectModelQuery = this.buildModelSelect(relationModel, selectModelAlias, payload, true);
@@ -268,7 +269,7 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
                                 const subJson = this.buildCountJson(
                                     relationModel,
                                     eb,
-                                    `${parentAlias}$${relationField}`,
+                                    tmpAlias(`${parentAlias}$${relationField}`),
                                     value,
                                 );
                                 return [sql.lit(field), subJson];
@@ -279,7 +280,7 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
                                         relationModel,
                                         eb,
                                         field,
-                                        `${parentAlias}$${relationField}`,
+                                        tmpAlias(`${parentAlias}$${relationField}`),
                                         value,
                                     );
                                     return [sql.lit(field), subJson];
@@ -305,7 +306,7 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
                                 relationModel,
                                 eb,
                                 field,
-                                `${parentAlias}$${relationField}`,
+                                tmpAlias(`${parentAlias}$${relationField}`),
                                 value,
                             );
                             return [sql.lit(field), subJson];

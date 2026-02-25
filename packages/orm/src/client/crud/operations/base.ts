@@ -263,20 +263,20 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                             .select(sql.lit(1).as('$t'))
                             .where(() => this.dialect.buildFilter(model, model, filter)),
                     )
-                    .as('exists'),
+                    .as('$exists'),
             )
             .modifyEnd(this.makeContextComment({ model, operation: 'read' }));
 
-        let result: { exists: number | boolean }[] = [];
+        let result: { $exists: number | boolean }[] = [];
         const compiled = kysely.getExecutor().compileQuery(query.toOperationNode(), createQueryId());
         try {
             const r = await kysely.getExecutor().executeQuery(compiled);
-            result = r.rows as { exists: number | boolean }[];
+            result = r.rows as { $exists: number | boolean }[];
         } catch (err) {
             throw createDBQueryError(`Failed to execute query: ${err}`, err, compiled.sql, compiled.parameters);
         }
 
-        return !!result[0]?.exists;
+        return !!result[0]?.$exists;
     }
 
     protected async read(
