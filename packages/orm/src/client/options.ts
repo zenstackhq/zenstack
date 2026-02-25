@@ -197,6 +197,12 @@ export type ClientOptions<Schema extends SchemaDef> = QueryOptions<Schema> & {
      * `@@validate`, etc. Defaults to `true`.
      */
     validateInput?: boolean;
+
+    /**
+     * Whether to use compact alias names (e.g., "$t1", "$t2") when transforming ORM queries to SQL.
+     * Defaults to `true`.
+     */
+    useCompactAliasNames?: boolean;
 } & (HasComputedFields<Schema> extends true
         ? {
               /**

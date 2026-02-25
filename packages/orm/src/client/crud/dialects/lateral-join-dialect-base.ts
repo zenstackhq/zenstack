@@ -11,6 +11,7 @@ import {
     requireField,
     requireIdFields,
     requireModel,
+    tmpAlias,
 } from '../../query-utils';
 import { BaseCrudDialect } from './base-dialect';
 
@@ -31,7 +32,7 @@ export abstract class LateralJoinDialectBase<Schema extends SchemaDef> extends B
         parentAlias: string,
         payload: true | FindArgs<Schema, GetModels<Schema>, any, true>,
     ): SelectQueryBuilder<any, any, any> {
-        const relationResultName = `${parentAlias}$${relationField}`;
+        const relationResultName = tmpAlias(`${parentAlias}$${relationField}`);
         const joinedQuery = this.buildRelationJSON(
             model,
             query,
@@ -56,7 +57,7 @@ export abstract class LateralJoinDialectBase<Schema extends SchemaDef> extends B
 
         return qb.leftJoinLateral(
             (eb) => {
-                const relationSelectName = `${resultName}$sub`;
+                const relationSelectName = tmpAlias(`${resultName}$sub`);
                 const relationModelDef = requireModel(this.schema, relationModel);
 
                 let tbl: SelectQueryBuilder<any, any, any>;

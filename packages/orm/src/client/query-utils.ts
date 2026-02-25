@@ -427,3 +427,16 @@ export function extractFieldName(node: OperationNode) {
         return undefined;
     }
 }
+
+export const TEMP_ALIAS_PREFIX = '$$_';
+
+/**
+ * Create an alias name for a temporary table or column name.
+ */
+export function tmpAlias(name: string) {
+    if (!name.startsWith(TEMP_ALIAS_PREFIX)) {
+        return `${TEMP_ALIAS_PREFIX}${name}`;
+    } else {
+        return name;
+    }
+}

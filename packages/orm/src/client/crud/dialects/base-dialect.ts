@@ -34,6 +34,7 @@ import {
     requireIdFields,
     requireModel,
     requireTypeDef,
+    tmpAlias,
 } from '../../query-utils';
 
 export abstract class BaseCrudDialect<Schema extends SchemaDef> {
@@ -298,7 +299,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             }
         }
 
-        const joinAlias = `${modelAlias}$${field}`;
+        const joinAlias = tmpAlias(`${modelAlias}$${field}`);
         const joinPairs = buildJoinPairs(
             this.schema,
             model,
@@ -307,7 +308,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             field,
             joinAlias,
         );
-        const filterResultField = `${field}$filter`;
+        const filterResultField = tmpAlias(`${field}$flt`);
 
         const joinSelect = this.eb
             .selectFrom(`${fieldDef.type} as ${joinAlias}`)
@@ -383,7 +384,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
         // evaluating the filter involves creating an inner select,
         // give it an alias to avoid conflict
-        const relationFilterSelectAlias = `${modelAlias}$${field}$filter`;
+        const relationFilterSelectAlias = tmpAlias(`${modelAlias}$${field}$flt`);
 
         const buildPkFkWhereRefs = (eb: ExpressionBuilder<any, any>) => {
             const m2m = getManyToManyRelation(this.schema, model, field);
@@ -1083,7 +1084,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                             );
                             const sort = this.negateSort(value._count, negated);
                             result = result.orderBy((eb) => {
-                                const subQueryAlias = `${modelAlias}$orderBy$${field}$count`;
+                                const subQueryAlias = tmpAlias(`${modelAlias}$ob$${field}$ct`);
                                 let subQuery = this.buildSelectModel(relationModel, subQueryAlias);
                                 const joinPairs = buildJoinPairs(this.schema, model, modelAlias, field, subQueryAlias);
                                 subQuery = subQuery.where(() =>
@@ -1099,7 +1100,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                         }
                     } else {
                         // order by to-one relation
-                        const joinAlias = `${modelAlias}$orderBy$${index}`;
+                        const joinAlias = tmpAlias(`${modelAlias}$ob$${index}`);
                         result = result.leftJoin(`${relationModel} as ${joinAlias}`, (join) => {
                             const joinPairs = buildJoinPairs(this.schema, model, modelAlias, field, joinAlias);
                             return join.on((eb) =>
