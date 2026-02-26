@@ -14,6 +14,7 @@ import { CliError } from '../cli-error';
 import * as corePlugins from '../plugins';
 import { getOutputPath, getSchemaFile, getZenStackPackages, loadSchemaDocument } from './action-utils';
 import semver from 'semver';
+import { showNotification } from './action-utils';
 
 type Options = {
     schema?: string;
@@ -24,6 +25,7 @@ type Options = {
     liteOnly?: boolean;
     generateModels?: boolean;
     generateInput?: boolean;
+    offline?: boolean;
 };
 
 /**
@@ -36,6 +38,10 @@ export async function run(options: Options) {
         console.warn(colors.yellow(`Failed to check for mismatched ZenStack packages: ${err}`));
     }
     const model = await pureGenerate(options, false);
+
+    if (!options.offline) {
+        await showNotification();
+    }
 
     if (options.watch) {
         const logsEnabled = !options.silent;

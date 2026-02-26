@@ -37,9 +37,9 @@
     },
     "dependencies": {
         "@zenstackhq/common-helpers": "workspace:*",
-        "@zenstackhq/schema": "workspace:*",
         "@zenstackhq/language": "workspace:*",
         "@zenstackhq/orm": "workspace:*",
+        "@zenstackhq/schema": "workspace:*",
         "@zenstackhq/sdk": "workspace:*",
         "@zenstackhq/server": "workspace:*",
         "chokidar": "^5.0.0",
@@ -56,6 +56,7 @@
         "package-manager-detector": "^1.3.0",
         "prisma": "catalog:",
         "semver": "^7.7.2",
+        "terminal-link": "^5.0.0",
         "ts-pattern": "catalog:"
     },
     "devDependencies": {
@@ -72,9 +73,10 @@
         "tmp": "catalog:"
     },
     "peerDependencies": {
-        "pg": "catalog:",
         "better-sqlite3": "catalog:",
-        "mysql2": "catalog:"
+        "mysql2": "catalog:",
+        "pg": "catalog:",
+        "zod": "catalog:"
     },
     "peerDependenciesMeta": {
         "pg": {

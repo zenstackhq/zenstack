@@ -6,6 +6,8 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { CliError } from '../cli-error';
+import terminalLink from 'terminal-link';
+import { z } from 'zod';
 
 export function getSchemaFile(file?: string) {
     if (file) {
@@ -215,4 +217,41 @@ export async function getZenStackPackages(
     });
 
     return result.filter((p) => !!p);
+}
+
+const FETCH_CLI_CONFIG_TIMEOUT = 500;
+const CLI_CONFIG_ENDPOINT = 'https://zenstack.dev/config/cli.json';
+
+export async function showNotification() {
+    try {
+        const fetchResult = await fetch(CLI_CONFIG_ENDPOINT, {
+            headers: { accept: 'application/json' },
+            signal: AbortSignal.timeout(FETCH_CLI_CONFIG_TIMEOUT),
+        });
+
+        if (!fetchResult.ok) {
+            return;
+        }
+
+        const data = await fetchResult.json();
+        const schema = z.object({
+            notifications: z.array(z.object({ title: z.string(), url: z.url().optional(), active: z.boolean() })),
+        });
+        const parseResult = schema.safeParse(data);
+
+        if (parseResult.success) {
+            const activeItems = parseResult.data.notifications.filter((item) => item.active);
+            // return a random active item
+            if (activeItems.length > 0) {
+                const item = activeItems[Math.floor(Math.random() * activeItems.length)]!;
+                if (item.url) {
+                    console.log(terminalLink(item.title, item.url));
+                } else {
+                    console.log(item.title);
+                }
+            }
+        }
+    } catch {
+        // noop
+    }
 }
