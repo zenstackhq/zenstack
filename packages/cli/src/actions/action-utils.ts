@@ -219,39 +219,60 @@ export async function getZenStackPackages(
     return result.filter((p) => !!p);
 }
 
-const FETCH_CLI_CONFIG_TIMEOUT = 500;
-const CLI_CONFIG_ENDPOINT = 'https://zenstack.dev/config/cli.json';
+const FETCH_CLI_MAX_TIME = 1000;
+const CLI_CONFIG_ENDPOINT = 'https://zenstack.dev/config/cli-v3.json';
 
-export async function showNotification() {
-    try {
-        const fetchResult = await fetch(CLI_CONFIG_ENDPOINT, {
-            headers: { accept: 'application/json' },
-            signal: AbortSignal.timeout(FETCH_CLI_CONFIG_TIMEOUT),
+const notificationSchema = z.object({
+    notifications: z.array(z.object({ title: z.string(), url: z.url().optional(), active: z.boolean() })),
+});
+
+/**
+ * Starts the notification fetch in the background. Returns a callback that,
+ * when invoked check if the fetch is complete. If not complete, it will wait until the max time is reached.
+ * After that, if fetch is still not complete, just return.
+ */
+export function startNotificationFetch() {
+    let fetchedData: z.infer<typeof notificationSchema> | undefined = undefined;
+    let fetchComplete = false;
+
+    const start = Date.now();
+
+    fetch(CLI_CONFIG_ENDPOINT, {
+        headers: { accept: 'application/json' },
+    })
+        .then(async (res) => {
+            if (!res.ok) return;
+            const data = await res.json();
+            const parseResult = notificationSchema.safeParse(data);
+            if (parseResult.success) {
+                fetchedData = parseResult.data;
+            }
+        })
+        .catch(() => {
+            // noop
+        })
+        .finally(() => {
+            fetchComplete = true;
         });
 
-        if (!fetchResult.ok) {
-            return;
+    return async () => {
+        const elapsed = Date.now() - start;
+
+        if (!fetchComplete && elapsed < FETCH_CLI_MAX_TIME) {
+            // wait for the timeout
+            await new Promise((resolve) => setTimeout(resolve, FETCH_CLI_MAX_TIME - elapsed));
         }
 
-        const data = await fetchResult.json();
-        const schema = z.object({
-            notifications: z.array(z.object({ title: z.string(), url: z.url().optional(), active: z.boolean() })),
-        });
-        const parseResult = schema.safeParse(data);
-
-        if (parseResult.success) {
-            const activeItems = parseResult.data.notifications.filter((item) => item.active);
-            // return a random active item
-            if (activeItems.length > 0) {
-                const item = activeItems[Math.floor(Math.random() * activeItems.length)]!;
-                if (item.url) {
-                    console.log(terminalLink(item.title, item.url));
-                } else {
-                    console.log(item.title);
-                }
+        if (!fetchComplete || !fetchedData) return;
+        const activeItems = fetchedData.notifications.filter((item) => item.active);
+        // show a random active item
+        if (activeItems.length > 0) {
+            const item = activeItems[Math.floor(Math.random() * activeItems.length)]!;
+            if (item.url) {
+                console.log(terminalLink(item.title, item.url));
+            } else {
+                console.log(item.title);
             }
         }
-    } catch {
-        // noop
-    }
+    };
 }

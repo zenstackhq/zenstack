@@ -14,7 +14,7 @@ import { CliError } from '../cli-error';
 import * as corePlugins from '../plugins';
 import { getOutputPath, getSchemaFile, getZenStackPackages, loadSchemaDocument } from './action-utils';
 import semver from 'semver';
-import { showNotification } from './action-utils';
+import { startNotificationFetch } from './action-utils';
 
 type Options = {
     schema?: string;
@@ -37,11 +37,12 @@ export async function run(options: Options) {
     } catch (err) {
         console.warn(colors.yellow(`Failed to check for mismatched ZenStack packages: ${err}`));
     }
+
+    const maybeShowNotification = !options.offline && !options.silent ? startNotificationFetch() : undefined;
+
     const model = await pureGenerate(options, false);
 
-    if (!options.offline && !options.silent) {
-        await showNotification();
-    }
+    await maybeShowNotification?.();
 
     if (options.watch) {
         const logsEnabled = !options.silent;
