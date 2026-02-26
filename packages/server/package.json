@@ -131,7 +131,7 @@
         "zod-validation-error": "catalog:"
     },
     "devDependencies": {
-        "@sveltejs/kit": "^2.48.3",
+        "@sveltejs/kit": "catalog:",
         "@types/body-parser": "^1.19.6",
         "@types/express": "^5.0.0",
         "@types/supertest": "^6.0.3",
@@ -144,8 +144,8 @@
         "express": "^5.0.0",
         "fastify": "^5.6.1",
         "fastify-plugin": "^5.1.0",
-        "h3": "^1.15.4",
-        "hono": "^4.6.3",
+        "h3": "^1.15.5",
+        "hono": "^4.11.10",
         "next": "catalog:",
         "nuxt": "catalog:",
         "supertest": "^7.1.4",
