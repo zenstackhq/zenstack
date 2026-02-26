@@ -39,7 +39,7 @@ export async function run(options: Options) {
     }
     const model = await pureGenerate(options, false);
 
-    if (!options.offline) {
+    if (!options.offline && !options.silent) {
         await showNotification();
     }
 
