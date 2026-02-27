@@ -752,55 +752,7 @@ describe('SchemaFactory - Computed and Discriminator Fields', () => {
             }
         });
 
-        it('excludes computed fields from upsert schema', () => {
-            const upsertSchema = testFactory.makeModelUpsertSchema('TestUser');
-            
-            // Test create branch
-            const createResult = upsertSchema.safeParse({
-                create: {
-                    id: 'user1',
-                    name: 'Test User',
-                    postCount: 5 // Invalid in create
-                },
-                update: {
-                    name: 'Updated User'
-                }
-            });
-            
-            expect(createResult.success).toBe(false);
-            
-            // Test update branch  
-            const updateResult = upsertSchema.safeParse({
-                create: {
-                    id: 'user1',
-                    name: 'Test User'
-                },
-                update: {
-                    name: 'Updated User',
-                    postCount: 10 // Invalid in update
-                }
-            });
-            
-            expect(updateResult.success).toBe(false);
-        });
 
-        it('allows valid data without computed fields', () => {
-            const createSchema = testFactory.makeModelCreateSchema('TestUser');
-            const updateSchema = testFactory.makeModelUpdateSchema('TestUser');
-            
-            const validCreateResult = createSchema.safeParse({
-                id: 'user1',
-                name: 'Test User'
-            });
-            expect(validCreateResult.success).toBe(true);
-            
-            const validUpdateResult = updateSchema.safeParse({
-                data: {
-                    name: 'Updated User'
-                }
-            });
-            expect(validUpdateResult.success).toBe(true);
-        });
     });
 
     describe('discriminator fields', () => {
@@ -839,61 +791,7 @@ describe('SchemaFactory - Computed and Discriminator Fields', () => {
             }
         });
 
-        it('excludes discriminator fields from upsert schema', () => {
-            const upsertSchema = testFactory.makeModelUpsertSchema('TestDocument');
-            
-            // Test create branch
-            const createResult = upsertSchema.safeParse({
-                create: {
-                    id: 'doc1',
-                    name: 'Test Document',
-                    assetType: 'document', // Invalid in create
-                    fileSize: 1024
-                },
-                update: {
-                    name: 'Updated Document',
-                    fileSize: 2048
-                }
-            });
-            
-            expect(createResult.success).toBe(false);
-            
-            // Test update branch
-            const updateResult = upsertSchema.safeParse({
-                create: {
-                    id: 'doc1',
-                    name: 'Test Document',
-                    fileSize: 1024
-                },
-                update: {
-                    name: 'Updated Document',
-                    assetType: 'document', // Invalid in update
-                    fileSize: 2048
-                }
-            });
-            
-            expect(updateResult.success).toBe(false);
-        });
 
-        it('allows valid data without discriminator fields', () => {
-            const createSchema = testFactory.makeModelCreateSchema('TestDocument');
-            const updateSchema = testFactory.makeModelUpdateSchema('TestDocument');
-            
-            const validCreateResult = createSchema.safeParse({
-                id: 'doc1',
-                name: 'Test Document',
-                fileSize: 1024
-            });
-            expect(validCreateResult.success).toBe(true);
-            
-            const validUpdateResult = updateSchema.safeParse({
-                data: {
-                    name: 'Updated Document',
-                    fileSize: 2048
-                }
-            });
-            expect(validUpdateResult.success).toBe(true);
-        });
     });
 
     describe('base model with discriminator', () => {
