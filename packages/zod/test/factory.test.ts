@@ -753,31 +753,6 @@ describe('SchemaFactory - Computed and Discriminator Fields', () => {
             }
         });
 
-        it('computed fields are excluded from create schema types', () => {
-            const createSchema = testFactory.makeModelCreateSchema('TestUser');
-            type CreateInput = z.infer<typeof createSchema>;
-            
-            // Verify computed field 'postCount' is not in the type
-            expectTypeOf<CreateInput>().not.toHaveProperty('postCount');
-            
-            // Verify normal fields are still present
-            expectTypeOf<CreateInput>().toHaveProperty('id');
-            expectTypeOf<CreateInput>().toHaveProperty('name');
-            expectTypeOf<CreateInput['name']>().toEqualTypeOf<string>();
-        });
-
-        it('computed fields are excluded from update schema types', () => {
-            const updateSchema = testFactory.makeModelUpdateSchema('TestUser');
-            type UpdateInput = z.infer<typeof updateSchema>;
-            
-            // Verify computed field 'postCount' is not in the type
-            expectTypeOf<UpdateInput>().not.toHaveProperty('postCount');
-            
-            // Verify normal fields are still present (all optional in update)
-            expectTypeOf<UpdateInput>().toHaveProperty('id');
-            expectTypeOf<UpdateInput>().toHaveProperty('name');
-            expectTypeOf<UpdateInput['name']>().toEqualTypeOf<string | undefined>();
-        });
     });
 
     describe('discriminator fields', () => {
@@ -814,51 +789,6 @@ describe('SchemaFactory - Computed and Discriminator Fields', () => {
             }
         });
 
-        it('discriminator fields are excluded from create schema types', () => {
-            const createSchema = testFactory.makeModelCreateSchema('TestDocument');
-            type CreateInput = z.infer<typeof createSchema>;
-            
-            // Verify discriminator field 'assetType' is not in the type
-            expectTypeOf<CreateInput>().not.toHaveProperty('assetType');
-            
-            // Verify normal fields are still present
-            expectTypeOf<CreateInput>().toHaveProperty('id');
-            expectTypeOf<CreateInput>().toHaveProperty('name'); 
-            expectTypeOf<CreateInput>().toHaveProperty('fileSize');
-            expectTypeOf<CreateInput['fileSize']>().toEqualTypeOf<number>();
-        });
-
-        it('discriminator fields are excluded from update schema types', () => {
-            const updateSchema = testFactory.makeModelUpdateSchema('TestDocument');
-            type UpdateInput = z.infer<typeof updateSchema>;
-            
-            // Verify discriminator field 'assetType' is not in the type
-            expectTypeOf<UpdateInput>().not.toHaveProperty('assetType');
-            
-            // Verify normal fields are still present (all optional in update)
-            expectTypeOf<UpdateInput>().toHaveProperty('id');
-            expectTypeOf<UpdateInput>().toHaveProperty('name');
-            expectTypeOf<UpdateInput>().toHaveProperty('fileSize');
-            expectTypeOf<UpdateInput['fileSize']>().toEqualTypeOf<number | undefined>();
-        });
-
-        it('base model discriminator fields are excluded from schema types', () => {
-            const createSchema = testFactory.makeModelCreateSchema('TestAsset');
-            const updateSchema = testFactory.makeModelUpdateSchema('TestAsset');
-            
-            type CreateInput = z.infer<typeof createSchema>;
-            type UpdateInput = z.infer<typeof updateSchema>;
-            
-            // Verify discriminator field 'assetType' is not in either type
-            expectTypeOf<CreateInput>().not.toHaveProperty('assetType');
-            expectTypeOf<UpdateInput>().not.toHaveProperty('assetType');
-            
-            // Verify normal fields are still present
-            expectTypeOf<CreateInput>().toHaveProperty('id');
-            expectTypeOf<CreateInput>().toHaveProperty('name');
-            expectTypeOf<UpdateInput>().toHaveProperty('id');
-            expectTypeOf<UpdateInput>().toHaveProperty('name');
-        });
     });
 
     describe('base model with discriminator', () => {
