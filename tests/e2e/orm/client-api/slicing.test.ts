@@ -505,7 +505,9 @@ describe('Query slicing tests', () => {
             });
 
             expect(user.posts).toHaveLength(2);
-            expect(user.posts[0]!.title).toBe('Post 1');
+            expect(user.posts).toEqual(
+                expect.arrayContaining([expect.objectContaining({ title: 'Post 1' })])
+            );
         });
 
         it('allows nested update on included models', async () => {
@@ -545,7 +547,8 @@ describe('Query slicing tests', () => {
                 include: { posts: true },
             });
 
-            expect(updated.posts[0]!.title).toBe('Updated Post');
+            const updatedPost = updated.posts.find((p) => p.id === postId);
+            expect(updatedPost!.title).toBe('Updated Post');
         });
     });
 
