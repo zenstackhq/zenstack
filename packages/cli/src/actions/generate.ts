@@ -1,20 +1,25 @@
 import { invariant, singleDebounce } from '@zenstackhq/common-helpers';
 import { ZModelLanguageMetaData } from '@zenstackhq/language';
-import { type AbstractDeclaration, isPlugin, LiteralExpr, Plugin, type Model } from '@zenstackhq/language/ast';
+import { isPlugin, LiteralExpr, Plugin, type AbstractDeclaration, type Model } from '@zenstackhq/language/ast';
 import { getLiteral, getLiteralArray } from '@zenstackhq/language/utils';
 import { type CliPlugin } from '@zenstackhq/sdk';
+import { watch } from 'chokidar';
 import colors from 'colors';
 import { createJiti } from 'jiti';
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { watch } from 'chokidar';
 import ora, { type Ora } from 'ora';
+import semver from 'semver';
 import { CliError } from '../cli-error';
 import * as corePlugins from '../plugins';
-import { getOutputPath, getSchemaFile, getZenStackPackages, loadSchemaDocument } from './action-utils';
-import semver from 'semver';
-import { startNotificationFetch } from './action-utils';
+import {
+    getOutputPath,
+    getSchemaFile,
+    getZenStackPackages,
+    loadSchemaDocument,
+    startUsageTipsFetch,
+} from './action-utils';
 
 type Options = {
     schema?: string;
@@ -25,7 +30,7 @@ type Options = {
     liteOnly?: boolean;
     generateModels?: boolean;
     generateInput?: boolean;
-    offline?: boolean;
+    tips?: boolean;
 };
 
 /**
@@ -38,12 +43,11 @@ export async function run(options: Options) {
         console.warn(colors.yellow(`Failed to check for mismatched ZenStack packages: ${err}`));
     }
 
-    const maybeShowNotification =
-        !options.offline && !options.silent && !options.watch ? startNotificationFetch() : undefined;
+    const maybeShowUsageTips = options.tips && !options.silent && !options.watch ? startUsageTipsFetch() : undefined;
 
     const model = await pureGenerate(options, false);
 
-    await maybeShowNotification?.();
+    await maybeShowUsageTips?.();
 
     if (options.watch) {
         const logsEnabled = !options.silent;

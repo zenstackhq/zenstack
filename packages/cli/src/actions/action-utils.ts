@@ -222,17 +222,17 @@ export async function getZenStackPackages(
 const FETCH_CLI_MAX_TIME = 1000;
 const CLI_CONFIG_ENDPOINT = 'https://zenstack.dev/config/cli-v3.json';
 
-const notificationSchema = z.object({
+const usageTipsSchema = z.object({
     notifications: z.array(z.object({ title: z.string(), url: z.url().optional(), active: z.boolean() })),
 });
 
 /**
- * Starts the notification fetch in the background. Returns a callback that,
- * when invoked check if the fetch is complete. If not complete, it will wait until the max time is reached.
- * After that, if fetch is still not complete, just return.
+ * Starts the usage tips fetch in the background. Returns a callback that, when invoked check if the fetch
+ * is complete. If not complete, it will wait until the max time is reached. After that, if fetch is still
+ * not complete, just return.
  */
-export function startNotificationFetch() {
-    let fetchedData: z.infer<typeof notificationSchema> | undefined = undefined;
+export function startUsageTipsFetch() {
+    let fetchedData: z.infer<typeof usageTipsSchema> | undefined = undefined;
     let fetchComplete = false;
 
     const start = Date.now();
@@ -245,7 +245,7 @@ export function startNotificationFetch() {
         .then(async (res) => {
             if (!res.ok) return;
             const data = await res.json();
-            const parseResult = notificationSchema.safeParse(data);
+            const parseResult = usageTipsSchema.safeParse(data);
             if (parseResult.success) {
                 fetchedData = parseResult.data;
             }

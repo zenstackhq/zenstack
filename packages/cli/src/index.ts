@@ -74,14 +74,14 @@ function createProgram() {
     );
 
     const noVersionCheckOption = new Option('--no-version-check', 'do not check for new version');
-    const offlineOption = new Option('--offline', 'run in offline mode');
+    const noTipsOption = new Option('--no-tips', 'do not show usage tips');
 
     program
         .command('generate')
         .description('Run code generation plugins')
         .addOption(schemaOption)
         .addOption(noVersionCheckOption)
-        .addOption(offlineOption)
+        .addOption(noTipsOption)
         .addOption(new Option('-o, --output <path>', 'default output directory for code generation'))
         .addOption(new Option('-w, --watch', 'enable watch mode').default(false))
         .addOption(
