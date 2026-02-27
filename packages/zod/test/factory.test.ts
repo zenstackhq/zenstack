@@ -737,10 +737,8 @@ describe('SchemaFactory - Computed and Discriminator Fields', () => {
         it('excludes computed fields from update schema', () => {
             const updateSchema = testFactory.makeModelUpdateSchema('TestUser');
             const result = updateSchema.safeParse({
-                data: {
-                    name: 'Updated User',
-                    postCount: 10 // This should be invalid - computed field
-                }
+                name: 'Updated User',
+                postCount: 10 // This should be invalid - computed field
             });
             
             expect(result.success).toBe(false);
@@ -775,11 +773,9 @@ describe('SchemaFactory - Computed and Discriminator Fields', () => {
         it('excludes discriminator fields from update schema', () => {
             const updateSchema = testFactory.makeModelUpdateSchema('TestDocument');
             const result = updateSchema.safeParse({
-                data: {
-                    name: 'Updated Document',
-                    assetType: 'document', // This should be invalid - discriminator field
-                    fileSize: 2048
-                }
+                name: 'Updated Document',
+                assetType: 'document', // This should be invalid - discriminator field
+                fileSize: 2048
             });
             
             expect(result.success).toBe(false);
