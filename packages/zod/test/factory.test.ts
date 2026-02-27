@@ -692,16 +692,19 @@ describe('SchemaFactory - Computed and Discriminator Fields', () => {
                         name: "id",
                         type: "String",
                         id: true,
-                        default: { type: "function", name: "cuid" }
+                        default: { type: "function", name: "cuid" },
+                        originModel: "TestAsset"
                     },
                     name: {
                         name: "name",
-                        type: "String"
+                        type: "String",
+                        originModel: "TestAsset"
                     },
                     assetType: {
                         name: "assetType",
                         type: "String",
-                        discriminator: true
+                        discriminator: true,
+                        originModel: "TestAsset"
                     },
                     fileSize: {
                         name: "fileSize",
@@ -805,10 +808,8 @@ describe('SchemaFactory - Computed and Discriminator Fields', () => {
             
             // Test update schema
             const updateResult = updateSchema.safeParse({
-                data: {
-                    name: 'Updated Asset',
-                    assetType: 'generic' // Should be invalid
-                }
+                name: 'Updated Asset',
+                assetType: 'generic' // Should be invalid
             });
             expect(updateResult.success).toBe(false);
             
@@ -820,9 +821,7 @@ describe('SchemaFactory - Computed and Discriminator Fields', () => {
             expect(validCreateResult.success).toBe(true);
             
             const validUpdateResult = updateSchema.safeParse({
-                data: {
-                    name: 'Updated Asset'
-                }
+                name: 'Updated Asset'
             });
             expect(validUpdateResult.success).toBe(true);
         });
