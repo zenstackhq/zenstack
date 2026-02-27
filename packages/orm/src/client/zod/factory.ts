@@ -1547,6 +1547,14 @@ export class ZodSchemaFactory<
                 return;
             }
             const fieldDef = requireField(this.schema, model, field);
+            
+            if (fieldDef.computed) {
+                return;
+            }
+
+            if (this.isDelegateDiscriminator(fieldDef)) {
+                return;
+            }
 
             if (fieldDef.relation) {
                 if (skipRelations) {
