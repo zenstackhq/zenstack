@@ -6,6 +6,8 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { CliError } from '../cli-error';
+import terminalLink from 'terminal-link';
+import { z } from 'zod';
 
 export function getSchemaFile(file?: string) {
     if (file) {
@@ -215,4 +217,70 @@ export async function getZenStackPackages(
     });
 
     return result.filter((p) => !!p);
+}
+
+const FETCH_CLI_MAX_TIME = 1000;
+const CLI_CONFIG_ENDPOINT = 'https://zenstack.dev/config/cli-v3.json';
+
+const usageTipsSchema = z.object({
+    notifications: z.array(z.object({ title: z.string(), url: z.url().optional(), active: z.boolean() })),
+});
+
+/**
+ * Starts the usage tips fetch in the background. Returns a callback that, when invoked check if the fetch
+ * is complete. If not complete, it will wait until the max time is reached. After that, if fetch is still
+ * not complete, just return.
+ */
+export function startUsageTipsFetch() {
+    let fetchedData: z.infer<typeof usageTipsSchema> | undefined = undefined;
+    let fetchComplete = false;
+
+    const start = Date.now();
+    const controller = new AbortController();
+
+    fetch(CLI_CONFIG_ENDPOINT, {
+        headers: { accept: 'application/json' },
+        signal: controller.signal,
+    })
+        .then(async (res) => {
+            if (!res.ok) return;
+            const data = await res.json();
+            const parseResult = usageTipsSchema.safeParse(data);
+            if (parseResult.success) {
+                fetchedData = parseResult.data;
+            }
+        })
+        .catch(() => {
+            // noop
+        })
+        .finally(() => {
+            fetchComplete = true;
+        });
+
+    return async () => {
+        const elapsed = Date.now() - start;
+
+        if (!fetchComplete && elapsed < FETCH_CLI_MAX_TIME) {
+            // wait for the timeout
+            await new Promise((resolve) => setTimeout(resolve, FETCH_CLI_MAX_TIME - elapsed));
+        }
+
+        if (!fetchComplete) {
+            controller.abort();
+            return;
+        }
+
+        if (!fetchedData) return;
+
+        const activeItems = fetchedData.notifications.filter((item) => item.active);
+        // show a random active item
+        if (activeItems.length > 0) {
+            const item = activeItems[Math.floor(Math.random() * activeItems.length)]!;
+            if (item.url) {
+                console.log(terminalLink(item.title, item.url));
+            } else {
+                console.log(item.title);
+            }
+        }
+    };
 }
