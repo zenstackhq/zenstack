@@ -38,7 +38,8 @@ export async function run(options: Options) {
         console.warn(colors.yellow(`Failed to check for mismatched ZenStack packages: ${err}`));
     }
 
-    const maybeShowNotification = !options.offline && !options.silent ? startNotificationFetch() : undefined;
+    const maybeShowNotification =
+        !options.offline && !options.silent && !options.watch ? startNotificationFetch() : undefined;
 
     const model = await pureGenerate(options, false);
 

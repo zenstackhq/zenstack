@@ -236,9 +236,11 @@ export function startNotificationFetch() {
     let fetchComplete = false;
 
     const start = Date.now();
+    const controller = new AbortController();
 
     fetch(CLI_CONFIG_ENDPOINT, {
         headers: { accept: 'application/json' },
+        signal: controller.signal,
     })
         .then(async (res) => {
             if (!res.ok) return;
@@ -263,7 +265,13 @@ export function startNotificationFetch() {
             await new Promise((resolve) => setTimeout(resolve, FETCH_CLI_MAX_TIME - elapsed));
         }
 
-        if (!fetchComplete || !fetchedData) return;
+        if (!fetchComplete) {
+            controller.abort();
+            return;
+        }
+
+        if (!fetchedData) return;
+
         const activeItems = fetchedData.notifications.filter((item) => item.active);
         // show a random active item
         if (activeItems.length > 0) {
