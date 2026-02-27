@@ -660,7 +660,7 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
             selections = [SelectionNode.create(SelectAllNode.create())];
         }
 
-        const modelPolicyFilter = this.buildPolicyFilter(model, alias, operation);
+        const modelPolicyFilter = this.buildPolicyFilter(model, model, operation);
         if (!isTrueNode(modelPolicyFilter)) {
             hasPolicies = true;
         }
