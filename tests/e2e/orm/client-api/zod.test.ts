@@ -1003,14 +1003,14 @@ describe('Zod schema factory test', () => {
 
     describe('create factory functions tests', () => {
         it('can be constructed directly from client', async () => {
+            const localClient = await createTestClient(schema);
             try {
-                const client = await createTestClient(schema);
-                const factory = createQuerySchemaFactory(client);
+                const factory = createQuerySchemaFactory(localClient);
                 const s = factory.makeFindManySchema('User');
                 expect(s.safeParse({ where: { email: 'u@test.com' } }).success).toBe(true);
                 expect(s.safeParse({ where: { notAField: 'val' } }).success).toBe(false);
             } finally {
-                await client.$disconnect();
+                await localClient.$disconnect();
             }
         });
 
