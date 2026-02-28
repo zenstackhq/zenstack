@@ -636,3 +636,213 @@ describe('SchemaFactory - makeEnumSchema', () => {
         expect(() => factory.makeEnumSchema('Unknown' as any)).toThrow();
     });
 });
+
+// --- Computed fields tests ---
+
+const validProduct = {
+    id: 'prod1',
+    name: 'Widget',
+    price: 10.0,
+    discount: 2.0,
+    finalPrice: 8.0,
+};
+
+describe('SchemaFactory - computed fields', () => {
+    describe('makeModelSchema includes computed fields', () => {
+        it('accepts a Product with computed field present', () => {
+            const productSchema = factory.makeModelSchema('Product');
+            expect(productSchema.safeParse(validProduct).success).toBe(true);
+        });
+
+        it('rejects a Product missing the computed field', () => {
+            const productSchema = factory.makeModelSchema('Product');
+            const { finalPrice: _, ...withoutComputed } = validProduct;
+            expect(productSchema.safeParse(withoutComputed).success).toBe(false);
+        });
+
+        it('infers computed field in model schema type', () => {
+            const _schema = factory.makeModelSchema('Product');
+            type Product = z.infer<typeof _schema>;
+            expectTypeOf<Product['finalPrice']>().toEqualTypeOf<number>();
+        });
+    });
+
+    describe('makeModelCreateSchema excludes computed fields', () => {
+        it('accepts a Product without the computed field', () => {
+            const createSchema = factory.makeModelCreateSchema('Product');
+            expect(createSchema.safeParse({ name: 'Widget', price: 10.0 }).success).toBe(true);
+        });
+
+        it('rejects a Product with the computed field (strict)', () => {
+            const createSchema = factory.makeModelCreateSchema('Product');
+            expect(createSchema.safeParse({ name: 'Widget', price: 10.0, finalPrice: 8.0 }).success).toBe(false);
+        });
+
+        it('does not include computed field in create schema type', () => {
+            const _schema = factory.makeModelCreateSchema('Product');
+            type ProductCreate = z.infer<typeof _schema>;
+            expectTypeOf<ProductCreate>().not.toHaveProperty('finalPrice');
+            // own fields are present
+            expectTypeOf<ProductCreate>().toHaveProperty('name');
+            expectTypeOf<ProductCreate['name']>().toEqualTypeOf<string>();
+            expectTypeOf<ProductCreate['price']>().toEqualTypeOf<number>();
+            // field with default is optional
+            expectTypeOf<ProductCreate>().toHaveProperty('discount');
+        });
+    });
+
+    describe('makeModelUpdateSchema excludes computed fields', () => {
+        it('accepts a Product update without the computed field', () => {
+            const updateSchema = factory.makeModelUpdateSchema('Product');
+            expect(updateSchema.safeParse({ price: 12.0 }).success).toBe(true);
+        });
+
+        it('rejects a Product update with the computed field (strict)', () => {
+            const updateSchema = factory.makeModelUpdateSchema('Product');
+            expect(updateSchema.safeParse({ price: 12.0, finalPrice: 10.0 }).success).toBe(false);
+        });
+
+        it('does not include computed field in update schema type', () => {
+            const _schema = factory.makeModelUpdateSchema('Product');
+            type ProductUpdate = z.infer<typeof _schema>;
+            expectTypeOf<ProductUpdate>().not.toHaveProperty('finalPrice');
+            // own fields are present (all optional in update)
+            expectTypeOf<ProductUpdate>().toHaveProperty('name');
+        });
+    });
+});
+
+// --- Delegate model tests ---
+
+const validVideo = {
+    id: 1,
+    createdAt: new Date(),
+    assetType: 'Video',
+    duration: 120,
+    url: 'https://example.com/video.mp4',
+};
+
+const validImage = {
+    id: 2,
+    createdAt: new Date(),
+    assetType: 'Image',
+    format: 'png',
+    width: 800,
+};
+
+describe('SchemaFactory - delegate models', () => {
+    describe('makeModelSchema for delegate base model', () => {
+        it('accepts a valid Asset', () => {
+            const assetSchema = factory.makeModelSchema('Asset');
+            expect(assetSchema.safeParse({ id: 1, createdAt: new Date(), assetType: 'Video' }).success).toBe(true);
+        });
+
+        it('includes discriminator field in model schema type', () => {
+            const _schema = factory.makeModelSchema('Asset');
+            type Asset = z.infer<typeof _schema>;
+            expectTypeOf<Asset['assetType']>().toEqualTypeOf<string>();
+            expectTypeOf<Asset['id']>().toEqualTypeOf<number>();
+        });
+    });
+
+    describe('makeModelSchema for derived models', () => {
+        it('accepts a valid Video (includes inherited + own fields)', () => {
+            const videoSchema = factory.makeModelSchema('Video');
+            expect(videoSchema.safeParse(validVideo).success).toBe(true);
+        });
+
+        it('accepts a valid Image (includes inherited + own fields)', () => {
+            const imageSchema = factory.makeModelSchema('Image');
+            expect(imageSchema.safeParse(validImage).success).toBe(true);
+        });
+
+        it('rejects Video missing own fields', () => {
+            const videoSchema = factory.makeModelSchema('Video');
+            const { duration: _, url: _u, ...withoutOwn } = validVideo;
+            expect(videoSchema.safeParse(withoutOwn).success).toBe(false);
+        });
+
+        it('infers correct types for derived model including inherited fields', () => {
+            const _schema = factory.makeModelSchema('Video');
+            type Video = z.infer<typeof _schema>;
+            // inherited fields
+            expectTypeOf<Video['id']>().toEqualTypeOf<number>();
+            expectTypeOf<Video['assetType']>().toEqualTypeOf<string>();
+            // own fields
+            expectTypeOf<Video['duration']>().toEqualTypeOf<number>();
+            expectTypeOf<Video['url']>().toEqualTypeOf<string>();
+        });
+    });
+
+    describe('makeModelCreateSchema excludes discriminator', () => {
+        it('accepts Video create without discriminator and inherited fields', () => {
+            const createSchema = factory.makeModelCreateSchema('Video');
+            // Only own non-inherited, non-discriminator fields should be required
+            expect(createSchema.safeParse({ duration: 120, url: 'https://example.com/video.mp4' }).success).toBe(true);
+        });
+
+        it('rejects Video create with discriminator field (strict)', () => {
+            const createSchema = factory.makeModelCreateSchema('Video');
+            expect(
+                createSchema.safeParse({
+                    duration: 120,
+                    url: 'https://example.com/video.mp4',
+                    assetType: 'Video',
+                }).success,
+            ).toBe(false);
+        });
+
+        it('does not include discriminator fields in create schema type', () => {
+            const _schema = factory.makeModelCreateSchema('Video');
+            type VideoCreate = z.infer<typeof _schema>;
+            // discriminator and originModel fields should be excluded
+            expectTypeOf<VideoCreate>().not.toHaveProperty('assetType');
+            // own fields should be present
+            expectTypeOf<VideoCreate>().toHaveProperty('duration');
+            expectTypeOf<VideoCreate>().toHaveProperty('url');
+            expectTypeOf<VideoCreate['duration']>().toEqualTypeOf<number>();
+            expectTypeOf<VideoCreate['url']>().toEqualTypeOf<string>();
+        });
+
+        it('excludes discriminator from base delegate create schema', () => {
+            const createSchema = factory.makeModelCreateSchema('Asset');
+            // discriminator should not be included
+            expect(createSchema.safeParse({ assetType: 'Video' }).success).toBe(false);
+            // empty create (id has default, createdAt has default, assetType is discriminator)
+            expect(createSchema.safeParse({}).success).toBe(true);
+        });
+
+        it('does not include discriminator in base delegate create schema type', () => {
+            const _schema = factory.makeModelCreateSchema('Asset');
+            type AssetCreate = z.infer<typeof _schema>;
+            expectTypeOf<AssetCreate>().not.toHaveProperty('assetType');
+        });
+    });
+
+    describe('makeModelUpdateSchema excludes discriminator and originModel fields', () => {
+        it('accepts Video update with only own fields', () => {
+            const updateSchema = factory.makeModelUpdateSchema('Video');
+            expect(updateSchema.safeParse({ duration: 180 }).success).toBe(true);
+        });
+
+        it('rejects Video update with discriminator field (strict)', () => {
+            const updateSchema = factory.makeModelUpdateSchema('Video');
+            expect(updateSchema.safeParse({ duration: 180, assetType: 'Video' }).success).toBe(false);
+        });
+
+        it('does not include discriminator fields in update schema type', () => {
+            const _schema = factory.makeModelUpdateSchema('Video');
+            type VideoUpdate = z.infer<typeof _schema>;
+            expectTypeOf<VideoUpdate>().not.toHaveProperty('assetType');
+            // own fields should be present (all optional in update)
+            expectTypeOf<VideoUpdate>().toHaveProperty('duration');
+            expectTypeOf<VideoUpdate>().toHaveProperty('url');
+        });
+
+        it('does not include discriminator in base delegate update schema type', () => {
+            const _schema = factory.makeModelUpdateSchema('Asset');
+            type AssetUpdate = z.infer<typeof _schema>;
+            expectTypeOf<AssetUpdate>().not.toHaveProperty('assetType');
+        });
+    });
+});

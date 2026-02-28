@@ -1,6 +1,8 @@
 import type {
     FieldHasDefault,
     FieldIsArray,
+    FieldIsComputed,
+    FieldIsDelegateDiscriminator,
     FieldIsRelation,
     GetEnum,
     GetEnums,
@@ -51,7 +53,11 @@ export type GetModelFieldsShape<Schema extends SchemaDef, Model extends GetModel
 export type GetModelCreateFieldsShape<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
     [Field in GetModelFields<Schema, Model> as FieldIsRelation<Schema, Model, Field> extends true
         ? never
-        : Field]: ZodOptionalIf<
+        : FieldIsComputed<Schema, Model, Field> extends true
+          ? never
+          : FieldIsDelegateDiscriminator<Schema, Model, Field> extends true
+            ? never
+            : Field]: ZodOptionalIf<
         ZodOptionalAndNullableIf<MapModelFieldToZod<Schema, Model, Field>, ModelFieldIsOptional<Schema, Model, Field>>,
         FieldHasDefault<Schema, Model, Field>
     >;
@@ -60,7 +66,11 @@ export type GetModelCreateFieldsShape<Schema extends SchemaDef, Model extends Ge
 export type GetModelUpdateFieldsShape<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
     [Field in GetModelFields<Schema, Model> as FieldIsRelation<Schema, Model, Field> extends true
         ? never
-        : Field]: z.ZodOptional<
+        : FieldIsComputed<Schema, Model, Field> extends true
+          ? never
+          : FieldIsDelegateDiscriminator<Schema, Model, Field> extends true
+            ? never
+            : Field]: z.ZodOptional<
         ZodOptionalAndNullableIf<MapModelFieldToZod<Schema, Model, Field>, ModelFieldIsOptional<Schema, Model, Field>>
     >;
 };
