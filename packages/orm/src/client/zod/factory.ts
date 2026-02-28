@@ -44,7 +44,6 @@ import type { ClientOptions } from '../options';
 import type { AnyPlugin, ExtQueryArgsBase, RuntimePlugin } from '../plugin';
 import {
     fieldHasDefaultValue,
-    getDiscriminatorField,
     getEnum,
     getTypeDef,
     getUniqueFields,
@@ -1181,13 +1180,11 @@ export class ZodSchemaFactory<
             if (withoutFields.includes(field)) {
                 return;
             }
-            const fieldDef = requireField(this.schema, model, field);
-            if (fieldDef.computed) {
-                return;
-            }
 
-            if (this.isDelegateDiscriminator(fieldDef)) {
-                // discriminator field is auto-assigned
+            const fieldDef = requireField(this.schema, model, field);
+
+            // skip computed fields and discriminator fields, they cannot be set on create
+            if (fieldDef.computed || fieldDef.isDiscriminator) {
                 return;
             }
 
@@ -1292,15 +1289,6 @@ export class ZodSchemaFactory<
                 ...(canBeArray ? [z.array(checkedCreateSchema)] : []),
             ]);
         }
-    }
-
-    private isDelegateDiscriminator(fieldDef: FieldDef) {
-        if (!fieldDef.originModel) {
-            // not inherited from a delegate
-            return false;
-        }
-        const discriminatorField = getDiscriminatorField(this.schema, fieldDef.originModel);
-        return discriminatorField === fieldDef.name;
     }
 
     @cache()
@@ -1546,7 +1534,13 @@ export class ZodSchemaFactory<
             if (withoutFields.includes(field)) {
                 return;
             }
+
             const fieldDef = requireField(this.schema, model, field);
+
+            if (fieldDef.computed || fieldDef.isDiscriminator) {
+                // skip computed fields and discriminator fields, they cannot be updated
+                return;
+            }
 
             if (fieldDef.relation) {
                 if (skipRelations) {
