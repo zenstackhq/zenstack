@@ -859,7 +859,6 @@ describe('Delegate model tests ', () => {
                     where: { id: 2 },
                     create: {
                         viewCount: 10,
-                        assetType: 'Video',
                     },
                     update: {
                         viewCount: { increment: 1 },
