@@ -374,4 +374,40 @@ model Post extends Content {
             );
         }
     });
+
+    it('rejects creating or updating computed fields', async () => {
+        const db = await createTestClient(
+            `
+model User {
+    id Int @id @default(autoincrement())
+    name String
+    upperName String @computed
+}
+`,
+            {
+                computedFields: {
+                    User: {
+                        upperName: (eb: any) => eb.fn('upper', ['name']),
+                    },
+                },
+            } as any,
+        );
+
+        await expect(
+            db.user.create({
+                data: { id: 1, name: 'Alex', upperName: 'SHOULD NOT WORK' },
+            }),
+        ).toBeRejectedByValidation(['upperName']);
+
+        await db.user.create({
+            data: { id: 1, name: 'Alex' },
+        });
+
+        await expect(
+            db.user.update({
+                where: { id: 1 },
+                data: { upperName: 'STILL SHOULD NOT WORK' },
+            }),
+        ).toBeRejectedByValidation(['upperName']);
+    });
 });
