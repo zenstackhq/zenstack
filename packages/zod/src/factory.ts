@@ -71,7 +71,8 @@ class SchemaFactory<Schema extends SchemaDef> {
         const fields: Record<string, z.ZodType> = {};
 
         for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
-            if (fieldDef.relation) {
+            // exclude relation, computed, delegate discriminator fields
+            if (fieldDef.relation || fieldDef.computed || fieldDef.isDiscriminator) {
                 continue;
             }
 
@@ -96,7 +97,8 @@ class SchemaFactory<Schema extends SchemaDef> {
         const fields: Record<string, z.ZodType> = {};
 
         for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
-            if (fieldDef.relation) {
+            // exclude relation, computed, delegate discriminator fields
+            if (fieldDef.relation || fieldDef.computed || fieldDef.isDiscriminator) {
                 continue;
             }
 

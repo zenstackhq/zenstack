@@ -48,3 +48,31 @@ model Post {
     author    User?   @relation(fields: [authorId], references: [id])
     authorId  String?
 }
+
+// --- Computed fields ---
+model Product {
+    id          String @id @default(cuid())
+    name        String
+    price       Float
+    discount    Float  @default(0)
+    finalPrice  Float  @computed
+}
+
+// --- Delegate models ---
+model Asset {
+    id        Int      @id @default(autoincrement())
+    createdAt DateTime @default(now())
+    assetType String
+
+    @@delegate(assetType)
+}
+
+model Video extends Asset {
+    duration Int
+    url      String
+}
+
+model Image extends Asset {
+    format String
+    width  Int
+}

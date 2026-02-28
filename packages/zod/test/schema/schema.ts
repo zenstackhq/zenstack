@@ -145,6 +145,157 @@ export class SchemaType implements SchemaDef {
             uniqueFields: {
                 id: { type: "String" }
             }
+        },
+        Product: {
+            name: "Product",
+            fields: {
+                id: {
+                    name: "id",
+                    type: "String",
+                    id: true,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }],
+                    default: ExpressionUtils.call("cuid")
+                },
+                name: {
+                    name: "name",
+                    type: "String"
+                },
+                price: {
+                    name: "price",
+                    type: "Float"
+                },
+                discount: {
+                    name: "discount",
+                    type: "Float",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }],
+                    default: 0
+                },
+                finalPrice: {
+                    name: "finalPrice",
+                    type: "Float",
+                    attributes: [{ name: "@computed" }],
+                    computed: true
+                }
+            },
+            idFields: ["id"],
+            uniqueFields: {
+                id: { type: "String" }
+            },
+            computedFields: {
+                finalPrice(_context: {
+                    modelAlias: string;
+                }): number {
+                    throw new Error("This is a stub for computed field");
+                }
+            }
+        },
+        Asset: {
+            name: "Asset",
+            fields: {
+                id: {
+                    name: "id",
+                    type: "Int",
+                    id: true,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }],
+                    default: ExpressionUtils.call("autoincrement")
+                },
+                createdAt: {
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }],
+                    default: ExpressionUtils.call("now")
+                },
+                assetType: {
+                    name: "assetType",
+                    type: "String",
+                    isDiscriminator: true
+                }
+            },
+            attributes: [
+                { name: "@@delegate", args: [{ name: "discriminator", value: ExpressionUtils.field("assetType") }] }
+            ],
+            idFields: ["id"],
+            uniqueFields: {
+                id: { type: "Int" }
+            },
+            isDelegate: true,
+            subModels: ["Video", "Image"]
+        },
+        Video: {
+            name: "Video",
+            baseModel: "Asset",
+            fields: {
+                id: {
+                    name: "id",
+                    type: "Int",
+                    id: true,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }],
+                    default: ExpressionUtils.call("autoincrement")
+                },
+                createdAt: {
+                    name: "createdAt",
+                    type: "DateTime",
+                    originModel: "Asset",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }],
+                    default: ExpressionUtils.call("now")
+                },
+                assetType: {
+                    name: "assetType",
+                    type: "String",
+                    originModel: "Asset",
+                    isDiscriminator: true
+                },
+                duration: {
+                    name: "duration",
+                    type: "Int"
+                },
+                url: {
+                    name: "url",
+                    type: "String"
+                }
+            },
+            idFields: ["id"],
+            uniqueFields: {
+                id: { type: "Int" }
+            }
+        },
+        Image: {
+            name: "Image",
+            baseModel: "Asset",
+            fields: {
+                id: {
+                    name: "id",
+                    type: "Int",
+                    id: true,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }],
+                    default: ExpressionUtils.call("autoincrement")
+                },
+                createdAt: {
+                    name: "createdAt",
+                    type: "DateTime",
+                    originModel: "Asset",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }],
+                    default: ExpressionUtils.call("now")
+                },
+                assetType: {
+                    name: "assetType",
+                    type: "String",
+                    originModel: "Asset",
+                    isDiscriminator: true
+                },
+                format: {
+                    name: "format",
+                    type: "String"
+                },
+                width: {
+                    name: "width",
+                    type: "Int"
+                }
+            },
+            idFields: ["id"],
+            uniqueFields: {
+                id: { type: "Int" }
+            }
         }
     } as const;
     typeDefs = {
