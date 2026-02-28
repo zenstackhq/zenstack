@@ -5,7 +5,7 @@
 
 /* eslint-disable */
 
-import { type SchemaDef } from "@zenstackhq/orm/schema";
+import { type SchemaDef } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
     provider = {
         type: "sqlite"

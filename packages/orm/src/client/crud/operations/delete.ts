@@ -1,6 +1,5 @@
 import { match } from 'ts-pattern';
 import type { SchemaDef } from '../../../schema';
-import type { DeleteArgs, DeleteManyArgs } from '../../crud-types';
 import { createNotFoundError, createRejectedByPolicyError, RejectedByPolicyReason } from '../../errors';
 import { BaseOperationHandler } from './base';
 
@@ -17,7 +16,7 @@ export class DeleteOperationHandler<Schema extends SchemaDef> extends BaseOperat
             .exhaustive();
     }
 
-    async runDelete(args: DeleteArgs<Schema, Extract<keyof Schema['models'], string>>) {
+    async runDelete(args: any) {
         // analyze if we need to read back the deleted record, or just return delete result
         const { needReadBack, selectedFields } = this.mutationNeedsReadBack(this.model, args);
 
@@ -51,7 +50,7 @@ export class DeleteOperationHandler<Schema extends SchemaDef> extends BaseOperat
         return result;
     }
 
-    async runDeleteMany(args: DeleteManyArgs<Schema, Extract<keyof Schema['models'], string>> | undefined) {
+    async runDeleteMany(args?: any) {
         return await this.safeTransaction(async (tx) => {
             const result = await this.delete(tx, this.model, args?.where, args?.limit);
             return { count: Number(result.numAffectedRows ?? 0) };

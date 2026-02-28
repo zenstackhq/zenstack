@@ -20,6 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Testing
 
 - E2E tests are in `tests/e2e/` directory
+- Regression tests for GitHub issues go in `tests/regression/test/` as `issue-{number}.test.ts`
 
 ### ZenStack CLI Commands
 

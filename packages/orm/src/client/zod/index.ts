@@ -1,0 +1,1 @@
+export { createQuerySchemaFactory } from './factory';

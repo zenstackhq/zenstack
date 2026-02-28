@@ -21,6 +21,7 @@ type CommonFields {
 model User with CommonFields {
     email    String   @unique
     name     String?
+    age      Int?
     password String   @ignore
     role     Role     @default(USER)
     posts    Post[]

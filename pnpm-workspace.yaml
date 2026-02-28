@@ -18,17 +18,17 @@ catalog:
     kysely: ~0.28.8
     langium: 3.5.0
     langium-cli: 3.5.0
-    next: 16.0.10
-    nuxt: 4.2.2
-    '@sveltejs/kit': 2.49.1
+    next: 16.1.6
+    nuxt: 4.3.1
+    '@sveltejs/kit': 2.53.2
     pg: ^8.13.1
     mysql2: ^3.16.1
     prisma: ^6.19.0
     react: 19.2.0
     react-dom: 19.2.0
     sql.js: ^1.13.0
-    svelte: 5.45.6
-    tmp: ^0.2.3
+    svelte: 5.53.5
+    tmp: ^0.2.4
     ts-pattern: ^5.7.1
     typescript: ^5.9.3
     vue: 3.5.22

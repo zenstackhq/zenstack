@@ -13,14 +13,14 @@ import { PostgresDialect } from '@zenstackhq/orm/dialects/postgres';
 import { SqliteDialect } from '@zenstackhq/orm/dialects/sqlite';
 import { RPCApiHandler } from '@zenstackhq/server/api';
 import { ZenStackMiddleware } from '@zenstackhq/server/express';
-import SQLite from 'better-sqlite3';
+import type BetterSqlite3 from 'better-sqlite3';
 import colors from 'colors';
 import cors from 'cors';
 import express from 'express';
 import { createJiti } from 'jiti';
-import { createPool as createMysqlPool } from 'mysql2';
+import type { createPool as MysqlCreatePool } from 'mysql2';
 import path from 'node:path';
-import { Pool as PgPool } from 'pg';
+import type { Pool as PgPoolType } from 'pg';
 import { CliError } from '../cli-error';
 import { getVersion } from '../utils/version-utils';
 import { getOutputPath, getSchemaFile, loadSchemaDocument } from './action-utils';
@@ -67,7 +67,7 @@ export async function run(options: Options) {
 
     const provider = getStringLiteral(dataSource?.fields.find((f) => f.name === 'provider')?.value)!;
 
-    const dialect = createDialect(provider, databaseUrl!, outputPath);
+    const dialect = await createDialect(provider, databaseUrl!, outputPath);
 
     const jiti = createJiti(import.meta.url);
 
@@ -137,9 +137,17 @@ function redactDatabaseUrl(url: string): string {
     }
 }
 
-function createDialect(provider: string, databaseUrl: string, outputPath: string) {
+async function createDialect(provider: string, databaseUrl: string, outputPath: string) {
     switch (provider) {
         case 'sqlite': {
+            let SQLite: typeof BetterSqlite3;
+            try {
+                SQLite = (await import('better-sqlite3')).default;
+            } catch {
+                throw new CliError(
+                    `Package "better-sqlite3" is required for SQLite support. Please install it with: npm install better-sqlite3`,
+                );
+            }
             let resolvedUrl = databaseUrl.trim();
             if (resolvedUrl.startsWith('file:')) {
                 const filePath = resolvedUrl.substring('file:'.length);
@@ -152,20 +160,36 @@ function createDialect(provider: string, databaseUrl: string, outputPath: string
                 database: new SQLite(resolvedUrl),
             });
         }
-        case 'postgresql':
+        case 'postgresql': {
+            let PgPool: typeof PgPoolType;
+            try {
+                PgPool = (await import('pg')).Pool;
+            } catch {
+                throw new CliError(
+                    `Package "pg" is required for PostgreSQL support. Please install it with: npm install pg`,
+                );
+            }
             console.log(colors.gray(`Connecting to PostgreSQL database at: ${redactDatabaseUrl(databaseUrl)}`));
             return new PostgresDialect({
                 pool: new PgPool({
                     connectionString: databaseUrl,
                 }),
             });
-
-        case 'mysql':
+        }
+        case 'mysql': {
+            let createMysqlPool: typeof MysqlCreatePool;
+            try {
+                createMysqlPool = (await import('mysql2')).createPool;
+            } catch {
+                throw new CliError(
+                    `Package "mysql2" is required for MySQL support. Please install it with: npm install mysql2`,
+                );
+            }
             console.log(colors.gray(`Connecting to MySQL database at: ${redactDatabaseUrl(databaseUrl)}`));
             return new MysqlDialect({
                 pool: createMysqlPool(databaseUrl),
             });
-
+        }
         default:
             throw new CliError(`Unsupported database provider: ${provider}`);
     }

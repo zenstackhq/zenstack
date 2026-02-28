@@ -352,7 +352,7 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         return this.eb.exists(
             this.eb
                 .selectFrom(this.eb.fn('jsonb_array_elements', [receiver]).as('$items'))
-                .select(this.eb.lit(1).as('$t'))
+                .select(this.eb.lit(1).as('_'))
                 .where(buildFilter(this.eb.ref('$items.value'))),
         );
     }

@@ -5,7 +5,7 @@ import { match, P } from 'ts-pattern';
 import { AnyNullClass, DbNullClass, JsonNullClass } from '../../../common-types';
 import type { BuiltinType, DataSourceProviderType, FieldDef, GetModels, ModelDef, SchemaDef } from '../../../schema';
 import type { OrArray } from '../../../utils/type-utils';
-import { AGGREGATE_OPERATORS, DELEGATE_JOINED_FIELD_PREFIX, LOGICAL_COMBINATORS } from '../../constants';
+import { AggregateOperators, DELEGATE_JOINED_FIELD_PREFIX, LOGICAL_COMBINATORS } from '../../constants';
 import type {
     BooleanFilter,
     BytesFilter,
@@ -34,6 +34,7 @@ import {
     requireIdFields,
     requireModel,
     requireTypeDef,
+    tmpAlias,
 } from '../../query-utils';
 
 export abstract class BaseCrudDialect<Schema extends SchemaDef> {
@@ -117,7 +118,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
     buildFilterSortTake(
         model: string,
-        args: FindArgs<Schema, GetModels<Schema>, true>,
+        args: FindArgs<Schema, GetModels<Schema>, any, true>,
         query: SelectQueryBuilder<any, any, {}>,
         modelAlias: string,
     ) {
@@ -298,7 +299,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             }
         }
 
-        const joinAlias = `${modelAlias}$${field}`;
+        const joinAlias = tmpAlias(`${modelAlias}$${field}`);
         const joinPairs = buildJoinPairs(
             this.schema,
             model,
@@ -307,7 +308,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             field,
             joinAlias,
         );
-        const filterResultField = `${field}$filter`;
+        const filterResultField = tmpAlias(`${field}$flt`);
 
         const joinSelect = this.eb
             .selectFrom(`${fieldDef.type} as ${joinAlias}`)
@@ -383,7 +384,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
         // evaluating the filter involves creating an inner select,
         // give it an alias to avoid conflict
-        const relationFilterSelectAlias = `${modelAlias}$${field}$filter`;
+        const relationFilterSelectAlias = tmpAlias(`${modelAlias}$${field}$flt`);
 
         const buildPkFkWhereRefs = (eb: ExpressionBuilder<any, any>) => {
             const m2m = getManyToManyRelation(this.schema, model, field);
@@ -828,7 +829,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                 })
                 .with('not', () => this.eb.not(recurse(value)))
                 // aggregations
-                .with(P.union(...AGGREGATE_OPERATORS), (op) => {
+                .with(P.union(...AggregateOperators), (op) => {
                     const innerResult = this.buildStandardFilter(
                         type,
                         value,
@@ -1040,7 +1041,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                     for (const [k, v] of Object.entries<SortOrder>(value)) {
                         invariant(v === 'asc' || v === 'desc', `invalid orderBy value for field "${field}"`);
                         result = result.orderBy(
-                            (eb) => aggregate(eb, buildFieldRef(model, k, modelAlias), field as AGGREGATE_OPERATORS),
+                            (eb) => aggregate(eb, buildFieldRef(model, k, modelAlias), field as AggregateOperators),
                             this.negateSort(v, negated),
                         );
                     }
@@ -1083,7 +1084,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                             );
                             const sort = this.negateSort(value._count, negated);
                             result = result.orderBy((eb) => {
-                                const subQueryAlias = `${modelAlias}$orderBy$${field}$count`;
+                                const subQueryAlias = tmpAlias(`${modelAlias}$ob$${field}$ct`);
                                 let subQuery = this.buildSelectModel(relationModel, subQueryAlias);
                                 const joinPairs = buildJoinPairs(this.schema, model, modelAlias, field, subQueryAlias);
                                 subQuery = subQuery.where(() =>
@@ -1099,7 +1100,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                         }
                     } else {
                         // order by to-one relation
-                        const joinAlias = `${modelAlias}$orderBy$${index}`;
+                        const joinAlias = tmpAlias(`${modelAlias}$ob$${index}`);
                         result = result.leftJoin(`${relationModel} as ${joinAlias}`, (join) => {
                             const joinPairs = buildJoinPairs(this.schema, model, modelAlias, field, joinAlias);
                             return join.on((eb) =>
@@ -1164,7 +1165,6 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             return (omit as any)[field];
         }
 
-        // options-level
         if (
             this.options.omit?.[model] &&
             typeof this.options.omit[model] === 'object' &&
@@ -1181,7 +1181,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
     protected buildModelSelect(
         model: GetModels<Schema>,
         subQueryAlias: string,
-        payload: true | FindArgs<Schema, GetModels<Schema>, true>,
+        payload: true | FindArgs<Schema, GetModels<Schema>, any, true>,
         selectAllFields: boolean,
     ) {
         let subQuery = this.buildSelectModel(model, subQueryAlias);
@@ -1371,7 +1371,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
     protected canJoinWithoutNestedSelect(
         modelDef: ModelDef,
-        payload: boolean | FindArgs<Schema, GetModels<Schema>, true>,
+        payload: boolean | FindArgs<Schema, GetModels<Schema>, any, true>,
     ) {
         if (modelDef.computedFields) {
             // computed fields requires explicit select
@@ -1412,7 +1412,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         model: string,
         relationField: string,
         parentAlias: string,
-        payload: true | FindArgs<Schema, GetModels<Schema>, true>,
+        payload: true | FindArgs<Schema, GetModels<Schema>, any, true>,
     ): SelectQueryBuilder<any, any, any>;
 
     /**

@@ -2,7 +2,7 @@
 // NOTE: Test fixture schema used for TanStack Query typing tests.                            //
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-import { type SchemaDef, ExpressionUtils } from '@zenstackhq/orm/schema';
+import { type SchemaDef, ExpressionUtils } from '@zenstackhq/schema';
 
 export class SchemaType implements SchemaDef {
     provider = {

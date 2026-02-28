@@ -306,7 +306,7 @@ export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDiale
         return this.eb.exists(
             this.eb
                 .selectFrom(sql`JSON_TABLE(${receiver}, '$[*]' COLUMNS(value JSON PATH '$'))`.as('$items'))
-                .select(this.eb.lit(1).as('$t'))
+                .select(this.eb.lit(1).as('_'))
                 .where(buildFilter(this.eb.ref('$items.value'))),
         );
     }

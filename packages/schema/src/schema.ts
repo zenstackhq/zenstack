@@ -18,18 +18,18 @@ export type SchemaDef = {
     authType?: GetModels<SchemaDef> | GetTypeDefs<SchemaDef>;
 };
 
+export type UniqueFieldsInfo =
+    // singular unique field
+    | Pick<FieldDef, 'type'>
+    // compound unique field
+    | Record<string, Pick<FieldDef, 'type'>>;
+
 export type ModelDef = {
     name: string;
     baseModel?: string;
     fields: Record<string, FieldDef>;
     attributes?: readonly AttributeApplication[];
-    uniqueFields: Record<
-        string,
-        // singular unique field
-        | Pick<FieldDef, 'type'>
-        // compound unique field
-        | Record<string, Pick<FieldDef, 'type'>>
-    >;
+    uniqueFields: Record<string, UniqueFieldsInfo>;
     idFields: readonly string[];
     computedFields?: Record<string, Function>;
     isDelegate?: boolean;
@@ -139,7 +139,7 @@ export type GetSubModels<Schema extends SchemaDef, Model extends GetModels<Schem
 
 export type GetModel<Schema extends SchemaDef, Model extends GetModels<Schema>> = Schema['models'][Model];
 
-export type GetEnums<Schema extends SchemaDef> = keyof Schema['enums'];
+export type GetEnums<Schema extends SchemaDef> = Extract<keyof Schema['enums'], string>;
 
 export type GetEnum<Schema extends SchemaDef, Enum extends GetEnums<Schema>> = Schema['enums'][Enum] extends EnumDef
     ? Schema['enums'][Enum]['values']
@@ -287,7 +287,7 @@ export type FieldHasDefault<
     Field extends GetModelFields<Schema, Model>,
 > = GetModelField<Schema, Model, Field>['default'] extends object | number | string | boolean
     ? true
-    : GetModelField<Schema, Model, Field>['updatedAt'] extends (true | UpdatedAtInfo)
+    : GetModelField<Schema, Model, Field>['updatedAt'] extends true | UpdatedAtInfo
       ? true
       : GetModelField<Schema, Model, Field>['relation'] extends { hasDefault: true }
         ? true

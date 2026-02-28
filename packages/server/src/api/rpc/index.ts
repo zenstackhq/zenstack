@@ -1,5 +1,5 @@
 import { lowerCaseFirst, safeJSONStringify } from '@zenstackhq/common-helpers';
-import { ORMError, ORMErrorReason, type ClientContract } from '@zenstackhq/orm';
+import { CoreCrudOperations, ORMError, ORMErrorReason, type ClientContract } from '@zenstackhq/orm';
 import type { SchemaDef } from '@zenstackhq/orm/schema';
 import SuperJSON from 'superjson';
 import { match } from 'ts-pattern';
@@ -10,6 +10,9 @@ import { getProcedureDef, mapProcedureArgs, PROCEDURE_ROUTE_PREFIXES } from '../
 import { loggerSchema } from '../common/schemas';
 import { processSuperJsonRequestPayload, unmarshalQ } from '../common/utils';
 import { log, registerCustomSerializers } from '../utils';
+
+const TRANSACTION_ROUTE_PREFIX = '$transaction' as const;
+const VALID_OPS = new Set(CoreCrudOperations as unknown as string[]);
 
 registerCustomSerializers();
 
@@ -67,6 +70,15 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
                 method: method.toUpperCase(),
                 proc: op,
                 query,
+                requestBody,
+            });
+        }
+
+        if (model === TRANSACTION_ROUTE_PREFIX) {
+            return this.handleTransaction({
+                client,
+                method: method.toUpperCase(),
+                type: op,
                 requestBody,
             });
         }
@@ -182,6 +194,91 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
             } else {
                 return this.makeGenericErrorResponse(err);
             }
+        }
+    }
+
+    private async handleTransaction({
+        client,
+        method,
+        type,
+        requestBody,
+    }: {
+        client: ClientContract<Schema>;
+        method: string;
+        type: string;
+        requestBody?: unknown;
+    }): Promise<Response> {
+        if (method !== 'POST') {
+            return this.makeBadInputErrorResponse('invalid request method, only POST is supported');
+        }
+
+        if (type !== 'sequential') {
+            return this.makeBadInputErrorResponse(`unsupported transaction type: ${type}`);
+        }
+
+        if (!requestBody || !Array.isArray(requestBody) || requestBody.length === 0) {
+            return this.makeBadInputErrorResponse('request body must be a non-empty array of operations');
+        }
+
+        const processedOps: Array<{ model: string; op: string; args: unknown }> = [];
+
+        for (let i = 0; i < requestBody.length; i++) {
+            const item = requestBody[i];
+            if (!item || typeof item !== 'object') {
+                return this.makeBadInputErrorResponse(`operation at index ${i} must be an object`);
+            }
+            const { model: itemModel, op: itemOp, args: itemArgs } = item as any;
+            if (!itemModel || typeof itemModel !== 'string') {
+                return this.makeBadInputErrorResponse(`operation at index ${i} is missing a valid "model" field`);
+            }
+            if (!itemOp || typeof itemOp !== 'string') {
+                return this.makeBadInputErrorResponse(`operation at index ${i} is missing a valid "op" field`);
+            }
+            if (!VALID_OPS.has(itemOp)) {
+                return this.makeBadInputErrorResponse(`operation at index ${i} has invalid op: ${itemOp}`);
+            }
+            if (!this.isValidModel(client, lowerCaseFirst(itemModel))) {
+                return this.makeBadInputErrorResponse(`operation at index ${i} has unknown model: ${itemModel}`);
+            }
+            if (itemArgs !== undefined && itemArgs !== null && (typeof itemArgs !== 'object' || Array.isArray(itemArgs))) {
+                return this.makeBadInputErrorResponse(`operation at index ${i} has invalid "args" field`);
+            }
+
+            const { result: processedArgs, error: argsError } = await this.processRequestPayload(itemArgs ?? {});
+            if (argsError) {
+                return this.makeBadInputErrorResponse(`operation at index ${i}: ${argsError}`);
+            }
+            processedOps.push({ model: lowerCaseFirst(itemModel), op: itemOp, args: processedArgs });
+        }
+
+        try {
+            const promises = processedOps.map(({ model, op, args }) => {
+                return (client as any)[model][op](args);
+            });
+
+            log(this.options.log, 'debug', () => `handling "$transaction" request with ${promises.length} operations`);
+
+            const clientResult = await client.$transaction(promises as any);
+
+            const { json, meta } = SuperJSON.serialize(clientResult);
+            const responseBody: any = { data: json };
+            if (meta) {
+                responseBody.meta = { serialization: meta };
+            }
+
+            const response = { status: 200, body: responseBody };
+            log(
+                this.options.log,
+                'debug',
+                () => `sending response for "$transaction" request: ${safeJSONStringify(response)}`,
+            );
+            return response;
+        } catch (err) {
+            log(this.options.log, 'error', `error occurred when handling "$transaction" request`, err);
+            if (err instanceof ORMError) {
+                return this.makeORMErrorResponse(err);
+            }
+            return this.makeGenericErrorResponse(err);
         }
     }
 

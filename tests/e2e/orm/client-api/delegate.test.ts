@@ -27,7 +27,6 @@ describe('Delegate model tests ', () => {
                     data: {
                         duration: 100,
                         url: 'abc',
-                        videoType: 'MyVideo',
                     },
                 }),
             ).rejects.toThrow('is a delegate');
@@ -36,7 +35,7 @@ describe('Delegate model tests ', () => {
                     data: {
                         assets: {
                             // @ts-expect-error
-                            create: { assetType: 'Video' },
+                            create: {},
                         },
                     },
                 }),
@@ -94,6 +93,19 @@ describe('Delegate model tests ', () => {
                 galleryId: expect.any(Number),
                 assetType: 'Image',
             });
+
+            // discriminator field cannot be set on create
+            await expect(
+                client.ratedVideo.create({
+                    data: {
+                        duration: 100,
+                        url: 'abc',
+                        rating: 5,
+                        // @ts-expect-error
+                        videoType: 'RatedVideo',
+                    },
+                }),
+            ).toBeRejectedByValidation(['videoType']);
         });
 
         it('works with createMany', async () => {
@@ -636,6 +648,15 @@ describe('Delegate model tests ', () => {
                 id: 2,
                 viewCount: 3,
             });
+
+            // discriminator field cannot be updated
+            await expect(
+                client.ratedVideo.update({
+                    where: { id: 2 },
+                    // @ts-expect-error
+                    data: { videoType: 'MyVideo' },
+                }),
+            ).toBeRejectedByValidation(['videoType']);
         });
 
         it('works with nested update', async () => {
@@ -838,7 +859,6 @@ describe('Delegate model tests ', () => {
                     where: { id: 2 },
                     create: {
                         viewCount: 10,
-                        assetType: 'Video',
                     },
                     update: {
                         viewCount: { increment: 1 },
