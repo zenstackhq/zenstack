@@ -20,6 +20,8 @@ import {
     ValueNode,
     ValuesNode,
     WhereNode,
+    IdentifierNode,
+    OperationNodeTransformer,
     type ConnectionProvider,
     type DatabaseConnection,
     type DialectAdapter,
@@ -37,12 +39,32 @@ import { getCrudDialect } from '../crud/dialects';
 import type { BaseCrudDialect } from '../crud/dialects/base-dialect';
 import { createDBQueryError, createInternalError, ORMError } from '../errors';
 import type { AfterEntityMutationCallback, OnKyselyQueryCallback } from '../plugin';
-import { requireIdFields, stripAlias } from '../query-utils';
+import { requireIdFields, stripAlias, TEMP_ALIAS_PREFIX } from '../query-utils';
 import { QueryNameMapper } from './name-mapper';
 import { TempAliasTransformer } from './temp-alias-transformer';
 import type { ZenStackDriver } from './zenstack-driver';
 
 type MutationQueryNode = InsertQueryNode | UpdateQueryNode | DeleteQueryNode;
+// PostgreSQL limits identifier length to 63 bytes and silently truncates longer names.
+// Overlong temp aliases can collide after truncation, so we switch to compact aliases past this threshold.
+const MAX_SAFE_TEMP_ALIAS_LENGTH = 63;
+
+class TempAliasLengthChecker extends OperationNodeTransformer {
+    private maxTempAliasLength = 0;
+
+    run(node: OperationNode) {
+        this.maxTempAliasLength = 0;
+        this.transformNode(node);
+        return this.maxTempAliasLength;
+    }
+
+    protected override transformIdentifier(node: IdentifierNode, queryId?: QueryId): IdentifierNode {
+        if (node.name.startsWith(TEMP_ALIAS_PREFIX)) {
+            this.maxTempAliasLength = Math.max(this.maxTempAliasLength, node.name.length);
+        }
+        return super.transformIdentifier(node, queryId);
+    }
+}
 
 type MutationInfo = {
     model: string;
@@ -634,7 +656,10 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
 
     private processTempAlias<Node extends RootOperationNode>(query: Node): Node {
         if (this.options.useCompactAliasNames === false) {
-            return query;
+            const maxTempAliasLength = new TempAliasLengthChecker().run(query);
+            if (maxTempAliasLength <= MAX_SAFE_TEMP_ALIAS_LENGTH) {
+                return query;
+            }
         }
         return new TempAliasTransformer().run(query);
     }
