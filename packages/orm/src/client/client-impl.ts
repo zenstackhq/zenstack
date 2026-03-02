@@ -75,7 +75,7 @@ export class ClientImpl {
             ...this.$options.functions,
         };
 
-        if (!baseClient) {
+        if (!baseClient && !options.skipValidationForComputedFields) {
             // validate computed fields configuration once for the root client
             this.validateComputedFieldsConfig();
         }

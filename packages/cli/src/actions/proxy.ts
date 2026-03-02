@@ -69,7 +69,9 @@ export async function run(options: Options) {
 
     const dialect = await createDialect(provider, databaseUrl!, outputPath);
 
-    const jiti = createJiti(import.meta.url);
+    const fileUrl = typeof __filename !== 'undefined' ? __filename : import.meta.url;
+
+    const jiti = createJiti(fileUrl);
 
     const schemaModule = (await jiti.import(path.join(outputPath, 'schema'))) as any;
 
@@ -92,6 +94,7 @@ export async function run(options: Options) {
         dialect: dialect,
         log: log && log.length > 0 ? log : undefined,
         omit: Object.keys(omit).length > 0 ? omit : undefined,
+        skipValidationForComputedFields: true,
     });
 
     // check whether the database is reachable
