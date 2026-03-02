@@ -31,11 +31,11 @@ export function addStringValidation(
     for (const attr of attributes) {
         switch (attr.name) {
             case '@length': {
-                const min = getArgValue<number>(attr.args?.[0]?.value);
+                const min = getArgValue<number>(attr.args?.find((a) => a.name === 'min')?.value);
                 if (min !== undefined) {
                     result = result.min(min);
                 }
-                const max = getArgValue<number>(attr.args?.[1]?.value);
+                const max = getArgValue<number>(attr.args?.find((a) => a.name === 'max')?.value);
                 if (max !== undefined) {
                     result = result.max(max);
                 }
@@ -248,11 +248,11 @@ export function addListValidation(
     let result = schema;
     for (const attr of attributes) {
         if (attr.name === '@length') {
-            const min = getArgValue<number>(attr.args?.[0]?.value);
+            const min = getArgValue<number>(attr.args?.find((a) => a.name === 'min')?.value);
             if (min !== undefined) {
                 result = result.min(min);
             }
-            const max = getArgValue<number>(attr.args?.[1]?.value);
+            const max = getArgValue<number>(attr.args?.find((a) => a.name === 'max')?.value);
             if (max !== undefined) {
                 result = result.max(max);
             }
