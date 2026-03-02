@@ -203,6 +203,11 @@ export type ClientOptions<Schema extends SchemaDef> = QueryOptions<Schema> & {
      * Defaults to `true`.
      */
     useCompactAliasNames?: boolean;
+
+    /**
+     * Whether to skip validation for computed fields.
+     */
+    skipValidationForComputedFields?: boolean;
 } & (HasComputedFields<Schema> extends true
         ? {
               /**

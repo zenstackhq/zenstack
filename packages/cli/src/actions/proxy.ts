@@ -69,7 +69,9 @@ export async function run(options: Options) {
 
     const dialect = await createDialect(provider, databaseUrl!, outputPath);
 
-    const jiti = createJiti(import.meta.url);
+    const fileUrl = typeof __filename !== 'undefined' ? __filename : import.meta.url;
+
+    const jiti = createJiti(fileUrl);
 
     const schemaModule = (await jiti.import(path.join(outputPath, 'schema'))) as any;
 
@@ -92,6 +94,7 @@ export async function run(options: Options) {
         dialect: dialect,
         log: log && log.length > 0 ? log : undefined,
         omit: Object.keys(omit).length > 0 ? omit : undefined,
+        skipValidationForComputedFields: true,
     });
 
     // check whether the database is reachable
@@ -195,7 +198,7 @@ async function createDialect(provider: string, databaseUrl: string, outputPath: 
     }
 }
 
-function startServer(client: ClientContract<any, any>, schema: any, options: Options) {
+export function createProxyApp(client: ClientContract<any, any>, schema: any): express.Application {
     const app = express();
     app.use(cors());
     app.use(express.json({ limit: '5mb' }));
@@ -212,6 +215,12 @@ function startServer(client: ClientContract<any, any>, schema: any, options: Opt
     app.get('/api/schema', (_req, res: express.Response) => {
         res.json({ ...schema, zenstackVersion: getVersion() });
     });
+
+    return app;
+}
+
+function startServer(client: ClientContract<any, any>, schema: any, options: Options) {
+    const app = createProxyApp(client, schema);
 
     const server = app.listen(options.port, () => {
         console.log(`ZenStack proxy server is running on port: ${options.port}`);
