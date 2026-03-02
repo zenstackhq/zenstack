@@ -198,7 +198,7 @@ async function createDialect(provider: string, databaseUrl: string, outputPath: 
     }
 }
 
-function startServer(client: ClientContract<any, any>, schema: any, options: Options) {
+export function createProxyApp(client: ClientContract<any, any>, schema: any): express.Application {
     const app = express();
     app.use(cors());
     app.use(express.json({ limit: '5mb' }));
@@ -215,6 +215,12 @@ function startServer(client: ClientContract<any, any>, schema: any, options: Opt
     app.get('/api/schema', (_req, res: express.Response) => {
         res.json({ ...schema, zenstackVersion: getVersion() });
     });
+
+    return app;
+}
+
+function startServer(client: ClientContract<any, any>, schema: any, options: Options) {
+    const app = createProxyApp(client, schema);
 
     const server = app.listen(options.port, () => {
         console.log(`ZenStack proxy server is running on port: ${options.port}`);
