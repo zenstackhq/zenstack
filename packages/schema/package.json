@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/schema",
-    "version": "3.4.2",
+    "version": "3.4.3",
     "description": "ZenStack Runtime Schema",
     "type": "module",
     "scripts": {
@@ -27,6 +27,10 @@
                 "types": "./dist/index.d.cts",
                 "default": "./dist/index.cjs"
             }
+        },
+        "./package.json": {
+            "import": "./package.json",
+            "require": "./package.json"
         }
     },
     "dependencies": {

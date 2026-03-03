@@ -1,6 +1,6 @@
 {
     "name": "zenstack-v3",
-    "version": "3.4.2",
+    "version": "3.4.3",
     "description": "ZenStack",
     "packageManager": "pnpm@10.23.0",
     "type": "module",
