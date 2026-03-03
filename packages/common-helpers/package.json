@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/common-helpers",
-    "version": "3.4.2",
+    "version": "3.4.3",
     "description": "ZenStack Common Helpers",
     "type": "module",
     "scripts": {
