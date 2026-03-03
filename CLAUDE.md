@@ -75,6 +75,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Kysely query builder as escape hatch instead of raw SQL
 - Schema-first approach with ZModel DSL extension of Prisma schema language
 
+## Pull Requests
+
+- Always target the `dev` branch (not `main`) when creating PRs
+
 ## Development Notes
 
 - Always run `zenstack generate` after modifying ZModel schemas

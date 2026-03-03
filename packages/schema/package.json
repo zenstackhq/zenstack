@@ -27,6 +27,10 @@
                 "types": "./dist/index.d.cts",
                 "default": "./dist/index.cjs"
             }
+        },
+        "./package.json": {
+            "import": "./package.json",
+            "require": "./package.json"
         }
     },
     "dependencies": {
