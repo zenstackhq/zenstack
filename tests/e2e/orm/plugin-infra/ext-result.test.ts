@@ -280,6 +280,31 @@ describe('Plugin extended result fields', () => {
         expect((users[0] as any).upperName).toBeUndefined();
     });
 
+    it('should still compute virtual fields when their needs dependency is omitted', async () => {
+        const extDb = db.$use(
+            definePlugin({
+                id: 'greeting',
+                result: {
+                    User: {
+                        upperName: {
+                            needs: { name: true },
+                            compute: (user) => user.name.toUpperCase(),
+                        },
+                    },
+                },
+            }),
+        );
+
+        await extDb.user.create({ data: { name: 'Alice' } });
+
+        // omit the `name` field which is a `needs` dependency of `upperName`
+        const users = await extDb.user.findMany({ omit: { name: true } });
+        // upperName should still be computed even though its needs dep was omitted
+        expect(users[0]!.upperName).toBe('ALICE');
+        // the omitted `name` field should not appear in the result
+        expect((users[0] as any).name).toBeUndefined();
+    });
+
     it('should compose virtual fields from multiple plugins', async () => {
         const plugin1 = definePlugin({
             id: 'plugin1',

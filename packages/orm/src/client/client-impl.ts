@@ -917,9 +917,17 @@ function prepareArgsForExtResult(
 
     if (omit && extResultDefs.size > 0) {
         const newOmit = { ...omit };
-        for (const fieldName of extResultDefs.keys()) {
+        for (const [fieldName, fieldDef] of extResultDefs) {
             if (newOmit[fieldName]) {
+                // strip ext result field names from omit (they don't exist in the DB)
                 delete newOmit[fieldName];
+            } else {
+                // this ext result field is active — ensure its needs are not omitted
+                for (const needField of Object.keys(fieldDef.needs)) {
+                    if (newOmit[needField]) {
+                        delete newOmit[needField];
+                    }
+                }
             }
         }
         result = { ...result, omit: newOmit };
@@ -1039,9 +1047,16 @@ function applyExtResultToRow(
     }
 
     if (omit && extResultDefs.size > 0) {
-        for (const fieldName of extResultDefs.keys()) {
+        for (const [fieldName, fieldDef] of extResultDefs) {
             if (omit[fieldName]) {
                 omittedExtResultFields!.add(fieldName);
+            } else {
+                // this ext result field is active — track needs that were originally omitted
+                for (const needField of Object.keys(fieldDef.needs)) {
+                    if (omit[needField]) {
+                        injectedNeedsFields.add(needField);
+                    }
+                }
             }
         }
     }
