@@ -2455,17 +2455,28 @@ export type ExtResultSelectOmitFields<ExtResult extends ExtResultBase, Model ext
  * - If T has `omit`, excludes ext result fields that are explicitly omitted.
  * - Otherwise, includes all ext result fields.
  */
+// Extracts keys from S whose values are truthy (not false or undefined)
+type TruthyKeys<S, Keys extends string> = {
+    [K in Keys]: K extends keyof S ? (S[K] extends false | undefined ? never : K) : never;
+}[Keys];
+
 export type SelectAwareExtResult<ExtResult extends ExtResultBase, Model extends string, T> =
     keyof ExtResult extends never
         ? {}
         : T extends { select: infer S }
             ? S extends null | undefined
                 ? ExtractExtResult<ExtResult, Model>
-                : Pick<ExtractExtResult<ExtResult, Model>, Extract<keyof S & string, keyof ExtractExtResult<ExtResult, Model>>>
+                : Pick<
+                      ExtractExtResult<ExtResult, Model>,
+                      TruthyKeys<S, Extract<keyof S & string, keyof ExtractExtResult<ExtResult, Model>>>
+                  >
             : T extends { omit: infer O }
                 ? O extends null | undefined
                     ? ExtractExtResult<ExtResult, Model>
-                    : Omit<ExtractExtResult<ExtResult, Model>, Extract<keyof O & string, keyof ExtractExtResult<ExtResult, Model>>>
+                    : Omit<
+                          ExtractExtResult<ExtResult, Model>,
+                          TruthyKeys<O, Extract<keyof O & string, keyof ExtractExtResult<ExtResult, Model>>>
+                      >
                 : ExtractExtResult<ExtResult, Model>;
 
 // #endregion

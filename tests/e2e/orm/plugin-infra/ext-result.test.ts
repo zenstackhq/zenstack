@@ -33,7 +33,7 @@ describe('Plugin extended result fields', () => {
         await extDb.user.create({ data: { name: 'Alice' } });
         await extDb.user.create({ data: { name: 'Bob' } });
 
-        const users = await extDb.user.findMany();
+        const users = await extDb.user.findMany({ orderBy: { id: 'asc' } });
         expect(users).toHaveLength(2);
         expect(users[0]!.greeting).toBe('Hello, Alice!');
         expect(users[1]!.greeting).toBe('Hello, Bob!');
@@ -164,7 +164,7 @@ describe('Plugin extended result fields', () => {
         expect(users[1]!.upperName).toBe('BOB');
     });
 
-    it('should NOT compute virtual fields on count, aggregate, exists, createMany, updateMany, deleteMany', async () => {
+    it('should NOT compute virtual fields on count, exists, createMany, updateMany, deleteMany', async () => {
         const extDb = db.$use(
             definePlugin({
                 id: 'greeting',

@@ -553,6 +553,19 @@ function createModelCrudHandler(
     const schema = client.$schema;
     const hasAnyExtResult = hasExtResultDefs(plugins);
 
+    // operations that return model rows and should have ext result fields applied
+    const extResultOperations = new Set<CoreCrudOperations>([
+        'findMany',
+        'findUnique',
+        'findFirst',
+        'create',
+        'createManyAndReturn',
+        'update',
+        'updateManyAndReturn',
+        'upsert',
+        'delete',
+    ]);
+
     const createPromise = (
         operation: CoreCrudOperations,
         nominalOperation: AllCrudOperations,
@@ -565,10 +578,10 @@ function createModelCrudHandler(
             let proceed = async (_args: unknown) => {
                 // prepare args for ext result: strip ext result field names from select/omit,
                 // inject needs fields into select (recursively handles nested relations)
-                const processedArgs =
-                    postProcess && hasAnyExtResult
-                        ? prepareArgsForExtResult(_args, model, schema, plugins)
-                        : _args;
+                const shouldApplyExtResult = hasAnyExtResult && extResultOperations.has(operation);
+                const processedArgs = shouldApplyExtResult
+                    ? prepareArgsForExtResult(_args, model, schema, plugins)
+                    : _args;
 
                 const _handler = txClient ? handler.withClient(txClient) : handler;
                 const r = await _handler.handle(operation, processedArgs);
@@ -583,7 +596,7 @@ function createModelCrudHandler(
                 }
 
                 // compute ext result fields (recursively handles nested relations)
-                if (result && postProcess && hasAnyExtResult) {
+                if (result && shouldApplyExtResult) {
                     result = applyExtResult(result, model, _args, schema, plugins);
                 }
 
