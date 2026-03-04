@@ -10,6 +10,7 @@ type TempAliasTransformerOptions = {
 
 class TempAliasLengthChecker extends OperationNodeTransformer {
     private hasOverlongTempAlias = false;
+    private readonly textEncoder = new TextEncoder();
 
     constructor(private readonly maxIdentifierLength: number) {
         super();
@@ -22,7 +23,12 @@ class TempAliasLengthChecker extends OperationNodeTransformer {
     }
 
     protected override transformIdentifier(node: IdentifierNode): IdentifierNode {
-        if (node.name.startsWith(TEMP_ALIAS_PREFIX) && node.name.length > this.maxIdentifierLength) {
+        if (!node.name.startsWith(TEMP_ALIAS_PREFIX)) {
+            return node;
+        }
+
+        const aliasByteLength = this.textEncoder.encode(node.name).length;
+        if (aliasByteLength > this.maxIdentifierLength) {
             this.hasOverlongTempAlias = true;
         }
         return node;
