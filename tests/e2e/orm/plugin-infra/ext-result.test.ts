@@ -1,4 +1,4 @@
-import { definePlugin, type ClientContract } from '@zenstackhq/orm';
+import { definePlugin, resultField, type ClientContract } from '@zenstackhq/orm';
 import { createTestClient } from '@zenstackhq/testtools';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { schema } from './ext-result/schema';
@@ -142,7 +142,7 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should compute virtual fields on createManyAndReturn', async () => {
-        if (db.$schema.provider.type === 'mysql') {
+        if ((db.$schema.provider.type as string) === 'mysql') {
             // MySQL does not support createManyAndReturn
             return;
         }
@@ -655,16 +655,14 @@ describe('Plugin extended result fields', () => {
         await extDb.post.create({ data: { title: 'Hello', authorId: 1 } });
 
         // Include posts with select that includes the ext result field
-        // Note: ext result fields in nested relation select/omit are not yet reflected in types
         const users = await extDb.user.findMany({
-            include: { posts: { select: { id: true, upperTitle: true } as any } },
+            include: { posts: { select: { id: true, upperTitle: true } } },
         });
-        const post = (users[0] as any).posts[0]!;
-        expect(post.upperTitle).toBe('HELLO');
+        expect(users[0]!.posts[0]!.upperTitle).toBe('HELLO');
         // title was injected as a need but should be stripped
-        expect(post.title).toBeUndefined();
+        expect((users[0]!.posts[0]! as any).title).toBeUndefined();
         // id was explicitly selected
-        expect(post.id).toBeDefined();
+        expect(users[0]!.posts[0]!.id).toBeDefined();
     });
 
     it('should NOT compute ext result fields on nested relations when omitted', async () => {
@@ -685,13 +683,11 @@ describe('Plugin extended result fields', () => {
         await extDb.user.create({ data: { name: 'Alice' } });
         await extDb.post.create({ data: { title: 'Hello', authorId: 1 } });
 
-        // Note: ext result fields in nested relation select/omit are not yet reflected in types
         const users = await extDb.user.findMany({
-            include: { posts: { omit: { upperTitle: true } as any } },
+            include: { posts: { omit: { upperTitle: true } } },
         });
-        const post = (users[0] as any).posts[0]!;
-        expect(post.title).toBe('Hello');
-        expect(post.upperTitle).toBeUndefined();
+        expect(users[0]!.posts[0]!.title).toBe('Hello');
+        expect((users[0]!.posts[0]! as any).upperTitle).toBeUndefined();
     });
 
     it('should compute ext result fields on relations fetched via select', async () => {
@@ -785,5 +781,36 @@ describe('Plugin extended result fields', () => {
         // But top-level ext result should work
         const _topLevel: string = plainUsers[0]!.upperName;
         expect(_topLevel).toBe('ALICE');
+    });
+
+    it('should support resultField helper for typed compute', async () => {
+        const extDb = db.$use(
+            definePlugin({
+                id: 'typed-compute',
+                result: {
+                    User: {
+                        upperName: resultField({
+                            needs: { name: true },
+                            compute: (user) => user.name.toUpperCase(),
+                        }),
+                    },
+                    Post: {
+                        titleAndContent: resultField({
+                            needs: { title: true, content: true },
+                            compute: (post) => `${post.title}: ${post.content ?? 'no content'}`,
+                        }),
+                    },
+                },
+            }),
+        );
+
+        await extDb.user.create({ data: { name: 'Alice' } });
+        await extDb.post.create({ data: { title: 'Hello', content: 'World', authorId: 1 } });
+
+        const users = await extDb.user.findMany();
+        expect(users[0]!.upperName).toBe('ALICE');
+
+        const posts = await extDb.post.findMany();
+        expect(posts[0]!.titleAndContent).toBe('Hello: World');
     });
 });

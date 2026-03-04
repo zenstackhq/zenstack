@@ -961,7 +961,7 @@ export type SelectIncludeOmit<
     /**
      * Explicitly select fields and relations to be returned by the query.
      */
-    select?: (SelectInput<Schema, Model, Options, AllowCount, AllowRelation> & ExtResultSelectOmitFields<ExtResult, Model & string>) | null;
+    select?: (SelectInput<Schema, Model, Options, AllowCount, AllowRelation, ExtResult> & ExtResultSelectOmitFields<ExtResult, Model & string>) | null;
 
     /**
      * Explicitly omit fields from the query result.
@@ -972,7 +972,7 @@ export type SelectIncludeOmit<
           /**
            * Specifies relations to be included in the query result. All scalar fields are included.
            */
-          include?: IncludeInput<Schema, Model, Options, AllowCount> | null;
+          include?: IncludeInput<Schema, Model, Options, AllowCount, ExtResult> | null;
       }
     : {});
 
@@ -982,9 +982,10 @@ export type SelectInput<
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     AllowCount extends boolean = true,
     AllowRelation extends boolean = true,
+    ExtResult extends ExtResultBase = {},
 > = {
     [Key in NonRelationFields<Schema, Model>]?: boolean;
-} & (AllowRelation extends true ? IncludeInput<Schema, Model, Options, AllowCount> : {});
+} & (AllowRelation extends true ? IncludeInput<Schema, Model, Options, AllowCount, ExtResult> : {});
 
 type SelectCount<Schema extends SchemaDef, Model extends GetModels<Schema>, Options extends QueryOptions<Schema>> =
     | boolean
@@ -1006,6 +1007,7 @@ export type IncludeInput<
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     AllowCount extends boolean = true,
+    ExtResult extends ExtResultBase = {},
 > = {
     [Key in RelationFields<Schema, Model> as RelationFieldType<Schema, Model, Key> extends GetSlicedModels<
         Schema,
@@ -1024,7 +1026,8 @@ export type IncludeInput<
                   ? true
                   : ModelFieldIsOptional<Schema, Model, Key> extends true
                     ? true
-                    : false
+                    : false,
+              ExtResult
           >;
 } & (AllowCount extends true
     ? // _count is only allowed if the model has to-many relations
