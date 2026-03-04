@@ -142,6 +142,11 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should compute virtual fields on createManyAndReturn', async () => {
+        if (db.$schema.provider.type === 'mysql') {
+            // MySQL does not support createManyAndReturn
+            return;
+        }
+
         const extDb = db.$use(
             definePlugin({
                 id: 'greeting',
