@@ -22,7 +22,18 @@ class TempAliasLengthChecker extends OperationNodeTransformer {
         return this.hasOverlongTempAlias;
     }
 
+    override transformNode<T extends OperationNode | undefined>(node: T, queryId?: QueryId): T {
+        if (this.hasOverlongTempAlias) {
+            return node;
+        }
+        return super.transformNode(node, queryId);
+    }
+
     protected override transformIdentifier(node: IdentifierNode): IdentifierNode {
+        if (this.hasOverlongTempAlias) {
+            return node;
+        }
+
         if (!node.name.startsWith(TEMP_ALIAS_PREFIX)) {
             return node;
         }
