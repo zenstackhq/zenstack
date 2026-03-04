@@ -8,52 +8,17 @@ type TempAliasTransformerOptions = {
     maxIdentifierLength?: number;
 };
 
-class TempAliasLengthChecker extends OperationNodeTransformer {
-    private hasOverlongTempAlias = false;
-    private readonly textEncoder = new TextEncoder();
-
-    constructor(private readonly maxIdentifierLength: number) {
-        super();
-    }
-
-    run(node: OperationNode) {
-        this.hasOverlongTempAlias = false;
-        this.transformNode(node);
-        return this.hasOverlongTempAlias;
-    }
-
-    override transformNode<T extends OperationNode | undefined>(node: T, queryId?: QueryId): T {
-        if (this.hasOverlongTempAlias) {
-            return node;
-        }
-        return super.transformNode(node, queryId);
-    }
-
-    protected override transformIdentifier(node: IdentifierNode): IdentifierNode {
-        if (this.hasOverlongTempAlias) {
-            return node;
-        }
-
-        if (!node.name.startsWith(TEMP_ALIAS_PREFIX)) {
-            return node;
-        }
-
-        const aliasByteLength = this.textEncoder.encode(node.name).length;
-        if (aliasByteLength > this.maxIdentifierLength) {
-            this.hasOverlongTempAlias = true;
-        }
-        return node;
-    }
-}
-
 /**
  * Kysely node transformer that replaces temporary aliases created during query construction with
  * shorter names while ensuring the same temp alias gets replaced with the same name.
  */
 export class TempAliasTransformer extends OperationNodeTransformer {
     private aliasMap = new Map<string, string>();
+    private readonly textEncoder = new TextEncoder();
     private readonly mode: TempAliasTransformerMode;
     private readonly maxIdentifierLength: number;
+    private detectOnly = false;
+    private hasOverlongTempAlias = false;
 
     constructor(options: TempAliasTransformerOptions = {}) {
         super();
@@ -69,7 +34,7 @@ export class TempAliasTransformer extends OperationNodeTransformer {
     run<T extends OperationNode>(node: T): T {
         this.aliasMap.clear();
         if (this.mode === 'compactLongNames') {
-            const hasOverlongAliases = new TempAliasLengthChecker(this.maxIdentifierLength).run(node);
+            const hasOverlongAliases = this.detectOverlongTempAlias(node);
             if (!hasOverlongAliases) {
                 return node;
             }
@@ -77,7 +42,27 @@ export class TempAliasTransformer extends OperationNodeTransformer {
         return this.transformNode(node);
     }
 
+    private detectOverlongTempAlias(node: OperationNode) {
+        this.detectOnly = true;
+        this.hasOverlongTempAlias = false;
+        this.transformNode(node);
+        this.detectOnly = false;
+        return this.hasOverlongTempAlias;
+    }
+
     protected override transformIdentifier(node: IdentifierNode, queryId?: QueryId): IdentifierNode {
+        if (this.detectOnly) {
+            if (!node.name.startsWith(TEMP_ALIAS_PREFIX)) {
+                return node;
+            }
+
+            const aliasByteLength = this.textEncoder.encode(node.name).length;
+            if (aliasByteLength > this.maxIdentifierLength) {
+                this.hasOverlongTempAlias = true;
+            }
+            return node;
+        }
+
         if (node.name.startsWith(TEMP_ALIAS_PREFIX)) {
             let mapped = this.aliasMap.get(node.name);
             if (!mapped) {
