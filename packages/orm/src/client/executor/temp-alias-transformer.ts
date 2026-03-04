@@ -42,7 +42,11 @@ export class TempAliasTransformer extends OperationNodeTransformer {
         super();
         this.mode = options.mode ?? 'alwaysCompact';
         // PostgreSQL limits identifier length to 63 bytes and silently truncates overlong aliases.
-        this.maxIdentifierLength = options.maxIdentifierLength ?? 63;
+        const maxIdentifierLength = options.maxIdentifierLength ?? 63;
+        if (!Number.isFinite(maxIdentifierLength) || !Number.isInteger(maxIdentifierLength) || maxIdentifierLength <= 0) {
+            throw new RangeError('maxIdentifierLength must be a positive integer');
+        }
+        this.maxIdentifierLength = maxIdentifierLength;
     }
 
     run<T extends OperationNode>(node: T): T {
