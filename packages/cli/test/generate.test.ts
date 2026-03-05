@@ -199,6 +199,79 @@ model User {
         expect(fs.existsSync(path.join(workDir, 'zenstack/input.ts'))).toBe(false);
     });
 
+    it('should report error for unresolvable plugin module', async () => {
+        const modelWithMissingPlugin = `
+plugin foo {
+    provider = '@zenstackhq/nonexistent-plugin'
+}
+
+model User {
+    id String @id @default(cuid())
+}
+`;
+        const { workDir } = await createProject(modelWithMissingPlugin);
+        expect(() => runCli('generate', workDir)).toThrow(/Cannot find plugin module/);
+    });
+
+    it('should succeed when plugin module exists but has no CLI generator', async () => {
+        const modelWithNoGeneratorPlugin = `
+plugin foo {
+    provider = './my-plugin.mjs'
+}
+
+model User {
+    id String @id @default(cuid())
+}
+`;
+        const { workDir } = await createProject(modelWithNoGeneratorPlugin);
+        // Create a plugin module that doesn't export a default CLI generator
+        fs.writeFileSync(path.join(workDir, 'zenstack/my-plugin.mjs'), 'export const name = "no-generator";');
+        runCli('generate', workDir);
+        // Should succeed without error, generating the default typescript output
+        expect(fs.existsSync(path.join(workDir, 'zenstack/schema.ts'))).toBe(true);
+    });
+
+    it('should succeed when plugin only provides a plugin.zmodel for custom attributes', async () => {
+        const modelWithZmodelOnlyPlugin = `
+plugin myPlugin {
+    provider = './my-plugin'
+}
+
+model User {
+    id String @id @default(cuid())
+    @@custom
+}
+`;
+        const { workDir } = await createProject(modelWithZmodelOnlyPlugin);
+        // Create a plugin directory with index.mjs (no default export) and a plugin.zmodel defining a custom attribute
+        const pluginDir = path.join(workDir, 'zenstack/my-plugin');
+        fs.mkdirSync(pluginDir, { recursive: true });
+        fs.writeFileSync(path.join(pluginDir, 'index.mjs'), 'export const name = "my-plugin";');
+        fs.writeFileSync(path.join(pluginDir, 'plugin.zmodel'), 'attribute @@custom()');
+        runCli('generate', workDir);
+        // Should succeed without error, generating the default typescript output
+        expect(fs.existsSync(path.join(workDir, 'zenstack/schema.ts'))).toBe(true);
+    });
+
+    it('should succeed when plugin provider is a .zmodel file', async () => {
+        const modelWithZmodelProvider = `
+plugin myPlugin {
+    provider = './custom-attrs/plugin.zmodel'
+}
+
+model User {
+    id String @id @default(cuid())
+    @@custom
+}
+`;
+        const { workDir } = await createProject(modelWithZmodelProvider);
+        const pluginDir = path.join(workDir, 'zenstack/custom-attrs');
+        fs.mkdirSync(pluginDir, { recursive: true });
+        fs.writeFileSync(path.join(pluginDir, 'plugin.zmodel'), 'attribute @@custom()');
+        runCli('generate', workDir);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/schema.ts'))).toBe(true);
+    });
+
     it('should prefer CLI options over @core/typescript plugin settings for generateModels and generateInput', async () => {
         const modelWithPlugin = `
 plugin typescript {

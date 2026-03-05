@@ -3,7 +3,7 @@ datasource db {
 }
 
 plugin policy {
-    provider = "../../../packages/plugins/policy"
+    provider = "../../../../packages/plugins/policy/plugin.zmodel"
 }
 
 model User {
