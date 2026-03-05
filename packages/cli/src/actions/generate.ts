@@ -340,10 +340,15 @@ async function loadPluginModule(provider: string, basePath: string) {
 
     // last resort, try to import as esm directly
     try {
-        return (await import(moduleSpec)).default as CliPlugin;
-    } catch {
-        // plugin may not export a generator so we simply ignore the error here
-        return undefined;
+        const mod = await import(moduleSpec);
+        // plugin may not export a generator, return undefined in that case
+        return mod.default as CliPlugin | undefined;
+    } catch (err) {
+        const errorCode = (err as NodeJS.ErrnoException)?.code;
+        if (errorCode === 'ERR_MODULE_NOT_FOUND' || errorCode === 'MODULE_NOT_FOUND') {
+            throw new CliError(`Cannot find plugin module "${provider}". Please make sure the package exists.`);
+        }
+        throw new CliError(`Failed to load plugin module "${provider}": ${(err as Error).message}`);
     }
 }
 
