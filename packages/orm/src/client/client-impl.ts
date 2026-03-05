@@ -553,19 +553,6 @@ function createModelCrudHandler(
     const schema = client.$schema;
     const hasAnyExtResult = hasExtResultFieldDefs(plugins);
 
-    // operations that return model rows and should have ext result fields applied
-    const extResultOperations = new Set<CoreCrudOperations>([
-        'findMany',
-        'findUnique',
-        'findFirst',
-        'create',
-        'createManyAndReturn',
-        'update',
-        'updateManyAndReturn',
-        'upsert',
-        'delete',
-    ]);
-
     const createPromise = (
         operation: CoreCrudOperations,
         nominalOperation: AllCrudOperations,
@@ -578,7 +565,7 @@ function createModelCrudHandler(
             let proceed = async (_args: unknown) => {
                 // prepare args for ext result: strip ext result field names from select/omit,
                 // inject needs fields into select (recursively handles nested relations)
-                const shouldApplyExtResult = hasAnyExtResult && extResultOperations.has(operation);
+                const shouldApplyExtResult = hasAnyExtResult && EXT_RESULT_OPERATIONS.has(operation);
                 const processedArgs = shouldApplyExtResult
                     ? prepareArgsForExtResult(_args, model, schema, plugins)
                     : _args;
@@ -858,6 +845,18 @@ function createModelCrudHandler(
 
 // #region Extended result field helpers
 
+// operations that return model rows and should have ext result fields applied
+const EXT_RESULT_OPERATIONS = new Set<CoreCrudOperations>([
+    'findMany',
+    'findUnique',
+    'findFirst',
+    'create',
+    'createManyAndReturn',
+    'update',
+    'updateManyAndReturn',
+    'upsert',
+    'delete',
+]);
 
 /**
  * Returns true if any plugin defines ext result fields for any model.
@@ -1011,13 +1010,14 @@ function applyExtResult(
     schema: SchemaDef,
     plugins: AnyPlugin[],
 ): unknown {
+    const extResultDefs = collectExtResultFieldDefs(model, plugins);
     if (Array.isArray(result)) {
         for (let i = 0; i < result.length; i++) {
-            result[i] = applyExtResultToRow(result[i], model, originalArgs, schema, plugins);
+            result[i] = applyExtResultToRow(result[i], model, originalArgs, schema, plugins, extResultDefs);
         }
         return result;
     } else {
-        return applyExtResultToRow(result, model, originalArgs, schema, plugins);
+        return applyExtResultToRow(result, model, originalArgs, schema, plugins, extResultDefs);
     }
 }
 
@@ -1027,13 +1027,13 @@ function applyExtResultToRow(
     originalArgs: unknown,
     schema: SchemaDef,
     plugins: AnyPlugin[],
+    extResultDefs: Map<string, ExtResultFieldDef>,
 ): unknown {
     if (!row || typeof row !== 'object') {
         return row;
     }
 
     const data = row as Record<string, unknown>;
-    const extResultDefs = collectExtResultFieldDefs(model, plugins);
     const typedArgs = (originalArgs && typeof originalArgs === 'object' ? originalArgs : {}) as Record<string, unknown>;
     const select = typedArgs['select'] as Record<string, unknown> | undefined;
     const omit = typedArgs['omit'] as Record<string, unknown> | undefined;
