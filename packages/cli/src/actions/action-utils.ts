@@ -230,6 +230,11 @@ export function getPluginProvider(plugin: Plugin) {
 }
 
 export async function loadPluginModule(provider: string, basePath: string) {
+    if (provider.toLowerCase().endsWith('.zmodel')) {
+        // provider is a zmodel file, no plugin code module to load
+        return undefined;
+    }
+
     let moduleSpec = provider;
     if (moduleSpec.startsWith('.')) {
         // relative to schema's path
