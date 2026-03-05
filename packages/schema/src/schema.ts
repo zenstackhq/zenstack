@@ -201,11 +201,13 @@ export type ScalarFields<
         ? never
         : GetModelField<Schema, Model, Key>['foreignKeyFor'] extends readonly string[]
           ? never
-          : IncludeComputed extends true
-            ? Key
-            : FieldIsComputed<Schema, Model, Key> extends true
-              ? never
-              : Key]: Key;
+          : GetModelField<Schema, Model, Key>['type'] extends 'Unsupported'
+            ? never
+            : IncludeComputed extends true
+              ? Key
+              : FieldIsComputed<Schema, Model, Key> extends true
+                ? never
+                : Key]: Key;
 };
 
 export type ForeignKeyFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = keyof {
@@ -221,7 +223,9 @@ export type ForeignKeyFields<Schema extends SchemaDef, Model extends GetModels<S
 export type NonRelationFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = keyof {
     [Key in GetModelFields<Schema, Model> as GetModelField<Schema, Model, Key>['relation'] extends object
         ? never
-        : Key]: Key;
+        : GetModelField<Schema, Model, Key>['type'] extends 'Unsupported'
+          ? never
+          : Key]: Key;
 };
 
 export type RelationFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = keyof {

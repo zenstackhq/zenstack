@@ -889,7 +889,7 @@ export class ZodSchemaFactory<
                 if (this.isModelAllowed(fieldDef.type)) {
                     fields[field] = this.makeRelationSelectIncludeSchema(model, field, options).optional();
                 }
-            } else {
+            } else if (fieldDef.type !== 'Unsupported') {
                 fields[field] = z.boolean().optional();
             }
         }
@@ -996,7 +996,7 @@ export class ZodSchemaFactory<
         const fields: Record<string, ZodType> = {};
         for (const field of Object.keys(modelDef.fields)) {
             const fieldDef = requireField(this.schema, model, field);
-            if (!fieldDef.relation) {
+            if (!fieldDef.relation && fieldDef.type !== 'Unsupported') {
                 if (this.options.allowQueryTimeOmitOverride !== false) {
                     // if override is allowed, use boolean
                     fields[field] = z.boolean().optional();
@@ -1067,8 +1067,8 @@ export class ZodSchemaFactory<
                         return relationOrderBy.optional();
                     });
                 }
-            } else {
-                // scalars
+            } else if (fieldDef.type !== 'Unsupported') {
+                // scalars (excluding Unsupported type fields)
                 if (fieldDef.optional) {
                     fields[field] = z
                         .union([
@@ -1099,7 +1099,9 @@ export class ZodSchemaFactory<
     @cache()
     private makeDistinctSchema(model: string) {
         const modelDef = requireModel(this.schema, model);
-        const nonRelationFields = Object.keys(modelDef.fields).filter((field) => !modelDef.fields[field]?.relation);
+        const nonRelationFields = Object.keys(modelDef.fields).filter(
+            (field) => !modelDef.fields[field]?.relation && modelDef.fields[field]?.type !== 'Unsupported',
+        );
         return nonRelationFields.length > 0 ? this.orArray(z.enum(nonRelationFields as any), true) : z.never();
     }
 
@@ -1185,6 +1187,11 @@ export class ZodSchemaFactory<
 
             // skip computed fields and discriminator fields, they cannot be set on create
             if (fieldDef.computed || fieldDef.isDiscriminator) {
+                return;
+            }
+
+            // skip Unsupported type fields, they cannot be set on create
+            if (fieldDef.type === 'Unsupported') {
                 return;
             }
 
@@ -1539,6 +1546,11 @@ export class ZodSchemaFactory<
 
             if (fieldDef.computed || fieldDef.isDiscriminator) {
                 // skip computed fields and discriminator fields, they cannot be updated
+                return;
+            }
+
+            // skip Unsupported type fields, they cannot be updated
+            if (fieldDef.type === 'Unsupported') {
                 return;
             }
 

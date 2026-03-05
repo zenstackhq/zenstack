@@ -1375,4 +1375,65 @@ describe('Zod schema factory test', () => {
     });
 
     // #endregion
+
+    // #region Unsupported type fields
+
+    describe('Unsupported type fields', () => {
+        const unsupportedSchema = {
+            provider: { type: 'sqlite' as const },
+            models: {
+                Polygon: {
+                    name: 'Polygon',
+                    fields: {
+                        id: { name: 'id', type: 'Int', id: true, default: 0 },
+                        name: { name: 'name', type: 'String' },
+                        geometry: { name: 'geometry', type: 'Unsupported' },
+                    },
+                    idFields: ['id'],
+                    uniqueFields: { id: { type: 'Int' } },
+                },
+            },
+            enums: {},
+        } as const;
+
+        it('create schema rejects Unsupported field', () => {
+            const factory = createQuerySchemaFactory(unsupportedSchema);
+            const s = factory.makeCreateSchema('Polygon');
+            // valid create without unsupported field
+            expect(s.safeParse({ data: { name: 'poly1' } }).success).toBe(true);
+            // create with unsupported field is rejected
+            expect(s.safeParse({ data: { name: 'poly1', geometry: 'some value' } }).success).toBe(false);
+        });
+
+        it('update schema rejects Unsupported field', () => {
+            const factory = createQuerySchemaFactory(unsupportedSchema);
+            const s = factory.makeUpdateSchema('Polygon');
+            // valid update without unsupported field
+            expect(s.safeParse({ where: { id: 1 }, data: { name: 'poly2' } }).success).toBe(true);
+            // update with unsupported field is rejected
+            expect(s.safeParse({ where: { id: 1 }, data: { name: 'poly2', geometry: 'some value' } }).success).toBe(
+                false,
+            );
+        });
+
+        it('select schema rejects Unsupported field', () => {
+            const factory = createQuerySchemaFactory(unsupportedSchema);
+            const s = factory.makeFindManySchema('Polygon');
+            // valid select without unsupported field
+            expect(s.safeParse({ select: { id: true, name: true } }).success).toBe(true);
+            // selecting unsupported field is rejected
+            expect(s.safeParse({ select: { id: true, geometry: true } }).success).toBe(false);
+        });
+
+        it('orderBy schema rejects Unsupported field', () => {
+            const factory = createQuerySchemaFactory(unsupportedSchema);
+            const s = factory.makeFindManySchema('Polygon');
+            // valid orderBy without unsupported field
+            expect(s.safeParse({ orderBy: { name: 'asc' } }).success).toBe(true);
+            // orderBy unsupported field is rejected
+            expect(s.safeParse({ orderBy: { geometry: 'asc' } }).success).toBe(false);
+        });
+    });
+
+    // #endregion
 });
