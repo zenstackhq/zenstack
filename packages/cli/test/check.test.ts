@@ -81,6 +81,20 @@ describe('CLI validate command test', () => {
         expect(() => runCli('check', workDir)).not.toThrow();
     });
 
+    it('should report error for unresolvable plugin module', async () => {
+        const modelWithMissingPlugin = `
+plugin foo {
+    provider = '@zenstackhq/nonexistent-plugin'
+}
+
+model User {
+    id String @id @default(cuid())
+}
+`;
+        const { workDir } = await createProject(modelWithMissingPlugin);
+        expect(() => runCli('check', workDir)).toThrow(/Cannot find plugin module/);
+    });
+
     it('should validate schema with syntax errors', async () => {
         const modelWithSyntaxError = `
 model User {
