@@ -901,18 +901,7 @@ export class ZodSchemaFactory<
             }
         }
 
-        // add ext result fields from plugins
-        for (const plugin of this.plugins) {
-            const resultConfig = plugin.result;
-            if (resultConfig) {
-                const modelConfig = resultConfig[model];
-                if (modelConfig) {
-                    for (const field of Object.keys(modelConfig)) {
-                        fields[field] = z.boolean().optional();
-                    }
-                }
-            }
-        }
+        this.addExtResultFields(model, fields);
 
         return z.strictObject(fields);
     }
@@ -1020,7 +1009,12 @@ export class ZodSchemaFactory<
             }
         }
 
-        // add ext result fields from plugins
+        this.addExtResultFields(model, fields);
+
+        return z.strictObject(fields);
+    }
+
+    private addExtResultFields(model: string, fields: Record<string, ZodType>) {
         for (const plugin of this.plugins) {
             const resultConfig = plugin.result;
             if (resultConfig) {
@@ -1032,8 +1026,6 @@ export class ZodSchemaFactory<
                 }
             }
         }
-
-        return z.strictObject(fields);
     }
 
     @cache()

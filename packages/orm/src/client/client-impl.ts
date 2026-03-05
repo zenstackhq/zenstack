@@ -37,7 +37,7 @@ import { ZenStackQueryExecutor } from './executor/zenstack-query-executor';
 import * as BuiltinFunctions from './functions';
 import { SchemaDbPusher } from './helpers/schema-db-pusher';
 import type { ClientOptions, ProceduresOptions } from './options';
-import type { AnyPlugin } from './plugin';
+import type { AnyPlugin, ExtResultFieldDef } from './plugin';
 import { getField } from './query-utils';
 import { createZenStackPromise, type ZenStackPromise } from './promise';
 import { ResultProcessor } from './result-processor';
@@ -551,7 +551,7 @@ function createModelCrudHandler(
     // check if any plugin defines ext result fields
     const plugins = client.$options.plugins ?? [];
     const schema = client.$schema;
-    const hasAnyExtResult = hasExtResultDefs(plugins);
+    const hasAnyExtResult = hasExtResultFieldDefs(plugins);
 
     // operations that return model rows and should have ext result fields applied
     const extResultOperations = new Set<CoreCrudOperations>([
@@ -858,27 +858,26 @@ function createModelCrudHandler(
 
 // #region Extended result field helpers
 
-type ExtResultDef = { needs: Record<string, true>; compute: (data: any) => unknown };
 
 /**
  * Returns true if any plugin defines ext result fields for any model.
  */
-function hasExtResultDefs(plugins: AnyPlugin[]): boolean {
+function hasExtResultFieldDefs(plugins: AnyPlugin[]): boolean {
     return plugins.some((p) => p.result && Object.keys(p.result).length > 0);
 }
 
 /**
  * Collects extended result field definitions from all plugins for a given model.
  */
-function collectExtResultDefs(model: string, plugins: AnyPlugin[]): Map<string, ExtResultDef> {
-    const defs = new Map<string, ExtResultDef>();
+function collectExtResultFieldDefs(model: string, plugins: AnyPlugin[]): Map<string, ExtResultFieldDef> {
+    const defs = new Map<string, ExtResultFieldDef>();
     for (const plugin of plugins) {
         const resultConfig = plugin.result;
         if (resultConfig) {
             const modelConfig = resultConfig[model];
             if (modelConfig) {
                 for (const [fieldName, fieldDef] of Object.entries(modelConfig)) {
-                    defs.set(fieldName, fieldDef as ExtResultDef);
+                    defs.set(fieldName, fieldDef as ExtResultFieldDef);
                 }
             }
         }
@@ -902,7 +901,7 @@ function prepareArgsForExtResult(
         return args;
     }
 
-    const extResultDefs = collectExtResultDefs(model, plugins);
+    const extResultDefs = collectExtResultFieldDefs(model, plugins);
     const typedArgs = args as Record<string, unknown>;
     let result = typedArgs;
     let changed = false;
@@ -1034,7 +1033,7 @@ function applyExtResultToRow(
     }
 
     const data = row as Record<string, unknown>;
-    const extResultDefs = collectExtResultDefs(model, plugins);
+    const extResultDefs = collectExtResultFieldDefs(model, plugins);
     const typedArgs = (originalArgs && typeof originalArgs === 'object' ? originalArgs : {}) as Record<string, unknown>;
     const select = typedArgs['select'] as Record<string, unknown> | undefined;
     const omit = typedArgs['omit'] as Record<string, unknown> | undefined;
