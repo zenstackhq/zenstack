@@ -1394,6 +1394,7 @@ describe('Zod schema factory test', () => {
                 },
             },
             enums: {},
+            plugins: {},
         } as const;
 
         it('create schema rejects Unsupported field', () => {
