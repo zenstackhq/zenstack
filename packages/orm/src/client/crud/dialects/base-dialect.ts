@@ -446,12 +446,11 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
             const existsSelect = (negate: boolean) => {
                 const filter = this.buildFilter(relationModel, relationFilterSelectAlias, subPayload);
-                return this.eb.exists(
-                    this.buildSelectModel(relationModel, relationFilterSelectAlias)
-                        .select(this.eb.lit(1).as('_'))
-                        .where(buildPkFkWhereRefs(this.eb))
-                        .where(() => (negate ? this.eb.not(filter) : filter)),
-                );
+                const innerQuery = this.buildSelectModel(relationModel, relationFilterSelectAlias)
+                    .select(this.eb.lit(1).as('_'))
+                    .where(buildPkFkWhereRefs(this.eb))
+                    .where(() => (negate ? this.eb.not(filter) : filter));
+                return this.buildExistsExpression(innerQuery);
             };
 
             switch (key) {
@@ -1393,6 +1392,15 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
     }
 
     // #endregion
+
+    /**
+     * Builds an EXISTS expression from an inner SELECT query.
+     * Can be overridden by dialects that need special handling (e.g., MySQL wraps
+     * in a derived table to avoid "can't specify target table for update in FROM clause").
+     */
+    protected buildExistsExpression(innerQuery: SelectQueryBuilder<any, any, any>): Expression<SqlBool> {
+        return this.eb.exists(innerQuery);
+    }
 
     // #region abstract methods
 
