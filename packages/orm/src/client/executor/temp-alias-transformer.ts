@@ -17,15 +17,17 @@ export class TempAliasTransformer extends OperationNodeTransformer {
     private readonly textEncoder = new TextEncoder();
     private readonly mode: TempAliasTransformerMode;
     private readonly maxIdentifierLength: number;
-    private detectOnly = false;
-    private hasOverlongTempAlias = false;
 
     constructor(options: TempAliasTransformerOptions = {}) {
         super();
         this.mode = options.mode ?? 'alwaysCompact';
         // PostgreSQL limits identifier length to 63 bytes and silently truncates overlong aliases.
         const maxIdentifierLength = options.maxIdentifierLength ?? 63;
-        if (!Number.isFinite(maxIdentifierLength) || !Number.isInteger(maxIdentifierLength) || maxIdentifierLength <= 0) {
+        if (
+            !Number.isFinite(maxIdentifierLength) ||
+            !Number.isInteger(maxIdentifierLength) ||
+            maxIdentifierLength <= 0
+        ) {
             throw new RangeError('maxIdentifierLength must be a positive integer');
         }
         this.maxIdentifierLength = maxIdentifierLength;
@@ -33,44 +35,35 @@ export class TempAliasTransformer extends OperationNodeTransformer {
 
     run<T extends OperationNode>(node: T): T {
         this.aliasMap.clear();
-        if (this.mode === 'compactLongNames') {
-            const hasOverlongAliases = this.detectOverlongTempAlias(node);
-            if (!hasOverlongAliases) {
-                return node;
-            }
-        }
         return this.transformNode(node);
     }
 
-    private detectOverlongTempAlias(node: OperationNode) {
-        this.detectOnly = true;
-        this.hasOverlongTempAlias = false;
-        this.transformNode(node);
-        this.detectOnly = false;
-        return this.hasOverlongTempAlias;
-    }
-
     protected override transformIdentifier(node: IdentifierNode, queryId?: QueryId): IdentifierNode {
-        if (this.detectOnly) {
-            if (!node.name.startsWith(TEMP_ALIAS_PREFIX)) {
-                return node;
-            }
-
-            const aliasByteLength = this.textEncoder.encode(node.name).length;
-            if (aliasByteLength > this.maxIdentifierLength) {
-                this.hasOverlongTempAlias = true;
-            }
-            return node;
+        if (!node.name.startsWith(TEMP_ALIAS_PREFIX)) {
+            return super.transformIdentifier(node, queryId);
         }
 
-        if (node.name.startsWith(TEMP_ALIAS_PREFIX)) {
+        let shouldCompact = false;
+        if (this.mode === 'alwaysCompact') {
+            shouldCompact = true;
+        } else {
+            // check if the alias name exceeds the max identifier length, and
+            // if so, compact it
+            const aliasByteLength = this.textEncoder.encode(node.name).length;
+            if (aliasByteLength > this.maxIdentifierLength) {
+                shouldCompact = true;
+            }
+        }
+
+        if (shouldCompact) {
             let mapped = this.aliasMap.get(node.name);
             if (!mapped) {
                 mapped = `$$t${this.aliasMap.size + 1}`;
                 this.aliasMap.set(node.name, mapped);
             }
             return IdentifierNode.create(mapped);
+        } else {
+            return super.transformIdentifier(node, queryId);
         }
-        return super.transformIdentifier(node, queryId);
     }
 }
