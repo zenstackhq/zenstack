@@ -21,12 +21,33 @@ export type ExtQueryArgsBase = {
 export type ExtClientMembersBase = Record<string, unknown>;
 
 /**
+ * Definition for a single extended result field.
+ */
+export type ExtResultFieldDef = {
+    /**
+     * Fields required to compute this result field.
+     */
+    needs: Record<string, true>;
+    /**
+     * Computes the result field value from the query result row.
+     */
+    compute: (data: any) => unknown;
+};
+
+/**
+ * Base shape of plugin-extended result fields.
+ * Keyed by model name, each value maps field names to their definitions.
+ */
+export type ExtResultBase = Record<string, Record<string, ExtResultFieldDef>>;
+
+/**
  * ZenStack runtime plugin.
  */
 export interface RuntimePlugin<
     Schema extends SchemaDef,
     ExtQueryArgs extends ExtQueryArgsBase,
     ExtClientMembers extends Record<string, unknown>,
+    ExtResult extends ExtResultBase = {},
 > {
     /**
      * Plugin ID.
@@ -81,9 +102,15 @@ export interface RuntimePlugin<
      * Extended client members (methods and properties).
      */
     client?: ExtClientMembers;
+
+    /**
+     * Extended result fields on query results.
+     * Keyed by model name, each value defines computed fields with `needs` and `compute`.
+     */
+    result?: ExtResult;
 }
 
-export type AnyPlugin = RuntimePlugin<any, any, any>;
+export type AnyPlugin = RuntimePlugin<any, any, any, any>;
 
 /**
  * Defines a ZenStack runtime plugin.
@@ -92,8 +119,39 @@ export function definePlugin<
     Schema extends SchemaDef,
     const ExtQueryArgs extends ExtQueryArgsBase = {},
     const ExtClientMembers extends Record<string, unknown> = {},
->(plugin: RuntimePlugin<Schema, ExtQueryArgs, ExtClientMembers>): RuntimePlugin<any, ExtQueryArgs, ExtClientMembers> {
+    const ExtResult extends ExtResultBase = {},
+>(
+    plugin: RuntimePlugin<Schema, ExtQueryArgs, ExtClientMembers, ExtResult>,
+): RuntimePlugin<any, ExtQueryArgs, ExtClientMembers, ExtResult> {
     return plugin;
+}
+
+/**
+ * Defines a single extended result field with typed `compute` parameter.
+ *
+ * The `compute` callback receives an object whose keys match the `needs` declaration,
+ * providing autocomplete and type checking for needed fields.
+ *
+ * @example
+ * ```typescript
+ * definePlugin({
+ *     id: 'my-plugin',
+ *     result: {
+ *         User: {
+ *             fullName: resultField({
+ *                 needs: { firstName: true, lastName: true },
+ *                 compute: (user) => `${user.firstName} ${user.lastName}`,
+ *             }),
+ *         },
+ *     },
+ * });
+ * ```
+ */
+export function resultField<const N extends Record<string, true>, R>(def: {
+    needs: N;
+    compute: (data: { [K in keyof N]: any }) => R;
+}): { needs: N; compute: (data: { [K in keyof N]: any }) => R } {
+    return def;
 }
 
 // #region OnProcedure hooks

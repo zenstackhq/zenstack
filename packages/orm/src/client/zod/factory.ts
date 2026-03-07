@@ -121,7 +121,7 @@ export class ZodSchemaFactory<
         }
     }
 
-    private get plugins(): RuntimePlugin<Schema, any, any>[] {
+    private get plugins(): RuntimePlugin<Schema, any, any, any>[] {
         return this.options.plugins ?? [];
     }
 
@@ -901,6 +901,8 @@ export class ZodSchemaFactory<
             }
         }
 
+        this.addExtResultFields(model, fields);
+
         return z.strictObject(fields);
     }
 
@@ -1006,7 +1008,24 @@ export class ZodSchemaFactory<
                 }
             }
         }
+
+        this.addExtResultFields(model, fields);
+
         return z.strictObject(fields);
+    }
+
+    private addExtResultFields(model: string, fields: Record<string, ZodType>) {
+        for (const plugin of this.plugins) {
+            const resultConfig = plugin.result;
+            if (resultConfig) {
+                const modelConfig = resultConfig[model];
+                if (modelConfig) {
+                    for (const field of Object.keys(modelConfig)) {
+                        fields[field] = z.boolean().optional();
+                    }
+                }
+            }
+        }
     }
 
     @cache()
