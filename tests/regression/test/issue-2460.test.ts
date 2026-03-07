@@ -7,10 +7,10 @@ describe('Regression for issue #2460', () => {
     it('createManyAndReturn with asymmetric optional fields across rows', async () => {
         const db = await createPolicyTestClient(
             `
-type AuthUser {
-    id   String
+model User {
+    id   Int    @id @default(autoincrement())
     role String
-    @@auth
+    @@allow('all', true)
 }
 
 model Item {
@@ -20,13 +20,12 @@ model Item {
     @@allow('all', auth().role == 'admin')
 }
             `,
-            {
-                provider: 'postgresql',
-                auth: { id: '1', role: 'admin' },
-            },
+            { provider: 'postgresql' },
         );
 
-        const result = await db.item.createManyAndReturn({
+        const user = await db.user.create({ data: { role: 'admin' } });
+
+        const result = await db.$setAuth(user).item.createManyAndReturn({
             data: [
                 { key: 'a', note: 'hello' },
                 { key: 'b' },
@@ -34,6 +33,5 @@ model Item {
         });
 
         expect(result).toHaveLength(2);
-        await db.$disconnect();
     });
 });
