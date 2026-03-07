@@ -15,8 +15,8 @@ type BaseEntity {
 }
 
 enum DataType {
-    TEXT
-    NUMBER
+    DataText
+    DataNumber
 }
 
 model RoutineData with BaseEntity {
@@ -63,7 +63,7 @@ model DataText extends RoutineData {
 
         const authDb = db.$setAuth({ id: user.id });
         const created = await authDb.dataText.create({
-            data: { textValue: 'hello', routineId: routine.id, dataType: 'TEXT' },
+            data: { textValue: 'hello', routineId: routine.id },
         });
         expect(created.textValue).toBe('hello');
         expect(created.isDeleted).toBe(false);
