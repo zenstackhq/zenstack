@@ -63,7 +63,7 @@ model DataText extends RoutineData {
 
         const authDb = db.$setAuth({ id: user.id });
         const created = await authDb.dataText.create({
-            data: { textValue: 'hello', routineId: routine.id },
+            data: { textValue: 'hello', routineId: routine.id, dataType: 'TEXT' },
         });
         expect(created.textValue).toBe('hello');
         expect(created.isDeleted).toBe(false);
