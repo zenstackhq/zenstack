@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/tanstack-query",
-    "version": "3.4.4",
+    "version": "3.4.5",
     "description": "TanStack Query Client for consuming ZenStack v3's CRUD service",
     "type": "module",
     "scripts": {
