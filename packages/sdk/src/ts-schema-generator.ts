@@ -45,6 +45,7 @@ import { ModelUtils } from '.';
 import {
     getAttribute,
     getAuthDecl,
+    getDelegateOriginModel,
     getIdFields,
     hasAttribute,
     isDelegateModel,
@@ -587,17 +588,14 @@ export class TsSchemaGenerator {
         if (
             contextModel &&
             // id fields are duplicated in inherited models
-            !isIdField(field, contextModel) &&
-            field.$container !== contextModel &&
-            isDelegateModel(field.$container)
+            !isIdField(field, contextModel)
         ) {
-            // field is inherited from delegate
-            objectFields.push(
-                ts.factory.createPropertyAssignment(
-                    'originModel',
-                    ts.factory.createStringLiteral(field.$container.name),
-                ),
-            );
+            const delegateOrigin = getDelegateOriginModel(field, contextModel);
+            if (delegateOrigin) {
+                objectFields.push(
+                    ts.factory.createPropertyAssignment('originModel', ts.factory.createStringLiteral(delegateOrigin)),
+                );
+            }
         }
 
         // discriminator
