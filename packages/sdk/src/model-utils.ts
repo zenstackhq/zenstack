@@ -93,7 +93,7 @@ export function getOwnedFields(model: DataModel | TypeDef): DataField[] {
 export function getDelegateOriginModel(field: DataField, contextModel: DataModel): string | undefined {
     let base = contextModel.baseModel?.ref;
     while (base) {
-        if (isDelegateModel(base) && getOwnedFields(base).includes(field)) {
+        if (isDelegateModel(base) && getOwnedFields(base).some((f) => f.name === field.name)) {
             return base.name;
         }
         base = base.baseModel?.ref;
