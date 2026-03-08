@@ -42,7 +42,7 @@ import {
 import { AstUtils } from 'langium';
 import { match } from 'ts-pattern';
 import { ModelUtils } from '..';
-import { DELEGATE_AUX_RELATION_PREFIX, getIdFields } from '../model-utils';
+import { DELEGATE_AUX_RELATION_PREFIX, getDelegateOriginModel, getIdFields } from '../model-utils';
 import {
     AttributeArgValue,
     ModelFieldType,
@@ -204,7 +204,7 @@ export class PrismaSchemaGenerator {
                 continue; // skip computed fields
             }
             // exclude non-id fields inherited from delegate
-            if (ModelUtils.isIdField(field, decl) || !this.isInheritedFromDelegate(field, decl)) {
+            if (ModelUtils.isIdField(field, decl) || !getDelegateOriginModel(field, decl)) {
                 this.generateModelField(model, field, decl);
             }
         }
@@ -311,7 +311,7 @@ export class PrismaSchemaGenerator {
                     // when building physical schema, exclude `@default` for id fields inherited from delegate base
                     !(
                         ModelUtils.isIdField(field, contextModel) &&
-                        this.isInheritedFromDelegate(field, contextModel) &&
+                        getDelegateOriginModel(field, contextModel) &&
                         attr.decl.$refText === '@default'
                     ),
             )
@@ -333,10 +333,6 @@ export class PrismaSchemaGenerator {
         }
 
         return AstUtils.streamAst(expr).some(isAuthInvocation);
-    }
-
-    private isInheritedFromDelegate(field: DataField, contextModel: DataModel) {
-        return field.$container !== contextModel && ModelUtils.isDelegateModel(field.$container);
     }
 
     private makeFieldAttribute(attr: DataFieldAttribute) {

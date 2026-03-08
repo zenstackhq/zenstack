@@ -238,6 +238,10 @@ export async function createTestClient(
             execSync('npx prisma db push --schema ./schema.prisma --skip-generate --force-reset', {
                 cwd: workDir,
                 stdio: options.debug ? 'inherit' : 'ignore',
+                env: {
+                    ...process.env,
+                    PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION: 'true',
+                },
             });
         } else {
             await prepareDatabase(provider, dbName);

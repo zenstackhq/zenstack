@@ -199,8 +199,11 @@ export type ClientOptions<Schema extends SchemaDef> = QueryOptions<Schema> & {
     validateInput?: boolean;
 
     /**
-     * Whether to use compact alias names (e.g., "$t1", "$t2") when transforming ORM queries to SQL.
+     * Whether to use compact alias names (e.g., "$$t1", "$$t2") when transforming ORM queries to SQL.
      * Defaults to `true`.
+     *
+     * When set to `false`, original aliases are kept unless temporary aliases become too long for
+     * safe SQL identifier handling, in which case compact aliases are used as a fallback.
      */
     useCompactAliasNames?: boolean;
 
