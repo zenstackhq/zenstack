@@ -1105,6 +1105,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                     return this.formatGeneratedValue(generated, defaultValue.args?.[1]);
                 })
                 .with('ulid', () => this.formatGeneratedValue(ulid(), defaultValue.args?.[0]))
+                .with('now', () => new Date())
                 .otherwise(() => undefined);
         } else if (
             ExpressionUtils.isMember(defaultValue) &&
