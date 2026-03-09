@@ -1,0 +1,25 @@
+datasource db {
+    provider = "postgresql"
+    url = env('DATABASE_URL')
+}
+
+// Model with an optional Unsupported field (create should work)
+model Item {
+    id   Int                @id @default(autoincrement())
+    name String
+    data Unsupported("xml")?
+}
+
+// Model with a required Unsupported field (create should be blocked)
+model GeoRecord {
+    id    Int                @id @default(autoincrement())
+    title String
+    extra Unsupported("xml")
+}
+
+// Model with a required Unsupported field that has a default (create should work)
+model GeoRecordWithDefault {
+    id    Int                @id @default(autoincrement())
+    label String
+    area  Unsupported("xml") @default(dbgenerated("'<root/>'::xml"))
+}

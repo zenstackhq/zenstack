@@ -1,7 +1,28 @@
-import type { GetModels, SchemaDef } from '@zenstackhq/schema';
+import type { FieldDef, GetModel, GetModels, SchemaDef } from '@zenstackhq/schema';
 import type { GetProcedureNames } from './crud-types';
 import type { AllCrudOperations } from './crud/operations/base';
 import type { FilterKind, QueryOptions, SlicingOptions } from './options';
+
+/**
+ * Checks if a model has any required Unsupported fields (non-optional, no default).
+ * Uses raw field access since `GetModelFields` excludes Unsupported fields.
+ */
+export type ModelHasRequiredUnsupportedField<Schema extends SchemaDef, Model extends GetModels<Schema>> = true extends {
+    [Key in Extract<keyof GetModel<Schema, Model>['fields'], string>]: GetModel<
+        Schema,
+        Model
+    >['fields'][Key] extends infer F extends FieldDef
+        ? F['type'] extends 'Unsupported'
+            ? F['optional'] extends true
+                ? false
+                : 'default' extends keyof F
+                  ? false
+                  : true
+            : false
+        : false;
+}[Extract<keyof GetModel<Schema, Model>['fields'], string>]
+    ? true
+    : false;
 
 type IsNever<T> = [T] extends [never] ? true : false;
 

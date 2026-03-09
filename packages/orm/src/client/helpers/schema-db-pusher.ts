@@ -12,7 +12,7 @@ import {
     type SchemaDef,
 } from '../../schema';
 import type { ToKysely } from '../query-builder';
-import { requireModel } from '../query-utils';
+import { isUnsupportedField, requireModel } from '../query-utils';
 
 /**
  * This class is for testing purposes only. It should never be used in production.
@@ -114,6 +114,11 @@ export class SchemaDbPusher<Schema extends SchemaDef> {
         for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
             if (fieldDef.originModel && !fieldDef.id) {
                 // skip non-id fields inherited from base model
+                continue;
+            }
+
+            if (isUnsupportedField(fieldDef)) {
+                // Unsupported fields cannot be represented in the ORM's schema pusher
                 continue;
             }
 

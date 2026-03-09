@@ -43,7 +43,12 @@ import type { ClientOptions, QueryOptions } from './options';
 import type { ExtClientMembersBase, ExtQueryArgsBase, RuntimePlugin } from './plugin';
 import type { ZenStackPromise } from './promise';
 import type { ToKysely } from './query-builder';
-import type { GetSlicedModels, GetSlicedOperations, GetSlicedProcedures } from './type-utils';
+import type {
+    GetSlicedModels,
+    GetSlicedOperations,
+    GetSlicedProcedures,
+    ModelHasRequiredUnsupportedField,
+} from './type-utils';
 import type { ZodSchemaFactory } from './zod/factory';
 
 type TransactionUnsupportedMethods = (typeof TRANSACTION_UNSUPPORTED_METHODS)[number];
@@ -285,7 +290,9 @@ type SliceOperations<
         [Key in keyof T as Key extends GetSlicedOperations<Schema, Model, Options> ? Key : never]: T[Key];
     },
     // exclude operations not applicable to delegate models
-    IsDelegateModel<Schema, Model> extends true ? OperationsIneligibleForDelegateModels : never
+    | (IsDelegateModel<Schema, Model> extends true ? OperationsIneligibleForDelegateModels : never)
+    // exclude create operations for models with required Unsupported fields
+    | (ModelHasRequiredUnsupportedField<Schema, Model> extends true ? OperationsIneligibleForUnsupportedModels : never)
 >;
 
 export type AllModelOperations<
@@ -881,6 +888,8 @@ type CommonModelOperations<
 };
 
 export type OperationsIneligibleForDelegateModels = 'create' | 'createMany' | 'createManyAndReturn' | 'upsert';
+
+export type OperationsIneligibleForUnsupportedModels = 'create' | 'createMany' | 'createManyAndReturn' | 'upsert';
 
 export type ModelOperations<
     Schema extends SchemaDef,

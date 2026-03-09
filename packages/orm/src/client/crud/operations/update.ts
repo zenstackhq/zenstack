@@ -137,6 +137,8 @@ export class UpdateOperationHandler<Schema extends SchemaDef> extends BaseOperat
     }
 
     private async runUpsert(args: any) {
+        this.checkNoRequiredUnsupportedFields();
+
         // analyze if we need to read back the updated record, or just return the update result
         const { needReadBack, selectedFields } = this.needReadBack(args);
 

@@ -37,6 +37,7 @@ import type { ToKysely } from '../../query-builder';
 import {
     ensureArray,
     extractIdFields,
+    fieldHasDefaultValue,
     flattenCompoundUniqueFilters,
     getDiscriminatorField,
     getField,
@@ -47,6 +48,7 @@ import {
     isForeignKeyField,
     isRelationField,
     isScalarField,
+    isUnsupportedField,
     requireField,
     requireIdFields,
     requireModel,
@@ -1148,7 +1150,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
 
         const parentWhere = await this.buildUpdateParentRelationFilter(kysely, fromRelation);
 
-        let combinedWhere: WhereInput<Schema, GetModels<Schema>, any, false> = where ?? {};
+        let combinedWhere: Record<string, any> = where ?? {};
         if (Object.keys(parentWhere).length > 0) {
             combinedWhere = Object.keys(combinedWhere).length > 0 ? { AND: [parentWhere, combinedWhere] } : parentWhere;
         }
@@ -1210,7 +1212,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
 
         if (needIdRead) {
             const readResult = await this.readUnique(kysely, model, {
-                where: combinedWhere,
+                where: combinedWhere as WhereInput<Schema, GetModels<Schema>>,
                 select: this.makeIdSelect(model),
             });
             if (!readResult && throwIfNotFound) {
@@ -2505,6 +2507,17 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         const newArgs = clone(args);
         this.doNormalizeArgs(newArgs);
         return newArgs;
+    }
+
+    protected checkNoRequiredUnsupportedFields() {
+        const modelDef = requireModel(this.schema, this.model);
+        for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
+            if (isUnsupportedField(fieldDef) && !fieldDef.optional && !fieldHasDefaultValue(fieldDef)) {
+                throw createNotSupportedError(
+                    `Model "${this.model}" has a required Unsupported field "${fieldName}" and cannot be created/upserted through the ORM client`,
+                );
+            }
+        }
     }
 
     private doNormalizeArgs(args: unknown) {

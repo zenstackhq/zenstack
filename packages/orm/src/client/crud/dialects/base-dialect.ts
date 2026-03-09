@@ -29,6 +29,7 @@ import {
     isInheritedField,
     isRelationField,
     isTypeDef,
+    getModelFields,
     makeDefaultOrderBy,
     requireField,
     requireIdFields,
@@ -1117,17 +1118,13 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         omit: Record<string, boolean | undefined> | undefined | null,
         modelAlias: string,
     ) {
-        const modelDef = requireModel(this.schema, model);
         let result = query;
 
-        for (const field of Object.keys(modelDef.fields)) {
-            if (isRelationField(this.schema, model, field)) {
+        for (const fieldDef of getModelFields(this.schema, model, { inherited: true, computed: true })) {
+            if (this.shouldOmitField(omit, model, fieldDef.name)) {
                 continue;
             }
-            if (this.shouldOmitField(omit, model, field)) {
-                continue;
-            }
-            result = this.buildSelectField(result, model, modelAlias, field);
+            result = this.buildSelectField(result, model, modelAlias, fieldDef.name);
         }
 
         // select all fields from delegate descendants and pack into a JSON field `$delegate$Model`
