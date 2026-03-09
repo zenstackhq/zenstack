@@ -1,7 +1,7 @@
 import type { OperationNode, QueryId, QueryResult, RootOperationNode, UnknownRow } from 'kysely';
 import type { ZodType } from 'zod';
 import type { ClientContract, ZModelFunction } from '.';
-import type { GetModels, SchemaDef } from '../schema';
+import type { GetModels, NonRelationFields, SchemaDef } from '../schema';
 import type { MaybePromise } from '../utils/type-utils';
 import type { AllCrudOperations, CoreCrudOperations } from './crud/operations/base';
 
@@ -22,23 +22,26 @@ export type ExtClientMembersBase = Record<string, unknown>;
 
 /**
  * Definition for a single extended result field.
+ * When used without type parameters, accepts any field names and untyped compute.
  */
-export type ExtResultFieldDef = {
+export type ExtResultFieldDef<Needs extends Record<string, true> = Record<string, true>> = {
     /**
      * Fields required to compute this result field.
      */
-    needs: Record<string, true>;
+    needs: Needs;
     /**
      * Computes the result field value from the query result row.
      */
-    compute: (data: any) => unknown;
+    compute: (data: { [K in keyof Needs]: any }) => unknown;
 };
 
 /**
  * Base shape of plugin-extended result fields.
  * Keyed by model name, each value maps field names to their definitions.
  */
-export type ExtResultBase = Record<string, Record<string, ExtResultFieldDef>>;
+export type ExtResultBase<Schema extends SchemaDef = SchemaDef> = Partial<
+    Record<GetModels<Schema>, Record<string, ExtResultFieldDef>>
+>;
 
 /**
  * ZenStack runtime plugin.
@@ -47,7 +50,7 @@ export interface RuntimePlugin<
     Schema extends SchemaDef,
     ExtQueryArgs extends ExtQueryArgsBase,
     ExtClientMembers extends Record<string, unknown>,
-    ExtResult extends ExtResultBase = {},
+    ExtResult extends ExtResultBase<Schema> = {},
 > {
     /**
      * Plugin ID.
@@ -107,7 +110,17 @@ export interface RuntimePlugin<
      * Extended result fields on query results.
      * Keyed by model name, each value defines computed fields with `needs` and `compute`.
      */
-    result?: ExtResult;
+    result?: {
+        [M in keyof ExtResult]: M extends GetModels<Schema>
+            ? {
+                  [F in keyof ExtResult[M]]: ExtResult[M][F] extends ExtResultFieldDef<infer N>
+                      ? keyof N extends NonRelationFields<Schema, M>
+                          ? ExtResult[M][F]
+                          : ExtResultFieldDef<Record<Extract<NonRelationFields<Schema, M>, string>, true>>
+                      : never;
+              }
+            : never;
+    };
 }
 
 export type AnyPlugin = RuntimePlugin<any, any, any, any>;
@@ -119,7 +132,7 @@ export function definePlugin<
     Schema extends SchemaDef,
     const ExtQueryArgs extends ExtQueryArgsBase = {},
     const ExtClientMembers extends Record<string, unknown> = {},
-    const ExtResult extends ExtResultBase = {},
+    const ExtResult extends ExtResultBase<Schema> = {},
 >(
     plugin: RuntimePlugin<Schema, ExtQueryArgs, ExtClientMembers, ExtResult>,
 ): RuntimePlugin<any, ExtQueryArgs, ExtClientMembers, ExtResult> {

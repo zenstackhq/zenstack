@@ -813,4 +813,38 @@ describe('Plugin extended result fields', () => {
         const posts = await extDb.post.findMany();
         expect(posts[0]!.titleAndContent).toBe('Hello: World');
     });
+
+    it('should reject invalid model names in result config', () => {
+        // @ts-expect-error - "Userr" is not a valid model name
+        db.$use(
+            definePlugin({
+                id: 'bad-model',
+                result: {
+                    Userr: {
+                        upperName: {
+                            needs: { name: true },
+                            compute: (user) => user.name.toUpperCase(),
+                        },
+                    },
+                },
+            }),
+        );
+    });
+
+    it('should reject invalid needs field names', () => {
+        db.$use(
+            definePlugin({
+                id: 'bad-needs',
+                result: {
+                    User: {
+                        upperName: {
+                            // @ts-expect-error - "nonExistentField" is not a field on User
+                            needs: { nonExistentField: true },
+                            compute: (user) => String(user.nonExistentField),
+                        },
+                    },
+                },
+            }),
+        );
+    });
 });

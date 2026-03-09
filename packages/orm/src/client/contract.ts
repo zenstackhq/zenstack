@@ -67,7 +67,7 @@ export type ClientContract<
     Options extends ClientOptions<Schema> = ClientOptions<Schema>,
     ExtQueryArgs extends ExtQueryArgsBase = {},
     ExtClientMembers extends ExtClientMembersBase = {},
-    ExtResult extends ExtResultBase = {},
+    ExtResult extends ExtResultBase<Schema> = {},
 > = {
     /**
      * The schema definition.
@@ -179,7 +179,7 @@ export type ClientContract<
         PluginSchema extends SchemaDef = Schema,
         PluginExtQueryArgs extends ExtQueryArgsBase = {},
         PluginExtClientMembers extends ExtClientMembersBase = {},
-        PluginExtResult extends ExtResultBase = {},
+        PluginExtResult extends ExtResultBase<PluginSchema> = {},
     >(
         plugin: RuntimePlugin<PluginSchema, PluginExtQueryArgs, PluginExtClientMembers, PluginExtResult>,
     ): ClientContract<Schema, Options, ExtQueryArgs & PluginExtQueryArgs, ExtClientMembers & PluginExtClientMembers, ExtResult & PluginExtResult>;
@@ -227,7 +227,7 @@ export type TransactionClientContract<
     Options extends ClientOptions<Schema>,
     ExtQueryArgs extends ExtQueryArgsBase,
     ExtClientMembers extends ExtClientMembersBase,
-    ExtResult extends ExtResultBase = {},
+    ExtResult extends ExtResultBase<Schema> = {},
 > = Omit<ClientContract<Schema, Options, ExtQueryArgs, ExtClientMembers, ExtResult>, TransactionUnsupportedMethods>;
 
 export type ProcedureOperations<
@@ -296,7 +296,7 @@ export type AllModelOperations<
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema>,
     ExtQueryArgs extends ExtQueryArgsBase,
-    ExtResult extends ExtResultBase = {},
+    ExtResult extends ExtResultBase<Schema> = {},
 > = CommonModelOperations<Schema, Model, Options, ExtQueryArgs, ExtResult> &
     // provider-specific operations
     (Schema['provider']['type'] extends 'mysql'
@@ -356,7 +356,7 @@ type CommonModelOperations<
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema>,
     ExtQueryArgs extends ExtQueryArgsBase,
-    ExtResult extends ExtResultBase = {},
+    ExtResult extends ExtResultBase<Schema> = {},
 > = {
     /**
      * Returns a list of entities.
@@ -892,7 +892,7 @@ export type ModelOperations<
     Model extends GetModels<Schema>,
     Options extends ClientOptions<Schema> = ClientOptions<Schema>,
     ExtQueryArgs extends ExtQueryArgsBase = {},
-    ExtResult extends ExtResultBase = {},
+    ExtResult extends ExtResultBase<Schema> = {},
 > = SliceOperations<AllModelOperations<Schema, Model, Options, ExtQueryArgs, ExtResult>, Schema, Model, Options>;
 
 //#endregion
