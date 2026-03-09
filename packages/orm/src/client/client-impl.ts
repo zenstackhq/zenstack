@@ -1039,46 +1039,12 @@ function applyExtResultToRow(
     const omit = typedArgs['omit'] as Record<string, unknown> | undefined;
     const include = typedArgs['include'] as Record<string, unknown> | undefined;
 
-    // Determine which ext result fields were selected/omitted at this level
-    const selectedExtResultFields = select ? new Set<string>() : undefined;
-    const omittedExtResultFields = omit ? new Set<string>() : undefined;
-    const injectedNeedsFields = new Set<string>();
-
-    if (select && extResultDefs.size > 0) {
-        for (const [fieldName, fieldDef] of extResultDefs) {
-            if (select[fieldName]) {
-                selectedExtResultFields!.add(fieldName);
-                // Track injected needs: fields that were NOT in the original select
-                for (const needField of Object.keys(fieldDef.needs)) {
-                    if (!select[needField]) {
-                        injectedNeedsFields.add(needField);
-                    }
-                }
-            }
-        }
-    }
-
-    if (omit && extResultDefs.size > 0) {
-        for (const [fieldName, fieldDef] of extResultDefs) {
-            if (omit[fieldName]) {
-                omittedExtResultFields!.add(fieldName);
-            } else {
-                // this ext result field is active — track needs that were originally omitted
-                for (const needField of Object.keys(fieldDef.needs)) {
-                    if (omit[needField]) {
-                        injectedNeedsFields.add(needField);
-                    }
-                }
-            }
-        }
-    }
-
     // Compute ext result fields for the current model
     for (const [fieldName, fieldDef] of extResultDefs) {
-        if (omittedExtResultFields?.has(fieldName)) {
+        if (select && !select[fieldName]) {
             continue;
         }
-        if (selectedExtResultFields !== undefined && !selectedExtResultFields.has(fieldName)) {
+        if (omit?.[fieldName]) {
             continue;
         }
         const needsSatisfied = Object.keys(fieldDef.needs).every((needField) => needField in data);
@@ -1087,9 +1053,21 @@ function applyExtResultToRow(
         }
     }
 
-    // Strip injected needs fields that weren't originally requested
-    for (const field of injectedNeedsFields) {
-        delete data[field];
+    // Strip fields that shouldn't be in the result: when `select` was used,
+    // drop any field not in the original select and not a computed ext result field;
+    // when `omit` was used, re-delete any field the user originally omitted.
+    if (select) {
+        for (const key of Object.keys(data)) {
+            if (!select[key] && !extResultDefs.has(key)) {
+                delete data[key];
+            }
+        }
+    } else if (omit) {
+        for (const key of Object.keys(omit)) {
+            if (omit[key] && !extResultDefs.has(key)) {
+                delete data[key];
+            }
+        }
     }
 
     // Recurse into nested relation data
