@@ -50,8 +50,17 @@ import type {
     XOR,
 } from '../utils/type-utils';
 import type { ClientContract } from './contract';
-import type { QueryOptions } from './options';
+import type {
+    CoreCreateOperations,
+    CoreCrudOperations,
+    CoreDeleteOperations,
+    CoreReadOperations,
+    CoreUpdateOperations,
+} from './crud/operations/base';
+import type { FilterKind, QueryOptions } from './options';
+import type { ExtQueryArgsBase } from './plugin';
 import type { ToKyselySchema } from './query-builder';
+import type { GetSlicedFilterKindsForField, GetSlicedModels } from './type-utils';
 
 //#region Query results
 
@@ -149,7 +158,7 @@ type ModelSelectResult<
           never
         : Key extends '_count'
           ? // select "_count"
-            Select[Key] extends SelectCount<Schema, Model>
+            Select[Key] extends SelectCount<Schema, Model, Options>
               ? Key
               : never
           : Key extends keyof Omit
@@ -278,6 +287,7 @@ export type BatchResult = { count: number };
 export type WhereInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     ScalarOnly extends boolean = false,
     WithAggregations extends boolean = false,
 > = {
@@ -285,129 +295,161 @@ export type WhereInput<
         ? Key extends RelationFields<Schema, Model>
             ? never
             : Key
-        : Key]?: Key extends RelationFields<Schema, Model>
-        ? // relation
-          RelationFilter<Schema, Model, Key>
-        : FieldIsArray<Schema, Model, Key> extends true
-          ? ArrayFilter<Schema, GetModelFieldType<Schema, Model, Key>>
-          : // enum
-            GetModelFieldType<Schema, Model, Key> extends GetEnums<Schema>
-            ? EnumFilter<
-                  Schema,
-                  GetModelFieldType<Schema, Model, Key>,
-                  ModelFieldIsOptional<Schema, Model, Key>,
-                  WithAggregations
-              >
-            : GetModelFieldType<Schema, Model, Key> extends GetTypeDefs<Schema>
-              ? TypedJsonFilter<
-                    Schema,
-                    GetModelFieldType<Schema, Model, Key>,
-                    FieldIsArray<Schema, Model, Key>,
-                    ModelFieldIsOptional<Schema, Model, Key>
-                >
-              : // primitive
-                PrimitiveFilter<
-                    GetModelFieldType<Schema, Model, Key>,
-                    ModelFieldIsOptional<Schema, Model, Key>,
-                    WithAggregations
-                >;
+        : Key]?: FieldFilter<Schema, Model, Key, Options, WithAggregations>;
 } & {
     $expr?: (eb: ExpressionBuilder<ToKyselySchema<Schema>, Model>) => OperandExpression<SqlBool>;
 } & {
-    AND?: OrArray<WhereInput<Schema, Model, ScalarOnly>>;
-    OR?: WhereInput<Schema, Model, ScalarOnly>[];
-    NOT?: OrArray<WhereInput<Schema, Model, ScalarOnly>>;
+    AND?: OrArray<WhereInput<Schema, Model, Options, ScalarOnly>>;
+    OR?: WhereInput<Schema, Model, Options, ScalarOnly>[];
+    NOT?: OrArray<WhereInput<Schema, Model, Options, ScalarOnly>>;
 };
+
+type FieldFilter<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Field extends GetModelFields<Schema, Model>,
+    Options extends QueryOptions<Schema>,
+    WithAggregations extends boolean,
+    AllowedKinds extends FilterKind = GetSlicedFilterKindsForField<Schema, Model, Field, Options>,
+> =
+    Field extends RelationFields<Schema, Model>
+        ? // relation
+          RelationFilter<Schema, Model, Field, Options, AllowedKinds>
+        : FieldIsArray<Schema, Model, Field> extends true
+          ? // array
+            ArrayFilter<Schema, GetModelFieldType<Schema, Model, Field>, AllowedKinds>
+          : GetModelFieldType<Schema, Model, Field> extends GetEnums<Schema>
+            ? // enum
+              EnumFilter<
+                  Schema,
+                  GetModelFieldType<Schema, Model, Field>,
+                  ModelFieldIsOptional<Schema, Model, Field>,
+                  WithAggregations,
+                  AllowedKinds
+              >
+            : GetModelFieldType<Schema, Model, Field> extends GetTypeDefs<Schema>
+              ? // typedef
+                TypedJsonFilter<
+                    Schema,
+                    GetModelFieldType<Schema, Model, Field>,
+                    FieldIsArray<Schema, Model, Field>,
+                    ModelFieldIsOptional<Schema, Model, Field>,
+                    AllowedKinds
+                >
+              : // primitive
+                PrimitiveFilter<
+                    GetModelFieldType<Schema, Model, Field>,
+                    ModelFieldIsOptional<Schema, Model, Field>,
+                    WithAggregations,
+                    AllowedKinds
+                >;
 
 type EnumFilter<
     Schema extends SchemaDef,
     T extends GetEnums<Schema>,
     Nullable extends boolean,
     WithAggregations extends boolean,
+    AllowedKinds extends FilterKind,
 > =
-    | NullableIf<keyof GetEnum<Schema, T>, Nullable>
-    | ({
-          /**
-           * Checks for equality with the specified enum value.
-           */
-          equals?: NullableIf<keyof GetEnum<Schema, T>, Nullable>;
+    | ('Equality' extends AllowedKinds ? NullableIf<keyof GetEnum<Schema, T>, Nullable> : never)
+    | (('Equality' extends AllowedKinds
+          ? {
+                /**
+                 * Checks for equality with the specified enum value.
+                 */
+                equals?: NullableIf<keyof GetEnum<Schema, T>, Nullable>;
 
-          /**
-           * Checks if the enum value is in the specified list of values.
-           */
-          in?: (keyof GetEnum<Schema, T>)[];
+                /**
+                 * Checks if the enum value is in the specified list of values.
+                 */
+                in?: (keyof GetEnum<Schema, T>)[];
 
-          /**
-           * Checks if the enum value is not in the specified list of values.
-           */
-          notIn?: (keyof GetEnum<Schema, T>)[];
-
+                /**
+                 * Checks if the enum value is not in the specified list of values.
+                 */
+                notIn?: (keyof GetEnum<Schema, T>)[];
+            }
+          : {}) & {
           /**
            * Builds a negated filter.
            */
-          not?: EnumFilter<Schema, T, Nullable, WithAggregations>;
+          not?: EnumFilter<Schema, T, Nullable, WithAggregations, AllowedKinds>;
       } & (WithAggregations extends true
-          ? {
-                /**
-                 * Filters against the count of records.
-                 */
-                _count?: NumberFilter<'Int', false, false>;
+              ? {
+                    /**
+                     * Filters against the count of records.
+                     */
+                    _count?: NumberFilter<'Int', false, false, AllowedKinds>;
 
-                /**
-                 * Filters against the minimum value.
-                 */
-                _min?: EnumFilter<Schema, T, false, false>;
+                    /**
+                     * Filters against the minimum value.
+                     */
+                    _min?: EnumFilter<Schema, T, false, false, AllowedKinds>;
 
-                /**
-                 * Filters against the maximum value.
-                 */
-                _max?: EnumFilter<Schema, T, false, false>;
-            }
-          : {}));
+                    /**
+                     * Filters against the maximum value.
+                     */
+                    _max?: EnumFilter<Schema, T, false, false, AllowedKinds>;
+                }
+              : {}));
 
-type ArrayFilter<Schema extends SchemaDef, Type extends string> = {
-    /**
-     * Checks if the array equals the specified array.
-     */
-    equals?: MapScalarType<Schema, Type>[] | null;
+type ArrayFilter<
+    Schema extends SchemaDef,
+    Type extends string,
+    AllowedKinds extends FilterKind,
+> = ('Equality' extends AllowedKinds
+    ? {
+          /**
+           * Checks if the array equals the specified array.
+           */
+          equals?: MapScalarType<Schema, Type>[] | null;
+      }
+    : {}) &
+    ('List' extends AllowedKinds
+        ? {
+              /**
+               * Checks if the array contains all elements of the specified array.
+               */
+              has?: MapScalarType<Schema, Type> | null;
 
-    /**
-     * Checks if the array contains all elements of the specified array.
-     */
-    has?: MapScalarType<Schema, Type> | null;
+              /**
+               * Checks if the array contains any of the elements of the specified array.
+               */
+              hasEvery?: MapScalarType<Schema, Type>[];
 
-    /**
-     * Checks if the array contains any of the elements of the specified array.
-     */
-    hasEvery?: MapScalarType<Schema, Type>[];
+              /**
+               * Checks if the array contains some of the elements of the specified array.
+               */
+              hasSome?: MapScalarType<Schema, Type>[];
 
-    /**
-     * Checks if the array contains some of the elements of the specified array.
-     */
-    hasSome?: MapScalarType<Schema, Type>[];
-
-    /**
-     * Checks if the array is empty.
-     */
-    isEmpty?: boolean;
-};
+              /**
+               * Checks if the array is empty.
+               */
+              isEmpty?: boolean;
+          }
+        : {});
 
 // map a scalar type (primitive and enum) to TS type
 type MapScalarType<Schema extends SchemaDef, Type extends string> =
     Type extends GetEnums<Schema> ? keyof GetEnum<Schema, Type> : MapBaseType<Type>;
 
-type PrimitiveFilter<T extends string, Nullable extends boolean, WithAggregations extends boolean> = T extends 'String'
-    ? StringFilter<Nullable, WithAggregations>
+type PrimitiveFilter<
+    T extends string,
+    Nullable extends boolean,
+    WithAggregations extends boolean,
+    AllowedKinds extends FilterKind,
+> = T extends 'String'
+    ? StringFilter<Nullable, WithAggregations, AllowedKinds>
     : T extends 'Int' | 'Float' | 'Decimal' | 'BigInt'
-      ? NumberFilter<T, Nullable, WithAggregations>
+      ? NumberFilter<T, Nullable, WithAggregations, AllowedKinds>
       : T extends 'Boolean'
-        ? BooleanFilter<Nullable, WithAggregations>
+        ? BooleanFilter<Nullable, WithAggregations, AllowedKinds>
         : T extends 'DateTime'
-          ? DateTimeFilter<Nullable, WithAggregations>
+          ? DateTimeFilter<Nullable, WithAggregations, AllowedKinds>
           : T extends 'Bytes'
-            ? BytesFilter<Nullable, WithAggregations>
+            ? BytesFilter<Nullable, WithAggregations, AllowedKinds>
             : T extends 'Json'
-              ? JsonFilter
+              ? JsonFilter<AllowedKinds>
               : never;
 
 type CommonPrimitiveFilter<
@@ -415,91 +457,105 @@ type CommonPrimitiveFilter<
     T extends BuiltinType,
     Nullable extends boolean,
     WithAggregations extends boolean,
-> = {
-    /**
-     * Checks for equality with the specified value.
-     */
-    equals?: NullableIf<DataType, Nullable>;
-
-    /**
-     * Checks if the value is in the specified list of values.
-     */
-    in?: DataType[];
-
-    /**
-     * Checks if the value is not in the specified list of values.
-     */
-    notIn?: DataType[];
-
-    /**
-     * Checks if the value is less than the specified value.
-     */
-    lt?: DataType;
-
-    /**
-     * Checks if the value is less than or equal to the specified value.
-     */
-    lte?: DataType;
-
-    /**
-     * Checks if the value is greater than the specified value.
-     */
-    gt?: DataType;
-
-    /**
-     * Checks if the value is greater than or equal to the specified value.
-     */
-    gte?: DataType;
-
-    /**
-     * Checks if the value is between the specified values (inclusive).
-     */
-    between?: [start: DataType, end: DataType];
-
-    /**
-     * Builds a negated filter.
-     */
-    not?: PrimitiveFilter<T, Nullable, WithAggregations>;
-};
-
-export type StringFilter<Nullable extends boolean, WithAggregations extends boolean> =
-    | NullableIf<string, Nullable>
-    | (CommonPrimitiveFilter<string, 'String', Nullable, WithAggregations> & {
+    AllowedKinds extends FilterKind,
+> = ('Equality' extends AllowedKinds
+    ? {
           /**
-           * Checks if the string contains the specified substring.
+           * Checks for equality with the specified value.
            */
-          contains?: string;
+          equals?: NullableIf<DataType, Nullable>;
 
           /**
-           * Checks if the string starts with the specified substring.
+           * Checks if the value is in the specified list of values.
            */
-          startsWith?: string;
+          in?: DataType[];
 
           /**
-           * Checks if the string ends with the specified substring.
+           * Checks if the value is not in the specified list of values.
            */
-          endsWith?: string;
+          notIn?: DataType[];
+      }
+    : {}) &
+    ('Range' extends AllowedKinds
+        ? {
+              /**
+               * Checks if the value is less than the specified value.
+               */
+              lt?: DataType;
 
-          /**
-           * Specifies the string comparison mode. Not effective for "sqlite" provider
-           */
-          mode?: 'default' | 'insensitive';
-      } & (WithAggregations extends true
+              /**
+               * Checks if the value is less than or equal to the specified value.
+               */
+              lte?: DataType;
+
+              /**
+               * Checks if the value is greater than the specified value.
+               */
+              gt?: DataType;
+
+              /**
+               * Checks if the value is greater than or equal to the specified value.
+               */
+              gte?: DataType;
+
+              /**
+               * Checks if the value is between the specified values (inclusive).
+               */
+              between?: [start: DataType, end: DataType];
+          }
+        : {}) & {
+        /**
+         * Builds a negated filter.
+         */
+        not?: PrimitiveFilter<T, Nullable, WithAggregations, AllowedKinds>;
+    };
+
+export type StringFilter<
+    Nullable extends boolean,
+    WithAggregations extends boolean,
+    AllowedKinds extends FilterKind = FilterKind,
+> =
+    | ('Equality' extends AllowedKinds ? NullableIf<string, Nullable> : never)
+    | (CommonPrimitiveFilter<string, 'String', Nullable, WithAggregations, AllowedKinds> &
+          ('Like' extends AllowedKinds
+              ? {
+                    /**
+                     * Checks if the string contains the specified substring.
+                     */
+                    contains?: string;
+
+                    /**
+                     * Checks if the string starts with the specified substring.
+                     */
+                    startsWith?: string;
+
+                    /**
+                     * Checks if the string ends with the specified substring.
+                     */
+                    endsWith?: string;
+
+                    /**
+                     * Specifies the string comparison mode. Not effective for "sqlite" provider
+                     */
+                    mode?: 'default' | 'insensitive';
+                }
+              : {}) &
+          (WithAggregations extends true
               ? {
                     /**
                      * Filters against the count of records.
                      */
-                    _count?: NumberFilter<'Int', false, false>;
+                    _count?: NumberFilter<'Int', false, false, AllowedKinds>;
 
                     /**
                      * Filters against the minimum value.
                      */
-                    _min?: StringFilter<false, false>;
+                    _min?: StringFilter<false, false, AllowedKinds>;
 
                     /**
                      * Filters against the maximum value.
                      */
-                    _max?: StringFilter<false, false>;
+                    _max?: StringFilter<false, false, AllowedKinds>;
                 }
               : {}));
 
@@ -507,214 +563,254 @@ export type NumberFilter<
     T extends 'Int' | 'Float' | 'Decimal' | 'BigInt',
     Nullable extends boolean,
     WithAggregations extends boolean,
+    AllowedKinds extends FilterKind = FilterKind,
 > =
-    | NullableIf<number | bigint, Nullable>
-    | (CommonPrimitiveFilter<number, T, Nullable, WithAggregations> &
+    | ('Equality' extends AllowedKinds ? NullableIf<number | bigint, Nullable> : never)
+    | (CommonPrimitiveFilter<number, T, Nullable, WithAggregations, AllowedKinds> &
           (WithAggregations extends true
               ? {
                     /**
                      * Filters against the count of records.
                      */
-                    _count?: NumberFilter<'Int', false, false>;
+                    _count?: NumberFilter<'Int', false, false, AllowedKinds>;
 
                     /**
                      * Filters against the average value.
                      */
-                    _avg?: NumberFilter<T, false, false>;
+                    _avg?: NumberFilter<T, false, false, AllowedKinds>;
 
                     /**
                      * Filters against the sum value.
                      */
-                    _sum?: NumberFilter<T, false, false>;
+                    _sum?: NumberFilter<T, false, false, AllowedKinds>;
 
                     /**
                      * Filters against the minimum value.
                      */
-                    _min?: NumberFilter<T, false, false>;
+                    _min?: NumberFilter<T, false, false, AllowedKinds>;
 
                     /**
                      * Filters against the maximum value.
                      */
-                    _max?: NumberFilter<T, false, false>;
+                    _max?: NumberFilter<T, false, false, AllowedKinds>;
                 }
               : {}));
 
-export type DateTimeFilter<Nullable extends boolean, WithAggregations extends boolean> =
-    | NullableIf<Date | string, Nullable>
-    | (CommonPrimitiveFilter<Date | string, 'DateTime', Nullable, WithAggregations> &
+export type DateTimeFilter<
+    Nullable extends boolean,
+    WithAggregations extends boolean,
+    AllowedKinds extends FilterKind = FilterKind,
+> =
+    | ('Equality' extends AllowedKinds ? NullableIf<Date | string, Nullable> : never)
+    | (CommonPrimitiveFilter<Date | string, 'DateTime', Nullable, WithAggregations, AllowedKinds> &
           (WithAggregations extends true
               ? {
                     /**
                      * Filters against the count of records.
                      */
-                    _count?: NumberFilter<'Int', false, false>;
+                    _count?: NumberFilter<'Int', false, false, AllowedKinds>;
 
                     /**
                      * Filters against the minimum value.
                      */
-                    _min?: DateTimeFilter<false, false>;
+                    _min?: DateTimeFilter<false, false, AllowedKinds>;
 
                     /**
                      * Filters against the maximum value.
                      */
-                    _max?: DateTimeFilter<false, false>;
+                    _max?: DateTimeFilter<false, false, AllowedKinds>;
                 }
               : {}));
 
-export type BytesFilter<Nullable extends boolean, WithAggregations extends boolean> =
-    | NullableIf<Uint8Array | Buffer, Nullable>
-    | ({
+export type BytesFilter<
+    Nullable extends boolean,
+    WithAggregations extends boolean,
+    AllowedKinds extends FilterKind = FilterKind,
+> =
+    | ('Equality' extends AllowedKinds ? NullableIf<Uint8Array | Buffer, Nullable> : never)
+    | (('Equality' extends AllowedKinds
+          ? {
+                /**
+                 * Checks for equality with the specified value.
+                 */
+                equals?: NullableIf<Uint8Array, Nullable>;
+
+                /**
+                 * Checks if the value is in the specified list of values.
+                 */
+                in?: Uint8Array[];
+
+                /**
+                 * Checks if the value is not in the specified list of values.
+                 */
+                notIn?: Uint8Array[];
+            }
+          : {}) & {
+          /**
+           * Builds a negated filter.
+           */
+          not?: BytesFilter<Nullable, WithAggregations, AllowedKinds>;
+      } & (WithAggregations extends true
+              ? {
+                    /**
+                     * Filters against the count of records.
+                     */
+                    _count?: NumberFilter<'Int', false, false, AllowedKinds>;
+
+                    /**
+                     * Filters against the minimum value.
+                     */
+                    _min?: BytesFilter<false, false, AllowedKinds>;
+
+                    /**
+                     * Filters against the maximum value.
+                     */
+                    _max?: BytesFilter<false, false, AllowedKinds>;
+                }
+              : {}));
+
+export type BooleanFilter<
+    Nullable extends boolean,
+    WithAggregations extends boolean,
+    AllowedKinds extends FilterKind = FilterKind,
+> =
+    | ('Equality' extends AllowedKinds ? NullableIf<boolean, Nullable> : never)
+    | (('Equality' extends AllowedKinds
+          ? {
+                /**
+                 * Checks for equality with the specified value.
+                 */
+                equals?: NullableIf<boolean, Nullable>;
+            }
+          : {}) & {
+          /**
+           * Builds a negated filter.
+           */
+          not?: BooleanFilter<Nullable, WithAggregations, AllowedKinds>;
+      } & (WithAggregations extends true
+              ? {
+                    /**
+                     * Filters against the count of records.
+                     */
+                    _count?: NumberFilter<'Int', false, false, AllowedKinds>;
+
+                    /**
+                     * Filters against the minimum value.
+                     */
+                    _min?: BooleanFilter<false, false, AllowedKinds>;
+
+                    /**
+                     * Filters against the maximum value.
+                     */
+                    _max?: BooleanFilter<false, false, AllowedKinds>;
+                }
+              : {}));
+
+export type JsonFilter<AllowedKinds extends FilterKind = FilterKind> = ('Equality' extends AllowedKinds
+    ? {
           /**
            * Checks for equality with the specified value.
            */
-          equals?: NullableIf<Uint8Array, Nullable>;
-
-          /**
-           * Checks if the value is in the specified list of values.
-           */
-          in?: Uint8Array[];
-
-          /**
-           * Checks if the value is not in the specified list of values.
-           */
-          notIn?: Uint8Array[];
+          equals?: JsonValue | JsonNullValues;
 
           /**
            * Builds a negated filter.
            */
-          not?: BytesFilter<Nullable, WithAggregations>;
-      } & (WithAggregations extends true
-          ? {
-                /**
-                 * Filters against the count of records.
-                 */
-                _count?: NumberFilter<'Int', false, false>;
+          not?: JsonValue | JsonNullValues;
+      }
+    : {}) &
+    ('Json' extends AllowedKinds
+        ? {
+              /**
+               * JSON path to select the value to filter on. If omitted, the whole JSON value is used.
+               */
+              path?: string;
 
-                /**
-                 * Filters against the minimum value.
-                 */
-                _min?: BytesFilter<false, false>;
+              /**
+               * Checks if the value is a string and contains the specified substring.
+               */
+              string_contains?: string;
 
-                /**
-                 * Filters against the maximum value.
-                 */
-                _max?: BytesFilter<false, false>;
-            }
-          : {}));
+              /**
+               * Checks if the value is a string and starts with the specified substring.
+               */
+              string_starts_with?: string;
 
-export type BooleanFilter<Nullable extends boolean, WithAggregations extends boolean> =
-    | NullableIf<boolean, Nullable>
-    | ({
-          /**
-           * Checks for equality with the specified value.
-           */
-          equals?: NullableIf<boolean, Nullable>;
+              /**
+               * Checks if the value is a string and ends with the specified substring.
+               */
+              string_ends_with?: string;
 
-          /**
-           * Builds a negated filter.
-           */
-          not?: BooleanFilter<Nullable, WithAggregations>;
-      } & (WithAggregations extends true
-          ? {
-                /**
-                 * Filters against the count of records.
-                 */
-                _count?: NumberFilter<'Int', false, false>;
+              /**
+               * String comparison mode. Not effective for "sqlite" provider
+               */
+              mode?: 'default' | 'insensitive';
 
-                /**
-                 * Filters against the minimum value.
-                 */
-                _min?: BooleanFilter<false, false>;
+              /**
+               * Checks if the value is an array and contains the specified value.
+               */
+              array_contains?: JsonValue;
 
-                /**
-                 * Filters against the maximum value.
-                 */
-                _max?: BooleanFilter<false, false>;
-            }
-          : {}));
+              /**
+               * Checks if the value is an array and starts with the specified value.
+               */
+              array_starts_with?: JsonValue;
 
-export type JsonFilter = {
-    /**
-     * JSON path to select the value to filter on. If omitted, the whole JSON value is used.
-     */
-    path?: string;
-
-    /**
-     * Checks for equality with the specified value.
-     */
-    equals?: JsonValue | JsonNullValues;
-
-    /**
-     * Builds a negated filter.
-     */
-    not?: JsonValue | JsonNullValues;
-
-    /**
-     * Checks if the value is a string and contains the specified substring.
-     */
-    string_contains?: string;
-
-    /**
-     * Checks if the value is a string and starts with the specified substring.
-     */
-    string_starts_with?: string;
-
-    /**
-     * Checks if the value is a string and ends with the specified substring.
-     */
-    string_ends_with?: string;
-
-    /**
-     * String comparison mode. Not effective for "sqlite" provider
-     */
-    mode?: 'default' | 'insensitive';
-
-    /**
-     * Checks if the value is an array and contains the specified value.
-     */
-    array_contains?: JsonValue;
-
-    /**
-     * Checks if the value is an array and starts with the specified value.
-     */
-    array_starts_with?: JsonValue;
-
-    /**
-     * Checks if the value is an array and ends with the specified value.
-     */
-    array_ends_with?: JsonValue;
-};
+              /**
+               * Checks if the value is an array and ends with the specified value.
+               */
+              array_ends_with?: JsonValue;
+          }
+        : {});
 
 export type TypedJsonFilter<
     Schema extends SchemaDef,
     TypeDefName extends GetTypeDefs<Schema>,
     Array extends boolean,
     Optional extends boolean,
-> = XOR<JsonFilter, TypedJsonTypedFilter<Schema, TypeDefName, Array, Optional>>;
+    AllowedKinds extends FilterKind,
+> = XOR<JsonFilter<AllowedKinds>, TypedJsonTypedFilter<Schema, TypeDefName, Array, Optional, AllowedKinds>>;
 
 type TypedJsonTypedFilter<
     Schema extends SchemaDef,
     TypeDefName extends GetTypeDefs<Schema>,
     Array extends boolean,
     Optional extends boolean,
-> =
-    | (Array extends true ? ArrayTypedJsonFilter<Schema, TypeDefName> : NonArrayTypedJsonFilter<Schema, TypeDefName>)
-    | (Optional extends true ? null : never);
+    AllowedKinds extends FilterKind,
+> = 'Json' extends AllowedKinds
+    ?
+          | (Array extends true
+                ? ArrayTypedJsonFilter<Schema, TypeDefName, AllowedKinds>
+                : NonArrayTypedJsonFilter<Schema, TypeDefName, AllowedKinds>)
+          | (Optional extends true ? null : never)
+    : {};
 
-type ArrayTypedJsonFilter<Schema extends SchemaDef, TypeDefName extends GetTypeDefs<Schema>> = {
-    some?: TypedJsonFieldsFilter<Schema, TypeDefName>;
-    every?: TypedJsonFieldsFilter<Schema, TypeDefName>;
-    none?: TypedJsonFieldsFilter<Schema, TypeDefName>;
+type ArrayTypedJsonFilter<
+    Schema extends SchemaDef,
+    TypeDefName extends GetTypeDefs<Schema>,
+    AllowedKinds extends FilterKind,
+> = {
+    some?: TypedJsonFieldsFilter<Schema, TypeDefName, AllowedKinds>;
+    every?: TypedJsonFieldsFilter<Schema, TypeDefName, AllowedKinds>;
+    none?: TypedJsonFieldsFilter<Schema, TypeDefName, AllowedKinds>;
 };
 
-type NonArrayTypedJsonFilter<Schema extends SchemaDef, TypeDefName extends GetTypeDefs<Schema>> =
+type NonArrayTypedJsonFilter<
+    Schema extends SchemaDef,
+    TypeDefName extends GetTypeDefs<Schema>,
+    AllowedKinds extends FilterKind,
+> =
     | {
-          is?: TypedJsonFieldsFilter<Schema, TypeDefName>;
-          isNot?: TypedJsonFieldsFilter<Schema, TypeDefName>;
+          is?: TypedJsonFieldsFilter<Schema, TypeDefName, AllowedKinds>;
+          isNot?: TypedJsonFieldsFilter<Schema, TypeDefName, AllowedKinds>;
       }
-    | TypedJsonFieldsFilter<Schema, TypeDefName>;
+    | TypedJsonFieldsFilter<Schema, TypeDefName, AllowedKinds>;
 
-type TypedJsonFieldsFilter<Schema extends SchemaDef, TypeDefName extends GetTypeDefs<Schema>> = {
+type TypedJsonFieldsFilter<
+    Schema extends SchemaDef,
+    TypeDefName extends GetTypeDefs<Schema>,
+    AllowedKinds extends FilterKind,
+> = {
     [Key in GetTypeDefFields<Schema, TypeDefName>]?: GetTypeDefFieldType<
         Schema,
         TypeDefName,
@@ -725,24 +821,27 @@ type TypedJsonFieldsFilter<Schema extends SchemaDef, TypeDefName extends GetType
               Schema,
               GetTypeDefFieldType<Schema, TypeDefName, Key>,
               TypeDefFieldIsArray<Schema, TypeDefName, Key>,
-              TypeDefFieldIsOptional<Schema, TypeDefName, Key>
+              TypeDefFieldIsOptional<Schema, TypeDefName, Key>,
+              AllowedKinds
           >
         : // array
           TypeDefFieldIsArray<Schema, TypeDefName, Key> extends true
-          ? ArrayFilter<Schema, GetTypeDefFieldType<Schema, TypeDefName, Key>>
+          ? ArrayFilter<Schema, GetTypeDefFieldType<Schema, TypeDefName, Key>, AllowedKinds>
           : // enum
             GetTypeDefFieldType<Schema, TypeDefName, Key> extends GetEnums<Schema>
             ? EnumFilter<
                   Schema,
                   GetTypeDefFieldType<Schema, TypeDefName, Key>,
                   TypeDefFieldIsOptional<Schema, TypeDefName, Key>,
-                  false
+                  false,
+                  AllowedKinds
               >
             : // primitive
               PrimitiveFilter<
                   GetTypeDefFieldType<Schema, TypeDefName, Key>,
                   TypeDefFieldIsOptional<Schema, TypeDefName, Key>,
-                  false
+                  false,
+                  AllowedKinds
               >;
 };
 
@@ -813,7 +912,11 @@ export type OrderBy<
                 })
         : {});
 
-export type WhereUniqueInput<Schema extends SchemaDef, Model extends GetModels<Schema>> = AtLeast<
+export type WhereUniqueInput<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema>,
+> = AtLeast<
     {
         [Key in keyof GetModel<Schema, Model>['uniqueFields']]?: GetModel<
             Schema,
@@ -829,7 +932,7 @@ export type WhereUniqueInput<Schema extends SchemaDef, Model extends GetModels<S
                       ? MapFieldDefType<Schema, GetModel<Schema, Model>['uniqueFields'][Key][Key1]>
                       : never;
               };
-    } & WhereInput<Schema, Model>,
+    } & WhereInput<Schema, Model, Options>,
     Extract<keyof GetModel<Schema, Model>['uniqueFields'], string>
 >;
 
@@ -841,34 +944,38 @@ export type SelectIncludeOmit<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     AllowCount extends boolean,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     AllowRelation extends boolean = true,
 > = {
     /**
      * Explicitly select fields and relations to be returned by the query.
      */
-    select?: SelectInput<Schema, Model, AllowCount, AllowRelation> | null;
-
-    /**
-     * Specifies relations to be included in the query result. All scalar fields are included.
-     */
-    include?: IncludeInput<Schema, Model, AllowCount> | null;
+    select?: SelectInput<Schema, Model, Options, AllowCount, AllowRelation> | null;
 
     /**
      * Explicitly omit fields from the query result.
      */
     omit?: OmitInput<Schema, Model> | null;
-};
+} & (AllowRelation extends true
+    ? {
+          /**
+           * Specifies relations to be included in the query result. All scalar fields are included.
+           */
+          include?: IncludeInput<Schema, Model, Options, AllowCount> | null;
+      }
+    : {});
 
 export type SelectInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     AllowCount extends boolean = true,
     AllowRelation extends boolean = true,
 > = {
     [Key in NonRelationFields<Schema, Model>]?: boolean;
-} & (AllowRelation extends true ? IncludeInput<Schema, Model, AllowCount> : {});
+} & (AllowRelation extends true ? IncludeInput<Schema, Model, Options, AllowCount> : {});
 
-type SelectCount<Schema extends SchemaDef, Model extends GetModels<Schema>> =
+type SelectCount<Schema extends SchemaDef, Model extends GetModels<Schema>, Options extends QueryOptions<Schema>> =
     | boolean
     | {
           /**
@@ -878,7 +985,7 @@ type SelectCount<Schema extends SchemaDef, Model extends GetModels<Schema>> =
               [Key in RelationFields<Schema, Model> as FieldIsArray<Schema, Model, Key> extends true ? Key : never]?:
                   | boolean
                   | {
-                        where: WhereInput<Schema, RelationFieldType<Schema, Model, Key>, false>;
+                        where: WhereInput<Schema, RelationFieldType<Schema, Model, Key>, Options, false>;
                     };
           };
       };
@@ -886,13 +993,20 @@ type SelectCount<Schema extends SchemaDef, Model extends GetModels<Schema>> =
 export type IncludeInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     AllowCount extends boolean = true,
 > = {
-    [Key in RelationFields<Schema, Model>]?:
+    [Key in RelationFields<Schema, Model> as RelationFieldType<Schema, Model, Key> extends GetSlicedModels<
+        Schema,
+        Options
+    >
+        ? Key
+        : never]?:
         | boolean
         | FindArgs<
               Schema,
               RelationFieldType<Schema, Model, Key>,
+              Options,
               FieldIsArray<Schema, Model, Key>,
               // where clause is allowed only if the relation is array or optional
               FieldIsArray<Schema, Model, Key> extends true
@@ -904,7 +1018,7 @@ export type IncludeInput<
 } & (AllowCount extends true
     ? // _count is only allowed if the model has to-many relations
       HasToManyRelations<Schema, Model> extends true
-        ? { _count?: SelectCount<Schema, Model> }
+        ? { _count?: SelectCount<Schema, Model, Options> }
         : {}
     : {});
 
@@ -924,23 +1038,25 @@ type ToManyRelationFilter<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends RelationFields<Schema, Model>,
+    Options extends QueryOptions<Schema>,
 > = {
-    every?: WhereInput<Schema, RelationFieldType<Schema, Model, Field>>;
-    some?: WhereInput<Schema, RelationFieldType<Schema, Model, Field>>;
-    none?: WhereInput<Schema, RelationFieldType<Schema, Model, Field>>;
+    every?: WhereInput<Schema, RelationFieldType<Schema, Model, Field>, Options>;
+    some?: WhereInput<Schema, RelationFieldType<Schema, Model, Field>, Options>;
+    none?: WhereInput<Schema, RelationFieldType<Schema, Model, Field>, Options>;
 };
 
 type ToOneRelationFilter<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends RelationFields<Schema, Model>,
+    Options extends QueryOptions<Schema>,
 > = NullableIf<
-    WhereInput<Schema, RelationFieldType<Schema, Model, Field>> & {
+    WhereInput<Schema, RelationFieldType<Schema, Model, Field>, Options> & {
         /**
          * Checks if the related record matches the specified filter.
          */
         is?: NullableIf<
-            WhereInput<Schema, RelationFieldType<Schema, Model, Field>>,
+            WhereInput<Schema, RelationFieldType<Schema, Model, Field>, Options>,
             ModelFieldIsOptional<Schema, Model, Field>
         >;
 
@@ -948,7 +1064,7 @@ type ToOneRelationFilter<
          * Checks if the related record does not match the specified filter.
          */
         isNot?: NullableIf<
-            WhereInput<Schema, RelationFieldType<Schema, Model, Field>>,
+            WhereInput<Schema, RelationFieldType<Schema, Model, Field>, Options>,
             ModelFieldIsOptional<Schema, Model, Field>
         >;
     },
@@ -959,10 +1075,13 @@ type RelationFilter<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends RelationFields<Schema, Model>,
-> =
-    FieldIsArray<Schema, Model, Field> extends true
-        ? ToManyRelationFilter<Schema, Model, Field>
-        : ToOneRelationFilter<Schema, Model, Field>;
+    Options extends QueryOptions<Schema>,
+    AllowedKinds extends FilterKind,
+> = 'Relation' extends AllowedKinds
+    ? FieldIsArray<Schema, Model, Field> extends true
+        ? ToManyRelationFilter<Schema, Model, Field, Options>
+        : ToOneRelationFilter<Schema, Model, Field, Options>
+    : never;
 
 //#endregion
 
@@ -995,7 +1114,7 @@ type OptionalFieldsForCreate<Schema extends SchemaDef, Model extends GetModels<S
           ? Key
           : FieldIsArray<Schema, Model, Key> extends true
             ? Key
-            : GetModelField<Schema, Model, Key>['updatedAt'] extends (true | UpdatedAtInfo)
+            : GetModelField<Schema, Model, Key>['updatedAt'] extends true | UpdatedAtInfo
               ? Key
               : never]: GetModelField<Schema, Model, Key>;
 };
@@ -1045,14 +1164,18 @@ type OppositeRelationAndFK<
 
 //#region Find args
 
-type FilterArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+type FilterArgs<Schema extends SchemaDef, Model extends GetModels<Schema>, Options extends QueryOptions<Schema>> = {
     /**
      * Filter conditions
      */
-    where?: WhereInput<Schema, Model>;
+    where?: WhereInput<Schema, Model, Options>;
 };
 
-type SortAndTakeArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+type SortAndTakeArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema>,
+> = {
     /**
      * Number of records to skip
      */
@@ -1071,16 +1194,17 @@ type SortAndTakeArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> 
     /**
      * Cursor for pagination
      */
-    cursor?: WhereUniqueInput<Schema, Model>;
+    cursor?: WhereUniqueInput<Schema, Model, Options>;
 };
 
 export type FindArgs<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema>,
     Collection extends boolean,
     AllowFilter extends boolean = true,
 > = (Collection extends true
-    ? SortAndTakeArgs<Schema, Model> &
+    ? SortAndTakeArgs<Schema, Model, Options> &
           (ProviderSupportsDistinct<Schema> extends true
               ? {
                     /**
@@ -1090,34 +1214,69 @@ export type FindArgs<
                 }
               : {})
     : {}) &
-    (AllowFilter extends true ? FilterArgs<Schema, Model> : {}) &
-    SelectIncludeOmit<Schema, Model, Collection>;
+    (AllowFilter extends true ? FilterArgs<Schema, Model, Options> : {}) &
+    SelectIncludeOmit<Schema, Model, true, Options>;
 
-export type FindManyArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = FindArgs<Schema, Model, true>;
+export type FindManyArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+> = FindArgs<Schema, Model, Options, true> & ExtractExtQueryArgs<ExtQueryArgs, 'findMany'>;
 
-export type FindFirstArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = FindArgs<Schema, Model, true>;
+export type FindFirstArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+> = FindArgs<Schema, Model, Options, true> & ExtractExtQueryArgs<ExtQueryArgs, 'findFirst'>;
 
-export type ExistsArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = FilterArgs<Schema, Model>;
+export type ExistsArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+> = FilterArgs<Schema, Model, Options> & ExtractExtQueryArgs<ExtQueryArgs, 'exists'>;
 
-export type FindUniqueArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
-    where: WhereUniqueInput<Schema, Model>;
-} & SelectIncludeOmit<Schema, Model, true>;
+export type FindUniqueArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+> = {
+    where: WhereUniqueInput<Schema, Model, Options>;
+} & SelectIncludeOmit<Schema, Model, true, Options> &
+    ExtractExtQueryArgs<ExtQueryArgs, 'findUnique'>;
 
 //#endregion
 
 //#region Create args
 
-export type CreateArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
-    data: CreateInput<Schema, Model>;
-} & SelectIncludeOmit<Schema, Model, true>;
+export type CreateArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+> = {
+    data: CreateInput<Schema, Model, Options>;
+} & SelectIncludeOmit<Schema, Model, true, Options> &
+    ExtractExtQueryArgs<ExtQueryArgs, 'create'>;
 
-export type CreateManyArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = CreateManyInput<Schema, Model>;
+export type CreateManyArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    _Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+> = CreateManyInput<Schema, Model> & ExtractExtQueryArgs<ExtQueryArgs, 'createMany'>;
 
-export type CreateManyAndReturnArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = CreateManyInput<
-    Schema,
-    Model
-> &
-    Omit<SelectIncludeOmit<Schema, Model, false, false>, 'include'>;
+export type CreateManyAndReturnArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+> = CreateManyInput<Schema, Model> &
+    SelectIncludeOmit<Schema, Model, false, Options, false> &
+    ExtractExtQueryArgs<ExtQueryArgs, 'createManyAndReturn'>;
 
 type OptionalWrap<Schema extends SchemaDef, Model extends GetModels<Schema>, T extends object> = Optional<
     T,
@@ -1176,17 +1335,18 @@ type CreateRelationFieldPayload<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends RelationFields<Schema, Model>,
+    Options extends QueryOptions<Schema>,
 > = Omit<
     {
         /**
          * Connects or create a related record.
          */
-        connectOrCreate?: ConnectOrCreateInput<Schema, Model, Field>;
+        connectOrCreate?: ConnectOrCreateInput<Schema, Model, Field, Options>;
 
         /**
          * Creates a related record.
          */
-        create?: NestedCreateInput<Schema, Model, Field>;
+        create?: NestedCreateInput<Schema, Model, Field, Options>;
 
         /**
          * Creates a batch of related records.
@@ -1196,7 +1356,7 @@ type CreateRelationFieldPayload<
         /**
          * Connects an existing record.
          */
-        connect?: ConnectInput<Schema, Model, Field>;
+        connect?: ConnectInput<Schema, Model, Field, Options>;
     },
     // no "createMany" for non-array fields
     | (FieldIsArray<Schema, Model, Field> extends true ? never : 'createMany')
@@ -1204,50 +1364,73 @@ type CreateRelationFieldPayload<
     | (FieldIsDelegateRelation<Schema, Model, Field> extends true ? 'create' | 'createMany' | 'connectOrCreate' : never)
 >;
 
-type CreateRelationPayload<Schema extends SchemaDef, Model extends GetModels<Schema>> = OptionalWrap<
+type CreateRelationPayload<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema>,
+> = OptionalWrap<
     Schema,
     Model,
     {
-        [Key in RelationFields<Schema, Model>]: CreateRelationFieldPayload<Schema, Model, Key>;
+        [Key in RelationFields<Schema, Model> as RelationFieldType<Schema, Model, Key> extends GetSlicedModels<
+            Schema,
+            Options
+        >
+            ? Key
+            : never]: CreateRelationFieldPayload<Schema, Model, Key, Options>;
     }
 >;
 
-type CreateWithFKInput<Schema extends SchemaDef, Model extends GetModels<Schema>> =
+type CreateWithFKInput<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema>,
+> =
     // scalar fields
     CreateScalarPayload<Schema, Model> &
         // fk fields
         CreateFKPayload<Schema, Model> &
         // non-owned relations
-        CreateWithNonOwnedRelationPayload<Schema, Model>;
+        CreateWithNonOwnedRelationPayload<Schema, Model, Options>;
 
-type CreateWithRelationInput<Schema extends SchemaDef, Model extends GetModels<Schema>> = CreateScalarPayload<
-    Schema,
-    Model
-> &
-    CreateRelationPayload<Schema, Model>;
+type CreateWithRelationInput<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema>,
+> = CreateScalarPayload<Schema, Model> & CreateRelationPayload<Schema, Model, Options>;
 
-type CreateWithNonOwnedRelationPayload<Schema extends SchemaDef, Model extends GetModels<Schema>> = OptionalWrap<
+type CreateWithNonOwnedRelationPayload<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema>,
+> = OptionalWrap<
     Schema,
     Model,
     {
-        [Key in NonOwnedRelationFields<Schema, Model>]: CreateRelationFieldPayload<Schema, Model, Key>;
+        [Key in NonOwnedRelationFields<Schema, Model> as RelationFieldType<Schema, Model, Key> extends GetSlicedModels<
+            Schema,
+            Options
+        >
+            ? Key
+            : never]: CreateRelationFieldPayload<Schema, Model, Key, Options>;
     }
 >;
 
 type ConnectOrCreatePayload<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema>,
     Without extends string = never,
 > = {
     /**
      * The unique filter to find an existing record to connect.
      */
-    where: WhereUniqueInput<Schema, Model>;
+    where: WhereUniqueInput<Schema, Model, Options>;
 
     /**
      * The data to create a new record if no existing record is found.
      */
-    create: CreateInput<Schema, Model, Without>;
+    create: CreateInput<Schema, Model, Options, Without>;
 };
 
 export type CreateManyInput<
@@ -1269,15 +1452,20 @@ export type CreateManyInput<
 export type CreateInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema>,
     Without extends string = never,
-> = XOR<Omit<CreateWithFKInput<Schema, Model>, Without>, Omit<CreateWithRelationInput<Schema, Model>, Without>>;
+> = XOR<
+    Omit<CreateWithFKInput<Schema, Model, Options>, Without>,
+    Omit<CreateWithRelationInput<Schema, Model, Options>, Without>
+>;
 
 type NestedCreateInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends RelationFields<Schema, Model>,
+    Options extends QueryOptions<Schema>,
 > = OrArray<
-    CreateInput<Schema, RelationFieldType<Schema, Model, Field>, OppositeRelationAndFK<Schema, Model, Field>>,
+    CreateInput<Schema, RelationFieldType<Schema, Model, Field>, Options, OppositeRelationAndFK<Schema, Model, Field>>,
     FieldIsArray<Schema, Model, Field>
 >;
 
@@ -1291,30 +1479,46 @@ type NestedCreateManyInput<
 
 // #region Update args
 
-export type UpdateArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+export type UpdateArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+> = {
     /**
      * The data to update the record with.
      */
-    data: UpdateInput<Schema, Model>;
+    data: UpdateInput<Schema, Model, Options>;
 
     /**
      * The unique filter to find the record to update.
      */
-    where: WhereUniqueInput<Schema, Model>;
-} & SelectIncludeOmit<Schema, Model, true>;
+    where: WhereUniqueInput<Schema, Model, Options>;
+} & SelectIncludeOmit<Schema, Model, true, Options> &
+    ExtractExtQueryArgs<ExtQueryArgs, 'update'>;
 
-export type UpdateManyArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = UpdateManyPayload<
-    Schema,
-    Model
->;
+export type UpdateManyArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+> = UpdateManyPayload<Schema, Model, Options> & ExtractExtQueryArgs<ExtQueryArgs, 'updateMany'>;
 
-export type UpdateManyAndReturnArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = UpdateManyPayload<
-    Schema,
-    Model
-> &
-    Omit<SelectIncludeOmit<Schema, Model, false, false>, 'include'>;
+export type UpdateManyAndReturnArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+> = UpdateManyPayload<Schema, Model, Options> &
+    SelectIncludeOmit<Schema, Model, false, Options, false> &
+    ExtractExtQueryArgs<ExtQueryArgs, 'updateManyAndReturn'>;
 
-type UpdateManyPayload<Schema extends SchemaDef, Model extends GetModels<Schema>, Without extends string = never> = {
+type UpdateManyPayload<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    Without extends string = never,
+> = {
     /**
      * The data to update the records with.
      */
@@ -1323,7 +1527,7 @@ type UpdateManyPayload<Schema extends SchemaDef, Model extends GetModels<Schema>
     /**
      * The filter to select records to update.
      */
-    where?: WhereInput<Schema, Model>;
+    where?: WhereInput<Schema, Model, Options>;
 
     /**
      * Limit the number of records to update.
@@ -1331,22 +1535,28 @@ type UpdateManyPayload<Schema extends SchemaDef, Model extends GetModels<Schema>
     limit?: number;
 };
 
-export type UpsertArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+export type UpsertArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+> = {
     /**
      * The data to create the record if it doesn't exist.
      */
-    create: CreateInput<Schema, Model>;
+    create: CreateInput<Schema, Model, Options>;
 
     /**
      * The data to update the record with if it exists.
      */
-    update: UpdateInput<Schema, Model>;
+    update: UpdateInput<Schema, Model, Options>;
 
     /**
      * The unique filter to find the record to update.
      */
-    where: WhereUniqueInput<Schema, Model>;
-} & SelectIncludeOmit<Schema, Model, true>;
+    where: WhereUniqueInput<Schema, Model, Options>;
+} & SelectIncludeOmit<Schema, Model, true, Options> &
+    ExtractExtQueryArgs<ExtQueryArgs, 'upsert'>;
 
 type UpdateScalarInput<
     Schema extends SchemaDef,
@@ -1413,10 +1623,16 @@ type ScalarUpdatePayload<
 type UpdateRelationInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema>,
     Without extends string = never,
 > = Omit<
     {
-        [Key in RelationFields<Schema, Model>]?: UpdateRelationFieldPayload<Schema, Model, Key>;
+        [Key in RelationFields<Schema, Model> as RelationFieldType<Schema, Model, Key> extends GetSlicedModels<
+            Schema,
+            Options
+        >
+            ? Key
+            : never]?: UpdateRelationFieldPayload<Schema, Model, Key, Options>;
     },
     Without
 >;
@@ -1424,28 +1640,30 @@ type UpdateRelationInput<
 export type UpdateInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema>,
     Without extends string = never,
-> = UpdateScalarInput<Schema, Model, Without> & UpdateRelationInput<Schema, Model, Without>;
-
+> = UpdateScalarInput<Schema, Model, Without> & UpdateRelationInput<Schema, Model, Options, Without>;
 type UpdateRelationFieldPayload<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends RelationFields<Schema, Model>,
+    Options extends QueryOptions<Schema>,
 > =
     FieldIsArray<Schema, Model, Field> extends true
-        ? ToManyRelationUpdateInput<Schema, Model, Field>
-        : ToOneRelationUpdateInput<Schema, Model, Field>;
+        ? ToManyRelationUpdateInput<Schema, Model, Field, Options>
+        : ToOneRelationUpdateInput<Schema, Model, Field, Options>;
 
 type ToManyRelationUpdateInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends RelationFields<Schema, Model>,
+    Options extends QueryOptions<Schema>,
 > = Omit<
     {
         /**
          * Creates related records.
          */
-        create?: NestedCreateInput<Schema, Model, Field>;
+        create?: NestedCreateInput<Schema, Model, Field, Options>;
 
         /**
          * Creates a batch of related records.
@@ -1455,47 +1673,47 @@ type ToManyRelationUpdateInput<
         /**
          * Connects existing records.
          */
-        connect?: ConnectInput<Schema, Model, Field>;
+        connect?: ConnectInput<Schema, Model, Field, Options>;
 
         /**
          * Connects or create related records.
          */
-        connectOrCreate?: ConnectOrCreateInput<Schema, Model, Field>;
+        connectOrCreate?: ConnectOrCreateInput<Schema, Model, Field, Options>;
 
         /**
          * Disconnects related records.
          */
-        disconnect?: DisconnectInput<Schema, Model, Field>;
+        disconnect?: DisconnectInput<Schema, Model, Field, Options>;
 
         /**
          * Updates related records.
          */
-        update?: NestedUpdateInput<Schema, Model, Field>;
+        update?: NestedUpdateInput<Schema, Model, Field, Options>;
 
         /**
          * Upserts related records.
          */
-        upsert?: NestedUpsertInput<Schema, Model, Field>;
+        upsert?: NestedUpsertInput<Schema, Model, Field, Options>;
 
         /**
          * Updates a batch of related records.
          */
-        updateMany?: NestedUpdateManyInput<Schema, Model, Field>;
+        updateMany?: NestedUpdateManyInput<Schema, Model, Field, Options>;
 
         /**
          * Deletes related records.
          */
-        delete?: NestedDeleteInput<Schema, Model, Field>;
+        delete?: NestedDeleteInput<Schema, Model, Field, Options>;
 
         /**
          * Deletes a batch of related records.
          */
-        deleteMany?: NestedDeleteManyInput<Schema, Model, Field>;
+        deleteMany?: NestedDeleteManyInput<Schema, Model, Field, Options>;
 
         /**
          * Sets the related records to the specified ones.
          */
-        set?: SetRelationInput<Schema, Model, Field>;
+        set?: SetRelationInput<Schema, Model, Field, Options>;
     },
     // exclude
     FieldIsDelegateRelation<Schema, Model, Field> extends true
@@ -1507,43 +1725,44 @@ type ToOneRelationUpdateInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends RelationFields<Schema, Model>,
+    Options extends QueryOptions<Schema>,
 > = Omit<
     {
         /**
          * Creates a related record.
          */
-        create?: NestedCreateInput<Schema, Model, Field>;
+        create?: NestedCreateInput<Schema, Model, Field, Options>;
 
         /**
          * Connects an existing record.
          */
-        connect?: ConnectInput<Schema, Model, Field>;
+        connect?: ConnectInput<Schema, Model, Field, Options>;
 
         /**
          * Connects or create a related record.
          */
-        connectOrCreate?: ConnectOrCreateInput<Schema, Model, Field>;
+        connectOrCreate?: ConnectOrCreateInput<Schema, Model, Field, Options>;
 
         /**
          * Updates the related record.
          */
-        update?: NestedUpdateInput<Schema, Model, Field>;
+        update?: NestedUpdateInput<Schema, Model, Field, Options>;
 
         /**
          * Upserts the related record.
          */
-        upsert?: NestedUpsertInput<Schema, Model, Field>;
+        upsert?: NestedUpsertInput<Schema, Model, Field, Options>;
     } & (ModelFieldIsOptional<Schema, Model, Field> extends true
         ? {
               /**
                * Disconnects the related record.
                */
-              disconnect?: DisconnectInput<Schema, Model, Field>;
+              disconnect?: DisconnectInput<Schema, Model, Field, Options>;
 
               /**
                * Deletes the related record.
                */
-              delete?: NestedDeleteInput<Schema, Model, Field>;
+              delete?: NestedDeleteInput<Schema, Model, Field, Options>;
           }
         : {}),
     FieldIsDelegateRelation<Schema, Model, Field> extends true ? 'create' | 'connectOrCreate' | 'upsert' : never
@@ -1553,38 +1772,51 @@ type ToOneRelationUpdateInput<
 
 // #region Delete args
 
-export type DeleteArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+export type DeleteArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+> = {
     /**
      * The unique filter to find the record to delete.
      */
-    where: WhereUniqueInput<Schema, Model>;
-} & SelectIncludeOmit<Schema, Model, true>;
+    where: WhereUniqueInput<Schema, Model, Options>;
+} & SelectIncludeOmit<Schema, Model, true, Options> &
+    ExtractExtQueryArgs<ExtQueryArgs, 'delete'>;
 
-export type DeleteManyArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+export type DeleteManyArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+> = {
     /**
      * Filter to select records to delete.
      */
-    where?: WhereInput<Schema, Model>;
+    where?: WhereInput<Schema, Model, Options>;
 
     /**
      * Limits the number of records to delete.
      */
     limit?: number;
-};
+} & ExtractExtQueryArgs<ExtQueryArgs, 'deleteMany'>;
 
 // #endregion
 
 // #region Count args
 
-export type CountArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = Omit<
-    FindArgs<Schema, Model, true>,
-    'select' | 'include' | 'distinct' | 'omit'
-> & {
+export type CountArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+> = Omit<FindArgs<Schema, Model, Options, true>, 'select' | 'include' | 'distinct' | 'omit'> & {
     /**
      * Selects fields to count
      */
     select?: CountAggregateInput<Schema, Model> | true;
-};
+} & ExtractExtQueryArgs<ExtQueryArgs, 'count'>;
 
 type CountAggregateInput<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
     [Key in NonRelationFields<Schema, Model>]?: true;
@@ -1604,12 +1836,16 @@ export type CountResult<Schema extends SchemaDef, _Model extends GetModels<Schem
 
 // #region Aggregate
 
-export type AggregateArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+export type AggregateArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+> = {
     /**
      * Filter conditions
      */
-    where?: WhereInput<Schema, Model>;
-
+    where?: WhereInput<Schema, Model, Options>;
     /**
      * Number of records to skip for the aggregation
      */
@@ -1651,7 +1887,8 @@ export type AggregateArgs<Schema extends SchemaDef, Model extends GetModels<Sche
                * Performs sum value aggregation.
                */
               _sum?: SumAvgInput<Schema, Model, true>;
-          });
+          }) &
+    ExtractExtQueryArgs<ExtQueryArgs, 'aggregate'>;
 
 type NumericFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = keyof {
     [Key in GetModelFields<Schema, Model> as GetModelFieldType<Schema, Model, Key> extends
@@ -1732,16 +1969,22 @@ type AggCommonOutput<Input> = Input extends true
 
 // #region GroupBy
 
-type GroupByHaving<Schema extends SchemaDef, Model extends GetModels<Schema>> = Omit<
-    WhereInput<Schema, Model, true, true>,
-    '$expr'
->;
+type GroupByHaving<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+> = Omit<WhereInput<Schema, Model, Options, true, true>, '$expr'>;
 
-export type GroupByArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+export type GroupByArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+> = {
     /**
      * Filter conditions
      */
-    where?: WhereInput<Schema, Model>;
+    where?: WhereInput<Schema, Model, Options>;
 
     /**
      * Order by clauses
@@ -1756,7 +1999,7 @@ export type GroupByArgs<Schema extends SchemaDef, Model extends GetModels<Schema
     /**
      * Filter conditions for the grouped records
      */
-    having?: GroupByHaving<Schema, Model>;
+    having?: GroupByHaving<Schema, Model, Options>;
 
     /**
      * Number of records to take for grouping
@@ -1794,7 +2037,8 @@ export type GroupByArgs<Schema extends SchemaDef, Model extends GetModels<Schema
            * Performs sum value aggregation.
            */
           _sum?: SumAvgInput<Schema, Model, true>;
-      });
+      }) &
+    ExtractExtQueryArgs<ExtQueryArgs, 'groupBy'>;
 
 export type GroupByResult<
     Schema extends SchemaDef,
@@ -1855,27 +2099,31 @@ type ConnectInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends RelationFields<Schema, Model>,
+    Options extends QueryOptions<Schema>,
 > =
     FieldIsArray<Schema, Model, Field> extends true
-        ? OrArray<WhereUniqueInput<Schema, RelationFieldType<Schema, Model, Field>>>
-        : WhereUniqueInput<Schema, RelationFieldType<Schema, Model, Field>>;
+        ? OrArray<WhereUniqueInput<Schema, RelationFieldType<Schema, Model, Field>, Options>>
+        : WhereUniqueInput<Schema, RelationFieldType<Schema, Model, Field>, Options>;
 
 type ConnectOrCreateInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends RelationFields<Schema, Model>,
+    Options extends QueryOptions<Schema>,
 > =
     FieldIsArray<Schema, Model, Field> extends true
         ? OrArray<
               ConnectOrCreatePayload<
                   Schema,
                   RelationFieldType<Schema, Model, Field>,
+                  Options,
                   OppositeRelationAndFK<Schema, Model, Field>
               >
           >
         : ConnectOrCreatePayload<
               Schema,
               RelationFieldType<Schema, Model, Field>,
+              Options,
               OppositeRelationAndFK<Schema, Model, Field>
           >;
 
@@ -1883,21 +2131,24 @@ type DisconnectInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends RelationFields<Schema, Model>,
+    Options extends QueryOptions<Schema>,
 > =
     FieldIsArray<Schema, Model, Field> extends true
-        ? OrArray<WhereUniqueInput<Schema, RelationFieldType<Schema, Model, Field>>, true>
-        : boolean | WhereInput<Schema, RelationFieldType<Schema, Model, Field>>;
+        ? OrArray<WhereUniqueInput<Schema, RelationFieldType<Schema, Model, Field>, Options>, true>
+        : boolean | WhereInput<Schema, RelationFieldType<Schema, Model, Field>, Options>;
 
 type SetRelationInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends RelationFields<Schema, Model>,
-> = OrArray<WhereUniqueInput<Schema, RelationFieldType<Schema, Model, Field>>>;
+    Options extends QueryOptions<Schema>,
+> = OrArray<WhereUniqueInput<Schema, RelationFieldType<Schema, Model, Field>, Options>>;
 
 type NestedUpdateInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends RelationFields<Schema, Model>,
+    Options extends QueryOptions<Schema>,
 > =
     FieldIsArray<Schema, Model, Field> extends true
         ? // to-many
@@ -1906,7 +2157,7 @@ type NestedUpdateInput<
                   /**
                    * Unique filter to select the record to update.
                    */
-                  where: WhereUniqueInput<Schema, RelationFieldType<Schema, Model, Field>>;
+                  where: WhereUniqueInput<Schema, RelationFieldType<Schema, Model, Field>, Options>;
 
                   /**
                    * The data to update the record with.
@@ -1914,6 +2165,7 @@ type NestedUpdateInput<
                   data: UpdateInput<
                       Schema,
                       RelationFieldType<Schema, Model, Field>,
+                      Options,
                       OppositeRelationAndFK<Schema, Model, Field>
                   >;
               },
@@ -1925,7 +2177,7 @@ type NestedUpdateInput<
                   /**
                    * Filter to select the record to update.
                    */
-                  where?: WhereInput<Schema, RelationFieldType<Schema, Model, Field>>;
+                  where?: WhereInput<Schema, RelationFieldType<Schema, Model, Field>, Options>;
 
                   /**
                    * The data to update the record with.
@@ -1933,22 +2185,29 @@ type NestedUpdateInput<
                   data: UpdateInput<
                       Schema,
                       RelationFieldType<Schema, Model, Field>,
+                      Options,
                       OppositeRelationAndFK<Schema, Model, Field>
                   >;
               },
-              UpdateInput<Schema, RelationFieldType<Schema, Model, Field>, OppositeRelationAndFK<Schema, Model, Field>>
+              UpdateInput<
+                  Schema,
+                  RelationFieldType<Schema, Model, Field>,
+                  Options,
+                  OppositeRelationAndFK<Schema, Model, Field>
+              >
           >;
 
 type NestedUpsertInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends RelationFields<Schema, Model>,
+    Options extends QueryOptions<Schema>,
 > = OrArray<
     {
         /**
          * Unique filter to select the record to update.
          */
-        where: WhereUniqueInput<Schema, RelationFieldType<Schema, Model, Field>>;
+        where: WhereUniqueInput<Schema, RelationFieldType<Schema, Model, Field>, Options>;
 
         /**
          * The data to create the record if it doesn't exist.
@@ -1956,6 +2215,7 @@ type NestedUpsertInput<
         create: CreateInput<
             Schema,
             RelationFieldType<Schema, Model, Field>,
+            Options,
             OppositeRelationAndFK<Schema, Model, Field>
         >;
 
@@ -1965,6 +2225,7 @@ type NestedUpsertInput<
         update: UpdateInput<
             Schema,
             RelationFieldType<Schema, Model, Field>,
+            Options,
             OppositeRelationAndFK<Schema, Model, Field>
         >;
     },
@@ -1975,24 +2236,32 @@ type NestedUpdateManyInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends RelationFields<Schema, Model>,
+    Options extends QueryOptions<Schema>,
 > = OrArray<
-    UpdateManyPayload<Schema, RelationFieldType<Schema, Model, Field>, OppositeRelationAndFK<Schema, Model, Field>>
+    UpdateManyPayload<
+        Schema,
+        RelationFieldType<Schema, Model, Field>,
+        Options,
+        OppositeRelationAndFK<Schema, Model, Field>
+    >
 >;
 
 type NestedDeleteInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends RelationFields<Schema, Model>,
+    Options extends QueryOptions<Schema>,
 > =
     FieldIsArray<Schema, Model, Field> extends true
-        ? OrArray<WhereUniqueInput<Schema, RelationFieldType<Schema, Model, Field>>, true>
-        : boolean | WhereInput<Schema, RelationFieldType<Schema, Model, Field>>;
+        ? OrArray<WhereUniqueInput<Schema, RelationFieldType<Schema, Model, Field>, Options>, true>
+        : boolean | WhereInput<Schema, RelationFieldType<Schema, Model, Field>, Options>;
 
 type NestedDeleteManyInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends RelationFields<Schema, Model>,
-> = OrArray<WhereInput<Schema, RelationFieldType<Schema, Model, Field>, true>>;
+    Options extends QueryOptions<Schema>,
+> = OrArray<WhereInput<Schema, RelationFieldType<Schema, Model, Field>, Options, true>>;
 
 // #endregion
 
@@ -2115,5 +2384,29 @@ type MapType<Schema extends SchemaDef, T extends string> = T extends keyof TypeM
 type ProviderSupportsDistinct<Schema extends SchemaDef> = Schema['provider']['type'] extends 'postgresql'
     ? true
     : false;
+
+/**
+ * Extracts extended query args for a specific operation.
+ */
+type ExtractExtQueryArgs<ExtQueryArgs, Operation extends CoreCrudOperations> = (Operation extends keyof ExtQueryArgs
+    ? ExtQueryArgs[Operation]
+    : {}) &
+    ('$create' extends keyof ExtQueryArgs
+        ? Operation extends CoreCreateOperations
+            ? ExtQueryArgs['$create']
+            : {}
+        : {}) &
+    ('$read' extends keyof ExtQueryArgs ? (Operation extends CoreReadOperations ? ExtQueryArgs['$read'] : {}) : {}) &
+    ('$update' extends keyof ExtQueryArgs
+        ? Operation extends CoreUpdateOperations
+            ? ExtQueryArgs['$update']
+            : {}
+        : {}) &
+    ('$delete' extends keyof ExtQueryArgs
+        ? Operation extends CoreDeleteOperations
+            ? ExtQueryArgs['$delete']
+            : {}
+        : {}) &
+    ('$all' extends keyof ExtQueryArgs ? ExtQueryArgs['$all'] : {});
 
 // #endregion

@@ -177,6 +177,13 @@ export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDiale
 
     // #region other overrides
 
+    protected override buildExistsExpression(innerQuery: SelectQueryBuilder<any, any, any>): Expression<SqlBool> {
+        // MySQL doesn't allow referencing the target table of a DELETE/UPDATE in a subquery
+        // directly within the same statement. Wrapping in a derived table materializes the
+        // subquery, making it a separate virtual table that MySQL accepts.
+        return this.eb.exists(this.eb.selectFrom(innerQuery.as('$exists_sub')).select(this.eb.lit(1).as('_')));
+    }
+
     protected buildArrayAgg(arg: Expression<any>): AliasableExpression<any> {
         return this.eb.fn.coalesce(sql`JSON_ARRAYAGG(${arg})`, sql`JSON_ARRAY()`);
     }
@@ -306,7 +313,7 @@ export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDiale
         return this.eb.exists(
             this.eb
                 .selectFrom(sql`JSON_TABLE(${receiver}, '$[*]' COLUMNS(value JSON PATH '$'))`.as('$items'))
-                .select(this.eb.lit(1).as('$t'))
+                .select(this.eb.lit(1).as('_'))
                 .where(buildFilter(this.eb.ref('$items.value'))),
         );
     }

@@ -763,6 +763,274 @@ procedure echoOverview(o: Overview): Overview
         expect(r.data.stringList).toEqual(['d', 'e', 'f']);
     });
 
+    describe('transaction', () => {
+        it('runs sequential operations atomically', async () => {
+            const handleRequest = makeHandler();
+
+            // Clean up
+            await rawClient.post.deleteMany();
+            await rawClient.user.deleteMany();
+
+            const r = await handleRequest({
+                method: 'post',
+                path: '/$transaction/sequential',
+                requestBody: [
+                    {
+                        model: 'User',
+                        op: 'create',
+                        args: { data: { id: 'txuser1', email: 'txuser1@abc.com' } },
+                    },
+                    {
+                        model: 'Post',
+                        op: 'create',
+                        args: { data: { id: 'txpost1', title: 'Tx Post', authorId: 'txuser1' } },
+                    },
+                    {
+                        model: 'Post',
+                        op: 'findMany',
+                        args: { where: { authorId: 'txuser1' } },
+                    },
+                ],
+                client: rawClient,
+            });
+
+            expect(r.status).toBe(200);
+            expect(Array.isArray(r.data)).toBe(true);
+            expect(r.data).toHaveLength(3);
+            expect(r.data[0]).toMatchObject({ id: 'txuser1', email: 'txuser1@abc.com' });
+            expect(r.data[1]).toMatchObject({ id: 'txpost1', title: 'Tx Post' });
+            expect(r.data[2]).toHaveLength(1);
+            expect(r.data[2][0]).toMatchObject({ id: 'txpost1' });
+
+            // Clean up
+            await rawClient.post.deleteMany();
+            await rawClient.user.deleteMany();
+        });
+
+        it('rejects non-POST methods', async () => {
+            const handleRequest = makeHandler();
+
+            const r = await handleRequest({
+                method: 'get',
+                path: '/$transaction/sequential',
+                client: rawClient,
+            });
+            expect(r.status).toBe(400);
+            expect(r.error.message).toMatch(/only POST is supported/i);
+        });
+
+        it('rejects missing or non-array body', async () => {
+            const handleRequest = makeHandler();
+
+            let r = await handleRequest({
+                method: 'post',
+                path: '/$transaction/sequential',
+                client: rawClient,
+            });
+            expect(r.status).toBe(400);
+            expect(r.error.message).toMatch(/non-empty array/i);
+
+            r = await handleRequest({
+                method: 'post',
+                path: '/$transaction/sequential',
+                requestBody: [],
+                client: rawClient,
+            });
+            expect(r.status).toBe(400);
+            expect(r.error.message).toMatch(/non-empty array/i);
+
+            r = await handleRequest({
+                method: 'post',
+                path: '/$transaction/sequential',
+                requestBody: { model: 'User', op: 'findMany', args: {} },
+                client: rawClient,
+            });
+            expect(r.status).toBe(400);
+            expect(r.error.message).toMatch(/non-empty array/i);
+        });
+
+        it('rejects unknown model in operation', async () => {
+            const handleRequest = makeHandler();
+
+            const r = await handleRequest({
+                method: 'post',
+                path: '/$transaction/sequential',
+                requestBody: [{ model: 'Ghost', op: 'create', args: { data: {} } }],
+                client: rawClient,
+            });
+            expect(r.status).toBe(400);
+            expect(r.error.message).toMatch(/unknown model/i);
+        });
+
+        it('rejects invalid op in operation', async () => {
+            const handleRequest = makeHandler();
+
+            const r = await handleRequest({
+                method: 'post',
+                path: '/$transaction/sequential',
+                requestBody: [{ model: 'User', op: 'dropTable', args: {} }],
+                client: rawClient,
+            });
+            expect(r.status).toBe(400);
+            expect(r.error.message).toMatch(/invalid op/i);
+        });
+
+        it('rejects operation missing model or op field', async () => {
+            const handleRequest = makeHandler();
+
+            let r = await handleRequest({
+                method: 'post',
+                path: '/$transaction/sequential',
+                requestBody: [{ op: 'create', args: { data: {} } }],
+                client: rawClient,
+            });
+            expect(r.status).toBe(400);
+            expect(r.error.message).toMatch(/"model"/i);
+
+            r = await handleRequest({
+                method: 'post',
+                path: '/$transaction/sequential',
+                requestBody: [{ model: 'User', args: { data: {} } }],
+                client: rawClient,
+            });
+            expect(r.status).toBe(400);
+            expect(r.error.message).toMatch(/"op"/i);
+        });
+
+        it('returns error for invalid args (non-existent field in where clause)', async () => {
+            const handleRequest = makeHandler();
+
+            // findMany with a non-existent field in where → ORM validation error
+            let r = await handleRequest({
+                method: 'post',
+                path: '/$transaction/sequential',
+                requestBody: [
+                    {
+                        model: 'User',
+                        op: 'findMany',
+                        args: { where: { nonExistentField: 'value' } },
+                    },
+                ],
+                client: rawClient,
+            });
+            expect(r.status).toBe(422);
+            expect(r.error.message).toMatch(/validation error/i);
+
+            // findUnique missing required where clause → ORM validation error
+            r = await handleRequest({
+                method: 'post',
+                path: '/$transaction/sequential',
+                requestBody: [
+                    {
+                        model: 'Post',
+                        op: 'findUnique',
+                        args: {},
+                    },
+                ],
+                client: rawClient,
+            });
+            expect(r.status).toBe(422);
+            expect(r.error.message).toMatch(/validation error/i);
+
+            // create with missing required field → ORM validation error
+            r = await handleRequest({
+                method: 'post',
+                path: '/$transaction/sequential',
+                requestBody: [
+                    {
+                        model: 'Post',
+                        op: 'create',
+                        // title is required but omitted
+                        args: { data: {} },
+                    },
+                ],
+                client: rawClient,
+            });
+            expect(r.status).toBe(422);
+            expect(r.error.message).toMatch(/validation error/i);
+        });
+
+        it('deserializes SuperJSON-encoded args per operation', async () => {
+            const handleRequest = makeHandler();
+
+            // Clean up
+            await rawClient.post.deleteMany();
+            await rawClient.user.deleteMany();
+
+            // Serialize args containing a Date so they need SuperJSON deserialization
+            const publishedAt = new Date('2025-01-15T00:00:00.000Z');
+            const serialized = SuperJSON.serialize({
+                data: { id: 'txuser3', email: 'txuser3@abc.com' },
+            });
+            const serializedPost = SuperJSON.serialize({
+                data: { id: 'txpost3', title: 'Dated Post', authorId: 'txuser3', publishedAt },
+            });
+
+            const r = await handleRequest({
+                method: 'post',
+                path: '/$transaction/sequential',
+                requestBody: [
+                    {
+                        model: 'User',
+                        op: 'create',
+                        args: { ...(serialized.json as any), meta: { serialization: serialized.meta } },
+                    },
+                    {
+                        model: 'Post',
+                        op: 'create',
+                        args: { ...(serializedPost.json as any), meta: { serialization: serializedPost.meta } },
+                    },
+                ],
+                client: rawClient,
+            });
+
+            expect(r.status).toBe(200);
+            expect(r.data).toHaveLength(2);
+            expect(r.data[0]).toMatchObject({ id: 'txuser3' });
+            expect(r.data[1]).toMatchObject({ id: 'txpost3' });
+
+            // Verify the Date was stored correctly
+            const post = await (rawClient as any).post.findUnique({ where: { id: 'txpost3' } });
+            expect(post?.publishedAt instanceof Date).toBe(true);
+            expect((post?.publishedAt as Date)?.toISOString()).toBe(publishedAt.toISOString());
+
+            // Clean up
+            await rawClient.post.deleteMany();
+            await rawClient.user.deleteMany();
+        });
+
+        it('rolls back all operations when one fails', async () => {
+            const handleRequest = makeHandler();
+
+            // Ensure no users before
+            await rawClient.user.deleteMany();
+
+            const r = await handleRequest({
+                method: 'post',
+                path: '/$transaction/sequential',
+                requestBody: [
+                    {
+                        model: 'User',
+                        op: 'create',
+                        args: { data: { id: 'txuser2', email: 'txuser2@abc.com' } },
+                    },
+                    // duplicate id will cause a DB error → whole tx rolls back
+                    {
+                        model: 'User',
+                        op: 'create',
+                        args: { data: { id: 'txuser2', email: 'txuser2@abc.com' } },
+                    },
+                ],
+                client: rawClient,
+            });
+            expect(r.status).toBeGreaterThanOrEqual(400);
+
+            // User should not have been committed
+            const count = await rawClient.user.count();
+            expect(count).toBe(0);
+        });
+    });
+
     function makeHandler() {
         const handler = new RPCApiHandler({ schema: client.$schema });
         return async (args: any) => {

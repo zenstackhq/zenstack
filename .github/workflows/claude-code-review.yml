@@ -12,12 +12,7 @@ on:
 
 jobs:
     claude-review:
-        # Optional: Filter by PR author
-        # if: |
-        #   github.event.pull_request.user.login == 'external-contributor' ||
-        #   github.event.pull_request.user.login == 'new-developer' ||
-        #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
-
+        if: ${{ github.event.pull_request.head.repo.fork == false }}
         runs-on: ubuntu-latest
         permissions:
             contents: read
@@ -33,6 +28,7 @@ jobs:
 
             - name: Run Claude Code Review
               id: claude-review
+              if: ${{ !contains(github.event.pull_request.title, '[WIP]') }}
               uses: anthropics/claude-code-action@beta
               with:
                   claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -71,7 +67,3 @@ jobs:
                   # Optional: Add specific tools for running tests or linting
                   # allowed_tools: "Bash(npm run test),Bash(npm run lint),Bash(npm run typecheck)"
 
-                  # Optional: Skip review for certain conditions
-                  # if: |
-                  #   !contains(github.event.pull_request.title, '[skip-review]') &&
-                  #   !contains(github.event.pull_request.title, '[WIP]')

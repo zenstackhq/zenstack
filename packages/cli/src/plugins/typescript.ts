@@ -28,11 +28,19 @@ const plugin: CliPlugin = {
             throw new Error('The "importWithFileExtension" option must be a string if specified.');
         }
 
+        // whether to generate models.ts
+        const generateModelTypes = pluginOptions['generateModels'] !== false;
+
+        // whether to generate input.ts
+        const generateInputTypes = pluginOptions['generateInput'] !== false;
+
         await new TsSchemaGenerator().generate(model, {
             outDir,
             lite,
             liteOnly,
             importWithFileExtension: importWithFileExtension as string | undefined,
+            generateModelTypes,
+            generateInputTypes,
         });
     },
 };

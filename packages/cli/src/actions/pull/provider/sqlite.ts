@@ -134,10 +134,11 @@ export const sqlite: IntrospectionProvider = {
 
             // List user tables and views from sqlite_schema (the master catalog).
             // sqlite_schema contains one row per table, view, index, and trigger.
-            // We filter to only tables/views and exclude internal sqlite_* objects.
+            // We filter to only tables/views and exclude internal sqlite_* objects
+            // and the Prisma migration tracking table.
             // The 'sql' column contains the original CREATE TABLE/VIEW statement.
             const tablesRaw = all<{ name: string; type: 'table' | 'view'; definition: string | null }>(
-                "SELECT name, type, sql AS definition FROM sqlite_schema WHERE type IN ('table','view') AND name NOT LIKE 'sqlite_%' ORDER BY name",
+                "SELECT name, type, sql AS definition FROM sqlite_schema WHERE type IN ('table','view') AND name NOT LIKE 'sqlite_%' AND name <> '_prisma_migrations' ORDER BY name",
             );
 
             // Detect AUTOINCREMENT by parsing the CREATE TABLE statement

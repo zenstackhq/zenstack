@@ -1,10 +1,15 @@
+import { invariant } from '@zenstackhq/common-helpers';
 import { type ZModelServices, loadDocument } from '@zenstackhq/language';
-import { type Model, isDataSource } from '@zenstackhq/language/ast';
-import { PrismaSchemaGenerator } from '@zenstackhq/sdk';
+import { type Model, type Plugin, isDataSource, type LiteralExpr } from '@zenstackhq/language/ast';
+import { type CliPlugin, PrismaSchemaGenerator } from '@zenstackhq/sdk';
 import colors from 'colors';
+import { createJiti } from 'jiti';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import terminalLink from 'terminal-link';
+import { z } from 'zod';
 import { CliError } from '../cli-error';
 
 export function getSchemaFile(file?: string) {
@@ -215,4 +220,153 @@ export async function getZenStackPackages(
     });
 
     return result.filter((p) => !!p);
+}
+
+export function getPluginProvider(plugin: Plugin) {
+    const providerField = plugin.fields.find((f) => f.name === 'provider');
+    invariant(providerField, `Plugin ${plugin.name} does not have a provider field`);
+    const provider = (providerField.value as LiteralExpr).value as string;
+    return provider;
+}
+
+export async function loadPluginModule(provider: string, basePath: string) {
+    if (provider.toLowerCase().endsWith('.zmodel')) {
+        // provider is a zmodel file, no plugin code module to load
+        return undefined;
+    }
+
+    let moduleSpec = provider;
+    if (moduleSpec.startsWith('.')) {
+        // relative to schema's path
+        moduleSpec = path.resolve(basePath, moduleSpec);
+    }
+
+    const importAsEsm = async (spec: string) => {
+        try {
+            const result = (await import(spec)).default as CliPlugin;
+            return result;
+        } catch (err) {
+            throw new CliError(`Failed to load plugin module from ${spec}: ${(err as Error).message}`);
+        }
+    };
+
+    const jiti = createJiti(pathToFileURL(basePath).toString());
+    const importAsTs = async (spec: string) => {
+        try {
+            const result = (await jiti.import(spec, { default: true })) as CliPlugin;
+            return result;
+        } catch (err) {
+            throw new CliError(`Failed to load plugin module from ${spec}: ${(err as Error).message}`);
+        }
+    };
+
+    const esmSuffixes = ['.js', '.mjs'];
+    const tsSuffixes = ['.ts', '.mts'];
+
+    if (fs.existsSync(moduleSpec) && fs.statSync(moduleSpec).isFile()) {
+        // try provider as ESM file
+        if (esmSuffixes.some((suffix) => moduleSpec.endsWith(suffix))) {
+            return await importAsEsm(pathToFileURL(moduleSpec).toString());
+        }
+
+        // try provider as TS file
+        if (tsSuffixes.some((suffix) => moduleSpec.endsWith(suffix))) {
+            return await importAsTs(moduleSpec);
+        }
+    }
+
+    // try ESM index files in provider directory
+    for (const suffix of esmSuffixes) {
+        const indexPath = path.join(moduleSpec, `index${suffix}`);
+        if (fs.existsSync(indexPath)) {
+            return await importAsEsm(pathToFileURL(indexPath).toString());
+        }
+    }
+
+    // try TS index files in provider directory
+    for (const suffix of tsSuffixes) {
+        const indexPath = path.join(moduleSpec, `index${suffix}`);
+        if (fs.existsSync(indexPath)) {
+            return await importAsTs(indexPath);
+        }
+    }
+
+    // last resort, try to import as esm directly
+    try {
+        const mod = await import(moduleSpec);
+        // plugin may not export a generator, return undefined in that case
+        return mod.default as CliPlugin | undefined;
+    } catch (err) {
+        const errorCode = (err as NodeJS.ErrnoException)?.code;
+        if (errorCode === 'ERR_MODULE_NOT_FOUND' || errorCode === 'MODULE_NOT_FOUND') {
+            throw new CliError(`Cannot find plugin module "${provider}". Please make sure the package exists.`);
+        }
+        throw new CliError(`Failed to load plugin module "${provider}": ${(err as Error).message}`);
+    }
+}
+
+const FETCH_CLI_MAX_TIME = 1000;
+const CLI_CONFIG_ENDPOINT = 'https://zenstack.dev/config/cli-v3.json';
+
+const usageTipsSchema = z.object({
+    notifications: z.array(z.object({ title: z.string(), url: z.url().optional(), active: z.boolean() })),
+});
+
+/**
+ * Starts the usage tips fetch in the background. Returns a callback that, when invoked check if the fetch
+ * is complete. If not complete, it will wait until the max time is reached. After that, if fetch is still
+ * not complete, just return.
+ */
+export function startUsageTipsFetch() {
+    let fetchedData: z.infer<typeof usageTipsSchema> | undefined = undefined;
+    let fetchComplete = false;
+
+    const start = Date.now();
+    const controller = new AbortController();
+
+    fetch(CLI_CONFIG_ENDPOINT, {
+        headers: { accept: 'application/json' },
+        signal: controller.signal,
+    })
+        .then(async (res) => {
+            if (!res.ok) return;
+            const data = await res.json();
+            const parseResult = usageTipsSchema.safeParse(data);
+            if (parseResult.success) {
+                fetchedData = parseResult.data;
+            }
+        })
+        .catch(() => {
+            // noop
+        })
+        .finally(() => {
+            fetchComplete = true;
+        });
+
+    return async () => {
+        const elapsed = Date.now() - start;
+
+        if (!fetchComplete && elapsed < FETCH_CLI_MAX_TIME) {
+            // wait for the timeout
+            await new Promise((resolve) => setTimeout(resolve, FETCH_CLI_MAX_TIME - elapsed));
+        }
+
+        if (!fetchComplete) {
+            controller.abort();
+            return;
+        }
+
+        if (!fetchedData) return;
+
+        const activeItems = fetchedData.notifications.filter((item) => item.active);
+        // show a random active item
+        if (activeItems.length > 0) {
+            const item = activeItems[Math.floor(Math.random() * activeItems.length)]!;
+            if (item.url) {
+                console.log(terminalLink(item.title, item.url));
+            } else {
+                console.log(item.title);
+            }
+        }
+    };
 }

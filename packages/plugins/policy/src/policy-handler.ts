@@ -660,7 +660,7 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
             selections = [SelectionNode.create(SelectAllNode.create())];
         }
 
-        const modelPolicyFilter = this.buildPolicyFilter(model, alias, operation);
+        const modelPolicyFilter = this.buildPolicyFilter(model, model, operation);
         if (!isTrueNode(modelPolicyFilter)) {
             hasPolicies = true;
         }
@@ -825,13 +825,13 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         const queryA = eb
             .selectFrom(m2m.firstModel)
             .where(eb(eb.ref(`${m2m.firstModel}.${m2m.firstIdField}`), '=', aValue))
-            .select(() => new ExpressionWrapper(filterA).as('$t'));
+            .select(() => new ExpressionWrapper(filterA).as('_'));
 
         const filterB = this.buildPolicyFilter(m2m.secondModel, undefined, 'update');
         const queryB = eb
             .selectFrom(m2m.secondModel)
             .where(eb(eb.ref(`${m2m.secondModel}.${m2m.secondIdField}`), '=', bValue))
-            .select(() => new ExpressionWrapper(filterB).as('$t'));
+            .select(() => new ExpressionWrapper(filterB).as('_'));
 
         // select both conditions in one query
         const queryNode: SelectQueryNode = {
@@ -920,6 +920,10 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         for (let i = 0; i < data.length; i++) {
             const item = data[i]!;
             if (typeof item === 'object' && item && 'kind' in item) {
+                if (item.kind === 'DefaultInsertValueNode') {
+                    result.push({ node: ValueNode.create(null), raw: null });
+                    continue;
+                }
                 const fieldDef = QueryUtils.requireField(this.client.$schema, model, fields[i]!);
                 invariant(item.kind === 'ValueNode', 'expecting a ValueNode');
                 result.push({

@@ -1,13 +1,15 @@
 {
     "name": "@zenstackhq/schema",
-    "version": "3.3.3",
+    "version": "3.4.5",
     "description": "ZenStack Runtime Schema",
     "type": "module",
     "scripts": {
         "build": "tsc --noEmit && tsup-node",
         "watch": "tsup-node --watch",
         "lint": "eslint src --ext ts",
-        "pack": "pnpm pack"
+        "test": "vitest run",
+        "pack": "pnpm pack",
+        "test:generate": "tsx ../../scripts/test-generate.ts ."
     },
     "keywords": [],
     "author": "ZenStack Team",
@@ -25,6 +27,10 @@
                 "types": "./dist/index.d.cts",
                 "default": "./dist/index.cjs"
             }
+        },
+        "./package.json": {
+            "import": "./package.json",
+            "require": "./package.json"
         }
     },
     "dependencies": {
@@ -32,6 +38,7 @@
     },
     "devDependencies": {
         "@zenstackhq/eslint-config": "workspace:*",
-        "@zenstackhq/typescript-config": "workspace:*"
+        "@zenstackhq/typescript-config": "workspace:*",
+        "@zenstackhq/vitest-config": "workspace:*"
     }
 }

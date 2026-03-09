@@ -1120,6 +1120,27 @@ describe('Client find tests ', () => {
         ).resolves.toMatchObject({
             _count: { posts: 0 },
         });
+
+        // typing
+        // user select allows _count because it has to-many relations
+        client.user.findMany({
+            select: { _count: { select: { posts: true } } },
+        });
+        // nested author select allows _count because it has to-many relations
+        client.post.findMany({
+            select: {
+                author: {
+                    select: {
+                        _count: { select: { posts: true } },
+                    },
+                },
+            },
+        });
+        // comment select does not allow _count because it has no to-many relations
+        client.comment.findMany({
+            // @ts-expect-error
+            select: { _count: {} },
+        });
     });
 
     it('supports _count inside include', async () => {

@@ -171,7 +171,7 @@ export const zenstackAdapter = <Schema extends SchemaDef>(db: ClientContract<Sch
                     const whereClause = convertWhereClause(model, where);
                     return await modelDb.update({
                         where: whereClause,
-                        data: update as UpdateInput<SchemaDef, GetModels<SchemaDef>>,
+                        data: update as UpdateInput<SchemaDef, GetModels<SchemaDef>, any>,
                     });
                 },
 

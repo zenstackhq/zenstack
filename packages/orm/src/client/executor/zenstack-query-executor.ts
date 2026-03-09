@@ -39,6 +39,7 @@ import { createDBQueryError, createInternalError, ORMError } from '../errors';
 import type { AfterEntityMutationCallback, OnKyselyQueryCallback } from '../plugin';
 import { requireIdFields, stripAlias } from '../query-utils';
 import { QueryNameMapper } from './name-mapper';
+import { TempAliasTransformer } from './temp-alias-transformer';
 import type { ZenStackDriver } from './zenstack-driver';
 
 type MutationQueryNode = InsertQueryNode | UpdateQueryNode | DeleteQueryNode;
@@ -620,8 +621,21 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
             }) as string;
     }
 
+    private processQueryNode<Node extends RootOperationNode>(query: Node): Node {
+        let result = query;
+        result = this.processNameMapping(result);
+        result = this.processTempAlias(result);
+        return result;
+    }
+
     private processNameMapping<Node extends RootOperationNode>(query: Node): Node {
         return this.nameMapper?.transformNode(query) ?? query;
+    }
+
+    private processTempAlias<Node extends RootOperationNode>(query: Node): Node {
+        return new TempAliasTransformer({
+            mode: this.options.useCompactAliasNames === false ? 'compactLongNames' : 'alwaysCompact',
+        }).run(query);
     }
 
     private createClientForConnection(connection: DatabaseConnection, inTx: boolean) {
@@ -650,8 +664,8 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
         queryId?: QueryId,
         parameters?: readonly unknown[],
     ) {
-        // no need to handle mutation hooks, just proceed
-        const finalQuery = this.processNameMapping(query);
+        // run query node processors: name mapping, temp alias renaming, etc.
+        const finalQuery = this.processQueryNode(query);
 
         // inherit the original queryId
         let compiledQuery = this.compileQuery(finalQuery, queryId ?? createQueryId());

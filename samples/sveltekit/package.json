@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@tanstack/svelte-query": "catalog:",
+    "@zenstackhq/schema": "workspace:*",
     "@zenstackhq/orm": "workspace:*",
     "@zenstackhq/server": "workspace:*",
     "@zenstackhq/tanstack-query": "workspace:*",

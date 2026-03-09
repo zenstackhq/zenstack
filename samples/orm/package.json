@@ -1,6 +1,6 @@
 {
-    "name": "sample-blog",
-    "version": "3.3.3",
+    "name": "sample-orm",
+    "version": "3.4.5",
     "description": "",
     "main": "index.js",
     "private": true,
@@ -15,6 +15,7 @@
     "author": "",
     "license": "MIT",
     "dependencies": {
+        "@zenstackhq/schema": "workspace:*",
         "@zenstackhq/orm": "workspace:*",
         "@zenstackhq/plugin-policy": "workspace:*",
         "better-sqlite3": "catalog:",

@@ -40,6 +40,8 @@ import type {
     FindUniqueArgs,
     GetProcedure,
     GetProcedureNames,
+    GetSlicedModels,
+    GetSlicedProcedures,
     GroupByArgs,
     GroupByResult,
     ProcedureEnvelope,
@@ -63,7 +65,7 @@ import type {
     ExtraQueryOptions,
     ProcedureReturn,
     QueryContext,
-    TrimDelegateModelOperations,
+    TrimSlicedOperations,
     WithOptimistic,
 } from '../common/types.js';
 export type { FetchFn } from '@zenstackhq/client-helpers/fetch';
@@ -145,11 +147,11 @@ export type ModelMutationModelResult<
 };
 
 export type ClientHooks<Schema extends SchemaDef, Options extends QueryOptions<Schema> = QueryOptions<Schema>> = {
-    [Model in GetModels<Schema> as `${Uncapitalize<Model>}`]: ModelQueryHooks<Schema, Model, Options>;
-} & ProcedureHooks<Schema>;
+    [Model in GetSlicedModels<Schema, Options> as `${Uncapitalize<Model>}`]: ModelQueryHooks<Schema, Model, Options>;
+} & ProcedureHooks<Schema, Options>;
 
-type ProcedureHookGroup<Schema extends SchemaDef> = {
-    [Name in GetProcedureNames<Schema>]: GetProcedure<Schema, Name> extends { mutation: true }
+type ProcedureHookGroup<Schema extends SchemaDef, Options extends QueryOptions<Schema>> = {
+    [Name in GetSlicedProcedures<Schema, Options>]: GetProcedure<Schema, Name> extends { mutation: true }
         ? {
               useMutation(
                   options?: Omit<
@@ -182,14 +184,15 @@ type ProcedureHookGroup<Schema extends SchemaDef> = {
           };
 };
 
-export type ProcedureHooks<Schema extends SchemaDef> = Schema['procedures'] extends Record<string, any>
-    ? {
-          /**
-           * Custom procedures.
-           */
-          $procs: ProcedureHookGroup<Schema>;
-      }
-    : Record<never, never>;
+export type ProcedureHooks<Schema extends SchemaDef, Options extends QueryOptions<Schema>> =
+    Schema['procedures'] extends Record<string, any>
+        ? {
+              /**
+               * Custom procedures.
+               */
+              $procs: ProcedureHookGroup<Schema, Options>;
+          }
+        : Record<never, never>;
 
 // Note that we can potentially use TypeScript's mapped type to directly map from ORM contract, but that seems
 // to significantly slow down tsc performance ...
@@ -197,36 +200,37 @@ export type ModelQueryHooks<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
-> = TrimDelegateModelOperations<
+> = TrimSlicedOperations<
     Schema,
     Model,
+    Options,
     {
-        useFindUnique<T extends FindUniqueArgs<Schema, Model>>(
-            args: Accessor<SelectSubset<T, FindUniqueArgs<Schema, Model>>>,
+        useFindUnique<T extends FindUniqueArgs<Schema, Model, Options>>(
+            args: Accessor<SelectSubset<T, FindUniqueArgs<Schema, Model, Options>>>,
             options?: Accessor<ModelQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options> | null>>,
         ): ModelQueryResult<SimplifiedPlainResult<Schema, Model, T, Options> | null>;
 
-        useFindFirst<T extends FindFirstArgs<Schema, Model>>(
-            args?: Accessor<SelectSubset<T, FindFirstArgs<Schema, Model>>>,
+        useFindFirst<T extends FindFirstArgs<Schema, Model, Options>>(
+            args?: Accessor<SelectSubset<T, FindFirstArgs<Schema, Model, Options>>>,
             options?: Accessor<ModelQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options> | null>>,
         ): ModelQueryResult<SimplifiedPlainResult<Schema, Model, T, Options> | null>;
 
-        useExists<T extends ExistsArgs<Schema, Model>>(
-            args?: Accessor<Subset<T, ExistsArgs<Schema, Model>>>,
+        useExists<T extends ExistsArgs<Schema, Model, Options>>(
+            args?: Accessor<Subset<T, ExistsArgs<Schema, Model, Options>>>,
             options?: Accessor<ModelQueryOptions<boolean>>,
         ): ModelQueryResult<boolean>;
 
-        useFindMany<T extends FindManyArgs<Schema, Model>>(
-            args?: Accessor<SelectSubset<T, FindManyArgs<Schema, Model>>>,
+        useFindMany<T extends FindManyArgs<Schema, Model, Options>>(
+            args?: Accessor<SelectSubset<T, FindManyArgs<Schema, Model, Options>>>,
             options?: Accessor<ModelQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options>[]>>,
         ): ModelQueryResult<SimplifiedPlainResult<Schema, Model, T, Options>[]>;
 
-        useInfiniteFindMany<T extends FindManyArgs<Schema, Model>>(
-            args?: Accessor<SelectSubset<T, FindManyArgs<Schema, Model>>>,
+        useInfiniteFindMany<T extends FindManyArgs<Schema, Model, Options>>(
+            args?: Accessor<SelectSubset<T, FindManyArgs<Schema, Model, Options>>>,
             options?: Accessor<ModelInfiniteQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options>[]>>,
         ): ModelInfiniteQueryResult<InfiniteData<SimplifiedPlainResult<Schema, Model, T, Options>[]>>;
 
-        useCreate<T extends CreateArgs<Schema, Model>>(
+        useCreate<T extends CreateArgs<Schema, Model, Options>>(
             options?: Accessor<ModelMutationOptions<SimplifiedPlainResult<Schema, Model, T, Options>, T>>,
         ): ModelMutationModelResult<Schema, Model, T, false, Options>;
 
@@ -234,44 +238,44 @@ export type ModelQueryHooks<
             options?: Accessor<ModelMutationOptions<BatchResult, T>>,
         ): ModelMutationResult<BatchResult, T>;
 
-        useCreateManyAndReturn<T extends CreateManyAndReturnArgs<Schema, Model>>(
+        useCreateManyAndReturn<T extends CreateManyAndReturnArgs<Schema, Model, Options>>(
             options?: Accessor<ModelMutationOptions<SimplifiedPlainResult<Schema, Model, T, Options>[], T>>,
         ): ModelMutationModelResult<Schema, Model, T, true, Options>;
 
-        useUpdate<T extends UpdateArgs<Schema, Model>>(
+        useUpdate<T extends UpdateArgs<Schema, Model, Options>>(
             options?: Accessor<ModelMutationOptions<SimplifiedPlainResult<Schema, Model, T, Options>, T>>,
         ): ModelMutationModelResult<Schema, Model, T, false, Options>;
-        useUpdateMany<T extends UpdateManyArgs<Schema, Model>>(
+        useUpdateMany<T extends UpdateManyArgs<Schema, Model, Options>>(
             options?: Accessor<ModelMutationOptions<BatchResult, T>>,
         ): ModelMutationResult<BatchResult, T>;
 
-        useUpdateManyAndReturn<T extends UpdateManyAndReturnArgs<Schema, Model>>(
+        useUpdateManyAndReturn<T extends UpdateManyAndReturnArgs<Schema, Model, Options>>(
             options?: Accessor<ModelMutationOptions<SimplifiedPlainResult<Schema, Model, T, Options>[], T>>,
         ): ModelMutationModelResult<Schema, Model, T, true, Options>;
 
-        useUpsert<T extends UpsertArgs<Schema, Model>>(
+        useUpsert<T extends UpsertArgs<Schema, Model, Options>>(
             options?: Accessor<ModelMutationOptions<SimplifiedPlainResult<Schema, Model, T, Options>, T>>,
         ): ModelMutationModelResult<Schema, Model, T, false, Options>;
-        useDelete<T extends DeleteArgs<Schema, Model>>(
+        useDelete<T extends DeleteArgs<Schema, Model, Options>>(
             options?: Accessor<ModelMutationOptions<SimplifiedPlainResult<Schema, Model, T, Options>, T>>,
         ): ModelMutationModelResult<Schema, Model, T, false, Options>;
 
-        useDeleteMany<T extends DeleteManyArgs<Schema, Model>>(
+        useDeleteMany<T extends DeleteManyArgs<Schema, Model, Options>>(
             options?: Accessor<ModelMutationOptions<BatchResult, T>>,
         ): ModelMutationResult<BatchResult, T>;
 
-        useCount<T extends CountArgs<Schema, Model>>(
-            args?: Accessor<Subset<T, CountArgs<Schema, Model>>>,
+        useCount<T extends CountArgs<Schema, Model, Options>>(
+            args?: Accessor<Subset<T, CountArgs<Schema, Model, Options>>>,
             options?: Accessor<ModelQueryOptions<CountResult<Schema, Model, T>>>,
         ): ModelQueryResult<CountResult<Schema, Model, T>>;
 
-        useAggregate<T extends AggregateArgs<Schema, Model>>(
-            args: Accessor<Subset<T, AggregateArgs<Schema, Model>>>,
+        useAggregate<T extends AggregateArgs<Schema, Model, Options>>(
+            args: Accessor<Subset<T, AggregateArgs<Schema, Model, Options>>>,
             options?: Accessor<ModelQueryOptions<AggregateResult<Schema, Model, T>>>,
         ): ModelQueryResult<AggregateResult<Schema, Model, T>>;
 
-        useGroupBy<T extends GroupByArgs<Schema, Model>>(
-            args: Accessor<Subset<T, GroupByArgs<Schema, Model>>>,
+        useGroupBy<T extends GroupByArgs<Schema, Model, Options>>(
+            args: Accessor<Subset<T, GroupByArgs<Schema, Model, Options>>>,
             options?: Accessor<ModelQueryOptions<GroupByResult<Schema, Model, T>>>,
         ): ModelQueryResult<GroupByResult<Schema, Model, T>>;
     }

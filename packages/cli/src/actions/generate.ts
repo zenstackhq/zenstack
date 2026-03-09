@@ -1,27 +1,35 @@
 import { invariant, singleDebounce } from '@zenstackhq/common-helpers';
 import { ZModelLanguageMetaData } from '@zenstackhq/language';
-import { type AbstractDeclaration, isPlugin, LiteralExpr, Plugin, type Model } from '@zenstackhq/language/ast';
+import { isPlugin, type AbstractDeclaration, type Model } from '@zenstackhq/language/ast';
 import { getLiteral, getLiteralArray } from '@zenstackhq/language/utils';
 import { type CliPlugin } from '@zenstackhq/sdk';
-import colors from 'colors';
-import { createJiti } from 'jiti';
-import fs from 'node:fs';
-import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { watch } from 'chokidar';
+import colors from 'colors';
+import path from 'node:path';
 import ora, { type Ora } from 'ora';
+import semver from 'semver';
 import { CliError } from '../cli-error';
 import * as corePlugins from '../plugins';
-import { getOutputPath, getSchemaFile, getZenStackPackages, loadSchemaDocument } from './action-utils';
-import semver from 'semver';
+import {
+    getOutputPath,
+    getPluginProvider,
+    getSchemaFile,
+    getZenStackPackages,
+    loadPluginModule,
+    loadSchemaDocument,
+    startUsageTipsFetch,
+} from './action-utils';
 
 type Options = {
     schema?: string;
     output?: string;
     silent: boolean;
     watch: boolean;
-    lite: boolean;
-    liteOnly: boolean;
+    lite?: boolean;
+    liteOnly?: boolean;
+    generateModels?: boolean;
+    generateInput?: boolean;
+    tips?: boolean;
 };
 
 /**
@@ -33,7 +41,12 @@ export async function run(options: Options) {
     } catch (err) {
         console.warn(colors.yellow(`Failed to check for mismatched ZenStack packages: ${err}`));
     }
+
+    const maybeShowUsageTips = options.tips && !options.silent && !options.watch ? startUsageTipsFetch() : undefined;
+
     const model = await pureGenerate(options, false);
+
+    await maybeShowUsageTips?.();
 
     if (options.watch) {
         const logsEnabled = !options.silent;
@@ -181,11 +194,17 @@ async function runPlugins(schemaFile: string, model: Model, outputPath: string, 
 
             // merge CLI options
             if (provider === '@core/typescript') {
-                if (pluginOptions['lite'] === undefined) {
+                if (options.lite !== undefined) {
                     pluginOptions['lite'] = options.lite;
                 }
-                if (pluginOptions['liteOnly'] === undefined) {
+                if (options.liteOnly !== undefined) {
                     pluginOptions['liteOnly'] = options.liteOnly;
+                }
+                if (options.generateModels !== undefined) {
+                    pluginOptions['generateModels'] = options.generateModels;
+                }
+                if (options.generateInput !== undefined) {
+                    pluginOptions['generateInput'] = options.generateInput;
                 }
             }
 
@@ -196,7 +215,12 @@ async function runPlugins(schemaFile: string, model: Model, outputPath: string, 
     const defaultPlugins = [
         {
             plugin: corePlugins['typescript'],
-            options: { lite: options.lite, liteOnly: options.liteOnly },
+            options: {
+                lite: options.lite,
+                liteOnly: options.liteOnly,
+                generateModels: options.generateModels,
+                generateInput: options.generateInput,
+            },
         },
     ];
     defaultPlugins.forEach(({ plugin, options }) => {
@@ -233,14 +257,7 @@ async function runPlugins(schemaFile: string, model: Model, outputPath: string, 
     }
 }
 
-function getPluginProvider(plugin: Plugin) {
-    const providerField = plugin.fields.find((f) => f.name === 'provider');
-    invariant(providerField, `Plugin ${plugin.name} does not have a provider field`);
-    const provider = (providerField.value as LiteralExpr).value as string;
-    return provider;
-}
-
-function getPluginOptions(plugin: Plugin): Record<string, unknown> {
+function getPluginOptions(plugin: Parameters<typeof getPluginProvider>[0]): Record<string, unknown> {
     const result: Record<string, unknown> = {};
     for (const field of plugin.fields) {
         if (field.name === 'provider') {
@@ -254,72 +271,6 @@ function getPluginOptions(plugin: Plugin): Record<string, unknown> {
         result[field.name] = value;
     }
     return result;
-}
-
-async function loadPluginModule(provider: string, basePath: string) {
-    let moduleSpec = provider;
-    if (moduleSpec.startsWith('.')) {
-        // relative to schema's path
-        moduleSpec = path.resolve(basePath, moduleSpec);
-    }
-
-    const importAsEsm = async (spec: string) => {
-        try {
-            const result = (await import(spec)).default as CliPlugin;
-            return result;
-        } catch (err) {
-            throw new CliError(`Failed to load plugin module from ${spec}: ${(err as Error).message}`);
-        }
-    };
-
-    const jiti = createJiti(pathToFileURL(basePath).toString());
-    const importAsTs = async (spec: string) => {
-        try {
-            const result = (await jiti.import(spec, { default: true })) as CliPlugin;
-            return result;
-        } catch (err) {
-            throw new CliError(`Failed to load plugin module from ${spec}: ${(err as Error).message}`);
-        }
-    };
-
-    const esmSuffixes = ['.js', '.mjs'];
-    const tsSuffixes = ['.ts', '.mts'];
-
-    if (fs.existsSync(moduleSpec) && fs.statSync(moduleSpec).isFile()) {
-        // try provider as ESM file
-        if (esmSuffixes.some((suffix) => moduleSpec.endsWith(suffix))) {
-            return await importAsEsm(pathToFileURL(moduleSpec).toString());
-        }
-
-        // try provider as TS file
-        if (tsSuffixes.some((suffix) => moduleSpec.endsWith(suffix))) {
-            return await importAsTs(moduleSpec);
-        }
-    }
-
-    // try ESM index files in provider directory
-    for (const suffix of esmSuffixes) {
-        const indexPath = path.join(moduleSpec, `index${suffix}`);
-        if (fs.existsSync(indexPath)) {
-            return await importAsEsm(pathToFileURL(indexPath).toString());
-        }
-    }
-
-    // try TS index files in provider directory
-    for (const suffix of tsSuffixes) {
-        const indexPath = path.join(moduleSpec, `index${suffix}`);
-        if (fs.existsSync(indexPath)) {
-            return await importAsTs(indexPath);
-        }
-    }
-
-    // last resort, try to import as esm directly
-    try {
-        return (await import(moduleSpec)).default as CliPlugin;
-    } catch {
-        // plugin may not export a generator so we simply ignore the error here
-        return undefined;
-    }
 }
 
 async function checkForMismatchedPackages(projectPath: string) {

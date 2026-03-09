@@ -11,7 +11,7 @@ import {
 import { match } from 'ts-pattern';
 import { ExpressionUtils, type FieldDef, type GetModels, type ModelDef, type SchemaDef } from '../schema';
 import { extractFields } from '../utils/object-utils';
-import type { AGGREGATE_OPERATORS } from './constants';
+import type { AggregateOperators } from './constants';
 import { createInternalError } from './errors';
 
 export function hasModel(schema: SchemaDef, model: string) {
@@ -386,7 +386,7 @@ export function getDelegateDescendantModels(
     return [...collected];
 }
 
-export function aggregate(eb: ExpressionBuilder<any, any>, expr: Expression<any>, op: AGGREGATE_OPERATORS) {
+export function aggregate(eb: ExpressionBuilder<any, any>, expr: Expression<any>, op: AggregateOperators) {
     return match(op)
         .with('_count', () => eb.fn.count(expr))
         .with('_sum', () => eb.fn.sum(expr))
@@ -425,5 +425,18 @@ export function extractFieldName(node: OperationNode) {
         return node.column.name;
     } else {
         return undefined;
+    }
+}
+
+export const TEMP_ALIAS_PREFIX = '$$_';
+
+/**
+ * Create an alias name for a temporary table or column name.
+ */
+export function tmpAlias(name: string) {
+    if (!name.startsWith(TEMP_ALIAS_PREFIX)) {
+        return `${TEMP_ALIAS_PREFIX}${name}`;
+    } else {
+        return name;
     }
 }

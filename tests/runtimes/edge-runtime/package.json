@@ -1,6 +1,6 @@
 {
     "name": "edge-runtime-e2e",
-    "version": "3.3.3",
+    "version": "3.4.5",
     "private": true,
     "type": "module",
     "scripts": {
@@ -13,6 +13,7 @@
         "@edge-runtime/vm": "^5.0.0",
         "@zenstackhq/cli": "workspace:*",
         "@zenstackhq/common-helpers": "workspace:*",
+        "@zenstackhq/schema": "workspace:*",
         "@zenstackhq/orm": "workspace:*",
         "@zenstackhq/plugin-policy": "workspace:*",
         "@zenstackhq/testtools": "workspace:*",

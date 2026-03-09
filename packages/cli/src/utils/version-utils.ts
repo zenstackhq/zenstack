@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import semver from 'semver';
 
 const CHECK_VERSION_TIMEOUT = 2000;
-const VERSION_CHECK_TAG = 'next';
+const VERSION_CHECK_TAG = 'latest';
 
 export function getVersion() {
     try {

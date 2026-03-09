@@ -21,7 +21,7 @@ export function createTestProject(zmodelContent?: string) {
     }
 
     // in addition, symlink zenstack packages
-    const zenstackPackages = ['language', 'sdk', 'orm', 'cli'];
+    const zenstackPackages = ['language', 'sdk', 'schema', 'orm', 'cli'];
     fs.mkdirSync(path.join(workDir, 'node_modules/@zenstackhq'));
     for (const pkg of zenstackPackages) {
         fs.symlinkSync(

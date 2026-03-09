@@ -170,6 +170,16 @@ export const AllReadOperations = [...CoreReadOperations, 'findUniqueOrThrow', 'f
  */
 export type AllReadOperations = (typeof AllReadOperations)[number];
 
+/**
+ * List of all write operations - simply an alias of CoreWriteOperations.
+ */
+export const AllWriteOperations = CoreWriteOperations;
+
+/**
+ * List of all write operations - simply an alias of CoreWriteOperations.
+ */
+export type AllWriteOperations = CoreWriteOperations;
+
 // context for nested relation operations
 export type FromRelationContext = {
     // the model where the relation field is defined
@@ -250,29 +260,29 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                     .exists(
                         this.dialect
                             .buildSelectModel(model, model)
-                            .select(sql.lit(1).as('$t'))
+                            .select(sql.lit(1).as('_'))
                             .where(() => this.dialect.buildFilter(model, model, filter)),
                     )
-                    .as('exists'),
+                    .as('$exists'),
             )
             .modifyEnd(this.makeContextComment({ model, operation: 'read' }));
 
-        let result: { exists: number | boolean }[] = [];
+        let result: { $exists: number | boolean }[] = [];
         const compiled = kysely.getExecutor().compileQuery(query.toOperationNode(), createQueryId());
         try {
             const r = await kysely.getExecutor().executeQuery(compiled);
-            result = r.rows as { exists: number | boolean }[];
+            result = r.rows as { $exists: number | boolean }[];
         } catch (err) {
             throw createDBQueryError(`Failed to execute query: ${err}`, err, compiled.sql, compiled.parameters);
         }
 
-        return !!result[0]?.exists;
+        return !!result[0]?.$exists;
     }
 
     protected async read(
         kysely: AnyKysely,
         model: string,
-        args: FindArgs<Schema, GetModels<Schema>, true> | undefined,
+        args: FindArgs<Schema, GetModels<Schema>, any, true> | undefined,
     ): Promise<any[]> {
         // table
         let query = this.dialect.buildSelectModel(model, model);
@@ -310,7 +320,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         return result;
     }
 
-    protected async readUnique(kysely: AnyKysely, model: string, args: FindArgs<Schema, GetModels<Schema>, true>) {
+    protected async readUnique(kysely: AnyKysely, model: string, args: FindArgs<Schema, GetModels<Schema>, any, true>) {
         const result = await this.read(kysely, model, { ...args, take: 1 });
         return result[0] ?? null;
     }
@@ -1137,7 +1147,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
 
         const parentWhere = await this.buildUpdateParentRelationFilter(kysely, fromRelation);
 
-        let combinedWhere: WhereInput<Schema, GetModels<Schema>, false> = where ?? {};
+        let combinedWhere: WhereInput<Schema, GetModels<Schema>, any, false> = where ?? {};
         if (Object.keys(parentWhere).length > 0) {
             combinedWhere = Object.keys(combinedWhere).length > 0 ? { AND: [parentWhere, combinedWhere] } : parentWhere;
         }
@@ -1233,8 +1243,10 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             );
             // only fields not consumed by base update will be used for this model
             finalData = baseUpdateResult.remainingFields;
-            // base update may change entity ids, update the filter
-            combinedWhere = baseUpdateResult.baseEntity;
+            // make sure to include only the id fields from the base entity in the final filter
+            combinedWhere = baseUpdateResult.baseEntity
+                ? getIdValues(this.schema, modelDef.baseModel!, baseUpdateResult.baseEntity)
+                : baseUpdateResult.baseEntity;
 
             // update this entity with fields in updated base
             if (baseUpdateResult.baseEntity) {
@@ -1553,7 +1565,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         }
 
         const parentWhere = await this.buildUpdateParentRelationFilter(kysely, fromRelation);
-        let combinedWhere: WhereInput<Schema, GetModels<Schema>, false> = where ?? {};
+        let combinedWhere: WhereInput<Schema, GetModels<Schema>, any, false> = where ?? {};
         if (Object.keys(parentWhere).length > 0) {
             combinedWhere = Object.keys(combinedWhere).length > 0 ? { AND: [parentWhere, combinedWhere] } : parentWhere;
         }

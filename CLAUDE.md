@@ -20,6 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Testing
 
 - E2E tests are in `tests/e2e/` directory
+- Regression tests for GitHub issues go in `tests/regression/test/` as `issue-{number}.test.ts`
 
 ### ZenStack CLI Commands
 
@@ -73,6 +74,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Built-in access control and validation (coming soon)
 - Kysely query builder as escape hatch instead of raw SQL
 - Schema-first approach with ZModel DSL extension of Prisma schema language
+
+## Pull Requests
+
+- Always target the `dev` branch (not `main`) when creating PRs
 
 ## Development Notes
 

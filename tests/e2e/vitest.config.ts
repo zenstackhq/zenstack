@@ -6,6 +6,9 @@ export default mergeConfig(
     defineConfig({
         test: {
             setupFiles: ['@zenstackhq/testtools'],
+            typecheck: {
+                enabled: true,
+            },
         },
     }),
 );

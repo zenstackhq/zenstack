@@ -71,6 +71,36 @@ export function isDelegateModel(node: AstNode) {
     return isDataModel(node) && hasAttribute(node, '@@delegate');
 }
 
+/**
+ * Returns all fields that physically belong to a model's table: its directly declared
+ * fields plus fields from its mixins (recursively).
+ */
+export function getOwnedFields(model: DataModel | TypeDef): DataField[] {
+    const fields: DataField[] = [...model.fields];
+    for (const mixin of model.mixins) {
+        if (mixin.ref) {
+            fields.push(...getOwnedFields(mixin.ref));
+        }
+    }
+    return fields;
+}
+
+/**
+ * Returns the name of the delegate base model that "owns" the given field in the context of
+ * `contextModel`. This handles both direct fields of delegate models and mixin fields that
+ * belong to a mixin used by a delegate base model.
+ */
+export function getDelegateOriginModel(field: DataField, contextModel: DataModel): string | undefined {
+    let base = contextModel.baseModel?.ref;
+    while (base) {
+        if (isDelegateModel(base) && getOwnedFields(base).some((f) => f.name === field.name)) {
+            return base.name;
+        }
+        base = base.baseModel?.ref;
+    }
+    return undefined;
+}
+
 export function isUniqueField(field: DataField) {
     if (hasAttribute(field, '@unique')) {
         return true;

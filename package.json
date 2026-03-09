@@ -1,6 +1,6 @@
 {
     "name": "zenstack-v3",
-    "version": "3.3.3",
+    "version": "3.4.5",
     "description": "ZenStack",
     "packageManager": "pnpm@10.23.0",
     "type": "module",
@@ -50,6 +50,11 @@
             "better-sqlite3",
             "esbuild",
             "vue-demi"
-        ]
+        ],
+        "overrides": {
+            "cookie@<0.7.0": ">=0.7.0",
+            "lodash-es@>=4.0.0 <=4.17.22": ">=4.17.23",
+            "lodash@>=4.0.0 <=4.17.22": ">=4.17.23"
+        }
     }
 }

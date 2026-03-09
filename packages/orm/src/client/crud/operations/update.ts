@@ -1,6 +1,6 @@
 import { match } from 'ts-pattern';
 import type { GetModels, SchemaDef } from '../../../schema';
-import type { UpdateArgs, UpdateManyAndReturnArgs, UpdateManyArgs, UpsertArgs, WhereInput } from '../../crud-types';
+import type { WhereInput } from '../../crud-types';
 import { createRejectedByPolicyError, RejectedByPolicyReason } from '../../errors';
 import { getIdValues } from '../../query-utils';
 import { BaseOperationHandler } from './base';
@@ -24,7 +24,7 @@ export class UpdateOperationHandler<Schema extends SchemaDef> extends BaseOperat
             .exhaustive();
     }
 
-    private async runUpdate(args: UpdateArgs<Schema, GetModels<Schema>>) {
+    private async runUpdate(args: any) {
         // analyze if we need to read back the update record, or just return the updated result
         const { needReadBack, selectedFields } = this.needReadBack(args);
 
@@ -50,7 +50,7 @@ export class UpdateOperationHandler<Schema extends SchemaDef> extends BaseOperat
                     select: args.select,
                     include: args.include,
                     omit: args.omit,
-                    where: readFilter as WhereInput<Schema, GetModels<Schema>, false>,
+                    where: readFilter,
                 });
                 return readBackResult;
             } else {
@@ -77,14 +77,14 @@ export class UpdateOperationHandler<Schema extends SchemaDef> extends BaseOperat
         }
     }
 
-    private async runUpdateMany(args: UpdateManyArgs<Schema, GetModels<Schema>>) {
+    private async runUpdateMany(args: any) {
         // TODO: avoid using transaction for simple update
         return this.safeTransaction(async (tx) => {
             return this.updateMany(tx, this.model, args.where, args.data, args.limit, false);
         });
     }
 
-    private async runUpdateManyAndReturn(args: UpdateManyAndReturnArgs<Schema, GetModels<Schema>> | undefined) {
+    private async runUpdateManyAndReturn(args: any) {
         if (!args) {
             return [];
         }
@@ -136,7 +136,7 @@ export class UpdateOperationHandler<Schema extends SchemaDef> extends BaseOperat
         return readBackResult;
     }
 
-    private async runUpsert(args: UpsertArgs<Schema, GetModels<Schema>>) {
+    private async runUpsert(args: any) {
         // analyze if we need to read back the updated record, or just return the update result
         const { needReadBack, selectedFields } = this.needReadBack(args);
 
@@ -165,6 +165,7 @@ export class UpdateOperationHandler<Schema extends SchemaDef> extends BaseOperat
                     where: getIdValues(this.schema, this.model, mutationResult) as WhereInput<
                         Schema,
                         GetModels<Schema>,
+                        any,
                         false
                     >,
                 });

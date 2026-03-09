@@ -1,5 +1,4 @@
-import type { GetModels, SchemaDef } from '../../../schema';
-import type { FindArgs } from '../../crud-types';
+import type { SchemaDef } from '../../../schema';
 import { BaseOperationHandler, type CoreCrudOperations } from './base';
 
 export class FindOperationHandler<Schema extends SchemaDef> extends BaseOperationHandler<Schema> {
@@ -11,8 +10,12 @@ export class FindOperationHandler<Schema extends SchemaDef> extends BaseOperatio
 
         // parse args
         let parsedArgs = validateArgs
-            ? this.inputValidator.validateFindArgs(this.model, normalizedArgs, operation)
-            : (normalizedArgs as FindArgs<Schema, GetModels<Schema>, true> | undefined);
+            ? this.inputValidator.validateFindArgs(
+                  this.model,
+                  normalizedArgs,
+                  operation as 'findFirst' | 'findUnique' | 'findMany',
+              )
+            : (normalizedArgs as any);
 
         if (findOne) {
             // ensure "limit 1"

@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack CLI",
     "description": "FullStack database toolkit with built-in access control and automatic API generation.",
-    "version": "3.3.3",
+    "version": "3.4.5",
     "type": "module",
     "author": {
         "name": "ZenStack Team"
@@ -37,12 +37,11 @@
     },
     "dependencies": {
         "@zenstackhq/common-helpers": "workspace:*",
-        "@zenstackhq/schema": "workspace:*",
         "@zenstackhq/language": "workspace:*",
         "@zenstackhq/orm": "workspace:*",
+        "@zenstackhq/schema": "workspace:*",
         "@zenstackhq/sdk": "workspace:*",
         "@zenstackhq/server": "workspace:*",
-        "better-sqlite3": "catalog:",
         "chokidar": "^5.0.0",
         "colors": "1.4.0",
         "commander": "^8.3.0",
@@ -53,13 +52,13 @@
         "jiti": "^2.6.1",
         "langium": "catalog:",
         "mixpanel": "^0.18.1",
-        "mysql2": "catalog:",
         "ora": "^5.4.1",
         "package-manager-detector": "^1.3.0",
-        "pg": "catalog:",
         "prisma": "catalog:",
         "semver": "^7.7.2",
-        "ts-pattern": "catalog:"
+        "terminal-link": "^5.0.0",
+        "ts-pattern": "catalog:",
+        "zod": "catalog:"
     },
     "devDependencies": {
         "@types/better-sqlite3": "catalog:",
@@ -73,6 +72,22 @@
         "@zenstackhq/typescript-config": "workspace:*",
         "@zenstackhq/vitest-config": "workspace:*",
         "tmp": "catalog:"
+    },
+    "peerDependencies": {
+        "better-sqlite3": "catalog:",
+        "mysql2": "catalog:",
+        "pg": "catalog:"
+    },
+    "peerDependenciesMeta": {
+        "pg": {
+            "optional": true
+        },
+        "better-sqlite3": {
+            "optional": true
+        },
+        "mysql2": {
+            "optional": true
+        }
     },
     "engines": {
         "node": ">=20"

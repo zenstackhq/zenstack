@@ -1,15 +1,20 @@
 {
     "name": "@zenstackhq/zod",
-    "version": "3.3.3",
-    "description": "",
+    "version": "3.4.5",
+    "description": "ZenStack Zod integration",
     "type": "module",
-    "main": "index.js",
-    "private": true,
     "scripts": {
         "build": "tsc --noEmit && tsup-node",
-        "lint": "eslint src --ext ts"
+        "watch": "tsup-node --watch",
+        "lint": "eslint src --ext ts",
+        "test": "vitest run",
+        "pack": "pnpm pack",
+        "test:generate": "tsx ../../scripts/test-generate.ts ."
     },
-    "keywords": [],
+    "keywords": [
+        "zenstack",
+        "zod"
+    ],
     "files": [
         "dist"
     ],
@@ -28,12 +33,13 @@
         }
     },
     "dependencies": {
-        "@zenstackhq/orm": "workspace:*",
-        "ts-pattern": "catalog:"
+        "@zenstackhq/schema": "workspace:*",
+        "decimal.js": "catalog:"
     },
     "devDependencies": {
         "@zenstackhq/eslint-config": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*",
+        "@zenstackhq/vitest-config": "workspace:*",
         "zod": "^4.1.0"
     },
     "peerDependencies": {

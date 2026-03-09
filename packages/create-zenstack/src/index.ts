@@ -67,6 +67,7 @@ function initProject(name: string) {
     // install packages
     const packages = [
         { name: '@zenstackhq/cli@latest', dev: true },
+        { name: '@zenstackhq/schema@latest', dev: false },
         { name: '@zenstackhq/orm@latest', dev: false },
         { name: 'better-sqlite3', dev: false },
         { name: '@types/better-sqlite3', dev: true },
