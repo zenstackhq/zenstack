@@ -252,4 +252,192 @@ describe('@updatedAt attribute', () => {
             expect(updatedUser2.exceptMajorFieldUpdatedAt.getTime()).toEqual(updatedUser1.exceptMajorFieldUpdatedAt.getTime());
         });
     });
+
+    describe('fields arg with relations', () => {
+        const schema = `
+            model User {
+                id      String    @id @default(uuid())
+                name    String
+                posts   Post[]
+            }
+
+            model Post {
+                id      String    @id @default(uuid())
+                title   String
+                content String @default('default content')
+                userId  String?
+                user    User? @relation(fields: [userId], references: [id])
+
+                userUpdatedAt     DateTime @updatedAt(fields: [user])
+                userIdUpdatedAt   DateTime @updatedAt(fields: [userId])
+                titleUpdatedAt    DateTime @updatedAt(fields: [title])
+                anyUpdatedAt      DateTime @updatedAt
+            }
+        `;
+
+        it('updates when relation connect matches fields: [relationName]', async () => {
+            const client = await createTestClient(schema);
+            const user = await client.user.create({ data: { name: 'Alice' } });
+            const post = await client.post.create({ data: { title: 'Post 1' } });
+
+            const userUpdatedAt = post.userUpdatedAt;
+            const userIdUpdatedAt = post.userIdUpdatedAt;
+            const titleUpdatedAt = post.titleUpdatedAt;
+            const anyUpdatedAt = post.anyUpdatedAt;
+
+            await client.post.update({
+                where: { id: post.id },
+                data: { user: { connect: { id: user.id } } },
+            });
+
+            const updatedPost = await client.post.findUnique({ where: { id: post.id } });
+
+            expect(updatedPost.userUpdatedAt.getTime()).toBeGreaterThan(userUpdatedAt.getTime());
+            expect(updatedPost.userIdUpdatedAt.getTime()).toBeGreaterThan(userIdUpdatedAt.getTime());
+            expect(updatedPost.titleUpdatedAt.getTime()).toEqual(titleUpdatedAt.getTime());
+            expect(updatedPost.anyUpdatedAt.getTime()).toBeGreaterThan(anyUpdatedAt.getTime());
+        });
+
+        it('updates when relation disconnect matches fields: [relationName]', async () => {
+            const client = await createTestClient(schema);
+            const user = await client.user.create({ data: { name: 'Alice' } });
+            const post = await client.post.create({
+                data: { title: 'Post 1', user: { connect: { id: user.id } } },
+            });
+
+            const userUpdatedAt = post.userUpdatedAt;
+            const titleUpdatedAt = post.titleUpdatedAt;
+
+            await client.post.update({
+                where: { id: post.id },
+                data: { user: { disconnect: true } },
+            });
+
+            const updatedPost = await client.post.findUnique({ where: { id: post.id } });
+
+            expect(updatedPost.userUpdatedAt.getTime()).toBeGreaterThan(userUpdatedAt.getTime());
+            expect(updatedPost.titleUpdatedAt.getTime()).toEqual(titleUpdatedAt.getTime());
+        });
+
+        it('updates fields: [relationName] when FK is set directly', async () => {
+            const client = await createTestClient(schema);
+            const user = await client.user.create({ data: { name: 'Alice' } });
+            const post = await client.post.create({ data: { title: 'Post 1' } });
+
+            const userUpdatedAt = post.userUpdatedAt;
+            const titleUpdatedAt = post.titleUpdatedAt;
+
+            await client.post.update({
+                where: { id: post.id },
+                data: { userId: user.id },
+            });
+
+            const updatedPost = await client.post.findUnique({ where: { id: post.id } });
+
+            expect(updatedPost.userUpdatedAt.getTime()).toBeGreaterThan(userUpdatedAt.getTime());
+            expect(updatedPost.titleUpdatedAt.getTime()).toEqual(titleUpdatedAt.getTime());
+        });
+
+        it('does not update when unrelated relation changes', async () => {
+            const client = await createTestClient(schema);
+            const post = await client.post.create({ data: { title: 'Post 1' } });
+
+            const userUpdatedAt = post.userUpdatedAt;
+            const userIdUpdatedAt = post.userIdUpdatedAt;
+            const titleUpdatedAt = post.titleUpdatedAt;
+
+            await client.post.update({
+                where: { id: post.id },
+                data: { title: 'Updated title' },
+            });
+
+            const updatedPost = await client.post.findUnique({ where: { id: post.id } });
+
+            expect(updatedPost.userUpdatedAt.getTime()).toEqual(userUpdatedAt.getTime());
+            expect(updatedPost.userIdUpdatedAt.getTime()).toEqual(userIdUpdatedAt.getTime());
+            expect(updatedPost.titleUpdatedAt.getTime()).toBeGreaterThan(titleUpdatedAt.getTime());
+        });
+    });
+
+    describe('ignore arg with relations', () => {
+        const schema = `
+            model User {
+                id      String    @id @default(uuid())
+                name    String
+                posts   Post[]
+            }
+
+            model Post {
+                id      String    @id @default(uuid())
+                title   String
+                content String @default('default content')
+                userId  String?
+                user    User? @relation(fields: [userId], references: [id])
+
+                ignoreUserUpdatedAt     DateTime @updatedAt(ignore: [user])
+                ignoreUserIdUpdatedAt   DateTime @updatedAt(ignore: [userId])
+                anyUpdatedAt            DateTime @updatedAt
+            }
+        `;
+
+        it('does not update when only ignored relation changes via connect', async () => {
+            const client = await createTestClient(schema);
+            const user = await client.user.create({ data: { name: 'Alice' } });
+            const post = await client.post.create({ data: { title: 'Post 1' } });
+
+            const ignoreUserUpdatedAt = post.ignoreUserUpdatedAt;
+            const ignoreUserIdUpdatedAt = post.ignoreUserIdUpdatedAt;
+
+            await client.post.update({
+                where: { id: post.id },
+                data: { user: { connect: { id: user.id } } },
+            });
+
+            const updatedPost = await client.post.findUnique({ where: { id: post.id } });
+
+            expect(updatedPost.ignoreUserUpdatedAt.getTime()).toEqual(ignoreUserUpdatedAt.getTime());
+            expect(updatedPost.ignoreUserIdUpdatedAt.getTime()).toEqual(ignoreUserIdUpdatedAt.getTime());
+        });
+
+        it('updates when non-ignored fields change alongside ignored relation', async () => {
+            const client = await createTestClient(schema);
+            const user = await client.user.create({ data: { name: 'Alice' } });
+            const post = await client.post.create({ data: { title: 'Post 1' } });
+
+            const ignoreUserUpdatedAt = post.ignoreUserUpdatedAt;
+            const anyUpdatedAt = post.anyUpdatedAt;
+
+            await client.post.update({
+                where: { id: post.id },
+                data: {
+                    title: 'Updated title',
+                    user: { connect: { id: user.id } },
+                },
+            });
+
+            const updatedPost = await client.post.findUnique({ where: { id: post.id } });
+
+            expect(updatedPost.ignoreUserUpdatedAt.getTime()).toBeGreaterThan(ignoreUserUpdatedAt.getTime());
+            expect(updatedPost.anyUpdatedAt.getTime()).toBeGreaterThan(anyUpdatedAt.getTime());
+        });
+
+        it('does not update when only ignored FK is set directly', async () => {
+            const client = await createTestClient(schema);
+            const user = await client.user.create({ data: { name: 'Alice' } });
+            const post = await client.post.create({ data: { title: 'Post 1' } });
+
+            const ignoreUserUpdatedAt = post.ignoreUserUpdatedAt;
+            const ignoreUserIdUpdatedAt = post.ignoreUserIdUpdatedAt;
+
+            await client.post.update({
+                where: { id: post.id },
+                data: { userId: user.id },
+            });
+
+            const updatedPost = await client.post.findUnique({ where: { id: post.id } });
+
+            expect(updatedPost.ignoreUserUpdatedAt.getTime()).toEqual(ignoreUserUpdatedAt.getTime());
+            expect(updatedPost.ignoreUserIdUpdatedAt.getTime()).toEqual(ignoreUserIdUpdatedAt.getTime());
+        });
+    });
 });

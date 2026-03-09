@@ -1163,21 +1163,20 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                 if (typeof fieldDef.updatedAt === 'object') {
                     if (fieldDef.updatedAt.ignore) {
                         const ignoredFields = new Set(fieldDef.updatedAt.ignore);
-                        const hasNonIgnoredFields = Object.keys(data).some(
-                            (field) =>
-                                (isScalarField(this.schema, modelDef.name, field) ||
-                                    isForeignKeyField(this.schema, modelDef.name, field)) &&
-                                !ignoredFields.has(field),
-                        );
+                        const hasNonIgnoredFields = Object.keys(data).some((field) => {
+                            const effectiveFields = this.getUpdatedAtEffectiveFields(modelDef.name, field);
+                            return (
+                                effectiveFields.length > 0 &&
+                                !effectiveFields.some((f) => ignoredFields.has(f))
+                            );
+                        });
                         hasUpdated = hasNonIgnoredFields;
                     } else if (fieldDef.updatedAt.fields) {
                         const targetFields = new Set(fieldDef.updatedAt.fields);
-                        const hasAnyTargetFields = Object.keys(data).some(
-                            (field) =>
-                                (isScalarField(this.schema, modelDef.name, field) ||
-                                    isForeignKeyField(this.schema, modelDef.name, field)) &&
-                                targetFields.has(field),
-                        );
+                        const hasAnyTargetFields = Object.keys(data).some((field) => {
+                            const effectiveFields = this.getUpdatedAtEffectiveFields(modelDef.name, field);
+                            return effectiveFields.some((f) => targetFields.has(f));
+                        });
                         hasUpdated = hasAnyTargetFields;
                     }
                 }
@@ -1530,6 +1529,29 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
 
     private isNumericField(fieldDef: FieldDef) {
         return NUMERIC_FIELD_TYPES.includes(fieldDef.type) && !fieldDef.array;
+    }
+
+    private getUpdatedAtEffectiveFields(model: string, field: string): string[] {
+        const fieldDef = this.getField(model, field);
+        if (!fieldDef) {
+            return [];
+        }
+
+        if (fieldDef.relation) {
+            if (fieldDef.relation.fields) {
+                // owned relation
+                return [field, ...fieldDef.relation.fields];
+            }
+            // non-owned relation
+            return [];
+        }
+
+        if (fieldDef.foreignKeyFor) {
+            return [field, ...fieldDef.foreignKeyFor];
+        }
+
+        // scalar
+        return [field];
     }
 
     private makeContextComment(_context: { model: string; operation: CRUD }) {
