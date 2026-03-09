@@ -2452,17 +2452,16 @@ export type ExtResultSelectOmitFields<ExtResult extends ExtResultBase, Model ext
         ? { [K in keyof ExtResult[Model]]?: boolean }
         : {};
 
+type TruthyKeys<S, Keys extends string> = {
+    [K in Keys]: K extends keyof S ? (S[K] extends false | undefined ? never : K) : never;
+}[Keys];
+
 /**
  * Select/omit-aware version of ExtractExtResult.
  * - If T has `select`, only includes ext result fields that are explicitly selected.
  * - If T has `omit`, excludes ext result fields that are explicitly omitted.
  * - Otherwise, includes all ext result fields.
  */
-// Extracts keys from S whose values are truthy (not false or undefined)
-type TruthyKeys<S, Keys extends string> = {
-    [K in Keys]: K extends keyof S ? (S[K] extends false | undefined ? never : K) : never;
-}[Keys];
-
 export type SelectAwareExtResult<ExtResult extends ExtResultBase, Model extends string, T> =
     keyof ExtResult extends never
         ? {}
