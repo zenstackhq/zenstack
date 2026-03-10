@@ -633,10 +633,9 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
     }
 
     private processTempAlias<Node extends RootOperationNode>(query: Node): Node {
-        if (this.options.useCompactAliasNames === false) {
-            return query;
-        }
-        return new TempAliasTransformer().run(query);
+        return new TempAliasTransformer({
+            mode: this.options.useCompactAliasNames === false ? 'compactLongNames' : 'alwaysCompact',
+        }).run(query);
     }
 
     private createClientForConnection(connection: DatabaseConnection, inTx: boolean) {

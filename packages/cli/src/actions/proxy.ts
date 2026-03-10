@@ -75,18 +75,18 @@ export async function run(options: Options) {
 
     const schemaModule = (await jiti.import(path.join(outputPath, 'schema'))) as any;
 
-    // Build omit configuration for computed fields
+    // Build omit configuration for computed fields and Unsupported fields.
     const schema = schemaModule.schema as SchemaDef;
     const omit: Record<string, Record<string, boolean>> = {};
     for (const [modelName, modelDef] of Object.entries(schema.models)) {
-        const computedFields: Record<string, boolean> = {};
+        const omitFields: Record<string, boolean> = {};
         for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
-            if (fieldDef.computed === true) {
-                computedFields[fieldName] = true;
+            if (fieldDef.computed === true || fieldDef.type === 'Unsupported') {
+                omitFields[fieldName] = true;
             }
         }
-        if (Object.keys(computedFields).length > 0) {
-            omit[modelName] = computedFields;
+        if (Object.keys(omitFields).length > 0) {
+            omit[modelName] = omitFields;
         }
     }
 

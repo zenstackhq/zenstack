@@ -84,6 +84,10 @@ export class SchemaDbPusher<Schema extends SchemaDef> {
             for (const field of Object.values(model.fields)) {
                 // relation order
                 if (field.relation && field.relation.fields && field.relation.references) {
+                    // skip self-referential relations to avoid false cycle in toposort
+                    if (field.type === model.name) {
+                        continue;
+                    }
                     const targetModel = requireModel(this.schema, field.type);
                     // edge: fk side -> target model
                     graph.push([model, targetModel]);

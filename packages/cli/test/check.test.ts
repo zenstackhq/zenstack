@@ -81,6 +81,39 @@ describe('CLI validate command test', () => {
         expect(() => runCli('check', workDir)).not.toThrow();
     });
 
+    it('should succeed when plugin module is resolvable', async () => {
+        const modelWithPlugin = `
+plugin myPlugin {
+    provider = './my-plugin'
+}
+
+model User {
+    id String @id @default(cuid())
+    @@custom
+}
+`;
+        const { workDir } = await createProject(modelWithPlugin);
+        const pluginDir = path.join(workDir, 'zenstack/my-plugin');
+        fs.mkdirSync(pluginDir, { recursive: true });
+        fs.writeFileSync(path.join(pluginDir, 'index.mjs'), 'export const name = "my-plugin";');
+        fs.writeFileSync(path.join(pluginDir, 'plugin.zmodel'), 'attribute @@custom()');
+        expect(() => runCli('check', workDir)).not.toThrow();
+    });
+
+    it('should report error for unresolvable plugin module', async () => {
+        const modelWithMissingPlugin = `
+plugin foo {
+    provider = '@zenstackhq/nonexistent-plugin'
+}
+
+model User {
+    id String @id @default(cuid())
+}
+`;
+        const { workDir } = await createProject(modelWithMissingPlugin);
+        expect(() => runCli('check', workDir)).toThrow(/Cannot find plugin module/);
+    });
+
     it('should validate schema with syntax errors', async () => {
         const modelWithSyntaxError = `
 model User {

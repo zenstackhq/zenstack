@@ -15,7 +15,7 @@ permissions:
 
 jobs:
     build-test:
-        runs-on: buildjet-8vcpu-ubuntu-2204
+        runs-on: ubuntu-latest
 
         services:
             postgres:
@@ -59,7 +59,7 @@ jobs:
                   version: 10.12.1
 
             - name: Use Node.js ${{ matrix.node-version }}
-              uses: buildjet/setup-node@v3
+              uses: actions/setup-node@v4
               with:
                   node-version: ${{ matrix.node-version }}
                   cache: 'pnpm'
@@ -76,7 +76,7 @@ jobs:
                   echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
 
             - name: Setup pnpm cache
-              uses: buildjet/cache@v3
+              uses: actions/cache@v4
               with:
                   path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
                   key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}

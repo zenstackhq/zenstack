@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/plugin-policy",
-    "version": "3.4.3",
+    "version": "3.4.5",
     "description": "ZenStack Policy Plugin",
     "type": "module",
     "scripts": {

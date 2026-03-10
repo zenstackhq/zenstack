@@ -109,7 +109,19 @@ export const isEmpty: ZModelFunction<any> = (eb, args, { dialect }: ZModelFuncti
     return eb(dialect.buildArrayLength(field), '=', sql.lit(0));
 };
 
-export const now: ZModelFunction<any> = () => sql.raw('CURRENT_TIMESTAMP');
+export const now: ZModelFunction<any> = (_eb, _args, context) =>
+    match(context.dialect.provider)
+        // SQLite stores DateTime as ISO 8601 text ('YYYY-MM-DDTHH:MM:SS.sssZ'), but
+        // CURRENT_TIMESTAMP returns 'YYYY-MM-DD HH:MM:SS'. Use strftime for ISO format.
+        .with('sqlite', () => sql.raw("strftime('%Y-%m-%dT%H:%M:%fZ')"))
+        // MySQL stores DateTime as ISO 8601 text ('YYYY-MM-DDTHH:MM:SS.sss+00:00').
+        // Use CONCAT + SUBSTRING to produce matching 3-digit millisecond ISO format.
+        .with('mysql', () =>
+            sql.raw("CONCAT(SUBSTRING(DATE_FORMAT(UTC_TIMESTAMP(3), '%Y-%m-%dT%H:%i:%s.%f'), 1, 23), '+00:00')"),
+        )
+        // PostgreSQL has native timestamp type that compares correctly.
+        .with('postgresql', () => sql.raw('CURRENT_TIMESTAMP'))
+        .exhaustive();
 
 export const currentModel: ZModelFunction<any> = (_eb, args, { model }: ZModelFunctionContext<any>) => {
     let result = model;

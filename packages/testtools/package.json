@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/testtools",
-    "version": "3.4.3",
+    "version": "3.4.5",
     "description": "ZenStack Test Tools",
     "type": "module",
     "scripts": {

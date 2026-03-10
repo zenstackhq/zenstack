@@ -920,6 +920,10 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         for (let i = 0; i < data.length; i++) {
             const item = data[i]!;
             if (typeof item === 'object' && item && 'kind' in item) {
+                if (item.kind === 'DefaultInsertValueNode') {
+                    result.push({ node: ValueNode.create(null), raw: null });
+                    continue;
+                }
                 const fieldDef = QueryUtils.requireField(this.client.$schema, model, fields[i]!);
                 invariant(item.kind === 'ValueNode', 'expecting a ValueNode');
                 result.push({
