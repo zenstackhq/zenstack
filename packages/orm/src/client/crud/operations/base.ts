@@ -37,7 +37,6 @@ import type { ToKysely } from '../../query-builder';
 import {
     ensureArray,
     extractIdFields,
-    fieldHasDefaultValue,
     flattenCompoundUniqueFilters,
     getDiscriminatorField,
     getField,
@@ -48,7 +47,6 @@ import {
     isForeignKeyField,
     isRelationField,
     isScalarField,
-    isUnsupportedField,
     requireField,
     requireIdFields,
     requireModel,
@@ -2509,16 +2507,6 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         return newArgs;
     }
 
-    protected checkNoRequiredUnsupportedFields() {
-        const modelDef = requireModel(this.schema, this.model);
-        for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
-            if (isUnsupportedField(fieldDef) && !fieldDef.optional && !fieldHasDefaultValue(fieldDef)) {
-                throw createNotSupportedError(
-                    `Model "${this.model}" has a required Unsupported field "${fieldName}" and cannot be created/upserted through the ORM client`,
-                );
-            }
-        }
-    }
 
     private doNormalizeArgs(args: unknown) {
         if (args && typeof args === 'object') {

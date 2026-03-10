@@ -9,4 +9,5 @@ import { type SchemaType as $Schema } from "./schema";
 import type { ModelResult as $ModelResult } from "@zenstackhq/orm";
 export type Item = $ModelResult<$Schema, "Item">;
 export type GeoRecord = $ModelResult<$Schema, "GeoRecord">;
+export type GeoParent = $ModelResult<$Schema, "GeoParent">;
 export type GeoRecordWithDefault = $ModelResult<$Schema, "GeoRecordWithDefault">;

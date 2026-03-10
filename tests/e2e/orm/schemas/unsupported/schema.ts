@@ -53,6 +53,47 @@ export class SchemaType implements SchemaDef {
                 extra: {
                     name: "extra",
                     type: "Unsupported"
+                },
+                parent: {
+                    name: "parent",
+                    type: "GeoParent",
+                    optional: true,
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("parentId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }],
+                    relation: { opposite: "records", fields: ["parentId"], references: ["id"] }
+                },
+                parentId: {
+                    name: "parentId",
+                    type: "Int",
+                    optional: true,
+                    foreignKeyFor: [
+                        "parent"
+                    ]
+                }
+            },
+            idFields: ["id"],
+            uniqueFields: {
+                id: { type: "Int" }
+            }
+        },
+        GeoParent: {
+            name: "GeoParent",
+            fields: {
+                id: {
+                    name: "id",
+                    type: "Int",
+                    id: true,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }],
+                    default: ExpressionUtils.call("autoincrement")
+                },
+                name: {
+                    name: "name",
+                    type: "String"
+                },
+                records: {
+                    name: "records",
+                    type: "GeoRecord",
+                    array: true,
+                    relation: { opposite: "parent" }
                 }
             },
             idFields: ["id"],

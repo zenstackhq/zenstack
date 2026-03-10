@@ -240,18 +240,40 @@ describe('Unsupported field exclusion - Zod runtime validation', () => {
             ).toBeRejectedByValidation();
         });
 
-        it('blocks create on model with required Unsupported field', async () => {
-            // @ts-expect-error create should not exist on geoRecord (required Unsupported without default)
-            await expect(db.geoRecord.create({ data: { title: 'test' } })).rejects.toThrow(
-                /required Unsupported field/,
-            );
+        it('blocks create on model with required Unsupported field', () => {
+            // create should not exist on geoRecord (required Unsupported without default)
+            // @ts-expect-error create should not be defined
+            expect(db.geoRecord.create).toBeUndefined();
         });
 
-        it('blocks upsert on model with required Unsupported field', async () => {
+        it('blocks upsert on model with required Unsupported field', () => {
+            // upsert should not exist on geoRecord (required Unsupported without default)
+            // @ts-expect-error upsert should not be defined
+            expect(db.geoRecord.upsert).toBeUndefined();
+        });
+
+        it('rejects nested create for model with required Unsupported field', async () => {
             await expect(
-                // @ts-expect-error upsert should not exist on geoRecord (required Unsupported without default)
-                db.geoRecord.upsert({ where: { id: 1 }, create: { title: 'test' }, update: { title: 'updated' } }),
-            ).rejects.toThrow(/required Unsupported field/);
+                db.geoParent.create({
+                    data: {
+                        name: 'parent',
+                        // @ts-expect-error create should not be allowed for GeoRecord (required Unsupported)
+                        records: { create: { title: 'test' } },
+                    },
+                }),
+            ).toBeRejectedByValidation();
+        });
+
+        it('rejects nested connectOrCreate for model with required Unsupported field', async () => {
+            await expect(
+                db.geoParent.create({
+                    data: {
+                        name: 'parent',
+                        // @ts-expect-error connectOrCreate should not be allowed for GeoRecord (required Unsupported)
+                        records: { connectOrCreate: { where: { id: 1 }, create: { title: 'test' } } },
+                    },
+                }),
+            ).toBeRejectedByValidation();
         });
 
         it('allows create on model with required Unsupported field that has default', async () => {

@@ -6,8 +6,6 @@ import { BaseOperationHandler } from './base';
 
 export class CreateOperationHandler<Schema extends SchemaDef> extends BaseOperationHandler<Schema> {
     async handle(operation: 'create' | 'createMany' | 'createManyAndReturn', args: unknown | undefined) {
-        this.checkNoRequiredUnsupportedFields();
-
         // normalize args to strip `undefined` fields
         const normalizedArgs = this.normalizeArgs(args);
 

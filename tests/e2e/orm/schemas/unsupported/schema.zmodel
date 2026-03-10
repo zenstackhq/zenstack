@@ -12,9 +12,18 @@ model Item {
 
 // Model with a required Unsupported field (create should be blocked)
 model GeoRecord {
-    id    Int                @id @default(autoincrement())
-    title String
-    extra Unsupported("xml")
+    id       Int                @id @default(autoincrement())
+    title    String
+    extra    Unsupported("xml")
+    parent   GeoParent?         @relation(fields: [parentId], references: [id])
+    parentId Int?
+}
+
+// Parent model that has a relation to GeoRecord
+model GeoParent {
+    id      Int         @id @default(autoincrement())
+    name    String
+    records GeoRecord[]
 }
 
 // Model with a required Unsupported field that has a default (create should work)
