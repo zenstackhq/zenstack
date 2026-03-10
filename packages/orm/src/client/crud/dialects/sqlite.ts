@@ -22,6 +22,7 @@ import {
     getDelegateDescendantModels,
     getManyToManyRelation,
     getRelationForeignKeyFieldPairs,
+    isEnum,
     requireField,
     requireIdFields,
     requireModel,
@@ -486,6 +487,23 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
 
     override trimTextQuotes<T extends Expression<string>>(expression: T): T {
         return this.eb.fn('trim', [expression, sql.lit('"')]) as unknown as T;
+    }
+
+    protected override getSqlType(zmodelType: string) {
+        if (isEnum(this.schema, zmodelType)) {
+            return 'text';
+        }
+        return match(zmodelType)
+            .with('String', () => 'text')
+            .with('Boolean', () => 'integer')
+            .with('Int', () => 'integer')
+            .with('BigInt', () => 'integer')
+            .with('Float', () => 'real')
+            .with('Decimal', () => 'decimal')
+            .with('DateTime', () => 'numeric')
+            .with('Bytes', () => 'blob')
+            .with('Json', () => 'jsonb')
+            .otherwise(() => undefined);
     }
 
     override getStringCasingBehavior() {

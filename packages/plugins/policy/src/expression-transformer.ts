@@ -908,7 +908,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
 
         const fieldDef = QueryUtils.requireField(this.schema, context.modelOrType, column);
         if (!fieldDef.originModel || fieldDef.originModel === context.modelOrType) {
-            return ReferenceNode.create(ColumnNode.create(column), TableNode.create(tableName));
+            return this.dialect.fieldRef(context.modelOrType, column, tableName, false).toOperationNode();
         }
 
         return this.buildDelegateBaseFieldSelect(context.modelOrType, tableName, column, fieldDef.originModel);

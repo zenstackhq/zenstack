@@ -13,17 +13,18 @@
     },
     "dependencies": {
         "@zenstackhq/testtools": "workspace:*",
-        "decimal.js": "catalog:"
+        "decimal.js": "catalog:",
+        "uuid": "^11.0.5"
     },
     "devDependencies": {
+        "@types/node": "catalog:",
         "@zenstackhq/cli": "workspace:*",
         "@zenstackhq/language": "workspace:*",
-        "@zenstackhq/schema": "workspace:*",
         "@zenstackhq/orm": "workspace:*",
-        "@zenstackhq/sdk": "workspace:*",
         "@zenstackhq/plugin-policy": "workspace:*",
+        "@zenstackhq/schema": "workspace:*",
+        "@zenstackhq/sdk": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*",
-        "@zenstackhq/vitest-config": "workspace:*",
-        "@types/node": "catalog:"
+        "@zenstackhq/vitest-config": "workspace:*"
     }
 }
