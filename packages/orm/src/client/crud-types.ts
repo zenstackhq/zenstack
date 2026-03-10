@@ -1101,7 +1101,7 @@ type RelationFilter<
 
 //#region Field utils
 
-type MapModelFieldType<
+export type MapModelFieldType<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends GetModelFields<Schema, Model>,
@@ -2438,9 +2438,16 @@ type ExtractExtQueryArgs<ExtQueryArgs, Operation extends CoreCrudOperations> = (
  * Maps `{ needs, compute }` definitions to `{ fieldName: ReturnType<compute> }`.
  * When ExtResult is `{}`, this resolves to `{}` (no-op for intersection).
  */
-export type ExtractExtResult<ExtResult extends ExtResultBase, Model extends string> = Model extends keyof ExtResult
-    ? { [K in keyof ExtResult[Model]]: ExtResult[Model][K] extends { compute: (...args: any[]) => infer R } ? R : never }
-    : {};
+export type ExtractExtResult<ExtResult extends ExtResultBase, Model extends string> =
+    Uncapitalize<Model> extends keyof ExtResult
+        ? {
+              [K in keyof ExtResult[Uncapitalize<Model>]]: ExtResult[Uncapitalize<Model>][K] extends {
+                  compute: (...args: any[]) => infer R;
+              }
+                  ? R
+                  : never;
+          }
+        : {};
 
 /**
  * Extracts extended result field names as optional boolean keys for use in select/omit inputs.
@@ -2448,8 +2455,8 @@ export type ExtractExtResult<ExtResult extends ExtResultBase, Model extends stri
  */
 export type ExtResultSelectOmitFields<ExtResult extends ExtResultBase, Model extends string> = keyof ExtResult extends never
     ? {}
-    : Model extends keyof ExtResult
-        ? { [K in keyof ExtResult[Model]]?: boolean }
+    : Uncapitalize<Model> extends keyof ExtResult
+        ? { [K in keyof ExtResult[Uncapitalize<Model>]]?: boolean }
         : {};
 
 type TruthyKeys<S, Keys extends string> = {

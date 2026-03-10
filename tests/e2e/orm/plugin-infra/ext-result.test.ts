@@ -20,7 +20,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'greeting',
                 result: {
-                    User: {
+                    user: {
                         greeting: {
                             needs: { name: true },
                             compute: (user) => `Hello, ${user.name}!`,
@@ -44,7 +44,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'greeting',
                 result: {
-                    User: {
+                    user: {
                         greeting: {
                             needs: { name: true },
                             compute: (user) => `Hello, ${user.name}!`,
@@ -64,7 +64,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'greeting',
                 result: {
-                    User: {
+                    user: {
                         upperName: {
                             needs: { name: true },
                             compute: (user) => user.name.toUpperCase(),
@@ -84,7 +84,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'greeting',
                 result: {
-                    User: {
+                    user: {
                         upperName: {
                             needs: { name: true },
                             compute: (user) => user.name.toUpperCase(),
@@ -107,7 +107,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'greeting',
                 result: {
-                    User: {
+                    user: {
                         upperName: {
                             needs: { name: true },
                             compute: (user) => user.name.toUpperCase(),
@@ -151,7 +151,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'greeting',
                 result: {
-                    User: {
+                    user: {
                         upperName: {
                             needs: { name: true },
                             compute: (user) => user.name.toUpperCase(),
@@ -174,7 +174,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'greeting',
                 result: {
-                    User: {
+                    user: {
                         upperName: {
                             needs: { name: true },
                             compute: (user) => user.name.toUpperCase(),
@@ -214,7 +214,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'greeting',
                 result: {
-                    User: {
+                    user: {
                         upperName: {
                             needs: { name: true },
                             compute: (user) => user.name.toUpperCase(),
@@ -245,7 +245,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'greeting',
                 result: {
-                    User: {
+                    user: {
                         upperName: {
                             needs: { name: true },
                             compute: (user) => user.name.toUpperCase(),
@@ -268,7 +268,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'greeting',
                 result: {
-                    User: {
+                    user: {
                         upperName: {
                             needs: { name: true },
                             compute: (user) => user.name.toUpperCase(),
@@ -290,7 +290,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'greeting',
                 result: {
-                    User: {
+                    user: {
                         upperName: {
                             needs: { name: true },
                             compute: (user) => user.name.toUpperCase(),
@@ -314,7 +314,7 @@ describe('Plugin extended result fields', () => {
         const plugin1 = definePlugin({
             id: 'plugin1',
             result: {
-                User: {
+                user: {
                     upperName: {
                         needs: { name: true },
                         compute: (user) => user.name.toUpperCase(),
@@ -326,7 +326,7 @@ describe('Plugin extended result fields', () => {
         const plugin2 = definePlugin({
             id: 'plugin2',
             result: {
-                User: {
+                user: {
                     idDoubled: {
                         needs: { id: true },
                         compute: (user) => user.id * 2,
@@ -348,7 +348,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'greeting',
                 result: {
-                    User: {
+                    user: {
                         upperName: {
                             needs: { name: true },
                             compute: (user) => user.name.toUpperCase(),
@@ -374,7 +374,7 @@ describe('Plugin extended result fields', () => {
                 definePlugin({
                     id: 'p1',
                     result: {
-                        User: {
+                        user: {
                             upperName: {
                                 needs: { name: true },
                                 compute: (user) => user.name.toUpperCase(),
@@ -387,7 +387,7 @@ describe('Plugin extended result fields', () => {
                 definePlugin({
                     id: 'p2',
                     result: {
-                        User: {
+                        user: {
                             idDoubled: {
                                 needs: { id: true },
                                 compute: (user) => user.id * 2,
@@ -414,7 +414,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'greeting',
                 result: {
-                    User: {
+                    user: {
                         upperName: {
                             needs: { name: true },
                             compute: (user) => user.name.toUpperCase(),
@@ -438,7 +438,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'greeting',
                 result: {
-                    User: {
+                    user: {
                         upperName: {
                             needs: { name: true },
                             compute: (user) => user.name.toUpperCase(),
@@ -462,7 +462,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'full-info',
                 result: {
-                    User: {
+                    user: {
                         fullInfo: {
                             needs: { id: true, name: true },
                             compute: (user) => `${user.id}:${user.name}`,
@@ -482,7 +482,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'full-info',
                 result: {
-                    User: {
+                    user: {
                         fullInfo: {
                             needs: { id: true, name: true },
                             compute: (user) => `${user.id}:${user.name}`,
@@ -508,7 +508,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'full-info',
                 result: {
-                    User: {
+                    user: {
                         upperName: {
                             needs: { name: true },
                             compute: (user) => user.name.toUpperCase(),
@@ -533,7 +533,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'typing-test',
                 result: {
-                    User: {
+                    user: {
                         upperName: {
                             needs: { name: true },
                             compute: (user) => user.name.toUpperCase(),
@@ -586,7 +586,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'post-ext',
                 result: {
-                    Post: {
+                    post: {
                         upperTitle: {
                             needs: { title: true },
                             compute: (post) => post.title.toUpperCase(),
@@ -612,13 +612,13 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'both-ext',
                 result: {
-                    User: {
+                    user: {
                         upperName: {
                             needs: { name: true },
                             compute: (user) => user.name.toUpperCase(),
                         },
                     },
-                    Post: {
+                    post: {
                         upperTitle: {
                             needs: { title: true },
                             compute: (post) => post.title.toUpperCase(),
@@ -641,7 +641,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'post-ext',
                 result: {
-                    Post: {
+                    post: {
                         upperTitle: {
                             needs: { title: true },
                             compute: (post) => post.title.toUpperCase(),
@@ -670,7 +670,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'post-ext',
                 result: {
-                    Post: {
+                    post: {
                         upperTitle: {
                             needs: { title: true },
                             compute: (post) => post.title.toUpperCase(),
@@ -695,7 +695,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'post-ext',
                 result: {
-                    Post: {
+                    post: {
                         upperTitle: {
                             needs: { title: true },
                             compute: (post) => post.title.toUpperCase(),
@@ -720,7 +720,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'user-ext',
                 result: {
-                    User: {
+                    user: {
                         upperName: {
                             needs: { name: true },
                             compute: (user) => user.name.toUpperCase(),
@@ -743,13 +743,13 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'nested-types',
                 result: {
-                    User: {
+                    user: {
                         upperName: {
                             needs: { name: true },
                             compute: (user) => user.name.toUpperCase(),
                         },
                     },
-                    Post: {
+                    post: {
                         upperTitle: {
                             needs: { title: true },
                             compute: (post) => post.title.toUpperCase(),
@@ -788,13 +788,13 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'typed-compute',
                 result: {
-                    User: {
+                    user: {
                         upperName: resultField({
                             needs: { name: true },
                             compute: (user) => user.name.toUpperCase(),
                         }),
                     },
-                    Post: {
+                    post: {
                         titleAndContent: resultField({
                             needs: { title: true, content: true },
                             compute: (post) => `${post.title}: ${post.content ?? 'no content'}`,
@@ -815,12 +815,12 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should reject invalid model names in result config', () => {
-        // @ts-expect-error - "Userr" is not a valid model name
+        // @ts-expect-error - "userr" is not a valid model name
         db.$use(
             definePlugin({
                 id: 'bad-model',
                 result: {
-                    Userr: {
+                    userr: {
                         upperName: {
                             needs: { name: true },
                             compute: (user) => user.name.toUpperCase(),
@@ -836,7 +836,7 @@ describe('Plugin extended result fields', () => {
             definePlugin({
                 id: 'bad-needs',
                 result: {
-                    User: {
+                    user: {
                         upperName: {
                             // @ts-expect-error - "nonExistentField" is not a field on User
                             needs: { nonExistentField: true },

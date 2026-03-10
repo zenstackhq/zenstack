@@ -873,7 +873,7 @@ function collectExtResultFieldDefs(model: string, plugins: AnyPlugin[]): Map<str
     for (const plugin of plugins) {
         const resultConfig = plugin.result;
         if (resultConfig) {
-            const modelConfig = resultConfig[model];
+            const modelConfig = resultConfig[lowerCaseFirst(model)];
             if (modelConfig) {
                 for (const [fieldName, fieldDef] of Object.entries(modelConfig)) {
                     defs.set(fieldName, fieldDef as ExtResultFieldDef);
