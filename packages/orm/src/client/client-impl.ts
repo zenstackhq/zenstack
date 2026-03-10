@@ -868,7 +868,11 @@ function hasExtResultFieldDefs(plugins: AnyPlugin[]): boolean {
 /**
  * Collects extended result field definitions from all plugins for a given model.
  */
-function collectExtResultFieldDefs(model: string, plugins: AnyPlugin[]): Map<string, ExtResultFieldDef> {
+function collectExtResultFieldDefs(
+    model: string,
+    schema: SchemaDef,
+    plugins: AnyPlugin[],
+): Map<string, ExtResultFieldDef> {
     const defs = new Map<string, ExtResultFieldDef>();
     for (const plugin of plugins) {
         const resultConfig = plugin.result;
@@ -876,6 +880,11 @@ function collectExtResultFieldDefs(model: string, plugins: AnyPlugin[]): Map<str
             const modelConfig = resultConfig[lowerCaseFirst(model)];
             if (modelConfig) {
                 for (const [fieldName, fieldDef] of Object.entries(modelConfig)) {
+                    if (getField(schema, model, fieldName)) {
+                        throw new Error(
+                            `Plugin "${plugin.id}" registers ext result field "${fieldName}" on model "${model}" which conflicts with an existing model field`,
+                        );
+                    }
                     defs.set(fieldName, fieldDef as ExtResultFieldDef);
                 }
             }
@@ -900,7 +909,7 @@ function prepareArgsForExtResult(
         return args;
     }
 
-    const extResultDefs = collectExtResultFieldDefs(model, plugins);
+    const extResultDefs = collectExtResultFieldDefs(model, schema, plugins);
     const typedArgs = args as Record<string, unknown>;
     let result = typedArgs;
     let changed = false;
@@ -1010,7 +1019,7 @@ function applyExtResult(
     schema: SchemaDef,
     plugins: AnyPlugin[],
 ): unknown {
-    const extResultDefs = collectExtResultFieldDefs(model, plugins);
+    const extResultDefs = collectExtResultFieldDefs(model, schema, plugins);
     if (Array.isArray(result)) {
         for (let i = 0; i < result.length; i++) {
             result[i] = applyExtResultToRow(result[i], model, originalArgs, schema, plugins, extResultDefs);

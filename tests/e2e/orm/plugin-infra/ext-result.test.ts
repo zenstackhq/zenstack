@@ -835,6 +835,28 @@ describe('Plugin extended result fields', () => {
         expect(users[0]).not.toHaveProperty('upperName');
     });
 
+    it('should reject ext result fields that shadow real model fields', async () => {
+        await db.user.create({ data: { name: 'Alice' } });
+
+        const extDb = db.$use(
+            definePlugin({
+                id: 'shadow',
+                result: {
+                    user: {
+                        name: {
+                            needs: { id: true },
+                            compute: (user) => `name-${user.id}`,
+                        },
+                    },
+                } as any,
+            }),
+        );
+
+        await expect(extDb.user.findMany()).rejects.toThrow(
+            /conflicts with an existing model field/,
+        );
+    });
+
     it('should handle invalid needs field names gracefully at runtime', async () => {
         const extDb = db.$use(
             definePlugin({
