@@ -1018,7 +1018,7 @@ export class ZodSchemaFactory<
         for (const plugin of this.plugins) {
             const resultConfig = plugin.result;
             if (resultConfig) {
-                const modelConfig = resultConfig[model];
+                const modelConfig = resultConfig[lowerCaseFirst(model)];
                 if (modelConfig) {
                     for (const field of Object.keys(modelConfig)) {
                         fields[field] = z.boolean().optional();

@@ -814,9 +814,8 @@ describe('Plugin extended result fields', () => {
         expect(posts[0]!.titleAndContent).toBe('Hello: World');
     });
 
-    it('should reject invalid model names in result config', () => {
-        // @ts-expect-error - "userr" is not a valid model name
-        db.$use(
+    it('should ignore invalid model names in result config at runtime', async () => {
+        const extDb = db.$use(
             definePlugin({
                 id: 'bad-model',
                 result: {
@@ -826,25 +825,34 @@ describe('Plugin extended result fields', () => {
                             compute: (user) => user.name.toUpperCase(),
                         },
                     },
-                },
+                } as any,
             }),
         );
+
+        await extDb.user.create({ data: { name: 'Alice' } });
+        // "userr" doesn't match any model, so no ext result fields are applied
+        const users = await extDb.user.findMany();
+        expect(users[0]).not.toHaveProperty('upperName');
     });
 
-    it('should reject invalid needs field names', () => {
-        db.$use(
+    it('should handle invalid needs field names gracefully at runtime', async () => {
+        const extDb = db.$use(
             definePlugin({
                 id: 'bad-needs',
                 result: {
                     user: {
                         upperName: {
-                            // @ts-expect-error - "nonExistentField" is not a field on User
                             needs: { nonExistentField: true },
                             compute: (user) => String(user.nonExistentField),
                         },
                     },
-                },
+                } as any,
             }),
         );
+
+        await extDb.user.create({ data: { name: 'Alice' } });
+        // "nonExistentField" is never in the result, so needsSatisfied is false and compute is skipped
+        const users = await extDb.user.findMany();
+        expect(users[0]).not.toHaveProperty('upperName');
     });
 });

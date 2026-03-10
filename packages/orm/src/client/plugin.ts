@@ -1,8 +1,7 @@
 import type { OperationNode, QueryId, QueryResult, RootOperationNode, UnknownRow } from 'kysely';
 import type { ZodType } from 'zod';
 import type { ClientContract, ZModelFunction } from '.';
-import type { GetModelFields, GetModels, NonRelationFields, SchemaDef } from '../schema';
-import type { MapModelFieldType } from './crud-types';
+import type { GetModels, SchemaDef } from '../schema';
 import type { MaybePromise } from '../utils/type-utils';
 import type { AllCrudOperations, CoreCrudOperations } from './crud/operations/base';
 
@@ -41,7 +40,7 @@ export type ExtResultFieldDef<Needs extends Record<string, true> = Record<string
  * Keyed by model name, each value maps field names to their definitions.
  */
 export type ExtResultBase<Schema extends SchemaDef = SchemaDef> = Partial<
-    Record<Uncapitalize<GetModels<Schema>>, Record<string, ExtResultFieldDef>>
+    Record<Uncapitalize<GetModels<Schema>>, Record<string, { needs: any; compute: (...args: any[]) => any }>>
 >;
 
 /**
@@ -111,40 +110,7 @@ export interface RuntimePlugin<
      * Extended result fields on query results.
      * Keyed by model name, each value defines computed fields with `needs` and `compute`.
      */
-    result?: {
-        [M in keyof ExtResult]: M extends Uncapitalize<GetModels<Schema>>
-            ? {
-                  [F in keyof ExtResult[M]]: ExtResult[M][F] extends ExtResultFieldDef<infer N>
-                      ? keyof N extends NonRelationFields<Schema, Capitalize<M & string> & GetModels<Schema>>
-                          ? {
-                                needs: N;
-                                compute: (
-                                    data: {
-                                        [K in keyof N &
-                                            GetModelFields<
-                                                Schema,
-                                                Capitalize<M & string> & GetModels<Schema>
-                                            >]: MapModelFieldType<
-                                            Schema,
-                                            Capitalize<M & string> & GetModels<Schema>,
-                                            K
-                                        >;
-                                    },
-                                ) => unknown;
-                            }
-                          : ExtResultFieldDef<
-                                Record<
-                                    Extract<
-                                        NonRelationFields<Schema, Capitalize<M & string> & GetModels<Schema>>,
-                                        string
-                                    >,
-                                    true
-                                >
-                            >
-                      : never;
-              }
-            : never;
-    };
+    result?: ExtResult;
 }
 
 export type AnyPlugin = RuntimePlugin<any, any, any, any>;
