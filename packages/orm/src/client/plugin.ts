@@ -140,7 +140,7 @@ export function definePlugin<
  * definePlugin({
  *     id: 'my-plugin',
  *     result: {
- *         User: {
+ *         user: {
  *             fullName: resultField({
  *                 needs: { firstName: true, lastName: true },
  *                 compute: (user) => `${user.firstName} ${user.lastName}`,
