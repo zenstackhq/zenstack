@@ -6,7 +6,6 @@ import type {
     FieldHasDefault,
     FieldIsArray,
     FieldIsDelegateDiscriminator,
-    FieldIsDelegateRelation,
     FieldIsRelation,
     FieldType,
     ForeignKeyFields,
@@ -60,7 +59,7 @@ import type {
 import type { FilterKind, QueryOptions } from './options';
 import type { ExtQueryArgsBase } from './plugin';
 import type { ToKyselySchema } from './query-builder';
-import type { GetSlicedFilterKindsForField, GetSlicedModels } from './type-utils';
+import type { GetSlicedFilterKindsForField, GetSlicedModels, ModelAllowsCreate } from './type-utils';
 
 //#region Query results
 
@@ -1331,6 +1330,15 @@ type CreateFKPayload<Schema extends SchemaDef, Model extends GetModels<Schema>> 
     }
 >;
 
+type RelationModelAllowsCreate<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Field extends RelationFields<Schema, Model>,
+> =
+    GetModelFieldType<Schema, Model, Field> extends GetModels<Schema>
+        ? ModelAllowsCreate<Schema, GetModelFieldType<Schema, Model, Field>>
+        : false;
+
 type CreateRelationFieldPayload<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
@@ -1360,8 +1368,8 @@ type CreateRelationFieldPayload<
     },
     // no "createMany" for non-array fields
     | (FieldIsArray<Schema, Model, Field> extends true ? never : 'createMany')
-    // exclude operations not applicable to delegate models
-    | (FieldIsDelegateRelation<Schema, Model, Field> extends true ? 'create' | 'createMany' | 'connectOrCreate' : never)
+    // exclude create operations for models that don't allow create
+    | (RelationModelAllowsCreate<Schema, Model, Field> extends true ? never : 'create' | 'createMany' | 'connectOrCreate')
 >;
 
 type CreateRelationPayload<
@@ -1715,10 +1723,8 @@ type ToManyRelationUpdateInput<
          */
         set?: SetRelationInput<Schema, Model, Field, Options>;
     },
-    // exclude
-    FieldIsDelegateRelation<Schema, Model, Field> extends true
-        ? 'create' | 'createMany' | 'connectOrCreate' | 'upsert'
-        : never
+    // exclude create operations for models that don't allow create
+    | (RelationModelAllowsCreate<Schema, Model, Field> extends true ? never : 'create' | 'createMany' | 'connectOrCreate' | 'upsert')
 >;
 
 type ToOneRelationUpdateInput<
@@ -1765,7 +1771,8 @@ type ToOneRelationUpdateInput<
               delete?: NestedDeleteInput<Schema, Model, Field, Options>;
           }
         : {}),
-    FieldIsDelegateRelation<Schema, Model, Field> extends true ? 'create' | 'connectOrCreate' | 'upsert' : never
+    // exclude create operations for models that don't allow create
+    | (RelationModelAllowsCreate<Schema, Model, Field> extends true ? never : 'create' | 'connectOrCreate' | 'upsert')
 >;
 
 // #endregion

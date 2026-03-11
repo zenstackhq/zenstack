@@ -39,6 +39,7 @@ import { SchemaDbPusher } from './helpers/schema-db-pusher';
 import type { ClientOptions, ProceduresOptions } from './options';
 import type { AnyPlugin } from './plugin';
 import { createZenStackPromise, type ZenStackPromise } from './promise';
+import { fieldHasDefaultValue, isUnsupportedField, requireModel } from './query-utils';
 import { ResultProcessor } from './result-processor';
 
 /**
@@ -818,6 +819,14 @@ function createModelCrudHandler(
             for (const operation of excludedOperations) {
                 delete (operations as any)[operation];
             }
+        }
+    }
+
+    // Remove create/upsert operations for models with required Unsupported fields
+    const modelDef = requireModel(client.$schema, model);
+    if (Object.values(modelDef.fields).some((f) => isUnsupportedField(f) && !f.optional && !fieldHasDefaultValue(f))) {
+        for (const op of ['create', 'createMany', 'createManyAndReturn', 'upsert'] as const) {
+            delete (operations as any)[op];
         }
     }
 

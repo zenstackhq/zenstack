@@ -37,8 +37,8 @@ import {
     getEnum,
     getField,
     getModel,
+    getModelFields,
     isEnum,
-    requireModel,
     stripAlias,
 } from '../query-utils';
 
@@ -66,7 +66,7 @@ export class QueryNameMapper extends OperationNodeTransformer {
                 this.modelToTableMap.set(modelName, mappedName);
             }
 
-            for (const fieldDef of this.getModelFields(modelDef)) {
+            for (const fieldDef of getModelFields(this.schema, modelName)) {
                 const mappedName = this.getMappedName(fieldDef);
                 if (mappedName) {
                     this.fieldToColumnMap.set(`${modelName}.${fieldDef.name}`, mappedName);
@@ -431,7 +431,7 @@ export class QueryNameMapper extends OperationNodeTransformer {
                     if (!modelDef) {
                         continue;
                     }
-                    if (this.getModelFields(modelDef).some((f) => f.name === name)) {
+                    if (getModelFields(this.schema, scope.model).some((f) => f.name === name)) {
                         return scope;
                     }
                 }
@@ -560,8 +560,7 @@ export class QueryNameMapper extends OperationNodeTransformer {
     }
 
     private createSelectAllFields(model: string, alias: OperationNode | undefined) {
-        const modelDef = requireModel(this.schema, model);
-        return this.getModelFields(modelDef).map((fieldDef) => {
+        return getModelFields(this.schema, model).map((fieldDef) => {
             const columnName = this.mapFieldName(model, fieldDef.name);
             const columnRef = ReferenceNode.create(
                 ColumnNode.create(columnName),
@@ -576,9 +575,6 @@ export class QueryNameMapper extends OperationNodeTransformer {
         });
     }
 
-    private getModelFields(modelDef: ModelDef) {
-        return Object.values(modelDef.fields).filter((f) => !f.relation && !f.computed && !f.originModel);
-    }
 
     private processSelections(selections: readonly SelectionNode[]) {
         const result: SelectionNode[] = [];
@@ -627,9 +623,8 @@ export class QueryNameMapper extends OperationNodeTransformer {
         }
 
         // expand select all to a list of selections with name mapping
-        const modelDef = requireModel(this.schema, scope.model);
-        return this.getModelFields(modelDef).map((fieldDef) => {
-            const columnName = this.mapFieldName(modelDef.name, fieldDef.name);
+        return getModelFields(this.schema, scope.model).map((fieldDef) => {
+            const columnName = this.mapFieldName(scope.model!, fieldDef.name);
             const columnRef = ReferenceNode.create(ColumnNode.create(columnName));
 
             // process enum value mapping
@@ -660,7 +655,7 @@ export class QueryNameMapper extends OperationNodeTransformer {
         if (!modelDef) {
             return false;
         }
-        return this.getModelFields(modelDef).some((fieldDef) => {
+        return getModelFields(this.schema, model).some((fieldDef) => {
             const enumDef = getEnum(this.schema, fieldDef.type);
             if (!enumDef) {
                 return false;

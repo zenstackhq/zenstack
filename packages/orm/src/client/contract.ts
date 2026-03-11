@@ -2,7 +2,6 @@ import {
     type FieldIsArray,
     type GetModels,
     type GetTypeDefs,
-    type IsDelegateModel,
     type ProcedureDef,
     type RelationFields,
     type RelationFieldType,
@@ -43,7 +42,12 @@ import type { ClientOptions, QueryOptions } from './options';
 import type { ExtClientMembersBase, ExtQueryArgsBase, RuntimePlugin } from './plugin';
 import type { ZenStackPromise } from './promise';
 import type { ToKysely } from './query-builder';
-import type { GetSlicedModels, GetSlicedOperations, GetSlicedProcedures } from './type-utils';
+import type {
+    GetSlicedModels,
+    GetSlicedOperations,
+    GetSlicedProcedures,
+    ModelAllowsCreate,
+} from './type-utils';
 import type { ZodSchemaFactory } from './zod/factory';
 
 type TransactionUnsupportedMethods = (typeof TRANSACTION_UNSUPPORTED_METHODS)[number];
@@ -284,8 +288,8 @@ type SliceOperations<
         // keep only operations included by slicing options
         [Key in keyof T as Key extends GetSlicedOperations<Schema, Model, Options> ? Key : never]: T[Key];
     },
-    // exclude operations not applicable to delegate models
-    IsDelegateModel<Schema, Model> extends true ? OperationsIneligibleForDelegateModels : never
+    // exclude create operations for models that don't allow create (delegate models, required Unsupported fields)
+    | (ModelAllowsCreate<Schema, Model> extends true ? never : OperationsRequiringCreate)
 >;
 
 export type AllModelOperations<
@@ -880,7 +884,7 @@ type CommonModelOperations<
     ): ZenStackPromise<Schema, boolean>;
 };
 
-export type OperationsIneligibleForDelegateModels = 'create' | 'createMany' | 'createManyAndReturn' | 'upsert';
+export type OperationsRequiringCreate = 'create' | 'createMany' | 'createManyAndReturn' | 'upsert';
 
 export type ModelOperations<
     Schema extends SchemaDef,

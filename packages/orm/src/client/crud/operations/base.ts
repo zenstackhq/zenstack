@@ -1148,7 +1148,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
 
         const parentWhere = await this.buildUpdateParentRelationFilter(kysely, fromRelation);
 
-        let combinedWhere: WhereInput<Schema, GetModels<Schema>, any, false> = where ?? {};
+        let combinedWhere: Record<string, any> = where ?? {};
         if (Object.keys(parentWhere).length > 0) {
             combinedWhere = Object.keys(combinedWhere).length > 0 ? { AND: [parentWhere, combinedWhere] } : parentWhere;
         }
@@ -1210,7 +1210,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
 
         if (needIdRead) {
             const readResult = await this.readUnique(kysely, model, {
-                where: combinedWhere,
+                where: combinedWhere as WhereInput<Schema, GetModels<Schema>>,
                 select: this.makeIdSelect(model),
             });
             if (!readResult && throwIfNotFound) {
@@ -2506,6 +2506,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         this.doNormalizeArgs(newArgs);
         return newArgs;
     }
+
 
     private doNormalizeArgs(args: unknown) {
         if (args && typeof args === 'object') {
