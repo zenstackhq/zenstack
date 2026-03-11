@@ -21,4 +21,24 @@ model Foo {
         await db.$unuseAll().foo.create({ data: { x: uuid() } });
         await expect(db.foo.findMany()).toResolveTruthy();
     });
+
+    it('works with post-update policies', async () => {
+        const db = await createPolicyTestClient(
+            `
+model ExchangeRequest {
+  id     String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  status String
+
+  @@allow('all', true)
+  @@deny('post-update', before().status == status)  // triggers buildValuesTableSelect
+}
+`,
+            { provider: 'postgresql', usePrismaPush: true, debug: true },
+        );
+
+        const request = await db.exchangeRequest.create({ data: { status: 'pending' } });
+        await expect(
+            db.exchangeRequest.update({ where: { id: request.id }, data: { status: 'done' } }),
+        ).toResolveTruthy();
+    });
 });
