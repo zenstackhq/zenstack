@@ -33,7 +33,7 @@ model ExchangeRequest {
   @@deny('post-update', before().status == status)  // triggers buildValuesTableSelect
 }
 `,
-            { provider: 'postgresql', usePrismaPush: true, debug: true },
+            { provider: 'postgresql', usePrismaPush: true },
         );
 
         const request = await db.exchangeRequest.create({ data: { status: 'pending' } });

@@ -1150,7 +1150,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         const descendants = getDelegateDescendantModels(this.schema, model);
         for (const subModel of descendants) {
             result = this.buildDelegateJoin(model, modelAlias, subModel.name, result);
-            result = result.select((eb) => {
+            result = result.select(() => {
                 const jsonObject: Record<string, Expression<any>> = {};
                 for (const field of Object.keys(subModel.fields)) {
                     if (
@@ -1159,19 +1159,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                     ) {
                         continue;
                     }
-                    const subFieldDef = requireField(this.schema, subModel.name, field);
-                    const castSqlType = this.hasNativeTypeAttribute(subFieldDef)
-                        ? this.getSqlType(subFieldDef.type)
-                        : undefined;
-                    if (castSqlType) {
-                        const castType = subFieldDef.array
-                            ? sql`${sql.raw(castSqlType)}[]`
-                            : sql.raw(castSqlType);
-                        jsonObject[field] =
-                            sql`CAST(${sql.ref(`${subModel.name}.${field}`)} AS ${castType})`;
-                    } else {
-                        jsonObject[field] = eb.ref(`${subModel.name}.${field}`);
-                    }
+                    jsonObject[field] = this.fieldRef(subModel.name, field, subModel.name);
                 }
                 return this.buildJsonObject(jsonObject).as(`${DELEGATE_JOINED_FIELD_PREFIX}${subModel.name}`);
             });
