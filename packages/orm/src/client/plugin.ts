@@ -1,7 +1,7 @@
 import type { OperationNode, QueryId, QueryResult, RootOperationNode, UnknownRow } from 'kysely';
 import type { ZodType } from 'zod';
 import type { ClientContract, ZModelFunction } from '.';
-import type { GetModels, SchemaDef } from '../schema';
+import type { GetModels, NonRelationFields, SchemaDef } from '../schema';
 import type { MaybePromise } from '../utils/type-utils';
 import type { AllCrudOperations, CoreCrudOperations } from './crud/operations/base';
 
@@ -38,10 +38,17 @@ export type ExtResultFieldDef<Needs extends Record<string, true> = Record<string
 /**
  * Base shape of plugin-extended result fields.
  * Keyed by model name, each value maps field names to their definitions.
+ * `needs` keys are constrained to non-relation fields of the corresponding model.
  */
-export type ExtResultBase<Schema extends SchemaDef = SchemaDef> = Partial<
-    Record<Uncapitalize<GetModels<Schema>>, Record<string, { needs: any; compute: (...args: any[]) => any }>>
->;
+export type ExtResultBase<Schema extends SchemaDef = SchemaDef> = {
+    [M in Uncapitalize<GetModels<Schema>>]?: Record<
+        string,
+        {
+            needs: Partial<Record<NonRelationFields<Schema, Capitalize<M> & GetModels<Schema>>, true>>;
+            compute: (...args: any[]) => any;
+        }
+    >;
+};
 
 /**
  * ZenStack runtime plugin.

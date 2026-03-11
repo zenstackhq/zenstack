@@ -885,6 +885,14 @@ function collectExtResultFieldDefs(
                             `Plugin "${plugin.id}" registers ext result field "${fieldName}" on model "${model}" which conflicts with an existing model field`,
                         );
                     }
+                    for (const needField of Object.keys((fieldDef as ExtResultFieldDef).needs ?? {})) {
+                        const needDef = getField(schema, model, needField);
+                        if (!needDef || needDef.relation) {
+                            throw new Error(
+                                `Plugin "${plugin.id}" registers ext result field "${fieldName}" on model "${model}" with invalid need "${needField}"`,
+                            );
+                        }
+                    }
                     defs.set(fieldName, fieldDef as ExtResultFieldDef);
                 }
             }

@@ -857,7 +857,7 @@ describe('Plugin extended result fields', () => {
         );
     });
 
-    it('should handle invalid needs field names gracefully at runtime', async () => {
+    it('should reject ext result fields with invalid needs field names', async () => {
         const extDb = db.$use(
             definePlugin({
                 id: 'bad-needs',
@@ -872,9 +872,28 @@ describe('Plugin extended result fields', () => {
             }),
         );
 
-        await extDb.user.create({ data: { name: 'Alice' } });
-        // "nonExistentField" is never in the result, so needsSatisfied is false and compute is skipped
-        const users = await extDb.user.findMany();
-        expect(users[0]).not.toHaveProperty('upperName');
+        await expect(extDb.user.findMany()).rejects.toThrow(
+            /invalid need "nonExistentField"/,
+        );
+    });
+
+    it('should reject ext result fields with relation fields in needs', async () => {
+        const extDb = db.$use(
+            definePlugin({
+                id: 'bad-needs-relation',
+                result: {
+                    user: {
+                        postCount: {
+                            needs: { posts: true },
+                            compute: (user) => String(user.posts),
+                        },
+                    },
+                } as any,
+            }),
+        );
+
+        await expect(extDb.user.findMany()).rejects.toThrow(
+            /invalid need "posts"/,
+        );
     });
 });
