@@ -323,14 +323,14 @@ export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDiale
             return 'varchar(191)';
         }
         return match(zmodelType)
-            .with('String', () => 'varchar(191)')
-            .with('Boolean', () => 'tinyint(1)')
+            .with('String', () => 'char')
+            .with('Boolean', () => 'unsigned')
             .with('Int', () => 'signed')
-            .with('BigInt', () => 'bigint')
+            .with('BigInt', () => 'signed')
             .with('Float', () => 'double')
             .with('Decimal', () => 'decimal(65,30)')
             .with('DateTime', () => 'datetime(3)')
-            .with('Bytes', () => 'longblob')
+            .with('Bytes', () => 'binary')
             .with('Json', () => 'json')
             .otherwise(() => undefined);
     }

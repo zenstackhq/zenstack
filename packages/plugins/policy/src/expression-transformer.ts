@@ -936,7 +936,9 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             kind: 'SelectQueryNode',
             from: FromNode.create([TableNode.create(baseModel)]),
             selections: [
-                SelectionNode.create(ReferenceNode.create(ColumnNode.create(field), TableNode.create(baseModel))),
+                SelectionNode.create(
+                    this.dialect.fieldRef(baseModel, field, baseModel, false).toOperationNode()
+                ),
             ],
             where: WhereNode.create(
                 conjunction(
