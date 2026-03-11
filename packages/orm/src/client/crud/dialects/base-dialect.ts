@@ -1164,8 +1164,11 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                         ? this.getSqlType(subFieldDef.type)
                         : undefined;
                     if (castSqlType) {
+                        const castType = subFieldDef.array
+                            ? sql`${sql.raw(castSqlType)}[]`
+                            : sql.raw(castSqlType);
                         jsonObject[field] =
-                            sql`CAST(${sql.ref(`${subModel.name}.${field}`)} AS ${sql.raw(castSqlType)})`;
+                            sql`CAST(${sql.ref(`${subModel.name}.${field}`)} AS ${castType})`;
                     } else {
                         jsonObject[field] = eb.ref(`${subModel.name}.${field}`);
                     }
@@ -1376,7 +1379,8 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             if (this.hasNativeTypeAttribute(fieldDef)) {
                 const sqlType = this.getSqlType(fieldDef.type);
                 if (sqlType) {
-                    return sql`CAST(${sql.ref(ref)} AS ${sql.raw(sqlType)})`;
+                    const castType = fieldDef.array ? sql`${sql.raw(sqlType)}[]` : sql.raw(sqlType);
+                    return sql`CAST(${sql.ref(ref)} AS ${castType})`;
                 }
             }
 
