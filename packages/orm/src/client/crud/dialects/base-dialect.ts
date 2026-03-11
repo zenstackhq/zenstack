@@ -757,11 +757,21 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
     }
 
     protected buildJsonEqualityFilter(lhs: Expression<any>, rhs: unknown) {
-        return this.buildLiteralFilter(lhs, 'Json', rhs);
+        return this.buildValueFilter(lhs, 'Json', rhs);
     }
 
-    private buildLiteralFilter(lhs: Expression<any>, type: BuiltinType, rhs: unknown) {
-        return this.eb(lhs, '=', rhs !== null && rhs !== undefined ? this.transformInput(rhs, type, false) : rhs);
+    private buildValueFilter(lhs: Expression<any>, type: BuiltinType, rhs: unknown) {
+        if (rhs === undefined) {
+            // undefined filter is no-op, always true
+            return this.true();
+        }
+
+        if (rhs === null) {
+            // null comparison
+            return this.eb(lhs, 'is', null);
+        }
+
+        return this.eb(lhs, '=', this.transformInput(rhs, type, false));
     }
 
     private buildStandardFilter(
@@ -776,7 +786,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
     ) {
         if (payload === null || !isPlainObject(payload)) {
             return {
-                conditions: [this.buildLiteralFilter(lhs, type, payload)],
+                conditions: [this.buildValueFilter(lhs, type, payload)],
                 consumedKeys: [],
             };
         }
