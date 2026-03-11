@@ -37,7 +37,7 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
             // override node-pg's default type parser to resolve the timezone handling issue
             // with "TIMESTAMP WITHOUT TIME ZONE" fields
             // https://github.com/brianc/node-postgres/issues/429
-            import('pg')
+            import(/* webpackIgnore: true */ 'pg') // suppress bundler analysis warnings
                 .then((pg) => {
                     pg.types.setTypeParser(pg.types.builtins.TIMESTAMP, (value) => {
                         if (typeof value !== 'string') {

@@ -414,6 +414,18 @@ describe('Client filter tests ', () => {
                 where: { email: { not: { not: { contains: 'test' } } } },
             }),
         ).toResolveTruthy();
+
+        // not null (issue #2472)
+        await expect(
+            client.user.findMany({
+                where: { name: { not: null } },
+            }),
+        ).toResolveWithLength(1);
+        await expect(
+            client.user.findFirst({
+                where: { name: { not: null } },
+            }),
+        ).resolves.toMatchObject({ id: user1.id });
     });
 
     it('supports numeric filters', async () => {
@@ -490,6 +502,18 @@ describe('Client filter tests ', () => {
                 where: { age: { not: { not: { equals: null } } } },
             }),
         ).toResolveTruthy();
+
+        // not null shorthand (issue #2472)
+        await expect(
+            client.profile.findMany({
+                where: { age: { not: null } },
+            }),
+        ).toResolveWithLength(1);
+        await expect(
+            client.profile.findFirst({
+                where: { age: { not: null } },
+            }),
+        ).resolves.toMatchObject({ id: '1' });
     });
 
     it('supports boolean filters', async () => {
