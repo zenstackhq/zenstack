@@ -61,6 +61,7 @@ export type RelationInfo = {
 
 export type UpdatedAtInfo = {
     ignore?: readonly string[];
+    fields?: readonly string[];
 };
 
 export type FieldDef = {

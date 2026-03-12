@@ -747,5 +747,287 @@ model Post {
             authType: 'User',
             plugins: {}
         });
-    })
+    });
+
+    it('supports specifying fields for @updatedAt', async () => {
+        const { schema } = await generateTsSchema(`
+model User {
+    id String @id @default(uuid())
+    name String
+    email String @unique
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt(fields: [email])
+    posts Post[]
+
+    @@map('users')
+}
+
+model Post {
+    id String @id @default(cuid())
+    title String
+    published Boolean @default(false)
+    author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+    authorId String
+}
+            `);
+
+        expect(schema).toMatchObject({
+            provider: {
+                type: 'sqlite'
+            },
+            models: {
+                User: {
+                    name: 'User',
+                    fields: {
+                        id: {
+                            name: 'id',
+                            type: 'String',
+                            id: true,
+                            attributes: [
+                                {
+                                    name: '@id'
+                                },
+                                {
+                                    name: '@default',
+                                    args: [
+                                        {
+                                            name: 'value',
+                                            value: {
+                                                kind: 'call',
+                                                function: 'uuid'
+                                            }
+                                        }
+                                    ]
+                                }
+                            ],
+                            default: {
+                                kind: 'call',
+                                function: 'uuid'
+                            }
+                        },
+                        name: {
+                            name: 'name',
+                            type: 'String'
+                        },
+                        email: {
+                            name: 'email',
+                            type: 'String',
+                            unique: true,
+                            attributes: [
+                                {
+                                    name: '@unique'
+                                }
+                            ]
+                        },
+                        createdAt: {
+                            name: 'createdAt',
+                            type: 'DateTime',
+                            attributes: [
+                                {
+                                    name: '@default',
+                                    args: [
+                                        {
+                                            name: 'value',
+                                            value: {
+                                                kind: 'call',
+                                                function: 'now'
+                                            }
+                                        }
+                                    ]
+                                }
+                            ],
+                            default: {
+                                kind: 'call',
+                                function: 'now'
+                            }
+                        },
+                        updatedAt: {
+                            name: 'updatedAt',
+                            type: 'DateTime',
+                            updatedAt: {
+                                fields: [
+                                    'email'
+                                ]
+                            },
+                            attributes: [
+                                {
+                                    name: '@updatedAt',
+                                    args: [
+                                        {
+                                            name: 'fields',
+                                            value: {
+                                                kind: 'array',
+                                                items: [
+                                                    {
+                                                        kind: 'field',
+                                                        field: 'email'
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        posts: {
+                            name: 'posts',
+                            type: 'Post',
+                            array: true,
+                            relation: {
+                                opposite: 'author'
+                            }
+                        }
+                    },
+                    attributes: [
+                        {
+                            name: '@@map',
+                            args: [
+                                {
+                                    name: 'name',
+                                    value: {
+                                        kind: 'literal',
+                                        value: 'users'
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    idFields: [
+                        'id'
+                    ],
+                    uniqueFields: {
+                        id: {
+                            type: 'String'
+                        },
+                        email: {
+                            type: 'String'
+                        }
+                    }
+                },
+                Post: {
+                    name: 'Post',
+                    fields: {
+                        id: {
+                            name: 'id',
+                            type: 'String',
+                            id: true,
+                            attributes: [
+                                {
+                                    name: '@id'
+                                },
+                                {
+                                    name: '@default',
+                                    args: [
+                                        {
+                                            name: 'value',
+                                            value: {
+                                                kind: 'call',
+                                                function: 'cuid'
+                                            }
+                                        }
+                                    ]
+                                }
+                            ],
+                            default: {
+                                kind: 'call',
+                                function: 'cuid'
+                            }
+                        },
+                        title: {
+                            name: 'title',
+                            type: 'String'
+                        },
+                        published: {
+                            name: 'published',
+                            type: 'Boolean',
+                            attributes: [
+                                {
+                                    name: '@default',
+                                    args: [
+                                        {
+                                            name: 'value',
+                                            value: {
+                                                kind: 'literal',
+                                                value: false
+                                            }
+                                        }
+                                    ]
+                                }
+                            ],
+                            default: false
+                        },
+                        author: {
+                            name: 'author',
+                            type: 'User',
+                            attributes: [
+                                {
+                                    name: '@relation',
+                                    args: [
+                                        {
+                                            name: 'fields',
+                                            value: {
+                                                kind: 'array',
+                                                items: [
+                                                    {
+                                                        kind: 'field',
+                                                        field: 'authorId'
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            name: 'references',
+                                            value: {
+                                                kind: 'array',
+                                                items: [
+                                                    {
+                                                        kind: 'field',
+                                                        field: 'id'
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        {
+                                            name: 'onDelete',
+                                            value: {
+                                                kind: 'literal',
+                                                value: 'Cascade'
+                                            }
+                                        }
+                                    ]
+                                }
+                            ],
+                            relation: {
+                                opposite: 'posts',
+                                fields: [
+                                    'authorId'
+                                ],
+                                references: [
+                                    'id'
+                                ],
+                                onDelete: 'Cascade'
+                            }
+                        },
+                        authorId: {
+                            name: 'authorId',
+                            type: 'String',
+                            foreignKeyFor: [
+                                'author'
+                            ]
+                        }
+                    },
+                    idFields: [
+                        'id'
+                    ],
+                    uniqueFields: {
+                        id: {
+                            type: 'String'
+                        }
+                    }
+                }
+            },
+            authType: 'User',
+            plugins: {}
+        });
+    });
 });
