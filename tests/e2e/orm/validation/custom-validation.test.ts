@@ -240,7 +240,7 @@ describe('Custom validation tests', () => {
 
         // disable via $setInputValidation
         const dbDisabled = db.$setInputValidation(false);
-        await expect(dbDisabled.item.create({ data: { id: 1, url: 'not-a-url' } })).toResolveTruthy();
+        await expect(dbDisabled.item.create({ data: { url: 'not-a-url' } })).toResolveTruthy();
 
         // re-enable via $setInputValidation
         const dbReEnabled = dbDisabled.$setInputValidation(true);
