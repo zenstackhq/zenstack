@@ -138,8 +138,7 @@ export type ClientContract<
     ): ClientContract<Schema, NewOptions, ExtQueryArgs, ExtClientMembers>;
 
     /**
-     * Returns a new client enabling/disabling input validations expressed with attributes like
-     * `@email`, `@regex`, `@@validate`, etc.
+     * Returns a new client enabling/disabling query args validation.
      *
      * @deprecated Use {@link $setOptions} instead.
      */

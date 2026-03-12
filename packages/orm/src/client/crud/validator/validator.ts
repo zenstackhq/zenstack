@@ -25,11 +25,23 @@ import { ZodSchemaFactory } from '../../zod/factory';
 
 type GetSchemaFunc<Schema extends SchemaDef> = (model: GetModels<Schema>) => ZodType;
 
+export type InputValidatorOptions = {
+    /**
+     * Whether validation is enabled. Defaults to `true`.
+     */
+    enabled?: boolean;
+};
+
 export class InputValidator<Schema extends SchemaDef> {
     readonly zodFactory: ZodSchemaFactory<Schema>;
+    private readonly enabled: boolean;
 
-    constructor(private readonly client: ClientContract<Schema>) {
+    constructor(
+        private readonly client: ClientContract<Schema>,
+        options?: InputValidatorOptions,
+    ) {
         this.zodFactory = new ZodSchemaFactory(client);
+        this.enabled = options?.enabled !== false;
     }
 
     // #region Entry points
@@ -183,6 +195,9 @@ export class InputValidator<Schema extends SchemaDef> {
 
     // TODO: turn it into a Zod schema and cache
     validateProcedureInput(proc: string, input: unknown): unknown {
+        if (!this.enabled) {
+            return input;
+        }
         const procDef = (this.client.$schema.procedures ?? {})[proc] as ProcedureDef | undefined;
         invariant(procDef, `Procedure "${proc}" not found in schema`);
 
@@ -270,6 +285,9 @@ export class InputValidator<Schema extends SchemaDef> {
     // #region Validation helpers
 
     private validate<T>(model: GetModels<Schema>, operation: string, getSchema: GetSchemaFunc<Schema>, args: unknown) {
+        if (!this.enabled) {
+            return args as T;
+        }
         const schema = getSchema(model);
         const { error, data } = schema.safeParse(args);
         if (error) {
