@@ -108,6 +108,7 @@ export class ZodSchemaFactory<
     private readonly allFilterKinds = [...new Set(Object.values(FILTER_PROPERTY_TO_KIND))];
     private readonly schema: Schema;
     private readonly options: Options;
+    private readonly extraValidationsEnabled = true;
 
     constructor(client: ClientContract<Schema, Options, ExtQueryArgs, any>);
     constructor(schema: Schema, options?: Options);
@@ -123,10 +124,6 @@ export class ZodSchemaFactory<
 
     private get plugins(): RuntimePlugin<Schema, any, any>[] {
         return this.options.plugins ?? [];
-    }
-
-    private get extraValidationsEnabled() {
-        return this.options.validateInput !== false;
     }
 
     private shouldIncludeRelations(options?: CreateSchemaOptions): boolean {
