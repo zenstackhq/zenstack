@@ -216,7 +216,7 @@ export type ClientContract<
     /**
      * Returns diagnostics information such as cache and slow query statistics.
      */
-    $diagnostics(): Promise<Diagnostics>;
+    get $diagnostics(): Promise<Diagnostics>;
 } & {
     [Key in GetSlicedModels<Schema, Options> as Uncapitalize<Key>]: ModelOperations<Schema, Key, Options, ExtQueryArgs>;
 } & ProcedureOperations<Schema, Options> &
