@@ -147,6 +147,25 @@ describe('Client $diagnostics tests', () => {
             }
         });
 
+        it('accepts Infinity as slowQueryMaxRecords', async () => {
+            const client = await createTestClient(schema, {
+                diagnostics: {
+                    slowQueryThresholdMs: 0,
+                    slowQueryMaxRecords: Infinity,
+                },
+            });
+            try {
+                for (let i = 0; i < 5; i++) {
+                    await client.user.create({ data: { email: `u${i}@test.com` } });
+                }
+
+                const diagnostics = await client.$diagnostics();
+                expect(diagnostics.slowQueries.length).toBe(5);
+            } finally {
+                await client.$disconnect();
+            }
+        });
+
         it('keeps the slowest queries when limit is exceeded', async () => {
             const maxRecords = 2;
             const client = await createTestClient(schema, {
