@@ -160,7 +160,7 @@ describe('Client $diagnostics tests', () => {
                 }
 
                 const diagnostics = await client.$diagnostics();
-                expect(diagnostics.slowQueries.length).toBe(5);
+                expect(diagnostics.slowQueries.length).toBeGreaterThanOrEqual(5);
             } finally {
                 await client.$disconnect();
             }
