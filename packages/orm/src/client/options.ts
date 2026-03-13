@@ -194,8 +194,11 @@ export type ClientOptions<Schema extends SchemaDef> = QueryOptions<Schema> & {
     fixPostgresTimezone?: boolean;
 
     /**
-     * Whether to enable input validations expressed with attributes like `@email`, `@regex`,
-     * `@@validate`, etc. Defaults to `true`.
+     * Whether to enable query args validation. Defaults to `true`.
+     *
+     * **USE WITH CAUTION**, as setting it to `false` will allow malformed input to pass through, causing
+     * incorrect SQL generation or runtime errors. If you use validation attributes like `@email`, `@regex`,
+     * etc., in ZModel, they will be ignored too.
      */
     validateInput?: boolean;
 

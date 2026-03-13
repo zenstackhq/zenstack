@@ -122,7 +122,9 @@ export class ClientImpl {
         }
 
         this.kysely = new Kysely(this.kyselyProps);
-        this.inputValidator = baseClient?.inputValidator ?? new InputValidator(this as any);
+        this.inputValidator =
+            baseClient?.inputValidator ??
+            new InputValidator(this as any, { enabled: this.$options.validateInput !== false });
 
         return createClientProxy(this);
     }
@@ -366,7 +368,9 @@ export class ClientImpl {
         const newClient = new ClientImpl(this.schema, newOptions, this);
         // create a new validator to have a fresh schema cache, because plugins may extend the
         // query args schemas
-        newClient.inputValidator = new InputValidator(newClient as any);
+        newClient.inputValidator = new InputValidator(newClient as any, {
+            enabled: newOptions.validateInput !== false,
+        });
         return newClient;
     }
 
@@ -385,7 +389,9 @@ export class ClientImpl {
         const newClient = new ClientImpl(this.schema, newOptions, this);
         // create a new validator to have a fresh schema cache, because plugins may
         // extend the query args schemas
-        newClient.inputValidator = new InputValidator(newClient as any);
+        newClient.inputValidator = new InputValidator(newClient as any, {
+            enabled: newClient.$options.validateInput !== false,
+        });
         return newClient;
     }
 
@@ -398,7 +404,9 @@ export class ClientImpl {
         const newClient = new ClientImpl(this.schema, newOptions, this);
         // create a new validator to have a fresh schema cache, because plugins may
         // extend the query args schemas
-        newClient.inputValidator = new InputValidator(newClient as any);
+        newClient.inputValidator = new InputValidator(newClient as any, {
+            enabled: newOptions.validateInput !== false,
+        });
         return newClient;
     }
 
@@ -418,7 +426,9 @@ export class ClientImpl {
     $setOptions<Options extends ClientOptions<SchemaDef>>(options: Options): ClientContract<SchemaDef, Options> {
         const newClient = new ClientImpl(this.schema, options as ClientOptions<SchemaDef>, this);
         // create a new validator to have a fresh schema cache, because options may change validation settings
-        newClient.inputValidator = new InputValidator(newClient as any);
+        newClient.inputValidator = new InputValidator(newClient as any, {
+            enabled: newClient.$options.validateInput !== false,
+        });
         return newClient as unknown as ClientContract<SchemaDef, Options>;
     }
 
