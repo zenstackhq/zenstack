@@ -70,11 +70,6 @@ export class TsSchemaGenerator {
     async generate(model: Model, options: TsSchemaGeneratorOptions) {
         fs.mkdirSync(options.outDir, { recursive: true });
 
-        // Reset the flags for each generation
-        this.usedExpressionUtils = false;
-        this.usedAttributeApplication = false;
-        this.usedFieldDefault = false;
-
         // the schema itself
         this.generateSchema(model, options);
 
@@ -99,6 +94,11 @@ export class TsSchemaGenerator {
         }
 
         for (const { lite, file } of targets) {
+            // Reset per-target import flags so each target tracks its own usage
+            this.usedExpressionUtils = false;
+            this.usedAttributeApplication = false;
+            this.usedFieldDefault = false;
+
             const statements: ts.Statement[] = [];
             this.generateSchemaStatements(model, statements, lite);
             this.generateBannerComments(statements);
