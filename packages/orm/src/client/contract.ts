@@ -39,6 +39,7 @@ import type {
     UpdateManyArgs,
     UpsertArgs,
 } from './crud-types';
+import type { Diagnostics } from './diagnostics';
 import type { ClientOptions, QueryOptions } from './options';
 import type { ExtClientMembersBase, ExtQueryArgsBase, RuntimePlugin } from './plugin';
 import type { ZenStackPromise } from './promise';
@@ -212,6 +213,11 @@ export type ClientContract<
      * @private
      */
     $pushSchema(): Promise<void>;
+
+    /**
+     * Returns diagnostics information such as cache and slow query statistics.
+     */
+    $diagnostics(): Promise<Diagnostics>;
 } & {
     [Key in GetSlicedModels<Schema, Options> as Uncapitalize<Key>]: ModelOperations<Schema, Key, Options, ExtQueryArgs>;
 } & ProcedureOperations<Schema, Options> &

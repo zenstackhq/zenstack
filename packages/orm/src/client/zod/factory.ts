@@ -64,6 +64,15 @@ type FieldInfo = {
     array?: boolean;
 };
 
+function toFieldInfo(def: FieldDef): FieldInfo {
+    return {
+        name: def.name,
+        type: def.type,
+        optional: def.optional,
+        array: def.array,
+    };
+}
+
 /**
  * Create a factory for generating Zod schemas to validate ORM query inputs.
  */
@@ -151,14 +160,11 @@ export class ZodSchemaFactory<
         return this.schemaCache.set(cacheKey, schema);
     }
 
-    // @ts-ignore
-    private printCacheStats(detailed = false) {
-        console.log('Schema cache size:', this.schemaCache.size);
-        if (detailed) {
-            for (const key of this.schemaCache.keys()) {
-                console.log(`\t${key}`);
-            }
-        }
+    get cacheStats() {
+        return {
+            size: this.schemaCache.size,
+            keys: [...this.schemaCache.keys()],
+        };
     }
 
     // #endregion
@@ -403,16 +409,26 @@ export class ZodSchemaFactory<
                 if (enumDef) {
                     // enum
                     if (Object.keys(enumDef.values).length > 0) {
-                        fieldSchema = this.makeEnumFilterSchema(model, fieldDef, withAggregations, ignoreSlicing);
+                        fieldSchema = this.makeEnumFilterSchema(
+                            model,
+                            toFieldInfo(fieldDef),
+                            withAggregations,
+                            ignoreSlicing,
+                        );
                     }
                 } else if (fieldDef.array) {
                     // array field
-                    fieldSchema = this.makeArrayFilterSchema(model, fieldDef);
+                    fieldSchema = this.makeArrayFilterSchema(model, toFieldInfo(fieldDef));
                 } else if (this.isTypeDefType(fieldDef.type)) {
-                    fieldSchema = this.makeTypedJsonFilterSchema(model, fieldDef);
+                    fieldSchema = this.makeTypedJsonFilterSchema(model, toFieldInfo(fieldDef));
                 } else {
                     // primitive field
-                    fieldSchema = this.makePrimitiveFilterSchema(model, fieldDef, withAggregations, ignoreSlicing);
+                    fieldSchema = this.makePrimitiveFilterSchema(
+                        model,
+                        toFieldInfo(fieldDef),
+                        withAggregations,
+                        ignoreSlicing,
+                    );
                 }
             }
 
@@ -437,12 +453,22 @@ export class ZodSchemaFactory<
                                     if (enumDef) {
                                         // enum
                                         if (Object.keys(enumDef.values).length > 0) {
-                                            fieldSchema = this.makeEnumFilterSchema(model, def, false, true);
+                                            fieldSchema = this.makeEnumFilterSchema(
+                                                model,
+                                                toFieldInfo(def),
+                                                false,
+                                                true,
+                                            );
                                         } else {
                                             fieldSchema = z.never();
                                         }
                                     } else {
-                                        fieldSchema = this.makePrimitiveFilterSchema(model, def, false, true);
+                                        fieldSchema = this.makePrimitiveFilterSchema(
+                                            model,
+                                            toFieldInfo(def),
+                                            false,
+                                            true,
+                                        );
                                     }
                                     return [key, fieldSchema];
                                 }),
@@ -514,18 +540,28 @@ export class ZodSchemaFactory<
             for (const [fieldName, fieldDef] of Object.entries(typeDef.fields)) {
                 if (this.isTypeDefType(fieldDef.type)) {
                     // recursive typed JSON - use same model/field for nested typed JSON
-                    fieldSchemas[fieldName] = this.makeTypedJsonFilterSchema(contextModel, fieldDef).optional();
+                    fieldSchemas[fieldName] = this.makeTypedJsonFilterSchema(
+                        contextModel,
+                        toFieldInfo(fieldDef),
+                    ).optional();
                 } else {
                     // enum, array, primitives
                     const enumDef = getEnum(this.schema, fieldDef.type);
                     if (enumDef) {
-                        fieldSchemas[fieldName] = this.makeEnumFilterSchema(contextModel, fieldDef, false).optional();
+                        fieldSchemas[fieldName] = this.makeEnumFilterSchema(
+                            contextModel,
+                            toFieldInfo(fieldDef),
+                            false,
+                        ).optional();
                     } else if (fieldDef.array) {
-                        fieldSchemas[fieldName] = this.makeArrayFilterSchema(contextModel, fieldDef).optional();
+                        fieldSchemas[fieldName] = this.makeArrayFilterSchema(
+                            contextModel,
+                            toFieldInfo(fieldDef),
+                        ).optional();
                     } else {
                         fieldSchemas[fieldName] = this.makePrimitiveFilterSchema(
                             contextModel,
-                            fieldDef,
+                            toFieldInfo(fieldDef),
                             false,
                         ).optional();
                     }

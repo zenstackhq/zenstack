@@ -178,7 +178,8 @@ export type ClientOptions<Schema extends SchemaDef> = QueryOptions<Schema> & {
     plugins?: AnyPlugin[];
 
     /**
-     * Logging configuration.
+     * Logging configuration. Extends Kysely's log config with a `'warning'` level
+     * for ZenStack-specific diagnostics (e.g., slow query warnings).
      */
     log?: KyselyConfig['log'];
 
@@ -208,9 +209,25 @@ export type ClientOptions<Schema extends SchemaDef> = QueryOptions<Schema> & {
     useCompactAliasNames?: boolean;
 
     /**
-     * Whether to skip validation for computed fields.
+     * Whether to skip validation for whether all computed fields are properly defined.
      */
     skipValidationForComputedFields?: boolean;
+
+    /**
+     * Diagnostics related options.
+     */
+    diagnostics?: {
+        /**
+         * Threshold in milliseconds for determining slow queries. If not specified, no query will be considered slow.
+         */
+        slowQueryThresholdMs?: number;
+
+        /**
+         * Maximum number of slow query records to keep in memory. Defaults to `100`. When the number is exceeded, the
+         * entry with the lowest duration will be removed. Set to `Infinity` to keep unlimited records.
+         */
+        slowQueryMaxRecords?: number;
+    };
 } & (HasComputedFields<Schema> extends true
         ? {
               /**
