@@ -31,7 +31,7 @@ import {
 } from 'kysely';
 import { match } from 'ts-pattern';
 import type { ModelDef, SchemaDef, TypeDefDef } from '../../schema';
-import { type ClientImpl } from '../client-impl';
+import type { ClientImpl } from '../client-impl';
 import { TransactionIsolationLevel, type ClientContract } from '../contract';
 import { getCrudDialect } from '../crud/dialects';
 import type { BaseCrudDialect } from '../crud/dialects/base-dialect';
@@ -69,6 +69,8 @@ type CallAfterMutationHooksArgs = {
     beforeMutationEntities?: Record<string, unknown>[];
     afterMutationEntities?: Record<string, unknown>[];
 };
+
+const DEFAULT_MAX_SLOW_RECORDS = 100;
 
 export class ZenStackQueryExecutor extends DefaultQueryExecutor {
     // #region constructor, fields and props
@@ -673,8 +675,17 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
             compiledQuery = { ...compiledQuery, parameters: parameters };
         }
 
+        const trackSlowQuery = this.options.diagnostics !== undefined;
+        const startTimestamp = trackSlowQuery ? performance.now() : undefined;
+        const startedAt = trackSlowQuery ? new Date() : undefined;
+
         try {
             const result = await connection.executeQuery<any>(compiledQuery);
+
+            if (startTimestamp !== undefined) {
+                this.trackSlowQuery(compiledQuery, startTimestamp, startedAt!);
+            }
+
             return this.ensureProperQueryResult(compiledQuery.query, result);
         } catch (err) {
             throw createDBQueryError(
@@ -683,6 +694,38 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
                 compiledQuery.sql,
                 compiledQuery.parameters,
             );
+        }
+    }
+
+    private trackSlowQuery(compiledQuery: CompiledQuery, startTimestamp: number, startedAt: Date) {
+        const durationMs = performance.now() - startTimestamp;
+        const thresholdMs = this.options.diagnostics?.slowQueryThresholdMs;
+        if (thresholdMs === undefined || durationMs < thresholdMs) {
+            return;
+        }
+
+        const slowQueries = this.client.slowQueries;
+        const maxRecords = this.options.diagnostics?.slowQueryMaxRecords ?? DEFAULT_MAX_SLOW_RECORDS;
+        if (maxRecords <= 0) {
+            return;
+        }
+
+        const queryInfo = { startedAt, durationMs, sql: compiledQuery.sql };
+
+        if (slowQueries.length >= maxRecords) {
+            // find and remove the entry with the lowest duration
+            let minIndex = 0;
+            for (let i = 1; i < slowQueries.length; i++) {
+                if (slowQueries[i]!.durationMs < slowQueries[minIndex]!.durationMs) {
+                    minIndex = i;
+                }
+            }
+            // only replace if the new query is slower than the minimum
+            if (durationMs > slowQueries[minIndex]!.durationMs) {
+                slowQueries[minIndex] = queryInfo;
+            }
+        } else {
+            slowQueries.push(queryInfo);
         }
     }
 

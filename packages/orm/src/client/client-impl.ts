@@ -10,9 +10,11 @@ import {
     Transaction,
     type KyselyProps,
 } from 'kysely';
+import z from 'zod';
 import type { ProcedureDef, SchemaDef } from '../schema';
 import type { AnyKysely } from '../utils/kysely-utils';
 import type { UnwrapTuplePromises } from '../utils/type-utils';
+import { formatError } from '../utils/zod-utils';
 import type {
     AuthType,
     ClientConstructor,
@@ -31,6 +33,7 @@ import { FindOperationHandler } from './crud/operations/find';
 import { GroupByOperationHandler } from './crud/operations/group-by';
 import { UpdateOperationHandler } from './crud/operations/update';
 import { InputValidator } from './crud/validator';
+import type { Diagnostics, QueryInfo } from './diagnostics';
 import { createConfigError, createNotFoundError, createNotSupportedError } from './errors';
 import { ZenStackDriver } from './executor/zenstack-driver';
 import { ZenStackQueryExecutor } from './executor/zenstack-query-executor';
@@ -60,6 +63,7 @@ export class ClientImpl {
     readonly kyselyProps: KyselyProps;
     private auth: AuthType<SchemaDef> | undefined;
     inputValidator: InputValidator<SchemaDef>;
+    readonly slowQueries: QueryInfo[] = [];
 
     constructor(
         private readonly schema: SchemaDef,
@@ -75,10 +79,7 @@ export class ClientImpl {
             ...this.$options.functions,
         };
 
-        if (!baseClient && !options.skipValidationForComputedFields) {
-            // validate computed fields configuration once for the root client
-            this.validateComputedFieldsConfig();
-        }
+        this.validateOptions(baseClient, options);
 
         // here we use kysely's props constructor so we can pass a custom query executor
         if (baseClient) {
@@ -96,6 +97,7 @@ export class ClientImpl {
             };
             this.kyselyRaw = baseClient.kyselyRaw;
             this.auth = baseClient.auth;
+            this.slowQueries = baseClient.slowQueries;
         } else {
             const driver = new ZenStackDriver(options.dialect.createDriver(), new Log(this.$options.log ?? []));
             const compiler = options.dialect.createQueryCompiler();
@@ -127,37 +129,30 @@ export class ClientImpl {
         return createClientProxy(this);
     }
 
-    get $qb() {
-        return this.kysely;
-    }
+    private validateOptions(baseClient: ClientImpl | undefined, options: ClientOptions<SchemaDef>) {
+        if (!baseClient && !options.skipValidationForComputedFields) {
+            // validate computed fields configuration once for the root client
+            this.validateComputedFieldsConfig(options);
+        }
 
-    get $qbRaw() {
-        return this.kyselyRaw;
-    }
-
-    get $zod() {
-        return this.inputValidator.zodFactory;
-    }
-
-    get isTransaction() {
-        return this.kysely.isTransaction;
-    }
-
-    /**
-     * Create a new client with a new query executor.
-     */
-    withExecutor(executor: QueryExecutor) {
-        return new ClientImpl(this.schema, this.$options, this, executor);
+        if (options.diagnostics) {
+            const diagnosticsSchema = z.object({
+                slowQueryThresholdMs: z.number().nonnegative().optional(),
+                slowQueryMaxRecords: z.int().nonnegative().or(z.literal(Infinity)).optional(),
+            });
+            const parseResult = diagnosticsSchema.safeParse(options.diagnostics);
+            if (!parseResult.success) {
+                throw createConfigError(`Invalid diagnostics configuration: ${formatError(parseResult.error)}`);
+            }
+        }
     }
 
     /**
      * Validates that all computed fields in the schema have corresponding configurations.
      */
-    private validateComputedFieldsConfig() {
+    private validateComputedFieldsConfig(options: ClientOptions<SchemaDef>) {
         const computedFieldsConfig =
-            'computedFields' in this.$options
-                ? (this.$options.computedFields as Record<string, any> | undefined)
-                : undefined;
+            'computedFields' in options ? (options.computedFields as Record<string, any> | undefined) : undefined;
 
         for (const [modelName, modelDef] of Object.entries(this.$schema.models)) {
             if (modelDef.computedFields) {
@@ -181,6 +176,29 @@ export class ClientImpl {
                 }
             }
         }
+    }
+
+    get $qb() {
+        return this.kysely;
+    }
+
+    get $qbRaw() {
+        return this.kyselyRaw;
+    }
+
+    get $zod() {
+        return this.inputValidator.zodFactory;
+    }
+
+    get isTransaction() {
+        return this.kysely.isTransaction;
+    }
+
+    /**
+     * Create a new client with a new query executor.
+     */
+    withExecutor(executor: QueryExecutor) {
+        return new ClientImpl(this.schema, this.$options, this, executor);
     }
 
     // overload for interactive transaction
@@ -420,6 +438,13 @@ export class ClientImpl {
             validateInput: enable,
         };
         return this.$setOptions(newOptions);
+    }
+
+    async $diagnostics(): Promise<Diagnostics> {
+        return {
+            zodCache: this.inputValidator.zodFactory.cacheStats,
+            slowQueries: this.slowQueries.map((q) => ({ ...q })),
+        };
     }
 
     $executeRaw(query: TemplateStringsArray, ...values: any[]) {
