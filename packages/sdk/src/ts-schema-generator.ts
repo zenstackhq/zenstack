@@ -64,12 +64,16 @@ export type TsSchemaGeneratorOptions = {
 
 export class TsSchemaGenerator {
     private usedExpressionUtils = false;
+    private usedAttributeApplication = false;
+    private usedFieldDefault = false;
 
     async generate(model: Model, options: TsSchemaGeneratorOptions) {
         fs.mkdirSync(options.outDir, { recursive: true });
 
-        // Reset the flag for each generation
+        // Reset the flags for each generation
         this.usedExpressionUtils = false;
+        this.usedAttributeApplication = false;
+        this.usedFieldDefault = false;
 
         // the schema itself
         this.generateSchema(model, options);
@@ -130,6 +134,24 @@ export class TsSchemaGenerator {
                 undefined,
                 ts.factory.createNamedImports([
                     ts.factory.createImportSpecifier(true, undefined, ts.factory.createIdentifier('SchemaDef')),
+                    ...(this.usedAttributeApplication
+                        ? [
+                              ts.factory.createImportSpecifier(
+                                  true,
+                                  undefined,
+                                  ts.factory.createIdentifier('AttributeApplication'),
+                              ),
+                          ]
+                        : []),
+                    ...(this.usedFieldDefault
+                        ? [
+                              ts.factory.createImportSpecifier(
+                                  true,
+                                  undefined,
+                                  ts.factory.createIdentifier('FieldDefault'),
+                              ),
+                          ]
+                        : []),
                     ...(this.usedExpressionUtils
                         ? [
                               ts.factory.createImportSpecifier(
@@ -285,6 +307,22 @@ export class TsSchemaGenerator {
         return ts.factory.createAsExpression(expr, ts.factory.createTypeReferenceNode('const'));
     }
 
+    private createAttributesTypeAssertion(expr: ts.Expression): ts.Expression {
+        this.usedAttributeApplication = true;
+        return ts.factory.createAsExpression(
+            expr,
+            ts.factory.createTypeOperatorNode(
+                ts.SyntaxKind.ReadonlyKeyword,
+                ts.factory.createArrayTypeNode(ts.factory.createTypeReferenceNode('AttributeApplication')),
+            ),
+        );
+    }
+
+    private createDefaultTypeAssertion(expr: ts.Expression): ts.Expression {
+        this.usedFieldDefault = true;
+        return ts.factory.createAsExpression(expr, ts.factory.createTypeReferenceNode('FieldDefault'));
+    }
+
     private createProviderObject(model: Model): ts.Expression {
         const dsProvider = this.getDataSourceProvider(model);
         const defaultSchema = this.getDataSourceDefaultSchema(model);
@@ -374,9 +412,11 @@ export class TsSchemaGenerator {
                 ? [
                       ts.factory.createPropertyAssignment(
                           'attributes',
-                          ts.factory.createArrayLiteralExpression(
-                              allAttributes.map((attr) => this.createAttributeObject(attr)),
-                              true,
+                          this.createAttributesTypeAssertion(
+                              ts.factory.createArrayLiteralExpression(
+                                  allAttributes.map((attr) => this.createAttributeObject(attr)),
+                                  true,
+                              ),
                           ),
                       ),
                   ]
@@ -458,9 +498,11 @@ export class TsSchemaGenerator {
                 ? [
                       ts.factory.createPropertyAssignment(
                           'attributes',
-                          ts.factory.createArrayLiteralExpression(
-                              allAttributes.map((attr) => this.createAttributeObject(attr)),
-                              true,
+                          this.createAttributesTypeAssertion(
+                              ts.factory.createArrayLiteralExpression(
+                                  allAttributes.map((attr) => this.createAttributeObject(attr)),
+                                  true,
+                              ),
                           ),
                       ),
                   ]
@@ -608,8 +650,10 @@ export class TsSchemaGenerator {
             objectFields.push(
                 ts.factory.createPropertyAssignment(
                     'attributes',
-                    ts.factory.createArrayLiteralExpression(
-                        field.attributes.map((attr) => this.createAttributeObject(attr)),
+                    this.createAttributesTypeAssertion(
+                        ts.factory.createArrayLiteralExpression(
+                            field.attributes.map((attr) => this.createAttributeObject(attr)),
+                        ),
                     ),
                 ),
             );
@@ -617,62 +661,45 @@ export class TsSchemaGenerator {
 
         const defaultValue = this.getFieldMappedDefault(field);
         if (defaultValue !== undefined) {
+            let defaultExpr: ts.Expression;
             if (defaultValue === null) {
-                objectFields.push(
-                    ts.factory.createPropertyAssignment('default', this.createExpressionUtilsCall('_null')),
-                );
+                defaultExpr = this.createExpressionUtilsCall('_null');
             } else if (typeof defaultValue === 'object' && !Array.isArray(defaultValue)) {
                 if ('call' in defaultValue) {
-                    objectFields.push(
-                        ts.factory.createPropertyAssignment(
-                            'default',
-                            this.createExpressionUtilsCall('call', [
-                                ts.factory.createStringLiteral(defaultValue.call),
-                                ...(defaultValue.args.length > 0
-                                    ? [
-                                          ts.factory.createArrayLiteralExpression(
-                                              defaultValue.args.map((arg) =>
-                                                  this.createExpressionUtilsCall('literal', [
-                                                      this.createLiteralNode(arg),
-                                                  ]),
-                                              ),
-                                          ),
-                                      ]
-                                    : []),
-                            ]),
-                        ),
-                    );
+                    defaultExpr = this.createExpressionUtilsCall('call', [
+                        ts.factory.createStringLiteral(defaultValue.call),
+                        ...(defaultValue.args.length > 0
+                            ? [
+                                  ts.factory.createArrayLiteralExpression(
+                                      defaultValue.args.map((arg) =>
+                                          this.createExpressionUtilsCall('literal', [
+                                              this.createLiteralNode(arg),
+                                          ]),
+                                      ),
+                                  ),
+                              ]
+                            : []),
+                    ]);
                 } else if ('authMember' in defaultValue) {
-                    objectFields.push(
-                        ts.factory.createPropertyAssignment(
-                            'default',
-                            this.createExpressionUtilsCall('member', [
-                                this.createExpressionUtilsCall('call', [ts.factory.createStringLiteral('auth')]),
-                                ts.factory.createArrayLiteralExpression(
-                                    defaultValue.authMember.map((m) => ts.factory.createStringLiteral(m)),
-                                ),
-                            ]),
+                    defaultExpr = this.createExpressionUtilsCall('member', [
+                        this.createExpressionUtilsCall('call', [ts.factory.createStringLiteral('auth')]),
+                        ts.factory.createArrayLiteralExpression(
+                            defaultValue.authMember.map((m) => ts.factory.createStringLiteral(m)),
                         ),
-                    );
+                    ]);
                 } else {
                     throw new Error(`Unsupported default value type for field ${field.name}`);
                 }
+            } else if (Array.isArray(defaultValue)) {
+                defaultExpr = ts.factory.createArrayLiteralExpression(
+                    defaultValue.map((item) => this.createLiteralNode(item as any)),
+                );
             } else {
-                if (Array.isArray(defaultValue)) {
-                    objectFields.push(
-                        ts.factory.createPropertyAssignment(
-                            'default',
-                            ts.factory.createArrayLiteralExpression(
-                                defaultValue.map((item) => this.createLiteralNode(item as any)),
-                            ),
-                        ),
-                    );
-                } else {
-                    objectFields.push(
-                        ts.factory.createPropertyAssignment('default', this.createLiteralNode(defaultValue)),
-                    );
-                }
+                defaultExpr = this.createLiteralNode(defaultValue);
             }
+            objectFields.push(
+                ts.factory.createPropertyAssignment('default', this.createDefaultTypeAssertion(defaultExpr)),
+            );
         }
 
         if (hasAttribute(field, '@computed')) {
@@ -688,9 +715,17 @@ export class TsSchemaGenerator {
             objectFields.push(
                 ts.factory.createPropertyAssignment(
                     'foreignKeyFor',
-                    ts.factory.createArrayLiteralExpression(
-                        fkFor.map((fk) => ts.factory.createStringLiteral(fk)),
-                        true,
+                    ts.factory.createAsExpression(
+                        ts.factory.createArrayLiteralExpression(
+                            fkFor.map((fk) => ts.factory.createStringLiteral(fk)),
+                            true,
+                        ),
+                        ts.factory.createTypeOperatorNode(
+                            ts.SyntaxKind.ReadonlyKeyword,
+                            ts.factory.createArrayTypeNode(
+                                ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword),
+                            ),
+                        ),
                     ),
                 ),
             );
@@ -1070,11 +1105,13 @@ export class TsSchemaGenerator {
                                                       ? [
                                                             ts.factory.createPropertyAssignment(
                                                                 'attributes',
-                                                                ts.factory.createArrayLiteralExpression(
-                                                                    field.attributes?.map((attr) =>
-                                                                        this.createAttributeObject(attr),
-                                                                    ) ?? [],
-                                                                    true,
+                                                                this.createAttributesTypeAssertion(
+                                                                    ts.factory.createArrayLiteralExpression(
+                                                                        field.attributes?.map((attr) =>
+                                                                            this.createAttributeObject(attr),
+                                                                        ) ?? [],
+                                                                        true,
+                                                                    ),
                                                                 ),
                                                             ),
                                                         ]
@@ -1094,9 +1131,11 @@ export class TsSchemaGenerator {
                     ? [
                           ts.factory.createPropertyAssignment(
                               'attributes',
-                              ts.factory.createArrayLiteralExpression(
-                                  e.attributes.map((attr) => this.createAttributeObject(attr)),
-                                  true,
+                              this.createAttributesTypeAssertion(
+                                  ts.factory.createArrayLiteralExpression(
+                                      e.attributes.map((attr) => this.createAttributeObject(attr)),
+                                      true,
+                                  ),
                               ),
                           ),
                       ]

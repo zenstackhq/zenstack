@@ -5,7 +5,7 @@
 
 /* eslint-disable */
 
-import { type SchemaDef } from "@zenstackhq/schema";
+import { type SchemaDef, type AttributeApplication } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
     provider = {
         type: "sqlite"
@@ -18,7 +18,7 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "Int",
                     id: true,
-                    attributes: [{ name: "@id" }]
+                    attributes: [{ name: "@id" }] as readonly AttributeApplication[]
                 }
             },
             idFields: ["id"],
@@ -43,7 +43,7 @@ export class SchemaType implements SchemaDef {
                 id: {
                     name: "id",
                     type: "Int",
-                    attributes: [{ name: "@id" }]
+                    attributes: [{ name: "@id" }] as readonly AttributeApplication[]
                 },
                 name: {
                     name: "name",
@@ -61,7 +61,7 @@ export class SchemaType implements SchemaDef {
             },
             attributes: [
                 { name: "@@auth" }
-            ]
+            ] as readonly AttributeApplication[]
         }
     } as const;
     authType = "Auth" as const;
