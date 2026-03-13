@@ -18,6 +18,11 @@ export interface ZodCacheStats {
  */
 export interface QueryInfo {
     /**
+     * Time when the query started.
+     */
+    startedAt: Date;
+
+    /**
      * Duration of the query in milliseconds.
      */
     durationMs: number;

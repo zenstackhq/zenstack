@@ -51,6 +51,7 @@ describe('Client $diagnostics tests', () => {
                 const diagnostics = await client.$diagnostics();
                 expect(diagnostics.slowQueries.length).toBeGreaterThan(0);
                 for (const query of diagnostics.slowQueries) {
+                    expect(query.startedAt).toBeInstanceOf(Date);
                     expect(query.durationMs).toBeGreaterThanOrEqual(0);
                     expect(query.sql).toBeTruthy();
                 }
@@ -182,6 +183,7 @@ describe('Client $diagnostics tests', () => {
                 const diagnostics = await client.$diagnostics();
                 expect(diagnostics.slowQueries.length).toBeLessThanOrEqual(maxRecords);
                 for (const query of diagnostics.slowQueries) {
+                    expect(query.startedAt).toBeInstanceOf(Date);
                     expect(query.durationMs).toBeGreaterThanOrEqual(0);
                     expect(query.sql).toBeTruthy();
                 }

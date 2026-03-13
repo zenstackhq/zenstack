@@ -676,13 +676,14 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
         }
 
         const trackSlowQuery = this.options.diagnostics !== undefined;
-        const startTime = trackSlowQuery ? performance.now() : undefined;
+        const startTimestamp = trackSlowQuery ? performance.now() : undefined;
+        const startedAt = trackSlowQuery ? new Date() : undefined;
 
         try {
             const result = await connection.executeQuery<any>(compiledQuery);
 
-            if (startTime !== undefined) {
-                this.trackSlowQuery(compiledQuery, startTime);
+            if (startTimestamp !== undefined) {
+                this.trackSlowQuery(compiledQuery, startTimestamp, startedAt!);
             }
 
             return this.ensureProperQueryResult(compiledQuery.query, result);
@@ -696,8 +697,8 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
         }
     }
 
-    private trackSlowQuery(compiledQuery: CompiledQuery, startTime: number) {
-        const durationMs = performance.now() - startTime;
+    private trackSlowQuery(compiledQuery: CompiledQuery, startTimestamp: number, startedAt: Date) {
+        const durationMs = performance.now() - startTimestamp;
         const thresholdMs = this.options.diagnostics?.slowQueryThresholdMs;
         if (thresholdMs === undefined || durationMs < thresholdMs) {
             return;
@@ -709,6 +710,8 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
             return;
         }
 
+        const queryInfo = { startedAt, durationMs, sql: compiledQuery.sql };
+
         if (slowQueries.length >= maxRecords) {
             // find and remove the entry with the lowest duration
             let minIndex = 0;
@@ -719,10 +722,10 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
             }
             // only replace if the new query is slower than the minimum
             if (durationMs > slowQueries[minIndex]!.durationMs) {
-                slowQueries[minIndex] = { durationMs, sql: compiledQuery.sql };
+                slowQueries[minIndex] = queryInfo;
             }
         } else {
-            slowQueries.push({ durationMs, sql: compiledQuery.sql });
+            slowQueries.push(queryInfo);
         }
     }
 
