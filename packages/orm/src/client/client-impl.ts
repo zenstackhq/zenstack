@@ -135,7 +135,7 @@ export class ClientImpl {
 
         if (options.diagnostics) {
             const diagnosticsSchema = z.object({
-                slowQueryThresholdMs: z.int().nonnegative().optional(),
+                slowQueryThresholdMs: z.number().nonnegative().optional(),
                 slowQueryMaxRecords: z.int().nonnegative().optional(),
             });
             const parseResult = diagnosticsSchema.safeParse(options.diagnostics);
