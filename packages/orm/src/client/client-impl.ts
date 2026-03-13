@@ -440,11 +440,11 @@ export class ClientImpl {
         return this.$setOptions(newOptions);
     }
 
-    async $diagnostics(): Promise<Diagnostics> {
-        return {
+    get $diagnostics(): Promise<Diagnostics> {
+        return Promise.resolve({
             zodCache: this.inputValidator.zodFactory.cacheStats,
-            slowQueries: this.slowQueries.map((q) => ({ ...q })),
-        };
+            slowQueries: this.slowQueries.map((q) => ({ ...q })).sort((a, b) => b.durationMs - a.durationMs),
+        });
     }
 
     $executeRaw(query: TemplateStringsArray, ...values: any[]) {

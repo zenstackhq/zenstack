@@ -7,7 +7,7 @@ describe('Client $diagnostics tests', () => {
         it('returns zod cache stats', async () => {
             const client = await createTestClient(schema);
             try {
-                const diagnostics = await client.$diagnostics();
+                const diagnostics = await client.$diagnostics;
                 expect(diagnostics.zodCache).toEqual({ size: 0, keys: [] });
             } finally {
                 await client.$disconnect();
@@ -18,7 +18,7 @@ describe('Client $diagnostics tests', () => {
             const client = await createTestClient(schema);
             try {
                 await client.user.create({ data: { email: 'u1@test.com' } });
-                const diagnostics = await client.$diagnostics();
+                const diagnostics = await client.$diagnostics;
                 expect(diagnostics.zodCache.size).toBeGreaterThan(0);
                 expect(diagnostics.zodCache.keys.length).toBe(diagnostics.zodCache.size);
             } finally {
@@ -31,7 +31,7 @@ describe('Client $diagnostics tests', () => {
             try {
                 await client.user.create({ data: { email: 'u1@test.com' } });
                 await client.user.findMany();
-                const diagnostics = await client.$diagnostics();
+                const diagnostics = await client.$diagnostics;
                 expect(diagnostics.slowQueries).toEqual([]);
             } finally {
                 await client.$disconnect();
@@ -48,7 +48,7 @@ describe('Client $diagnostics tests', () => {
                 await client.user.create({ data: { email: 'u1@test.com' } });
                 await client.user.findMany();
 
-                const diagnostics = await client.$diagnostics();
+                const diagnostics = await client.$diagnostics;
                 expect(diagnostics.slowQueries.length).toBeGreaterThan(0);
                 for (const query of diagnostics.slowQueries) {
                     expect(query.startedAt).toBeInstanceOf(Date);
@@ -68,7 +68,7 @@ describe('Client $diagnostics tests', () => {
                 await client.user.create({ data: { email: 'u1@test.com' } });
                 await client.user.findMany();
 
-                const diagnostics = await client.$diagnostics();
+                const diagnostics = await client.$diagnostics;
                 expect(diagnostics.slowQueries).toEqual([]);
             } finally {
                 await client.$disconnect();
@@ -82,8 +82,8 @@ describe('Client $diagnostics tests', () => {
             try {
                 await client.user.create({ data: { email: 'u1@test.com' } });
 
-                const diagnostics1 = await client.$diagnostics();
-                const diagnostics2 = await client.$diagnostics();
+                const diagnostics1 = await client.$diagnostics;
+                const diagnostics2 = await client.$diagnostics;
                 expect(diagnostics1.slowQueries).not.toBe(diagnostics2.slowQueries);
                 expect(diagnostics1.slowQueries).toEqual(diagnostics2.slowQueries);
             } finally {
@@ -102,8 +102,8 @@ describe('Client $diagnostics tests', () => {
                 await derivedClient.user.findMany();
 
                 // both clients should see the same slow queries
-                const parentDiag = await client.$diagnostics();
-                const derivedDiag = await derivedClient.$diagnostics();
+                const parentDiag = await client.$diagnostics;
+                const derivedDiag = await derivedClient.$diagnostics;
                 expect(parentDiag.slowQueries).toEqual(derivedDiag.slowQueries);
             } finally {
                 await client.$disconnect();
@@ -119,7 +119,7 @@ describe('Client $diagnostics tests', () => {
                     await tx.user.create({ data: { email: 'u1@test.com' } });
                 });
 
-                const diagnostics = await client.$diagnostics();
+                const diagnostics = await client.$diagnostics;
                 expect(diagnostics.slowQueries.length).toBeGreaterThan(0);
             } finally {
                 await client.$disconnect();
@@ -141,7 +141,7 @@ describe('Client $diagnostics tests', () => {
                     await client.user.create({ data: { email: `u${i}@test.com` } });
                 }
 
-                const diagnostics = await client.$diagnostics();
+                const diagnostics = await client.$diagnostics;
                 expect(diagnostics.slowQueries.length).toBeLessThanOrEqual(maxRecords);
             } finally {
                 await client.$disconnect();
@@ -160,7 +160,7 @@ describe('Client $diagnostics tests', () => {
                     await client.user.create({ data: { email: `u${i}@test.com` } });
                 }
 
-                const diagnostics = await client.$diagnostics();
+                const diagnostics = await client.$diagnostics;
                 expect(diagnostics.slowQueries.length).toBeGreaterThanOrEqual(5);
             } finally {
                 await client.$disconnect();
@@ -180,7 +180,7 @@ describe('Client $diagnostics tests', () => {
                     await client.user.create({ data: { email: `u${i}@test.com` } });
                 }
 
-                const diagnostics = await client.$diagnostics();
+                const diagnostics = await client.$diagnostics;
                 expect(diagnostics.slowQueries.length).toBeLessThanOrEqual(maxRecords);
                 for (const query of diagnostics.slowQueries) {
                     expect(query.startedAt).toBeInstanceOf(Date);
