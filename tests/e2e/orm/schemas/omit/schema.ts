@@ -5,7 +5,7 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, ExpressionUtils } from "@zenstackhq/schema";
+import { type SchemaDef, type AttributeApplication, ExpressionUtils } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
     provider = {
         type: "sqlite"
@@ -18,7 +18,7 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "Int",
                     id: true,
-                    attributes: [{ name: "@id" }]
+                    attributes: [{ name: "@id" }] as readonly AttributeApplication[]
                 },
                 name: {
                     name: "name",
@@ -28,7 +28,7 @@ export class SchemaType implements SchemaDef {
                     name: "password",
                     type: "String",
                     omit: true,
-                    attributes: [{ name: "@omit" }]
+                    attributes: [{ name: "@omit" }] as readonly AttributeApplication[]
                 },
                 posts: {
                     name: "posts",
@@ -49,7 +49,7 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "Int",
                     id: true,
-                    attributes: [{ name: "@id" }]
+                    attributes: [{ name: "@id" }] as readonly AttributeApplication[]
                 },
                 title: {
                     name: "title",
@@ -58,7 +58,7 @@ export class SchemaType implements SchemaDef {
                 author: {
                     name: "author",
                     type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("authorId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("authorId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
                     relation: { opposite: "posts", fields: ["authorId"], references: ["id"], onDelete: "Cascade" }
                 },
                 authorId: {
@@ -66,7 +66,7 @@ export class SchemaType implements SchemaDef {
                     type: "Int",
                     foreignKeyFor: [
                         "author"
-                    ]
+                    ] as readonly string[]
                 }
             },
             idFields: ["id"],
@@ -81,7 +81,7 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "Int",
                     id: true,
-                    attributes: [{ name: "@id" }]
+                    attributes: [{ name: "@id" }] as readonly AttributeApplication[]
                 },
                 type: {
                     name: "type",
@@ -91,7 +91,7 @@ export class SchemaType implements SchemaDef {
             },
             attributes: [
                 { name: "@@delegate", args: [{ name: "discriminator", value: ExpressionUtils.field("type") }] }
-            ],
+            ] as readonly AttributeApplication[],
             idFields: ["id"],
             uniqueFields: {
                 id: { type: "Int" }
@@ -107,7 +107,7 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "Int",
                     id: true,
-                    attributes: [{ name: "@id" }]
+                    attributes: [{ name: "@id" }] as readonly AttributeApplication[]
                 },
                 type: {
                     name: "type",
@@ -123,7 +123,7 @@ export class SchemaType implements SchemaDef {
                     name: "content",
                     type: "String",
                     omit: true,
-                    attributes: [{ name: "@omit" }]
+                    attributes: [{ name: "@omit" }] as readonly AttributeApplication[]
                 }
             },
             idFields: ["id"],

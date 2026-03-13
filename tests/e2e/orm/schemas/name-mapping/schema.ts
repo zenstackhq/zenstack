@@ -5,7 +5,7 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, ExpressionUtils } from "@zenstackhq/schema";
+import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
     provider = {
         type: "sqlite"
@@ -18,20 +18,20 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "Int",
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_id") }] }],
-                    default: ExpressionUtils.call("autoincrement")
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_id") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("autoincrement") as FieldDefault
                 },
                 email: {
                     name: "email",
                     type: "String",
                     unique: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_email") }] }, { name: "@unique" }]
+                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_email") }] }, { name: "@unique" }] as readonly AttributeApplication[]
                 },
                 role: {
                     name: "role",
                     type: "Role",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("USER") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_role") }] }],
-                    default: "USER"
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("USER") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_role") }] }] as readonly AttributeApplication[],
+                    default: "USER" as FieldDefault
                 },
                 posts: {
                     name: "posts",
@@ -42,7 +42,7 @@ export class SchemaType implements SchemaDef {
             },
             attributes: [
                 { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("users") }] }
-            ],
+            ] as readonly AttributeApplication[],
             idFields: ["id"],
             uniqueFields: {
                 id: { type: "Int" },
@@ -56,32 +56,32 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "Int",
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("post_id") }] }],
-                    default: ExpressionUtils.call("autoincrement")
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("post_id") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("autoincrement") as FieldDefault
                 },
                 title: {
                     name: "title",
                     type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("post_title") }] }]
+                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("post_title") }] }] as readonly AttributeApplication[]
                 },
                 author: {
                     name: "author",
                     type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("authorId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("authorId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
                     relation: { opposite: "posts", fields: ["authorId"], references: ["id"] }
                 },
                 authorId: {
                     name: "authorId",
                     type: "Int",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("author_id") }] }],
+                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("author_id") }] }] as readonly AttributeApplication[],
                     foreignKeyFor: [
                         "author"
-                    ]
+                    ] as readonly string[]
                 }
             },
             attributes: [
                 { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("posts") }] }
-            ],
+            ] as readonly AttributeApplication[],
             idFields: ["id"],
             uniqueFields: {
                 id: { type: "Int" }
@@ -101,13 +101,13 @@ export class SchemaType implements SchemaDef {
                     name: "USER",
                     attributes: [
                         { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("role_user") }] }
-                    ]
+                    ] as readonly AttributeApplication[]
                 },
                 ADMIN: {
                     name: "ADMIN",
                     attributes: [
                         { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("role_admin") }] }
-                    ]
+                    ] as readonly AttributeApplication[]
                 },
                 MODERATOR: {
                     name: "MODERATOR"
@@ -115,7 +115,7 @@ export class SchemaType implements SchemaDef {
             },
             attributes: [
                 { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("user_role") }] }
-            ]
+            ] as readonly AttributeApplication[]
         }
     } as const;
     authType = "User" as const;
