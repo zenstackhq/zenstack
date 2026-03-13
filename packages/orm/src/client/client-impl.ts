@@ -433,7 +433,7 @@ export class ClientImpl {
     async $diagnostics(): Promise<Diagnostics> {
         return {
             zodCache: this.inputValidator.zodFactory.cacheStats,
-            slowQueries: [...this.slowQueries],
+            slowQueries: this.slowQueries.map((q) => ({ ...q })),
         };
     }
 
