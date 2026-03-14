@@ -9,7 +9,6 @@ import {
     type SqlBool,
 } from 'kysely';
 import { parse as parsePostgresArray } from 'postgres-array';
-import { match } from 'ts-pattern';
 import { AnyNullClass, DbNullClass, JsonNullClass } from '../../../common-types';
 import type { BuiltinType, FieldDef, SchemaDef } from '../../../schema';
 import type { SortOrder } from '../../crud-types';
@@ -20,6 +19,18 @@ import { LateralJoinDialectBase } from './lateral-join-dialect-base';
 
 export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDialectBase<Schema> {
     private static typeParserOverrideApplied = false;
+
+    private readonly zmodelToSqlTypeMap: Record<string, string> = {
+        String: 'text',
+        Boolean: 'boolean',
+        Int: 'integer',
+        BigInt: 'bigint',
+        Float: 'double precision',
+        Decimal: 'decimal',
+        DateTime: 'timestamp',
+        Bytes: 'bytea',
+        Json: 'jsonb',
+    };
 
     constructor(schema: Schema, options: ClientOptions<Schema>) {
         super(schema, options);
@@ -144,16 +155,16 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
                 return value.map((v) => this.transformInput(v, type, false));
             }
         } else {
-            return match(type)
-                .with('DateTime', () =>
-                    value instanceof Date
+            switch (type) {
+                case 'DateTime':
+                    return value instanceof Date
                         ? value.toISOString()
                         : typeof value === 'string'
                           ? new Date(value).toISOString()
-                          : value,
-                )
-                .with('Decimal', () => (value !== null ? value.toString() : value))
-                .with('Json', () => {
+                          : value;
+                case 'Decimal':
+                    return value !== null ? value.toString() : value;
+                case 'Json':
                     if (
                         value === null ||
                         typeof value === 'string' ||
@@ -165,8 +176,9 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
                     } else {
                         return value;
                     }
-                })
-                .otherwise(() => value);
+                default:
+                    return value;
+            }
         }
     }
 
@@ -174,16 +186,23 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         if (value === null || value === undefined) {
             return value;
         }
-        return match(type)
-            .with('DateTime', () => this.transformOutputDate(value))
-            .with('Bytes', () => this.transformOutputBytes(value))
-            .with('BigInt', () => this.transformOutputBigInt(value))
-            .with('Decimal', () => this.transformDecimal(value))
-            .when(
-                (type) => isEnum(this.schema, type),
-                () => this.transformOutputEnum(value, array),
-            )
-            .otherwise(() => super.transformOutput(value, type, array));
+
+        switch (type) {
+            case 'DateTime':
+                return this.transformOutputDate(value);
+            case 'Bytes':
+                return this.transformOutputBytes(value);
+            case 'BigInt':
+                return this.transformOutputBigInt(value);
+            case 'Decimal':
+                return this.transformDecimal(value);
+            default:
+                if (isEnum(this.schema, type)) {
+                    return this.transformOutputEnum(value, array);
+                } else {
+                    return super.transformOutput(value, type, array);
+                }
+        }
     }
 
     private transformOutputBigInt(value: unknown) {
@@ -339,26 +358,24 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         operation: 'array_contains' | 'array_starts_with' | 'array_ends_with',
         value: unknown,
     ) {
-        return match(operation)
-            .with('array_contains', () => {
+        switch (operation) {
+            case 'array_contains': {
                 const v = Array.isArray(value) ? value : [value];
                 return sql<SqlBool>`${lhs} @> ${sql.val(JSON.stringify(v))}::jsonb`;
-            })
-            .with('array_starts_with', () =>
-                this.eb(
+            }
+            case 'array_starts_with':
+                return this.eb(
                     this.eb.fn('jsonb_extract_path', [lhs, this.eb.val('0')]),
                     '=',
                     this.transformInput(value, 'Json', false),
-                ),
-            )
-            .with('array_ends_with', () =>
-                this.eb(
+                );
+            case 'array_ends_with':
+                return this.eb(
                     this.eb.fn('jsonb_extract_path', [lhs, sql`(jsonb_array_length(${lhs}) - 1)::text`]),
                     '=',
                     this.transformInput(value, 'Json', false),
-                ),
-            )
-            .exhaustive();
+                );
+        }
     }
 
     protected override buildJsonArrayExistsPredicate(
@@ -378,20 +395,7 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
             // reduce enum to text for type compatibility
             return 'text';
         } else {
-            return (
-                match(zmodelType)
-                    .with('String', () => 'text')
-                    .with('Boolean', () => 'boolean')
-                    .with('Int', () => 'integer')
-                    .with('BigInt', () => 'bigint')
-                    .with('Float', () => 'double precision')
-                    .with('Decimal', () => 'decimal')
-                    .with('DateTime', () => 'timestamp')
-                    .with('Bytes', () => 'bytea')
-                    .with('Json', () => 'jsonb')
-                    // fallback to text
-                    .otherwise(() => 'text')
-            );
+            return this.zmodelToSqlTypeMap[zmodelType] ?? 'text';
         }
     }
 
