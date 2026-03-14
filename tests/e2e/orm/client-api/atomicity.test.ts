@@ -66,10 +66,7 @@ describe('Atomicity tests', () => {
                         data: {
                             email: 'u1@test.com', // duplicate email — will fail
                             posts: {
-                                create: [
-                                    { title: 'Post2' },
-                                    { title: 'Post3' },
-                                ],
+                                create: [{ title: 'Post2' }, { title: 'Post3' }],
                             },
                             profile: {
                                 create: { bio: 'bio' },
@@ -230,9 +227,7 @@ describe('Atomicity tests', () => {
                             rating: 3,
                         },
                     }),
-                ).rejects.toSatisfy((e: any) =>
-                    e.cause.message.toLowerCase().match(/(constraint)|(duplicate)/i),
-                );
+                ).rejects.toSatisfy((e: any) => e.cause.message.toLowerCase().match(/(constraint)|(duplicate)/i));
 
                 // All levels should have exactly 1 record (the first one)
                 await expect(client.ratedVideo.findMany()).toResolveWithLength(1);
@@ -432,6 +427,46 @@ describe('Atomicity tests', () => {
                 await expect(client.ratedVideo.findMany()).toResolveWithLength(0);
                 await expect(client.image.findMany()).toResolveWithLength(0);
                 await expect(client.comment.findMany()).toResolveWithLength(0);
+            });
+
+            it('deleteMany cleans up delegate base hierarchy for related models', async () => {
+                // This exercises the needsNestedDelete fix: User is NOT a delegate model,
+                // but it has relations to delegate sub-models (Asset) with cascade delete.
+                // deleteMany only uses needsNestedDelete (not needReadBack) to decide
+                // whether to wrap in a transaction, so this is the purest test of the fix.
+                await client.user.create({
+                    data: { id: 1, email: 'u1@example.com' },
+                });
+                await client.user.create({
+                    data: { id: 2, email: 'u2@example.com' },
+                });
+                await client.ratedVideo.create({
+                    data: {
+                        id: 1,
+                        duration: 100,
+                        url: 'abc',
+                        rating: 5,
+                        owner: { connect: { id: 1 } },
+                    },
+                });
+                await client.image.create({
+                    data: {
+                        id: 2,
+                        format: 'png',
+                        owner: { connect: { id: 2 } },
+                    },
+                });
+
+                // deleteMany users — processDelegateRelationDelete should clean up
+                // the full base hierarchy (Asset ← Video ← RatedVideo, Asset ← Image)
+                const result = await client.user.deleteMany({});
+                expect(result.count).toBe(2);
+
+                await expect(client.user.findMany()).toResolveWithLength(0);
+                await expect(client.asset.findMany()).toResolveWithLength(0);
+                await expect(client.video.findMany()).toResolveWithLength(0);
+                await expect(client.ratedVideo.findMany()).toResolveWithLength(0);
+                await expect(client.image.findMany()).toResolveWithLength(0);
             });
         });
     });

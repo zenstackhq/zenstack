@@ -64,6 +64,22 @@ export class DeleteOperationHandler<Schema extends SchemaDef> extends BaseOperat
 
     private needsNestedDelete() {
         const modelDef = this.requireModel(this.model);
-        return !!modelDef.baseModel;
+        if (modelDef.baseModel) {
+            return true;
+        }
+
+        // Check if any relation points to a delegate sub-model with cascade delete,
+        // which would trigger processDelegateRelationDelete in BaseOperationHandler.delete()
+        for (const fieldDef of Object.values(modelDef.fields)) {
+            if (fieldDef.relation?.opposite) {
+                const oppositeModelDef = this.requireModel(fieldDef.type);
+                const oppositeRelation = this.requireField(fieldDef.type, fieldDef.relation.opposite);
+                if (oppositeModelDef.baseModel && oppositeRelation.relation?.onDelete === 'Cascade') {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

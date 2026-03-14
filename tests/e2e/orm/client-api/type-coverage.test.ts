@@ -113,6 +113,7 @@ describe('Zmodel type coverage tests', () => {
                 Json Json[]
             }
             `,
+                { provider: 'postgresql' },
             );
 
             await db.foo.create({ data });

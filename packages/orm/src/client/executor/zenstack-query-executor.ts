@@ -141,8 +141,8 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
 
         // needs to ensure transaction if we:
         // - have plugins with Kysely hooks, as they may spawn more queries (check: should creating tx be plugin's responsibility?)
-        // - have entity mutation plugins that consume post-mutation entities
-        const needEnsureTx = this.hasOnKyselyHooks || this.hasEntityMutationPluginsWithAfterMutationHooks;
+        // - have entity mutation plugins
+        const needEnsureTx = this.hasOnKyselyHooks || this.hasEntityMutationPlugins;
 
         const result = await this.provideConnection(async (connection) => {
             let startedTx = false;
