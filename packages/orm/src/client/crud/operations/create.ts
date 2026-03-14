@@ -29,7 +29,6 @@ export class CreateOperationHandler<Schema extends SchemaDef> extends BaseOperat
         // analyze if the create involves nested creates
         const needsNestedCreate = this.needsNestedCreate(args.data);
 
-        // TODO: avoid using transaction for simple create
         const result = await this.safeTransactionIf(needReadBack || needsNestedCreate, async (tx) => {
             const createResult = await this.create(tx, this.model, args.data, undefined, false, selectedFields);
 
