@@ -307,7 +307,18 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
                     () => new ExpressionWrapper(beforeUpdateTable!).as('$before'),
                     (join) => {
                         const idFields = QueryUtils.requireIdFields(this.client.$schema, model);
-                        return idFields.reduce((acc, f) => acc.onRef(`${model}.${f}`, '=', `$before.${f}`), join);
+                        const eb = expressionBuilder<any, any>();
+                        return idFields.reduce(
+                            (acc, f) =>
+                                acc.on(() =>
+                                    eb(
+                                        this.dialect.fieldRef(model, f, model, false),
+                                        '=',
+                                        this.dialect.fieldRef(model, f, '$before', false),
+                                    ),
+                                ),
+                            join,
+                        );
                     },
                 ),
             );

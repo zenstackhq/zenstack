@@ -297,7 +297,11 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
     override buildArrayValue(values: Expression<unknown>[], elemType: string): AliasableExpression<unknown> {
         const arr = sql`ARRAY[${sql.join(values, sql.raw(','))}]`;
         const mappedType = this.getSqlType(elemType);
-        return this.eb.cast(arr, sql`${sql.raw(mappedType)}[]`);
+        if (mappedType) {
+            return this.eb.cast(arr, sql`${sql.raw(mappedType)}[]`);
+        } else {
+            return arr;
+        }
     }
 
     override buildArrayContains(
@@ -309,7 +313,7 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         const arrayExpr = sql`ARRAY[${value}]`;
         if (elemType) {
             const mappedType = this.getSqlType(elemType);
-            const typedArray = this.eb.cast(arrayExpr, sql`${sql.raw(mappedType)}[]`);
+            const typedArray = mappedType ? this.eb.cast(arrayExpr, sql`${sql.raw(mappedType)}[]`) : arrayExpr;
             return this.eb(field, '@>', typedArray);
         } else {
             return this.eb(field, '@>', arrayExpr);
@@ -373,25 +377,22 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         );
     }
 
-    private getSqlType(zmodelType: string) {
+    protected override getSqlType(zmodelType: string) {
         if (isEnum(this.schema, zmodelType)) {
             // reduce enum to text for type compatibility
             return 'text';
         } else {
-            return (
-                match(zmodelType)
-                    .with('String', () => 'text')
-                    .with('Boolean', () => 'boolean')
-                    .with('Int', () => 'integer')
-                    .with('BigInt', () => 'bigint')
-                    .with('Float', () => 'double precision')
-                    .with('Decimal', () => 'decimal')
-                    .with('DateTime', () => 'timestamp')
-                    .with('Bytes', () => 'bytea')
-                    .with('Json', () => 'jsonb')
-                    // fallback to text
-                    .otherwise(() => 'text')
-            );
+            return match(zmodelType)
+                .with('String', () => 'text')
+                .with('Boolean', () => 'boolean')
+                .with('Int', () => 'integer')
+                .with('BigInt', () => 'bigint')
+                .with('Float', () => 'double precision')
+                .with('Decimal', () => 'decimal(65,30)')
+                .with('DateTime', () => 'timestamp(3)')
+                .with('Bytes', () => 'bytea')
+                .with('Json', () => 'jsonb')
+                .otherwise(() => undefined);
         }
     }
 
@@ -430,8 +431,12 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
             .select(
                 fields.map((f, i) => {
                     const mappedType = this.getSqlType(f.type);
-                    const castType = f.array ? sql`${sql.raw(mappedType)}[]` : sql.raw(mappedType);
-                    return this.eb.cast(sql.ref(`$values.column${i + 1}`), castType).as(f.name);
+                    if (mappedType) {
+                        const castType = f.array ? sql`${sql.raw(mappedType)}[]` : sql.raw(mappedType);
+                        return this.eb.cast(sql.ref(`$values.column${i + 1}`), castType).as(f.name);
+                    } else {
+                        return sql.ref(`$values.column${i + 1}`).as(f.name);
+                    }
                 }),
             );
     }

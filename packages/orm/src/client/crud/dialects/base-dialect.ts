@@ -84,6 +84,22 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
     // #endregion
 
+    // #region type mapping
+
+    /**
+     * Maps a ZModel type to the corresponding SQL type for this dialect.
+     */
+    protected abstract getSqlType(zmodelType: string): string | undefined;
+
+    /**
+     * Checks if a field has a native database type attribute (e.g., `@db.Uuid`).
+     */
+    protected hasNativeTypeAttribute(fieldDef: FieldDef): boolean {
+        return !!fieldDef.attributes?.some((a) => a.name.startsWith('@db.'));
+    }
+
+    // #endregion
+
     // #region value transformation
 
     /**
@@ -1144,7 +1160,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         const descendants = getDelegateDescendantModels(this.schema, model);
         for (const subModel of descendants) {
             result = this.buildDelegateJoin(model, modelAlias, subModel.name, result);
-            result = result.select((eb) => {
+            result = result.select(() => {
                 const jsonObject: Record<string, Expression<any>> = {};
                 for (const field of Object.keys(subModel.fields)) {
                     if (
@@ -1153,7 +1169,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                     ) {
                         continue;
                     }
-                    jsonObject[field] = eb.ref(`${subModel.name}.${field}`);
+                    jsonObject[field] = this.fieldRef(subModel.name, field, subModel.name);
                 }
                 return this.buildJsonObject(jsonObject).as(`${DELEGATE_JOINED_FIELD_PREFIX}${subModel.name}`);
             });
@@ -1354,7 +1370,19 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
         if (!fieldDef.computed) {
             // regular field
-            return this.eb.ref(modelAlias ? `${modelAlias}.${field}` : field);
+            const ref = modelAlias ? `${modelAlias}.${field}` : field;
+
+            // if the field has a native database type annotation (e.g., @db.Uuid), cast it
+            // back to the base SQL type to avoid type mismatch in comparisons
+            if (this.hasNativeTypeAttribute(fieldDef)) {
+                const sqlType = this.getSqlType(fieldDef.type);
+                if (sqlType) {
+                    const castType = fieldDef.array ? sql`${sql.raw(sqlType)}[]` : sql.raw(sqlType);
+                    return sql`CAST(${sql.ref(ref)} AS ${castType})`;
+                }
+            }
+
+            return this.eb.ref(ref);
         } else {
             // computed field
             if (!inlineComputedField) {

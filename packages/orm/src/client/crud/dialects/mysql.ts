@@ -16,7 +16,7 @@ import type { BuiltinType, FieldDef, SchemaDef } from '../../../schema';
 import type { SortOrder } from '../../crud-types';
 import { createInvalidInputError, createNotSupportedError } from '../../errors';
 import type { ClientOptions } from '../../options';
-import { isTypeDef } from '../../query-utils';
+import { isEnum, isTypeDef } from '../../query-utils';
 import { LateralJoinDialectBase } from './lateral-join-dialect-base';
 
 export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDialectBase<Schema> {
@@ -316,6 +316,23 @@ export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDiale
                 .select(this.eb.lit(1).as('_'))
                 .where(buildFilter(this.eb.ref('$items.value'))),
         );
+    }
+
+    protected override getSqlType(zmodelType: string) {
+        if (isEnum(this.schema, zmodelType)) {
+            return 'varchar(191)';
+        }
+        return match(zmodelType)
+            .with('String', () => 'char')
+            .with('Boolean', () => 'unsigned')
+            .with('Int', () => 'signed')
+            .with('BigInt', () => 'signed')
+            .with('Float', () => 'double')
+            .with('Decimal', () => 'decimal(65,30)')
+            .with('DateTime', () => 'datetime(3)')
+            .with('Bytes', () => 'binary')
+            .with('Json', () => 'json')
+            .otherwise(() => undefined);
     }
 
     override getStringCasingBehavior() {
