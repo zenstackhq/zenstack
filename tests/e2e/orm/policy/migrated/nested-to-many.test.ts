@@ -673,29 +673,9 @@ describe('Policy tests to-many', () => {
             },
         });
 
-        await expect(
-            db.m1.update({
-                where: { id: '1' },
-                include: { m3: true },
-                data: {
-                    m3: {
-                        update: {
-                            value: 1,
-                        },
-                    },
-                },
-            }),
-        ).toBeRejectedNotFound();
-
-        // make m3 readable
-        await db.$unuseAll().m3.update({
-            where: { id: 'm3' },
-            data: { value: 2 },
-        });
-
         const r1 = await db.m1.update({
             where: { id: '1' },
-            include: { m3: true, m2: true },
+            include: { m2: true, m3: true },
             data: {
                 m3: {
                     update: {
@@ -704,7 +684,7 @@ describe('Policy tests to-many', () => {
                 },
             },
         });
-        // m3 is ok now
+
         expect(r1.m3.value).toBe(3);
         // m2 got filtered
         expect(r1.m2).toHaveLength(0);

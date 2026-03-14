@@ -81,10 +81,6 @@ describe('Zmodel type coverage tests', () => {
     });
 
     it('supports all types - array', async () => {
-        if (getTestDbProvider() !== 'postgresql') {
-            return;
-        }
-
         const date = new Date();
         const data = {
             id: '1',

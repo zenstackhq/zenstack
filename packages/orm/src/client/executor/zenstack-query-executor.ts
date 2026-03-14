@@ -126,6 +126,10 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
         return (this.client.$options.plugins ?? []).some((plugin) => plugin.onEntityMutation?.afterEntityMutation);
     }
 
+    private get hasOnKyselyHooks() {
+        return (this.client.$options.plugins ?? []).some((plugin) => plugin.onKyselyQuery);
+    }
+
     // #endregion
 
     // #region main entry point
@@ -135,11 +139,20 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
         // if the query is a raw query, we need to carry over the parameters
         const queryParams = (compiledQuery as any).$raw ? compiledQuery.parameters : undefined;
 
+        // needs to ensure transaction if we:
+        // - have plugins with Kysely hooks, as they may spawn more queries (check: should creating tx be plugin's responsibility?)
+        // - have entity mutation plugins that consume post-mutation entities
+        const needEnsureTx = this.hasOnKyselyHooks || this.hasEntityMutationPluginsWithAfterMutationHooks;
+
         const result = await this.provideConnection(async (connection) => {
             let startedTx = false;
             try {
                 // mutations are wrapped in tx if not already in one
-                if (this.isMutationNode(compiledQuery.query) && !this.driver.isTransactionConnection(connection)) {
+                if (
+                    this.isMutationNode(compiledQuery.query) &&
+                    !this.driver.isTransactionConnection(connection) &&
+                    needEnsureTx
+                ) {
                     await this.driver.beginTransaction(connection, {
                         isolationLevel: TransactionIsolationLevel.ReadCommitted,
                     });

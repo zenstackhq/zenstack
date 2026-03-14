@@ -1132,6 +1132,13 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         return formatExpr.value.replace(/(?<!\\)%s/g, generated).replace(/\\%s/g, '%s');
     }
 
+    /**
+     * @returns
+     * - throw if `throwIfNotFound` is true and the entity to update is not found
+     * - otherwise, null if the entity to update is not found
+     * - if found and `fieldsToReturn` is specified, return the post-update fields
+     * - if found and `fieldsToReturn` is not specified, return true (indicating success)
+     */
     protected async update(
         kysely: AnyKysely,
         model: string,
@@ -1148,10 +1155,11 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
 
         const parentWhere = await this.buildUpdateParentRelationFilter(kysely, fromRelation);
 
-        let combinedWhere: WhereInput<Schema, GetModels<Schema>, any, false> = where ?? {};
+        let combinedWhere: Record<string, unknown> = where ?? {};
         if (Object.keys(parentWhere).length > 0) {
             combinedWhere = Object.keys(combinedWhere).length > 0 ? { AND: [parentWhere, combinedWhere] } : parentWhere;
         }
+        const origWhere = combinedWhere;
 
         const modelDef = this.requireModel(model);
         let finalData = data;
@@ -1177,46 +1185,36 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             }
         }
 
-        // read pre-update entity with ids so that the caller can use it to identify
-        // the entity being updated, the read data is used as return value if no update
-        // is made to the entity
-        const thisEntity = await this.getEntityIds(kysely, model, combinedWhere);
-        if (!thisEntity) {
-            if (throwIfNotFound) {
-                throw createNotFoundError(model);
-            } else {
-                return null;
+        // lazily load the entity to be updated
+        let thisEntity: any;
+        const loadThisEntity = async () => {
+            if (thisEntity === undefined) {
+                thisEntity = (await this.getEntityIds(kysely, model, origWhere)) ?? null;
+                if (!thisEntity && throwIfNotFound) {
+                    throw createNotFoundError(model);
+                }
             }
-        }
+            return thisEntity;
+        };
 
         if (Object.keys(finalData).length === 0) {
-            return thisEntity;
+            return loadThisEntity();
         }
 
-        let needIdRead = false;
-        if (!this.isIdFilter(model, combinedWhere)) {
-            if (modelDef.baseModel) {
-                // when updating a model with delegate base, base fields may be referenced in the filter,
-                // so we read the id out if the filter is not ready an id filter, and and use it as the
-                // update filter instead
-                needIdRead = true;
+        if (
+            // when updating a model with delegate base, base fields may be referenced in the filter,
+            // so we read the id out if the filter and and use it as the update filter instead
+            modelDef.baseModel ||
+            // for dialects that don't support RETURNING, we need to read the id fields
+            // to identify the updated entity for toplevel updates
+            (!this.dialect.supportsReturning && !fromRelation)
+        ) {
+            // update the filter to db-loaded id fields
+            combinedWhere = await loadThisEntity();
+            if (!combinedWhere) {
+                // not found
+                return null;
             }
-            if (!this.dialect.supportsReturning) {
-                // for dialects that don't support RETURNING, we need to read the id fields
-                // to identify the updated entity
-                needIdRead = true;
-            }
-        }
-
-        if (needIdRead) {
-            const readResult = await this.readUnique(kysely, model, {
-                where: combinedWhere,
-                select: this.makeIdSelect(model),
-            });
-            if (!readResult && throwIfNotFound) {
-                throw createNotFoundError(model);
-            }
-            combinedWhere = readResult;
         }
 
         if (modelDef.baseModel) {
@@ -1227,20 +1225,32 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                 finalData,
                 throwIfNotFound,
             );
+
+            if (!baseUpdateResult.baseEntity) {
+                // base entity not found
+                if (throwIfNotFound) {
+                    throw createNotFoundError(model);
+                } else {
+                    return null;
+                }
+            }
+
             // only fields not consumed by base update will be used for this model
             finalData = baseUpdateResult.remainingFields;
             // make sure to include only the id fields from the base entity in the final filter
-            combinedWhere = baseUpdateResult.baseEntity
-                ? getIdValues(this.schema, modelDef.baseModel!, baseUpdateResult.baseEntity)
-                : baseUpdateResult.baseEntity;
+            combinedWhere = getIdValues(this.schema, modelDef.baseModel!, baseUpdateResult.baseEntity);
 
             // update this entity with fields in updated base
-            if (baseUpdateResult.baseEntity) {
+            await loadThisEntity();
+            if (thisEntity) {
                 for (const [key, value] of Object.entries(baseUpdateResult.baseEntity)) {
                     if (key in thisEntity) {
                         thisEntity[key] = value;
                     }
                 }
+            } else {
+                // base entity not found
+                return null;
             }
         }
 
@@ -1254,12 +1264,20 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                 if (!allowRelationUpdate) {
                     throw createNotSupportedError(`Relation update not allowed for field "${field}"`);
                 }
+
+                // load this entity for passing on to relation updates as parent
+                const relationParent = await loadThisEntity();
+                if (!relationParent) {
+                    // not found
+                    return null;
+                }
+
                 const parentUpdates = await this.processRelationUpdates(
                     kysely,
                     model,
                     field,
                     fieldDef,
-                    thisEntity,
+                    relationParent,
                     finalData[field],
                 );
 
@@ -1278,18 +1296,17 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
 
         if (!hasFieldUpdate) {
             // nothing to update, return the existing entity
-            return thisEntity;
+            return loadThisEntity();
         } else {
-            fieldsToReturn = fieldsToReturn ?? requireIdFields(this.schema, model);
-
             let updatedEntity: any;
 
             if (this.dialect.supportsReturning) {
+                const returnFields = fieldsToReturn !== undefined && fieldsToReturn.length > 0;
                 const query = kysely
                     .updateTable(model)
                     .where(() => this.dialect.buildFilter(model, model, combinedWhere))
                     .set(updateFields)
-                    .returning(fieldsToReturn as any)
+                    .$if(returnFields, (qb) => qb.returning(fieldsToReturn as any))
                     .modifyEnd(
                         this.makeContextComment({
                             model,
@@ -1297,8 +1314,42 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                         }),
                     );
 
-                updatedEntity = await this.executeQueryTakeFirst(kysely, query, 'update');
+                if (returnFields) {
+                    updatedEntity = await this.executeQueryTakeFirst(kysely, query, 'update');
+                } else {
+                    const r = await this.executeQuery(kysely, query, 'update');
+                    if (!r.numAffectedRows) {
+                        // nothing updated
+                        updatedEntity = null;
+                    } else {
+                        // if no specific fields to return, we are done, return `true` to indicate a successful update
+                        updatedEntity = true;
+                    }
+                }
             } else {
+                // post-update read filter
+                let readFilter = combinedWhere;
+
+                // check if we are updating any id fields, if so, we need to fetch original entity ids
+                // before the update, and overwrite the filter with updated id values for post-update read
+                const idFields = requireIdFields(this.schema, model);
+                const updatingIdFields = idFields.some((idField) => idField in updateFields);
+
+                if (updatingIdFields) {
+                    const origIdValues = await loadThisEntity();
+                    invariant(origIdValues, 'Original entity should have been loaded for update without RETURNING');
+
+                    readFilter = { ...origIdValues };
+                    // replace id fields in the filter with updated values if they are being updated
+                    // const readFilter: any = { ...origWhere };
+                    for (const idField of idFields) {
+                        if (idField in updateFields && updateFields[idField] !== undefined) {
+                            // if id fields are being updated, use the new values
+                            readFilter[idField] = updateFields[idField];
+                        }
+                    }
+                }
+
                 // Fallback for databases that don't support RETURNING (e.g., MySQL)
                 const updateQuery = kysely
                     .updateTable(model)
@@ -1312,37 +1363,19 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                     );
 
                 const updateResult = await this.executeQuery(kysely, updateQuery, 'update');
+
                 if (!updateResult.numAffectedRows) {
-                    // no rows updated
+                    // nothing updated
                     updatedEntity = null;
+                } else if (fieldsToReturn === undefined || fieldsToReturn.length === 0) {
+                    // if no specific fields to return, we are done, return `true` to indicate a successful update
+                    updatedEntity = true;
                 } else {
-                    // collect id field/values from the original filter
-                    const idFields = requireIdFields(this.schema, model);
-                    const filterIdValues: any = {};
-                    for (const key of idFields) {
-                        if (combinedWhere[key] !== undefined && typeof combinedWhere[key] !== 'object') {
-                            filterIdValues[key] = combinedWhere[key];
-                        }
-                    }
-
-                    // check if we are updating any id fields
-                    const updatingIdFields = idFields.some((idField) => idField in updateFields);
-
-                    if (Object.keys(filterIdValues).length === idFields.length && !updatingIdFields) {
-                        // if we have all id fields in the original filter and ids are not being updated,
-                        // we can simply return the id values as the update result
-                        updatedEntity = filterIdValues;
+                    if (!updatingIdFields) {
+                        // not updating id fields, we can directly return original id values
+                        updatedEntity = await loadThisEntity();
                     } else {
                         // otherwise we need to re-query the updated entity
-
-                        // replace id fields in the filter with updated values if they are being updated
-                        const readFilter: any = { ...combinedWhere };
-                        for (const idField of idFields) {
-                            if (idField in updateFields && updateFields[idField] !== undefined) {
-                                // if id fields are being updated, use the new values
-                                readFilter[idField] = updateFields[idField];
-                            }
-                        }
                         const selectQuery = kysely
                             .selectFrom(model)
                             .select(fieldsToReturn as any)
@@ -1425,14 +1458,6 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         return ['increment', 'decrement', 'multiply', 'divide', 'set'].some((key) => key in value);
     }
 
-    private isIdFilter(model: string, filter: any) {
-        if (!filter || typeof filter !== 'object') {
-            return false;
-        }
-        const idFields = requireIdFields(this.schema, model);
-        return idFields.length === Object.keys(filter).length && idFields.every((field) => field in filter);
-    }
-
     private async processBaseModelUpdate(
         kysely: ToKysely<Schema>,
         model: string,
@@ -1461,6 +1486,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             undefined,
             undefined,
             throwIfNotFound,
+            requireIdFields(this.schema, model),
         );
         return { baseEntity, remainingFields };
     }
@@ -2487,6 +2513,18 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         }
     }
 
+    protected async safeTransactionIf<T>(
+        condition: boolean,
+        callback: (tx: AnyKysely) => Promise<T>,
+        isolationLevel?: IsolationLevel,
+    ) {
+        if (condition) {
+            return this.safeTransaction(callback, isolationLevel);
+        } else {
+            return callback(this.kysely);
+        }
+    }
+
     // Given a unique filter of a model, load the entity and return its id fields
     private getEntityIds(kysely: AnyKysely, model: string, uniqueFilter: any) {
         return this.readUnique(kysely, model, {
@@ -2537,27 +2575,28 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
     }
 
     protected mutationNeedsReadBack(model: string, args: any) {
+        const idFields = requireIdFields(this.schema, model);
         if (this.hasPolicyEnabled) {
             // TODO: refactor this check
             // policy enforcement always requires read back
-            return { needReadBack: true, selectedFields: undefined };
+            return { needReadBack: true, selectedFields: idFields };
         }
 
         if (!this.dialect.supportsReturning) {
             // if the dialect doesn't support RETURNING, we always need read back
-            return { needReadBack: true, selectedFields: undefined };
+            return { needReadBack: true, selectedFields: idFields };
         }
 
         if (args.include && typeof args.include === 'object' && Object.keys(args.include).length > 0) {
             // includes present, need read back to fetch relations
-            return { needReadBack: true, selectedFields: undefined };
+            return { needReadBack: true, selectedFields: idFields };
         }
 
         const modelDef = this.requireModel(model);
 
         if (modelDef.baseModel || modelDef.isDelegate) {
             // polymorphic model, need read back
-            return { needReadBack: true, selectedFields: undefined };
+            return { needReadBack: true, selectedFields: idFields };
         }
 
         const allFields = Object.keys(modelDef.fields);
@@ -2588,7 +2627,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
 
         if (allFieldsSelected.some((f) => relationFields.includes(f) || computedFields.includes(f))) {
             // relation or computed field selected, need read back
-            return { needReadBack: true, selectedFields: undefined };
+            return { needReadBack: true, selectedFields: idFields };
         } else {
             return { needReadBack: false, selectedFields: allFieldsSelected };
         }
