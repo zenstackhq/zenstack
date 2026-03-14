@@ -40,7 +40,8 @@ import { ZenStackQueryExecutor } from './executor/zenstack-query-executor';
 import * as BuiltinFunctions from './functions';
 import { SchemaDbPusher } from './helpers/schema-db-pusher';
 import type { ClientOptions, ProceduresOptions } from './options';
-import type { AnyPlugin } from './plugin';
+import type { AnyPlugin, ExtResultFieldDef } from './plugin';
+import { getField } from './query-utils';
 import { createZenStackPromise, type ZenStackPromise } from './promise';
 import { ResultProcessor } from './result-processor';
 
@@ -582,6 +583,11 @@ function createModelCrudHandler(
     inputValidator: InputValidator<any>,
     resultProcessor: ResultProcessor<any>,
 ): ModelOperations<any, any> {
+    // check if any plugin defines ext result fields
+    const plugins = client.$options.plugins ?? [];
+    const schema = client.$schema;
+    const hasAnyExtResult = hasExtResultFieldDefs(plugins);
+
     const createPromise = (
         operation: CoreCrudOperations,
         nominalOperation: AllCrudOperations,
@@ -592,17 +598,30 @@ function createModelCrudHandler(
     ) => {
         return createZenStackPromise(async (txClient?: ClientContract<any>) => {
             let proceed = async (_args: unknown) => {
+                // prepare args for ext result: strip ext result field names from select/omit,
+                // inject needs fields into select (recursively handles nested relations)
+                const shouldApplyExtResult = hasAnyExtResult && EXT_RESULT_OPERATIONS.has(operation);
+                const processedArgs = shouldApplyExtResult
+                    ? prepareArgsForExtResult(_args, model, schema, plugins)
+                    : _args;
+
                 const _handler = txClient ? handler.withClient(txClient) : handler;
-                const r = await _handler.handle(operation, _args);
+                const r = await _handler.handle(operation, processedArgs);
                 if (!r && throwIfNoResult) {
                     throw createNotFoundError(model);
                 }
                 let result: unknown;
                 if (r && postProcess) {
-                    result = resultProcessor.processResult(r, model, args);
+                    result = resultProcessor.processResult(r, model, processedArgs);
                 } else {
                     result = r ?? null;
                 }
+
+                // compute ext result fields (recursively handles nested relations)
+                if (result && shouldApplyExtResult) {
+                    result = applyExtResult(result, model, _args, schema, plugins);
+                }
+
                 return result;
             };
 
@@ -858,3 +877,269 @@ function createModelCrudHandler(
 
     return operations as ModelOperations<any, any>;
 }
+
+// #region Extended result field helpers
+
+// operations that return model rows and should have ext result fields applied
+const EXT_RESULT_OPERATIONS = new Set<CoreCrudOperations>([
+    'findMany',
+    'findUnique',
+    'findFirst',
+    'create',
+    'createManyAndReturn',
+    'update',
+    'updateManyAndReturn',
+    'upsert',
+    'delete',
+]);
+
+/**
+ * Returns true if any plugin defines ext result fields for any model.
+ */
+function hasExtResultFieldDefs(plugins: AnyPlugin[]): boolean {
+    return plugins.some((p) => p.result && Object.keys(p.result).length > 0);
+}
+
+/**
+ * Collects extended result field definitions from all plugins for a given model.
+ */
+function collectExtResultFieldDefs(
+    model: string,
+    schema: SchemaDef,
+    plugins: AnyPlugin[],
+): Map<string, ExtResultFieldDef> {
+    const defs = new Map<string, ExtResultFieldDef>();
+    for (const plugin of plugins) {
+        const resultConfig = plugin.result;
+        if (resultConfig) {
+            const modelConfig = resultConfig[lowerCaseFirst(model)];
+            if (modelConfig) {
+                for (const [fieldName, fieldDef] of Object.entries(modelConfig)) {
+                    if (getField(schema, model, fieldName)) {
+                        throw new Error(
+                            `Plugin "${plugin.id}" registers ext result field "${fieldName}" on model "${model}" which conflicts with an existing model field`,
+                        );
+                    }
+                    for (const needField of Object.keys((fieldDef as ExtResultFieldDef).needs ?? {})) {
+                        const needDef = getField(schema, model, needField);
+                        if (!needDef || needDef.relation) {
+                            throw new Error(
+                                `Plugin "${plugin.id}" registers ext result field "${fieldName}" on model "${model}" with invalid need "${needField}"`,
+                            );
+                        }
+                    }
+                    defs.set(fieldName, fieldDef as ExtResultFieldDef);
+                }
+            }
+        }
+    }
+    return defs;
+}
+
+/**
+ * Prepares query args for extended result fields (recursive):
+ * - Strips ext result field names from `select` and `omit`
+ * - Injects `needs` fields into `select` when ext result fields are explicitly selected
+ * - Recurses into `include` and `select` for nested relation fields
+ */
+function prepareArgsForExtResult(
+    args: unknown,
+    model: string,
+    schema: SchemaDef,
+    plugins: AnyPlugin[],
+): unknown {
+    if (!args || typeof args !== 'object') {
+        return args;
+    }
+
+    const extResultDefs = collectExtResultFieldDefs(model, schema, plugins);
+    const typedArgs = args as Record<string, unknown>;
+    let result = typedArgs;
+    let changed = false;
+
+    const select = typedArgs['select'] as Record<string, unknown> | undefined;
+    const omit = typedArgs['omit'] as Record<string, unknown> | undefined;
+    const include = typedArgs['include'] as Record<string, unknown> | undefined;
+
+    if (select && extResultDefs.size > 0) {
+        const newSelect = { ...select };
+        for (const [fieldName, fieldDef] of extResultDefs) {
+            if (newSelect[fieldName]) {
+                delete newSelect[fieldName];
+                // inject needs fields
+                for (const needField of Object.keys(fieldDef.needs)) {
+                    if (!newSelect[needField]) {
+                        newSelect[needField] = true;
+                    }
+                }
+            }
+        }
+        result = { ...result, select: newSelect };
+        changed = true;
+    }
+
+    if (omit && extResultDefs.size > 0) {
+        const newOmit = { ...omit };
+        for (const [fieldName, fieldDef] of extResultDefs) {
+            if (newOmit[fieldName]) {
+                // strip ext result field names from omit (they don't exist in the DB)
+                delete newOmit[fieldName];
+            } else {
+                // this ext result field is active — ensure its needs are not omitted
+                for (const needField of Object.keys(fieldDef.needs)) {
+                    if (newOmit[needField]) {
+                        delete newOmit[needField];
+                    }
+                }
+            }
+        }
+        result = { ...result, omit: newOmit };
+        changed = true;
+    }
+
+    // Recurse into nested relations in `include`
+    if (include) {
+        const newInclude = { ...include };
+        let includeChanged = false;
+        for (const [field, value] of Object.entries(newInclude)) {
+            if (value && typeof value === 'object') {
+                const fieldDef = getField(schema, model, field);
+                if (fieldDef?.relation) {
+                    const targetModel = fieldDef.type;
+                    const processed = prepareArgsForExtResult(value, targetModel, schema, plugins);
+                    if (processed !== value) {
+                        newInclude[field] = processed;
+                        includeChanged = true;
+                    }
+                }
+            }
+        }
+        if (includeChanged) {
+            result = changed ? { ...result, include: newInclude } : { ...typedArgs, include: newInclude };
+            changed = true;
+        }
+    }
+
+    // Recurse into nested relations in `select` (relation fields can have nested args)
+    if (select) {
+        const currentSelect = (changed ? (result as Record<string, unknown>)['select'] : select) as
+            | Record<string, unknown>
+            | undefined;
+        if (currentSelect) {
+            const newSelect = { ...currentSelect };
+            let selectChanged = false;
+            for (const [field, value] of Object.entries(newSelect)) {
+                if (value && typeof value === 'object') {
+                    const fieldDef = getField(schema, model, field);
+                    if (fieldDef?.relation) {
+                        const targetModel = fieldDef.type;
+                        const processed = prepareArgsForExtResult(value, targetModel, schema, plugins);
+                        if (processed !== value) {
+                            newSelect[field] = processed;
+                            selectChanged = true;
+                        }
+                    }
+                }
+            }
+            if (selectChanged) {
+                result = { ...result, select: newSelect };
+                changed = true;
+            }
+        }
+    }
+
+    return changed ? result : args;
+}
+
+/**
+ * Applies extended result field computation to query results (recursive).
+ * Processes the current model's ext result fields, then recurses into nested relation data.
+ */
+function applyExtResult(
+    result: unknown,
+    model: string,
+    originalArgs: unknown,
+    schema: SchemaDef,
+    plugins: AnyPlugin[],
+): unknown {
+    const extResultDefs = collectExtResultFieldDefs(model, schema, plugins);
+    if (Array.isArray(result)) {
+        for (let i = 0; i < result.length; i++) {
+            result[i] = applyExtResultToRow(result[i], model, originalArgs, schema, plugins, extResultDefs);
+        }
+        return result;
+    } else {
+        return applyExtResultToRow(result, model, originalArgs, schema, plugins, extResultDefs);
+    }
+}
+
+function applyExtResultToRow(
+    row: unknown,
+    model: string,
+    originalArgs: unknown,
+    schema: SchemaDef,
+    plugins: AnyPlugin[],
+    extResultDefs: Map<string, ExtResultFieldDef>,
+): unknown {
+    if (!row || typeof row !== 'object') {
+        return row;
+    }
+
+    const data = row as Record<string, unknown>;
+    const typedArgs = (originalArgs && typeof originalArgs === 'object' ? originalArgs : {}) as Record<string, unknown>;
+    const select = typedArgs['select'] as Record<string, unknown> | undefined;
+    const omit = typedArgs['omit'] as Record<string, unknown> | undefined;
+    const include = typedArgs['include'] as Record<string, unknown> | undefined;
+
+    // Compute ext result fields for the current model
+    for (const [fieldName, fieldDef] of extResultDefs) {
+        if (select && !select[fieldName]) {
+            continue;
+        }
+        if (omit?.[fieldName]) {
+            continue;
+        }
+        const needsSatisfied = Object.keys(fieldDef.needs).every((needField) => needField in data);
+        if (needsSatisfied) {
+            data[fieldName] = fieldDef.compute(data);
+        }
+    }
+
+    // Strip fields that shouldn't be in the result: when `select` was used,
+    // drop any field not in the original select and not a computed ext result field;
+    // when `omit` was used, re-delete any field the user originally omitted.
+    if (select) {
+        for (const key of Object.keys(data)) {
+            if (!select[key] && !extResultDefs.has(key)) {
+                delete data[key];
+            }
+        }
+    } else if (omit) {
+        for (const key of Object.keys(omit)) {
+            if (omit[key] && !extResultDefs.has(key)) {
+                delete data[key];
+            }
+        }
+    }
+
+    // Recurse into nested relation data
+    const relationSource = include ?? select;
+    if (relationSource) {
+        for (const [field, value] of Object.entries(relationSource)) {
+            if (data[field] == null) {
+                continue;
+            }
+            const fieldDef = getField(schema, model, field);
+            if (!fieldDef?.relation) {
+                continue;
+            }
+            const targetModel = fieldDef.type;
+            const nestedArgs = value && typeof value === 'object' ? value : undefined;
+            data[field] = applyExtResult(data[field], targetModel, nestedArgs, schema, plugins);
+        }
+    }
+
+    return data;
+}
+
+// #endregion
