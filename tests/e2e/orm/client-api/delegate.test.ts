@@ -1,17 +1,17 @@
+import type { ClientContract } from '@zenstackhq/orm';
+import { createTestClient } from '@zenstackhq/testtools';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { ClientContract } from '@zenstackhq/orm';
 import { schema, type SchemaType } from '../schemas/delegate/schema';
-import { createTestClient } from '@zenstackhq/testtools';
 
 describe('Delegate model tests ', () => {
     let client: ClientContract<SchemaType>;
 
     beforeEach(async () => {
-        client = (await createTestClient(schema, {
+        client = await createTestClient(schema, {
             usePrismaPush: true,
             schemaFile: path.join(__dirname, '../schemas/delegate/schema.zmodel'),
-        })) as any;
+        });
     });
 
     afterEach(async () => {

@@ -34,23 +34,39 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         if (this.options.fixPostgresTimezone !== false && !PostgresCrudDialect.typeParserOverrideApplied) {
             PostgresCrudDialect.typeParserOverrideApplied = true;
 
+            const fixTimezone = (value: unknown) => {
+                if (typeof value !== 'string') {
+                    return value;
+                }
+                if (!this.hasTimezoneOffset(value)) {
+                    // force UTC if no offset
+                    value += 'Z';
+                }
+                const result = new Date(value);
+                return isNaN(result.getTime())
+                    ? value // fallback to original value if parsing fails
+                    : result;
+            };
+
             // override node-pg's default type parser to resolve the timezone handling issue
             // with "TIMESTAMP WITHOUT TIME ZONE" fields
             // https://github.com/brianc/node-postgres/issues/429
             import(/* webpackIgnore: true */ 'pg') // suppress bundler analysis warnings
                 .then((pg) => {
-                    pg.types.setTypeParser(pg.types.builtins.TIMESTAMP, (value) => {
+                    // timestamp
+                    pg.types.setTypeParser(pg.types.builtins.TIMESTAMP, fixTimezone);
+                    pg.types.setTypeParser(1115, (value) => {
+                        // timestamp array
                         if (typeof value !== 'string') {
                             return value;
                         }
-                        if (!this.hasTimezoneOffset(value)) {
-                            // force UTC if no offset
-                            value += 'Z';
+                        try {
+                            const arr = parsePostgresArray(value);
+                            return arr.map(fixTimezone);
+                        } catch {
+                            // fallback to original value if parsing fails
+                            return value;
                         }
-                        const result = new Date(value);
-                        return isNaN(result.getTime())
-                            ? value // fallback to original value if parsing fails
-                            : result;
                     });
                 })
                 .catch(() => {

@@ -72,10 +72,6 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         this.dialect = getCrudDialect(this.client.$schema, this.client.$options);
     }
 
-    get kysely() {
-        return this.client.$qb;
-    }
-
     // #region main entry point
 
     async handle(node: RootOperationNode, proceed: ProceedKyselyQueryFunction) {
