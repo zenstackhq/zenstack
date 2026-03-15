@@ -12,7 +12,6 @@ import {
     type SelectQueryBuilder,
     type SqlBool,
 } from 'kysely';
-import { match } from 'ts-pattern';
 import { AnyNullClass, DbNullClass, JsonNullClass } from '../../../common-types';
 import type { BuiltinType, FieldDef, GetModels, SchemaDef } from '../../../schema';
 import { DELEGATE_JOINED_FIELD_PREFIX } from '../../constants';
@@ -90,18 +89,22 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
         if (Array.isArray(value)) {
             return value.map((v) => this.transformInput(v, type, false));
         } else {
-            return match(type)
-                .with('Boolean', () => (value ? 1 : 0))
-                .with('DateTime', () =>
-                    value instanceof Date
+            switch (type) {
+                case 'Boolean':
+                    return value ? 1 : 0;
+                case 'DateTime':
+                    return value instanceof Date
                         ? value.toISOString()
                         : typeof value === 'string'
                           ? new Date(value).toISOString()
-                          : value,
-                )
-                .with('Decimal', () => (value as Decimal).toString())
-                .with('Bytes', () => Buffer.from(value as Uint8Array))
-                .otherwise(() => value);
+                          : value;
+                case 'Decimal':
+                    return (value as Decimal).toString();
+                case 'Bytes':
+                    return Buffer.from(value as Uint8Array);
+                default:
+                    return value;
+            }
         }
     }
 
@@ -112,14 +115,22 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
             // typed JSON field
             return this.transformOutputJson(value);
         } else {
-            return match(type)
-                .with('Boolean', () => this.transformOutputBoolean(value))
-                .with('DateTime', () => this.transformOutputDate(value))
-                .with('Bytes', () => this.transformOutputBytes(value))
-                .with('Decimal', () => this.transformOutputDecimal(value))
-                .with('BigInt', () => this.transformOutputBigInt(value))
-                .with('Json', () => this.transformOutputJson(value))
-                .otherwise(() => super.transformOutput(value, type, array));
+            switch (type) {
+                case 'Boolean':
+                    return this.transformOutputBoolean(value);
+                case 'DateTime':
+                    return this.transformOutputDate(value);
+                case 'Bytes':
+                    return this.transformOutputBytes(value);
+                case 'Decimal':
+                    return this.transformOutputDecimal(value);
+                case 'BigInt':
+                    return this.transformOutputBigInt(value);
+                case 'Json':
+                    return this.transformOutputJson(value);
+                default:
+                    return super.transformOutput(value, type, array);
+            }
         }
     }
 
@@ -415,8 +426,8 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
         operation: 'array_contains' | 'array_starts_with' | 'array_ends_with',
         value: unknown,
     ) {
-        return match(operation)
-            .with('array_contains', () => {
+        switch (operation) {
+            case 'array_contains':
                 if (Array.isArray(value)) {
                     throw createNotSupportedError(
                         'SQLite "array_contains" only supports checking for a single value, not an array of values',
@@ -424,14 +435,11 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
                 } else {
                     return sql<any>`EXISTS (SELECT 1 FROM json_each(${lhs}) WHERE value = ${value})`;
                 }
-            })
-            .with('array_starts_with', () =>
-                this.eb(this.eb.fn('json_extract', [lhs, this.eb.val('$[0]')]), '=', value),
-            )
-            .with('array_ends_with', () =>
-                this.eb(sql`json_extract(${lhs}, '$[' || (json_array_length(${lhs}) - 1) || ']')`, '=', value),
-            )
-            .exhaustive();
+            case 'array_starts_with':
+                return this.eb(this.eb.fn('json_extract', [lhs, this.eb.val('$[0]')]), '=', value);
+            case 'array_ends_with':
+                return this.eb(sql`json_extract(${lhs}, '$[' || (json_array_length(${lhs}) - 1) || ']')`, '=', value);
+        }
     }
 
     protected override buildJsonArrayExistsPredicate(
