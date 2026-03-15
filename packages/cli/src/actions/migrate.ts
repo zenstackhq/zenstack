@@ -29,6 +29,21 @@ type ResolveOptions = CommonOptions & {
     rolledBack?: string;
 };
 
+type DiffOptions = CommonOptions & {
+    fromEmpty?: boolean;
+    toEmpty?: boolean;
+    fromSchemaDatamodel?: boolean;
+    toSchemaDatamodel?: boolean;
+    fromMigrationsDirectory?: string;
+    toMigrationsDirectory?: string;
+    fromUrl?: string;
+    toUrl?: string;
+    shadowDatabaseUrl?: string;
+    script?: boolean;
+    exitCode?: boolean;
+    extraArgs?: string[];
+};
+
 /**
  * CLI action for migration-related commands
  */
@@ -61,6 +76,10 @@ export async function run(command: string, options: CommonOptions) {
 
             case 'resolve':
                 await runResolve(prismaSchemaFile, options as ResolveOptions);
+                break;
+
+            case 'diff':
+                runDiff(prismaSchemaFile, options as DiffOptions);
                 break;
         }
     } finally {
@@ -135,6 +154,55 @@ function runResolve(prismaSchemaFile: string, options: ResolveOptions) {
             options.rolledBack ? ` --rolled-back "${options.rolledBack}"` : '',
         ].join('');
         execPrisma(cmd);
+    } catch (err) {
+        handleSubProcessError(err);
+    }
+}
+
+function runDiff(prismaSchemaFile: string, options: DiffOptions) {
+    try {
+        const parts = ['migrate diff'];
+
+        if (options.fromEmpty) {
+            parts.push('--from-empty');
+        }
+        if (options.toEmpty) {
+            parts.push('--to-empty');
+        }
+        if (options.fromSchemaDatamodel) {
+            parts.push(`--from-schema-datamodel "${prismaSchemaFile}"`);
+        }
+        if (options.toSchemaDatamodel) {
+            parts.push(`--to-schema-datamodel "${prismaSchemaFile}"`);
+        }
+        if (options.fromMigrationsDirectory) {
+            parts.push(`--from-migrations-directory "${options.fromMigrationsDirectory}"`);
+        }
+        if (options.toMigrationsDirectory) {
+            parts.push(`--to-migrations-directory "${options.toMigrationsDirectory}"`);
+        }
+        if (options.fromUrl) {
+            parts.push(`--from-url "${options.fromUrl}"`);
+        }
+        if (options.toUrl) {
+            parts.push(`--to-url "${options.toUrl}"`);
+        }
+        if (options.shadowDatabaseUrl) {
+            parts.push(`--shadow-database-url "${options.shadowDatabaseUrl}"`);
+        }
+        if (options.script) {
+            parts.push('--script');
+        }
+        if (options.exitCode) {
+            parts.push('--exit-code');
+        }
+
+        // pass through any extra args
+        if (options.extraArgs?.length) {
+            parts.push(...options.extraArgs);
+        }
+
+        execPrisma(parts.join(' '));
     } catch (err) {
         handleSubProcessError(err);
     }

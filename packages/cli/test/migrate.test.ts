@@ -69,4 +69,9 @@ describe('CLI migrate commands test', () => {
         const { workDir } = await createProject(model, { provider: 'sqlite' });
         expect(() => runCli('migrate resolve', workDir)).toThrow();
     });
+
+    it('supports migrate diff with --from-empty and --to-schema-datamodel', async () => {
+        const { workDir } = await createProject(model, { provider: 'sqlite' });
+        runCli('migrate diff --from-empty --to-schema-datamodel --script', workDir);
+    });
 });
