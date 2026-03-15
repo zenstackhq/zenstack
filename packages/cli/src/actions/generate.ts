@@ -256,7 +256,7 @@ async function runPlugins(schemaFile: string, model: Model, outputPath: string, 
             spinner?.succeed();
         } catch (err) {
             spinner?.fail();
-            console.error(err);
+            throw err;
         }
     }
 }

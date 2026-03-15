@@ -145,9 +145,7 @@ model Post {
     user   User   @relation(fields: [userId], references: [id], createOpposite: true)
 }
 `);
-        // The Prisma plugin catches errors internally, so verify the prisma schema was NOT generated
-        runCli('generate', workDir);
-        expect(fs.existsSync(path.join(workDir, 'zenstack/schema.prisma'))).toBe(false);
+        expect(() => runCli('generate', workDir)).toThrow(/Cannot auto-generate opposite relation/);
     });
 
     it('should handle composite key models with createOpposite on scalar side', async () => {
