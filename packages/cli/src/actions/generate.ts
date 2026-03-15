@@ -186,7 +186,11 @@ async function runPlugins(schemaFile: string, model: Model, outputPath: string, 
                 throw new CliError(`Unknown core plugin: ${provider}`);
             }
         } else {
-            cliPlugin = await loadPluginModule(provider, path.dirname(schemaFile));
+            // resolve relative plugin paths against the schema file where the plugin is declared,
+            // not the entry schema file
+            const pluginSourcePath =
+                plugin.$cstNode?.parent?.element.$document?.uri?.fsPath ?? schemaFile;
+            cliPlugin = await loadPluginModule(provider, path.dirname(pluginSourcePath));
         }
 
         if (cliPlugin) {

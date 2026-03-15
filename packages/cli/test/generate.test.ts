@@ -1,7 +1,8 @@
+import { formatDocument } from '@zenstackhq/language';
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { createProject, runCli } from './utils';
+import { createProject, getDefaultPrelude, runCli } from './utils';
 
 const model = `
 model User {
@@ -302,6 +303,50 @@ const plugin = {
 export default plugin;
 `,
         );
+        runCli('generate', workDir);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/schema.ts'))).toBe(true);
+    });
+
+    it('should resolve plugin paths relative to the schema file where the plugin is declared', async () => {
+        // Entry schema imports a sub-schema that declares a plugin with a relative path.
+        // The plugin path should resolve relative to the sub-schema, not the entry schema.
+        const { workDir } = await createProject(
+            `import './core/core'
+
+${getDefaultPrelude()}
+
+model User {
+    id String @id @default(cuid())
+}
+`,
+            { customPrelude: true },
+        );
+
+        // Create core/ subdirectory with its own schema and plugin
+        const coreDir = path.join(workDir, 'zenstack/core');
+        fs.mkdirSync(coreDir, { recursive: true });
+
+        const coreSchema = await formatDocument(`
+plugin foo {
+    provider = './my-core-plugin.ts'
+}
+`);
+        fs.writeFileSync(path.join(coreDir, 'core.zmodel'), coreSchema);
+
+        // Plugin lives next to the core schema, NOT next to the entry schema
+        fs.writeFileSync(
+            path.join(coreDir, 'my-core-plugin.ts'),
+            `
+const plugin = {
+    name: 'core-plugin',
+    statusText: 'Testing core plugin',
+    async generate() {},
+};
+export default plugin;
+`,
+        );
+
+        // This would fail if the plugin path was resolved relative to the entry schema
         runCli('generate', workDir);
         expect(fs.existsSync(path.join(workDir, 'zenstack/schema.ts'))).toBe(true);
     });
