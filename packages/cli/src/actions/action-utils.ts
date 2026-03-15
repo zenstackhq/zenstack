@@ -291,6 +291,14 @@ export async function loadPluginModule(provider: string, basePath: string) {
         }
     }
 
+    // try jiti import for bare package specifiers (handles workspace packages)
+    try {
+        const result = (await jiti.import(moduleSpec, { default: true })) as CliPlugin;
+        return result;
+    } catch {
+        // fall through to last resort
+    }
+
     // last resort, try to import as esm directly
     try {
         const mod = await import(moduleSpec);

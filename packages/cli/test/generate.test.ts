@@ -272,6 +272,40 @@ model User {
         expect(fs.existsSync(path.join(workDir, 'zenstack/schema.ts'))).toBe(true);
     });
 
+    it('should load plugin from a bare package specifier via jiti', async () => {
+        const modelWithBarePlugin = `
+plugin foo {
+    provider = 'my-test-plugin'
+}
+
+model User {
+    id String @id @default(cuid())
+}
+`;
+        const { workDir } = await createProject(modelWithBarePlugin);
+        // Create a fake node_modules package with a TS entry point
+        // This can only be resolved by jiti, not by native import() or fs.existsSync checks
+        const pkgDir = path.join(workDir, 'node_modules/my-test-plugin');
+        fs.mkdirSync(pkgDir, { recursive: true });
+        fs.writeFileSync(
+            path.join(pkgDir, 'package.json'),
+            JSON.stringify({ name: 'my-test-plugin', main: './index.ts' }),
+        );
+        fs.writeFileSync(
+            path.join(pkgDir, 'index.ts'),
+            `
+const plugin = {
+    name: 'test-bare-plugin',
+    statusText: 'Testing bare plugin',
+    async generate() {},
+};
+export default plugin;
+`,
+        );
+        runCli('generate', workDir);
+        expect(fs.existsSync(path.join(workDir, 'zenstack/schema.ts'))).toBe(true);
+    });
+
     it('should prefer CLI options over @core/typescript plugin settings for generateModels and generateInput', async () => {
         const modelWithPlugin = `
 plugin typescript {
