@@ -37,7 +37,12 @@ import { ZenStackQueryExecutor } from './executor/zenstack-query-executor';
 import * as BuiltinFunctions from './functions';
 import { SchemaDbPusher } from './helpers/schema-db-pusher';
 import type { ClientOptions, ProceduresOptions } from './options';
-import type { AnyPlugin, ExtResultFieldDef } from './plugin';
+import type { AnyPlugin } from './plugin';
+
+type ExtResultFieldDef = {
+    needs: Record<string, true>;
+    compute: (data: Record<string, any>) => unknown;
+};
 import { getField } from './query-utils';
 import { createZenStackPromise, type ZenStackPromise } from './promise';
 import { ResultProcessor } from './result-processor';

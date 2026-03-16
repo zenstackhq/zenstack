@@ -21,21 +21,6 @@ export type ExtQueryArgsBase = {
 export type ExtClientMembersBase = Record<string, unknown>;
 
 /**
- * Definition for a single extended result field.
- * When used without type parameters, accepts any field names and untyped compute.
- */
-export type ExtResultFieldDef<Needs extends Record<string, true> = Record<string, true>> = {
-    /**
-     * Fields required to compute this result field.
-     */
-    needs: Needs;
-    /**
-     * Computes the result field value from the query result row.
-     */
-    compute: (data: { [K in keyof Needs]: any }) => unknown;
-};
-
-/**
  * Base shape of plugin-extended result fields.
  * Keyed by model name, each value maps field names to their definitions.
  * `needs` keys are constrained to non-relation fields of the corresponding model.
