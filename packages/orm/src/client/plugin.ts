@@ -41,10 +41,10 @@ export type ExtResultFieldDef<Needs extends Record<string, true> = Record<string
  * `needs` keys are constrained to non-relation fields of the corresponding model.
  */
 export type ExtResultBase<Schema extends SchemaDef = SchemaDef> = {
-    [M in Uncapitalize<GetModels<Schema>>]?: Record<
+    [M in GetModels<Schema> as Uncapitalize<M>]?: Record<
         string,
         {
-            needs: Partial<Record<NonRelationFields<Schema, Capitalize<M> & GetModels<Schema>>, true>>;
+            needs: Partial<Record<NonRelationFields<Schema, M>, true>>;
             compute: (...args: any[]) => any;
         }
     >;
