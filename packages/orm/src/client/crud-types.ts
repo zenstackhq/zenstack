@@ -2392,9 +2392,10 @@ type HasToManyRelations<Schema extends SchemaDef, Model extends GetModels<Schema
     ? false
     : true;
 
-type HasRelations<Schema extends SchemaDef, Model extends GetModels<Schema>> = keyof {
-    [Key in RelationFields<Schema, Model>]: true;
-} extends never
+type HasRelations<Schema extends SchemaDef, Model extends GetModels<Schema>> = RelationFields<
+    Schema,
+    Model
+> extends never
     ? false
     : true;
 
