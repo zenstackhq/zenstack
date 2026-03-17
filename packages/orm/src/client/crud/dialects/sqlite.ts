@@ -307,10 +307,10 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
                 );
             }
 
-            if (typeof payload === 'object' && (payload as any).include && typeof (payload as any).include === 'object') {
+            if (typeof payload === 'object' && 'include' in payload && payload.include && typeof payload.include === 'object') {
                 // include relation fields
                 objArgs.push(
-                    ...Object.entries<any>((payload as any).include)
+                    ...Object.entries<any>(payload.include)
                         .filter(([, value]) => value)
                         .map(([field, value]) => {
                             const subJson = this.buildRelationJSON(
