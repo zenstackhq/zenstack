@@ -1198,6 +1198,22 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             return loadThisEntity();
         }
 
+        if (
+            // when updating a model with delegate base, base fields may be referenced in the filter,
+            // so we read the id out if the filter and and use it as the update filter instead
+            modelDef.baseModel ||
+            // for dialects that don't support RETURNING, we need to read the id fields
+            // to identify the updated entity for toplevel updates
+            (!this.dialect.supportsReturning && !fromRelation)
+        ) {
+            // update the filter to db-loaded id fields
+            combinedWhere = await loadThisEntity();
+            if (!combinedWhere) {
+                // not found
+                return null;
+            }
+        }
+
         if (modelDef.baseModel) {
             const baseUpdateResult = await this.processBaseModelUpdate(
                 kysely,
