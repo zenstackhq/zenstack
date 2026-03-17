@@ -136,7 +136,7 @@ export type ModelMutationModelResult<
     Array extends boolean = false,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
 > = Omit<
-    ModelMutationResult<SimplifiedResult<Schema, Model, TArgs, QueryOptions<Schema>, false, Array, {}>, TArgs>,
+    ModelMutationResult<SimplifiedResult<Schema, Model, TArgs, Options, false, Array, {}>, TArgs>,
     'mutateAsync'
 > & {
     mutateAsync<T extends TArgs>(
