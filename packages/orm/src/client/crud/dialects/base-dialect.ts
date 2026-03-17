@@ -26,8 +26,6 @@ import {
     getManyToManyRelation,
     getRelationForeignKeyFieldPairs,
     isEnum,
-    isInheritedField,
-    isRelationField,
     isTypeDef,
     getModelFields,
     makeDefaultOrderBy,
@@ -1141,16 +1139,13 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         const descendants = getDelegateDescendantModels(this.schema, model);
         for (const subModel of descendants) {
             result = this.buildDelegateJoin(model, modelAlias, subModel.name, result);
-            result = result.select((eb) => {
+            result = result.select(() => {
                 const jsonObject: Record<string, Expression<any>> = {};
-                for (const field of Object.keys(subModel.fields)) {
-                    if (
-                        isRelationField(this.schema, subModel.name, field) ||
-                        isInheritedField(this.schema, subModel.name, field)
-                    ) {
+                for (const fieldDef of getModelFields(this.schema, subModel.name, { computed: true })) {
+                    if (this.shouldOmitField(omit, subModel.name, fieldDef.name)) {
                         continue;
                     }
-                    jsonObject[field] = eb.ref(`${subModel.name}.${field}`);
+                    jsonObject[fieldDef.name] = this.fieldRef(subModel.name, fieldDef.name, subModel.name);
                 }
                 return this.buildJsonObject(jsonObject).as(`${DELEGATE_JOINED_FIELD_PREFIX}${subModel.name}`);
             });
