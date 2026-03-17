@@ -1,4 +1,4 @@
-import { ZenStackClient } from '@zenstackhq/orm';
+import { ZenStackClient, type FindManyArgs } from '@zenstackhq/orm';
 import SQLite from 'better-sqlite3';
 import { SqliteDialect } from 'kysely';
 import { Role, Status, type Identity, type IdentityProvider } from './models';
@@ -679,3 +679,28 @@ function typeDefs() {
 }
 
 main();
+
+// Type test: `include` should not be allowed for models without relations
+{
+    type NoRelationsSchema = {
+        provider: { type: 'sqlite' };
+        models: {
+            Dummy: {
+                name: 'Dummy';
+                fields: {
+                    id: { name: 'id'; type: 'Int'; id: true };
+                    name: { name: 'name'; type: 'String' };
+                };
+                idFields: ['id'];
+                uniqueFields: { id: { type: 'Int' } };
+            };
+        };
+        enums: {};
+        typeDefs: {};
+        plugins: {};
+    };
+    type DummyFindManyArgs = FindManyArgs<NoRelationsSchema, 'Dummy'>;
+    // @ts-expect-error include should not be allowed for models without relations
+    const _testIncludeNotAllowed: DummyFindManyArgs = { include: { abcdefg: true } };
+    void _testIncludeNotAllowed;
+}

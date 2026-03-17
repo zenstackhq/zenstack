@@ -968,12 +968,14 @@ export type SelectIncludeOmit<
      */
     omit?: (OmitInput<Schema, Model> & ExtResultSelectOmitFields<ExtResult, Model & string>) | null;
 } & (AllowRelation extends true
-    ? {
-          /**
-           * Specifies relations to be included in the query result. All scalar fields are included.
-           */
-          include?: IncludeInput<Schema, Model, Options, AllowCount, ExtResult> | null;
-      }
+    ? HasRelations<Schema, Model> extends true
+        ? {
+              /**
+               * Specifies relations to be included in the query result. All scalar fields are included.
+               */
+              include?: IncludeInput<Schema, Model, Options, AllowCount, ExtResult> | null;
+          }
+        : {}
     : {});
 
 export type SelectInput<
@@ -2386,6 +2388,12 @@ type NonOwnedRelationFields<Schema extends SchemaDef, Model extends GetModels<Sc
 
 type HasToManyRelations<Schema extends SchemaDef, Model extends GetModels<Schema>> = keyof {
     [Key in RelationFields<Schema, Model> as FieldIsArray<Schema, Model, Key> extends true ? Key : never]: true;
+} extends never
+    ? false
+    : true;
+
+type HasRelations<Schema extends SchemaDef, Model extends GetModels<Schema>> = keyof {
+    [Key in RelationFields<Schema, Model>]: true;
 } extends never
     ? false
     : true;
