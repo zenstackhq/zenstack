@@ -5,7 +5,7 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, ExpressionUtils } from "@zenstackhq/schema";
+import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
     provider = {
         type: "sqlite"
@@ -18,8 +18,8 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "Int",
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }],
-                    default: ExpressionUtils.call("autoincrement")
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("autoincrement") as FieldDefault
                 },
                 name: {
                     name: "name",
@@ -44,8 +44,8 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "Int",
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }],
-                    default: ExpressionUtils.call("autoincrement")
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("autoincrement") as FieldDefault
                 },
                 title: {
                     name: "title",
@@ -59,7 +59,7 @@ export class SchemaType implements SchemaDef {
                 author: {
                     name: "author",
                     type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("authorId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("authorId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
                     relation: { opposite: "posts", fields: ["authorId"], references: ["id"] }
                 },
                 authorId: {
@@ -67,7 +67,7 @@ export class SchemaType implements SchemaDef {
                     type: "Int",
                     foreignKeyFor: [
                         "author"
-                    ]
+                    ] as readonly string[]
                 }
             },
             idFields: ["id"],
