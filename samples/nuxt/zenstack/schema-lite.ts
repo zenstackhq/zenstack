@@ -5,7 +5,7 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, ExpressionUtils } from "@zenstackhq/schema";
+import { type SchemaDef, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
     provider = {
         type: "sqlite"
@@ -18,12 +18,12 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "String",
                     id: true,
-                    default: ExpressionUtils.call("cuid")
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 createdAt: {
                     name: "createdAt",
                     type: "DateTime",
-                    default: ExpressionUtils.call("now")
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
                     name: "updatedAt",
@@ -60,12 +60,12 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "String",
                     id: true,
-                    default: ExpressionUtils.call("cuid")
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 createdAt: {
                     name: "createdAt",
                     type: "DateTime",
-                    default: ExpressionUtils.call("now")
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
                     name: "updatedAt",
@@ -79,7 +79,7 @@ export class SchemaType implements SchemaDef {
                 published: {
                     name: "published",
                     type: "Boolean",
-                    default: false
+                    default: false as FieldDefault
                 },
                 author: {
                     name: "author",
@@ -91,7 +91,7 @@ export class SchemaType implements SchemaDef {
                     type: "String",
                     foreignKeyFor: [
                         "author"
-                    ]
+                    ] as readonly string[]
                 }
             },
             idFields: ["id"],

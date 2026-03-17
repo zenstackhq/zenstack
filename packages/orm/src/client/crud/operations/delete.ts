@@ -20,8 +20,10 @@ export class DeleteOperationHandler<Schema extends SchemaDef> extends BaseOperat
         // analyze if we need to read back the deleted record, or just return delete result
         const { needReadBack, selectedFields } = this.mutationNeedsReadBack(this.model, args);
 
-        // TODO: avoid using transaction for simple delete
-        const result = await this.safeTransaction(async (tx) => {
+        // analyze if the delete involves nested deletes
+        const needsNestedDelete = this.needsNestedDelete();
+
+        const result = await this.safeTransactionIf(needReadBack || needsNestedDelete, async (tx) => {
             let preDeleteRead: any = undefined;
             if (needReadBack) {
                 preDeleteRead = await this.readUnique(tx, this.model, {
@@ -51,9 +53,33 @@ export class DeleteOperationHandler<Schema extends SchemaDef> extends BaseOperat
     }
 
     async runDeleteMany(args?: any) {
-        return await this.safeTransaction(async (tx) => {
+        // analyze if the delete involves nested deletes
+        const needsNestedDelete = this.needsNestedDelete();
+
+        return await this.safeTransactionIf(needsNestedDelete, async (tx) => {
             const result = await this.delete(tx, this.model, args?.where, args?.limit);
             return { count: Number(result.numAffectedRows ?? 0) };
         });
+    }
+
+    private needsNestedDelete() {
+        const modelDef = this.requireModel(this.model);
+        if (modelDef.baseModel) {
+            return true;
+        }
+
+        // Check if any relation points to a delegate sub-model with cascade delete,
+        // which would trigger processDelegateRelationDelete in BaseOperationHandler.delete()
+        for (const fieldDef of Object.values(modelDef.fields)) {
+            if (fieldDef.relation?.opposite) {
+                const oppositeModelDef = this.requireModel(fieldDef.type);
+                const oppositeRelation = this.requireField(fieldDef.type, fieldDef.relation.opposite);
+                if (oppositeModelDef.baseModel && oppositeRelation.relation?.onDelete === 'Cascade') {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

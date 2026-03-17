@@ -2,7 +2,7 @@ import { match } from 'ts-pattern';
 import type { GetModels, SchemaDef } from '../../../schema';
 import type { WhereInput } from '../../crud-types';
 import { createRejectedByPolicyError, RejectedByPolicyReason } from '../../errors';
-import { getIdValues } from '../../query-utils';
+import { getIdValues, requireIdFields } from '../../query-utils';
 import { BaseOperationHandler } from './base';
 
 export class UpdateOperationHandler<Schema extends SchemaDef> extends BaseOperationHandler<Schema> {
@@ -28,7 +28,10 @@ export class UpdateOperationHandler<Schema extends SchemaDef> extends BaseOperat
         // analyze if we need to read back the update record, or just return the updated result
         const { needReadBack, selectedFields } = this.needReadBack(args);
 
-        const result = await this.safeTransaction(async (tx) => {
+        // analyze if the update involves nested updates
+        const needsNestedUpdate = this.needsNestedUpdate(args.data);
+
+        const result = await this.safeTransactionIf(needReadBack || needsNestedUpdate, async (tx) => {
             const updateResult = await this.update(
                 tx,
                 this.model,
@@ -76,10 +79,11 @@ export class UpdateOperationHandler<Schema extends SchemaDef> extends BaseOperat
             return result;
         }
     }
-
     private async runUpdateMany(args: any) {
-        // TODO: avoid using transaction for simple update
-        return this.safeTransaction(async (tx) => {
+        // analyze if the update involves nested updates
+        const needsNestedUpdate = this.needsNestedUpdate(args.data);
+
+        return this.safeTransactionIf(needsNestedUpdate, async (tx) => {
             return this.updateMany(tx, this.model, args.where, args.data, args.limit, false);
         });
     }
@@ -92,37 +96,43 @@ export class UpdateOperationHandler<Schema extends SchemaDef> extends BaseOperat
         // analyze if we need to read back the updated record, or just return the update result
         const { needReadBack, selectedFields } = this.needReadBack(args);
 
-        const { readBackResult, updateResult } = await this.safeTransaction(async (tx) => {
-            const updateResult = await this.updateMany(
-                tx,
-                this.model,
-                args.where,
-                args.data,
-                args.limit,
-                true,
-                undefined,
-                undefined,
-                selectedFields,
-            );
+        // analyze if the update involves nested updates
+        const needsNestedUpdate = this.needsNestedUpdate(args.data);
 
-            if (needReadBack) {
-                const readBackResult = await this.read(
+        const { readBackResult, updateResult } = await this.safeTransactionIf(
+            needReadBack || needsNestedUpdate,
+            async (tx) => {
+                const updateResult = await this.updateMany(
                     tx,
                     this.model,
-                    {
-                        select: args.select,
-                        omit: args.omit,
-                        where: {
-                            OR: updateResult.map((item) => getIdValues(this.schema, this.model, item) as any),
-                        },
-                    } as any, // TODO: fix type
+                    args.where,
+                    args.data,
+                    args.limit,
+                    true,
+                    undefined,
+                    undefined,
+                    selectedFields,
                 );
 
-                return { readBackResult, updateResult };
-            } else {
-                return { readBackResult: updateResult, updateResult };
-            }
-        });
+                if (needReadBack) {
+                    const readBackResult = await this.read(
+                        tx,
+                        this.model,
+                        {
+                            select: args.select,
+                            omit: args.omit,
+                            where: {
+                                OR: updateResult.map((item) => getIdValues(this.schema, this.model, item) as any),
+                            },
+                        } as any, // TODO: fix type
+                    );
+
+                    return { readBackResult, updateResult };
+                } else {
+                    return { readBackResult: updateResult, updateResult };
+                }
+            },
+        );
 
         if (readBackResult.length < updateResult.length && this.hasPolicyEnabled) {
             // some of the updated entities cannot be read back
@@ -140,6 +150,7 @@ export class UpdateOperationHandler<Schema extends SchemaDef> extends BaseOperat
         // analyze if we need to read back the updated record, or just return the update result
         const { needReadBack, selectedFields } = this.needReadBack(args);
 
+        // upsert is intrinsically multi-step and is always run in a transaction
         const result = await this.safeTransaction(async (tx) => {
             let mutationResult: unknown = await this.update(
                 tx,
@@ -191,9 +202,11 @@ export class UpdateOperationHandler<Schema extends SchemaDef> extends BaseOperat
             return baseResult;
         }
 
+        const idFields = requireIdFields(this.schema, this.model);
+
         if (!this.dialect.supportsReturning) {
             // if dialect doesn't support "returning", we always need to read back
-            return { needReadBack: true, selectedFields: undefined };
+            return { needReadBack: true, selectedFields: idFields };
         }
 
         // further check if we're not updating any non-relation fields, because if so,
@@ -206,14 +219,33 @@ export class UpdateOperationHandler<Schema extends SchemaDef> extends BaseOperat
 
         // update/updateMany payload
         if (args.data && !Object.keys(args.data).some((field) => nonRelationFields.includes(field))) {
-            return { needReadBack: true, selectedFields: undefined };
+            return { needReadBack: true, selectedFields: idFields };
         }
 
         // upsert payload
         if (args.update && !Object.keys(args.update).some((field: string) => nonRelationFields.includes(field))) {
-            return { needReadBack: true, selectedFields: undefined };
+            return { needReadBack: true, selectedFields: idFields };
         }
 
         return baseResult;
+    }
+
+    private needsNestedUpdate(data: any) {
+        const modelDef = this.requireModel(this.model);
+        if (modelDef.baseModel) {
+            // involve delegate base models
+            return true;
+        }
+
+        // has relation manipulation in the payload
+        const hasRelation = Object.entries(data).some(([field, value]) => {
+            const fieldDef = this.getField(this.model, field);
+            return fieldDef?.relation && value !== undefined;
+        });
+        if (hasRelation) {
+            return true;
+        }
+
+        return false;
     }
 }

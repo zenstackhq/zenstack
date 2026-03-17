@@ -26,8 +26,10 @@ export class CreateOperationHandler<Schema extends SchemaDef> extends BaseOperat
         // analyze if we need to read back the created record, or just return the create result
         const { needReadBack, selectedFields } = this.mutationNeedsReadBack(this.model, args);
 
-        // TODO: avoid using transaction for simple create
-        const result = await this.safeTransaction(async (tx) => {
+        // analyze if the create involves nested creates
+        const needsNestedCreate = this.needsNestedCreate(args.data);
+
+        const result = await this.safeTransactionIf(needReadBack || needsNestedCreate, async (tx) => {
             const createResult = await this.create(tx, this.model, args.data, undefined, false, selectedFields);
 
             if (needReadBack) {
@@ -58,7 +60,10 @@ export class CreateOperationHandler<Schema extends SchemaDef> extends BaseOperat
             return { count: 0 };
         }
 
-        return this.safeTransaction((tx) => this.createMany(tx, this.model, args, false));
+        // analyze if the create involves nested creates
+        const needsNestedCreate = this.needsNestedCreate(args.data);
+
+        return this.safeTransactionIf(needsNestedCreate, (tx) => this.createMany(tx, this.model, args, false));
     }
 
     private async runCreateManyAndReturn(args?: any) {
@@ -69,8 +74,10 @@ export class CreateOperationHandler<Schema extends SchemaDef> extends BaseOperat
         // analyze if we need to read back the created record, or just return the create result
         const { needReadBack, selectedFields } = this.mutationNeedsReadBack(this.model, args);
 
-        // TODO: avoid using transaction for simple create
-        return this.safeTransaction(async (tx) => {
+        // analyze if the create involves nested creates
+        const needsNestedCreate = this.needsNestedCreate(args.data);
+
+        return this.safeTransactionIf(needReadBack || needsNestedCreate, async (tx) => {
             const createResult = await this.createMany(tx, this.model, args, true, undefined, selectedFields);
 
             if (needReadBack) {
@@ -89,5 +96,24 @@ export class CreateOperationHandler<Schema extends SchemaDef> extends BaseOperat
                 return createResult;
             }
         });
+    }
+
+    private needsNestedCreate(data: any) {
+        const modelDef = this.requireModel(this.model);
+        if (modelDef.baseModel) {
+            // involve delegate base models
+            return true;
+        }
+
+        // has relation manipulation in the payload
+        const hasRelation = Object.entries(data).some(([field, value]) => {
+            const fieldDef = this.getField(this.model, field);
+            return fieldDef?.relation && value !== undefined;
+        });
+        if (hasRelation) {
+            return true;
+        }
+
+        return false;
     }
 }

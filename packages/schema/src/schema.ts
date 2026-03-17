@@ -63,6 +63,8 @@ export type UpdatedAtInfo = {
     ignore?: readonly string[];
 };
 
+export type FieldDefault = MappedBuiltinType | Expression | readonly unknown[];
+
 export type FieldDef = {
     name: string;
     type: string;
@@ -72,7 +74,7 @@ export type FieldDef = {
     unique?: boolean;
     updatedAt?: boolean | UpdatedAtInfo;
     attributes?: readonly AttributeApplication[];
-    default?: MappedBuiltinType | Expression | readonly unknown[];
+    default?: FieldDefault;
     omit?: boolean;
     relation?: RelationInfo;
     foreignKeyFor?: readonly string[];
@@ -300,7 +302,7 @@ export type FieldHasDefault<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends GetModelFields<Schema, Model>,
-> = GetModelField<Schema, Model, Field>['default'] extends object | number | string | boolean
+> = 'default' extends keyof GetModelField<Schema, Model, Field>
     ? true
     : GetModelField<Schema, Model, Field>['updatedAt'] extends true | UpdatedAtInfo
       ? true

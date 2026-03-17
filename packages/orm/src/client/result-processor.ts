@@ -22,19 +22,47 @@ export class ResultProcessor<Schema extends SchemaDef> {
     }
 
     private doProcessResult(data: any, model: GetModels<Schema>) {
+        // pre-resolve field definitions from the first row's keys
+        const firstRow = Array.isArray(data) ? data[0] : data;
+        if (!firstRow || typeof firstRow !== 'object') {
+            return data;
+        }
+
+        const fields = this.resolveFields(firstRow, model);
+
         if (Array.isArray(data)) {
-            data.forEach((row, i) => (data[i] = this.processRow(row, model)));
+            data.forEach((row, i) => (data[i] = this.processRow(row, fields)));
             return data;
         } else {
-            return this.processRow(data, model);
+            return this.processRow(data, fields);
         }
     }
 
-    private processRow(data: any, model: GetModels<Schema>) {
+    private resolveFields(row: any, model: GetModels<Schema>): FieldDef[] {
+        if (!row || typeof row !== 'object') {
+            return [];
+        }
+        const result: FieldDef[] = [];
+        for (const key of Object.keys(row)) {
+            if (key === '_count' || key.startsWith(DELEGATE_JOINED_FIELD_PREFIX)) {
+                continue;
+            }
+            const fieldDef = getField(this.schema, model, key);
+            if (fieldDef) {
+                result.push(fieldDef);
+            }
+        }
+        return result;
+    }
+
+    private processRow(data: any, fields: FieldDef[]) {
         if (!data || typeof data !== 'object') {
             return data;
         }
-        for (const [key, value] of Object.entries<any>(data)) {
+
+        // handle special keys
+        for (const key of Object.keys(data)) {
+            const value = data[key];
             if (value === undefined) {
                 continue;
             }
@@ -42,10 +70,7 @@ export class ResultProcessor<Schema extends SchemaDef> {
             if (key === '_count') {
                 // underlying database provider may return string for count
                 data[key] = typeof value === 'string' ? JSON.parse(value) : value;
-                continue;
-            }
-
-            if (key.startsWith(DELEGATE_JOINED_FIELD_PREFIX)) {
+            } else if (key.startsWith(DELEGATE_JOINED_FIELD_PREFIX)) {
                 // merge delegate descendant fields
                 if (value) {
                     // descendant fields are packed as JSON
@@ -59,34 +84,38 @@ export class ResultProcessor<Schema extends SchemaDef> {
                         delete data[key];
                         continue;
                     }
-                    const processedSubRow = this.processRow(subRow, subModel);
+                    const subFields = this.resolveFields(subRow, subModel);
+                    const processedSubRow = this.processRow(subRow, subFields);
 
                     // merge the sub-row into the main row
                     Object.assign(data, processedSubRow);
                 }
                 delete data[key];
-                continue;
             }
+        }
 
-            const fieldDef = getField(this.schema, model, key);
-            if (!fieldDef) {
+        // process regular fields using pre-resolved field definitions
+        for (const fieldDef of fields) {
+            const value = data[fieldDef.name];
+            if (value === undefined) {
                 continue;
             }
 
             if (value === null) {
                 // scalar list defaults to empty array
-                if (fieldDef.array && !fieldDef.relation && value === null) {
-                    data[key] = [];
+                if (fieldDef.array && !fieldDef.relation) {
+                    data[fieldDef.name] = [];
                 }
                 continue;
             }
 
             if (fieldDef.relation) {
-                data[key] = this.processRelation(value, fieldDef);
+                data[fieldDef.name] = this.processRelation(value, fieldDef);
             } else {
-                data[key] = this.processFieldValue(value, fieldDef);
+                data[fieldDef.name] = this.processFieldValue(value, fieldDef);
             }
         }
+
         return data;
     }
 

@@ -116,7 +116,7 @@ describe('Custom validation tests', () => {
         }
     });
 
-    it('allows disabling validation', async () => {
+    it('disabling validation makes validation attributes ineffective', async () => {
         const db = await createTestClient(
             `
             model User {
@@ -178,6 +178,95 @@ describe('Custom validation tests', () => {
                 },
             }),
         ).toBeRejectedByValidation();
+    });
+
+    it('disabling validation skips structural validation for all CRUD operations', async () => {
+        const db = await createTestClient(
+            `
+            model User {
+                id Int @id @default(autoincrement())
+                email String
+                name String
+            }
+            `,
+        );
+
+        const dbNoValidation = db.$setOptions({ ...db.$options, validateInput: false });
+
+        // Helper: assert that a promise rejects but NOT with a Zod-based validation error
+        // (the cause of a Zod validation error is a ZodError)
+        const expectNonValidationError = async (promise: Promise<unknown>) => {
+            try {
+                await promise;
+            } catch (err: any) {
+                if (err.reason === 'invalid-input') {
+                    expect(err.cause?.constructor?.name).not.toBe('ZodError');
+                }
+                return;
+            }
+            // resolving is also acceptable — it means validation was skipped and the ORM handled it
+        };
+
+        // create - missing required "data" is normally rejected by Zod validation
+        await expect(db.user.create({} as any)).toBeRejectedByValidation();
+        // with validation disabled, it skips Zod validation
+        await expectNonValidationError(dbNoValidation.user.create({} as any));
+
+        // update - missing required "where" is normally rejected by Zod validation
+        await expect(db.user.update({ data: { email: 'new@b.com' } } as any)).toBeRejectedByValidation();
+        await expectNonValidationError(dbNoValidation.user.update({ data: { email: 'new@b.com' } } as any));
+
+        // delete - missing required "where" is normally rejected by Zod validation
+        await expect(db.user.delete({} as any)).toBeRejectedByValidation();
+        await expectNonValidationError(dbNoValidation.user.delete({} as any));
+
+        // upsert - missing required fields is normally rejected by Zod validation
+        await expect(db.user.upsert({} as any)).toBeRejectedByValidation();
+        await expectNonValidationError(dbNoValidation.user.upsert({} as any));
+    });
+
+    it('$setInputValidation toggles validation', async () => {
+        const db = await createTestClient(
+            `
+            model Item {
+                id Int @id @default(autoincrement())
+                url String @url
+            }
+            `,
+        );
+
+        // validation enabled by default
+        await expect(db.item.create({ data: { url: 'not-a-url' } })).toBeRejectedByValidation();
+
+        // disable via $setInputValidation
+        const dbDisabled = db.$setInputValidation(false);
+        await expect(dbDisabled.item.create({ data: { url: 'not-a-url' } })).toResolveTruthy();
+
+        // re-enable via $setInputValidation
+        const dbReEnabled = dbDisabled.$setInputValidation(true);
+        await expect(dbReEnabled.item.create({ data: { url: 'still-not-a-url' } })).toBeRejectedByValidation();
+
+        // valid data should work with re-enabled validation
+        await expect(dbReEnabled.item.create({ data: { url: 'https://example.com' } })).toResolveTruthy();
+    });
+
+    it('disabling validation at client creation time', async () => {
+        const db = await createTestClient(
+            `
+            model Post {
+                id Int @id @default(autoincrement())
+                title String @length(min: 5)
+            }
+            `,
+            { validateInput: false },
+        );
+
+        // should skip validation since validateInput is false from the start
+        await expect(db.post.create({ data: { id: 1, title: 'ab' } })).toResolveTruthy();
+
+        // re-enable validation
+        const dbValidated = db.$setInputValidation(true);
+        await expect(dbValidated.post.create({ data: { title: 'ab' } })).toBeRejectedByValidation();
     });
 
     it('checks arg type for validation functions', async () => {
