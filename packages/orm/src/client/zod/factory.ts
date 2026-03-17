@@ -2240,10 +2240,16 @@ export class ZodSchemaFactory<
 
     private canCreateModel(model: string) {
         const modelDef = requireModel(this.schema, model);
+        if (modelDef.isDelegate) {
+            return false;
+        }
         const hasRequiredUnsupportedFields = Object.values(modelDef.fields).some(
             (fieldDef) => fieldDef.type === 'Unsupported' && !fieldDef.optional && !fieldHasDefaultValue(fieldDef),
         );
-        return !hasRequiredUnsupportedFields;
+        if (hasRequiredUnsupportedFields) {
+            return false;
+        }
+        return true;
     }
 
     private isModelAllowed(targetModel: string): boolean {
