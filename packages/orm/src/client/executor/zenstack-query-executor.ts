@@ -36,7 +36,7 @@ import { TransactionIsolationLevel, type ClientContract } from '../contract';
 import { getCrudDialect } from '../crud/dialects';
 import type { BaseCrudDialect } from '../crud/dialects/base-dialect';
 import { createDBQueryError, createInternalError, ORMError } from '../errors';
-import type { AfterEntityMutationCallback, OnKyselyQueryCallback } from '../plugin';
+import type { AfterEntityMutationCallback, BeforeEntityMutationCallback, OnKyselyQueryCallback } from '../plugin';
 import { requireIdFields, stripAlias } from '../query-utils';
 import { QueryNameMapper } from './name-mapper';
 import { TempAliasTransformer } from './temp-alias-transformer';
@@ -355,7 +355,8 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
                     continue;
                 }
 
-                await onEntityMutation.beforeEntityMutation({
+                // tsc perf
+                await (onEntityMutation.beforeEntityMutation as BeforeEntityMutationCallback<SchemaDef>)({
                     model: mutationInfo.model,
                     action: mutationInfo.action,
                     queryNode,
