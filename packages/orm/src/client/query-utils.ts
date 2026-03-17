@@ -70,12 +70,12 @@ export function requireField(schema: SchemaDef, modelOrType: string, field: stri
 }
 
 /**
- * Gets all model fields, by default non-relation, non-computed, non-inherited fields only.
+ * Gets all model fields, by default non-relation, non-computed, non-inherited, non-unsupported fields only.
  */
 export function getModelFields(
     schema: SchemaDef,
     model: string,
-    options?: { relations?: boolean; computed?: boolean; inherited?: boolean },
+    options?: { relations?: boolean; computed?: boolean; inherited?: boolean; unsupported?: boolean },
 ) {
     const modelDef = requireModel(schema, model);
     return Object.values(modelDef.fields).filter((f) => {
@@ -88,8 +88,18 @@ export function getModelFields(
         if (f.originModel && !options?.inherited) {
             return false;
         }
+        if (f.type === 'Unsupported' && !options?.unsupported) {
+            return false;
+        }
         return true;
     });
+}
+
+/**
+ * Checks if a field is of `Unsupported` type.
+ */
+export function isUnsupportedField(fieldDef: FieldDef) {
+    return fieldDef.type === 'Unsupported';
 }
 
 export function getIdFields<Schema extends SchemaDef>(schema: SchemaDef, model: GetModels<Schema>) {
