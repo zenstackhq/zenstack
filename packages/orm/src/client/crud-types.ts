@@ -238,6 +238,7 @@ export type ModelResult<
           : Args extends { omit: infer O } & Record<string, unknown>
             ? DefaultModelResult<Schema, Model, O, Options, false, false>
             : DefaultModelResult<Schema, Model, undefined, Options, false, false>) &
+        // intersect with fields contributed by result extension plugins
         SelectAwareExtResult<ExtResult, Model & string, Args>,
     Optional,
     Array
@@ -960,7 +961,10 @@ export type SelectIncludeOmit<
     /**
      * Explicitly select fields and relations to be returned by the query.
      */
-    select?: (SelectInput<Schema, Model, Options, AllowCount, AllowRelation, ExtResult> & ExtResultSelectOmitFields<ExtResult, Model & string>) | null;
+    select?:
+        | (SelectInput<Schema, Model, Options, AllowCount, AllowRelation, ExtResult> &
+              ExtResultSelectOmitFields<ExtResult, Model & string>)
+        | null;
 
     /**
      * Explicitly omit fields from the query result.
@@ -1389,7 +1393,9 @@ type CreateRelationFieldPayload<
     // no "createMany" for non-array fields
     | (FieldIsArray<Schema, Model, Field> extends true ? never : 'createMany')
     // exclude create operations for models that don't allow create
-    | (RelationModelAllowsCreate<Schema, Model, Field> extends true ? never : 'create' | 'createMany' | 'connectOrCreate')
+    | (RelationModelAllowsCreate<Schema, Model, Field> extends true
+          ? never
+          : 'create' | 'createMany' | 'connectOrCreate')
 >;
 
 type CreateRelationPayload<
@@ -1747,7 +1753,9 @@ type ToManyRelationUpdateInput<
         set?: SetRelationInput<Schema, Model, Field, Options>;
     },
     // exclude create operations for models that don't allow create
-    | (RelationModelAllowsCreate<Schema, Model, Field> extends true ? never : 'create' | 'createMany' | 'connectOrCreate' | 'upsert')
+    RelationModelAllowsCreate<Schema, Model, Field> extends true
+        ? never
+        : 'create' | 'createMany' | 'connectOrCreate' | 'upsert'
 >;
 
 type ToOneRelationUpdateInput<
@@ -1795,7 +1803,7 @@ type ToOneRelationUpdateInput<
           }
         : {}),
     // exclude create operations for models that don't allow create
-    | (RelationModelAllowsCreate<Schema, Model, Field> extends true ? never : 'create' | 'connectOrCreate' | 'upsert')
+    RelationModelAllowsCreate<Schema, Model, Field> extends true ? never : 'create' | 'connectOrCreate' | 'upsert'
 >;
 
 // #endregion
@@ -2460,11 +2468,14 @@ export type ExtractExtResult<ExtResult extends ExtResultBase, Model extends stri
  * Extracts extended result field names as optional boolean keys for use in select/omit inputs.
  * When ExtResult is `{}`, this resolves to `{}` (no-op for intersection).
  */
-export type ExtResultSelectOmitFields<ExtResult extends ExtResultBase, Model extends string> = keyof ExtResult extends never
+export type ExtResultSelectOmitFields<
+    ExtResult extends ExtResultBase,
+    Model extends string,
+> = keyof ExtResult extends never
     ? {}
     : Uncapitalize<Model> extends keyof ExtResult
-        ? { [K in keyof ExtResult[Uncapitalize<Model>]]?: boolean }
-        : {};
+      ? { [K in keyof ExtResult[Uncapitalize<Model>]]?: boolean }
+      : {};
 
 type TruthyKeys<S, Keys extends string> = {
     [K in Keys]: K extends keyof S ? (S[K] extends false | undefined ? never : K) : never;
@@ -2476,23 +2487,26 @@ type TruthyKeys<S, Keys extends string> = {
  * - If T has `omit`, excludes ext result fields that are explicitly omitted.
  * - Otherwise, includes all ext result fields.
  */
-export type SelectAwareExtResult<ExtResult extends ExtResultBase, Model extends string, T> =
-    keyof ExtResult extends never
-        ? {}
-        : T extends { select: infer S }
-            ? S extends null | undefined
-                ? ExtractExtResult<ExtResult, Model>
-                : Pick<
-                      ExtractExtResult<ExtResult, Model>,
-                      TruthyKeys<S, Extract<keyof S & string, keyof ExtractExtResult<ExtResult, Model>>>
-                  >
-            : T extends { omit: infer O }
-                ? O extends null | undefined
-                    ? ExtractExtResult<ExtResult, Model>
-                    : Omit<
-                          ExtractExtResult<ExtResult, Model>,
-                          TruthyKeys<O, Extract<keyof O & string, keyof ExtractExtResult<ExtResult, Model>>>
-                      >
-                : ExtractExtResult<ExtResult, Model>;
+export type SelectAwareExtResult<
+    ExtResult extends ExtResultBase,
+    Model extends string,
+    T,
+> = keyof ExtResult extends never
+    ? {}
+    : T extends { select: infer S }
+      ? S extends null | undefined
+          ? ExtractExtResult<ExtResult, Model>
+          : Pick<
+                ExtractExtResult<ExtResult, Model>,
+                TruthyKeys<S, Extract<keyof S & string, keyof ExtractExtResult<ExtResult, Model>>>
+            >
+      : T extends { omit: infer O }
+        ? O extends null | undefined
+            ? ExtractExtResult<ExtResult, Model>
+            : Omit<
+                  ExtractExtResult<ExtResult, Model>,
+                  TruthyKeys<O, Extract<keyof O & string, keyof ExtractExtResult<ExtResult, Model>>>
+              >
+        : ExtractExtResult<ExtResult, Model>;
 
 // #endregion

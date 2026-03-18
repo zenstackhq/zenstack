@@ -16,19 +16,41 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should compute virtual fields on findMany results', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'greeting',
-                result: {
-                    user: {
-                        greeting: {
-                            needs: { name: true },
-                            compute: (user) => `Hello, ${user.name}!`,
-                        },
+        const extDb = db.$use({
+            id: 'greeting',
+            result: {
+                user: {
+                    greeting: {
+                        needs: { name: true },
+                        compute: (user) => `Hello, ${user.name}!`,
                     },
                 },
-            }),
-        );
+            },
+        });
+
+        await extDb.user.create({ data: { name: 'Alice' } });
+        await extDb.user.create({ data: { name: 'Bob' } });
+
+        const users = await extDb.user.findMany({ orderBy: { id: 'asc' } });
+        expect(users).toHaveLength(2);
+        expect(users[0]!.greeting).toBe('Hello, Alice!');
+        expect(users[1]!.greeting).toBe('Hello, Bob!');
+    });
+
+    it('should compute virtual fields with definePlugin on findMany results', async () => {
+        const plugin = definePlugin(schema, {
+            id: 'greeting',
+            result: {
+                user: {
+                    greeting: {
+                        needs: { name: true },
+                        compute: (user) => `Hello, ${user.name}!`,
+                    },
+                },
+            },
+        });
+
+        const extDb = db.$use(plugin);
 
         await extDb.user.create({ data: { name: 'Alice' } });
         await extDb.user.create({ data: { name: 'Bob' } });
@@ -40,39 +62,36 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should compute virtual fields on findUnique', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'greeting',
-                result: {
-                    user: {
-                        greeting: {
-                            needs: { name: true },
-                            compute: (user) => `Hello, ${user.name}!`,
-                        },
+        const extDb = db.$use({
+            id: 'greeting',
+            result: {
+                user: {
+                    greeting: {
+                        needs: { name: true },
+                        compute: (user) => `Hello, ${user.name}!`,
                     },
                 },
-            }),
-        );
+            },
+        });
 
         const created = await extDb.user.create({ data: { name: 'Alice' } });
+        expect(created.greeting).toBe('Hello, Alice!');
         const user = await extDb.user.findUnique({ where: { id: created.id } });
         expect(user?.greeting).toBe('Hello, Alice!');
     });
 
     it('should compute virtual fields on findFirst', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'greeting',
-                result: {
-                    user: {
-                        upperName: {
-                            needs: { name: true },
-                            compute: (user) => user.name.toUpperCase(),
-                        },
+        const extDb = db.$use({
+            id: 'greeting',
+            result: {
+                user: {
+                    upperName: {
+                        needs: { name: true },
+                        compute: (user) => user.name.toUpperCase(),
                     },
                 },
-            }),
-        );
+            },
+        });
 
         await extDb.user.create({ data: { name: 'Alice' } });
         const user = await extDb.user.findFirst();
@@ -80,19 +99,17 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should compute virtual fields on findUniqueOrThrow and findFirstOrThrow', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'greeting',
-                result: {
-                    user: {
-                        upperName: {
-                            needs: { name: true },
-                            compute: (user) => user.name.toUpperCase(),
-                        },
+        const extDb = db.$use({
+            id: 'greeting',
+            result: {
+                user: {
+                    upperName: {
+                        needs: { name: true },
+                        compute: (user) => user.name.toUpperCase(),
                     },
                 },
-            }),
-        );
+            },
+        });
 
         const created = await extDb.user.create({ data: { name: 'Alice' } });
         const user1 = await extDb.user.findUniqueOrThrow({ where: { id: created.id } });
@@ -103,19 +120,17 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should compute virtual fields on create, update, upsert, delete', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'greeting',
-                result: {
-                    user: {
-                        upperName: {
-                            needs: { name: true },
-                            compute: (user) => user.name.toUpperCase(),
-                        },
+        const extDb = db.$use({
+            id: 'greeting',
+            result: {
+                user: {
+                    upperName: {
+                        needs: { name: true },
+                        compute: (user) => user.name.toUpperCase(),
                     },
                 },
-            }),
-        );
+            },
+        });
 
         // create
         const created = await extDb.user.create({ data: { name: 'Alice' } });
@@ -147,19 +162,17 @@ describe('Plugin extended result fields', () => {
             return;
         }
 
-        const extDb = db.$use(
-            definePlugin({
-                id: 'greeting',
-                result: {
-                    user: {
-                        upperName: {
-                            needs: { name: true },
-                            compute: (user) => user.name.toUpperCase(),
-                        },
+        const extDb = db.$use({
+            id: 'greeting',
+            result: {
+                user: {
+                    upperName: {
+                        needs: { name: true },
+                        compute: (user) => user.name.toUpperCase(),
                     },
                 },
-            }),
-        );
+            },
+        });
 
         const users = await extDb.user.createManyAndReturn({
             data: [{ name: 'Alice' }, { name: 'Bob' }],
@@ -170,19 +183,17 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should NOT compute virtual fields on count, exists, createMany, updateMany, deleteMany', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'greeting',
-                result: {
-                    user: {
-                        upperName: {
-                            needs: { name: true },
-                            compute: (user) => user.name.toUpperCase(),
-                        },
+        const extDb = db.$use({
+            id: 'greeting',
+            result: {
+                user: {
+                    upperName: {
+                        needs: { name: true },
+                        compute: (user) => user.name.toUpperCase(),
                     },
                 },
-            }),
-        );
+            },
+        });
 
         await extDb.user.create({ data: { name: 'Alice' } });
 
@@ -210,23 +221,21 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should compute only selected virtual fields when using select', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'greeting',
-                result: {
-                    user: {
-                        upperName: {
-                            needs: { name: true },
-                            compute: (user) => user.name.toUpperCase(),
-                        },
-                        idDoubled: {
-                            needs: { id: true },
-                            compute: (user) => user.id * 2,
-                        },
+        const extDb = db.$use({
+            id: 'greeting',
+            result: {
+                user: {
+                    upperName: {
+                        needs: { name: true },
+                        compute: (user) => user.name.toUpperCase(),
+                    },
+                    idDoubled: {
+                        needs: { id: true },
+                        compute: (user) => user.id * 2,
                     },
                 },
-            }),
-        );
+            },
+        });
 
         await extDb.user.create({ data: { name: 'Alice' } });
 
@@ -241,19 +250,17 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should not compute virtual fields when not selected explicitly', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'greeting',
-                result: {
-                    user: {
-                        upperName: {
-                            needs: { name: true },
-                            compute: (user) => user.name.toUpperCase(),
-                        },
+        const extDb = db.$use({
+            id: 'greeting',
+            result: {
+                user: {
+                    upperName: {
+                        needs: { name: true },
+                        compute: (user) => user.name.toUpperCase(),
                     },
                 },
-            }),
-        );
+            },
+        });
 
         await extDb.user.create({ data: { name: 'Alice' } });
 
@@ -264,19 +271,17 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should exclude virtual fields when using omit', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'greeting',
-                result: {
-                    user: {
-                        upperName: {
-                            needs: { name: true },
-                            compute: (user) => user.name.toUpperCase(),
-                        },
+        const extDb = db.$use({
+            id: 'greeting',
+            result: {
+                user: {
+                    upperName: {
+                        needs: { name: true },
+                        compute: (user) => user.name.toUpperCase(),
                     },
                 },
-            }),
-        );
+            },
+        });
 
         await extDb.user.create({ data: { name: 'Alice' } });
 
@@ -286,19 +291,17 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should still compute virtual fields when their needs dependency is omitted', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'greeting',
-                result: {
-                    user: {
-                        upperName: {
-                            needs: { name: true },
-                            compute: (user) => user.name.toUpperCase(),
-                        },
+        const extDb = db.$use({
+            id: 'greeting',
+            result: {
+                user: {
+                    upperName: {
+                        needs: { name: true },
+                        compute: (user) => user.name.toUpperCase(),
                     },
                 },
-            }),
-        );
+            },
+        });
 
         await extDb.user.create({ data: { name: 'Alice' } });
 
@@ -344,19 +347,17 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should remove virtual fields when plugin is removed via $unuse', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'greeting',
-                result: {
-                    user: {
-                        upperName: {
-                            needs: { name: true },
-                            compute: (user) => user.name.toUpperCase(),
-                        },
+        const extDb = db.$use({
+            id: 'greeting',
+            result: {
+                user: {
+                    upperName: {
+                        needs: { name: true },
+                        compute: (user) => user.name.toUpperCase(),
                     },
                 },
-            }),
-        );
+            },
+        });
 
         await extDb.user.create({ data: { name: 'Alice' } });
 
@@ -370,32 +371,28 @@ describe('Plugin extended result fields', () => {
 
     it('should remove all virtual fields when $unuseAll is called', async () => {
         const extDb = db
-            .$use(
-                definePlugin({
-                    id: 'p1',
-                    result: {
-                        user: {
-                            upperName: {
-                                needs: { name: true },
-                                compute: (user) => user.name.toUpperCase(),
-                            },
+            .$use({
+                id: 'p1',
+                result: {
+                    user: {
+                        upperName: {
+                            needs: { name: true },
+                            compute: (user) => user.name.toUpperCase(),
                         },
                     },
-                }),
-            )
-            .$use(
-                definePlugin({
-                    id: 'p2',
-                    result: {
-                        user: {
-                            idDoubled: {
-                                needs: { id: true },
-                                compute: (user) => user.id * 2,
-                            },
+                },
+            })
+            .$use({
+                id: 'p2',
+                result: {
+                    user: {
+                        idDoubled: {
+                            needs: { id: true },
+                            compute: (user) => user.id * 2,
                         },
                     },
-                }),
-            );
+                },
+            });
 
         await extDb.user.create({ data: { name: 'Alice' } });
 
@@ -410,19 +407,17 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should compute virtual fields inside $transaction', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'greeting',
-                result: {
-                    user: {
-                        upperName: {
-                            needs: { name: true },
-                            compute: (user) => user.name.toUpperCase(),
-                        },
+        const extDb = db.$use({
+            id: 'greeting',
+            result: {
+                user: {
+                    upperName: {
+                        needs: { name: true },
+                        compute: (user) => user.name.toUpperCase(),
                     },
                 },
-            }),
-        );
+            },
+        });
 
         await extDb.$transaction(async (tx) => {
             const created = await tx.user.create({ data: { name: 'Alice' } });
@@ -434,19 +429,17 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should accept virtual fields in select/omit via Zod validation', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'greeting',
-                result: {
-                    user: {
-                        upperName: {
-                            needs: { name: true },
-                            compute: (user) => user.name.toUpperCase(),
-                        },
+        const extDb = db.$use({
+            id: 'greeting',
+            result: {
+                user: {
+                    upperName: {
+                        needs: { name: true },
+                        compute: (user) => user.name.toUpperCase(),
                     },
                 },
-            }),
-        );
+            },
+        });
 
         await extDb.user.create({ data: { name: 'Alice' } });
 
@@ -458,19 +451,17 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should handle virtual fields that depend on multiple needs', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'full-info',
-                result: {
-                    user: {
-                        fullInfo: {
-                            needs: { id: true, name: true },
-                            compute: (user) => `${user.id}:${user.name}`,
-                        },
+        const extDb = db.$use({
+            id: 'full-info',
+            result: {
+                user: {
+                    fullInfo: {
+                        needs: { id: true, name: true },
+                        compute: (user) => `${user.id}:${user.name}`,
                     },
                 },
-            }),
-        );
+            },
+        });
 
         const created = await extDb.user.create({ data: { name: 'Alice' } });
         const users = await extDb.user.findMany();
@@ -478,19 +469,17 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should inject needs and strip them when using select with virtual field', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'full-info',
-                result: {
-                    user: {
-                        fullInfo: {
-                            needs: { id: true, name: true },
-                            compute: (user) => `${user.id}:${user.name}`,
-                        },
+        const extDb = db.$use({
+            id: 'full-info',
+            result: {
+                user: {
+                    fullInfo: {
+                        needs: { id: true, name: true },
+                        compute: (user) => `${user.id}:${user.name}`,
                     },
                 },
-            }),
-        );
+            },
+        });
 
         await extDb.user.create({ data: { name: 'Alice' } });
 
@@ -504,19 +493,17 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should not strip needs fields that were explicitly selected', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'full-info',
-                result: {
-                    user: {
-                        upperName: {
-                            needs: { name: true },
-                            compute: (user) => user.name.toUpperCase(),
-                        },
+        const extDb = db.$use({
+            id: 'full-info',
+            result: {
+                user: {
+                    upperName: {
+                        needs: { name: true },
+                        compute: (user) => user.name.toUpperCase(),
                     },
                 },
-            }),
-        );
+            },
+        });
 
         await extDb.user.create({ data: { name: 'Alice' } });
 
@@ -529,23 +516,21 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should have correct types when select includes ext result fields', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'typing-test',
-                result: {
-                    user: {
-                        upperName: {
-                            needs: { name: true },
-                            compute: (user) => user.name.toUpperCase(),
-                        },
-                        idDoubled: {
-                            needs: { id: true },
-                            compute: (user) => user.id * 2,
-                        },
+        const extDb = db.$use({
+            id: 'typing-test',
+            result: {
+                user: {
+                    upperName: {
+                        needs: { name: true },
+                        compute: (user) => user.name.toUpperCase(),
+                    },
+                    idDoubled: {
+                        needs: { id: true },
+                        compute: (user) => user.id * 2,
                     },
                 },
-            }),
-        );
+            },
+        });
 
         await extDb.user.create({ data: { name: 'Alice' } });
 
@@ -582,19 +567,17 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should compute ext result fields on included relations', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'post-ext',
-                result: {
-                    post: {
-                        upperTitle: {
-                            needs: { title: true },
-                            compute: (post) => post.title.toUpperCase(),
-                        },
+        const extDb = db.$use({
+            id: 'post-ext',
+            result: {
+                post: {
+                    upperTitle: {
+                        needs: { title: true },
+                        compute: (post) => post.title.toUpperCase(),
                     },
                 },
-            }),
-        );
+            },
+        });
 
         const user = await extDb.user.create({ data: { name: 'Alice' } });
         await extDb.post.create({ data: { title: 'Hello World', authorId: user.id } });
@@ -608,25 +591,23 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should compute ext result fields on both parent and nested relations', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'both-ext',
-                result: {
-                    user: {
-                        upperName: {
-                            needs: { name: true },
-                            compute: (user) => user.name.toUpperCase(),
-                        },
-                    },
-                    post: {
-                        upperTitle: {
-                            needs: { title: true },
-                            compute: (post) => post.title.toUpperCase(),
-                        },
+        const extDb = db.$use({
+            id: 'both-ext',
+            result: {
+                user: {
+                    upperName: {
+                        needs: { name: true },
+                        compute: (user) => user.name.toUpperCase(),
                     },
                 },
-            }),
-        );
+                post: {
+                    upperTitle: {
+                        needs: { title: true },
+                        compute: (post) => post.title.toUpperCase(),
+                    },
+                },
+            },
+        });
 
         await extDb.user.create({ data: { name: 'Alice' } });
         await extDb.post.create({ data: { title: 'Hello', authorId: 1 } });
@@ -637,19 +618,17 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should handle ext result fields on nested relations with select', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'post-ext',
-                result: {
-                    post: {
-                        upperTitle: {
-                            needs: { title: true },
-                            compute: (post) => post.title.toUpperCase(),
-                        },
+        const extDb = db.$use({
+            id: 'post-ext',
+            result: {
+                post: {
+                    upperTitle: {
+                        needs: { title: true },
+                        compute: (post) => post.title.toUpperCase(),
                     },
                 },
-            }),
-        );
+            },
+        });
 
         await extDb.user.create({ data: { name: 'Alice' } });
         await extDb.post.create({ data: { title: 'Hello', authorId: 1 } });
@@ -666,19 +645,17 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should NOT compute ext result fields on nested relations when omitted', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'post-ext',
-                result: {
-                    post: {
-                        upperTitle: {
-                            needs: { title: true },
-                            compute: (post) => post.title.toUpperCase(),
-                        },
+        const extDb = db.$use({
+            id: 'post-ext',
+            result: {
+                post: {
+                    upperTitle: {
+                        needs: { title: true },
+                        compute: (post) => post.title.toUpperCase(),
                     },
                 },
-            }),
-        );
+            },
+        });
 
         await extDb.user.create({ data: { name: 'Alice' } });
         await extDb.post.create({ data: { title: 'Hello', authorId: 1 } });
@@ -691,19 +668,17 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should compute ext result fields on relations fetched via select', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'post-ext',
-                result: {
-                    post: {
-                        upperTitle: {
-                            needs: { title: true },
-                            compute: (post) => post.title.toUpperCase(),
-                        },
+        const extDb = db.$use({
+            id: 'post-ext',
+            result: {
+                post: {
+                    upperTitle: {
+                        needs: { title: true },
+                        compute: (post) => post.title.toUpperCase(),
                     },
                 },
-            }),
-        );
+            },
+        });
 
         await extDb.user.create({ data: { name: 'Alice' } });
         await extDb.post.create({ data: { title: 'Hello', authorId: 1 } });
@@ -716,19 +691,17 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should compute ext result fields on to-one nested relations', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'user-ext',
-                result: {
-                    user: {
-                        upperName: {
-                            needs: { name: true },
-                            compute: (user) => user.name.toUpperCase(),
-                        },
+        const extDb = db.$use({
+            id: 'user-ext',
+            result: {
+                user: {
+                    upperName: {
+                        needs: { name: true },
+                        compute: (user) => user.name.toUpperCase(),
                     },
                 },
-            }),
-        );
+            },
+        });
 
         await extDb.user.create({ data: { name: 'Alice' } });
         await extDb.post.create({ data: { title: 'Hello', authorId: 1 } });
@@ -739,25 +712,23 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should have correct types for ext result fields on nested relations', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'nested-types',
-                result: {
-                    user: {
-                        upperName: {
-                            needs: { name: true },
-                            compute: (user) => user.name.toUpperCase(),
-                        },
-                    },
-                    post: {
-                        upperTitle: {
-                            needs: { title: true },
-                            compute: (post) => post.title.toUpperCase(),
-                        },
+        const extDb = db.$use({
+            id: 'nested-types',
+            result: {
+                user: {
+                    upperName: {
+                        needs: { name: true },
+                        compute: (user) => user.name.toUpperCase(),
                     },
                 },
-            }),
-        );
+                post: {
+                    upperTitle: {
+                        needs: { title: true },
+                        compute: (post) => post.title.toUpperCase(),
+                    },
+                },
+            },
+        });
 
         await extDb.user.create({ data: { name: 'Alice' } });
         await extDb.post.create({ data: { title: 'Hello', authorId: 1 } });
@@ -784,19 +755,17 @@ describe('Plugin extended result fields', () => {
     });
 
     it('should ignore invalid model names in result config at runtime', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'bad-model',
-                result: {
-                    userr: {
-                        upperName: {
-                            needs: { name: true },
-                            compute: (user) => user.name.toUpperCase(),
-                        },
+        const extDb = db.$use({
+            id: 'bad-model',
+            result: {
+                userr: {
+                    upperName: {
+                        needs: { name: true },
+                        compute: (user: any) => user.name.toUpperCase(),
                     },
-                } as any,
-            }),
-        );
+                },
+            } as any,
+        });
 
         await extDb.user.create({ data: { name: 'Alice' } });
         // "userr" doesn't match any model, so no ext result fields are applied
@@ -807,55 +776,79 @@ describe('Plugin extended result fields', () => {
     it('should reject ext result fields that shadow real model fields', async () => {
         await db.user.create({ data: { name: 'Alice' } });
 
-        const extDb = db.$use(
-            definePlugin({
-                id: 'shadow',
-                result: {
-                    user: {
-                        name: {
-                            needs: { id: true },
-                            compute: (user) => `name-${user.id}`,
-                        },
+        const extDb = db.$use({
+            id: 'shadow',
+            result: {
+                user: {
+                    name: {
+                        needs: { id: true },
+                        compute: (user: any) => `name-${user.id}`,
                     },
-                } as any,
-            }),
-        );
+                },
+            } as any,
+        });
 
         await expect(extDb.user.findMany()).rejects.toThrow(/conflicts with an existing model field/);
     });
 
     it('should reject ext result fields with invalid needs field names', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'bad-needs',
-                result: {
-                    user: {
-                        upperName: {
-                            needs: { nonExistentField: true },
-                            compute: (user) => String(user.nonExistentField),
-                        },
+        const extDb = db.$use({
+            id: 'bad-needs',
+            result: {
+                user: {
+                    upperName: {
+                        needs: { nonExistentField: true },
+                        compute: (user: any) => String(user.nonExistentField),
                     },
-                } as any,
-            }),
-        );
+                },
+            } as any,
+        });
 
         await expect(extDb.user.findMany()).rejects.toThrow(/invalid need "nonExistentField"/);
     });
 
-    it('should reject ext result fields with relation fields in needs', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'bad-needs-relation',
-                result: {
-                    user: {
-                        postCount: {
-                            needs: { posts: true },
-                            compute: (user) => String(user.posts),
-                        },
+    it('should type-error when compute accesses a field not in needs (inline plugin)', () => {
+        db.$use({
+            id: 'type-check-inline',
+            result: {
+                user: {
+                    wrongField: {
+                        needs: { id: true },
+                        // @ts-expect-error - name is not in needs
+                        compute: (user) => `Hello, ${user.name}!`,
                     },
-                } as any,
-            }),
-        );
+                },
+            },
+        });
+    });
+
+    it('should type-error when compute accesses a field not in needs (definePlugin)', () => {
+        definePlugin(schema, {
+            id: 'type-check-define',
+            result: {
+                user: {
+                    wrongField: {
+                        needs: { id: true },
+                        // @ts-expect-error - name is not in needs
+                        compute: (user) => `Hello, ${user.name}!`,
+                    },
+                },
+            },
+        });
+    });
+
+    it('should reject ext result fields with relation fields in needs', async () => {
+        const extDb = db.$use({
+            id: 'bad-needs-relation',
+            result: {
+                user: {
+                    postCount: {
+                        needs: { posts: true },
+                        compute: (user: any) => String(user.posts),
+                    },
+                },
+            } as any,
+        });
 
         await expect(extDb.user.findMany()).rejects.toThrow(/invalid need "posts"/);
     });
