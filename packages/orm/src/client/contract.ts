@@ -40,15 +40,16 @@ import type {
 } from './crud-types';
 import type { Diagnostics } from './diagnostics';
 import type { ClientOptions, QueryOptions } from './options';
-import type { ExtClientMembersBase, ExtQueryArgsBase, ExtResultBase, RuntimePlugin } from './plugin';
+import type {
+    ExtClientMembersBase,
+    ExtQueryArgsBase,
+    ExtResultBase,
+    ExtResultInferenceArgs,
+    RuntimePlugin,
+} from './plugin';
 import type { ZenStackPromise } from './promise';
 import type { ToKysely } from './query-builder';
-import type {
-    GetSlicedModels,
-    GetSlicedOperations,
-    GetSlicedProcedures,
-    ModelAllowsCreate,
-} from './type-utils';
+import type { GetSlicedModels, GetSlicedOperations, GetSlicedProcedures, ModelAllowsCreate } from './type-utils';
 import type { ZodSchemaFactory } from './zod/factory';
 
 type TransactionUnsupportedMethods = (typeof TRANSACTION_UNSUPPORTED_METHODS)[number];
@@ -128,12 +129,20 @@ export type ClientContract<
     get $auth(): AuthType<Schema> | undefined;
 
     /**
-     * Sets the current user identity.
+     * Returns a new client bound to the specified user identity. The original client remains unchanged.
+     *
+     * @example
+     * ```
+     * const userClient = db.$setAuth({ id: 'user-id' });
+     * ```
      */
-    $setAuth(auth: AuthType<Schema> | undefined): ClientContract<Schema, Options, ExtQueryArgs, ExtClientMembers, ExtResult>;
+    $setAuth(
+        auth: AuthType<Schema> | undefined,
+    ): ClientContract<Schema, Options, ExtQueryArgs, ExtClientMembers, ExtResult>;
 
     /**
-     * Returns a new client with new options applied.
+     * Returns a new client with new options applied. The original client remains unchanged.
+     *
      * @example
      * ```
      * const dbNoValidation = db.$setOptions({ ...db.$options, validateInput: false });
@@ -144,7 +153,7 @@ export type ClientContract<
     ): ClientContract<Schema, NewOptions, ExtQueryArgs, ExtClientMembers, ExtResult>;
 
     /**
-     * Returns a new client enabling/disabling query args validation.
+     * Returns a new client enabling/disabling query args validation. The original client remains unchanged.
      *
      * @deprecated Use {@link $setOptions} instead.
      */
@@ -152,6 +161,11 @@ export type ClientContract<
 
     /**
      * The Kysely query builder instance.
+     *
+     * @example
+     * ```
+     * db.$qb.selectFrom('User').selectAll().where('id', '=', 1).execute();
+     * ```
      */
     readonly $qb: ToKysely<Schema>;
 
@@ -162,14 +176,31 @@ export type ClientContract<
 
     /**
      * Starts an interactive transaction.
+     *
+     * @example
+     * ```
+     * await db.$transaction(async (tx) => {
+     *   const user = await tx.user.update({ where: { id: 1 }, data: { name: 'Alice' } });
+     *   const post = await tx.post.create({ data: { title: 'Hello World', authorId: user.id } });
+     *   return { user, posts: [post] };
+     * ```
      */
     $transaction<T>(
-        callback: (tx: TransactionClientContract<Schema, Options, ExtQueryArgs, ExtClientMembers, ExtResult>) => Promise<T>,
+        callback: (
+            tx: TransactionClientContract<Schema, Options, ExtQueryArgs, ExtClientMembers, ExtResult>,
+        ) => Promise<T>,
         options?: { isolationLevel?: TransactionIsolationLevel },
     ): Promise<T>;
 
     /**
-     * Starts a sequential transaction.
+     * Starts a sequential transaction that runs the provided operations in order.
+     *
+     * @example
+     * ```
+     * await db.$transaction([
+     *   db.user.update({ where: { id: 1 }, data: { name: 'Alice' } }),
+     *   db.post.create({ data: { title: 'Hello World', authorId: 1 } }),
+     * ]);
      */
     $transaction<P extends ZenStackPromise<Schema, any>[]>(
         arg: [...P],
@@ -177,24 +208,36 @@ export type ClientContract<
     ): Promise<UnwrapTuplePromises<P>>;
 
     /**
-     * Returns a new client with the specified plugin installed.
+     * Returns a new client with the specified plugin installed. The original client remains unchanged.
+     *
+     * @see {@link https://zenstack.dev/docs/orm/plugins/|Plugin Documentation}
      */
     $use<
         PluginSchema extends SchemaDef = Schema,
         PluginExtQueryArgs extends ExtQueryArgsBase = {},
         PluginExtClientMembers extends ExtClientMembersBase = {},
         PluginExtResult extends ExtResultBase<PluginSchema> = {},
+        _R = {}, // auxiliary type for inferring precise typing for `PluginExtResult`
     >(
-        plugin: RuntimePlugin<PluginSchema, PluginExtQueryArgs, PluginExtClientMembers, PluginExtResult>,
-    ): ClientContract<Schema, Options, ExtQueryArgs & PluginExtQueryArgs, ExtClientMembers & PluginExtClientMembers, ExtResult & PluginExtResult>;
+        plugin: RuntimePlugin<PluginSchema, PluginExtQueryArgs, PluginExtClientMembers, PluginExtResult> & {
+            // intersect with the `result` extension field for precise typing
+            result?: ExtResultInferenceArgs<Schema, _R>;
+        },
+    ): ClientContract<
+        Schema,
+        Options,
+        ExtQueryArgs & PluginExtQueryArgs,
+        ExtClientMembers & PluginExtClientMembers,
+        ExtResult & PluginExtResult
+    >;
 
     /**
-     * Returns a new client with the specified plugin removed.
+     * Returns a new client with the specified plugin removed. The original client remains unchanged.
      */
     $unuse(pluginId: string): ClientContract<Schema, Options, ExtQueryArgs, ExtClientMembers, ExtResult>;
 
     /**
-     * Returns a new client with all plugins removed.
+     * Returns a new client with all plugins removed. The original client remains unchanged.
      */
     $unuseAll(): ClientContract<Schema, Options>;
 
@@ -224,7 +267,13 @@ export type ClientContract<
      */
     get $diagnostics(): Promise<Diagnostics>;
 } & {
-    [Key in GetSlicedModels<Schema, Options> as Uncapitalize<Key>]: ModelOperations<Schema, Key, Options, ExtQueryArgs, ExtResult>;
+    [Key in GetSlicedModels<Schema, Options> as Uncapitalize<Key>]: ModelOperations<
+        Schema,
+        Key,
+        Options,
+        ExtQueryArgs,
+        ExtResult
+    >;
 } & ProcedureOperations<Schema, Options> &
     ExtClientMembers;
 
@@ -297,7 +346,7 @@ type SliceOperations<
         [Key in keyof T as Key extends GetSlicedOperations<Schema, Model, Options> ? Key : never]: T[Key];
     },
     // exclude create operations for models that don't allow create (delegate models, required Unsupported fields)
-    | (ModelAllowsCreate<Schema, Model> extends true ? never : OperationsRequiringCreate)
+    ModelAllowsCreate<Schema, Model> extends true ? never : OperationsRequiringCreate
 >;
 
 export type AllModelOperations<
