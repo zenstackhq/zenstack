@@ -212,34 +212,6 @@ export function definePlugin(...args: unknown[]) {
     return args.length === 2 ? args[1] : args[0];
 }
 
-/**
- * Defines a single extended result field with typed `compute` parameter.
- *
- * The `compute` callback receives an object whose keys match the `needs` declaration,
- * providing autocomplete and type checking for needed fields.
- *
- * @example
- * ```typescript
- * definePlugin({
- *     id: 'my-plugin',
- *     result: {
- *         user: {
- *             fullName: resultField({
- *                 needs: { firstName: true, lastName: true },
- *                 compute: (user) => `${user.firstName} ${user.lastName}`,
- *             }),
- *         },
- *     },
- * });
- * ```
- */
-export function resultField<const N extends Record<string, true>, R>(def: {
-    needs: N;
-    compute: (data: { [K in keyof N]: any }) => R;
-}): { needs: N; compute: (data: { [K in keyof N]: any }) => R } {
-    return def;
-}
-
 // #region OnProcedure hooks
 
 type OnProcedureCallback<Schema extends SchemaDef> = (ctx: OnProcedureHookContext<Schema>) => Promise<unknown>;
