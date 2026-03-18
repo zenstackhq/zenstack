@@ -206,7 +206,7 @@ export function definePlugin<
     const ExtResult extends ExtResultBase<Schema> = {},
 >(
     plugin: RuntimePlugin<Schema, ExtQueryArgs, ExtClientMembers, ExtResult>,
-): RuntimePlugin<SchemaDef, ExtQueryArgs, ExtClientMembers, ExtResult>;
+): RuntimePlugin<Schema, ExtQueryArgs, ExtClientMembers, ExtResult>;
 
 export function definePlugin(...args: unknown[]) {
     return args.length === 2 ? args[1] : args[0];
