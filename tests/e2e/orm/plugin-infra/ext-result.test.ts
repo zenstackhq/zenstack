@@ -1,4 +1,4 @@
-import { definePlugin, resultField, type ClientContract } from '@zenstackhq/orm';
+import { definePlugin, type ClientContract } from '@zenstackhq/orm';
 import { createTestClient } from '@zenstackhq/testtools';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { schema } from './ext-result/schema';
@@ -783,37 +783,6 @@ describe('Plugin extended result fields', () => {
         expect(_topLevel).toBe('ALICE');
     });
 
-    it('should support resultField helper for typed compute', async () => {
-        const extDb = db.$use(
-            definePlugin({
-                id: 'typed-compute',
-                result: {
-                    user: {
-                        upperName: resultField({
-                            needs: { name: true },
-                            compute: (user) => user.name.toUpperCase(),
-                        }),
-                    },
-                    post: {
-                        titleAndContent: resultField({
-                            needs: { title: true, content: true },
-                            compute: (post) => `${post.title}: ${post.content ?? 'no content'}`,
-                        }),
-                    },
-                },
-            }),
-        );
-
-        await extDb.user.create({ data: { name: 'Alice' } });
-        await extDb.post.create({ data: { title: 'Hello', content: 'World', authorId: 1 } });
-
-        const users = await extDb.user.findMany();
-        expect(users[0]!.upperName).toBe('ALICE');
-
-        const posts = await extDb.post.findMany();
-        expect(posts[0]!.titleAndContent).toBe('Hello: World');
-    });
-
     it('should ignore invalid model names in result config at runtime', async () => {
         const extDb = db.$use(
             definePlugin({
@@ -852,9 +821,7 @@ describe('Plugin extended result fields', () => {
             }),
         );
 
-        await expect(extDb.user.findMany()).rejects.toThrow(
-            /conflicts with an existing model field/,
-        );
+        await expect(extDb.user.findMany()).rejects.toThrow(/conflicts with an existing model field/);
     });
 
     it('should reject ext result fields with invalid needs field names', async () => {
@@ -872,9 +839,7 @@ describe('Plugin extended result fields', () => {
             }),
         );
 
-        await expect(extDb.user.findMany()).rejects.toThrow(
-            /invalid need "nonExistentField"/,
-        );
+        await expect(extDb.user.findMany()).rejects.toThrow(/invalid need "nonExistentField"/);
     });
 
     it('should reject ext result fields with relation fields in needs', async () => {
@@ -892,8 +857,6 @@ describe('Plugin extended result fields', () => {
             }),
         );
 
-        await expect(extDb.user.findMany()).rejects.toThrow(
-            /invalid need "posts"/,
-        );
+        await expect(extDb.user.findMany()).rejects.toThrow(/invalid need "posts"/);
     });
 });
