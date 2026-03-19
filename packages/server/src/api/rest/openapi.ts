@@ -18,6 +18,15 @@ type SchemaObject = OpenAPIV3_1.SchemaObject;
 type ReferenceObject = OpenAPIV3_1.ReferenceObject;
 type ParameterObject = OpenAPIV3_1.ParameterObject;
 
+const ERROR_RESPONSE = {
+    description: 'Error',
+    content: {
+        'application/vnd.api+json': {
+            schema: { $ref: '#/components/schemas/_errorResponse' },
+        },
+    },
+};
+
 const SCALAR_STRING_OPS = ['$contains', '$icontains', '$search', '$startsWith', '$endsWith'];
 const SCALAR_COMPARABLE_OPS = ['$lt', '$lte', '$gt', '$gte'];
 const SCALAR_ARRAY_OPS = ['$has', '$hasEvery', '$hasSome', '$isEmpty'];
@@ -171,7 +180,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                         },
                     },
                 },
-                '400': { $ref: '#/components/schemas/_errorResponse' },
+                '400': ERROR_RESPONSE,
             },
         };
 
@@ -196,7 +205,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                         },
                     },
                 },
-                '400': { $ref: '#/components/schemas/_errorResponse' },
+                '400': ERROR_RESPONSE,
             },
         };
 
@@ -229,7 +238,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                             },
                         },
                     },
-                    '404': { $ref: '#/components/schemas/_errorResponse' },
+                    '404': ERROR_RESPONSE,
                 },
             };
         }
@@ -257,8 +266,8 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                             },
                         },
                     },
-                    '400': { $ref: '#/components/schemas/_errorResponse' },
-                    '404': { $ref: '#/components/schemas/_errorResponse' },
+                    '400': ERROR_RESPONSE,
+                    '404': ERROR_RESPONSE,
                 },
             };
         }
@@ -271,7 +280,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 parameters: [idParam],
                 responses: {
                     '200': { description: 'Deleted successfully' },
-                    '404': { $ref: '#/components/schemas/_errorResponse' },
+                    '404': ERROR_RESPONSE,
                 },
             };
         }
@@ -305,8 +314,17 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 operationId: `get${modelName}_${fieldName}`,
                 parameters: params,
                 responses: {
-                    '200': { description: `Related ${fieldDef.type} resource(s)` },
-                    '404': { $ref: '#/components/schemas/_errorResponse' },
+                    '200': {
+                        description: `Related ${fieldDef.type} resource(s)`,
+                        content: {
+                            'application/vnd.api+json': {
+                                schema: isCollection
+                                    ? { $ref: `#/components/schemas/${fieldDef.type}ListResponse` }
+                                    : { $ref: `#/components/schemas/${fieldDef.type}Response` },
+                            },
+                        },
+                    },
+                    '404': ERROR_RESPONSE,
                 },
             },
         };
@@ -339,7 +357,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                         description: `${fieldName} relationship`,
                         content: { 'application/vnd.api+json': { schema: relSchemaRef } },
                     },
-                    '404': { $ref: '#/components/schemas/_errorResponse' },
+                    '404': ERROR_RESPONSE,
                 },
             },
             put: {
@@ -353,7 +371,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 },
                 responses: {
                     '200': { description: 'Relationship updated' },
-                    '400': { $ref: '#/components/schemas/_errorResponse' },
+                    '400': ERROR_RESPONSE,
                 },
             },
             patch: {
@@ -367,7 +385,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 },
                 responses: {
                     '200': { description: 'Relationship updated' },
-                    '400': { $ref: '#/components/schemas/_errorResponse' },
+                    '400': ERROR_RESPONSE,
                 },
             },
         };
@@ -388,7 +406,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 },
                 responses: {
                     '200': { description: 'Added to relationship collection' },
-                    '400': { $ref: '#/components/schemas/_errorResponse' },
+                    '400': ERROR_RESPONSE,
                 },
             };
         }
@@ -403,7 +421,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             operationId: `proc_${procName}`,
             responses: {
                 '200': { description: `Result of ${procName}` },
-                '400': { $ref: '#/components/schemas/_errorResponse' },
+                '400': ERROR_RESPONSE,
             },
         };
 

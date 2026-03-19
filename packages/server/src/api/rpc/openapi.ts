@@ -16,6 +16,15 @@ import type { OpenApiSpecOptions } from '../common/types';
 type SchemaObject = OpenAPIV3_1.SchemaObject;
 type ReferenceObject = OpenAPIV3_1.ReferenceObject;
 
+const ERROR_RESPONSE = {
+    description: 'Error',
+    content: {
+        'application/json': {
+            schema: { $ref: '#/components/schemas/_ErrorResponse' },
+        },
+    },
+};
+
 /**
  * Generates OpenAPI v3.1 specification for the RPC-style CRUD API.
  */
@@ -126,7 +135,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 },
                 responses: {
                     '200': { description: 'Transaction results' },
-                    '400': { $ref: '#/components/schemas/_ErrorResponse' },
+                    '400': ERROR_RESPONSE,
                 },
             },
         };
@@ -178,7 +187,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                         },
                     },
                 },
-                '400': { $ref: '#/components/schemas/_ErrorResponse' },
+                '400': ERROR_RESPONSE,
             },
         };
     }
@@ -210,7 +219,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                         },
                     },
                 },
-                '400': { $ref: '#/components/schemas/_ErrorResponse' },
+                '400': ERROR_RESPONSE,
             },
         };
     }
@@ -242,7 +251,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                         },
                     },
                 },
-                '400': { $ref: '#/components/schemas/_ErrorResponse' },
+                '400': ERROR_RESPONSE,
             },
         };
     }
@@ -274,7 +283,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                         },
                     },
                 },
-                '400': { $ref: '#/components/schemas/_ErrorResponse' },
+                '400': ERROR_RESPONSE,
             },
         };
     }
@@ -286,7 +295,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             operationId: `proc_${procName}`,
             responses: {
                 '200': { description: `Result of ${procName}` },
-                '400': { $ref: '#/components/schemas/_ErrorResponse' },
+                '400': ERROR_RESPONSE,
             },
         };
 

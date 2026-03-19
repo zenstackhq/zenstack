@@ -124,6 +124,18 @@ describe('REST OpenAPI spec generation', () => {
         expect(spec.paths['/post/{id}/comments']).toBeDefined();
     });
 
+    it('fetch related path has response schema', () => {
+        // Collection relation: should reference ListResponse
+        const collectionPath = spec.paths['/user/{id}/posts'] as any;
+        const collectionSchema = collectionPath.get.responses['200'].content['application/vnd.api+json'].schema;
+        expect(collectionSchema.$ref).toBe('#/components/schemas/PostListResponse');
+
+        // Singular relation: should reference Response
+        const singularPath = spec.paths['/post/{id}/setting'] as any;
+        const singularSchema = singularPath.get.responses['200'].content['application/vnd.api+json'].schema;
+        expect(singularSchema.$ref).toBe('#/components/schemas/SettingResponse');
+    });
+
     it('relationship path has correct methods', () => {
         const relPath = spec.paths['/user/{id}/relationships/posts'];
         expect(relPath.get).toBeDefined();
