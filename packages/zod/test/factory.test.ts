@@ -107,6 +107,16 @@ describe('SchemaFactory - makeModelSchema', () => {
             // scalar array
             expectTypeOf<Post['tags']>().toEqualTypeOf<string[]>();
 
+            const createPostSchema = factory.makeModelCreateSchema('Post');
+            type PostCreate = z.infer<typeof createPostSchema>;
+
+            expectTypeOf<PostCreate['tags']>().toEqualTypeOf<string[]>();
+
+            const updatePostSchema = factory.makeModelUpdateSchema('Post');
+            type PostUpdate = z.infer<typeof updatePostSchema>;
+
+            expectTypeOf<PostUpdate['tags']>().toEqualTypeOf<string[] | undefined>();
+
             // optional relation field present in type
             expectTypeOf<Post>().toHaveProperty('author');
             const _userSchema = factory.makeModelSchema('User');
