@@ -5,6 +5,7 @@ import type { RPCApiHandlerOptions } from '.';
 import { PROCEDURE_ROUTE_PREFIXES } from '../common/procedures';
 import {
     getIncludedModels,
+    getMetaDescription,
     isFieldOmitted,
     isFilterKindIncluded,
     isOperationIncluded,
@@ -389,6 +390,10 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         const result: SchemaObject = { type: 'object', properties };
         if (required.length > 0) {
             result.required = required;
+        }
+        const description = getMetaDescription(modelDef.attributes);
+        if (description) {
+            result.description = description;
         }
         return result;
     }

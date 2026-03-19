@@ -1,6 +1,6 @@
 import { lowerCaseFirst } from '@zenstackhq/common-helpers';
 import type { QueryOptions } from '@zenstackhq/orm';
-import type { SchemaDef } from '@zenstackhq/orm/schema';
+import { ExpressionUtils, type AttributeApplication, type SchemaDef } from '@zenstackhq/orm/schema';
 
 /**
  * Checks if a model is included based on slicing options.
@@ -95,4 +95,21 @@ export function isFilterKindIncluded(
     if (included && !included.includes(filterKind)) return false;
 
     return true;
+}
+
+/**
+ * Extracts a "description" from `@@meta("description", "...")` or `@meta("description", "...")` attributes.
+ */
+export function getMetaDescription(attributes: readonly AttributeApplication[] | undefined): string | undefined {
+    if (!attributes) return undefined;
+    for (const attr of attributes) {
+        if (attr.name !== '@meta' && attr.name !== '@@meta') continue;
+        const nameExpr = attr.args?.[0]?.value;
+        if (!nameExpr || ExpressionUtils.getLiteralValue(nameExpr) !== 'description') continue;
+        const valueExpr = attr.args?.[1]?.value;
+        if (valueExpr) {
+            return ExpressionUtils.getLiteralValue(valueExpr) as string | undefined;
+        }
+    }
+    return undefined;
 }

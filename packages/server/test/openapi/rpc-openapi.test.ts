@@ -423,6 +423,33 @@ enum PostStatus {
     });
 });
 
+describe('RPC OpenAPI spec generation - @@meta description', () => {
+    it('model @@meta description is used as schema description', async () => {
+        const metaSchema = `
+model User {
+    id String @id @default(cuid())
+    email String @unique
+    @@meta("description", "A user of the system")
+}
+
+model Post {
+    id Int @id @default(autoincrement())
+    title String
+}
+`;
+        const client = await createTestClient(metaSchema);
+        const handler = new RPCApiHandler({ schema: client.$schema });
+        const s = await handler.generateSpec();
+
+        const userSchema = s.components?.schemas?.['User'] as any;
+        expect(userSchema.description).toBe('A user of the system');
+
+        // Post has no @@meta description
+        const postSchema = s.components?.schemas?.['Post'] as any;
+        expect(postSchema.description).toBeUndefined();
+    });
+});
+
 describe('RPC OpenAPI spec generation - with procedures', () => {
     it('procedure paths are generated', async () => {
         const schemaWithProc = `

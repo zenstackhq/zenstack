@@ -2,7 +2,13 @@ import { lowerCaseFirst } from '@zenstackhq/common-helpers';
 import type { EnumDef, FieldDef, ModelDef, SchemaDef } from '@zenstackhq/orm/schema';
 import type { OpenAPIV3_1 } from 'openapi-types';
 import { PROCEDURE_ROUTE_PREFIXES } from '../common/procedures';
-import { getIncludedModels, isFieldOmitted, isFilterKindIncluded, isProcedureIncluded } from '../common/spec-utils';
+import {
+    getIncludedModels,
+    getMetaDescription,
+    isFieldOmitted,
+    isFilterKindIncluded,
+    isProcedureIncluded,
+} from '../common/spec-utils';
 import type { OpenApiSpecOptions } from '../common/types';
 import type { RestApiHandlerOptions } from '.';
 
@@ -687,6 +693,10 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         const result: SchemaObject = { type: 'object', properties };
         if (required.length > 0) {
             result.required = required;
+        }
+        const description = getMetaDescription(modelDef.attributes);
+        if (description) {
+            result.description = description;
         }
         return result;
     }
