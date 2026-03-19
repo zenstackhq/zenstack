@@ -265,6 +265,15 @@ describe('REST OpenAPI spec generation - queryOptions', () => {
         expect(s.paths?.['/user']).toBeDefined();
         expect(s.paths?.['/post']).toBeUndefined();
         expect(s.components?.schemas?.['Post']).toBeUndefined();
+
+        // Relation paths to excluded model should not exist
+        expect(s.paths?.['/user/{id}/posts']).toBeUndefined();
+        expect(s.paths?.['/user/{id}/relationships/posts']).toBeUndefined();
+
+        // Relation fields to excluded model should not appear in read schema
+        const userSchema = s.components?.schemas?.['User'] as any;
+        expect(userSchema.properties['posts']).toBeUndefined();
+        expect(userSchema.properties['email']).toBeDefined();
     });
 
     it('slicing includedModels limits models in spec', async () => {

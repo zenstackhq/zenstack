@@ -7,6 +7,7 @@ import {
     getMetaDescription,
     isFieldOmitted,
     isFilterKindIncluded,
+    isModelIncluded,
     isOperationIncluded,
     isProcedureIncluded,
 } from '../common/spec-utils';
@@ -60,7 +61,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             paths: this.generatePaths(),
             components: {
                 schemas: this.generateSchemas(),
-                parameters: this.generateSharedParams() as any,
+                parameters: this.generateSharedParams(),
             },
         } as OpenAPIV3_1.Document;
     }
@@ -103,6 +104,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             // Relation paths
             for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
                 if (!fieldDef.relation) continue;
+                if (!isModelIncluded(fieldDef.type, this.queryOptions)) continue;
                 const relModelDef = this.schema.models[fieldDef.type];
                 if (!relModelDef) continue;
                 const relIdFields = this.getIdFields(relModelDef);
@@ -114,7 +116,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                     fieldName,
                     fieldDef,
                     tag,
-                ) as any;
+                );
 
                 // Relationship management path
                 paths[`/${modelPath}/{id}/relationships/${fieldName}`] = this.buildRelationshipPath(
@@ -122,7 +124,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                     fieldName,
                     fieldDef,
                     tag,
-                ) as any;
+                );
             }
         }
 
@@ -131,15 +133,15 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             for (const [procName, procDef] of Object.entries(this.schema.procedures)) {
                 if (!isProcedureIncluded(procName, this.queryOptions)) continue;
                 const isMutation = !!procDef.mutation;
-                const pathItem: Record<string, any> = {};
-
                 if (isMutation) {
-                    pathItem['post'] = this.buildProcedureOperation(procName, 'post');
+                    paths[`/${PROCEDURE_ROUTE_PREFIXES}/${procName}`] = {
+                        post: this.buildProcedureOperation(procName, 'post'),
+                    } as OpenAPIV3_1.PathItemObject;
                 } else {
-                    pathItem['get'] = this.buildProcedureOperation(procName, 'get');
+                    paths[`/${PROCEDURE_ROUTE_PREFIXES}/${procName}`] = {
+                        get: this.buildProcedureOperation(procName, 'get'),
+                    } as OpenAPIV3_1.PathItemObject;
                 }
-
-                paths[`/${PROCEDURE_ROUTE_PREFIXES}/${procName}`] = pathItem as any;
             }
         }
 
@@ -702,6 +704,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
             if (fieldDef.omit) continue;
             if (isFieldOmitted(modelName, fieldName, this.queryOptions)) continue;
+            if (fieldDef.relation && !isModelIncluded(fieldDef.type, this.queryOptions)) continue;
 
             const schema = this.fieldToSchema(fieldDef);
             const fieldDescription = getMetaDescription(fieldDef.attributes);
@@ -738,6 +741,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             if (fieldDef.foreignKeyFor) continue;
             // Skip auto-generated id fields
             if (idFieldNames.has(fieldName) && fieldDef.default !== undefined) continue;
+            if (fieldDef.relation && !isModelIncluded(fieldDef.type, this.queryOptions)) continue;
 
             if (fieldDef.relation) {
                 relationships[fieldName] = fieldDef.array
@@ -799,6 +803,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             if (fieldDef.omit) continue;
             if (fieldDef.updatedAt) continue;
             if (fieldDef.foreignKeyFor) continue;
+            if (fieldDef.relation && !isModelIncluded(fieldDef.type, this.queryOptions)) continue;
 
             if (fieldDef.relation) {
                 relationships[fieldName] = fieldDef.array

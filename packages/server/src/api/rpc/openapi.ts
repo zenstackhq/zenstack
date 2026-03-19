@@ -68,7 +68,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 const argsSchemaName = `${modelName}${this.opToArgsSchema(op)}`;
                 paths[`/${modelPath}/${op}`] = {
                     get: this.buildGetOperation(modelName, op, tag, argsSchemaName),
-                } as any;
+                } as OpenAPIV3_1.PathItemObject;
             }
 
             // Write operations
@@ -137,15 +137,15 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 if (!isProcedureIncluded(procName, this.queryOptions)) continue;
 
                 const isMutation = !!procDef.mutation;
-                const pathItem: Record<string, any> = {};
-
                 if (isMutation) {
-                    pathItem['post'] = this.buildProcedureOperation(procName, 'post');
+                    paths[`/${PROCEDURE_ROUTE_PREFIXES}/${procName}`] = {
+                        post: this.buildProcedureOperation(procName, 'post'),
+                    } as OpenAPIV3_1.PathItemObject;
                 } else {
-                    pathItem['get'] = this.buildProcedureOperation(procName, 'get');
+                    paths[`/${PROCEDURE_ROUTE_PREFIXES}/${procName}`] = {
+                        get: this.buildProcedureOperation(procName, 'get'),
+                    } as OpenAPIV3_1.PathItemObject;
                 }
-
-                paths[`/${PROCEDURE_ROUTE_PREFIXES}/${procName}`] = pathItem as any;
             }
         }
 
@@ -457,7 +457,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
 
         // Unique fields
         for (const [uniqueName, uniqueInfo] of Object.entries(modelDef.uniqueFields)) {
-            if (typeof (uniqueInfo as any).type === 'string') {
+            if ('type' in uniqueInfo && typeof uniqueInfo.type === 'string') {
                 // Single unique field
                 const fieldDef = modelDef.fields[uniqueName];
                 if (fieldDef && !properties[uniqueName]) {
