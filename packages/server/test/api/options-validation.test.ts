@@ -202,6 +202,202 @@ describe('API Handler Options Validation', () => {
             }).toThrow('Invalid options');
         });
 
+        it('should throw error when nestedRoutes is not an object', () => {
+            expect(() => {
+                new RestApiHandler({
+                    schema: client.$schema,
+                    endpoint: 'http://localhost/api',
+                    nestedRoutes: 'invalid' as any,
+                });
+            }).toThrow('Invalid options');
+        });
+
+        it('should throw error when nestedRoutes config value is invalid type', () => {
+            expect(() => {
+                new RestApiHandler({
+                    schema: client.$schema,
+                    endpoint: 'http://localhost/api',
+                    nestedRoutes: {
+                        User: {
+                            posts: {
+                                requireOrphanProtection: 'yes',
+                            },
+                        },
+                    } as any,
+                });
+            }).toThrow('Invalid options');
+        });
+
+        describe('nestedRoutes semantic validation', () => {
+            let relClient: ClientContract<SchemaDef>;
+
+            const relSchema = `
+                model User {
+                    id String @id @default(cuid())
+                    email String @unique
+                    posts Post[]
+                }
+                model Post {
+                    id Int @id @default(autoincrement())
+                    title String
+                    author User @relation(fields: [authorId], references: [id])
+                    authorId String
+                }
+            `;
+
+            beforeEach(async () => {
+                relClient = await createTestClient(relSchema);
+            });
+
+            it('should throw when parent model does not exist in schema', () => {
+                expect(() => {
+                    new RestApiHandler({
+                        schema: relClient.$schema,
+                        endpoint: 'http://localhost/api',
+                        nestedRoutes: {
+                            NonExistent: { posts: {} },
+                        },
+                    });
+                }).toThrow('Invalid nestedRoutes');
+            });
+
+            it('should throw when relation field does not exist on parent model', () => {
+                expect(() => {
+                    new RestApiHandler({
+                        schema: relClient.$schema,
+                        endpoint: 'http://localhost/api',
+                        nestedRoutes: {
+                            User: { nonExistentRelation: {} },
+                        },
+                    });
+                }).toThrow('Invalid nestedRoutes');
+            });
+
+            it('should throw when relation is to-one', () => {
+                expect(() => {
+                    new RestApiHandler({
+                        schema: relClient.$schema,
+                        endpoint: 'http://localhost/api',
+                        nestedRoutes: {
+                            Post: { author: {} },
+                        },
+                    });
+                }).toThrow('Invalid nestedRoutes');
+            });
+
+            it('should accept valid to-many nestedRoutes configuration', () => {
+                expect(() => {
+                    new RestApiHandler({
+                        schema: relClient.$schema,
+                        endpoint: 'http://localhost/api',
+                        nestedRoutes: {
+                            User: { posts: {} },
+                        },
+                    });
+                }).not.toThrow();
+            });
+
+            describe('requireOrphanProtection', () => {
+                it('should throw when requireOrphanProtection is true and onDelete is not set', () => {
+                    // relSchema has no onDelete on Post.author
+                    expect(() => {
+                        new RestApiHandler({
+                            schema: relClient.$schema,
+                            endpoint: 'http://localhost/api',
+                            nestedRoutes: {
+                                User: { posts: { requireOrphanProtection: true } },
+                            },
+                        });
+                    }).toThrow('requireOrphanProtection');
+                });
+
+                it('should throw when requireOrphanProtection is true and onDelete is SetNull', async () => {
+                    const c = await createTestClient(`
+                        model User {
+                            id String @id @default(cuid())
+                            posts Post[]
+                        }
+                        model Post {
+                            id Int @id @default(autoincrement())
+                            title String
+                            author User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+                            authorId String?
+                        }
+                    `);
+                    expect(() => {
+                        new RestApiHandler({
+                            schema: c.$schema,
+                            endpoint: 'http://localhost/api',
+                            nestedRoutes: {
+                                User: { posts: { requireOrphanProtection: true } },
+                            },
+                        });
+                    }).toThrow('requireOrphanProtection');
+                });
+
+                it('should accept when requireOrphanProtection is true and onDelete is Cascade', async () => {
+                    const c = await createTestClient(`
+                        model User {
+                            id String @id @default(cuid())
+                            posts Post[]
+                        }
+                        model Post {
+                            id Int @id @default(autoincrement())
+                            title String
+                            author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+                            authorId String
+                        }
+                    `);
+                    expect(() => {
+                        new RestApiHandler({
+                            schema: c.$schema,
+                            endpoint: 'http://localhost/api',
+                            nestedRoutes: {
+                                User: { posts: { requireOrphanProtection: true } },
+                            },
+                        });
+                    }).not.toThrow();
+                });
+
+                it('should accept when requireOrphanProtection is true and onDelete is Restrict', async () => {
+                    const c = await createTestClient(`
+                        model User {
+                            id String @id @default(cuid())
+                            posts Post[]
+                        }
+                        model Post {
+                            id Int @id @default(autoincrement())
+                            title String
+                            author User @relation(fields: [authorId], references: [id], onDelete: Restrict)
+                            authorId String
+                        }
+                    `);
+                    expect(() => {
+                        new RestApiHandler({
+                            schema: c.$schema,
+                            endpoint: 'http://localhost/api',
+                            nestedRoutes: {
+                                User: { posts: { requireOrphanProtection: true } },
+                            },
+                        });
+                    }).not.toThrow();
+                });
+
+                it('should not check orphan protection when requireOrphanProtection is not set', () => {
+                    // relSchema has no onDelete — still fine without the flag
+                    expect(() => {
+                        new RestApiHandler({
+                            schema: relClient.$schema,
+                            endpoint: 'http://localhost/api',
+                            nestedRoutes: {
+                                User: { posts: {} },
+                            },
+                        });
+                    }).not.toThrow();
+                });
+            });
+        });
+
         it('should throw error when log is invalid type', () => {
             expect(() => {
                 new RestApiHandler({
