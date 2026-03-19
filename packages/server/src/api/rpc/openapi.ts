@@ -1,6 +1,7 @@
 import { lowerCaseFirst, upperCaseFirst } from '@zenstackhq/common-helpers';
 import type { EnumDef, FieldDef, ModelDef, SchemaDef } from '@zenstackhq/orm/schema';
 import type { OpenAPIV3_1 } from 'openapi-types';
+import type { RPCApiHandlerOptions } from '.';
 import { PROCEDURE_ROUTE_PREFIXES } from '../common/procedures';
 import {
     getIncludedModels,
@@ -10,7 +11,6 @@ import {
     isProcedureIncluded,
 } from '../common/spec-utils';
 import type { OpenApiSpecOptions } from '../common/types';
-import type { RPCApiHandlerOptions } from './handler';
 
 type SchemaObject = OpenAPIV3_1.SchemaObject;
 type ReferenceObject = OpenAPIV3_1.ReferenceObject;
@@ -685,11 +685,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         return baseSchema;
     }
 
-    private buildFieldFilterSchema(
-        modelName: string,
-        fieldName: string,
-        fieldDef: FieldDef,
-    ): SchemaObject | undefined {
+    private buildFieldFilterSchema(modelName: string, fieldName: string, fieldDef: FieldDef): SchemaObject | undefined {
         const baseSchema = this.typeToSchema(fieldDef.type);
         const filterProps: Record<string, SchemaObject | ReferenceObject> = {};
         const type = fieldDef.type;
