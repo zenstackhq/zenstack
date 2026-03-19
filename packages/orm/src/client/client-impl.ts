@@ -164,7 +164,8 @@ export class ClientImpl {
         for (const [modelName, modelDef] of Object.entries(this.$schema.models)) {
             if (modelDef.computedFields) {
                 for (const fieldName of Object.keys(modelDef.computedFields)) {
-                    const modelConfig = computedFieldsConfig?.[modelName];
+                    // check both uncapitalized (current) and original (backward compat) model name
+                    const modelConfig = computedFieldsConfig?.[lowerCaseFirst(modelName)] ?? computedFieldsConfig?.[modelName];
                     const fieldConfig = modelConfig?.[fieldName];
                     // Check if the computed field has a configuration
                     if (fieldConfig === null || fieldConfig === undefined) {

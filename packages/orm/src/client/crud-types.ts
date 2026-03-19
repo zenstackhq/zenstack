@@ -121,10 +121,10 @@ type OptionsLevelOmit<
     Model extends GetModels<Schema>,
     Field extends GetModelFields<Schema, Model>,
     Options extends QueryOptions<Schema>,
-> = Model extends keyof Options['omit']
-    ? Field extends keyof Options['omit'][Model]
-        ? Options['omit'][Model][Field] extends boolean
-            ? Options['omit'][Model][Field]
+> = Uncapitalize<Model> extends keyof Options['omit']
+    ? Field extends keyof Options['omit'][Uncapitalize<Model>]
+        ? Options['omit'][Uncapitalize<Model>][Field] extends boolean
+            ? Options['omit'][Uncapitalize<Model>][Field]
             : undefined
         : undefined
     : undefined;
