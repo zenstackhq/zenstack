@@ -1,5 +1,5 @@
 datasource db {
-    provider = 'sqlite'
+    provider = 'postgresql'
 }
 
 enum Status {
@@ -42,20 +42,21 @@ model User {
 }
 
 model Post {
-    id        String  @id @default(cuid())
+    id        String   @id @default(cuid())
     title     String
     published Boolean
-    author    User?   @relation(fields: [authorId], references: [id])
+    tags      String[]
+    author    User?    @relation(fields: [authorId], references: [id])
     authorId  String?
 }
 
 // --- Computed fields ---
 model Product {
-    id          String @id @default(cuid())
-    name        String
-    price       Float
-    discount    Float  @default(0)
-    finalPrice  Float  @computed
+    id         String @id @default(cuid())
+    name       String
+    price      Float
+    discount   Float  @default(0)
+    finalPrice Float  @computed
 }
 
 // --- Delegate models ---
