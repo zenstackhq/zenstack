@@ -58,7 +58,10 @@ export type GetModelCreateFieldsShape<Schema extends SchemaDef, Model extends Ge
           : FieldIsDelegateDiscriminator<Schema, Model, Field> extends true
             ? never
             : Field]: ZodOptionalIf<
-        ZodOptionalAndNullableIf<MapModelFieldToZod<Schema, Model, Field>, ModelFieldIsOptional<Schema, Model, Field>>,
+        ZodOptionalAndNullableIf<
+            ZodArrayIf<MapModelFieldToZod<Schema, Model, Field>, FieldIsArray<Schema, Model, Field>>,
+            ModelFieldIsOptional<Schema, Model, Field>
+        >,
         FieldHasDefault<Schema, Model, Field>
     >;
 };
@@ -71,7 +74,10 @@ export type GetModelUpdateFieldsShape<Schema extends SchemaDef, Model extends Ge
           : FieldIsDelegateDiscriminator<Schema, Model, Field> extends true
             ? never
             : Field]: z.ZodOptional<
-        ZodOptionalAndNullableIf<MapModelFieldToZod<Schema, Model, Field>, ModelFieldIsOptional<Schema, Model, Field>>
+        ZodOptionalAndNullableIf<
+            ZodArrayIf<MapModelFieldToZod<Schema, Model, Field>, FieldIsArray<Schema, Model, Field>>,
+            ModelFieldIsOptional<Schema, Model, Field>
+        >
     >;
 };
 
