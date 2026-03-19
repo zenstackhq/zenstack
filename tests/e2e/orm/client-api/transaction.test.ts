@@ -101,6 +101,45 @@ describe('Client raw query tests', () => {
 
             await expect(client.user.findMany()).toResolveWithLength(0);
         });
+
+        it('$unuseAll preserves transaction isolation', async () => {
+            await expect(
+                client.$transaction(async (tx) => {
+                    await tx.$unuseAll().user.create({
+                        data: { email: 'u1@test.com' },
+                    });
+                    throw new Error('rollback');
+                }),
+            ).rejects.toThrow('rollback');
+
+            await expect(client.user.findMany()).toResolveWithLength(0);
+        });
+
+        it('$unuse preserves transaction isolation', async () => {
+            await expect(
+                client.$transaction(async (tx) => {
+                    await tx.$unuse('nonexistent').user.create({
+                        data: { email: 'u1@test.com' },
+                    });
+                    throw new Error('rollback');
+                }),
+            ).rejects.toThrow('rollback');
+
+            await expect(client.user.findMany()).toResolveWithLength(0);
+        });
+
+        it('$use preserves transaction isolation', async () => {
+            await expect(
+                client.$transaction(async (tx) => {
+                    await (tx as any).$use({ id: 'noop', handle: (_node: any, proceed: any) => proceed(_node) }).user.create({
+                        data: { email: 'u1@test.com' },
+                    });
+                    throw new Error('rollback');
+                }),
+            ).rejects.toThrow('rollback');
+
+            await expect(client.user.findMany()).toResolveWithLength(0);
+        });
     });
 
     describe('sequential transaction', () => {

@@ -378,6 +378,10 @@ export class ClientImpl {
         newClient.inputValidator = new InputValidator(newClient as any, {
             enabled: newOptions.validateInput !== false,
         });
+        // preserve transaction state so the new client stays in the same transaction
+        if (this.kysely.isTransaction) {
+            newClient.kysely = this.kysely;
+        }
         return newClient;
     }
 
@@ -399,6 +403,10 @@ export class ClientImpl {
         newClient.inputValidator = new InputValidator(newClient as any, {
             enabled: newClient.$options.validateInput !== false,
         });
+        // preserve transaction state so the new client stays in the same transaction
+        if (this.kysely.isTransaction) {
+            newClient.kysely = this.kysely;
+        }
         return newClient;
     }
 
@@ -414,6 +422,10 @@ export class ClientImpl {
         newClient.inputValidator = new InputValidator(newClient as any, {
             enabled: newOptions.validateInput !== false,
         });
+        // preserve transaction state so the new client stays in the same transaction
+        if (this.kysely.isTransaction) {
+            newClient.kysely = this.kysely;
+        }
         return newClient;
     }
 
