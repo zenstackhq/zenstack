@@ -31,6 +31,7 @@ const validPost = {
     title: 'My First Post',
     published: true,
     authorId: null,
+    tags: ['announcement', 'update'],
 };
 
 describe('SchemaFactory - makeModelSchema', () => {
@@ -102,6 +103,9 @@ describe('SchemaFactory - makeModelSchema', () => {
 
             // optional scalar (foreign key)
             expectTypeOf<Post['authorId']>().toEqualTypeOf<string | null | undefined>();
+
+            // scalar array
+            expectTypeOf<Post['tags']>().toEqualTypeOf<string[]>();
 
             // optional relation field present in type
             expectTypeOf<Post>().toHaveProperty('author');
