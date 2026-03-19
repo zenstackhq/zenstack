@@ -8,7 +8,7 @@ async function main() {
     const db = new ZenStackClient(schema, {
         dialect: new SqliteDialect({ database: new SQLite('./zenstack/dev.db') }),
         computedFields: {
-            User: {
+            user: {
                 postCount: (eb, { modelAlias }) =>
                     eb
                         .selectFrom('Post')

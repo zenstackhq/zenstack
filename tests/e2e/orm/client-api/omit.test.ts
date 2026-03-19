@@ -37,7 +37,7 @@ describe('Field omission tests', () => {
     });
 
     it('respects client omit options', async () => {
-        const options = { omit: { User: { name: true } }, dialect: {} as any } as const;
+        const options = { omit: { user: { name: true } }, dialect: {} as any } as const;
         const db = await createTestClient<typeof schema, typeof options>(schema, options);
 
         const user = await db.user.create({
@@ -66,7 +66,7 @@ describe('Field omission tests', () => {
 
     it('allows override at query options level', async () => {
         // override schema-level omit
-        const options = { omit: { User: { password: false } }, dialect: {} as any } as const;
+        const options = { omit: { user: { password: false } }, dialect: {} as any } as const;
         const db = await createTestClient<typeof schema, typeof options>(schema, options);
         const user1 = await db.user.create({
             data: {
@@ -114,7 +114,7 @@ describe('Field omission tests', () => {
 
     it('allows override at query level', async () => {
         // override options-level omit
-        const options = { omit: { User: { name: true } }, dialect: {} as any } as const;
+        const options = { omit: { user: { name: true } }, dialect: {} as any } as const;
         const db = await createTestClient<typeof schema, typeof options>(schema, options);
         const user5 = await db.user.create({
             data: { id: 2, name: 'User2', password: 'abc' },

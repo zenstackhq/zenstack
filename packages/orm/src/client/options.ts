@@ -252,13 +252,13 @@ export type ClientOptions<Schema extends SchemaDef> = QueryOptions<Schema> & {
  * Config for omitting fields in ORM query results.
  */
 export type OmitConfig<Schema extends SchemaDef> = {
-    [Model in GetModels<Schema>]?: {
+    [Model in GetModels<Schema> as Uncapitalize<Model>]?: {
         [Field in GetModelFields<Schema, Model> as Field extends ScalarFields<Schema, Model> ? Field : never]?: boolean;
     };
 };
 
 export type ComputedFieldsOptions<Schema extends SchemaDef> = {
-    [Model in GetModels<Schema> as 'computedFields' extends keyof GetModel<Schema, Model> ? Model : never]: {
+    [Model in GetModels<Schema> as 'computedFields' extends keyof GetModel<Schema, Model> ? Uncapitalize<Model> : never]: {
         [Field in keyof Schema['models'][Model]['computedFields']]: Schema['models'][Model]['computedFields'][Field] extends infer Func
             ? Func extends (...args: any[]) => infer R
                 ? (

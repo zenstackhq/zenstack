@@ -1,4 +1,4 @@
-import { enumerate, invariant, isPlainObject } from '@zenstackhq/common-helpers';
+import { enumerate, invariant, isPlainObject, lowerCaseFirst } from '@zenstackhq/common-helpers';
 import type { AliasableExpression, Expression, ExpressionBuilder, ExpressionWrapper, SqlBool, ValueNode } from 'kysely';
 import { expressionBuilder, sql, type SelectQueryBuilder } from 'kysely';
 import { match, P } from 'ts-pattern';
@@ -1160,12 +1160,12 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             return (omit as any)[field];
         }
 
-        if (
-            this.options.omit?.[model] &&
-            typeof this.options.omit[model] === 'object' &&
-            typeof (this.options.omit[model] as any)[field] === 'boolean'
-        ) {
-            return (this.options.omit[model] as any)[field];
+        // client-level: check both uncapitalized (current) and original (backward compat) model name
+        const uncapModel = lowerCaseFirst(model);
+        const omitConfig = (this.options.omit as Record<string, any> | undefined)?.[uncapModel] ??
+            (this.options.omit as Record<string, any> | undefined)?.[model];
+        if (omitConfig && typeof omitConfig === 'object' && typeof omitConfig[field] === 'boolean') {
+            return omitConfig[field];
         }
 
         // schema-level
@@ -1355,7 +1355,9 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             let computer: Function | undefined;
             if ('computedFields' in this.options) {
                 const computedFields = this.options.computedFields as Record<string, any>;
-                computer = computedFields?.[fieldDef.originModel ?? model]?.[field];
+                // check both uncapitalized (current) and original (backward compat) model name
+                const computedModel = fieldDef.originModel ?? model;
+                computer = computedFields?.[lowerCaseFirst(computedModel)]?.[field] ?? computedFields?.[computedModel]?.[field];
             }
             if (!computer) {
                 throw createConfigError(`Computed field "${field}" implementation not provided for model "${model}"`);

@@ -191,7 +191,7 @@ model User {
 `,
             {
                 computedFields: {
-                    User: {
+                    user: {
                         upperName: (eb: any) => eb.fn('upper', ['name']),
                     },
                 },
@@ -204,7 +204,7 @@ async function main() {
     const client = new ZenStackClient(schema, {
         dialect: {} as any,
         computedFields: {
-            User: {
+            user: {
                 upperName: (eb) => eb.fn('upper', ['name']),
             },
         }
@@ -263,7 +263,7 @@ model User {
 `,
             {
                 computedFields: {
-                    User: {
+                    user: {
                         upperName: (eb: any) => eb.lit(null),
                     },
                 },
@@ -276,7 +276,7 @@ async function main() {
     const client = new ZenStackClient(schema, {
         dialect: {} as any,
         computedFields: {
-            User: {
+            user: {
                 upperName: (eb) => eb.lit(null),
             },
         }
