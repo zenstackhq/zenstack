@@ -68,26 +68,13 @@ export type RestApiHandlerOptions<Schema extends SchemaDef = SchemaDef> = {
     externalIdMapping?: Record<string, string>;
 
     /**
-     * Explicit nested route configuration.
+     * When `true`, enables nested route handling for all to-many relations:
+     * `/:parentType/:parentId/:relationName` (collection) and
+     * `/:parentType/:parentId/:relationName/:childId` (single).
      *
-     * First-level keys are parent model names, second-level keys are relation field names on the parent model
-     * (e.g., `posts` for `User.posts`). This matches the URL segment used in nested routes:
-     * `/:parentType/:parentId/:relationName` and `/:parentType/:parentId/:relationName/:childId`.
+     * Defaults to `false`.
      */
-    nestedRoutes?: Record<
-        string,
-        Record<
-            string,
-            {
-                /**
-                 * When `true`, the constructor throws if the configured relation does not have an `onDelete`
-                 * action of `Cascade`, `Restrict`, or `NoAction` in the schema. This ensures the database
-                 * prevents orphaned child records when a parent is deleted.
-                 */
-                requireOrphanProtection?: boolean;
-            }
-        >
-    >;
+    nestedRoutes?: boolean;
 } & CommonHandlerOptions<Schema>;
 
 type RelationshipInfo = {
@@ -288,7 +275,7 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
     private modelNameMapping: Record<string, string>;
     private reverseModelNameMapping: Record<string, string>;
     private externalIdMapping: Record<string, string>;
-    private nestedRoutes: Record<string, Record<string, { requireOrphanProtection?: boolean }>>;
+    private nestedRoutes: boolean;
 
     constructor(private readonly options: RestApiHandlerOptions<Schema>) {
         this.validateOptions(options);
@@ -309,20 +296,11 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
             Object.entries(this.externalIdMapping).map(([k, v]) => [lowerCaseFirst(k), v]),
         );
 
-        this.nestedRoutes = options.nestedRoutes ?? {};
-        this.nestedRoutes = Object.fromEntries(
-            Object.entries(this.nestedRoutes).map(([parentModel, children]) => [
-                lowerCaseFirst(parentModel),
-                Object.fromEntries(
-                    Object.entries(children).map(([childModel, config]) => [lowerCaseFirst(childModel), config]),
-                ),
-            ]),
-        );
+        this.nestedRoutes = options.nestedRoutes ?? false;
 
         this.urlPatternMap = this.buildUrlPatternMap(segmentCharset);
 
         this.buildTypeMap();
-        this.validateNestedRoutes();
         this.buildSerializers();
     }
 
@@ -337,52 +315,11 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
             modelNameMapping: z.record(z.string(), z.string()).optional(),
             externalIdMapping: z.record(z.string(), z.string()).optional(),
             queryOptions: queryOptionsSchema.optional(),
-            nestedRoutes: z
-                .record(z.string(), z.record(z.string(), z.object({ requireOrphanProtection: z.boolean().optional() })))
-                .optional(),
+            nestedRoutes: z.boolean().optional(),
         });
         const parseResult = schema.safeParse(options);
         if (!parseResult.success) {
             throw new Error(`Invalid options: ${fromError(parseResult.error)}`);
-        }
-    }
-
-    private validateNestedRoutes() {
-        for (const [parentModel, relations] of Object.entries(this.nestedRoutes)) {
-            const parentInfo = this.getModelInfo(parentModel);
-            if (!parentInfo) {
-                throw new Error(`Invalid nestedRoutes: parent model "${parentModel}" not found in schema`);
-            }
-            for (const [relationName, config] of Object.entries(relations)) {
-                const parentField: FieldDef | undefined = this.schema.models[parentInfo.name]?.fields[relationName];
-                if (!parentField?.relation) {
-                    throw new Error(
-                        `Invalid nestedRoutes: relation "${relationName}" not found on parent model "${parentModel}"`,
-                    );
-                }
-                const reverseRelation = parentField.relation.opposite;
-                if (!reverseRelation) {
-                    throw new Error(
-                        `Invalid nestedRoutes: relation "${parentModel}.${relationName}" has no opposite relation defined`,
-                    );
-                }
-                if (!parentField.array) {
-                    throw new Error(
-                        `Invalid nestedRoutes: relation "${parentModel}.${relationName}" is a to-one relation — nested routes only support to-many relations`,
-                    );
-                }
-                if (config.requireOrphanProtection) {
-                    const childModelName = parentField.type;
-                    const onDelete = this.schema.models[childModelName]?.fields[reverseRelation]?.relation?.onDelete;
-                    const safeActions = ['Cascade', 'Restrict', 'NoAction'];
-                    if (!onDelete || !safeActions.includes(onDelete)) {
-                        throw new Error(
-                            `Invalid nestedRoutes: requireOrphanProtection is enabled for "${parentModel}.${relationName}" ` +
-                                `but its onDelete action is "${onDelete ?? 'not set'}" — must be Cascade, Restrict, or NoAction`,
-                        );
-                    }
-                }
-            }
         }
     }
 
@@ -418,10 +355,6 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
 
     private mapModelName(modelName: string): string {
         return this.modelNameMapping[modelName] ?? modelName;
-    }
-
-    private getNestedRouteConfig(parentType: string, parentRelation: string) {
-        return this.nestedRoutes[lowerCaseFirst(parentType)]?.[parentRelation];
     }
 
     /**
@@ -551,7 +484,7 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
 
                     // /:type/:id/:relationship/:childId — nested single read
                     match = this.matchUrlPattern(path, UrlPatterns.NESTED_SINGLE);
-                    if (match && this.getNestedRouteConfig(match.type, match.relationship)) {
+                    if (match && this.nestedRoutes && this.resolveNestedRelation(match.type, match.relationship)?.isCollection) {
                         return await this.processNestedSingleRead(
                             client,
                             match.type,
@@ -576,7 +509,7 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
                     }
                     // /:type/:id/:relationship — nested create
                     const nestedMatch = this.matchUrlPattern(path, UrlPatterns.FETCH_RELATIONSHIP);
-                    if (nestedMatch && this.getNestedRouteConfig(nestedMatch.type, nestedMatch.relationship)) {
+                    if (nestedMatch && this.nestedRoutes && this.resolveNestedRelation(nestedMatch.type, nestedMatch.relationship)?.isCollection) {
                         return await this.processNestedCreate(
                             client,
                             nestedMatch.type,
@@ -639,7 +572,8 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
                     const nestedPatchMatch = this.matchUrlPattern(path, UrlPatterns.NESTED_SINGLE);
                     if (
                         nestedPatchMatch &&
-                        this.getNestedRouteConfig(nestedPatchMatch.type, nestedPatchMatch.relationship)
+                        this.nestedRoutes &&
+                        this.resolveNestedRelation(nestedPatchMatch.type, nestedPatchMatch.relationship)?.isCollection
                     ) {
                         return await this.processNestedUpdate(
                             client,
@@ -678,7 +612,8 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
                     const nestedDeleteMatch = this.matchUrlPattern(path, UrlPatterns.NESTED_SINGLE);
                     if (
                         nestedDeleteMatch &&
-                        this.getNestedRouteConfig(nestedDeleteMatch.type, nestedDeleteMatch.relationship)
+                        this.nestedRoutes &&
+                        this.resolveNestedRelation(nestedDeleteMatch.type, nestedDeleteMatch.relationship)?.isCollection
                     ) {
                         return await this.processNestedDelete(
                             client,

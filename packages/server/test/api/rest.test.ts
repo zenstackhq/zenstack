@@ -3574,11 +3574,7 @@ mutation procedure sum(a: Int, b: Int): Int
             const api = new RestApiHandler({
                 schema: nestedClient.$schema,
                 endpoint: 'http://localhost/api',
-                nestedRoutes: {
-                    User: {
-                        posts: {},
-                    },
-                },
+                nestedRoutes: true,
             });
             nestedHandler = (args) => api.handleRequest({ ...args, url: new URL(`http://localhost/${args.path}`) });
         });
@@ -3986,9 +3982,7 @@ mutation procedure sum(a: Int, b: Int): Int
                 schema: nestedClient.$schema,
                 endpoint: 'http://localhost/api',
                 modelNameMapping: { User: 'users', Post: 'posts' },
-                nestedRoutes: {
-                    User: { posts: {} },
-                },
+                nestedRoutes: true,
             });
             const mappedHandler = (args: any) =>
                 mappedApi.handleRequest({ ...args, url: new URL(`http://localhost/${args.path}`) });
@@ -4066,9 +4060,7 @@ mutation procedure sum(a: Int, b: Int): Int
                 schema: nestedClient.$schema,
                 endpoint: 'http://localhost/api',
                 modelNameMapping: { User: 'users', Post: 'posts' },
-                nestedRoutes: {
-                    User: { posts: {} },
-                },
+                nestedRoutes: true,
             });
             const mappedHandler = (args: any) =>
                 mappedApi.handleRequest({ ...args, url: new URL(`http://localhost/${args.path}`) });
