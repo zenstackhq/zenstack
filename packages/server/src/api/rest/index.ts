@@ -809,6 +809,47 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
         return resp;
     }
 
+    /**
+     * Builds the ORM `args` object (include, select) shared by single-read operations.
+     * Returns the args to pass to findUnique/findFirst and the resolved `include` list for serialization,
+     * or an error response if query params are invalid.
+     */
+    private buildSingleReadArgs(
+        type: string,
+        query: Record<string, string | string[]> | undefined,
+    ): { args: any; include: string[] | undefined; error?: Response } {
+        const args: any = {};
+
+        // include IDs of relation fields so that they can be serialized
+        this.includeRelationshipIds(type, args, 'include');
+
+        // handle "include" query parameter
+        let include: string[] | undefined;
+        if (query?.['include']) {
+            const { select, error, allIncludes } = this.buildRelationSelect(type, query['include'], query);
+            if (error) {
+                return { args, include, error };
+            }
+            if (select) {
+                args.include = { ...args.include, ...select };
+            }
+            include = allIncludes;
+        }
+
+        // handle partial results for requested type
+        const { select, error } = this.buildPartialSelect(type, query);
+        if (error) return { args, include, error };
+        if (select) {
+            args.select = { ...select, ...args.select };
+            if (args.include) {
+                args.select = { ...args.select, ...args.include };
+                args.include = undefined;
+            }
+        }
+
+        return { args, include };
+    }
+
     private async processSingleRead(
         client: ClientContract<Schema>,
         type: string,
@@ -820,37 +861,10 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
             return this.makeUnsupportedModelError(type);
         }
 
-        const args: any = { where: this.makeIdFilter(typeInfo.idFields, resourceId) };
-
-        // include IDs of relation fields so that they can be serialized
-        this.includeRelationshipIds(type, args, 'include');
-
-        // handle "include" query parameter
-        let include: string[] | undefined;
-        if (query?.['include']) {
-            const { select, error, allIncludes } = this.buildRelationSelect(type, query['include'], query);
-            if (error) {
-                return error;
-            }
-            if (select) {
-                args.include = { ...args.include, ...select };
-            }
-            include = allIncludes;
-        }
-
-        // handle partial results for requested type
-        const { select, error } = this.buildPartialSelect(type, query);
+        const { args, include, error } = this.buildSingleReadArgs(type, query);
         if (error) return error;
-        if (select) {
-            args.select = { ...select, ...args.select };
-            if (args.include) {
-                args.select = {
-                    ...args.select,
-                    ...args.include,
-                };
-                args.include = undefined;
-            }
-        }
+
+        args.where = this.makeIdFilter(typeInfo.idFields, resourceId);
 
         const entity = await (client as any)[type].findUnique(args);
 
@@ -1161,28 +1175,10 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
         const childType = resolved.childType;
         const typeInfo = this.getModelInfo(childType)!;
 
-        const args: any = {
-            where: this.mergeFilters(this.makeIdFilter(typeInfo.idFields, childId), nestedFilter),
-        };
-        this.includeRelationshipIds(childType, args, 'include');
-
-        let include: string[] | undefined;
-        if (query?.['include']) {
-            const { select, error, allIncludes } = this.buildRelationSelect(childType, query['include'], query);
-            if (error) return error;
-            if (select) args.include = { ...args.include, ...select };
-            include = allIncludes;
-        }
-
-        const { select, error } = this.buildPartialSelect(childType, query);
+        const { args, include, error } = this.buildSingleReadArgs(childType, query);
         if (error) return error;
-        if (select) {
-            args.select = { ...select, ...args.select };
-            if (args.include) {
-                args.select = { ...args.select, ...args.include };
-                args.include = undefined;
-            }
-        }
+
+        args.where = this.mergeFilters(this.makeIdFilter(typeInfo.idFields, childId), nestedFilter);
 
         const entity = await (client as any)[childType].findFirst(args);
         if (!entity) return this.makeError('notFound');
