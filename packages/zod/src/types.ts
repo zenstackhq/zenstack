@@ -24,7 +24,7 @@ export type GetModelFieldsShape<Schema extends SchemaDef, Model extends GetModel
     [Field in GetModelFields<Schema, Model> as FieldIsRelation<Schema, Model, Field> extends true
         ? never
         : Field]: ZodOptionalAndNullableIf<
-        MapModelFieldToZod<Schema, Model, Field>,
+        ZodArrayIf<MapModelFieldToZod<Schema, Model, Field>, FieldIsArray<Schema, Model, Field>>,
         ModelFieldIsOptional<Schema, Model, Field>
     >;
 } & {
