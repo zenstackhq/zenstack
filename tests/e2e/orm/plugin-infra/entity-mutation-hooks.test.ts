@@ -691,6 +691,139 @@ describe('Entity mutation hooks tests', () => {
             await expect(client.user.findMany()).toResolveWithLength(0);
         });
     });
+
+    it('can use per-model hooks with typed entities', async () => {
+        let userBeforeEntities: any;
+        let postBeforeEntities: any;
+        let userAfterEntities: any;
+        let postAfterEntities: any;
+
+        const client = _client.$use({
+            id: 'test',
+            onEntityMutation: {
+                User: {
+                    async beforeEntityMutation(args) {
+                        expect(args.model).toBe('User');
+                        userBeforeEntities = await args.loadBeforeMutationEntities();
+                    },
+                    async afterEntityMutation(args) {
+                        expect(args.model).toBe('User');
+                        userAfterEntities = await args.loadAfterMutationEntities();
+                    },
+                },
+                Post: {
+                    async beforeEntityMutation(args) {
+                        expect(args.model).toBe('Post');
+                        postBeforeEntities = await args.loadBeforeMutationEntities();
+                    },
+                    async afterEntityMutation(args) {
+                        expect(args.model).toBe('Post');
+                        postAfterEntities = await args.loadAfterMutationEntities();
+                    },
+                },
+            },
+        });
+
+        const user = await client.user.create({
+            data: { email: 'u1@test.com' },
+        });
+
+        // User after hook should have fired, Post hooks should not
+        expect(userAfterEntities).toEqual([expect.objectContaining({ email: 'u1@test.com' })]);
+        expect(postAfterEntities).toBeUndefined();
+
+        await client.user.update({
+            where: { id: user.id },
+            data: { email: 'u2@test.com' },
+        });
+
+        // User before hook should have captured old entity
+        expect(userBeforeEntities).toEqual([expect.objectContaining({ email: 'u1@test.com' })]);
+        // User after hook should have captured new entity
+        expect(userAfterEntities).toEqual([expect.objectContaining({ email: 'u2@test.com' })]);
+        // Post hooks still untouched
+        expect(postBeforeEntities).toBeUndefined();
+    });
+
+    it('can combine per-model and catch-all hooks', async () => {
+        const catchAllModels: string[] = [];
+        const perModelModels: string[] = [];
+
+        const client = _client.$use({
+            id: 'test',
+            onEntityMutation: {
+                afterEntityMutation(args) {
+                    catchAllModels.push(args.model);
+                },
+                User: {
+                    afterEntityMutation(args) {
+                        perModelModels.push(args.model);
+                    },
+                },
+            },
+        });
+
+        await client.user.create({
+            data: { email: 'u1@test.com', posts: { create: { title: 'Post1' } } },
+        });
+
+        // catch-all fires for both User and Post
+        expect(catchAllModels).toContain('User');
+        expect(catchAllModels).toContain('Post');
+
+        // per-model fires only for User
+        expect(perModelModels).toEqual(['User']);
+    });
+
+    it('per-model hooks provide beforeMutationEntities in after hook', async () => {
+        let beforeEntitiesInAfterHook: any;
+
+        const client = _client.$use({
+            id: 'test',
+            onEntityMutation: {
+                User: {
+                    async beforeEntityMutation(args) {
+                        await args.loadBeforeMutationEntities();
+                    },
+                    async afterEntityMutation(args) {
+                        beforeEntitiesInAfterHook = args.beforeMutationEntities;
+                    },
+                },
+            },
+        });
+
+        const user = await client.user.create({
+            data: { email: 'u1@test.com' },
+        });
+        await client.user.update({
+            where: { id: user.id },
+            data: { email: 'u2@test.com' },
+        });
+
+        expect(beforeEntitiesInAfterHook).toEqual([expect.objectContaining({ email: 'u1@test.com' })]);
+    });
+
+    it('per-model hooks infer correct entity types', async () => {
+        const client = _client.$use({
+            id: 'test',
+            onEntityMutation: {
+                User: {
+                    async afterEntityMutation(args) {
+                        const entities = await args.loadAfterMutationEntities();
+                        if (entities) {
+                            // This access compiles without casts because entities is User[]
+                            const _email: string = entities[0].email;
+                            expect(_email).toBeTruthy();
+                        }
+                    },
+                },
+            },
+        });
+
+        await client.user.create({
+            data: { email: 'u1@test.com' },
+        });
+    });
 });
 
 describe('Entity mutation hooks - delegate model interaction', () => {
