@@ -423,12 +423,11 @@ enum PostStatus {
     });
 });
 
-describe('RPC OpenAPI spec generation - @@meta description', () => {
-    it('model @@meta description is used as schema description', async () => {
-        const metaSchema = `
+describe('RPC OpenAPI spec generation - @meta description', () => {
+    const metaSchema = `
 model User {
     id String @id @default(cuid())
-    email String @unique
+    email String @unique @meta("description", "The user's email address")
     @@meta("description", "A user of the system")
 }
 
@@ -437,6 +436,8 @@ model Post {
     title String
 }
 `;
+
+    it('model @@meta description is used as schema description', async () => {
         const client = await createTestClient(metaSchema);
         const handler = new RPCApiHandler({ schema: client.$schema });
         const s = await handler.generateSpec();
@@ -447,6 +448,18 @@ model Post {
         // Post has no @@meta description
         const postSchema = s.components?.schemas?.['Post'] as any;
         expect(postSchema.description).toBeUndefined();
+    });
+
+    it('field @meta description is used as field schema description', async () => {
+        const client = await createTestClient(metaSchema);
+        const handler = new RPCApiHandler({ schema: client.$schema });
+        const s = await handler.generateSpec();
+
+        const userSchema = s.components?.schemas?.['User'] as any;
+        expect(userSchema.properties['email'].description).toBe("The user's email address");
+
+        // id has no @meta description
+        expect(userSchema.properties['id'].description).toBeUndefined();
     });
 });
 

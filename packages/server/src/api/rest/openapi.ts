@@ -7,6 +7,7 @@ import {
     getMetaDescription,
     isFieldOmitted,
     isFilterKindIncluded,
+    isOperationIncluded,
     isProcedureIncluded,
 } from '../common/spec-utils';
 import type { OpenApiSpecOptions } from '../common/types';
@@ -88,10 +89,16 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             const tag = lowerCaseFirst(modelName);
 
             // Collection: GET (list) + POST (create)
-            paths[`/${modelPath}`] = this.buildCollectionPath(modelName, modelDef, tag) as any;
+            const collectionPath = this.buildCollectionPath(modelName, modelDef, tag);
+            if (Object.keys(collectionPath).length > 0) {
+                paths[`/${modelPath}`] = collectionPath;
+            }
 
             // Single resource: GET + PATCH + DELETE
-            paths[`/${modelPath}/{id}`] = this.buildSinglePath(modelName, tag) as any;
+            const singlePath = this.buildSinglePath(modelName, tag);
+            if (Object.keys(singlePath).length > 0) {
+                paths[`/${modelPath}/{id}`] = singlePath;
+            }
 
             // Relation paths
             for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
@@ -191,69 +198,83 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             },
         };
 
-        return { get: listOp, post: createOp };
+        const result: Record<string, any> = {};
+        if (isOperationIncluded(modelName, 'findMany', this.queryOptions)) {
+            result['get'] = listOp;
+        }
+        if (isOperationIncluded(modelName, 'create', this.queryOptions)) {
+            result['post'] = createOp;
+        }
+        return result;
     }
 
     private buildSinglePath(modelName: string, tag: string): Record<string, any> {
         const idParam = { $ref: '#/components/parameters/id' };
+        const result: Record<string, any> = {};
 
-        const getOp = {
-            tags: [tag],
-            summary: `Get a ${modelName} resource by ID`,
-            operationId: `get${modelName}`,
-            parameters: [idParam, { $ref: '#/components/parameters/include' }],
-            responses: {
-                '200': {
-                    description: `${modelName} resource`,
+        if (isOperationIncluded(modelName, 'findUnique', this.queryOptions)) {
+            result['get'] = {
+                tags: [tag],
+                summary: `Get a ${modelName} resource by ID`,
+                operationId: `get${modelName}`,
+                parameters: [idParam, { $ref: '#/components/parameters/include' }],
+                responses: {
+                    '200': {
+                        description: `${modelName} resource`,
+                        content: {
+                            'application/vnd.api+json': {
+                                schema: { $ref: `#/components/schemas/${modelName}Response` },
+                            },
+                        },
+                    },
+                    '404': { $ref: '#/components/schemas/_errorResponse' },
+                },
+            };
+        }
+
+        if (isOperationIncluded(modelName, 'update', this.queryOptions)) {
+            result['patch'] = {
+                tags: [tag],
+                summary: `Update a ${modelName} resource`,
+                operationId: `update${modelName}`,
+                parameters: [idParam],
+                requestBody: {
+                    required: true,
                     content: {
                         'application/vnd.api+json': {
-                            schema: { $ref: `#/components/schemas/${modelName}Response` },
+                            schema: { $ref: `#/components/schemas/${modelName}UpdateRequest` },
                         },
                     },
                 },
-                '404': { $ref: '#/components/schemas/_errorResponse' },
-            },
-        };
-
-        const patchOp = {
-            tags: [tag],
-            summary: `Update a ${modelName} resource`,
-            operationId: `update${modelName}`,
-            parameters: [idParam],
-            requestBody: {
-                required: true,
-                content: {
-                    'application/vnd.api+json': {
-                        schema: { $ref: `#/components/schemas/${modelName}UpdateRequest` },
-                    },
-                },
-            },
-            responses: {
-                '200': {
-                    description: `Updated ${modelName} resource`,
-                    content: {
-                        'application/vnd.api+json': {
-                            schema: { $ref: `#/components/schemas/${modelName}Response` },
+                responses: {
+                    '200': {
+                        description: `Updated ${modelName} resource`,
+                        content: {
+                            'application/vnd.api+json': {
+                                schema: { $ref: `#/components/schemas/${modelName}Response` },
+                            },
                         },
                     },
+                    '400': { $ref: '#/components/schemas/_errorResponse' },
+                    '404': { $ref: '#/components/schemas/_errorResponse' },
                 },
-                '400': { $ref: '#/components/schemas/_errorResponse' },
-                '404': { $ref: '#/components/schemas/_errorResponse' },
-            },
-        };
+            };
+        }
 
-        const deleteOp = {
-            tags: [tag],
-            summary: `Delete a ${modelName} resource`,
-            operationId: `delete${modelName}`,
-            parameters: [idParam],
-            responses: {
-                '200': { description: 'Deleted successfully' },
-                '404': { $ref: '#/components/schemas/_errorResponse' },
-            },
-        };
+        if (isOperationIncluded(modelName, 'delete', this.queryOptions)) {
+            result['delete'] = {
+                tags: [tag],
+                summary: `Delete a ${modelName} resource`,
+                operationId: `delete${modelName}`,
+                parameters: [idParam],
+                responses: {
+                    '200': { description: 'Deleted successfully' },
+                    '404': { $ref: '#/components/schemas/_errorResponse' },
+                },
+            };
+        }
 
-        return { get: getOp, patch: patchOp, delete: deleteOp };
+        return result;
     }
 
     private buildFetchRelatedPath(
@@ -683,6 +704,10 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             if (isFieldOmitted(modelName, fieldName, this.queryOptions)) continue;
 
             const schema = this.fieldToSchema(fieldDef);
+            const fieldDescription = getMetaDescription(fieldDef.attributes);
+            if (fieldDescription && !('$ref' in schema)) {
+                schema.description = fieldDescription;
+            }
             properties[fieldName] = schema;
 
             if (!fieldDef.optional && !fieldDef.array) {

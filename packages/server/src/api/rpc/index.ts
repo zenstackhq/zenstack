@@ -7,7 +7,7 @@ import z from 'zod';
 import { fromError } from 'zod-validation-error/v4';
 import type { ApiHandler, LogConfig, RequestContext, Response } from '../../types';
 import { getProcedureDef, mapProcedureArgs, PROCEDURE_ROUTE_PREFIXES } from '../common/procedures';
-import { loggerSchema } from '../common/schemas';
+import { loggerSchema, queryOptionsSchema } from '../common/schemas';
 import type { CommonHandlerOptions, OpenApiSpecGenerator } from '../common/types';
 import { processSuperJsonRequestPayload, unmarshalQ } from '../common/utils';
 import { log, registerCustomSerializers } from '../utils';
@@ -45,7 +45,7 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
         const schema = z.strictObject({
             schema: z.object(),
             log: loggerSchema.optional(),
-            queryOptions: z.object().optional(),
+            queryOptions: queryOptionsSchema.optional(),
         });
         const parseResult = schema.safeParse(options);
         if (!parseResult.success) {

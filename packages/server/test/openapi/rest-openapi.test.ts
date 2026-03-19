@@ -279,6 +279,101 @@ describe('REST OpenAPI spec generation - queryOptions', () => {
         expect(s.paths?.['/post']).toBeUndefined();
     });
 
+    it('slicing excludedOperations removes HTTP methods from paths', async () => {
+        const client = await createTestClient(schema);
+        const handler = new RestApiHandler({
+            schema: client.$schema,
+            endpoint: 'http://localhost/api',
+            queryOptions: {
+                slicing: {
+                    models: {
+                        post: { excludedOperations: ['create', 'delete'] },
+                    },
+                } as any,
+            },
+        });
+        const s = await handler.generateSpec();
+
+        // Collection path: GET (findMany) should exist, POST (create) should not
+        expect((s.paths as any)['/post'].get).toBeDefined();
+        expect((s.paths as any)['/post'].post).toBeUndefined();
+
+        // Single path: GET (findUnique) and PATCH (update) should exist, DELETE should not
+        expect((s.paths as any)['/post/{id}'].get).toBeDefined();
+        expect((s.paths as any)['/post/{id}'].patch).toBeDefined();
+        expect((s.paths as any)['/post/{id}'].delete).toBeUndefined();
+    });
+
+    it('slicing excludedOperations on all CRUD ops removes paths entirely', async () => {
+        const client = await createTestClient(schema);
+        const handler = new RestApiHandler({
+            schema: client.$schema,
+            endpoint: 'http://localhost/api',
+            queryOptions: {
+                slicing: {
+                    models: {
+                        post: { excludedOperations: ['findMany', 'create', 'findUnique', 'update', 'delete'] },
+                    },
+                } as any,
+            },
+        });
+        const s = await handler.generateSpec();
+
+        // Both collection and single paths should be absent (empty path objects are not emitted)
+        expect(s.paths?.['/post']).toBeUndefined();
+        expect(s.paths?.['/post/{id}']).toBeUndefined();
+    });
+
+    it('slicing includedOperations limits HTTP methods in paths', async () => {
+        const client = await createTestClient(schema);
+        const handler = new RestApiHandler({
+            schema: client.$schema,
+            endpoint: 'http://localhost/api',
+            queryOptions: {
+                slicing: {
+                    models: {
+                        post: { includedOperations: ['findMany', 'findUnique'] },
+                    },
+                } as any,
+            },
+        });
+        const s = await handler.generateSpec();
+
+        // Collection: only GET
+        expect((s.paths as any)['/post'].get).toBeDefined();
+        expect((s.paths as any)['/post'].post).toBeUndefined();
+
+        // Single: only GET
+        expect((s.paths as any)['/post/{id}'].get).toBeDefined();
+        expect((s.paths as any)['/post/{id}'].patch).toBeUndefined();
+        expect((s.paths as any)['/post/{id}'].delete).toBeUndefined();
+    });
+
+    it('slicing $all excludedOperations applies to all models', async () => {
+        const client = await createTestClient(schema);
+        const handler = new RestApiHandler({
+            schema: client.$schema,
+            endpoint: 'http://localhost/api',
+            queryOptions: {
+                slicing: {
+                    models: {
+                        $all: { excludedOperations: ['delete'] },
+                    },
+                } as any,
+            },
+        });
+        const s = await handler.generateSpec();
+
+        // DELETE should be absent on all models
+        expect((s.paths as any)['/user/{id}'].delete).toBeUndefined();
+        expect((s.paths as any)['/post/{id}'].delete).toBeUndefined();
+        expect((s.paths as any)['/comment/{id}'].delete).toBeUndefined();
+
+        // Other methods should still exist
+        expect((s.paths as any)['/user/{id}'].get).toBeDefined();
+        expect((s.paths as any)['/user/{id}'].patch).toBeDefined();
+    });
+
     it('slicing excludedFilterKinds removes filter params for a field', async () => {
         const client = await createTestClient(schema);
         const handler = new RestApiHandler({
@@ -433,12 +528,11 @@ describe('REST OpenAPI spec generation - queryOptions', () => {
     });
 });
 
-describe('REST OpenAPI spec generation - @@meta description', () => {
-    it('model @@meta description is used as schema description', async () => {
-        const metaSchema = `
+describe('REST OpenAPI spec generation - @meta description', () => {
+    const metaSchema = `
 model User {
     id String @id @default(cuid())
-    email String @unique
+    email String @unique @meta("description", "The user's email address")
     @@meta("description", "A user of the system")
 }
 
@@ -447,6 +541,8 @@ model Post {
     title String
 }
 `;
+
+    it('model @@meta description is used as schema description', async () => {
         const client = await createTestClient(metaSchema);
         const handler = new RestApiHandler({
             schema: client.$schema,
@@ -460,6 +556,21 @@ model Post {
         // Post has no @@meta description
         const postSchema = s.components?.schemas?.['Post'] as any;
         expect(postSchema.description).toBeUndefined();
+    });
+
+    it('field @meta description is used as field schema description', async () => {
+        const client = await createTestClient(metaSchema);
+        const handler = new RestApiHandler({
+            schema: client.$schema,
+            endpoint: 'http://localhost/api',
+        });
+        const s = await handler.generateSpec();
+
+        const userSchema = s.components?.schemas?.['User'] as any;
+        expect(userSchema.properties['email'].description).toBe("The user's email address");
+
+        // id has no @meta description
+        expect(userSchema.properties['id'].description).toBeUndefined();
     });
 });
 

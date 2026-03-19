@@ -10,7 +10,7 @@ import z from 'zod';
 import { fromError } from 'zod-validation-error/v4';
 import type { ApiHandler, LogConfig, RequestContext, Response } from '../../types';
 import { getProcedureDef, mapProcedureArgs } from '../common/procedures';
-import { loggerSchema } from '../common/schemas';
+import { loggerSchema, queryOptionsSchema } from '../common/schemas';
 import type { CommonHandlerOptions, OpenApiSpecGenerator, OpenApiSpecOptions } from '../common/types';
 import { processSuperJsonRequestPayload } from '../common/utils';
 import { getZodErrorMessage, log, registerCustomSerializers } from '../utils';
@@ -300,7 +300,7 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
             urlSegmentCharset: z.string().min(1).optional(),
             modelNameMapping: z.record(z.string(), z.string()).optional(),
             externalIdMapping: z.record(z.string(), z.string()).optional(),
-            queryOptions: z.object().optional(),
+            queryOptions: queryOptionsSchema.optional(),
         });
         const parseResult = schema.safeParse(options);
         if (!parseResult.success) {

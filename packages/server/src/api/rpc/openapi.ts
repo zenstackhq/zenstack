@@ -381,7 +381,12 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
             if (fieldDef.omit) continue;
             if (isFieldOmitted(modelName, fieldName, this.queryOptions)) continue;
-            properties[fieldName] = this.fieldToSchema(fieldDef);
+            const schema = this.fieldToSchema(fieldDef);
+            const fieldDescription = getMetaDescription(fieldDef.attributes);
+            if (fieldDescription && !('$ref' in schema)) {
+                schema.description = fieldDescription;
+            }
+            properties[fieldName] = schema;
             if (!fieldDef.optional && !fieldDef.array) {
                 required.push(fieldName);
             }

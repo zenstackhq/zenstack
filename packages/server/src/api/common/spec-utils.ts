@@ -104,11 +104,11 @@ export function getMetaDescription(attributes: readonly AttributeApplication[] |
     if (!attributes) return undefined;
     for (const attr of attributes) {
         if (attr.name !== '@meta' && attr.name !== '@@meta') continue;
-        const nameExpr = attr.args?.[0]?.value;
-        if (!nameExpr || ExpressionUtils.getLiteralValue(nameExpr) !== 'description') continue;
-        const valueExpr = attr.args?.[1]?.value;
-        if (valueExpr) {
-            return ExpressionUtils.getLiteralValue(valueExpr) as string | undefined;
+        const nameArg = attr.args?.find((a) => a.name === 'name');
+        if (!nameArg || ExpressionUtils.getLiteralValue(nameArg.value) !== 'description') continue;
+        const valueArg = attr.args?.find((a) => a.name === 'value');
+        if (valueArg) {
+            return ExpressionUtils.getLiteralValue(valueArg.value) as string | undefined;
         }
     }
     return undefined;
