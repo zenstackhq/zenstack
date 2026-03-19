@@ -8,6 +8,7 @@ import {
     getMetaDescription,
     isFieldOmitted,
     isFilterKindIncluded,
+    isModelIncluded,
     isOperationIncluded,
     isProcedureIncluded,
 } from '../common/spec-utils';
@@ -163,6 +164,12 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
 
     private opToArgsSchema(op: string): string {
         return upperCaseFirst(op) + 'Args';
+    }
+
+    private modelHasRelations(modelName: string): boolean {
+        const modelDef = this.schema.models[modelName];
+        if (!modelDef) return false;
+        return Object.values(modelDef.fields).some((f) => f.relation);
     }
 
     private buildGetOperation(modelName: string, op: string, tag: string, argsSchemaName: string): Record<string, any> {
@@ -356,10 +363,17 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             schemas[`${modelName}UpdateInput`] = this.buildUpdateInputSchema(modelName, modelDef);
             schemas[`${modelName}WhereUniqueInput`] = this.buildWhereUniqueInputSchema(modelName, modelDef);
             schemas[`${modelName}WhereInput`] = this.buildWhereInputSchema(modelName, modelDef);
+            schemas[`${modelName}Select`] = this.buildSelectSchema(modelName, modelDef);
+            if (this.modelHasRelations(modelName)) {
+                schemas[`${modelName}Include`] = this.buildIncludeSchema(modelName, modelDef);
+            }
+            schemas[`${modelName}Omit`] = this.buildOmitSchema(modelName, modelDef);
             schemas[`${modelName}CreateArgs`] = this.buildCreateArgsSchema(modelName);
             schemas[`${modelName}CreateManyArgs`] = this.buildCreateManyArgsSchema(modelName);
+            schemas[`${modelName}CreateManyAndReturnArgs`] = this.buildCreateManyAndReturnArgsSchema(modelName);
             schemas[`${modelName}UpdateArgs`] = this.buildUpdateArgsSchema(modelName);
             schemas[`${modelName}UpdateManyArgs`] = this.buildUpdateManyArgsSchema(modelName);
+            schemas[`${modelName}UpdateManyAndReturnArgs`] = this.buildUpdateManyAndReturnArgsSchema(modelName);
             schemas[`${modelName}UpsertArgs`] = this.buildUpsertArgsSchema(modelName);
             schemas[`${modelName}DeleteArgs`] = this.buildDeleteArgsSchema(modelName);
             schemas[`${modelName}DeleteManyArgs`] = this.buildDeleteManyArgsSchema(modelName);
@@ -381,6 +395,51 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             type: 'string',
             enum: Object.values(enumDef.values),
         };
+    }
+
+    private buildSelectSchema(_modelName: string, modelDef: ModelDef): SchemaObject {
+        const properties: Record<string, SchemaObject | ReferenceObject> = {};
+        for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
+            if (fieldDef.relation) {
+                if (!isModelIncluded(fieldDef.type, this.queryOptions)) continue;
+                properties[fieldName] = this.buildRelationSelectProperty(fieldDef.type);
+            } else {
+                properties[fieldName] = { type: 'boolean' };
+            }
+        }
+        return { type: 'object', properties };
+    }
+
+    private buildIncludeSchema(_modelName: string, modelDef: ModelDef): SchemaObject {
+        const properties: Record<string, SchemaObject | ReferenceObject> = {};
+        for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
+            if (!fieldDef.relation) continue;
+            if (!isModelIncluded(fieldDef.type, this.queryOptions)) continue;
+            properties[fieldName] = this.buildRelationSelectProperty(fieldDef.type);
+        }
+        return { type: 'object', properties };
+    }
+
+    private buildRelationSelectProperty(relatedModelName: string): SchemaObject {
+        const nestedProps: Record<string, SchemaObject | ReferenceObject> = {
+            select: { $ref: `#/components/schemas/${relatedModelName}Select` },
+            omit: { $ref: `#/components/schemas/${relatedModelName}Omit` },
+        };
+        if (this.modelHasRelations(relatedModelName)) {
+            nestedProps['include'] = { $ref: `#/components/schemas/${relatedModelName}Include` };
+        }
+        return {
+            oneOf: [{ type: 'boolean' }, { type: 'object', properties: nestedProps }],
+        };
+    }
+
+    private buildOmitSchema(_modelName: string, modelDef: ModelDef): SchemaObject {
+        const properties: Record<string, SchemaObject> = {};
+        for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
+            if (fieldDef.relation) continue;
+            properties[fieldName] = { type: 'boolean' };
+        }
+        return { type: 'object', properties };
     }
 
     private buildModelOutputSchema(modelName: string, modelDef: ModelDef): SchemaObject {
@@ -514,13 +573,22 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         return { type: 'object', properties };
     }
 
+    private selectIncludeOmitProperties(modelName: string): Record<string, SchemaObject | ReferenceObject> {
+        return {
+            select: { $ref: `#/components/schemas/${modelName}Select` },
+            ...(this.modelHasRelations(modelName) && {
+                include: { $ref: `#/components/schemas/${modelName}Include` },
+            }),
+            omit: { $ref: `#/components/schemas/${modelName}Omit` },
+        };
+    }
+
     private buildCreateArgsSchema(modelName: string): SchemaObject {
         return {
             type: 'object',
             properties: {
                 data: { $ref: `#/components/schemas/${modelName}CreateInput` },
-                select: { type: 'object' },
-                include: { type: 'object' },
+                ...this.selectIncludeOmitProperties(modelName),
             },
             required: ['data'],
         };
@@ -539,14 +607,27 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         };
     }
 
+    private buildCreateManyAndReturnArgsSchema(modelName: string): SchemaObject {
+        return {
+            type: 'object',
+            properties: {
+                data: {
+                    type: 'array',
+                    items: { $ref: `#/components/schemas/${modelName}CreateInput` },
+                },
+                ...this.selectIncludeOmitProperties(modelName),
+            },
+            required: ['data'],
+        };
+    }
+
     private buildUpdateArgsSchema(modelName: string): SchemaObject {
         return {
             type: 'object',
             properties: {
                 where: { $ref: `#/components/schemas/${modelName}WhereUniqueInput` },
                 data: { $ref: `#/components/schemas/${modelName}UpdateInput` },
-                select: { type: 'object' },
-                include: { type: 'object' },
+                ...this.selectIncludeOmitProperties(modelName),
             },
             required: ['where', 'data'],
         };
@@ -563,6 +644,18 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         };
     }
 
+    private buildUpdateManyAndReturnArgsSchema(modelName: string): SchemaObject {
+        return {
+            type: 'object',
+            properties: {
+                where: { $ref: `#/components/schemas/${modelName}WhereInput` },
+                data: { $ref: `#/components/schemas/${modelName}UpdateInput` },
+                ...this.selectIncludeOmitProperties(modelName),
+            },
+            required: ['data'],
+        };
+    }
+
     private buildUpsertArgsSchema(modelName: string): SchemaObject {
         return {
             type: 'object',
@@ -570,8 +663,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 where: { $ref: `#/components/schemas/${modelName}WhereUniqueInput` },
                 create: { $ref: `#/components/schemas/${modelName}CreateInput` },
                 update: { $ref: `#/components/schemas/${modelName}UpdateInput` },
-                select: { type: 'object' },
-                include: { type: 'object' },
+                ...this.selectIncludeOmitProperties(modelName),
             },
             required: ['where', 'create', 'update'],
         };
@@ -582,7 +674,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             type: 'object',
             properties: {
                 where: { $ref: `#/components/schemas/${modelName}WhereUniqueInput` },
-                select: { type: 'object' },
+                ...this.selectIncludeOmitProperties(modelName),
             },
             required: ['where'],
         };
@@ -605,8 +697,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 orderBy: { type: 'object' },
                 take: { type: 'integer' },
                 skip: { type: 'integer' },
-                select: { type: 'object' },
-                include: { type: 'object' },
+                ...this.selectIncludeOmitProperties(modelName),
             },
         };
     }
@@ -616,8 +707,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             type: 'object',
             properties: {
                 where: { $ref: `#/components/schemas/${modelName}WhereUniqueInput` },
-                select: { type: 'object' },
-                include: { type: 'object' },
+                ...this.selectIncludeOmitProperties(modelName),
             },
             required: ['where'],
         };
@@ -631,8 +721,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 orderBy: { type: 'object' },
                 take: { type: 'integer' },
                 skip: { type: 'integer' },
-                select: { type: 'object' },
-                include: { type: 'object' },
+                ...this.selectIncludeOmitProperties(modelName),
             },
         };
     }

@@ -399,6 +399,152 @@ describe('RPC OpenAPI spec generation - queryOptions', () => {
     });
 });
 
+describe('RPC OpenAPI spec generation - select/include/omit schemas', () => {
+    let spec: any;
+
+    beforeAll(async () => {
+        const client = await createTestClient(schema);
+        const handler = new RPCApiHandler({ schema: client.$schema });
+        spec = await handler.generateSpec();
+    });
+
+    it('Select schema lists all fields with boolean type', () => {
+        const userSelect = spec.components.schemas['UserSelect'];
+        expect(userSelect).toBeDefined();
+        expect(userSelect.type).toBe('object');
+        // Scalar fields are boolean
+        expect(userSelect.properties['id']).toEqual({ type: 'boolean' });
+        expect(userSelect.properties['email']).toEqual({ type: 'boolean' });
+        expect(userSelect.properties['createdAt']).toEqual({ type: 'boolean' });
+    });
+
+    it('Select schema allows nested select/include/omit for relation fields', () => {
+        const userSelect = spec.components.schemas['UserSelect'];
+        // Relation field: oneOf [boolean, nested object]
+        const postsField = userSelect.properties['posts'];
+        expect(postsField.oneOf).toHaveLength(2);
+        expect(postsField.oneOf[0]).toEqual({ type: 'boolean' });
+        const nested = postsField.oneOf[1];
+        expect(nested.type).toBe('object');
+        expect(nested.properties['select'].$ref).toBe('#/components/schemas/PostSelect');
+        expect(nested.properties['include'].$ref).toBe('#/components/schemas/PostInclude');
+        expect(nested.properties['omit'].$ref).toBe('#/components/schemas/PostOmit');
+    });
+
+    it('Select schema includes FK fields', () => {
+        const postSelect = spec.components.schemas['PostSelect'];
+        expect(postSelect.properties['authorId']).toEqual({ type: 'boolean' });
+    });
+
+    it('Include schema lists only relation fields', () => {
+        const userInclude = spec.components.schemas['UserInclude'];
+        expect(userInclude).toBeDefined();
+        expect(userInclude.type).toBe('object');
+        // Relation field present with nested select/include/omit
+        expect(userInclude.properties['posts']).toBeDefined();
+        expect(userInclude.properties['posts'].oneOf).toHaveLength(2);
+        // Scalar fields absent
+        expect(userInclude.properties['id']).toBeUndefined();
+        expect(userInclude.properties['email']).toBeUndefined();
+    });
+
+    it('Include schema is not generated for models without relations', async () => {
+        const noRelSchema = `
+model Item {
+    id Int @id @default(autoincrement())
+    name String
+}
+`;
+        const client = await createTestClient(noRelSchema);
+        const handler = new RPCApiHandler({ schema: client.$schema });
+        const s = await handler.generateSpec();
+        expect(s.components?.schemas?.['ItemSelect']).toBeDefined();
+        expect(s.components?.schemas?.['ItemInclude']).toBeUndefined();
+        expect(s.components?.schemas?.['ItemOmit']).toBeDefined();
+        // Args should not have include
+        const findManyArgs = s.components?.schemas?.['ItemFindManyArgs'] as any;
+        expect(findManyArgs.properties['select']).toBeDefined();
+        expect(findManyArgs.properties['include']).toBeUndefined();
+        expect(findManyArgs.properties['omit']).toBeDefined();
+    });
+
+    it('Omit schema lists only non-relation fields', () => {
+        const userOmit = spec.components.schemas['UserOmit'];
+        expect(userOmit).toBeDefined();
+        expect(userOmit.type).toBe('object');
+        // Scalar fields present
+        expect(userOmit.properties['id']).toEqual({ type: 'boolean' });
+        expect(userOmit.properties['email']).toEqual({ type: 'boolean' });
+        // Relation fields absent
+        expect(userOmit.properties['posts']).toBeUndefined();
+
+        // FK fields included
+        const postOmit = spec.components.schemas['PostOmit'];
+        expect(postOmit.properties['authorId']).toEqual({ type: 'boolean' });
+    });
+
+    it('Args schemas reference Select/Include/Omit via $ref', () => {
+        const createArgs = spec.components.schemas['UserCreateArgs'];
+        expect(createArgs.properties['select'].$ref).toBe('#/components/schemas/UserSelect');
+        expect(createArgs.properties['include'].$ref).toBe('#/components/schemas/UserInclude');
+        expect(createArgs.properties['omit'].$ref).toBe('#/components/schemas/UserOmit');
+
+        const findManyArgs = spec.components.schemas['UserFindManyArgs'];
+        expect(findManyArgs.properties['select'].$ref).toBe('#/components/schemas/UserSelect');
+        expect(findManyArgs.properties['include'].$ref).toBe('#/components/schemas/UserInclude');
+        expect(findManyArgs.properties['omit'].$ref).toBe('#/components/schemas/UserOmit');
+    });
+
+    it('createManyAndReturn and updateManyAndReturn args have select/include/omit', () => {
+        const createManyAndReturnArgs = spec.components.schemas['UserCreateManyAndReturnArgs'];
+        expect(createManyAndReturnArgs).toBeDefined();
+        expect(createManyAndReturnArgs.properties['data']).toBeDefined();
+        expect(createManyAndReturnArgs.properties['select'].$ref).toBe('#/components/schemas/UserSelect');
+        expect(createManyAndReturnArgs.properties['include'].$ref).toBe('#/components/schemas/UserInclude');
+        expect(createManyAndReturnArgs.properties['omit'].$ref).toBe('#/components/schemas/UserOmit');
+
+        const updateManyAndReturnArgs = spec.components.schemas['UserUpdateManyAndReturnArgs'];
+        expect(updateManyAndReturnArgs).toBeDefined();
+        expect(updateManyAndReturnArgs.properties['data']).toBeDefined();
+        expect(updateManyAndReturnArgs.properties['select'].$ref).toBe('#/components/schemas/UserSelect');
+        expect(updateManyAndReturnArgs.properties['include'].$ref).toBe('#/components/schemas/UserInclude');
+        expect(updateManyAndReturnArgs.properties['omit'].$ref).toBe('#/components/schemas/UserOmit');
+    });
+
+    it('createMany and updateMany args do not have select/include/omit', () => {
+        const createManyArgs = spec.components.schemas['UserCreateManyArgs'];
+        expect(createManyArgs.properties['select']).toBeUndefined();
+        expect(createManyArgs.properties['include']).toBeUndefined();
+        expect(createManyArgs.properties['omit']).toBeUndefined();
+
+        const updateManyArgs = spec.components.schemas['UserUpdateManyArgs'];
+        expect(updateManyArgs.properties['select']).toBeUndefined();
+        expect(updateManyArgs.properties['include']).toBeUndefined();
+        expect(updateManyArgs.properties['omit']).toBeUndefined();
+    });
+
+    it('select/include exclude relations to excluded models', async () => {
+        const client = await createTestClient(schema);
+        const handler = new RPCApiHandler({
+            schema: client.$schema,
+            queryOptions: { slicing: { excludedModels: ['Post'] as any } },
+        });
+        const s = await handler.generateSpec();
+
+        const userSelect = s.components?.schemas?.['UserSelect'] as any;
+        expect(userSelect.properties['id']).toBeDefined();
+        // posts relation to excluded Post model should be absent
+        expect(userSelect.properties['posts']).toBeUndefined();
+
+        // Include should not have posts either
+        // User still has relations in schema, but all are excluded so Include may or may not exist
+        const userInclude = s.components?.schemas?.['UserInclude'] as any;
+        if (userInclude) {
+            expect(userInclude.properties['posts']).toBeUndefined();
+        }
+    });
+});
+
 describe('RPC OpenAPI spec generation - with enum', () => {
     it('enum schemas appear in components', async () => {
         const enumSchema = `
