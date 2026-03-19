@@ -4,7 +4,7 @@ import type { OpenAPIV3_1 } from 'openapi-types';
 import { PROCEDURE_ROUTE_PREFIXES } from '../common/procedures';
 import { getIncludedModels, isFieldOmitted, isFilterKindIncluded, isProcedureIncluded } from '../common/spec-utils';
 import type { OpenApiSpecOptions } from '../common/types';
-import type { RestApiHandlerOptions } from './handler';
+import type { RestApiHandlerOptions } from '.';
 
 type SchemaObject = OpenAPIV3_1.SchemaObject;
 type ReferenceObject = OpenAPIV3_1.ReferenceObject;
