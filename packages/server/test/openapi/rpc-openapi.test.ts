@@ -609,6 +609,172 @@ model Post {
     });
 });
 
+describe('RPC OpenAPI spec generation - aggregate and groupby schemas', () => {
+    let spec: any;
+
+    beforeAll(async () => {
+        const client = await createTestClient(schema);
+        const handler = new RPCApiHandler({ schema: client.$schema });
+        spec = await handler.generateSpec();
+    });
+
+    describe('aggregate and groupby schemas', () => {
+        it('Aggregate schema has _count, _min, _max', () => {
+            const agg = spec.components.schemas['AggregateUser'];
+            expect(agg).toBeDefined();
+            expect(agg.properties._count.oneOf).toEqual([
+                { type: 'null' },
+                { $ref: '#/components/schemas/UserCountAggregateOutputType' },
+            ]);
+            expect(agg.properties._min.oneOf).toEqual([
+                { type: 'null' },
+                { $ref: '#/components/schemas/UserMinAggregateOutputType' },
+            ]);
+            expect(agg.properties._max.oneOf).toEqual([
+                { type: 'null' },
+                { $ref: '#/components/schemas/UserMaxAggregateOutputType' },
+            ]);
+        });
+
+        it('Aggregate schema includes _avg and _sum for models with numeric fields', () => {
+            const agg = spec.components.schemas['AggregatePost'];
+            expect(agg).toBeDefined();
+            expect(agg.properties._avg).toBeDefined();
+            expect(agg.properties._avg.oneOf).toEqual([
+                { type: 'null' },
+                { $ref: '#/components/schemas/PostAvgAggregateOutputType' },
+            ]);
+            expect(agg.properties._sum).toBeDefined();
+            expect(agg.properties._sum.oneOf).toEqual([
+                { type: 'null' },
+                { $ref: '#/components/schemas/PostSumAggregateOutputType' },
+            ]);
+        });
+
+        it('Aggregate schema omits _avg and _sum for models without numeric fields', () => {
+            const agg = spec.components.schemas['AggregateUser'];
+            expect(agg.properties._avg).toBeUndefined();
+            expect(agg.properties._sum).toBeUndefined();
+        });
+
+        it('MinAggregateOutputType has all non-relation fields as nullable', () => {
+            const min = spec.components.schemas['UserMinAggregateOutputType'];
+            expect(min).toBeDefined();
+            expect(min.properties.id.oneOf).toEqual([{ type: 'null' }, { type: 'string' }]);
+            expect(min.properties.email.oneOf).toEqual([{ type: 'null' }, { type: 'string' }]);
+            expect(min.properties.createdAt.oneOf).toEqual([{ type: 'null' }, { type: 'string', format: 'date-time' }]);
+            // No relation fields
+            expect(min.properties.posts).toBeUndefined();
+        });
+
+        it('AvgAggregateOutputType only has numeric fields as nullable number', () => {
+            const avg = spec.components.schemas['PostAvgAggregateOutputType'];
+            expect(avg).toBeDefined();
+            expect(avg.properties.viewCount.oneOf).toEqual([{ type: 'null' }, { type: 'number' }]);
+            // Non-numeric fields excluded
+            expect(avg.properties.title).toBeUndefined();
+            expect(avg.properties.id).toBeUndefined();
+        });
+
+        it('SumAggregateOutputType only has numeric fields preserving original type', () => {
+            const sum = spec.components.schemas['PostSumAggregateOutputType'];
+            expect(sum).toBeDefined();
+            expect(sum.properties.viewCount.oneOf).toEqual([{ type: 'null' }, { type: 'integer' }]);
+            expect(sum.properties.title).toBeUndefined();
+        });
+
+        it('GroupByOutputType has scalar fields and aggregate properties', () => {
+            const groupBy = spec.components.schemas['UserGroupByOutputType'];
+            expect(groupBy).toBeDefined();
+            // Scalar fields with proper types
+            expect(groupBy.properties.id).toEqual({ type: 'string' });
+            expect(groupBy.properties.email).toEqual({ type: 'string' });
+            expect(groupBy.properties.createdAt).toEqual({ type: 'string', format: 'date-time' });
+            // Required non-nullable fields
+            expect(groupBy.required).toContain('id');
+            expect(groupBy.required).toContain('email');
+            // No relation fields
+            expect(groupBy.properties.posts).toBeUndefined();
+            // Aggregate properties
+            expect(groupBy.properties._count).toBeDefined();
+            expect(groupBy.properties._min).toBeDefined();
+            expect(groupBy.properties._max).toBeDefined();
+        });
+
+        it('GroupByOutputType includes _avg and _sum for models with numeric fields', () => {
+            const groupBy = spec.components.schemas['PostGroupByOutputType'];
+            expect(groupBy).toBeDefined();
+            expect(groupBy.properties._avg).toBeDefined();
+            expect(groupBy.properties._sum).toBeDefined();
+            // viewCount is non-optional so should be required
+            expect(groupBy.properties.viewCount).toEqual({ type: 'integer' });
+            expect(groupBy.required).toContain('viewCount');
+        });
+
+        it('AggregateResponse references Aggregate schema', () => {
+            const resp = spec.components.schemas['UserAggregateResponse'];
+            expect(resp.properties.data).toEqual({ $ref: '#/components/schemas/AggregateUser' });
+            expect(resp.properties.meta).toEqual({ $ref: '#/components/schemas/_Meta' });
+        });
+
+        it('GroupByResponse references GroupByOutputType as array', () => {
+            const resp = spec.components.schemas['UserGroupByResponse'];
+            expect(resp.properties.data).toEqual({
+                type: 'array',
+                items: { $ref: '#/components/schemas/UserGroupByOutputType' },
+            });
+            expect(resp.properties.meta).toEqual({ $ref: '#/components/schemas/_Meta' });
+        });
+    });
+
+    describe('count schemas', () => {
+        it('CountAggregateOutputType has all non-relation fields as integer plus _all', () => {
+            const countType = spec.components.schemas['UserCountAggregateOutputType'];
+            expect(countType).toBeDefined();
+            expect(countType.type).toBe('object');
+            // All non-relation fields as integer
+            expect(countType.properties.id).toEqual({ type: 'integer' });
+            expect(countType.properties.email).toEqual({ type: 'integer' });
+            expect(countType.properties.createdAt).toEqual({ type: 'integer' });
+            expect(countType.properties.updatedAt).toEqual({ type: 'integer' });
+            // _all field
+            expect(countType.properties._all).toEqual({ type: 'integer' });
+            // No relation fields
+            expect(countType.properties.posts).toBeUndefined();
+            // All fields required
+            expect(countType.required).toContain('id');
+            expect(countType.required).toContain('email');
+            expect(countType.required).toContain('_all');
+        });
+
+        it('CountResponse data is oneOf integer or CountAggregateOutputType', () => {
+            const resp = spec.components.schemas['UserCountResponse'];
+            expect(resp).toBeDefined();
+            expect(resp.properties.data.oneOf).toEqual([
+                { type: 'integer' },
+                { $ref: '#/components/schemas/UserCountAggregateOutputType' },
+            ]);
+            expect(resp.properties.meta).toEqual({ $ref: '#/components/schemas/_Meta' });
+        });
+
+        it('CountArgs has select and where', () => {
+            const args = spec.components.schemas['UserCountArgs'];
+            expect(args).toBeDefined();
+            expect(args.properties.select).toEqual({ $ref: '#/components/schemas/UserSelect' });
+            expect(args.properties.where).toEqual({ $ref: '#/components/schemas/UserWhereInput' });
+            expect(args.properties.take).toEqual({ type: 'integer' });
+            expect(args.properties.skip).toEqual({ type: 'integer' });
+        });
+
+        it('CountAggregateOutputType includes FK fields', () => {
+            const countType = spec.components.schemas['PostCountAggregateOutputType'];
+            expect(countType).toBeDefined();
+            expect(countType.properties.authorId).toEqual({ type: 'integer' });
+            expect(countType.required).toContain('authorId');
+        });
+    });
+});
+
 describe('RPC OpenAPI spec generation - with procedures', () => {
     it('procedure paths are generated', async () => {
         const schemaWithProc = `

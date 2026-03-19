@@ -76,8 +76,9 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             for (const op of readOps) {
                 if (!isOperationIncluded(modelName, op, this.queryOptions)) continue;
                 const argsSchemaName = `${modelName}${this.opToArgsSchema(op)}`;
+                const responseSchemaName = this.opToResponseSchema(modelName, op);
                 paths[`/${modelPath}/${op}`] = {
-                    get: this.buildGetOperation(modelName, op, tag, argsSchemaName),
+                    get: this.buildGetOperation(modelName, op, tag, argsSchemaName, responseSchemaName),
                 } as OpenAPIV3_1.PathItemObject;
             }
 
@@ -97,6 +98,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             for (const { op, method } of writeOps) {
                 if (!isOperationIncluded(modelName, op, this.queryOptions)) continue;
                 const argsSchemaName = `${modelName}${this.opToArgsSchema(op)}`;
+                const responseSchemaName = this.opToResponseSchema(modelName, op);
                 const buildOp =
                     method === 'post'
                         ? this.buildPostOperation
@@ -104,7 +106,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                           ? this.buildPatchOperation
                           : this.buildDeleteOperation;
                 paths[`/${modelPath}/${op}`] = {
-                    [method]: buildOp.call(this, modelName, op, tag, argsSchemaName),
+                    [method]: buildOp.call(this, modelName, op, tag, argsSchemaName, responseSchemaName),
                 };
             }
         }
@@ -166,13 +168,43 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         return upperCaseFirst(op) + 'Args';
     }
 
+    private opToResponseSchema(modelName: string, op: string): string {
+        switch (op) {
+            case 'findMany':
+            case 'createManyAndReturn':
+            case 'updateManyAndReturn':
+                return `${modelName}ListResponse`;
+            case 'createMany':
+            case 'updateMany':
+            case 'deleteMany':
+                return '_BatchResponse';
+            case 'count':
+                return `${modelName}CountResponse`;
+            case 'aggregate':
+                return `${modelName}AggregateResponse`;
+            case 'groupBy':
+                return `${modelName}GroupByResponse`;
+            case 'exists':
+                return '_ExistsResponse';
+            default:
+                // findUnique, findFirst, create, update, upsert, delete
+                return `${modelName}Response`;
+        }
+    }
+
     private modelHasRelations(modelName: string): boolean {
         const modelDef = this.schema.models[modelName];
         if (!modelDef) return false;
         return Object.values(modelDef.fields).some((f) => f.relation);
     }
 
-    private buildGetOperation(modelName: string, op: string, tag: string, argsSchemaName: string): Record<string, any> {
+    private buildGetOperation(
+        modelName: string,
+        op: string,
+        tag: string,
+        argsSchemaName: string,
+        responseSchemaName: string,
+    ): Record<string, any> {
         return {
             tags: [tag],
             summary: `${op} ${modelName}`,
@@ -190,7 +222,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                     description: `Result of ${op}`,
                     content: {
                         'application/json': {
-                            schema: { $ref: `#/components/schemas/${modelName}Response` },
+                            schema: { $ref: `#/components/schemas/${responseSchemaName}` },
                         },
                     },
                 },
@@ -204,6 +236,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         op: string,
         tag: string,
         argsSchemaName: string,
+        responseSchemaName: string,
     ): Record<string, any> {
         return {
             tags: [tag],
@@ -222,7 +255,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                     description: `Result of ${op}`,
                     content: {
                         'application/json': {
-                            schema: { $ref: `#/components/schemas/${modelName}Response` },
+                            schema: { $ref: `#/components/schemas/${responseSchemaName}` },
                         },
                     },
                 },
@@ -236,6 +269,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         op: string,
         tag: string,
         argsSchemaName: string,
+        responseSchemaName: string,
     ): Record<string, any> {
         return {
             tags: [tag],
@@ -254,7 +288,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                     description: `Result of ${op}`,
                     content: {
                         'application/json': {
-                            schema: { $ref: `#/components/schemas/${modelName}Response` },
+                            schema: { $ref: `#/components/schemas/${responseSchemaName}` },
                         },
                     },
                 },
@@ -268,6 +302,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         op: string,
         tag: string,
         argsSchemaName: string,
+        responseSchemaName: string,
     ): Record<string, any> {
         return {
             tags: [tag],
@@ -286,7 +321,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                     description: `Result of ${op}`,
                     content: {
                         'application/json': {
-                            schema: { $ref: `#/components/schemas/${modelName}Response` },
+                            schema: { $ref: `#/components/schemas/${responseSchemaName}` },
                         },
                     },
                 },
@@ -348,6 +383,26 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             },
         };
 
+        // Shared response schemas
+        schemas['_BatchResponse'] = {
+            type: 'object',
+            properties: {
+                data: {
+                    type: 'object',
+                    properties: { count: { type: 'integer' } },
+                    required: ['count'],
+                },
+                meta: { $ref: '#/components/schemas/_Meta' },
+            },
+        };
+        schemas['_ExistsResponse'] = {
+            type: 'object',
+            properties: {
+                data: { type: 'boolean' },
+                meta: { $ref: '#/components/schemas/_Meta' },
+            },
+        };
+
         // Per-enum schemas
         if (this.schema.enums) {
             for (const [enumName, enumDef] of Object.entries(this.schema.enums)) {
@@ -385,6 +440,51 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             schemas[`${modelName}GroupByArgs`] = this.buildGroupByArgsSchema(modelName);
             schemas[`${modelName}ExistsArgs`] = this.buildExistsArgsSchema(modelName);
             schemas[`${modelName}Response`] = this.buildResponseSchema(modelName);
+            schemas[`${modelName}CountAggregateOutputType`] = this.buildCountAggregateOutputTypeSchema(modelName, modelDef);
+            schemas[`${modelName}MinAggregateOutputType`] = this.buildMinAggregateOutputTypeSchema(modelName, modelDef);
+            schemas[`${modelName}MaxAggregateOutputType`] = this.buildMaxAggregateOutputTypeSchema(modelName, modelDef);
+            if (this.modelHasNumericFields(modelDef)) {
+                schemas[`${modelName}AvgAggregateOutputType`] = this.buildAvgAggregateOutputTypeSchema(modelName, modelDef);
+                schemas[`${modelName}SumAggregateOutputType`] = this.buildSumAggregateOutputTypeSchema(modelName, modelDef);
+            }
+            schemas[`Aggregate${modelName}`] = this.buildAggregateSchema(modelName, modelDef);
+            schemas[`${modelName}GroupByOutputType`] = this.buildGroupByOutputTypeSchema(modelName, modelDef);
+            schemas[`${modelName}CountResponse`] = {
+                type: 'object',
+                properties: {
+                    data: {
+                        oneOf: [
+                            { type: 'integer' },
+                            { $ref: `#/components/schemas/${modelName}CountAggregateOutputType` },
+                        ],
+                    },
+                    meta: { $ref: '#/components/schemas/_Meta' },
+                },
+            };
+            schemas[`${modelName}ListResponse`] = {
+                type: 'object',
+                properties: {
+                    data: { type: 'array', items: { $ref: `#/components/schemas/${modelName}` } },
+                    meta: { $ref: '#/components/schemas/_Meta' },
+                },
+            };
+            schemas[`${modelName}AggregateResponse`] = {
+                type: 'object',
+                properties: {
+                    data: { $ref: `#/components/schemas/Aggregate${modelName}` },
+                    meta: { $ref: '#/components/schemas/_Meta' },
+                },
+            };
+            schemas[`${modelName}GroupByResponse`] = {
+                type: 'object',
+                properties: {
+                    data: {
+                        type: 'array',
+                        items: { $ref: `#/components/schemas/${modelName}GroupByOutputType` },
+                    },
+                    meta: { $ref: '#/components/schemas/_Meta' },
+                },
+            };
         }
 
         return schemas;
@@ -540,13 +640,13 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         return { type: 'object', properties };
     }
 
-    private buildWhereInputSchema(_modelName: string, modelDef: ModelDef): SchemaObject {
+    private buildWhereInputSchema(modelName: string, modelDef: ModelDef): SchemaObject {
         const properties: Record<string, SchemaObject | ReferenceObject> = {};
 
         for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
             if (fieldDef.relation) continue;
             if (fieldDef.omit) continue;
-            const filterSchema = this.buildFieldFilterSchema(_modelName, fieldName, fieldDef);
+            const filterSchema = this.buildFieldFilterSchema(modelName, fieldName, fieldDef);
             if (filterSchema) {
                 properties[fieldName] = filterSchema;
             }
@@ -555,18 +655,18 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         // Logical combinators
         properties['AND'] = {
             oneOf: [
-                { $ref: `#/components/schemas/_${_modelName}WhereInput` },
-                { type: 'array', items: { $ref: `#/components/schemas/_${_modelName}WhereInput` } },
+                { $ref: `#/components/schemas/${modelName}WhereInput` },
+                { type: 'array', items: { $ref: `#/components/schemas/${modelName}WhereInput` } },
             ],
         };
         properties['OR'] = {
             type: 'array',
-            items: { $ref: `#/components/schemas/_${_modelName}WhereInput` },
+            items: { $ref: `#/components/schemas/${modelName}WhereInput` },
         };
         properties['NOT'] = {
             oneOf: [
-                { $ref: `#/components/schemas/_${_modelName}WhereInput` },
-                { type: 'array', items: { $ref: `#/components/schemas/_${_modelName}WhereInput` } },
+                { $ref: `#/components/schemas/${modelName}WhereInput` },
+                { type: 'array', items: { $ref: `#/components/schemas/${modelName}WhereInput` } },
             ],
         };
 
@@ -730,11 +830,135 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         return {
             type: 'object',
             properties: {
+                select: { $ref: `#/components/schemas/${modelName}Select` },
                 where: { $ref: `#/components/schemas/${modelName}WhereInput` },
                 take: { type: 'integer' },
                 skip: { type: 'integer' },
             },
         };
+    }
+
+    private modelHasNumericFields(modelDef: ModelDef): boolean {
+        return Object.values(modelDef.fields).some(
+            (f) => !f.relation && (f.type === 'Int' || f.type === 'Float' || f.type === 'BigInt' || f.type === 'Decimal')
+        );
+    }
+
+    private buildCountAggregateOutputTypeSchema(_modelName: string, modelDef: ModelDef): SchemaObject {
+        const properties: Record<string, SchemaObject> = {};
+        const required: string[] = [];
+        for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
+            if (fieldDef.relation) continue;
+            properties[fieldName] = { type: 'integer' };
+            required.push(fieldName);
+        }
+        properties['_all'] = { type: 'integer' };
+        required.push('_all');
+        return { type: 'object', properties, required };
+    }
+
+    private buildMinAggregateOutputTypeSchema(_modelName: string, modelDef: ModelDef): SchemaObject {
+        const properties: Record<string, SchemaObject | ReferenceObject> = {};
+        for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
+            if (fieldDef.relation) continue;
+            properties[fieldName] = { oneOf: [{ type: 'null' as const }, this.typeToSchema(fieldDef.type)] };
+        }
+        return { type: 'object', properties };
+    }
+
+    private buildMaxAggregateOutputTypeSchema(_modelName: string, modelDef: ModelDef): SchemaObject {
+        const properties: Record<string, SchemaObject | ReferenceObject> = {};
+        for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
+            if (fieldDef.relation) continue;
+            properties[fieldName] = { oneOf: [{ type: 'null' as const }, this.typeToSchema(fieldDef.type)] };
+        }
+        return { type: 'object', properties };
+    }
+
+    private buildAvgAggregateOutputTypeSchema(_modelName: string, modelDef: ModelDef): SchemaObject {
+        const properties: Record<string, SchemaObject> = {};
+        for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
+            if (fieldDef.relation) continue;
+            if (fieldDef.type !== 'Int' && fieldDef.type !== 'Float' && fieldDef.type !== 'BigInt' && fieldDef.type !== 'Decimal')
+                continue;
+            // avg always returns a float
+            properties[fieldName] = { oneOf: [{ type: 'null' as const }, { type: 'number' }] };
+        }
+        return { type: 'object', properties };
+    }
+
+    private buildSumAggregateOutputTypeSchema(_modelName: string, modelDef: ModelDef): SchemaObject {
+        const properties: Record<string, SchemaObject | ReferenceObject> = {};
+        for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
+            if (fieldDef.relation) continue;
+            if (fieldDef.type !== 'Int' && fieldDef.type !== 'Float' && fieldDef.type !== 'BigInt' && fieldDef.type !== 'Decimal')
+                continue;
+            // sum preserves the original type
+            properties[fieldName] = { oneOf: [{ type: 'null' as const }, this.typeToSchema(fieldDef.type)] };
+        }
+        return { type: 'object', properties };
+    }
+
+    private buildAggregateSchema(modelName: string, modelDef: ModelDef): SchemaObject {
+        const properties: Record<string, SchemaObject> = {
+            _count: {
+                oneOf: [{ type: 'null' as const }, { $ref: `#/components/schemas/${modelName}CountAggregateOutputType` }],
+            },
+            _min: {
+                oneOf: [{ type: 'null' as const }, { $ref: `#/components/schemas/${modelName}MinAggregateOutputType` }],
+            },
+            _max: {
+                oneOf: [{ type: 'null' as const }, { $ref: `#/components/schemas/${modelName}MaxAggregateOutputType` }],
+            },
+        };
+        if (this.modelHasNumericFields(modelDef)) {
+            properties['_avg'] = {
+                oneOf: [{ type: 'null' as const }, { $ref: `#/components/schemas/${modelName}AvgAggregateOutputType` }],
+            };
+            properties['_sum'] = {
+                oneOf: [{ type: 'null' as const }, { $ref: `#/components/schemas/${modelName}SumAggregateOutputType` }],
+            };
+        }
+        return { type: 'object', properties };
+    }
+
+    private buildGroupByOutputTypeSchema(modelName: string, modelDef: ModelDef): SchemaObject {
+        const properties: Record<string, SchemaObject | ReferenceObject> = {};
+        const required: string[] = [];
+
+        // Scalar fields with proper types
+        for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
+            if (fieldDef.relation) continue;
+            properties[fieldName] = this.fieldToSchema(fieldDef);
+            if (!fieldDef.optional && !fieldDef.array) {
+                required.push(fieldName);
+            }
+        }
+
+        // Aggregate properties
+        properties['_count'] = {
+            oneOf: [{ type: 'null' as const }, { $ref: `#/components/schemas/${modelName}CountAggregateOutputType` }],
+        };
+        properties['_min'] = {
+            oneOf: [{ type: 'null' as const }, { $ref: `#/components/schemas/${modelName}MinAggregateOutputType` }],
+        };
+        properties['_max'] = {
+            oneOf: [{ type: 'null' as const }, { $ref: `#/components/schemas/${modelName}MaxAggregateOutputType` }],
+        };
+        if (this.modelHasNumericFields(modelDef)) {
+            properties['_avg'] = {
+                oneOf: [{ type: 'null' as const }, { $ref: `#/components/schemas/${modelName}AvgAggregateOutputType` }],
+            };
+            properties['_sum'] = {
+                oneOf: [{ type: 'null' as const }, { $ref: `#/components/schemas/${modelName}SumAggregateOutputType` }],
+            };
+        }
+
+        const result: SchemaObject = { type: 'object', properties };
+        if (required.length > 0) {
+            result.required = required;
+        }
+        return result;
     }
 
     private buildAggregateArgsSchema(modelName: string): SchemaObject {
