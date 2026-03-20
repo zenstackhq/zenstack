@@ -307,6 +307,11 @@ export class SchemaType implements SchemaDef {
         Address: {
             name: "Address",
             fields: {
+                residents: {
+                    name: "residents",
+                    type: "String",
+                    array: true
+                },
                 street: {
                     name: "street",
                     type: "String",
