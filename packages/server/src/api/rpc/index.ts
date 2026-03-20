@@ -8,10 +8,9 @@ import { fromError } from 'zod-validation-error/v4';
 import type { ApiHandler, LogConfig, RequestContext, Response } from '../../types';
 import { getProcedureDef, mapProcedureArgs, PROCEDURE_ROUTE_PREFIXES } from '../common/procedures';
 import { loggerSchema, queryOptionsSchema } from '../common/schemas';
-import type { CommonHandlerOptions, OpenApiSpecGenerator } from '../common/types';
+import type { CommonHandlerOptions } from '../common/types';
 import { processSuperJsonRequestPayload, unmarshalQ } from '../common/utils';
 import { log, registerCustomSerializers } from '../utils';
-import { RPCApiSpecGenerator } from './openapi';
 
 const TRANSACTION_ROUTE_PREFIX = '$transaction' as const;
 const VALID_OPS = new Set(CoreCrudOperations as unknown as string[]);
@@ -36,7 +35,7 @@ export type RPCApiHandlerOptions<Schema extends SchemaDef = SchemaDef> = {
 /**
  * RPC style API request handler that mirrors the ZenStackClient API
  */
-export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiHandler<Schema>, OpenApiSpecGenerator {
+export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiHandler<Schema> {
     constructor(private readonly options: RPCApiHandlerOptions<Schema>) {
         this.validateOptions(options);
     }
@@ -450,11 +449,4 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
         }
         return { result: args, error: undefined };
     }
-
-    async generateSpec(options?: import('../common/types').OpenApiSpecOptions) {
-        const generator = new RPCApiSpecGenerator(this.options);
-        return generator.generateSpec(options);
-    }
 }
-
-export { RPCApiSpecGenerator } from './openapi';
