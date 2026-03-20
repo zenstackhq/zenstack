@@ -14,6 +14,7 @@ import type {
     GetTypeDefs,
     ModelFieldIsOptional,
     SchemaDef,
+    TypeDefFieldIsArray,
     TypeDefFieldIsOptional,
 } from '@zenstackhq/schema';
 import type Decimal from 'decimal.js';
@@ -83,7 +84,7 @@ export type GetModelUpdateFieldsShape<Schema extends SchemaDef, Model extends Ge
 
 export type GetTypeDefFieldsShape<Schema extends SchemaDef, Type extends GetTypeDefs<Schema>> = {
     [Field in GetTypeDefFields<Schema, Type>]: ZodOptionalAndNullableIf<
-        MapTypeDefFieldToZod<Schema, Type, Field>,
+        ZodArrayIf<MapTypeDefFieldToZod<Schema, Type, Field>, TypeDefFieldIsArray<Schema, Type, Field>>,
         TypeDefFieldIsOptional<Schema, Type, Field>
     >;
 };
