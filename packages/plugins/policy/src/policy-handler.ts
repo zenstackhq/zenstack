@@ -23,6 +23,7 @@ import {
     OperatorNode,
     ParensNode,
     PrimitiveValueListNode,
+    RawNode,
     ReferenceNode,
     ReturningNode,
     SelectAllNode,
@@ -63,11 +64,23 @@ export type MutationQueryNode = InsertQueryNode | UpdateQueryNode | DeleteQueryN
 
 type FieldLevelPolicyOperations = Exclude<CRUD_EXT, 'create' | 'delete'>;
 
+export type PolicyHandlerOptions = {
+    /**
+     * Dangerously bypasses access-policy enforcement for raw SQL queries.
+     * Raw queries remain in the current transaction, but the policy plugin will
+     * not inspect or reject them.
+     */
+    dangerouslyAllowRawSql?: boolean;
+};
+
 export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransformer {
     private readonly dialect: BaseCrudDialect<Schema>;
     private readonly eb = expressionBuilder<any, any>();
 
-    constructor(private readonly client: ClientContract<Schema>) {
+    constructor(
+        private readonly client: ClientContract<Schema>,
+        private readonly options: PolicyHandlerOptions = {},
+    ) {
         super();
         this.dialect = getCrudDialect(this.client.$schema, this.client.$options);
     }
@@ -76,6 +89,9 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
 
     async handle(node: RootOperationNode, proceed: ProceedKyselyQueryFunction) {
         if (!this.isCrudQueryNode(node)) {
+            if (this.options.dangerouslyAllowRawSql && RawNode.is(node as never)) {
+                return proceed(node);
+            }
             // non-CRUD queries are not allowed
             throw createRejectedByPolicyError(
                 undefined,
