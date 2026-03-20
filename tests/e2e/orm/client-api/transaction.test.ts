@@ -131,7 +131,39 @@ describe('Client raw query tests', () => {
         it('$use preserves transaction isolation', async () => {
             await expect(
                 client.$transaction(async (tx) => {
-                    await (tx as any).$use({ id: 'noop', handle: (_node: any, proceed: any) => proceed(_node) }).user.create({
+                    await (tx as any)
+                        .$use({
+                            id: 'noop',
+                            onQuery: async ({ args, proceed }: { args: unknown; proceed: (args: unknown) => Promise<unknown> }) =>
+                                proceed(args),
+                        })
+                        .user.create({
+                            data: { email: 'u1@test.com' },
+                        });
+                    throw new Error('rollback');
+                }),
+            ).rejects.toThrow('rollback');
+
+            await expect(client.user.findMany()).toResolveWithLength(0);
+        });
+
+        it('$setAuth preserves transaction isolation', async () => {
+            await expect(
+                client.$transaction(async (tx) => {
+                    await tx.$setAuth(undefined).user.create({
+                        data: { email: 'u1@test.com' },
+                    });
+                    throw new Error('rollback');
+                }),
+            ).rejects.toThrow('rollback');
+
+            await expect(client.user.findMany()).toResolveWithLength(0);
+        });
+
+        it('$setOptions preserves transaction isolation', async () => {
+            await expect(
+                client.$transaction(async (tx) => {
+                    await (tx as any).$setOptions((tx as any).$options).user.create({
                         data: { email: 'u1@test.com' },
                     });
                     throw new Error('rollback');
