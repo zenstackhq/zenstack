@@ -637,6 +637,9 @@ importers:
       '@zenstackhq/eslint-config':
         specifier: workspace:*
         version: link:../../config/eslint-config
+      '@zenstackhq/testtools':
+        specifier: workspace:*
+        version: link:../../testtools
       '@zenstackhq/typescript-config':
         specifier: workspace:*
         version: link:../../config/typescript-config
