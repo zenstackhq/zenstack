@@ -1,4 +1,4 @@
-import { clone, enumerate, lowerCaseFirst, paramCase } from '@zenstackhq/common-helpers';
+import { clone, enumerate, lowerCaseFirst, paramCase, safeJSONStringify } from '@zenstackhq/common-helpers';
 import { ORMError, ORMErrorReason, type ClientContract } from '@zenstackhq/orm';
 import type { FieldDef, ModelDef, SchemaDef } from '@zenstackhq/orm/schema';
 import { Decimal } from 'decimal.js';
@@ -508,7 +508,13 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
     }
 
     private handleGenericError(err: unknown): Response | PromiseLike<Response> {
-        return this.makeError('unknownError', err instanceof Error ? `${err.message}\n${err.stack}` : 'Unknown error');
+        const resp = this.makeError('unknownError', err instanceof Error ? `${err.message}` : 'Unknown error');
+        log(
+            this.options.log,
+            'debug',
+            () => `sending error response: ${safeJSONStringify(resp)}${err instanceof Error ? '\n' + err.stack : ''}`,
+        );
+        return resp;
     }
 
     private async processProcedureRequest({
@@ -585,14 +591,18 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
 
     private makeProcBadInputErrorResponse(message: string): Response {
         const resp = this.makeError('invalidPayload', message, 400);
-        log(this.log, 'debug', () => `sending error response: ${JSON.stringify(resp)}`);
+        log(this.log, 'debug', () => `sending error response: ${safeJSONStringify(resp)}`);
         return resp;
     }
 
     private makeProcGenericErrorResponse(err: unknown): Response {
         const message = err instanceof Error ? err.message : 'unknown error';
         const resp = this.makeError('unknownError', message, 500);
-        log(this.log, 'debug', () => `sending error response: ${JSON.stringify(resp)}`);
+        log(
+            this.log,
+            'debug',
+            () => `sending error response: ${safeJSONStringify(resp)}${err instanceof Error ? '\n' + err.stack : ''}`,
+        );
         return resp;
     }
 
