@@ -1,9 +1,10 @@
 import { type OnKyselyQueryArgs, type RuntimePlugin } from '@zenstackhq/orm';
 import type { SchemaDef } from '@zenstackhq/orm/schema';
+import type { PolicyPluginOptions } from './options';
 import { check } from './functions';
-import { PolicyHandler, type PolicyHandlerOptions } from './policy-handler';
+import { PolicyHandler } from './policy-handler';
 
-export type PolicyPluginOptions = PolicyHandlerOptions;
+export type { PolicyPluginOptions } from './options';
 
 export class PolicyPlugin implements RuntimePlugin<SchemaDef, {}, {}, {}> {
     constructor(private readonly options: PolicyPluginOptions = {}) {}

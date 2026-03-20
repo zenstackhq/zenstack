@@ -43,6 +43,7 @@ import {
 import { match } from 'ts-pattern';
 import { ColumnCollector } from './column-collector';
 import { ExpressionTransformer } from './expression-transformer';
+import type { PolicyPluginOptions } from './options';
 import type { Policy, PolicyOperation } from './types';
 import {
     buildIsFalse,
@@ -64,22 +65,13 @@ export type MutationQueryNode = InsertQueryNode | UpdateQueryNode | DeleteQueryN
 
 type FieldLevelPolicyOperations = Exclude<CRUD_EXT, 'create' | 'delete'>;
 
-export type PolicyHandlerOptions = {
-    /**
-     * Dangerously bypasses access-policy enforcement for raw SQL queries.
-     * Raw queries remain in the current transaction, but the policy plugin will
-     * not inspect or reject them.
-     */
-    dangerouslyAllowRawSql?: boolean;
-};
-
 export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransformer {
     private readonly dialect: BaseCrudDialect<Schema>;
     private readonly eb = expressionBuilder<any, any>();
 
     constructor(
         private readonly client: ClientContract<Schema>,
-        private readonly options: PolicyHandlerOptions = {},
+        private readonly options: PolicyPluginOptions = {},
     ) {
         super();
         this.dialect = getCrudDialect(this.client.$schema, this.client.$options);
