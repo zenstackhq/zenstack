@@ -38,10 +38,6 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         return this.handlerOptions.schema;
     }
 
-    private get endpoint(): string {
-        return this.handlerOptions.endpoint;
-    }
-
     private get modelNameMapping(): Record<string, string> {
         const mapping: Record<string, string> = {};
         if (this.handlerOptions.modelNameMapping) {
@@ -65,7 +61,6 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 ...(options?.description && { description: options.description }),
                 ...(options?.summary && { summary: options.summary }),
             },
-            servers: [{ url: this.endpoint }],
             tags: this.generateTags(),
             paths: this.generatePaths(),
             components: {

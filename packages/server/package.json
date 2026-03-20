@@ -132,6 +132,7 @@
         "zod-validation-error": "catalog:"
     },
     "devDependencies": {
+        "@readme/openapi-parser": "^6.0.0",
         "@sveltejs/kit": "catalog:",
         "@types/body-parser": "^1.19.6",
         "@types/express": "^5.0.0",

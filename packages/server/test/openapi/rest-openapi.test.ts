@@ -1,6 +1,20 @@
 import { createTestClient } from '@zenstackhq/testtools';
+import fs from 'fs';
+import path from 'path';
 import { beforeAll, describe, expect, it } from 'vitest';
+import YAML from 'yaml';
+import { validate } from '@readme/openapi-parser';
 import { RestApiHandler } from '../../src/api/rest';
+
+const UPDATE_BASELINE = process.env.UPDATE_BASELINE === '1';
+
+function loadBaseline(name: string) {
+    return YAML.parse(fs.readFileSync(path.join(__dirname, 'baseline', name), 'utf-8'), { maxAliasCount: 10000 });
+}
+
+function saveBaseline(name: string, spec: any) {
+    fs.writeFileSync(path.join(__dirname, 'baseline', name), YAML.stringify(spec, { lineWidth: 0, indent: 4 }));
+}
 
 const schema = `
 type Address {
@@ -92,7 +106,6 @@ describe('REST OpenAPI spec generation', () => {
         expect(spec.info).toBeDefined();
         expect(spec.info.title).toBe('ZenStack Generated API');
         expect(spec.info.version).toBe('1.0.0');
-        expect(spec.servers).toEqual([{ url: 'http://localhost/api' }]);
         expect(spec.paths).toBeDefined();
         expect(spec.components).toBeDefined();
         expect(spec.components.schemas).toBeDefined();
@@ -592,6 +605,28 @@ model Post {
 
         // id has no @meta description
         expect(userSchema.properties['id'].description).toBeUndefined();
+    });
+});
+
+describe('REST OpenAPI spec generation - baseline', () => {
+    it('matches baseline', async () => {
+        const client = await createTestClient(schema);
+        const handler = new RestApiHandler({
+            schema: client.$schema,
+            endpoint: 'http://localhost/api',
+        });
+        const spec = await handler.generateSpec();
+        const baselineFile = 'rest.baseline.yaml';
+
+        if (UPDATE_BASELINE) {
+            saveBaseline(baselineFile, spec);
+            return;
+        }
+
+        const baseline = loadBaseline(baselineFile);
+        expect(spec).toEqual(baseline);
+
+        await validate(spec);
     });
 });
 

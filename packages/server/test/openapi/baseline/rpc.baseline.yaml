@@ -1,0 +1,2036 @@
+openapi: 3.1.0
+info:
+    title: ZenStack Generated API
+    version: 1.0.0
+tags:
+    - name: user
+      description: User operations
+    - name: post
+      description: Post operations
+paths:
+    /user/findMany:
+        get:
+            tags:
+                - user
+            summary: findMany User
+            operationId: user_findMany
+            parameters:
+                - name: q
+                  in: query
+                  description: Arguments as JSON (UserFindManyArgs)
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Result of findMany
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/UserListResponse"
+                "400": &a1
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
+    /user/findUnique:
+        get:
+            tags:
+                - user
+            summary: findUnique User
+            operationId: user_findUnique
+            parameters:
+                - name: q
+                  in: query
+                  description: Arguments as JSON (UserFindUniqueArgs)
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Result of findUnique
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/UserResponse"
+                "400": *a1
+    /user/findFirst:
+        get:
+            tags:
+                - user
+            summary: findFirst User
+            operationId: user_findFirst
+            parameters:
+                - name: q
+                  in: query
+                  description: Arguments as JSON (UserFindFirstArgs)
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Result of findFirst
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/UserResponse"
+                "400": *a1
+    /user/count:
+        get:
+            tags:
+                - user
+            summary: count User
+            operationId: user_count
+            parameters:
+                - name: q
+                  in: query
+                  description: Arguments as JSON (UserCountArgs)
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Result of count
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/UserCountResponse"
+                "400": *a1
+    /user/aggregate:
+        get:
+            tags:
+                - user
+            summary: aggregate User
+            operationId: user_aggregate
+            parameters:
+                - name: q
+                  in: query
+                  description: Arguments as JSON (UserAggregateArgs)
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Result of aggregate
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/UserAggregateResponse"
+                "400": *a1
+    /user/groupBy:
+        get:
+            tags:
+                - user
+            summary: groupBy User
+            operationId: user_groupBy
+            parameters:
+                - name: q
+                  in: query
+                  description: Arguments as JSON (UserGroupByArgs)
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Result of groupBy
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/UserGroupByResponse"
+                "400": *a1
+    /user/exists:
+        get:
+            tags:
+                - user
+            summary: exists User
+            operationId: user_exists
+            parameters:
+                - name: q
+                  in: query
+                  description: Arguments as JSON (UserExistsArgs)
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Result of exists
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ExistsResponse"
+                "400": *a1
+    /user/create:
+        post:
+            tags:
+                - user
+            summary: create User
+            operationId: user_create
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/UserCreateArgs"
+            responses:
+                "201":
+                    description: Result of create
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/UserResponse"
+                "400": *a1
+    /user/createMany:
+        post:
+            tags:
+                - user
+            summary: createMany User
+            operationId: user_createMany
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/UserCreateManyArgs"
+            responses:
+                "201":
+                    description: Result of createMany
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_BatchResponse"
+                "400": *a1
+    /user/createManyAndReturn:
+        post:
+            tags:
+                - user
+            summary: createManyAndReturn User
+            operationId: user_createManyAndReturn
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/UserCreateManyAndReturnArgs"
+            responses:
+                "201":
+                    description: Result of createManyAndReturn
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/UserListResponse"
+                "400": *a1
+    /user/upsert:
+        post:
+            tags:
+                - user
+            summary: upsert User
+            operationId: user_upsert
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/UserUpsertArgs"
+            responses:
+                "201":
+                    description: Result of upsert
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/UserResponse"
+                "400": *a1
+    /user/update:
+        patch:
+            tags:
+                - user
+            summary: update User
+            operationId: user_update
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/UserUpdateArgs"
+            responses:
+                "200":
+                    description: Result of update
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/UserResponse"
+                "400": *a1
+    /user/updateMany:
+        patch:
+            tags:
+                - user
+            summary: updateMany User
+            operationId: user_updateMany
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/UserUpdateManyArgs"
+            responses:
+                "200":
+                    description: Result of updateMany
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_BatchResponse"
+                "400": *a1
+    /user/updateManyAndReturn:
+        patch:
+            tags:
+                - user
+            summary: updateManyAndReturn User
+            operationId: user_updateManyAndReturn
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/UserUpdateManyAndReturnArgs"
+            responses:
+                "200":
+                    description: Result of updateManyAndReturn
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/UserListResponse"
+                "400": *a1
+    /user/delete:
+        delete:
+            tags:
+                - user
+            summary: delete User
+            operationId: user_delete
+            parameters:
+                - name: q
+                  in: query
+                  description: Arguments as JSON (UserDeleteArgs)
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Result of delete
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/UserResponse"
+                "400": *a1
+    /user/deleteMany:
+        delete:
+            tags:
+                - user
+            summary: deleteMany User
+            operationId: user_deleteMany
+            parameters:
+                - name: q
+                  in: query
+                  description: Arguments as JSON (UserDeleteManyArgs)
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Result of deleteMany
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_BatchResponse"
+                "400": *a1
+    /post/findMany:
+        get:
+            tags:
+                - post
+            summary: findMany Post
+            operationId: post_findMany
+            parameters:
+                - name: q
+                  in: query
+                  description: Arguments as JSON (PostFindManyArgs)
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Result of findMany
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/PostListResponse"
+                "400": *a1
+    /post/findUnique:
+        get:
+            tags:
+                - post
+            summary: findUnique Post
+            operationId: post_findUnique
+            parameters:
+                - name: q
+                  in: query
+                  description: Arguments as JSON (PostFindUniqueArgs)
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Result of findUnique
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/PostResponse"
+                "400": *a1
+    /post/findFirst:
+        get:
+            tags:
+                - post
+            summary: findFirst Post
+            operationId: post_findFirst
+            parameters:
+                - name: q
+                  in: query
+                  description: Arguments as JSON (PostFindFirstArgs)
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Result of findFirst
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/PostResponse"
+                "400": *a1
+    /post/count:
+        get:
+            tags:
+                - post
+            summary: count Post
+            operationId: post_count
+            parameters:
+                - name: q
+                  in: query
+                  description: Arguments as JSON (PostCountArgs)
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Result of count
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/PostCountResponse"
+                "400": *a1
+    /post/aggregate:
+        get:
+            tags:
+                - post
+            summary: aggregate Post
+            operationId: post_aggregate
+            parameters:
+                - name: q
+                  in: query
+                  description: Arguments as JSON (PostAggregateArgs)
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Result of aggregate
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/PostAggregateResponse"
+                "400": *a1
+    /post/groupBy:
+        get:
+            tags:
+                - post
+            summary: groupBy Post
+            operationId: post_groupBy
+            parameters:
+                - name: q
+                  in: query
+                  description: Arguments as JSON (PostGroupByArgs)
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Result of groupBy
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/PostGroupByResponse"
+                "400": *a1
+    /post/exists:
+        get:
+            tags:
+                - post
+            summary: exists Post
+            operationId: post_exists
+            parameters:
+                - name: q
+                  in: query
+                  description: Arguments as JSON (PostExistsArgs)
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Result of exists
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ExistsResponse"
+                "400": *a1
+    /post/create:
+        post:
+            tags:
+                - post
+            summary: create Post
+            operationId: post_create
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/PostCreateArgs"
+            responses:
+                "201":
+                    description: Result of create
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/PostResponse"
+                "400": *a1
+    /post/createMany:
+        post:
+            tags:
+                - post
+            summary: createMany Post
+            operationId: post_createMany
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/PostCreateManyArgs"
+            responses:
+                "201":
+                    description: Result of createMany
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_BatchResponse"
+                "400": *a1
+    /post/createManyAndReturn:
+        post:
+            tags:
+                - post
+            summary: createManyAndReturn Post
+            operationId: post_createManyAndReturn
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/PostCreateManyAndReturnArgs"
+            responses:
+                "201":
+                    description: Result of createManyAndReturn
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/PostListResponse"
+                "400": *a1
+    /post/upsert:
+        post:
+            tags:
+                - post
+            summary: upsert Post
+            operationId: post_upsert
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/PostUpsertArgs"
+            responses:
+                "201":
+                    description: Result of upsert
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/PostResponse"
+                "400": *a1
+    /post/update:
+        patch:
+            tags:
+                - post
+            summary: update Post
+            operationId: post_update
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/PostUpdateArgs"
+            responses:
+                "200":
+                    description: Result of update
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/PostResponse"
+                "400": *a1
+    /post/updateMany:
+        patch:
+            tags:
+                - post
+            summary: updateMany Post
+            operationId: post_updateMany
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/PostUpdateManyArgs"
+            responses:
+                "200":
+                    description: Result of updateMany
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_BatchResponse"
+                "400": *a1
+    /post/updateManyAndReturn:
+        patch:
+            tags:
+                - post
+            summary: updateManyAndReturn Post
+            operationId: post_updateManyAndReturn
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/PostUpdateManyAndReturnArgs"
+            responses:
+                "200":
+                    description: Result of updateManyAndReturn
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/PostListResponse"
+                "400": *a1
+    /post/delete:
+        delete:
+            tags:
+                - post
+            summary: delete Post
+            operationId: post_delete
+            parameters:
+                - name: q
+                  in: query
+                  description: Arguments as JSON (PostDeleteArgs)
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Result of delete
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/PostResponse"
+                "400": *a1
+    /post/deleteMany:
+        delete:
+            tags:
+                - post
+            summary: deleteMany Post
+            operationId: post_deleteMany
+            parameters:
+                - name: q
+                  in: query
+                  description: Arguments as JSON (PostDeleteManyArgs)
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Result of deleteMany
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_BatchResponse"
+                "400": *a1
+    /$transaction/sequential:
+        post:
+            tags:
+                - $transaction
+            summary: Execute a sequential transaction
+            operationId: transaction_sequential
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items:
+                                type: object
+                                properties:
+                                    model:
+                                        type: string
+                                    op:
+                                        type: string
+                                    args:
+                                        type: object
+                                required:
+                                    - model
+                                    - op
+            responses:
+                "200":
+                    description: Transaction results
+                "400": *a1
+components:
+    schemas:
+        _Meta:
+            type: object
+            properties:
+                serialization: {}
+        _ErrorResponse:
+            type: object
+            properties:
+                error:
+                    type: object
+                    properties:
+                        message:
+                            type: string
+        _BatchResponse:
+            type: object
+            properties:
+                data:
+                    type: object
+                    properties:
+                        count:
+                            type: integer
+                    required:
+                        - count
+                meta:
+                    $ref: "#/components/schemas/_Meta"
+        _ExistsResponse:
+            type: object
+            properties:
+                data:
+                    type: boolean
+                meta:
+                    $ref: "#/components/schemas/_Meta"
+        User:
+            type: object
+            properties:
+                id:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                email:
+                    type: string
+                posts:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/Post"
+            required:
+                - id
+                - createdAt
+                - updatedAt
+                - email
+        UserCreateInput:
+            type: object
+            properties:
+                createdAt:
+                    type: string
+                    format: date-time
+                email:
+                    type: string
+            required:
+                - email
+        UserUpdateInput:
+            type: object
+            properties:
+                id:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                email:
+                    type: string
+        UserWhereUniqueInput:
+            type: object
+            properties:
+                id:
+                    type: string
+                email:
+                    type: string
+        UserWhereInput:
+            type: object
+            properties:
+                id:
+                    oneOf:
+                        - &a2
+                          type: string
+                        - type: object
+                          properties:
+                              equals: *a2
+                              not: *a2
+                              in:
+                                  type: array
+                                  items: *a2
+                              notIn:
+                                  type: array
+                                  items: *a2
+                              contains:
+                                  type: string
+                              startsWith:
+                                  type: string
+                              endsWith:
+                                  type: string
+                              mode:
+                                  type: string
+                                  enum:
+                                      - default
+                                      - insensitive
+                createdAt:
+                    oneOf:
+                        - &a3
+                          type: string
+                          format: date-time
+                        - type: object
+                          properties:
+                              equals: *a3
+                              not: *a3
+                              in:
+                                  type: array
+                                  items: *a3
+                              notIn:
+                                  type: array
+                                  items: *a3
+                              lt: *a3
+                              lte: *a3
+                              gt: *a3
+                              gte: *a3
+                updatedAt:
+                    oneOf:
+                        - &a4
+                          type: string
+                          format: date-time
+                        - type: object
+                          properties:
+                              equals: *a4
+                              not: *a4
+                              in:
+                                  type: array
+                                  items: *a4
+                              notIn:
+                                  type: array
+                                  items: *a4
+                              lt: *a4
+                              lte: *a4
+                              gt: *a4
+                              gte: *a4
+                email:
+                    oneOf:
+                        - &a5
+                          type: string
+                        - type: object
+                          properties:
+                              equals: *a5
+                              not: *a5
+                              in:
+                                  type: array
+                                  items: *a5
+                              notIn:
+                                  type: array
+                                  items: *a5
+                              contains:
+                                  type: string
+                              startsWith:
+                                  type: string
+                              endsWith:
+                                  type: string
+                              mode:
+                                  type: string
+                                  enum:
+                                      - default
+                                      - insensitive
+                AND:
+                    oneOf:
+                        - $ref: "#/components/schemas/UserWhereInput"
+                        - type: array
+                          items:
+                              $ref: "#/components/schemas/UserWhereInput"
+                OR:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/UserWhereInput"
+                NOT:
+                    oneOf:
+                        - $ref: "#/components/schemas/UserWhereInput"
+                        - type: array
+                          items:
+                              $ref: "#/components/schemas/UserWhereInput"
+        UserSelect:
+            type: object
+            properties:
+                id:
+                    type: boolean
+                createdAt:
+                    type: boolean
+                updatedAt:
+                    type: boolean
+                email:
+                    type: boolean
+                posts:
+                    oneOf:
+                        - type: boolean
+                        - type: object
+                          properties:
+                              select:
+                                  $ref: "#/components/schemas/PostSelect"
+                              omit:
+                                  $ref: "#/components/schemas/PostOmit"
+                              include:
+                                  $ref: "#/components/schemas/PostInclude"
+        UserInclude:
+            type: object
+            properties:
+                posts:
+                    oneOf:
+                        - type: boolean
+                        - type: object
+                          properties:
+                              select:
+                                  $ref: "#/components/schemas/PostSelect"
+                              omit:
+                                  $ref: "#/components/schemas/PostOmit"
+                              include:
+                                  $ref: "#/components/schemas/PostInclude"
+        UserOmit:
+            type: object
+            properties:
+                id:
+                    type: boolean
+                createdAt:
+                    type: boolean
+                updatedAt:
+                    type: boolean
+                email:
+                    type: boolean
+        UserCreateArgs:
+            type: object
+            properties:
+                data:
+                    $ref: "#/components/schemas/UserCreateInput"
+                select:
+                    $ref: "#/components/schemas/UserSelect"
+                include:
+                    $ref: "#/components/schemas/UserInclude"
+                omit:
+                    $ref: "#/components/schemas/UserOmit"
+            required:
+                - data
+        UserCreateManyArgs:
+            type: object
+            properties:
+                data:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/UserCreateInput"
+            required:
+                - data
+        UserCreateManyAndReturnArgs:
+            type: object
+            properties:
+                data:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/UserCreateInput"
+                select:
+                    $ref: "#/components/schemas/UserSelect"
+                include:
+                    $ref: "#/components/schemas/UserInclude"
+                omit:
+                    $ref: "#/components/schemas/UserOmit"
+            required:
+                - data
+        UserUpdateArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/UserWhereUniqueInput"
+                data:
+                    $ref: "#/components/schemas/UserUpdateInput"
+                select:
+                    $ref: "#/components/schemas/UserSelect"
+                include:
+                    $ref: "#/components/schemas/UserInclude"
+                omit:
+                    $ref: "#/components/schemas/UserOmit"
+            required:
+                - where
+                - data
+        UserUpdateManyArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/UserWhereInput"
+                data:
+                    $ref: "#/components/schemas/UserUpdateInput"
+            required:
+                - data
+        UserUpdateManyAndReturnArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/UserWhereInput"
+                data:
+                    $ref: "#/components/schemas/UserUpdateInput"
+                select:
+                    $ref: "#/components/schemas/UserSelect"
+                include:
+                    $ref: "#/components/schemas/UserInclude"
+                omit:
+                    $ref: "#/components/schemas/UserOmit"
+            required:
+                - data
+        UserUpsertArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/UserWhereUniqueInput"
+                create:
+                    $ref: "#/components/schemas/UserCreateInput"
+                update:
+                    $ref: "#/components/schemas/UserUpdateInput"
+                select:
+                    $ref: "#/components/schemas/UserSelect"
+                include:
+                    $ref: "#/components/schemas/UserInclude"
+                omit:
+                    $ref: "#/components/schemas/UserOmit"
+            required:
+                - where
+                - create
+                - update
+        UserDeleteArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/UserWhereUniqueInput"
+                select:
+                    $ref: "#/components/schemas/UserSelect"
+                include:
+                    $ref: "#/components/schemas/UserInclude"
+                omit:
+                    $ref: "#/components/schemas/UserOmit"
+            required:
+                - where
+        UserDeleteManyArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/UserWhereInput"
+        UserFindManyArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/UserWhereInput"
+                orderBy:
+                    type: object
+                take:
+                    type: integer
+                skip:
+                    type: integer
+                select:
+                    $ref: "#/components/schemas/UserSelect"
+                include:
+                    $ref: "#/components/schemas/UserInclude"
+                omit:
+                    $ref: "#/components/schemas/UserOmit"
+        UserFindUniqueArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/UserWhereUniqueInput"
+                select:
+                    $ref: "#/components/schemas/UserSelect"
+                include:
+                    $ref: "#/components/schemas/UserInclude"
+                omit:
+                    $ref: "#/components/schemas/UserOmit"
+            required:
+                - where
+        UserFindFirstArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/UserWhereInput"
+                orderBy:
+                    type: object
+                take:
+                    type: integer
+                skip:
+                    type: integer
+                select:
+                    $ref: "#/components/schemas/UserSelect"
+                include:
+                    $ref: "#/components/schemas/UserInclude"
+                omit:
+                    $ref: "#/components/schemas/UserOmit"
+        UserCountArgs:
+            type: object
+            properties:
+                select:
+                    $ref: "#/components/schemas/UserSelect"
+                where:
+                    $ref: "#/components/schemas/UserWhereInput"
+                take:
+                    type: integer
+                skip:
+                    type: integer
+        UserAggregateArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/UserWhereInput"
+                orderBy:
+                    type: object
+                take:
+                    type: integer
+                skip:
+                    type: integer
+        UserGroupByArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/UserWhereInput"
+                by:
+                    type: array
+                    items:
+                        type: string
+                orderBy:
+                    type: object
+                take:
+                    type: integer
+                skip:
+                    type: integer
+        UserExistsArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/UserWhereUniqueInput"
+            required:
+                - where
+        UserResponse:
+            type: object
+            properties:
+                data:
+                    $ref: "#/components/schemas/User"
+                meta:
+                    $ref: "#/components/schemas/_Meta"
+        UserCountAggregateOutputType:
+            type: object
+            properties:
+                id:
+                    type: integer
+                createdAt:
+                    type: integer
+                updatedAt:
+                    type: integer
+                email:
+                    type: integer
+                _all:
+                    type: integer
+            required:
+                - id
+                - createdAt
+                - updatedAt
+                - email
+                - _all
+        UserMinAggregateOutputType:
+            type: object
+            properties:
+                id:
+                    oneOf:
+                        - type: "null"
+                        - type: string
+                createdAt:
+                    oneOf:
+                        - type: "null"
+                        - type: string
+                          format: date-time
+                updatedAt:
+                    oneOf:
+                        - type: "null"
+                        - type: string
+                          format: date-time
+                email:
+                    oneOf:
+                        - type: "null"
+                        - type: string
+        UserMaxAggregateOutputType:
+            type: object
+            properties:
+                id:
+                    oneOf:
+                        - type: "null"
+                        - type: string
+                createdAt:
+                    oneOf:
+                        - type: "null"
+                        - type: string
+                          format: date-time
+                updatedAt:
+                    oneOf:
+                        - type: "null"
+                        - type: string
+                          format: date-time
+                email:
+                    oneOf:
+                        - type: "null"
+                        - type: string
+        AggregateUser:
+            type: object
+            properties:
+                _count:
+                    oneOf:
+                        - type: "null"
+                        - $ref: "#/components/schemas/UserCountAggregateOutputType"
+                _min:
+                    oneOf:
+                        - type: "null"
+                        - $ref: "#/components/schemas/UserMinAggregateOutputType"
+                _max:
+                    oneOf:
+                        - type: "null"
+                        - $ref: "#/components/schemas/UserMaxAggregateOutputType"
+        UserGroupByOutputType:
+            type: object
+            properties:
+                id:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                email:
+                    type: string
+                _count:
+                    oneOf:
+                        - type: "null"
+                        - $ref: "#/components/schemas/UserCountAggregateOutputType"
+                _min:
+                    oneOf:
+                        - type: "null"
+                        - $ref: "#/components/schemas/UserMinAggregateOutputType"
+                _max:
+                    oneOf:
+                        - type: "null"
+                        - $ref: "#/components/schemas/UserMaxAggregateOutputType"
+            required:
+                - id
+                - createdAt
+                - updatedAt
+                - email
+        UserCountResponse:
+            type: object
+            properties:
+                data:
+                    oneOf:
+                        - type: integer
+                        - $ref: "#/components/schemas/UserCountAggregateOutputType"
+                meta:
+                    $ref: "#/components/schemas/_Meta"
+        UserListResponse:
+            type: object
+            properties:
+                data:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/User"
+                meta:
+                    $ref: "#/components/schemas/_Meta"
+        UserAggregateResponse:
+            type: object
+            properties:
+                data:
+                    $ref: "#/components/schemas/AggregateUser"
+                meta:
+                    $ref: "#/components/schemas/_Meta"
+        UserGroupByResponse:
+            type: object
+            properties:
+                data:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/UserGroupByOutputType"
+                meta:
+                    $ref: "#/components/schemas/_Meta"
+        Post:
+            type: object
+            properties:
+                id:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                title:
+                    type: string
+                author:
+                    oneOf:
+                        - $ref: "#/components/schemas/User"
+                        - type: "null"
+                authorId:
+                    oneOf:
+                        - type: string
+                        - type: "null"
+                published:
+                    type: boolean
+                publishedAt:
+                    oneOf:
+                        - type: string
+                          format: date-time
+                        - type: "null"
+                viewCount:
+                    type: integer
+            required:
+                - id
+                - createdAt
+                - updatedAt
+                - title
+                - published
+                - viewCount
+        PostCreateInput:
+            type: object
+            properties:
+                createdAt:
+                    type: string
+                    format: date-time
+                title:
+                    type: string
+                published:
+                    type: boolean
+                publishedAt:
+                    type: string
+                    format: date-time
+                viewCount:
+                    type: integer
+            required:
+                - title
+        PostUpdateInput:
+            type: object
+            properties:
+                id:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                title:
+                    type: string
+                published:
+                    type: boolean
+                publishedAt:
+                    type: string
+                    format: date-time
+                viewCount:
+                    type: integer
+        PostWhereUniqueInput:
+            type: object
+            properties:
+                id:
+                    type: string
+        PostWhereInput:
+            type: object
+            properties:
+                id:
+                    oneOf:
+                        - &a6
+                          type: string
+                        - type: object
+                          properties:
+                              equals: *a6
+                              not: *a6
+                              in:
+                                  type: array
+                                  items: *a6
+                              notIn:
+                                  type: array
+                                  items: *a6
+                              contains:
+                                  type: string
+                              startsWith:
+                                  type: string
+                              endsWith:
+                                  type: string
+                              mode:
+                                  type: string
+                                  enum:
+                                      - default
+                                      - insensitive
+                createdAt:
+                    oneOf:
+                        - &a7
+                          type: string
+                          format: date-time
+                        - type: object
+                          properties:
+                              equals: *a7
+                              not: *a7
+                              in:
+                                  type: array
+                                  items: *a7
+                              notIn:
+                                  type: array
+                                  items: *a7
+                              lt: *a7
+                              lte: *a7
+                              gt: *a7
+                              gte: *a7
+                updatedAt:
+                    oneOf:
+                        - &a8
+                          type: string
+                          format: date-time
+                        - type: object
+                          properties:
+                              equals: *a8
+                              not: *a8
+                              in:
+                                  type: array
+                                  items: *a8
+                              notIn:
+                                  type: array
+                                  items: *a8
+                              lt: *a8
+                              lte: *a8
+                              gt: *a8
+                              gte: *a8
+                title:
+                    oneOf:
+                        - &a9
+                          type: string
+                        - type: object
+                          properties:
+                              equals: *a9
+                              not: *a9
+                              in:
+                                  type: array
+                                  items: *a9
+                              notIn:
+                                  type: array
+                                  items: *a9
+                              contains:
+                                  type: string
+                              startsWith:
+                                  type: string
+                              endsWith:
+                                  type: string
+                              mode:
+                                  type: string
+                                  enum:
+                                      - default
+                                      - insensitive
+                authorId:
+                    oneOf:
+                        - &a10
+                          type: string
+                        - type: object
+                          properties:
+                              equals: *a10
+                              not: *a10
+                              in:
+                                  type: array
+                                  items: *a10
+                              notIn:
+                                  type: array
+                                  items: *a10
+                              contains:
+                                  type: string
+                              startsWith:
+                                  type: string
+                              endsWith:
+                                  type: string
+                              mode:
+                                  type: string
+                                  enum:
+                                      - default
+                                      - insensitive
+                published:
+                    oneOf:
+                        - &a11
+                          type: boolean
+                        - type: object
+                          properties:
+                              equals: *a11
+                              not: *a11
+                              in:
+                                  type: array
+                                  items: *a11
+                              notIn:
+                                  type: array
+                                  items: *a11
+                publishedAt:
+                    oneOf:
+                        - &a12
+                          type: string
+                          format: date-time
+                        - type: object
+                          properties:
+                              equals: *a12
+                              not: *a12
+                              in:
+                                  type: array
+                                  items: *a12
+                              notIn:
+                                  type: array
+                                  items: *a12
+                              lt: *a12
+                              lte: *a12
+                              gt: *a12
+                              gte: *a12
+                viewCount:
+                    oneOf:
+                        - &a13
+                          type: integer
+                        - type: object
+                          properties:
+                              equals: *a13
+                              not: *a13
+                              in:
+                                  type: array
+                                  items: *a13
+                              notIn:
+                                  type: array
+                                  items: *a13
+                              lt: *a13
+                              lte: *a13
+                              gt: *a13
+                              gte: *a13
+                AND:
+                    oneOf:
+                        - $ref: "#/components/schemas/PostWhereInput"
+                        - type: array
+                          items:
+                              $ref: "#/components/schemas/PostWhereInput"
+                OR:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/PostWhereInput"
+                NOT:
+                    oneOf:
+                        - $ref: "#/components/schemas/PostWhereInput"
+                        - type: array
+                          items:
+                              $ref: "#/components/schemas/PostWhereInput"
+        PostSelect:
+            type: object
+            properties:
+                id:
+                    type: boolean
+                createdAt:
+                    type: boolean
+                updatedAt:
+                    type: boolean
+                title:
+                    type: boolean
+                author:
+                    oneOf:
+                        - type: boolean
+                        - type: object
+                          properties:
+                              select:
+                                  $ref: "#/components/schemas/UserSelect"
+                              omit:
+                                  $ref: "#/components/schemas/UserOmit"
+                              include:
+                                  $ref: "#/components/schemas/UserInclude"
+                authorId:
+                    type: boolean
+                published:
+                    type: boolean
+                publishedAt:
+                    type: boolean
+                viewCount:
+                    type: boolean
+        PostInclude:
+            type: object
+            properties:
+                author:
+                    oneOf:
+                        - type: boolean
+                        - type: object
+                          properties:
+                              select:
+                                  $ref: "#/components/schemas/UserSelect"
+                              omit:
+                                  $ref: "#/components/schemas/UserOmit"
+                              include:
+                                  $ref: "#/components/schemas/UserInclude"
+        PostOmit:
+            type: object
+            properties:
+                id:
+                    type: boolean
+                createdAt:
+                    type: boolean
+                updatedAt:
+                    type: boolean
+                title:
+                    type: boolean
+                authorId:
+                    type: boolean
+                published:
+                    type: boolean
+                publishedAt:
+                    type: boolean
+                viewCount:
+                    type: boolean
+        PostCreateArgs:
+            type: object
+            properties:
+                data:
+                    $ref: "#/components/schemas/PostCreateInput"
+                select:
+                    $ref: "#/components/schemas/PostSelect"
+                include:
+                    $ref: "#/components/schemas/PostInclude"
+                omit:
+                    $ref: "#/components/schemas/PostOmit"
+            required:
+                - data
+        PostCreateManyArgs:
+            type: object
+            properties:
+                data:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/PostCreateInput"
+            required:
+                - data
+        PostCreateManyAndReturnArgs:
+            type: object
+            properties:
+                data:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/PostCreateInput"
+                select:
+                    $ref: "#/components/schemas/PostSelect"
+                include:
+                    $ref: "#/components/schemas/PostInclude"
+                omit:
+                    $ref: "#/components/schemas/PostOmit"
+            required:
+                - data
+        PostUpdateArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/PostWhereUniqueInput"
+                data:
+                    $ref: "#/components/schemas/PostUpdateInput"
+                select:
+                    $ref: "#/components/schemas/PostSelect"
+                include:
+                    $ref: "#/components/schemas/PostInclude"
+                omit:
+                    $ref: "#/components/schemas/PostOmit"
+            required:
+                - where
+                - data
+        PostUpdateManyArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/PostWhereInput"
+                data:
+                    $ref: "#/components/schemas/PostUpdateInput"
+            required:
+                - data
+        PostUpdateManyAndReturnArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/PostWhereInput"
+                data:
+                    $ref: "#/components/schemas/PostUpdateInput"
+                select:
+                    $ref: "#/components/schemas/PostSelect"
+                include:
+                    $ref: "#/components/schemas/PostInclude"
+                omit:
+                    $ref: "#/components/schemas/PostOmit"
+            required:
+                - data
+        PostUpsertArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/PostWhereUniqueInput"
+                create:
+                    $ref: "#/components/schemas/PostCreateInput"
+                update:
+                    $ref: "#/components/schemas/PostUpdateInput"
+                select:
+                    $ref: "#/components/schemas/PostSelect"
+                include:
+                    $ref: "#/components/schemas/PostInclude"
+                omit:
+                    $ref: "#/components/schemas/PostOmit"
+            required:
+                - where
+                - create
+                - update
+        PostDeleteArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/PostWhereUniqueInput"
+                select:
+                    $ref: "#/components/schemas/PostSelect"
+                include:
+                    $ref: "#/components/schemas/PostInclude"
+                omit:
+                    $ref: "#/components/schemas/PostOmit"
+            required:
+                - where
+        PostDeleteManyArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/PostWhereInput"
+        PostFindManyArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/PostWhereInput"
+                orderBy:
+                    type: object
+                take:
+                    type: integer
+                skip:
+                    type: integer
+                select:
+                    $ref: "#/components/schemas/PostSelect"
+                include:
+                    $ref: "#/components/schemas/PostInclude"
+                omit:
+                    $ref: "#/components/schemas/PostOmit"
+        PostFindUniqueArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/PostWhereUniqueInput"
+                select:
+                    $ref: "#/components/schemas/PostSelect"
+                include:
+                    $ref: "#/components/schemas/PostInclude"
+                omit:
+                    $ref: "#/components/schemas/PostOmit"
+            required:
+                - where
+        PostFindFirstArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/PostWhereInput"
+                orderBy:
+                    type: object
+                take:
+                    type: integer
+                skip:
+                    type: integer
+                select:
+                    $ref: "#/components/schemas/PostSelect"
+                include:
+                    $ref: "#/components/schemas/PostInclude"
+                omit:
+                    $ref: "#/components/schemas/PostOmit"
+        PostCountArgs:
+            type: object
+            properties:
+                select:
+                    $ref: "#/components/schemas/PostSelect"
+                where:
+                    $ref: "#/components/schemas/PostWhereInput"
+                take:
+                    type: integer
+                skip:
+                    type: integer
+        PostAggregateArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/PostWhereInput"
+                orderBy:
+                    type: object
+                take:
+                    type: integer
+                skip:
+                    type: integer
+        PostGroupByArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/PostWhereInput"
+                by:
+                    type: array
+                    items:
+                        type: string
+                orderBy:
+                    type: object
+                take:
+                    type: integer
+                skip:
+                    type: integer
+        PostExistsArgs:
+            type: object
+            properties:
+                where:
+                    $ref: "#/components/schemas/PostWhereUniqueInput"
+            required:
+                - where
+        PostResponse:
+            type: object
+            properties:
+                data:
+                    $ref: "#/components/schemas/Post"
+                meta:
+                    $ref: "#/components/schemas/_Meta"
+        PostCountAggregateOutputType:
+            type: object
+            properties:
+                id:
+                    type: integer
+                createdAt:
+                    type: integer
+                updatedAt:
+                    type: integer
+                title:
+                    type: integer
+                authorId:
+                    type: integer
+                published:
+                    type: integer
+                publishedAt:
+                    type: integer
+                viewCount:
+                    type: integer
+                _all:
+                    type: integer
+            required:
+                - id
+                - createdAt
+                - updatedAt
+                - title
+                - authorId
+                - published
+                - publishedAt
+                - viewCount
+                - _all
+        PostMinAggregateOutputType:
+            type: object
+            properties:
+                id:
+                    oneOf:
+                        - type: "null"
+                        - type: string
+                createdAt:
+                    oneOf:
+                        - type: "null"
+                        - type: string
+                          format: date-time
+                updatedAt:
+                    oneOf:
+                        - type: "null"
+                        - type: string
+                          format: date-time
+                title:
+                    oneOf:
+                        - type: "null"
+                        - type: string
+                authorId:
+                    oneOf:
+                        - type: "null"
+                        - type: string
+                published:
+                    oneOf:
+                        - type: "null"
+                        - type: boolean
+                publishedAt:
+                    oneOf:
+                        - type: "null"
+                        - type: string
+                          format: date-time
+                viewCount:
+                    oneOf:
+                        - type: "null"
+                        - type: integer
+        PostMaxAggregateOutputType:
+            type: object
+            properties:
+                id:
+                    oneOf:
+                        - type: "null"
+                        - type: string
+                createdAt:
+                    oneOf:
+                        - type: "null"
+                        - type: string
+                          format: date-time
+                updatedAt:
+                    oneOf:
+                        - type: "null"
+                        - type: string
+                          format: date-time
+                title:
+                    oneOf:
+                        - type: "null"
+                        - type: string
+                authorId:
+                    oneOf:
+                        - type: "null"
+                        - type: string
+                published:
+                    oneOf:
+                        - type: "null"
+                        - type: boolean
+                publishedAt:
+                    oneOf:
+                        - type: "null"
+                        - type: string
+                          format: date-time
+                viewCount:
+                    oneOf:
+                        - type: "null"
+                        - type: integer
+        PostAvgAggregateOutputType:
+            type: object
+            properties:
+                viewCount:
+                    oneOf:
+                        - type: "null"
+                        - type: number
+        PostSumAggregateOutputType:
+            type: object
+            properties:
+                viewCount:
+                    oneOf:
+                        - type: "null"
+                        - type: integer
+        AggregatePost:
+            type: object
+            properties:
+                _count:
+                    oneOf:
+                        - type: "null"
+                        - $ref: "#/components/schemas/PostCountAggregateOutputType"
+                _min:
+                    oneOf:
+                        - type: "null"
+                        - $ref: "#/components/schemas/PostMinAggregateOutputType"
+                _max:
+                    oneOf:
+                        - type: "null"
+                        - $ref: "#/components/schemas/PostMaxAggregateOutputType"
+                _avg:
+                    oneOf:
+                        - type: "null"
+                        - $ref: "#/components/schemas/PostAvgAggregateOutputType"
+                _sum:
+                    oneOf:
+                        - type: "null"
+                        - $ref: "#/components/schemas/PostSumAggregateOutputType"
+        PostGroupByOutputType:
+            type: object
+            properties:
+                id:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                title:
+                    type: string
+                authorId:
+                    oneOf:
+                        - type: string
+                        - type: "null"
+                published:
+                    type: boolean
+                publishedAt:
+                    oneOf:
+                        - type: string
+                          format: date-time
+                        - type: "null"
+                viewCount:
+                    type: integer
+                _count:
+                    oneOf:
+                        - type: "null"
+                        - $ref: "#/components/schemas/PostCountAggregateOutputType"
+                _min:
+                    oneOf:
+                        - type: "null"
+                        - $ref: "#/components/schemas/PostMinAggregateOutputType"
+                _max:
+                    oneOf:
+                        - type: "null"
+                        - $ref: "#/components/schemas/PostMaxAggregateOutputType"
+                _avg:
+                    oneOf:
+                        - type: "null"
+                        - $ref: "#/components/schemas/PostAvgAggregateOutputType"
+                _sum:
+                    oneOf:
+                        - type: "null"
+                        - $ref: "#/components/schemas/PostSumAggregateOutputType"
+            required:
+                - id
+                - createdAt
+                - updatedAt
+                - title
+                - published
+                - viewCount
+        PostCountResponse:
+            type: object
+            properties:
+                data:
+                    oneOf:
+                        - type: integer
+                        - $ref: "#/components/schemas/PostCountAggregateOutputType"
+                meta:
+                    $ref: "#/components/schemas/_Meta"
+        PostListResponse:
+            type: object
+            properties:
+                data:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/Post"
+                meta:
+                    $ref: "#/components/schemas/_Meta"
+        PostAggregateResponse:
+            type: object
+            properties:
+                data:
+                    $ref: "#/components/schemas/AggregatePost"
+                meta:
+                    $ref: "#/components/schemas/_Meta"
+        PostGroupByResponse:
+            type: object
+            properties:
+                data:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/PostGroupByOutputType"
+                meta:
+                    $ref: "#/components/schemas/_Meta"

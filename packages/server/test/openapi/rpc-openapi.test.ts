@@ -1,7 +1,21 @@
 import { createTestClient } from '@zenstackhq/testtools';
+import fs from 'fs';
+import path from 'path';
 import { beforeAll, describe, expect, it } from 'vitest';
+import YAML from 'yaml';
+import { validate } from '@readme/openapi-parser';
 import { RPCApiHandler } from '../../src/api/rpc';
 import { schema } from '../utils';
+
+const UPDATE_BASELINE = process.env.UPDATE_BASELINE === '1';
+
+function loadBaseline(name: string) {
+    return YAML.parse(fs.readFileSync(path.join(__dirname, 'baseline', name), 'utf-8'));
+}
+
+function saveBaseline(name: string, spec: any) {
+    fs.writeFileSync(path.join(__dirname, 'baseline', name), YAML.stringify(spec, { lineWidth: 0, indent: 4 }));
+}
 
 describe('RPC OpenAPI spec generation', () => {
     let handler: RPCApiHandler;
@@ -772,6 +786,25 @@ describe('RPC OpenAPI spec generation - aggregate and groupby schemas', () => {
             expect(countType.properties.authorId).toEqual({ type: 'integer' });
             expect(countType.required).toContain('authorId');
         });
+    });
+});
+
+describe('RPC OpenAPI spec generation - baseline', () => {
+    it('matches baseline', async () => {
+        const client = await createTestClient(schema);
+        const handler = new RPCApiHandler({ schema: client.$schema });
+        const spec = await handler.generateSpec();
+        const baselineFile = 'rpc.baseline.yaml';
+
+        if (UPDATE_BASELINE) {
+            saveBaseline(baselineFile, spec);
+            return;
+        }
+
+        const baseline = loadBaseline(baselineFile);
+        expect(spec).toEqual(baseline);
+
+        await validate(spec);
     });
 });
 
