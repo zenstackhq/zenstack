@@ -7,7 +7,6 @@
         "build": "tsc --noEmit && tsup-node",
         "watch": "tsup-node --watch",
         "lint": "eslint src --ext ts",
-        "test": "vitest run",
         "pack": "pnpm pack"
     },
     "keywords": [],
@@ -47,10 +46,7 @@
     },
     "devDependencies": {
         "@types/better-sqlite3": "catalog:",
-        "@types/pg": "^8.0.0",
         "@zenstackhq/eslint-config": "workspace:*",
-        "@zenstackhq/testtools": "workspace:*",
-        "@zenstackhq/typescript-config": "workspace:*",
-        "@zenstackhq/vitest-config": "workspace:*"
+        "@zenstackhq/typescript-config": "workspace:*"
     }
 }
