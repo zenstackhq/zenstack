@@ -118,7 +118,7 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/UserListResponse"
-                "400": &a1
+                "400":
                     description: Error
                     content:
                         application/vnd.api+json:
@@ -142,7 +142,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/UserResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /user/{id}:
         get:
             tags:
@@ -150,8 +155,7 @@ paths:
             summary: Get a User resource by ID
             operationId: getUser
             parameters:
-                - &a2
-                  $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/id"
                 - $ref: "#/components/parameters/include"
             responses:
                 "200":
@@ -160,14 +164,19 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/UserResponse"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         patch:
             tags:
                 - user
             summary: Update a User resource
             operationId: updateUser
             parameters:
-                - *a2
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
@@ -181,19 +190,34 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/UserResponse"
-                "400": *a1
-                "404": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         delete:
             tags:
                 - user
             summary: Delete a User resource
             operationId: deleteUser
             parameters:
-                - *a2
+                - $ref: "#/components/parameters/id"
             responses:
                 "200":
                     description: Deleted successfully
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /user/{id}/posts:
         get:
             tags:
@@ -278,6 +302,31 @@ paths:
                   in: query
                   schema:
                       type: string
+                - name: filter[authorId]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by authorId
+                - name: filter[authorId][$contains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[authorId][$icontains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[authorId][$search]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[authorId][$startsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[authorId][$endsWith]
+                  in: query
+                  schema:
+                      type: string
                 - name: filter[published]
                   in: query
                   schema:
@@ -332,7 +381,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/PostListResponse"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /user/{id}/relationships/posts:
         get:
             tags:
@@ -340,8 +394,7 @@ paths:
             summary: Fetch posts relationship
             operationId: getUser_relationships_posts
             parameters:
-                - &a3
-                  $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/id"
             responses:
                 "200":
                     description: posts relationship
@@ -349,47 +402,63 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/_toManyRelationshipWithLinks"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         put:
             tags:
                 - user
             summary: Replace posts relationship
             operationId: putUser_relationships_posts
             parameters:
-                - *a3
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: &a4
+                        schema:
                             $ref: "#/components/schemas/_toManyRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         patch:
             tags:
                 - user
             summary: Update posts relationship
             operationId: patchUser_relationships_posts
             parameters:
-                - *a3
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: *a4
+                        schema:
+                            $ref: "#/components/schemas/_toManyRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         post:
             tags:
                 - user
             summary: Add to posts collection relationship
             operationId: postUser_relationships_posts
             parameters:
-                - *a3
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
@@ -399,7 +468,12 @@ paths:
             responses:
                 "200":
                     description: Added to relationship collection
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /user/{id}/likes:
         get:
             tags:
@@ -429,7 +503,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/PostLikeListResponse"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /user/{id}/relationships/likes:
         get:
             tags:
@@ -437,8 +516,7 @@ paths:
             summary: Fetch likes relationship
             operationId: getUser_relationships_likes
             parameters:
-                - &a5
-                  $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/id"
             responses:
                 "200":
                     description: likes relationship
@@ -446,47 +524,63 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/_toManyRelationshipWithLinks"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         put:
             tags:
                 - user
             summary: Replace likes relationship
             operationId: putUser_relationships_likes
             parameters:
-                - *a5
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: &a6
+                        schema:
                             $ref: "#/components/schemas/_toManyRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         patch:
             tags:
                 - user
             summary: Update likes relationship
             operationId: patchUser_relationships_likes
             parameters:
-                - *a5
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: *a6
+                        schema:
+                            $ref: "#/components/schemas/_toManyRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         post:
             tags:
                 - user
             summary: Add to likes collection relationship
             operationId: postUser_relationships_likes
             parameters:
-                - *a5
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
@@ -496,7 +590,12 @@ paths:
             responses:
                 "200":
                     description: Added to relationship collection
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /user/{id}/profile:
         get:
             tags:
@@ -513,7 +612,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/ProfileResponse"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /user/{id}/relationships/profile:
         get:
             tags:
@@ -521,8 +625,7 @@ paths:
             summary: Fetch profile relationship
             operationId: getUser_relationships_profile
             parameters:
-                - &a7
-                  $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/id"
             responses:
                 "200":
                     description: profile relationship
@@ -530,40 +633,56 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/_toOneRelationshipWithLinks"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         put:
             tags:
                 - user
             summary: Replace profile relationship
             operationId: putUser_relationships_profile
             parameters:
-                - *a7
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: &a8
+                        schema:
                             $ref: "#/components/schemas/_toOneRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         patch:
             tags:
                 - user
             summary: Update profile relationship
             operationId: patchUser_relationships_profile
             parameters:
-                - *a7
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: *a8
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /profile:
         get:
             tags:
@@ -605,6 +724,31 @@ paths:
                   in: query
                   schema:
                       type: string
+                - name: filter[userId]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by userId
+                - name: filter[userId][$contains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$icontains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$search]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$startsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$endsWith]
+                  in: query
+                  schema:
+                      type: string
             responses:
                 "200":
                     description: List of Profile resources
@@ -612,7 +756,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/ProfileListResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         post:
             tags:
                 - profile
@@ -631,7 +780,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/ProfileResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /profile/{id}:
         get:
             tags:
@@ -639,8 +793,7 @@ paths:
             summary: Get a Profile resource by ID
             operationId: getProfile
             parameters:
-                - &a9
-                  $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/id"
                 - $ref: "#/components/parameters/include"
             responses:
                 "200":
@@ -649,14 +802,19 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/ProfileResponse"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         patch:
             tags:
                 - profile
             summary: Update a Profile resource
             operationId: updateProfile
             parameters:
-                - *a9
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
@@ -670,19 +828,34 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/ProfileResponse"
-                "400": *a1
-                "404": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         delete:
             tags:
                 - profile
             summary: Delete a Profile resource
             operationId: deleteProfile
             parameters:
-                - *a9
+                - $ref: "#/components/parameters/id"
             responses:
                 "200":
                     description: Deleted successfully
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /profile/{id}/user:
         get:
             tags:
@@ -699,7 +872,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/UserResponse"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /profile/{id}/relationships/user:
         get:
             tags:
@@ -707,8 +885,7 @@ paths:
             summary: Fetch user relationship
             operationId: getProfile_relationships_user
             parameters:
-                - &a10
-                  $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/id"
             responses:
                 "200":
                     description: user relationship
@@ -716,40 +893,56 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/_toOneRelationshipWithLinks"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         put:
             tags:
                 - profile
             summary: Replace user relationship
             operationId: putProfile_relationships_user
             parameters:
-                - *a10
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: &a11
+                        schema:
                             $ref: "#/components/schemas/_toOneRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         patch:
             tags:
                 - profile
             summary: Update user relationship
             operationId: patchProfile_relationships_user
             parameters:
-                - *a10
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: *a11
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /post:
         get:
             tags:
@@ -833,6 +1026,31 @@ paths:
                   in: query
                   schema:
                       type: string
+                - name: filter[authorId]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by authorId
+                - name: filter[authorId][$contains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[authorId][$icontains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[authorId][$search]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[authorId][$startsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[authorId][$endsWith]
+                  in: query
+                  schema:
+                      type: string
                 - name: filter[published]
                   in: query
                   schema:
@@ -887,7 +1105,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/PostListResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         post:
             tags:
                 - post
@@ -906,7 +1129,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/PostResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /post/{id}:
         get:
             tags:
@@ -914,8 +1142,7 @@ paths:
             summary: Get a Post resource by ID
             operationId: getPost
             parameters:
-                - &a12
-                  $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/id"
                 - $ref: "#/components/parameters/include"
             responses:
                 "200":
@@ -924,14 +1151,19 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/PostResponse"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         patch:
             tags:
                 - post
             summary: Update a Post resource
             operationId: updatePost
             parameters:
-                - *a12
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
@@ -945,19 +1177,34 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/PostResponse"
-                "400": *a1
-                "404": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         delete:
             tags:
                 - post
             summary: Delete a Post resource
             operationId: deletePost
             parameters:
-                - *a12
+                - $ref: "#/components/parameters/id"
             responses:
                 "200":
                     description: Deleted successfully
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /post/{id}/author:
         get:
             tags:
@@ -974,7 +1221,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/UserResponse"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /post/{id}/relationships/author:
         get:
             tags:
@@ -982,8 +1234,7 @@ paths:
             summary: Fetch author relationship
             operationId: getPost_relationships_author
             parameters:
-                - &a13
-                  $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/id"
             responses:
                 "200":
                     description: author relationship
@@ -991,40 +1242,56 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/_toOneRelationshipWithLinks"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         put:
             tags:
                 - post
             summary: Replace author relationship
             operationId: putPost_relationships_author
             parameters:
-                - *a13
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: &a14
+                        schema:
                             $ref: "#/components/schemas/_toOneRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         patch:
             tags:
                 - post
             summary: Update author relationship
             operationId: patchPost_relationships_author
             parameters:
-                - *a13
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: *a14
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /post/{id}/comments:
         get:
             tags:
@@ -1042,6 +1309,27 @@ paths:
                   schema:
                       type: string
                   description: Filter by Comment ID
+                - name: filter[postId]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by postId
+                - name: filter[postId][$lt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$lte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$gt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$gte]
+                  in: query
+                  schema:
+                      type: string
                 - name: filter[content]
                   in: query
                   schema:
@@ -1074,7 +1362,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/CommentListResponse"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /post/{id}/relationships/comments:
         get:
             tags:
@@ -1082,8 +1375,7 @@ paths:
             summary: Fetch comments relationship
             operationId: getPost_relationships_comments
             parameters:
-                - &a15
-                  $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/id"
             responses:
                 "200":
                     description: comments relationship
@@ -1091,47 +1383,63 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/_toManyRelationshipWithLinks"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         put:
             tags:
                 - post
             summary: Replace comments relationship
             operationId: putPost_relationships_comments
             parameters:
-                - *a15
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: &a16
+                        schema:
                             $ref: "#/components/schemas/_toManyRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         patch:
             tags:
                 - post
             summary: Update comments relationship
             operationId: patchPost_relationships_comments
             parameters:
-                - *a15
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: *a16
+                        schema:
+                            $ref: "#/components/schemas/_toManyRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         post:
             tags:
                 - post
             summary: Add to comments collection relationship
             operationId: postPost_relationships_comments
             parameters:
-                - *a15
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
@@ -1141,7 +1449,12 @@ paths:
             responses:
                 "200":
                     description: Added to relationship collection
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /post/{id}/likes:
         get:
             tags:
@@ -1171,7 +1484,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/PostLikeListResponse"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /post/{id}/relationships/likes:
         get:
             tags:
@@ -1179,8 +1497,7 @@ paths:
             summary: Fetch likes relationship
             operationId: getPost_relationships_likes
             parameters:
-                - &a17
-                  $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/id"
             responses:
                 "200":
                     description: likes relationship
@@ -1188,47 +1505,63 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/_toManyRelationshipWithLinks"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         put:
             tags:
                 - post
             summary: Replace likes relationship
             operationId: putPost_relationships_likes
             parameters:
-                - *a17
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: &a18
+                        schema:
                             $ref: "#/components/schemas/_toManyRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         patch:
             tags:
                 - post
             summary: Update likes relationship
             operationId: patchPost_relationships_likes
             parameters:
-                - *a17
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: *a18
+                        schema:
+                            $ref: "#/components/schemas/_toManyRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         post:
             tags:
                 - post
             summary: Add to likes collection relationship
             operationId: postPost_relationships_likes
             parameters:
-                - *a17
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
@@ -1238,7 +1571,12 @@ paths:
             responses:
                 "200":
                     description: Added to relationship collection
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /post/{id}/setting:
         get:
             tags:
@@ -1255,7 +1593,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/SettingResponse"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /post/{id}/relationships/setting:
         get:
             tags:
@@ -1263,8 +1606,7 @@ paths:
             summary: Fetch setting relationship
             operationId: getPost_relationships_setting
             parameters:
-                - &a19
-                  $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/id"
             responses:
                 "200":
                     description: setting relationship
@@ -1272,40 +1614,56 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/_toOneRelationshipWithLinks"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         put:
             tags:
                 - post
             summary: Replace setting relationship
             operationId: putPost_relationships_setting
             parameters:
-                - *a19
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: &a20
+                        schema:
                             $ref: "#/components/schemas/_toOneRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         patch:
             tags:
                 - post
             summary: Update setting relationship
             operationId: patchPost_relationships_setting
             parameters:
-                - *a19
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: *a20
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /comment:
         get:
             tags:
@@ -1322,6 +1680,27 @@ paths:
                   schema:
                       type: string
                   description: Filter by Comment ID
+                - name: filter[postId]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by postId
+                - name: filter[postId][$lt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$lte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$gt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$gte]
+                  in: query
+                  schema:
+                      type: string
                 - name: filter[content]
                   in: query
                   schema:
@@ -1354,7 +1733,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/CommentListResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         post:
             tags:
                 - comment
@@ -1373,7 +1757,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/CommentResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /comment/{id}:
         get:
             tags:
@@ -1381,8 +1770,7 @@ paths:
             summary: Get a Comment resource by ID
             operationId: getComment
             parameters:
-                - &a21
-                  $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/id"
                 - $ref: "#/components/parameters/include"
             responses:
                 "200":
@@ -1391,14 +1779,19 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/CommentResponse"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         patch:
             tags:
                 - comment
             summary: Update a Comment resource
             operationId: updateComment
             parameters:
-                - *a21
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
@@ -1412,19 +1805,34 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/CommentResponse"
-                "400": *a1
-                "404": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         delete:
             tags:
                 - comment
             summary: Delete a Comment resource
             operationId: deleteComment
             parameters:
-                - *a21
+                - $ref: "#/components/parameters/id"
             responses:
                 "200":
                     description: Deleted successfully
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /comment/{id}/post:
         get:
             tags:
@@ -1441,7 +1849,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/PostResponse"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /comment/{id}/relationships/post:
         get:
             tags:
@@ -1449,8 +1862,7 @@ paths:
             summary: Fetch post relationship
             operationId: getComment_relationships_post
             parameters:
-                - &a22
-                  $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/id"
             responses:
                 "200":
                     description: post relationship
@@ -1458,40 +1870,56 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/_toOneRelationshipWithLinks"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         put:
             tags:
                 - comment
             summary: Replace post relationship
             operationId: putComment_relationships_post
             parameters:
-                - *a22
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: &a23
+                        schema:
                             $ref: "#/components/schemas/_toOneRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         patch:
             tags:
                 - comment
             summary: Update post relationship
             operationId: patchComment_relationships_post
             parameters:
-                - *a22
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: *a23
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /setting:
         get:
             tags:
@@ -1529,6 +1957,27 @@ paths:
                   in: query
                   schema:
                       type: string
+                - name: filter[postId]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by postId
+                - name: filter[postId][$lt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$lte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$gt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$gte]
+                  in: query
+                  schema:
+                      type: string
             responses:
                 "200":
                     description: List of Setting resources
@@ -1536,7 +1985,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/SettingListResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         post:
             tags:
                 - setting
@@ -1555,7 +2009,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/SettingResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /setting/{id}:
         get:
             tags:
@@ -1563,8 +2022,7 @@ paths:
             summary: Get a Setting resource by ID
             operationId: getSetting
             parameters:
-                - &a24
-                  $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/id"
                 - $ref: "#/components/parameters/include"
             responses:
                 "200":
@@ -1573,14 +2031,19 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/SettingResponse"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         patch:
             tags:
                 - setting
             summary: Update a Setting resource
             operationId: updateSetting
             parameters:
-                - *a24
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
@@ -1594,19 +2057,34 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/SettingResponse"
-                "400": *a1
-                "404": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         delete:
             tags:
                 - setting
             summary: Delete a Setting resource
             operationId: deleteSetting
             parameters:
-                - *a24
+                - $ref: "#/components/parameters/id"
             responses:
                 "200":
                     description: Deleted successfully
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /setting/{id}/post:
         get:
             tags:
@@ -1623,7 +2101,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/PostResponse"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /setting/{id}/relationships/post:
         get:
             tags:
@@ -1631,8 +2114,7 @@ paths:
             summary: Fetch post relationship
             operationId: getSetting_relationships_post
             parameters:
-                - &a25
-                  $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/id"
             responses:
                 "200":
                     description: post relationship
@@ -1640,40 +2122,56 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/_toOneRelationshipWithLinks"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         put:
             tags:
                 - setting
             summary: Replace post relationship
             operationId: putSetting_relationships_post
             parameters:
-                - *a25
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: &a26
+                        schema:
                             $ref: "#/components/schemas/_toOneRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         patch:
             tags:
                 - setting
             summary: Update post relationship
             operationId: patchSetting_relationships_post
             parameters:
-                - *a25
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: *a26
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /postLike:
         get:
             tags:
@@ -1702,7 +2200,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/PostLikeListResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         post:
             tags:
                 - postLike
@@ -1721,7 +2224,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/PostLikeResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /postLike/{id}:
         get:
             tags:
@@ -1729,8 +2237,7 @@ paths:
             summary: Get a PostLike resource by ID
             operationId: getPostLike
             parameters:
-                - &a27
-                  $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/id"
                 - $ref: "#/components/parameters/include"
             responses:
                 "200":
@@ -1739,14 +2246,19 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/PostLikeResponse"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         patch:
             tags:
                 - postLike
             summary: Update a PostLike resource
             operationId: updatePostLike
             parameters:
-                - *a27
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
@@ -1760,19 +2272,34 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/PostLikeResponse"
-                "400": *a1
-                "404": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         delete:
             tags:
                 - postLike
             summary: Delete a PostLike resource
             operationId: deletePostLike
             parameters:
-                - *a27
+                - $ref: "#/components/parameters/id"
             responses:
                 "200":
                     description: Deleted successfully
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /postLike/{id}/post:
         get:
             tags:
@@ -1789,7 +2316,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/PostResponse"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /postLike/{id}/relationships/post:
         get:
             tags:
@@ -1797,8 +2329,7 @@ paths:
             summary: Fetch post relationship
             operationId: getPostLike_relationships_post
             parameters:
-                - &a28
-                  $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/id"
             responses:
                 "200":
                     description: post relationship
@@ -1806,40 +2337,56 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/_toOneRelationshipWithLinks"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         put:
             tags:
                 - postLike
             summary: Replace post relationship
             operationId: putPostLike_relationships_post
             parameters:
-                - *a28
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: &a29
+                        schema:
                             $ref: "#/components/schemas/_toOneRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         patch:
             tags:
                 - postLike
             summary: Update post relationship
             operationId: patchPostLike_relationships_post
             parameters:
-                - *a28
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: *a29
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /postLike/{id}/user:
         get:
             tags:
@@ -1856,7 +2403,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/UserResponse"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /postLike/{id}/relationships/user:
         get:
             tags:
@@ -1864,8 +2416,7 @@ paths:
             summary: Fetch user relationship
             operationId: getPostLike_relationships_user
             parameters:
-                - &a30
-                  $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/id"
             responses:
                 "200":
                     description: user relationship
@@ -1873,40 +2424,56 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/_toOneRelationshipWithLinks"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         put:
             tags:
                 - postLike
             summary: Replace user relationship
             operationId: putPostLike_relationships_user
             parameters:
-                - *a30
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: &a31
+                        schema:
                             $ref: "#/components/schemas/_toOneRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         patch:
             tags:
                 - postLike
             summary: Update user relationship
             operationId: patchPostLike_relationships_user
             parameters:
-                - *a30
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: *a31
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /postLike/{id}/likeInfos:
         get:
             tags:
@@ -1949,6 +2516,52 @@ paths:
                   in: query
                   schema:
                       type: string
+                - name: filter[postId]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by postId
+                - name: filter[postId][$lt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$lte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$gt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$gte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by userId
+                - name: filter[userId][$contains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$icontains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$search]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$startsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$endsWith]
+                  in: query
+                  schema:
+                      type: string
             responses:
                 "200":
                     description: Related PostLikeInfo resource(s)
@@ -1956,7 +2569,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/PostLikeInfoListResponse"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /postLike/{id}/relationships/likeInfos:
         get:
             tags:
@@ -1964,8 +2582,7 @@ paths:
             summary: Fetch likeInfos relationship
             operationId: getPostLike_relationships_likeInfos
             parameters:
-                - &a32
-                  $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/id"
             responses:
                 "200":
                     description: likeInfos relationship
@@ -1973,47 +2590,63 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/_toManyRelationshipWithLinks"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         put:
             tags:
                 - postLike
             summary: Replace likeInfos relationship
             operationId: putPostLike_relationships_likeInfos
             parameters:
-                - *a32
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: &a33
+                        schema:
                             $ref: "#/components/schemas/_toManyRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         patch:
             tags:
                 - postLike
             summary: Update likeInfos relationship
             operationId: patchPostLike_relationships_likeInfos
             parameters:
-                - *a32
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: *a33
+                        schema:
+                            $ref: "#/components/schemas/_toManyRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         post:
             tags:
                 - postLike
             summary: Add to likeInfos collection relationship
             operationId: postPostLike_relationships_likeInfos
             parameters:
-                - *a32
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
@@ -2023,7 +2656,12 @@ paths:
             responses:
                 "200":
                     description: Added to relationship collection
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /postLikeInfo:
         get:
             tags:
@@ -2065,6 +2703,52 @@ paths:
                   in: query
                   schema:
                       type: string
+                - name: filter[postId]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by postId
+                - name: filter[postId][$lt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$lte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$gt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$gte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by userId
+                - name: filter[userId][$contains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$icontains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$search]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$startsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$endsWith]
+                  in: query
+                  schema:
+                      type: string
             responses:
                 "200":
                     description: List of PostLikeInfo resources
@@ -2072,7 +2756,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/PostLikeInfoListResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         post:
             tags:
                 - postLikeInfo
@@ -2091,7 +2780,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/PostLikeInfoResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /postLikeInfo/{id}:
         get:
             tags:
@@ -2099,8 +2793,7 @@ paths:
             summary: Get a PostLikeInfo resource by ID
             operationId: getPostLikeInfo
             parameters:
-                - &a34
-                  $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/id"
                 - $ref: "#/components/parameters/include"
             responses:
                 "200":
@@ -2109,14 +2802,19 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/PostLikeInfoResponse"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         patch:
             tags:
                 - postLikeInfo
             summary: Update a PostLikeInfo resource
             operationId: updatePostLikeInfo
             parameters:
-                - *a34
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
@@ -2130,19 +2828,34 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/PostLikeInfoResponse"
-                "400": *a1
-                "404": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         delete:
             tags:
                 - postLikeInfo
             summary: Delete a PostLikeInfo resource
             operationId: deletePostLikeInfo
             parameters:
-                - *a34
+                - $ref: "#/components/parameters/id"
             responses:
                 "200":
                     description: Deleted successfully
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /postLikeInfo/{id}/postLike:
         get:
             tags:
@@ -2159,7 +2872,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/PostLikeResponse"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
     /postLikeInfo/{id}/relationships/postLike:
         get:
             tags:
@@ -2167,8 +2885,7 @@ paths:
             summary: Fetch postLike relationship
             operationId: getPostLikeInfo_relationships_postLike
             parameters:
-                - &a35
-                  $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/id"
             responses:
                 "200":
                     description: postLike relationship
@@ -2176,40 +2893,56 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: "#/components/schemas/_toOneRelationshipWithLinks"
-                "404": *a1
+                "404":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         put:
             tags:
                 - postLikeInfo
             summary: Replace postLike relationship
             operationId: putPostLikeInfo_relationships_postLike
             parameters:
-                - *a35
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: &a36
+                        schema:
                             $ref: "#/components/schemas/_toOneRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
         patch:
             tags:
                 - postLikeInfo
             summary: Update postLike relationship
             operationId: patchPostLikeInfo_relationships_postLike
             parameters:
-                - *a35
+                - $ref: "#/components/parameters/id"
             requestBody:
                 required: true
                 content:
                     application/vnd.api+json:
-                        schema: *a36
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
             responses:
                 "200":
                     description: Relationship updated
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
 components:
     schemas:
         _jsonapi:
@@ -2232,13 +2965,22 @@ components:
         _pagination:
             type: object
             properties:
-                first: &a37
+                first:
                     oneOf:
                         - type: string
                         - type: "null"
-                last: *a37
-                prev: *a37
-                next: *a37
+                last:
+                    oneOf:
+                        - type: string
+                        - type: "null"
+                prev:
+                    oneOf:
+                        - type: string
+                        - type: "null"
+                next:
+                    oneOf:
+                        - type: string
+                        - type: "null"
         _errors:
             type: array
             items:

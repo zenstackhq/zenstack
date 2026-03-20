@@ -13,7 +13,7 @@ function loadBaseline(name: string) {
 }
 
 function saveBaseline(name: string, spec: any) {
-    fs.writeFileSync(path.join(__dirname, 'baseline', name), YAML.stringify(spec, { lineWidth: 0, indent: 4 }));
+    fs.writeFileSync(path.join(__dirname, 'baseline', name), YAML.stringify(spec, { lineWidth: 0, indent: 4, aliasDuplicateObjects: false }));
 }
 
 const schema = `

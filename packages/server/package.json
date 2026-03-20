@@ -8,6 +8,7 @@
         "watch": "tsup-node --watch",
         "lint": "eslint src --ext ts",
         "test": "vitest run",
+        "update-baseline": "UPDATE_BASELINE=1 vitest run test/openapi",
         "pack": "pnpm pack"
     },
     "keywords": [

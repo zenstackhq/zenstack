@@ -457,7 +457,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         }
 
         for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
-            if (fieldDef.relation || fieldDef.omit || fieldDef.foreignKeyFor) continue;
+            if (fieldDef.relation) continue;
             if (idFieldNames.has(fieldName)) continue;
 
             const type = fieldDef.type;
@@ -749,7 +749,6 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         const relationships: Record<string, SchemaObject | ReferenceObject> = {};
 
         for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
-            if (fieldDef.omit) continue;
             if (fieldDef.updatedAt) continue;
             if (fieldDef.foreignKeyFor) continue;
             // Skip auto-generated id fields
@@ -813,7 +812,6 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         const relationships: Record<string, SchemaObject | ReferenceObject> = {};
 
         for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
-            if (fieldDef.omit) continue;
             if (fieldDef.updatedAt) continue;
             if (fieldDef.foreignKeyFor) continue;
             if (fieldDef.relation && !isModelIncluded(fieldDef.type, this.queryOptions)) continue;

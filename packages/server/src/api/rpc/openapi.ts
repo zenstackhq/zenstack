@@ -410,6 +410,9 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             }
         }
 
+        // Shared filter schemas for where inputs
+        this.generateFilterSchemas(schemas);
+
         // Per-model schemas
         for (const modelName of getIncludedModels(this.schema, this.queryOptions)) {
             const modelDef = this.schema.models[modelName]!;
@@ -440,12 +443,21 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             schemas[`${modelName}GroupByArgs`] = this.buildGroupByArgsSchema(modelName);
             schemas[`${modelName}ExistsArgs`] = this.buildExistsArgsSchema(modelName);
             schemas[`${modelName}Response`] = this.buildResponseSchema(modelName);
-            schemas[`${modelName}CountAggregateOutputType`] = this.buildCountAggregateOutputTypeSchema(modelName, modelDef);
+            schemas[`${modelName}CountAggregateOutputType`] = this.buildCountAggregateOutputTypeSchema(
+                modelName,
+                modelDef,
+            );
             schemas[`${modelName}MinAggregateOutputType`] = this.buildMinAggregateOutputTypeSchema(modelName, modelDef);
             schemas[`${modelName}MaxAggregateOutputType`] = this.buildMaxAggregateOutputTypeSchema(modelName, modelDef);
             if (this.modelHasNumericFields(modelDef)) {
-                schemas[`${modelName}AvgAggregateOutputType`] = this.buildAvgAggregateOutputTypeSchema(modelName, modelDef);
-                schemas[`${modelName}SumAggregateOutputType`] = this.buildSumAggregateOutputTypeSchema(modelName, modelDef);
+                schemas[`${modelName}AvgAggregateOutputType`] = this.buildAvgAggregateOutputTypeSchema(
+                    modelName,
+                    modelDef,
+                );
+                schemas[`${modelName}SumAggregateOutputType`] = this.buildSumAggregateOutputTypeSchema(
+                    modelName,
+                    modelDef,
+                );
             }
             schemas[`Aggregate${modelName}`] = this.buildAggregateSchema(modelName, modelDef);
             schemas[`${modelName}GroupByOutputType`] = this.buildGroupByOutputTypeSchema(modelName, modelDef);
@@ -572,18 +584,11 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
     }
 
     private buildCreateInputSchema(_modelName: string, modelDef: ModelDef): SchemaObject {
-        const idFieldNames = new Set(modelDef.idFields);
         const properties: Record<string, SchemaObject | ReferenceObject> = {};
         const required: string[] = [];
 
         for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
             if (fieldDef.relation) continue;
-            if (fieldDef.foreignKeyFor) continue;
-            if (fieldDef.omit) continue;
-            if (fieldDef.updatedAt) continue;
-            // Skip auto-generated id fields
-            if (idFieldNames.has(fieldName) && fieldDef.default !== undefined) continue;
-
             properties[fieldName] = this.typeToSchema(fieldDef.type);
             if (!fieldDef.optional && fieldDef.default === undefined && !fieldDef.array) {
                 required.push(fieldName);
@@ -602,10 +607,6 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
 
         for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
             if (fieldDef.relation) continue;
-            if (fieldDef.foreignKeyFor) continue;
-            if (fieldDef.omit) continue;
-            if (fieldDef.updatedAt) continue;
-
             properties[fieldName] = this.typeToSchema(fieldDef.type);
         }
 
@@ -645,7 +646,6 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
 
         for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
             if (fieldDef.relation) continue;
-            if (fieldDef.omit) continue;
             const filterSchema = this.buildFieldFilterSchema(modelName, fieldName, fieldDef);
             if (filterSchema) {
                 properties[fieldName] = filterSchema;
@@ -840,7 +840,8 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
 
     private modelHasNumericFields(modelDef: ModelDef): boolean {
         return Object.values(modelDef.fields).some(
-            (f) => !f.relation && (f.type === 'Int' || f.type === 'Float' || f.type === 'BigInt' || f.type === 'Decimal')
+            (f) =>
+                !f.relation && (f.type === 'Int' || f.type === 'Float' || f.type === 'BigInt' || f.type === 'Decimal'),
         );
     }
 
@@ -879,7 +880,12 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         const properties: Record<string, SchemaObject> = {};
         for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
             if (fieldDef.relation) continue;
-            if (fieldDef.type !== 'Int' && fieldDef.type !== 'Float' && fieldDef.type !== 'BigInt' && fieldDef.type !== 'Decimal')
+            if (
+                fieldDef.type !== 'Int' &&
+                fieldDef.type !== 'Float' &&
+                fieldDef.type !== 'BigInt' &&
+                fieldDef.type !== 'Decimal'
+            )
                 continue;
             // avg always returns a float
             properties[fieldName] = { oneOf: [{ type: 'null' as const }, { type: 'number' }] };
@@ -891,7 +897,12 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         const properties: Record<string, SchemaObject | ReferenceObject> = {};
         for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
             if (fieldDef.relation) continue;
-            if (fieldDef.type !== 'Int' && fieldDef.type !== 'Float' && fieldDef.type !== 'BigInt' && fieldDef.type !== 'Decimal')
+            if (
+                fieldDef.type !== 'Int' &&
+                fieldDef.type !== 'Float' &&
+                fieldDef.type !== 'BigInt' &&
+                fieldDef.type !== 'Decimal'
+            )
                 continue;
             // sum preserves the original type
             properties[fieldName] = { oneOf: [{ type: 'null' as const }, this.typeToSchema(fieldDef.type)] };
@@ -902,7 +913,10 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
     private buildAggregateSchema(modelName: string, modelDef: ModelDef): SchemaObject {
         const properties: Record<string, SchemaObject> = {
             _count: {
-                oneOf: [{ type: 'null' as const }, { $ref: `#/components/schemas/${modelName}CountAggregateOutputType` }],
+                oneOf: [
+                    { type: 'null' as const },
+                    { $ref: `#/components/schemas/${modelName}CountAggregateOutputType` },
+                ],
             },
             _min: {
                 oneOf: [{ type: 'null' as const }, { $ref: `#/components/schemas/${modelName}MinAggregateOutputType` }],
@@ -1017,13 +1031,54 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         return baseSchema;
     }
 
-    private buildFieldFilterSchema(modelName: string, fieldName: string, fieldDef: FieldDef): SchemaObject | undefined {
-        const baseSchema = this.typeToSchema(fieldDef.type);
+    /**
+     * Generates shared filter schemas for all field types used across models.
+     */
+    private generateFilterSchemas(schemas: Record<string, SchemaObject | ReferenceObject>): void {
+        const filters = new Map<string, { type: string; array: boolean }>();
+
+        for (const modelName of getIncludedModels(this.schema, this.queryOptions)) {
+            const modelDef = this.schema.models[modelName]!;
+            for (const [, fieldDef] of Object.entries(modelDef.fields)) {
+                if (fieldDef.relation) continue;
+                const name = this.filterSchemaName(fieldDef.type, !!fieldDef.array);
+                if (!filters.has(name)) {
+                    filters.set(name, { type: fieldDef.type, array: !!fieldDef.array });
+                }
+            }
+        }
+
+        for (const [name, { type, array }] of filters) {
+            schemas[name] = this.buildFilterSchema(type, array)!;
+        }
+    }
+
+    /**
+     * Returns the schema name for a shared filter (e.g. "_StringFilter", "_IntListFilter").
+     */
+    private filterSchemaName(type: string, array: boolean): string {
+        return array ? `_${type}ListFilter` : `_${type}Filter`;
+    }
+
+    /**
+     * Builds a filter schema for a given field type. When `fieldContext` is provided,
+     * only filter kinds that pass `isFilterKindIncluded` are included; otherwise all
+     * applicable filter kinds are included (used for shared filter schemas).
+     */
+    private buildFilterSchema(
+        type: string,
+        array: boolean,
+        fieldContext?: { modelName: string; fieldName: string },
+    ): SchemaObject | undefined {
+        const includeKind = (kind: string) =>
+            !fieldContext ||
+            isFilterKindIncluded(fieldContext.modelName, fieldContext.fieldName, kind, this.queryOptions);
+
+        const baseSchema = this.typeToSchema(type);
         const filterProps: Record<string, SchemaObject | ReferenceObject> = {};
-        const type = fieldDef.type;
 
         // Equality operators
-        if (isFilterKindIncluded(modelName, fieldName, 'Equality', this.queryOptions)) {
+        if (includeKind('Equality')) {
             filterProps['equals'] = baseSchema;
             filterProps['not'] = baseSchema;
             filterProps['in'] = { type: 'array', items: baseSchema };
@@ -1033,7 +1088,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         // Range operators (numeric/datetime types)
         if (
             (type === 'Int' || type === 'Float' || type === 'BigInt' || type === 'Decimal' || type === 'DateTime') &&
-            isFilterKindIncluded(modelName, fieldName, 'Range', this.queryOptions)
+            includeKind('Range')
         ) {
             filterProps['lt'] = baseSchema;
             filterProps['lte'] = baseSchema;
@@ -1042,7 +1097,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         }
 
         // Like operators (String type)
-        if (type === 'String' && isFilterKindIncluded(modelName, fieldName, 'Like', this.queryOptions)) {
+        if (type === 'String' && includeKind('Like')) {
             filterProps['contains'] = { type: 'string' };
             filterProps['startsWith'] = { type: 'string' };
             filterProps['endsWith'] = { type: 'string' };
@@ -1050,7 +1105,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         }
 
         // List operators (array fields)
-        if (fieldDef.array && isFilterKindIncluded(modelName, fieldName, 'List', this.queryOptions)) {
+        if (array && includeKind('List')) {
             filterProps['has'] = baseSchema;
             filterProps['hasEvery'] = { type: 'array', items: baseSchema };
             filterProps['hasSome'] = { type: 'array', items: baseSchema };
@@ -1062,11 +1117,41 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         const filterObject: SchemaObject = { type: 'object', properties: filterProps };
 
         // If Equality is included, allow shorthand (direct value) via oneOf
-        if (isFilterKindIncluded(modelName, fieldName, 'Equality', this.queryOptions)) {
+        if (includeKind('Equality')) {
             return { oneOf: [baseSchema, filterObject] };
         }
 
         return filterObject;
+    }
+
+    /**
+     * Returns true if no field-level filter slicing is configured for this model/field.
+     */
+    private hasDefaultFilters(modelName: string, fieldName: string): boolean {
+        const slicing = this.queryOptions?.slicing;
+        if (!slicing?.models) return true;
+
+        const modelKey = lowerCaseFirst(modelName);
+        const modelSlicing = (slicing.models as Record<string, any>)[modelKey] ?? (slicing.models as any).$all;
+        if (!modelSlicing?.fields) return true;
+
+        const fieldSlicing = modelSlicing.fields[fieldName] ?? modelSlicing.fields.$all;
+        return !fieldSlicing;
+    }
+
+    private buildFieldFilterSchema(
+        modelName: string,
+        fieldName: string,
+        fieldDef: FieldDef,
+    ): SchemaObject | ReferenceObject | undefined {
+        // If no slicing customization, reference the shared filter schema
+        if (this.hasDefaultFilters(modelName, fieldName)) {
+            const name = this.filterSchemaName(fieldDef.type, !!fieldDef.array);
+            return { $ref: `#/components/schemas/${name}` };
+        }
+
+        // Slicing is active — build inline filter with only included filter kinds
+        return this.buildFilterSchema(fieldDef.type, !!fieldDef.array, { modelName, fieldName });
     }
 
     private typeToSchema(type: string): SchemaObject | ReferenceObject {

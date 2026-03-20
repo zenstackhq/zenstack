@@ -14,7 +14,7 @@ function loadBaseline(name: string) {
 }
 
 function saveBaseline(name: string, spec: any) {
-    fs.writeFileSync(path.join(__dirname, 'baseline', name), YAML.stringify(spec, { lineWidth: 0, indent: 4 }));
+    fs.writeFileSync(path.join(__dirname, 'baseline', name), YAML.stringify(spec, { lineWidth: 0, indent: 4, aliasDuplicateObjects: false }));
 }
 
 describe('RPC OpenAPI spec generation', () => {
@@ -241,28 +241,30 @@ describe('RPC OpenAPI spec generation - queryOptions', () => {
         const s = await handler.generateSpec();
         const whereInput = s.components?.schemas?.['PostWhereInput'] as any;
 
-        // String field (title): Equality + Like operators
-        const titleFilter = whereInput.properties['title'];
-        expect(titleFilter).toBeDefined();
-        // oneOf [baseType, filterObject]
-        expect(titleFilter.oneOf).toHaveLength(2);
-        const titleFilterObj = titleFilter.oneOf[1];
-        expect(titleFilterObj.properties['equals']).toBeDefined();
-        expect(titleFilterObj.properties['not']).toBeDefined();
-        expect(titleFilterObj.properties['in']).toBeDefined();
-        expect(titleFilterObj.properties['contains']).toBeDefined();
-        expect(titleFilterObj.properties['startsWith']).toBeDefined();
-        expect(titleFilterObj.properties['endsWith']).toBeDefined();
+        // Default (no slicing) uses $ref to shared filter schemas
+        expect(whereInput.properties['title'].$ref).toBe('#/components/schemas/_StringFilter');
+        expect(whereInput.properties['viewCount'].$ref).toBe('#/components/schemas/_IntFilter');
 
-        // Int field (viewCount): Equality + Range operators
-        const vcFilter = whereInput.properties['viewCount'];
-        expect(vcFilter).toBeDefined();
-        const vcFilterObj = vcFilter.oneOf[1];
-        expect(vcFilterObj.properties['equals']).toBeDefined();
-        expect(vcFilterObj.properties['lt']).toBeDefined();
-        expect(vcFilterObj.properties['gte']).toBeDefined();
+        // Shared String filter: Equality + Like operators
+        const stringFilter = s.components?.schemas?.['_StringFilter'] as any;
+        expect(stringFilter.oneOf).toHaveLength(2);
+        const stringFilterObj = stringFilter.oneOf[1];
+        expect(stringFilterObj.properties['equals']).toBeDefined();
+        expect(stringFilterObj.properties['not']).toBeDefined();
+        expect(stringFilterObj.properties['in']).toBeDefined();
+        expect(stringFilterObj.properties['contains']).toBeDefined();
+        expect(stringFilterObj.properties['startsWith']).toBeDefined();
+        expect(stringFilterObj.properties['endsWith']).toBeDefined();
+
+        // Shared Int filter: Equality + Range operators
+        const intFilter = s.components?.schemas?.['_IntFilter'] as any;
+        expect(intFilter.oneOf).toHaveLength(2);
+        const intFilterObj = intFilter.oneOf[1];
+        expect(intFilterObj.properties['equals']).toBeDefined();
+        expect(intFilterObj.properties['lt']).toBeDefined();
+        expect(intFilterObj.properties['gte']).toBeDefined();
         // Should not have Like operators
-        expect(vcFilterObj.properties['contains']).toBeUndefined();
+        expect(intFilterObj.properties['contains']).toBeUndefined();
     });
 
     it('slicing excludedFilterKinds removes specific operators from where input', async () => {

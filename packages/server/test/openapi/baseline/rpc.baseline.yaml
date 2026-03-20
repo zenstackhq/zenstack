@@ -27,7 +27,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/UserListResponse"
-                "400": &a1
+                "400":
                     description: Error
                     content:
                         application/json:
@@ -52,7 +52,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/UserResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /user/findFirst:
         get:
             tags:
@@ -72,7 +77,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/UserResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /user/count:
         get:
             tags:
@@ -92,7 +102,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/UserCountResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /user/aggregate:
         get:
             tags:
@@ -112,7 +127,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/UserAggregateResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /user/groupBy:
         get:
             tags:
@@ -132,7 +152,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/UserGroupByResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /user/exists:
         get:
             tags:
@@ -152,7 +177,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/_ExistsResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /user/create:
         post:
             tags:
@@ -172,7 +202,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/UserResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /user/createMany:
         post:
             tags:
@@ -192,7 +227,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/_BatchResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /user/createManyAndReturn:
         post:
             tags:
@@ -212,7 +252,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/UserListResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /user/upsert:
         post:
             tags:
@@ -232,7 +277,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/UserResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /user/update:
         patch:
             tags:
@@ -252,7 +302,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/UserResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /user/updateMany:
         patch:
             tags:
@@ -272,7 +327,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/_BatchResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /user/updateManyAndReturn:
         patch:
             tags:
@@ -292,7 +352,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/UserListResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /user/delete:
         delete:
             tags:
@@ -312,7 +377,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/UserResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /user/deleteMany:
         delete:
             tags:
@@ -332,7 +402,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/_BatchResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /post/findMany:
         get:
             tags:
@@ -352,7 +427,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/PostListResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /post/findUnique:
         get:
             tags:
@@ -372,7 +452,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/PostResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /post/findFirst:
         get:
             tags:
@@ -392,7 +477,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/PostResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /post/count:
         get:
             tags:
@@ -412,7 +502,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/PostCountResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /post/aggregate:
         get:
             tags:
@@ -432,7 +527,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/PostAggregateResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /post/groupBy:
         get:
             tags:
@@ -452,7 +552,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/PostGroupByResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /post/exists:
         get:
             tags:
@@ -472,7 +577,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/_ExistsResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /post/create:
         post:
             tags:
@@ -492,7 +602,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/PostResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /post/createMany:
         post:
             tags:
@@ -512,7 +627,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/_BatchResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /post/createManyAndReturn:
         post:
             tags:
@@ -532,7 +652,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/PostListResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /post/upsert:
         post:
             tags:
@@ -552,7 +677,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/PostResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /post/update:
         patch:
             tags:
@@ -572,7 +702,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/PostResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /post/updateMany:
         patch:
             tags:
@@ -592,7 +727,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/_BatchResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /post/updateManyAndReturn:
         patch:
             tags:
@@ -612,7 +752,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/PostListResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /post/delete:
         delete:
             tags:
@@ -632,7 +777,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/PostResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /post/deleteMany:
         delete:
             tags:
@@ -652,7 +802,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/_BatchResponse"
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
     /$transaction/sequential:
         post:
             tags:
@@ -680,7 +835,12 @@ paths:
             responses:
                 "200":
                     description: Transaction results
-                "400": *a1
+                "400":
+                    description: Error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_ErrorResponse"
 components:
     schemas:
         _Meta:
@@ -714,6 +874,110 @@ components:
                     type: boolean
                 meta:
                     $ref: "#/components/schemas/_Meta"
+        _StringFilter:
+            oneOf:
+                - type: string
+                - type: object
+                  properties:
+                      equals:
+                          type: string
+                      not:
+                          type: string
+                      in:
+                          type: array
+                          items:
+                              type: string
+                      notIn:
+                          type: array
+                          items:
+                              type: string
+                      contains:
+                          type: string
+                      startsWith:
+                          type: string
+                      endsWith:
+                          type: string
+                      mode:
+                          type: string
+                          enum:
+                              - default
+                              - insensitive
+        _DateTimeFilter:
+            oneOf:
+                - type: string
+                  format: date-time
+                - type: object
+                  properties:
+                      equals:
+                          type: string
+                          format: date-time
+                      not:
+                          type: string
+                          format: date-time
+                      in:
+                          type: array
+                          items:
+                              type: string
+                              format: date-time
+                      notIn:
+                          type: array
+                          items:
+                              type: string
+                              format: date-time
+                      lt:
+                          type: string
+                          format: date-time
+                      lte:
+                          type: string
+                          format: date-time
+                      gt:
+                          type: string
+                          format: date-time
+                      gte:
+                          type: string
+                          format: date-time
+        _BooleanFilter:
+            oneOf:
+                - type: boolean
+                - type: object
+                  properties:
+                      equals:
+                          type: boolean
+                      not:
+                          type: boolean
+                      in:
+                          type: array
+                          items:
+                              type: boolean
+                      notIn:
+                          type: array
+                          items:
+                              type: boolean
+        _IntFilter:
+            oneOf:
+                - type: integer
+                - type: object
+                  properties:
+                      equals:
+                          type: integer
+                      not:
+                          type: integer
+                      in:
+                          type: array
+                          items:
+                              type: integer
+                      notIn:
+                          type: array
+                          items:
+                              type: integer
+                      lt:
+                          type: integer
+                      lte:
+                          type: integer
+                      gt:
+                          type: integer
+                      gte:
+                          type: integer
         User:
             type: object
             properties:
@@ -739,12 +1003,18 @@ components:
         UserCreateInput:
             type: object
             properties:
+                id:
+                    type: string
                 createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
                     type: string
                     format: date-time
                 email:
                     type: string
             required:
+                - updatedAt
                 - email
         UserUpdateInput:
             type: object
@@ -752,6 +1022,9 @@ components:
                 id:
                     type: string
                 createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
                     type: string
                     format: date-time
                 email:
@@ -767,93 +1040,13 @@ components:
             type: object
             properties:
                 id:
-                    oneOf:
-                        - &a2
-                          type: string
-                        - type: object
-                          properties:
-                              equals: *a2
-                              not: *a2
-                              in:
-                                  type: array
-                                  items: *a2
-                              notIn:
-                                  type: array
-                                  items: *a2
-                              contains:
-                                  type: string
-                              startsWith:
-                                  type: string
-                              endsWith:
-                                  type: string
-                              mode:
-                                  type: string
-                                  enum:
-                                      - default
-                                      - insensitive
+                    $ref: "#/components/schemas/_StringFilter"
                 createdAt:
-                    oneOf:
-                        - &a3
-                          type: string
-                          format: date-time
-                        - type: object
-                          properties:
-                              equals: *a3
-                              not: *a3
-                              in:
-                                  type: array
-                                  items: *a3
-                              notIn:
-                                  type: array
-                                  items: *a3
-                              lt: *a3
-                              lte: *a3
-                              gt: *a3
-                              gte: *a3
+                    $ref: "#/components/schemas/_DateTimeFilter"
                 updatedAt:
-                    oneOf:
-                        - &a4
-                          type: string
-                          format: date-time
-                        - type: object
-                          properties:
-                              equals: *a4
-                              not: *a4
-                              in:
-                                  type: array
-                                  items: *a4
-                              notIn:
-                                  type: array
-                                  items: *a4
-                              lt: *a4
-                              lte: *a4
-                              gt: *a4
-                              gte: *a4
+                    $ref: "#/components/schemas/_DateTimeFilter"
                 email:
-                    oneOf:
-                        - &a5
-                          type: string
-                        - type: object
-                          properties:
-                              equals: *a5
-                              not: *a5
-                              in:
-                                  type: array
-                                  items: *a5
-                              notIn:
-                                  type: array
-                                  items: *a5
-                              contains:
-                                  type: string
-                              startsWith:
-                                  type: string
-                              endsWith:
-                                  type: string
-                              mode:
-                                  type: string
-                                  enum:
-                                      - default
-                                      - insensitive
+                    $ref: "#/components/schemas/_StringFilter"
                 AND:
                     oneOf:
                         - $ref: "#/components/schemas/UserWhereInput"
@@ -1309,10 +1502,17 @@ components:
         PostCreateInput:
             type: object
             properties:
+                id:
+                    type: string
                 createdAt:
                     type: string
                     format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
                 title:
+                    type: string
+                authorId:
                     type: string
                 published:
                     type: boolean
@@ -1322,6 +1522,7 @@ components:
                 viewCount:
                     type: integer
             required:
+                - updatedAt
                 - title
         PostUpdateInput:
             type: object
@@ -1331,7 +1532,12 @@ components:
                 createdAt:
                     type: string
                     format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
                 title:
+                    type: string
+                authorId:
                     type: string
                 published:
                     type: boolean
@@ -1349,169 +1555,21 @@ components:
             type: object
             properties:
                 id:
-                    oneOf:
-                        - &a6
-                          type: string
-                        - type: object
-                          properties:
-                              equals: *a6
-                              not: *a6
-                              in:
-                                  type: array
-                                  items: *a6
-                              notIn:
-                                  type: array
-                                  items: *a6
-                              contains:
-                                  type: string
-                              startsWith:
-                                  type: string
-                              endsWith:
-                                  type: string
-                              mode:
-                                  type: string
-                                  enum:
-                                      - default
-                                      - insensitive
+                    $ref: "#/components/schemas/_StringFilter"
                 createdAt:
-                    oneOf:
-                        - &a7
-                          type: string
-                          format: date-time
-                        - type: object
-                          properties:
-                              equals: *a7
-                              not: *a7
-                              in:
-                                  type: array
-                                  items: *a7
-                              notIn:
-                                  type: array
-                                  items: *a7
-                              lt: *a7
-                              lte: *a7
-                              gt: *a7
-                              gte: *a7
+                    $ref: "#/components/schemas/_DateTimeFilter"
                 updatedAt:
-                    oneOf:
-                        - &a8
-                          type: string
-                          format: date-time
-                        - type: object
-                          properties:
-                              equals: *a8
-                              not: *a8
-                              in:
-                                  type: array
-                                  items: *a8
-                              notIn:
-                                  type: array
-                                  items: *a8
-                              lt: *a8
-                              lte: *a8
-                              gt: *a8
-                              gte: *a8
+                    $ref: "#/components/schemas/_DateTimeFilter"
                 title:
-                    oneOf:
-                        - &a9
-                          type: string
-                        - type: object
-                          properties:
-                              equals: *a9
-                              not: *a9
-                              in:
-                                  type: array
-                                  items: *a9
-                              notIn:
-                                  type: array
-                                  items: *a9
-                              contains:
-                                  type: string
-                              startsWith:
-                                  type: string
-                              endsWith:
-                                  type: string
-                              mode:
-                                  type: string
-                                  enum:
-                                      - default
-                                      - insensitive
+                    $ref: "#/components/schemas/_StringFilter"
                 authorId:
-                    oneOf:
-                        - &a10
-                          type: string
-                        - type: object
-                          properties:
-                              equals: *a10
-                              not: *a10
-                              in:
-                                  type: array
-                                  items: *a10
-                              notIn:
-                                  type: array
-                                  items: *a10
-                              contains:
-                                  type: string
-                              startsWith:
-                                  type: string
-                              endsWith:
-                                  type: string
-                              mode:
-                                  type: string
-                                  enum:
-                                      - default
-                                      - insensitive
+                    $ref: "#/components/schemas/_StringFilter"
                 published:
-                    oneOf:
-                        - &a11
-                          type: boolean
-                        - type: object
-                          properties:
-                              equals: *a11
-                              not: *a11
-                              in:
-                                  type: array
-                                  items: *a11
-                              notIn:
-                                  type: array
-                                  items: *a11
+                    $ref: "#/components/schemas/_BooleanFilter"
                 publishedAt:
-                    oneOf:
-                        - &a12
-                          type: string
-                          format: date-time
-                        - type: object
-                          properties:
-                              equals: *a12
-                              not: *a12
-                              in:
-                                  type: array
-                                  items: *a12
-                              notIn:
-                                  type: array
-                                  items: *a12
-                              lt: *a12
-                              lte: *a12
-                              gt: *a12
-                              gte: *a12
+                    $ref: "#/components/schemas/_DateTimeFilter"
                 viewCount:
-                    oneOf:
-                        - &a13
-                          type: integer
-                        - type: object
-                          properties:
-                              equals: *a13
-                              not: *a13
-                              in:
-                                  type: array
-                                  items: *a13
-                              notIn:
-                                  type: array
-                                  items: *a13
-                              lt: *a13
-                              lte: *a13
-                              gt: *a13
-                              gte: *a13
+                    $ref: "#/components/schemas/_IntFilter"
                 AND:
                     oneOf:
                         - $ref: "#/components/schemas/PostWhereInput"
