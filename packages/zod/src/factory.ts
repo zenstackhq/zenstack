@@ -15,8 +15,10 @@ import { SchemaFactoryError } from './error';
 import type {
     GetModelCreateFieldsShape,
     GetModelFieldsShape,
+    GetModelSchemaShapeWithOptions,
     GetModelUpdateFieldsShape,
     GetTypeDefFieldsShape,
+    ModelSchemaOptions,
 } from './types';
 import {
     addBigIntValidation,
@@ -30,6 +32,13 @@ export function createSchemaFactory<Schema extends SchemaDef>(schema: Schema) {
     return new SchemaFactory(schema);
 }
 
+/** Internal untyped representation of the options object used at runtime. */
+type RawOptions = {
+    select?: Record<string, unknown>;
+    include?: Record<string, unknown>;
+    omit?: Record<string, unknown>;
+};
+
 class SchemaFactory<Schema extends SchemaDef> {
     private readonly schema: SchemaAccessor<Schema>;
 
@@ -39,29 +48,63 @@ class SchemaFactory<Schema extends SchemaDef> {
 
     makeModelSchema<Model extends GetModels<Schema>>(
         model: Model,
-    ): z.ZodObject<GetModelFieldsShape<Schema, Model>, z.core.$strict> {
-        const modelDef = this.schema.requireModel(model);
-        const fields: Record<string, z.ZodType> = {};
+    ): z.ZodObject<GetModelFieldsShape<Schema, Model>, z.core.$strict>;
 
-        for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
-            if (fieldDef.relation) {
-                const relatedModelName = fieldDef.type;
-                const lazySchema: z.ZodType = z.lazy(() => this.makeModelSchema(relatedModelName as GetModels<Schema>));
-                // relation fields are always optional
-                fields[fieldName] = this.applyDescription(
-                    this.applyCardinality(lazySchema, fieldDef).optional(),
-                    fieldDef.attributes,
-                );
-            } else {
-                fields[fieldName] = this.applyDescription(this.makeScalarFieldSchema(fieldDef), fieldDef.attributes);
+    makeModelSchema<Model extends GetModels<Schema>, Options extends ModelSchemaOptions<Schema, Model>>(
+        model: Model,
+        options: Options,
+    ): z.ZodObject<GetModelSchemaShapeWithOptions<Schema, Model, Options>, z.core.$strict>;
+
+    makeModelSchema<Model extends GetModels<Schema>, Options extends ModelSchemaOptions<Schema, Model>>(
+        model: Model,
+        options?: Options,
+    ): z.ZodObject<Record<string, z.ZodType>, z.core.$strict> {
+        const modelDef = this.schema.requireModel(model);
+
+        if (!options) {
+            // ── No-options path (original behaviour) ─────────────────────────
+            const fields: Record<string, z.ZodType> = {};
+
+            for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
+                if (fieldDef.relation) {
+                    const relatedModelName = fieldDef.type;
+                    const lazySchema: z.ZodType = z.lazy(() =>
+                        this.makeModelSchema(relatedModelName as GetModels<Schema>),
+                    );
+                    // relation fields are always optional
+                    fields[fieldName] = this.applyDescription(
+                        this.applyCardinality(lazySchema, fieldDef).optional(),
+                        fieldDef.attributes,
+                    );
+                } else {
+                    fields[fieldName] = this.applyDescription(
+                        this.makeScalarFieldSchema(fieldDef),
+                        fieldDef.attributes,
+                    );
+                }
             }
+
+            const shape = z.strictObject(fields);
+            return this.applyDescription(
+                addCustomValidation(shape, modelDef.attributes),
+                modelDef.attributes,
+            ) as unknown as z.ZodObject<GetModelFieldsShape<Schema, Model>, z.core.$strict>;
         }
 
+        // ── Options path ─────────────────────────────────────────────────────
+        const rawOptions = options as unknown as RawOptions;
+        const fields = this.buildFieldsWithOptions(model as string, rawOptions);
         const shape = z.strictObject(fields);
-        return this.applyDescription(
-            addCustomValidation(shape, modelDef.attributes),
-            modelDef.attributes,
-        ) as unknown as z.ZodObject<GetModelFieldsShape<Schema, Model>, z.core.$strict>;
+        // @@validate expressions reference fields by name — when `select` is
+        // used only a subset of fields is present, so running @@validate would
+        // silently evaluate missing fields as null and produce false negatives.
+        // We therefore only apply model-level custom validation on the
+        // include/omit path where all scalar fields are still present.
+        const withValidation = rawOptions.select ? shape : addCustomValidation(shape, modelDef.attributes);
+        return this.applyDescription(withValidation, modelDef.attributes) as unknown as z.ZodObject<
+            GetModelSchemaShapeWithOptions<Schema, Model, Options>,
+            z.core.$strict
+        >;
     }
 
     makeModelCreateSchema<Model extends GetModels<Schema>>(
@@ -112,6 +155,90 @@ class SchemaFactory<Schema extends SchemaDef> {
             addCustomValidation(shape, modelDef.attributes),
             modelDef.attributes,
         ) as unknown as z.ZodObject<GetModelUpdateFieldsShape<Schema, Model>, z.core.$strict>;
+    }
+
+    // -------------------------------------------------------------------------
+    // Options-aware field building
+    // -------------------------------------------------------------------------
+
+    /**
+     * Internal loose options shape used at runtime (we've already validated the
+     * type-level constraints via the overload signatures).
+     */
+    private buildFieldsWithOptions(model: string, options: RawOptions): Record<string, z.ZodType> {
+        const { select, include, omit } = options;
+        const modelDef = this.schema.requireModel(model);
+        const fields: Record<string, z.ZodType> = {};
+
+        if (select) {
+            // ── select branch ────────────────────────────────────────────────
+            // Only include fields that are explicitly listed with a truthy value.
+            for (const [key, value] of Object.entries(select)) {
+                if (!value) continue; // false → skip
+
+                const fieldDef = modelDef.fields[key];
+                if (!fieldDef) continue;
+
+                if (fieldDef.relation) {
+                    // Relation field: recurse if value is a nested options object,
+                    // otherwise use the default lazy schema.
+                    const subOptions = typeof value === 'object' ? (value as RawOptions) : undefined;
+                    const relSchema = this.makeRelationFieldSchema(fieldDef, subOptions);
+                    fields[key] = this.applyDescription(
+                        this.applyCardinality(relSchema, fieldDef).optional(),
+                        fieldDef.attributes,
+                    );
+                } else {
+                    fields[key] = this.applyDescription(this.makeScalarFieldSchema(fieldDef), fieldDef.attributes);
+                }
+            }
+        } else {
+            // ── include + omit branch ────────────────────────────────────────
+            // Start with all scalar fields, applying omit exclusions.
+            for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
+                if (fieldDef.relation) continue; // relations handled below
+
+                // Skip if this field is explicitly omitted.
+                if (omit && (omit as Record<string, unknown>)[fieldName] === true) continue;
+
+                fields[fieldName] = this.applyDescription(this.makeScalarFieldSchema(fieldDef), fieldDef.attributes);
+            }
+
+            // Add included relation fields.
+            if (include) {
+                for (const [key, value] of Object.entries(include)) {
+                    if (!value) continue; // false → skip
+
+                    const fieldDef = modelDef.fields[key];
+                    if (!fieldDef?.relation) continue;
+
+                    const subOptions = typeof value === 'object' ? (value as RawOptions) : undefined;
+                    const relSchema = this.makeRelationFieldSchema(fieldDef, subOptions);
+                    fields[key] = this.applyDescription(
+                        this.applyCardinality(relSchema, fieldDef).optional(),
+                        fieldDef.attributes,
+                    );
+                }
+            }
+        }
+
+        return fields;
+    }
+
+    /**
+     * Build the inner Zod schema for a relation field, optionally with nested
+     * query options.  Does NOT apply cardinality/optional wrappers — the caller
+     * does that.
+     */
+    private makeRelationFieldSchema(fieldDef: FieldDef, subOptions?: RawOptions): z.ZodType {
+        const relatedModelName = fieldDef.type as GetModels<Schema>;
+        if (subOptions) {
+            // Recurse: build the related model's schema with its own options.
+            return this.makeModelSchema(relatedModelName, subOptions as ModelSchemaOptions<Schema, GetModels<Schema>>);
+        }
+        // No sub-options: use a lazy reference to the default schema so that
+        // circular models don't cause infinite recursion at build time.
+        return z.lazy(() => this.makeModelSchema(relatedModelName));
     }
 
     private makeScalarFieldSchema(fieldDef: FieldDef): z.ZodType {
