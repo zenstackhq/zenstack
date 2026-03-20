@@ -46,7 +46,9 @@
     },
     "devDependencies": {
         "@types/better-sqlite3": "catalog:",
+        "@types/pg": "^8.0.0",
         "@zenstackhq/eslint-config": "workspace:*",
-        "@zenstackhq/typescript-config": "workspace:*"
+        "@zenstackhq/typescript-config": "workspace:*",
+        "@zenstackhq/vitest-config": "workspace:*"
     }
 }

@@ -631,12 +631,18 @@ importers:
       '@types/better-sqlite3':
         specifier: 'catalog:'
         version: 7.6.13
+      '@types/pg':
+        specifier: ^8.0.0
+        version: 8.11.11
       '@zenstackhq/eslint-config':
         specifier: workspace:*
         version: link:../../config/eslint-config
       '@zenstackhq/typescript-config':
         specifier: workspace:*
         version: link:../../config/typescript-config
+      '@zenstackhq/vitest-config':
+        specifier: workspace:*
+        version: link:../../config/vitest-config
 
   packages/schema:
     dependencies:
