@@ -505,7 +505,7 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
     }
 
     private handleGenericError(err: unknown): Response | PromiseLike<Response> {
-        return this.makeError('unknownError', err instanceof Error ? `${err.message}\n${err.stack}` : 'Unknown error');
+        return this.makeError('unknownError', err instanceof Error ? `${err.message}` : 'Unknown error');
     }
 
     private async processProcedureRequest({
