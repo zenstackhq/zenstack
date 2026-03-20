@@ -1,5 +1,5 @@
 import { lowerCaseFirst } from '@zenstackhq/common-helpers';
-import type { EnumDef, FieldDef, ModelDef, SchemaDef } from '@zenstackhq/orm/schema';
+import type { EnumDef, FieldDef, ModelDef, SchemaDef, TypeDefDef } from '@zenstackhq/orm/schema';
 import type { OpenAPIV3_1 } from 'openapi-types';
 import { PROCEDURE_ROUTE_PREFIXES } from '../common/procedures';
 import {
@@ -524,6 +524,13 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             }
         }
 
+        // Per-typeDef schemas
+        if (this.schema.typeDefs) {
+            for (const [typeName, typeDef] of Object.entries(this.schema.typeDefs)) {
+                schemas[typeName] = this.buildTypeDefSchema(typeDef);
+            }
+        }
+
         // Per-model schemas
         for (const modelName of getIncludedModels(this.schema, this.queryOptions)) {
             const modelDef = this.schema.models[modelName]!;
@@ -710,22 +717,12 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         };
     }
 
-    private buildModelReadSchema(modelName: string, modelDef: ModelDef): SchemaObject {
+    private buildTypeDefSchema(typeDef: TypeDefDef): SchemaObject {
         const properties: Record<string, SchemaObject | ReferenceObject> = {};
         const required: string[] = [];
 
-        for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
-            if (fieldDef.omit) continue;
-            if (isFieldOmitted(modelName, fieldName, this.queryOptions)) continue;
-            if (fieldDef.relation && !isModelIncluded(fieldDef.type, this.queryOptions)) continue;
-
-            const schema = this.fieldToSchema(fieldDef);
-            const fieldDescription = getMetaDescription(fieldDef.attributes);
-            if (fieldDescription && !('$ref' in schema)) {
-                schema.description = fieldDescription;
-            }
-            properties[fieldName] = schema;
-
+        for (const [fieldName, fieldDef] of Object.entries(typeDef.fields)) {
+            properties[fieldName] = this.fieldToSchema(fieldDef);
             if (!fieldDef.optional && !fieldDef.array) {
                 required.push(fieldName);
             }
@@ -735,6 +732,51 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         if (required.length > 0) {
             result.required = required;
         }
+        return result;
+    }
+
+    private buildModelReadSchema(modelName: string, modelDef: ModelDef): SchemaObject {
+        const attrProperties: Record<string, SchemaObject | ReferenceObject> = {};
+        const attrRequired: string[] = [];
+        const relProperties: Record<string, SchemaObject | ReferenceObject> = {};
+
+        for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
+            if (fieldDef.omit) continue;
+            if (isFieldOmitted(modelName, fieldName, this.queryOptions)) continue;
+            if (fieldDef.relation && !isModelIncluded(fieldDef.type, this.queryOptions)) continue;
+
+            if (fieldDef.relation) {
+                const relRef: SchemaObject | ReferenceObject = fieldDef.array
+                    ? { $ref: '#/components/schemas/_toManyRelationshipWithLinks' }
+                    : { $ref: '#/components/schemas/_toOneRelationshipWithLinks' };
+                relProperties[fieldName] = fieldDef.optional ? { oneOf: [{ type: 'null' }, relRef] } : relRef;
+            } else {
+                const schema = this.fieldToSchema(fieldDef);
+                const fieldDescription = getMetaDescription(fieldDef.attributes);
+                if (fieldDescription && !('$ref' in schema)) {
+                    schema.description = fieldDescription;
+                }
+                attrProperties[fieldName] = schema;
+
+                if (!fieldDef.optional && !fieldDef.array) {
+                    attrRequired.push(fieldName);
+                }
+            }
+        }
+
+        const properties: Record<string, SchemaObject | ReferenceObject> = {};
+
+        if (Object.keys(attrProperties).length > 0) {
+            const attrSchema: SchemaObject = { type: 'object', properties: attrProperties };
+            if (attrRequired.length > 0) attrSchema.required = attrRequired;
+            properties['attributes'] = attrSchema;
+        }
+
+        if (Object.keys(relProperties).length > 0) {
+            properties['relationships'] = { type: 'object', properties: relProperties };
+        }
+
+        const result: SchemaObject = { type: 'object', properties };
         const description = getMetaDescription(modelDef.attributes);
         if (description) {
             result.description = description;

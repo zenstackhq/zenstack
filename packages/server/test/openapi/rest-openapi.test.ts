@@ -170,20 +170,22 @@ describe('REST OpenAPI spec generation', () => {
 
     it('field types in schemas', () => {
         const userSchema = spec.components.schemas['User'];
-        expect(userSchema.properties).toBeDefined();
+        const userAttrs = userSchema.properties.attributes.properties;
+        expect(userAttrs).toBeDefined();
         // email -> string
-        expect(userSchema.properties['email']).toMatchObject({ type: 'string' });
+        expect(userAttrs['email']).toMatchObject({ type: 'string' });
         // myId -> string
-        expect(userSchema.properties['myId']).toMatchObject({ type: 'string' });
+        expect(userAttrs['myId']).toMatchObject({ type: 'string' });
 
         const postSchema = spec.components.schemas['Post'];
-        expect(postSchema.properties).toBeDefined();
+        const postAttrs = postSchema.properties.attributes.properties;
+        expect(postAttrs).toBeDefined();
         // viewCount -> integer
-        expect(postSchema.properties['viewCount']).toMatchObject({ type: 'integer' });
+        expect(postAttrs['viewCount']).toMatchObject({ type: 'integer' });
         // published -> boolean
-        expect(postSchema.properties['published']).toMatchObject({ type: 'boolean' });
+        expect(postAttrs['published']).toMatchObject({ type: 'boolean' });
         // createdAt -> date-time
-        expect(postSchema.properties['createdAt']).toMatchObject({ type: 'string', format: 'date-time' });
+        expect(postAttrs['createdAt']).toMatchObject({ type: 'string', format: 'date-time' });
     });
 
     it('required fields marked in create schema', () => {
@@ -275,8 +277,9 @@ describe('REST OpenAPI spec generation - queryOptions', () => {
         });
         const s = await handler.generateSpec();
         const userSchema = s.components?.schemas?.['User'] as any;
-        expect(userSchema.properties['myId']).toBeDefined();
-        expect(userSchema.properties['email']).toBeUndefined();
+        const userAttrs = userSchema.properties.attributes.properties;
+        expect(userAttrs['myId']).toBeDefined();
+        expect(userAttrs['email']).toBeUndefined();
     });
 
     it('slicing excludedModels removes model from spec', async () => {
@@ -297,8 +300,10 @@ describe('REST OpenAPI spec generation - queryOptions', () => {
 
         // Relation fields to excluded model should not appear in read schema
         const userSchema = s.components?.schemas?.['User'] as any;
-        expect(userSchema.properties['posts']).toBeUndefined();
-        expect(userSchema.properties['email']).toBeDefined();
+        const userRels = userSchema.properties.relationships?.properties ?? {};
+        expect(userRels['posts']).toBeUndefined();
+        const userAttrs = userSchema.properties.attributes.properties;
+        expect(userAttrs['email']).toBeDefined();
     });
 
     it('slicing includedModels limits models in spec', async () => {
@@ -601,10 +606,11 @@ model Post {
         const s = await handler.generateSpec();
 
         const userSchema = s.components?.schemas?.['User'] as any;
-        expect(userSchema.properties['email'].description).toBe("The user's email address");
+        const userAttrs = userSchema.properties.attributes.properties;
+        expect(userAttrs['email'].description).toBe("The user's email address");
 
         // id has no @meta description
-        expect(userSchema.properties['id'].description).toBeUndefined();
+        expect(userAttrs['id'].description).toBeUndefined();
     });
 });
 

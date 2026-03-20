@@ -3112,44 +3112,53 @@ components:
                     $ref: "#/components/schemas/_relationLinks"
                 meta:
                     $ref: "#/components/schemas/_meta"
+        Address:
+            type: object
+            properties:
+                city:
+                    type: string
+            required:
+                - city
         User:
             type: object
             properties:
-                myId:
-                    type: string
-                createdAt:
-                    type: string
-                    format: date-time
-                updatedAt:
-                    type: string
-                    format: date-time
-                email:
-                    type: string
-                posts:
-                    type: array
-                    items:
-                        $ref: "#/components/schemas/Post"
-                likes:
-                    type: array
-                    items:
-                        $ref: "#/components/schemas/PostLike"
-                profile:
-                    oneOf:
-                        - $ref: "#/components/schemas/Profile"
-                        - type: "null"
-                address:
-                    oneOf:
-                        - $ref: "#/components/schemas/Address"
-                        - type: "null"
-                someJson:
-                    oneOf:
-                        - {}
-                        - type: "null"
-            required:
-                - myId
-                - createdAt
-                - updatedAt
-                - email
+                attributes:
+                    type: object
+                    properties:
+                        myId:
+                            type: string
+                        createdAt:
+                            type: string
+                            format: date-time
+                        updatedAt:
+                            type: string
+                            format: date-time
+                        email:
+                            type: string
+                        address:
+                            oneOf:
+                                - $ref: "#/components/schemas/Address"
+                                - type: "null"
+                        someJson:
+                            oneOf:
+                                - {}
+                                - type: "null"
+                    required:
+                        - myId
+                        - createdAt
+                        - updatedAt
+                        - email
+                relationships:
+                    type: object
+                    properties:
+                        posts:
+                            $ref: "#/components/schemas/_toManyRelationshipWithLinks"
+                        likes:
+                            $ref: "#/components/schemas/_toManyRelationshipWithLinks"
+                        profile:
+                            oneOf:
+                                - type: "null"
+                                - $ref: "#/components/schemas/_toOneRelationshipWithLinks"
         UserCreateRequest:
             type: object
             properties:
@@ -3288,19 +3297,24 @@ components:
         Profile:
             type: object
             properties:
-                id:
-                    type: integer
-                gender:
-                    type: string
-                user:
-                    $ref: "#/components/schemas/User"
-                userId:
-                    type: string
-            required:
-                - id
-                - gender
-                - user
-                - userId
+                attributes:
+                    type: object
+                    properties:
+                        id:
+                            type: integer
+                        gender:
+                            type: string
+                        userId:
+                            type: string
+                    required:
+                        - id
+                        - gender
+                        - userId
+                relationships:
+                    type: object
+                    properties:
+                        user:
+                            $ref: "#/components/schemas/_toOneRelationshipWithLinks"
         ProfileCreateRequest:
             type: object
             properties:
@@ -3389,52 +3403,54 @@ components:
         Post:
             type: object
             properties:
-                id:
-                    type: integer
-                createdAt:
-                    type: string
-                    format: date-time
-                updatedAt:
-                    type: string
-                    format: date-time
-                title:
-                    type: string
-                author:
-                    oneOf:
-                        - $ref: "#/components/schemas/User"
-                        - type: "null"
-                authorId:
-                    oneOf:
-                        - type: string
-                        - type: "null"
-                published:
-                    type: boolean
-                publishedAt:
-                    oneOf:
-                        - type: string
-                          format: date-time
-                        - type: "null"
-                viewCount:
-                    type: integer
-                comments:
-                    type: array
-                    items:
-                        $ref: "#/components/schemas/Comment"
-                likes:
-                    type: array
-                    items:
-                        $ref: "#/components/schemas/PostLike"
-                setting:
-                    oneOf:
-                        - $ref: "#/components/schemas/Setting"
-                        - type: "null"
-            required:
-                - id
-                - createdAt
-                - updatedAt
-                - title
-                - published
-                - viewCount
+                attributes:
+                    type: object
+                    properties:
+                        id:
+                            type: integer
+                        createdAt:
+                            type: string
+                            format: date-time
+                        updatedAt:
+                            type: string
+                            format: date-time
+                        title:
+                            type: string
+                        authorId:
+                            oneOf:
+                                - type: string
+                                - type: "null"
+                        published:
+                            type: boolean
+                        publishedAt:
+                            oneOf:
+                                - type: string
+                                  format: date-time
+                                - type: "null"
+                        viewCount:
+                            type: integer
+                    required:
+                        - id
+                        - createdAt
+                        - updatedAt
+                        - title
+                        - published
+                        - viewCount
+                relationships:
+                    type: object
+                    properties:
+                        author:
+                            oneOf:
+                                - type: "null"
+                                - $ref: "#/components/schemas/_toOneRelationshipWithLinks"
+                        comments:
+                            $ref: "#/components/schemas/_toManyRelationshipWithLinks"
+                        likes:
+                            $ref: "#/components/schemas/_toManyRelationshipWithLinks"
+                        setting:
+                            oneOf:
+                                - type: "null"
+                                - $ref: "#/components/schemas/_toOneRelationshipWithLinks"
         PostCreateRequest:
             type: object
             properties:
@@ -3585,19 +3601,24 @@ components:
         Comment:
             type: object
             properties:
-                id:
-                    type: integer
-                post:
-                    $ref: "#/components/schemas/Post"
-                postId:
-                    type: integer
-                content:
-                    type: string
-            required:
-                - id
-                - post
-                - postId
-                - content
+                attributes:
+                    type: object
+                    properties:
+                        id:
+                            type: integer
+                        postId:
+                            type: integer
+                        content:
+                            type: string
+                    required:
+                        - id
+                        - postId
+                        - content
+                relationships:
+                    type: object
+                    properties:
+                        post:
+                            $ref: "#/components/schemas/_toOneRelationshipWithLinks"
         CommentCreateRequest:
             type: object
             properties:
@@ -3686,19 +3707,24 @@ components:
         Setting:
             type: object
             properties:
-                id:
-                    type: integer
-                boost:
-                    type: integer
-                post:
-                    $ref: "#/components/schemas/Post"
-                postId:
-                    type: integer
-            required:
-                - id
-                - boost
-                - post
-                - postId
+                attributes:
+                    type: object
+                    properties:
+                        id:
+                            type: integer
+                        boost:
+                            type: integer
+                        postId:
+                            type: integer
+                    required:
+                        - id
+                        - boost
+                        - postId
+                relationships:
+                    type: object
+                    properties:
+                        post:
+                            $ref: "#/components/schemas/_toOneRelationshipWithLinks"
         SettingCreateRequest:
             type: object
             properties:
@@ -3787,26 +3813,28 @@ components:
         PostLike:
             type: object
             properties:
-                postId:
-                    type: integer
-                userId:
-                    type: string
-                superLike:
-                    type: boolean
-                post:
-                    $ref: "#/components/schemas/Post"
-                user:
-                    $ref: "#/components/schemas/User"
-                likeInfos:
-                    type: array
-                    items:
-                        $ref: "#/components/schemas/PostLikeInfo"
-            required:
-                - postId
-                - userId
-                - superLike
-                - post
-                - user
+                attributes:
+                    type: object
+                    properties:
+                        postId:
+                            type: integer
+                        userId:
+                            type: string
+                        superLike:
+                            type: boolean
+                    required:
+                        - postId
+                        - userId
+                        - superLike
+                relationships:
+                    type: object
+                    properties:
+                        post:
+                            $ref: "#/components/schemas/_toOneRelationshipWithLinks"
+                        user:
+                            $ref: "#/components/schemas/_toOneRelationshipWithLinks"
+                        likeInfos:
+                            $ref: "#/components/schemas/_toManyRelationshipWithLinks"
         PostLikeCreateRequest:
             type: object
             properties:
@@ -3917,22 +3945,27 @@ components:
         PostLikeInfo:
             type: object
             properties:
-                id:
-                    type: integer
-                text:
-                    type: string
-                postId:
-                    type: integer
-                userId:
-                    type: string
-                postLike:
-                    $ref: "#/components/schemas/PostLike"
-            required:
-                - id
-                - text
-                - postId
-                - userId
-                - postLike
+                attributes:
+                    type: object
+                    properties:
+                        id:
+                            type: integer
+                        text:
+                            type: string
+                        postId:
+                            type: integer
+                        userId:
+                            type: string
+                    required:
+                        - id
+                        - text
+                        - postId
+                        - userId
+                relationships:
+                    type: object
+                    properties:
+                        postLike:
+                            $ref: "#/components/schemas/_toOneRelationshipWithLinks"
         PostLikeInfoCreateRequest:
             type: object
             properties:
