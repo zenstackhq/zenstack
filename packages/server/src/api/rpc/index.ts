@@ -7,7 +7,8 @@ import z from 'zod';
 import { fromError } from 'zod-validation-error/v4';
 import type { ApiHandler, LogConfig, RequestContext, Response } from '../../types';
 import { getProcedureDef, mapProcedureArgs, PROCEDURE_ROUTE_PREFIXES } from '../common/procedures';
-import { loggerSchema } from '../common/schemas';
+import { loggerSchema, queryOptionsSchema } from '../common/schemas';
+import type { CommonHandlerOptions } from '../common/types';
 import { processSuperJsonRequestPayload, unmarshalQ } from '../common/utils';
 import { log, registerCustomSerializers } from '../utils';
 
@@ -29,7 +30,7 @@ export type RPCApiHandlerOptions<Schema extends SchemaDef = SchemaDef> = {
      * Logging configuration
      */
     log?: LogConfig;
-};
+} & CommonHandlerOptions<Schema>;
 
 /**
  * RPC style API request handler that mirrors the ZenStackClient API
@@ -40,7 +41,11 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
     }
 
     private validateOptions(options: RPCApiHandlerOptions<Schema>) {
-        const schema = z.strictObject({ schema: z.object(), log: loggerSchema.optional() });
+        const schema = z.strictObject({
+            schema: z.object(),
+            log: loggerSchema.optional(),
+            queryOptions: queryOptionsSchema.optional(),
+        });
         const parseResult = schema.safeParse(options);
         if (!parseResult.success) {
             throw new Error(`Invalid options: ${fromError(parseResult.error)}`);
@@ -240,7 +245,11 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
             if (!this.isValidModel(client, lowerCaseFirst(itemModel))) {
                 return this.makeBadInputErrorResponse(`operation at index ${i} has unknown model: ${itemModel}`);
             }
-            if (itemArgs !== undefined && itemArgs !== null && (typeof itemArgs !== 'object' || Array.isArray(itemArgs))) {
+            if (
+                itemArgs !== undefined &&
+                itemArgs !== null &&
+                (typeof itemArgs !== 'object' || Array.isArray(itemArgs))
+            ) {
                 return this.makeBadInputErrorResponse(`operation at index ${i} has invalid "args" field`);
             }
 
