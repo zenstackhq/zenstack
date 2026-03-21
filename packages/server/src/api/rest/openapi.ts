@@ -1,5 +1,5 @@
 import { lowerCaseFirst } from '@zenstackhq/common-helpers';
-import type { EnumDef, FieldDef, ModelDef, SchemaDef, TypeDefDef } from '@zenstackhq/orm/schema';
+import type { AttributeApplication, EnumDef, FieldDef, ModelDef, SchemaDef, TypeDefDef } from '@zenstackhq/orm/schema';
 import type { OpenAPIV3_1 } from 'openapi-types';
 import { PROCEDURE_ROUTE_PREFIXES } from '../common/procedures';
 import {
@@ -18,20 +18,29 @@ type SchemaObject = OpenAPIV3_1.SchemaObject;
 type ReferenceObject = OpenAPIV3_1.ReferenceObject;
 type ParameterObject = OpenAPIV3_1.ParameterObject;
 
-const ERROR_RESPONSE = {
-    description: 'Error',
-    content: {
-        'application/vnd.api+json': {
-            schema: { $ref: '#/components/schemas/_errorResponse' },
+function errorResponse(description: string): OpenAPIV3_1.ResponseObject {
+    return {
+        description,
+        content: {
+            'application/vnd.api+json': {
+                schema: { $ref: '#/components/schemas/_errorResponse' },
+            },
         },
-    },
-};
+    };
+}
+
+const ERROR_400 = errorResponse('Error occurred while processing the request');
+const ERROR_403 = errorResponse('Forbidden: insufficient permissions to perform this operation');
+const ERROR_404 = errorResponse('Resource not found');
+const ERROR_422 = errorResponse('Operation is unprocessable due to validation errors');
 
 const SCALAR_STRING_OPS = ['$contains', '$icontains', '$search', '$startsWith', '$endsWith'];
 const SCALAR_COMPARABLE_OPS = ['$lt', '$lte', '$gt', '$gte'];
 const SCALAR_ARRAY_OPS = ['$has', '$hasEvery', '$hasSome', '$isEmpty'];
 
 export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
+    private specOptions?: OpenApiSpecOptions;
+
     constructor(private readonly handlerOptions: RestApiHandlerOptions<Schema>) {}
 
     private get schema(): SchemaDef {
@@ -53,6 +62,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
     }
 
     generateSpec(options?: OpenApiSpecOptions): OpenAPIV3_1.Document {
+        this.specOptions = options;
         return {
             openapi: '3.1.0',
             info: {
@@ -100,7 +110,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             }
 
             // Single resource: GET + PATCH + DELETE
-            const singlePath = this.buildSinglePath(modelName, tag);
+            const singlePath = this.buildSinglePath(modelDef, tag);
             if (Object.keys(singlePath).length > 0) {
                 paths[`/${modelPath}/{id}`] = singlePath;
             }
@@ -124,7 +134,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
 
                 // Relationship management path
                 paths[`/${modelPath}/{id}/relationships/${fieldName}`] = this.buildRelationshipPath(
-                    modelName,
+                    modelDef,
                     fieldName,
                     fieldDef,
                     tag,
@@ -175,7 +185,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                         },
                     },
                 },
-                '400': ERROR_RESPONSE,
+                '400': ERROR_400,
             },
         };
 
@@ -200,7 +210,9 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                         },
                     },
                 },
-                '400': ERROR_RESPONSE,
+                '400': ERROR_400,
+                ...(this.mayDenyAccess(modelDef, 'create') && { '403': ERROR_403 }),
+                '422': ERROR_422,
             },
         };
 
@@ -214,7 +226,8 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         return result;
     }
 
-    private buildSinglePath(modelName: string, tag: string): Record<string, any> {
+    private buildSinglePath(modelDef: ModelDef, tag: string): Record<string, any> {
+        const modelName = modelDef.name;
         const idParam = { $ref: '#/components/parameters/id' };
         const result: Record<string, any> = {};
 
@@ -233,7 +246,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                             },
                         },
                     },
-                    '404': ERROR_RESPONSE,
+                    '404': ERROR_404,
                 },
             };
         }
@@ -261,8 +274,10 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                             },
                         },
                     },
-                    '400': ERROR_RESPONSE,
-                    '404': ERROR_RESPONSE,
+                    '400': ERROR_400,
+                    ...(this.mayDenyAccess(modelDef, 'update') && { '403': ERROR_403 }),
+                    '404': ERROR_404,
+                    '422': ERROR_422,
                 },
             };
         }
@@ -275,7 +290,8 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 parameters: [idParam],
                 responses: {
                     '200': { description: 'Deleted successfully' },
-                    '404': ERROR_RESPONSE,
+                    ...(this.mayDenyAccess(modelDef, 'delete') && { '403': ERROR_403 }),
+                    '404': ERROR_404,
                 },
             };
         }
@@ -319,18 +335,19 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                             },
                         },
                     },
-                    '404': ERROR_RESPONSE,
+                    '404': ERROR_404,
                 },
             },
         };
     }
 
     private buildRelationshipPath(
-        _modelName: string,
+        modelDef: ModelDef,
         fieldName: string,
         fieldDef: FieldDef,
         tag: string,
     ): Record<string, any> {
+        const modelName = modelDef.name;
         const isCollection = !!fieldDef.array;
         const idParam = { $ref: '#/components/parameters/id' };
         const relSchemaRef = isCollection
@@ -341,24 +358,26 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             ? { $ref: '#/components/schemas/_toManyRelationshipRequest' }
             : { $ref: '#/components/schemas/_toOneRelationshipRequest' };
 
+        const mayDeny = this.mayDenyAccess(modelDef, 'update');
+
         const pathItem: Record<string, any> = {
             get: {
                 tags: [tag],
                 summary: `Fetch ${fieldName} relationship`,
-                operationId: `get${_modelName}_relationships_${fieldName}`,
+                operationId: `get${modelName}_relationships_${fieldName}`,
                 parameters: [idParam],
                 responses: {
                     '200': {
                         description: `${fieldName} relationship`,
                         content: { 'application/vnd.api+json': { schema: relSchemaRef } },
                     },
-                    '404': ERROR_RESPONSE,
+                    '404': ERROR_404,
                 },
             },
             put: {
                 tags: [tag],
                 summary: `Replace ${fieldName} relationship`,
-                operationId: `put${_modelName}_relationships_${fieldName}`,
+                operationId: `put${modelName}_relationships_${fieldName}`,
                 parameters: [idParam],
                 requestBody: {
                     required: true,
@@ -366,13 +385,14 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 },
                 responses: {
                     '200': { description: 'Relationship updated' },
-                    '400': ERROR_RESPONSE,
+                    '400': ERROR_400,
+                    ...(mayDeny && { '403': ERROR_403 }),
                 },
             },
             patch: {
                 tags: [tag],
                 summary: `Update ${fieldName} relationship`,
-                operationId: `patch${_modelName}_relationships_${fieldName}`,
+                operationId: `patch${modelName}_relationships_${fieldName}`,
                 parameters: [idParam],
                 requestBody: {
                     required: true,
@@ -380,7 +400,8 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 },
                 responses: {
                     '200': { description: 'Relationship updated' },
-                    '400': ERROR_RESPONSE,
+                    '400': ERROR_400,
+                    ...(mayDeny && { '403': ERROR_403 }),
                 },
             },
         };
@@ -389,7 +410,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             pathItem['post'] = {
                 tags: [tag],
                 summary: `Add to ${fieldName} collection relationship`,
-                operationId: `post${_modelName}_relationships_${fieldName}`,
+                operationId: `post${modelName}_relationships_${fieldName}`,
                 parameters: [idParam],
                 requestBody: {
                     required: true,
@@ -401,7 +422,8 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 },
                 responses: {
                     '200': { description: 'Added to relationship collection' },
-                    '400': ERROR_RESPONSE,
+                    '400': ERROR_400,
+                    ...(mayDeny && { '403': ERROR_403 }),
                 },
             };
         }
@@ -416,7 +438,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             operationId: `proc_${procName}`,
             responses: {
                 '200': { description: `Result of ${procName}` },
-                '400': ERROR_RESPONSE,
+                '400': ERROR_400,
             },
         };
 
@@ -1015,5 +1037,49 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
 
     private getIdFields(modelDef: ModelDef): FieldDef[] {
         return modelDef.idFields.map((name) => modelDef.fields[name]).filter((f): f is FieldDef => f !== undefined);
+    }
+
+    /**
+     * Checks if an operation on a model may be denied by access policies.
+     * Returns true when `respectAccessPolicies` is enabled and the model's
+     * policies for the given operation are NOT a constant allow (i.e., not
+     * simply `@@allow('...', true)` with no `@@deny` rules).
+     */
+    private mayDenyAccess(modelDef: ModelDef, operation: string): boolean {
+        if (!this.specOptions?.respectAccessPolicies) return false;
+
+        const policyAttrs = (modelDef.attributes ?? []).filter(
+            (attr) => attr.name === '@@allow' || attr.name === '@@deny',
+        );
+
+        // No policy rules at all means default-deny
+        if (policyAttrs.length === 0) return true;
+
+        const getArgByName = (args: AttributeApplication['args'], name: string) =>
+            args?.find((a) => a.name === name)?.value;
+
+        const matchesOperation = (args: AttributeApplication['args']) => {
+            const val = getArgByName(args, 'operation');
+            if (!val || val.kind !== 'literal' || typeof val.value !== 'string') return false;
+            const ops = val.value.split(',').map((s) => s.trim());
+            return ops.includes(operation) || ops.includes('all');
+        };
+
+        const relevantDeny = policyAttrs.filter(
+            (attr) => attr.name === '@@deny' && matchesOperation(attr.args),
+        );
+        if (relevantDeny.length > 0) return true;
+
+        const relevantAllow = policyAttrs.filter(
+            (attr) => attr.name === '@@allow' && matchesOperation(attr.args),
+        );
+
+        // If any allow rule has a constant `true` condition (and no deny), access is unconditional
+        const hasConstantAllow = relevantAllow.some((attr) => {
+            const condition = getArgByName(attr.args, 'condition');
+            return condition?.kind === 'literal' && condition.value === true;
+        });
+
+        return !hasConstantAllow;
     }
 }

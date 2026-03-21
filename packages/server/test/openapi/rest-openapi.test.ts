@@ -662,4 +662,195 @@ enum PostStatus {
         expect((s.components?.schemas?.['PostStatus'] as any).enum).toContain('DRAFT');
         expect((s.components?.schemas?.['PostStatus'] as any).enum).toContain('PUBLISHED');
     });
+
+    describe('respectAccessPolicies', () => {
+        it('no 403 when respectAccessPolicies is off', async () => {
+            const policySchema = `
+model Item {
+    id Int @id @default(autoincrement())
+    value Int
+
+    @@allow('read', true)
+    @@allow('create', value > 0)
+}
+`;
+            const client = await createTestClient(policySchema);
+            const h = new RestApiHandler({
+                schema: client.$schema,
+                endpoint: 'http://localhost/api',
+            });
+            const s = await h.generateSpec();
+            expect(s.paths?.['/item']?.post?.responses?.['403']).toBeUndefined();
+        });
+
+        it('adds 403 for operations with non-constant-allow policies', async () => {
+            const policySchema = `
+model Item {
+    id Int @id @default(autoincrement())
+    value Int
+
+    @@allow('read', true)
+    @@allow('create', value > 0)
+    @@allow('update', value > 0)
+    @@allow('delete', value > 0)
+}
+`;
+            const client = await createTestClient(policySchema);
+            const h = new RestApiHandler({
+                schema: client.$schema,
+                endpoint: 'http://localhost/api',
+            });
+            const s = await h.generateSpec({ respectAccessPolicies: true });
+            // create has a non-constant condition → 403
+            expect(s.paths?.['/item']?.post?.responses?.['403']).toBeDefined();
+            // update has a non-constant condition → 403
+            expect(s.paths?.['/item/{id}']?.patch?.responses?.['403']).toBeDefined();
+            // delete has a non-constant condition → 403
+            expect(s.paths?.['/item/{id}']?.delete?.responses?.['403']).toBeDefined();
+        });
+
+        it('no 403 for constant-allow operations', async () => {
+            const policySchema = `
+model Item {
+    id Int @id @default(autoincrement())
+    value Int
+
+    @@allow('all', true)
+}
+`;
+            const client = await createTestClient(policySchema);
+            const h = new RestApiHandler({
+                schema: client.$schema,
+                endpoint: 'http://localhost/api',
+            });
+            const s = await h.generateSpec({ respectAccessPolicies: true });
+            // all operations are constant-allow → no 403
+            expect(s.paths?.['/item']?.post?.responses?.['403']).toBeUndefined();
+            expect(s.paths?.['/item/{id}']?.patch?.responses?.['403']).toBeUndefined();
+            expect(s.paths?.['/item/{id}']?.delete?.responses?.['403']).toBeUndefined();
+        });
+
+        it('403 when deny rule exists even with constant allow', async () => {
+            const policySchema = `
+model Item {
+    id Int @id @default(autoincrement())
+    value Int
+
+    @@allow('create', true)
+    @@deny('create', value < 0)
+}
+`;
+            const client = await createTestClient(policySchema);
+            const h = new RestApiHandler({
+                schema: client.$schema,
+                endpoint: 'http://localhost/api',
+            });
+            const s = await h.generateSpec({ respectAccessPolicies: true });
+            // deny rule overrides → 403
+            expect(s.paths?.['/item']?.post?.responses?.['403']).toBeDefined();
+        });
+
+        it('403 when no policy rules at all (default-deny)', async () => {
+            const policySchema = `
+model Item {
+    id Int @id @default(autoincrement())
+    value Int
+}
+`;
+            const client = await createTestClient(policySchema);
+            const h = new RestApiHandler({
+                schema: client.$schema,
+                endpoint: 'http://localhost/api',
+            });
+            const s = await h.generateSpec({ respectAccessPolicies: true });
+            // no rules = default deny → 403
+            expect(s.paths?.['/item']?.post?.responses?.['403']).toBeDefined();
+            expect(s.paths?.['/item/{id}']?.patch?.responses?.['403']).toBeDefined();
+            expect(s.paths?.['/item/{id}']?.delete?.responses?.['403']).toBeDefined();
+        });
+
+        it('per-operation granularity: only non-constant ops get 403', async () => {
+            const policySchema = `
+model Item {
+    id Int @id @default(autoincrement())
+    value Int
+
+    @@allow('create,read', true)
+    @@allow('update,delete', value > 0)
+}
+`;
+            const client = await createTestClient(policySchema);
+            const h = new RestApiHandler({
+                schema: client.$schema,
+                endpoint: 'http://localhost/api',
+            });
+            const s = await h.generateSpec({ respectAccessPolicies: true });
+            // create is constant-allow → no 403
+            expect(s.paths?.['/item']?.post?.responses?.['403']).toBeUndefined();
+            // update/delete are non-constant → 403
+            expect(s.paths?.['/item/{id}']?.patch?.responses?.['403']).toBeDefined();
+            expect(s.paths?.['/item/{id}']?.delete?.responses?.['403']).toBeDefined();
+        });
+
+        it('relationship mutations get 403 when update may be denied', async () => {
+            const policySchema = `
+model Parent {
+    id Int @id @default(autoincrement())
+    children Child[]
+
+    @@allow('read', true)
+    @@allow('update', false)
+}
+
+model Child {
+    id Int @id @default(autoincrement())
+    parent Parent @relation(fields: [parentId], references: [id])
+    parentId Int
+
+    @@allow('all', true)
+}
+`;
+            const client = await createTestClient(policySchema);
+            const h = new RestApiHandler({
+                schema: client.$schema,
+                endpoint: 'http://localhost/api',
+            });
+            const s = await h.generateSpec({ respectAccessPolicies: true });
+            const relPath = s.paths?.['/parent/{id}/relationships/children'] as any;
+            expect(relPath.put.responses['403']).toBeDefined();
+            expect(relPath.patch.responses['403']).toBeDefined();
+            expect(relPath.post.responses['403']).toBeDefined();
+            // GET should not have 403
+            expect(relPath.get.responses['403']).toBeUndefined();
+        });
+
+        it('relationship mutations have no 403 when update is constant-allow', async () => {
+            const policySchema = `
+model Parent {
+    id Int @id @default(autoincrement())
+    children Child[]
+
+    @@allow('all', true)
+}
+
+model Child {
+    id Int @id @default(autoincrement())
+    parent Parent @relation(fields: [parentId], references: [id])
+    parentId Int
+
+    @@allow('all', true)
+}
+`;
+            const client = await createTestClient(policySchema);
+            const h = new RestApiHandler({
+                schema: client.$schema,
+                endpoint: 'http://localhost/api',
+            });
+            const s = await h.generateSpec({ respectAccessPolicies: true });
+            const relPath = s.paths?.['/parent/{id}/relationships/children'] as any;
+            expect(relPath.put.responses['403']).toBeUndefined();
+            expect(relPath.patch.responses['403']).toBeUndefined();
+            expect(relPath.post.responses['403']).toBeUndefined();
+        });
+    });
 });
