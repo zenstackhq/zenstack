@@ -128,10 +128,14 @@ export class ClientImpl {
             });
         }
 
-        this.kysely = new Kysely(this.kyselyProps);
-        if (!executor && baseClient?.isTransaction) {
+        if (baseClient?.isTransaction && !executor) {
+            // if we're creating a derived client from a transaction client and not replacing
+            // the executor, reuse the current kysely instance to retain the transaction context
             this.kysely = baseClient.$qb;
+        } else {
+            this.kysely = new Kysely(this.kyselyProps);
         }
+
         this.inputValidator =
             baseClient?.inputValidator ??
             new InputValidator(this as any, { enabled: this.$options.validateInput !== false });
@@ -959,12 +963,7 @@ function collectExtResultFieldDefs(
  * - Injects `needs` fields into `select` when ext result fields are explicitly selected
  * - Recurses into `include` and `select` for nested relation fields
  */
-function prepareArgsForExtResult(
-    args: unknown,
-    model: string,
-    schema: SchemaDef,
-    plugins: AnyPlugin[],
-): unknown {
+function prepareArgsForExtResult(args: unknown, model: string, schema: SchemaDef, plugins: AnyPlugin[]): unknown {
     if (!args || typeof args !== 'object') {
         return args;
     }
