@@ -19,6 +19,12 @@ export type OpenApiSpecOptions = {
 
     /** Spec summary. */
     summary?: string;
+
+    /**
+     * When true, assumes that the schema includes access policies, and adds
+     * 403 responses to operations that can potentially be rejected.
+     */
+    respectAccessPolicies?: boolean;
 };
 
 /**
