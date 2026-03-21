@@ -487,6 +487,9 @@ importers:
       '@zenstackhq/typescript-config':
         specifier: workspace:*
         version: link:../../config/typescript-config
+      dotenv:
+        specifier: ^17.2.3
+        version: 17.2.3
 
   packages/language:
     dependencies:
