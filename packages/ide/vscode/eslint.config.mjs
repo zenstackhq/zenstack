@@ -1,4 +1,11 @@
 import config from '@zenstackhq/eslint-config/base.js';
 
 /** @type {import("eslint").Linter.Config} */
-export default config;
+export default [
+    ...config,
+    {
+        rules: {
+            'no-prototype-builtins': 'off',
+        },
+    },
+];
