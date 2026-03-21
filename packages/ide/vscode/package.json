@@ -33,6 +33,8 @@
     "dependencies": {
         "@zenstackhq/language": "workspace:*",
         "langium": "catalog:",
+        "mixpanel": "^0.18.0",
+        "uuid": "^11.1.0",
         "vscode-languageclient": "^9.0.1",
         "vscode-languageserver": "^9.0.1"
     },

@@ -2,12 +2,14 @@ import * as path from 'node:path';
 import type * as vscode from 'vscode';
 import type { LanguageClientOptions, ServerOptions } from 'vscode-languageclient/node.js';
 import { LanguageClient, TransportKind } from 'vscode-languageclient/node.js';
+import telemetry from './vscode-telemetry';
 
 let client: LanguageClient;
 
 // This function is called when the extension is activated.
 export function activate(context: vscode.ExtensionContext): void {
     client = startLanguageClient(context);
+    telemetry.track('extension:activate');
 }
 
 // This function is called when the extension is deactivated.
