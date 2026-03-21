@@ -1065,10 +1065,13 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             return ops.includes(operation) || ops.includes('all');
         };
 
-        const relevantDeny = policyAttrs.filter(
-            (attr) => attr.name === '@@deny' && matchesOperation(attr.args),
-        );
-        if (relevantDeny.length > 0) return true;
+        const hasEffectiveDeny = policyAttrs.some((attr) => {
+            if (attr.name !== '@@deny' || !matchesOperation(attr.args)) return false;
+            const condition = getArgByName(attr.args, 'condition');
+            // @@deny('op', false) is a no-op — skip it
+            return !(condition?.kind === 'literal' && condition.value === false);
+        });
+        if (hasEffectiveDeny) return true;
 
         const relevantAllow = policyAttrs.filter(
             (attr) => attr.name === '@@allow' && matchesOperation(attr.args),

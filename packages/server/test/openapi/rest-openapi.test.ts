@@ -750,6 +750,26 @@ model Item {
             expect(s.paths?.['/item']?.post?.responses?.['403']).toBeDefined();
         });
 
+        it('no 403 when deny condition is literal false', async () => {
+            const policySchema = `
+model Item {
+    id Int @id @default(autoincrement())
+    value Int
+
+    @@allow('create', true)
+    @@deny('create', false)
+}
+`;
+            const client = await createTestClient(policySchema);
+            const h = new RestApiHandler({
+                schema: client.$schema,
+                endpoint: 'http://localhost/api',
+            });
+            const s = await h.generateSpec({ respectAccessPolicies: true });
+            // @@deny('create', false) is a no-op → no 403
+            expect(s.paths?.['/item']?.post?.responses?.['403']).toBeUndefined();
+        });
+
         it('403 when no policy rules at all (default-deny)', async () => {
             const policySchema = `
 model Item {
