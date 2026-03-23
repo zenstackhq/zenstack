@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack CLI",
     "description": "FullStack database toolkit with built-in access control and automatic API generation.",
-    "version": "3.4.6",
+    "version": "3.5.0",
     "type": "module",
     "author": {
         "name": "ZenStack Team"
