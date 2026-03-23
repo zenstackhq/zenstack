@@ -364,9 +364,8 @@ attribute @@index(_ fields: FieldReference[], name: String?, map: String?, lengt
  * @param map: Defines a custom name for the foreign key in the database.
  * @param onUpdate: Defines the referential action to perform when a referenced entry in the referenced model is being updated.
  * @param onDelete: Defines the referential action to perform when a referenced entry in the referenced model is being deleted.
- * @param createOpposite: When true, auto-generates the opposite relation field in the Prisma schema.
  */
-attribute @relation(_ name: String?, fields: FieldReference[]?, references: TransitiveFieldReference[]?, onDelete: ReferentialAction?, onUpdate: ReferentialAction?, map: String?, createOpposite: Boolean?) @@@prisma
+attribute @relation(_ name: String?, fields: FieldReference[]?, references: TransitiveFieldReference[]?, onDelete: ReferentialAction?, onUpdate: ReferentialAction?, map: String?) @@@prisma
 
 /**
  * Maps a field name or enum value from the schema to a column with a different name in the database.

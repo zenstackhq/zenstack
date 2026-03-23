@@ -111,9 +111,6 @@ export class PrismaSchemaGenerator {
             this.generateDefaultGenerator(prisma);
         }
 
-        // auto-generate missing opposite relation fields so Prisma schema is always valid
-        this.generateMissingOppositeRelations(prisma);
-
         return this.PRELUDE + prisma.toString();
     }
 
@@ -338,15 +335,12 @@ export class PrismaSchemaGenerator {
         return AstUtils.streamAst(expr).some(isAuthInvocation);
     }
 
-    // Args that are ZenStack-only and should not appear in the generated Prisma schema
-    private readonly NON_PRISMA_RELATION_ARGS = ['createOpposite'];
-
     private makeFieldAttribute(attr: DataFieldAttribute) {
         const attrName = attr.decl.ref!.name;
-        const args = attr.args
-            .filter((arg) => !(attrName === '@relation' && arg.name && this.NON_PRISMA_RELATION_ARGS.includes(arg.name)))
-            .map((arg) => this.makeAttributeArg(arg));
-        return new PrismaFieldAttribute(attrName, args);
+        return new PrismaFieldAttribute(
+            attrName,
+            attr.args.map((arg) => this.makeAttributeArg(arg)),
+        );
     }
 
     private makeAttributeArg(arg: AttributeArg): PrismaAttributeArg {
@@ -516,130 +510,6 @@ export class PrismaSchemaGenerator {
         return dataModel.$container.declarations.filter(
             (d): d is DataModel => isDataModel(d) && d !== dataModel && d.baseModel?.ref === dataModel,
         );
-    }
-
-    private hasCreateOpposite(field: DataField): boolean {
-        const relAttr = field.attributes.find((attr) => attr.decl.ref?.name === '@relation');
-        if (!relAttr) return false;
-        const createOppositeArg = relAttr.args.find((arg) => arg.name === 'createOpposite');
-        if (!createOppositeArg) return false;
-        return isLiteralExpr(createOppositeArg.value) && createOppositeArg.value.value === true;
-    }
-
-    private getRelationName(field: DataField): string | undefined {
-        const relAttr = field.attributes.find((attr) => attr.decl.ref?.name === '@relation');
-        if (!relAttr) return undefined;
-        const nameArg = relAttr.args.find((arg) => !arg.name || arg.name === 'name');
-        if (!nameArg) return undefined;
-        return isStringLiteral(nameArg.value) ? (nameArg.value.value as string) : undefined;
-    }
-
-    /**
-     * For relation fields with `createOpposite: true`, auto-generates the opposite relation
-     * field in the Prisma schema so it stays valid.
-     */
-    private generateMissingOppositeRelations(prisma: PrismaModel) {
-        for (const decl of this.zmodel.declarations) {
-            if (!isDataModel(decl)) continue;
-
-            const allFields = getAllFields(decl, false);
-            for (const field of allFields) {
-                if (!isDataModel(field.type.reference?.ref)) continue;
-                if (!this.hasCreateOpposite(field)) continue;
-
-                const relationName = this.getRelationName(field);
-                const oppositeModel = field.type.reference!.ref! as DataModel;
-
-                // match opposite fields by both target model name and relation name
-                const oppositeFields = getAllFields(oppositeModel, false).filter((f) => {
-                    if (f === field || f.type.reference?.ref?.name !== decl.name) return false;
-                    return this.getRelationName(f) === relationName;
-                });
-
-                if (oppositeFields.length === 0) {
-                    // missing opposite relation — add it to the Prisma model
-                    const prismaOppositeModel = prisma.findModel(oppositeModel.name);
-                    if (!prismaOppositeModel) continue;
-
-                    // use relation name to disambiguate when multiple relations target the same model
-                    const fieldName = relationName
-                        ? lowerCaseFirst(relationName)
-                        : lowerCaseFirst(decl.name);
-                    if (prismaOppositeModel.fields.some((f) => f.name === fieldName)) {
-                        throw new Error(
-                            `Cannot auto-generate opposite relation field "${fieldName}" on model "${oppositeModel.name}": a field with that name already exists`,
-                        );
-                    }
-
-                    // build @relation args for the generated field, including relation name if present
-                    const buildRelationAttr = (extraArgs: PrismaAttributeArg[]) => {
-                        const args: PrismaAttributeArg[] = [];
-                        if (relationName) {
-                            args.push(
-                                new PrismaAttributeArg(
-                                    undefined,
-                                    new PrismaAttributeArgValue('String', relationName),
-                                ),
-                            );
-                        }
-                        args.push(...extraArgs);
-                        return new PrismaFieldAttribute('@relation', args);
-                    };
-
-                    if (field.type.array) {
-                        // the field is an array (e.g., posts Post[]), so the opposite should be a scalar relation
-                        const idFields = getIdFields(decl);
-                        if (idFields.length === 0) continue;
-
-                        // create FK fields for all id fields (supports composite keys)
-                        idFields.forEach((idFieldName) => {
-                            const refIdFieldName = fieldName + idFieldName.charAt(0).toUpperCase() + idFieldName.slice(1);
-                            if (!prismaOppositeModel.fields.some((f) => f.name === refIdFieldName)) {
-                                const idField = allFields.find((f) => f.name === idFieldName);
-                                if (idField?.type.type) {
-                                    prismaOppositeModel.addField(
-                                        refIdFieldName,
-                                        new ModelFieldType(idField.type.type, false, false),
-                                    );
-                                }
-                            }
-                        });
-
-                        prismaOppositeModel.addField(
-                            fieldName,
-                            new ModelFieldType(decl.name, false, false),
-                            [
-                                buildRelationAttr([
-                                    new PrismaAttributeArg(
-                                        'fields',
-                                        new PrismaAttributeArgValue('Array', idFields.map(
-                                            (idFieldName) => new PrismaAttributeArgValue('FieldReference',
-                                                new PrismaFieldReference(fieldName + idFieldName.charAt(0).toUpperCase() + idFieldName.slice(1))),
-                                        )),
-                                    ),
-                                    new PrismaAttributeArg(
-                                        'references',
-                                        new PrismaAttributeArgValue('Array', idFields.map(
-                                            (idFieldName) => new PrismaAttributeArgValue('FieldReference', new PrismaFieldReference(idFieldName)),
-                                        )),
-                                    ),
-                                ]),
-                            ],
-                        );
-                    } else {
-                        // the field is a scalar relation (e.g., user User), so the opposite should be an array
-                        const attrs = relationName
-                            ? [buildRelationAttr([])]
-                            : [];
-                        prismaOppositeModel.addField(
-                            fieldName,
-                            new ModelFieldType(decl.name, true, false),
-                            attrs,
-                        );
-                    }
-                }
-            }
-        }
     }
 
     private truncate(name: string) {

@@ -7,7 +7,6 @@ import {
     DataModel,
     ReferenceExpr,
     TypeDef,
-    isBooleanLiteral,
     isDataModel,
     isEnum,
     isStringLiteral,
@@ -259,12 +258,6 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         });
 
         if (oppositeFields.length === 0) {
-            // skip error if createOpposite: true is set — the opposite will be auto-generated
-            const createOppositeArg = thisRelation.attr?.args.find((a) => a.name === 'createOpposite');
-            if (createOppositeArg && isBooleanLiteral(createOppositeArg.value) && createOppositeArg.value.value === true) {
-                return;
-            }
-
             const info: DiagnosticInfo<AstNode, string> = {
                 node: field,
                 code: IssueCodes.MissingOppositeRelation,

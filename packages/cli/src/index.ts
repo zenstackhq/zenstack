@@ -1,7 +1,7 @@
-import 'dotenv/config';
 import { ZModelLanguageMetaData } from '@zenstackhq/language';
 import colors from 'colors';
 import { Command, CommanderError, Option } from 'commander';
+import 'dotenv/config';
 import * as actions from './actions';
 import { CliError } from './cli-error';
 import { telemetry } from './telemetry';
@@ -153,35 +153,6 @@ function createProgram() {
         .addOption(new Option('--rolled-back <migration>', 'record a specific migration as rolled back'))
         .description('Resolve issues with database migrations in deployment databases')
         .action((options) => migrateAction('resolve', options));
-
-    migrateCommand
-        .command('diff')
-        .addOption(schemaOption)
-        .addOption(noVersionCheckOption)
-        .addOption(new Option('--from-empty', 'assume the "from" state is an empty schema'))
-        .addOption(new Option('--to-empty', 'assume the "to" state is an empty schema'))
-        .addOption(
-            new Option(
-                '--from-schema-datamodel',
-                'use the ZModel schema as the "from" source (auto-generates Prisma schema)',
-            ),
-        )
-        .addOption(
-            new Option(
-                '--to-schema-datamodel',
-                'use the ZModel schema as the "to" source (auto-generates Prisma schema)',
-            ),
-        )
-        .addOption(new Option('--from-migrations-directory <path>', 'path to the "from" migrations directory'))
-        .addOption(new Option('--to-migrations-directory <path>', 'path to the "to" migrations directory'))
-        .addOption(new Option('--from-url <url>', 'database URL as the "from" source'))
-        .addOption(new Option('--to-url <url>', 'database URL as the "to" source'))
-        .addOption(new Option('--shadow-database-url <url>', 'shadow database URL for migrations'))
-        .addOption(new Option('--script', 'output a SQL script instead of human-readable diff'))
-        .addOption(new Option('--exit-code', 'exit with non-zero code if diff is not empty'))
-        .allowExcessArguments(true)
-        .description('Compare database schemas from two sources and output the differences')
-        .action((options, command) => migrateAction('diff', { ...options, extraArgs: command.args }));
 
     const dbCommand = program.command('db').description('Manage your database schema during development');
 

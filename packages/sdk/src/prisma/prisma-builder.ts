@@ -44,10 +44,6 @@ export class PrismaModel {
         return e;
     }
 
-    findModel(name: string): Model | undefined {
-        return this.models.find((m) => m.name === name);
-    }
-
     toString(): string {
         return [...this.datasources, ...this.generators, ...this.enums, ...this.models]
             .map((d) => d.toString())
