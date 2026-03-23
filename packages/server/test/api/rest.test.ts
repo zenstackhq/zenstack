@@ -3940,6 +3940,70 @@ mutation procedure sum(a: Int, b: Int): Int
             expect(r.body.data.id).toBe(user1.id);
         });
 
+        it('supports PATCH /:type/:id/:relationship for to-one nested update', async () => {
+            await nestedClient.user.create({ data: { id: 'u1', email: 'u1@test.com' } });
+            await nestedClient.user.create({ data: { id: 'u2', email: 'u2@test.com' } });
+            const post = await nestedClient.post.create({
+                data: { title: 'my-post', author: { connect: { id: 'u1' } } },
+            });
+
+            // PATCH /post/:id/author — update the to-one related author's attributes
+            const updated = await nestedHandler({
+                method: 'patch',
+                path: `/post/${post.id}/author`,
+                client: nestedClient,
+                requestBody: {
+                    data: { type: 'user', id: 'u1', attributes: { email: 'u1-new@test.com' } },
+                },
+            });
+            expect(updated.status).toBe(200);
+            expect(updated.body.data.attributes.email).toBe('u1-new@test.com');
+            expect(updated.body.links.self).toBe(`http://localhost/api/post/${post.id}/author`);
+            expect(updated.body.data.links.self).toBe(`http://localhost/api/post/${post.id}/author`);
+
+            // Verify the DB was actually updated
+            const dbUser = await nestedClient.user.findUnique({ where: { id: 'u1' } });
+            expect(dbUser?.email).toBe('u1-new@test.com');
+
+            // Attempting to change the back-relation (posts) via the nested route should be rejected
+            const rejected = await nestedHandler({
+                method: 'patch',
+                path: `/post/${post.id}/author`,
+                client: nestedClient,
+                requestBody: {
+                    data: {
+                        type: 'user',
+                        id: 'u1',
+                        relationships: { posts: { data: [{ type: 'post', id: String(post.id) }] } },
+                    },
+                },
+            });
+            expect(rejected.status).toBe(400);
+        });
+
+        it('returns 400 for PATCH /:type/:id/:relationship to-one when nestedRoutes is not enabled', async () => {
+            const api = new RestApiHandler({
+                schema: nestedClient.$schema,
+                endpoint: 'http://localhost/api',
+                // nestedRoutes not enabled
+            });
+            const plainHandler = (args: any) =>
+                api.handleRequest({ ...args, url: new URL(`http://localhost/${args.path}`) });
+
+            await nestedClient.user.create({ data: { id: 'u1', email: 'u1@test.com' } });
+            const post = await nestedClient.post.create({
+                data: { title: 'my-post', author: { connect: { id: 'u1' } } },
+            });
+
+            const r = await plainHandler({
+                method: 'patch',
+                path: `/post/${post.id}/author`,
+                client: nestedClient,
+                requestBody: { data: { type: 'user', id: 'u1', attributes: { email: 'x@test.com' } } },
+            });
+            expect(r.status).toBe(400);
+        });
+
         it('returns nested self-links in JSON:API responses for all nested operations', async () => {
             await nestedClient.user.create({ data: { id: 'u1', email: 'u1@test.com' } });
 

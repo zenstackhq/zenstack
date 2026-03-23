@@ -568,7 +568,26 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
                             requestBody,
                         );
                     }
-                    // /:type/:id/:relationship/:childId — nested update
+                    // /:type/:id/:relationship — nested update (to-one)
+                    const nestedToOnePatchMatch = this.matchUrlPattern(path, UrlPatterns.FETCH_RELATIONSHIP);
+                    if (
+                        nestedToOnePatchMatch &&
+                        this.nestedRoutes &&
+                        this.resolveNestedRelation(nestedToOnePatchMatch.type, nestedToOnePatchMatch.relationship) &&
+                        !this.resolveNestedRelation(nestedToOnePatchMatch.type, nestedToOnePatchMatch.relationship)
+                            ?.isCollection
+                    ) {
+                        return await this.processNestedUpdate(
+                            client,
+                            nestedToOnePatchMatch.type,
+                            nestedToOnePatchMatch.id,
+                            nestedToOnePatchMatch.relationship,
+                            undefined,
+                            query,
+                            requestBody,
+                        );
+                    }
+                    // /:type/:id/:relationship/:childId — nested update (to-many)
                     const nestedPatchMatch = this.matchUrlPattern(path, UrlPatterns.NESTED_SINGLE);
                     if (
                         nestedPatchMatch &&
@@ -1228,12 +1247,70 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
         };
     }
 
+    /**
+     * Builds the ORM `data` payload for a nested update, shared by both to-many (childId present)
+     * and to-one (childId absent) variants.  Returns either `{ updateData }` or `{ error }`.
+     */
+    private buildNestedUpdatePayload(
+        childType: string,
+        typeInfo: ReturnType<RestApiHandler<Schema>['getModelInfo']>,
+        rev: string,
+        requestBody: unknown,
+    ): { updateData: any; error?: never } | { updateData?: never; error: Response } {
+        const { attributes, relationships, error } = this.processRequestBody(requestBody);
+        if (error) return { error };
+
+        const updateData: any = { ...attributes };
+
+        // Reject attempts to change the parent relation via the nested endpoint
+        if (relationships && Object.prototype.hasOwnProperty.call(relationships, rev)) {
+            return { error: this.makeError('invalidPayload', `Relation "${rev}" cannot be changed via a nested route`) };
+        }
+        const fkFields = Object.values(typeInfo!.fields).filter((f) => f.foreignKeyFor?.includes(rev));
+        if (fkFields.some((f) => Object.prototype.hasOwnProperty.call(updateData, f.name))) {
+            return { error: this.makeError('invalidPayload', `Relation "${rev}" cannot be changed via a nested route`) };
+        }
+
+        // Turn relationship payload into connect/set objects
+        if (relationships) {
+            for (const [key, data] of Object.entries<any>(relationships)) {
+                if (!data?.data) {
+                    return { error: this.makeError('invalidRelationData') };
+                }
+                const relationInfo = typeInfo!.relationships[key];
+                if (!relationInfo) {
+                    return { error: this.makeUnsupportedRelationshipError(childType, key, 400) };
+                }
+                if (relationInfo.isCollection) {
+                    updateData[key] = {
+                        set: enumerate(data.data).map((item: any) => ({
+                            [this.makeDefaultIdKey(relationInfo.idFields)]: item.id,
+                        })),
+                    };
+                } else {
+                    if (typeof data.data !== 'object') {
+                        return { error: this.makeError('invalidRelationData') };
+                    }
+                    updateData[key] = {
+                        connect: { [this.makeDefaultIdKey(relationInfo.idFields)]: data.data.id },
+                    };
+                }
+            }
+        }
+
+        return { updateData };
+    }
+
+    /**
+     * Handles PATCH /:type/:id/:relationship/:childId (to-many) and
+     * PATCH /:type/:id/:relationship (to-one, childId undefined).
+     */
     private async processNestedUpdate(
         client: ClientContract<Schema>,
         parentType: string,
         parentId: string,
         parentRelation: string,
-        childId: string,
+        childId: string | undefined,
         _query: Record<string, string | string[]> | undefined,
         requestBody: unknown,
     ): Promise<Response> {
@@ -1245,73 +1322,42 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
         const parentInfo = this.getModelInfo(parentType)!;
         const childType = resolved.childType;
         const typeInfo = this.getModelInfo(childType)!;
-        const rev = resolved.reverseRelation;
 
-        const { attributes, relationships, error } = this.processRequestBody(requestBody);
+        const { updateData, error } = this.buildNestedUpdatePayload(childType, typeInfo, resolved.reverseRelation, requestBody);
         if (error) return error;
 
-        const updateData: any = { ...attributes };
-
-        // Reject attempts to change the parent relation via the nested endpoint
-        if (relationships && Object.prototype.hasOwnProperty.call(relationships, rev)) {
-            return this.makeError('invalidPayload', `Relation "${rev}" cannot be changed via a nested route`);
+        if (childId) {
+            // to-many: ORM requires a where filter to identify the child within the collection
+            await (client as any)[parentType].update({
+                where: this.makeIdFilter(parentInfo.idFields, parentId),
+                data: { [parentRelation]: { update: { where: this.makeIdFilter(typeInfo.idFields, childId), data: updateData } } },
+            });
+            const fetchArgs: any = { where: this.makeIdFilter(typeInfo.idFields, childId) };
+            this.includeRelationshipIds(childType, fetchArgs, 'include');
+            const entity = await (client as any)[childType].findUnique(fetchArgs);
+            if (!entity) return this.makeError('notFound');
+            const linkUrl = this.makeLinkUrl(this.makeNestedLinkUrl(parentType, parentId, parentRelation, childId));
+            const nestedLinker = new tsjapi.Linker(() => linkUrl);
+            return { status: 200, body: await this.serializeItems(childType, entity, { linkers: { document: nestedLinker, resource: nestedLinker } }) };
+        } else {
+            // to-one: no where filter needed; fetch via parent select
+            await (client as any)[parentType].update({
+                where: this.makeIdFilter(parentInfo.idFields, parentId),
+                data: { [parentRelation]: { update: updateData } },
+            });
+            const childIncludeArgs: any = {};
+            this.includeRelationshipIds(childType, childIncludeArgs, 'include');
+            const fetchArgs: any = {
+                where: this.makeIdFilter(parentInfo.idFields, parentId),
+                select: { [parentRelation]: childIncludeArgs.include ? { include: childIncludeArgs.include } : true },
+            };
+            const parent = await (client as any)[parentType].findUnique(fetchArgs);
+            const entity = parent?.[parentRelation];
+            if (!entity) return this.makeError('notFound');
+            const linkUrl = this.makeLinkUrl(this.makeNestedLinkUrl(parentType, parentId, parentRelation));
+            const nestedLinker = new tsjapi.Linker(() => linkUrl);
+            return { status: 200, body: await this.serializeItems(childType, entity, { linkers: { document: nestedLinker, resource: nestedLinker } }) };
         }
-        const fkFields = Object.values(typeInfo.fields).filter((f) => f.foreignKeyFor?.includes(rev));
-        if (fkFields.some((f) => Object.prototype.hasOwnProperty.call(updateData, f.name))) {
-            return this.makeError('invalidPayload', `Relation "${rev}" cannot be changed via a nested route`);
-        }
-
-        // Turn relationship payload into connect/set objects
-        if (relationships) {
-            for (const [key, data] of Object.entries<any>(relationships)) {
-                if (!data?.data) {
-                    return this.makeError('invalidRelationData');
-                }
-                const relationInfo = typeInfo.relationships[key];
-                if (!relationInfo) {
-                    return this.makeUnsupportedRelationshipError(childType, key, 400);
-                }
-                if (relationInfo.isCollection) {
-                    updateData[key] = {
-                        set: enumerate(data.data).map((item: any) => ({
-                            [this.makeDefaultIdKey(relationInfo.idFields)]: item.id,
-                        })),
-                    };
-                } else {
-                    if (typeof data.data !== 'object') {
-                        return this.makeError('invalidRelationData');
-                    }
-                    updateData[key] = {
-                        connect: { [this.makeDefaultIdKey(relationInfo.idFields)]: data.data.id },
-                    };
-                }
-            }
-        }
-
-        // Atomically update child scoped to parent; ORM throws NOT_FOUND if parent or child-belongs-to-parent check fails
-        await (client as any)[parentType].update({
-            where: this.makeIdFilter(parentInfo.idFields, parentId),
-            data: {
-                [parentRelation]: {
-                    update: { where: this.makeIdFilter(typeInfo.idFields, childId), data: updateData },
-                },
-            },
-        });
-
-        // Fetch the updated entity for the response
-        const fetchArgs: any = { where: this.makeIdFilter(typeInfo.idFields, childId) };
-        this.includeRelationshipIds(childType, fetchArgs, 'include');
-        const entity = await (client as any)[childType].findUnique(fetchArgs);
-        if (!entity) return this.makeError('notFound');
-
-        const linkUrl = this.makeLinkUrl(this.makeNestedLinkUrl(parentType, parentId, parentRelation, childId));
-        const nestedLinker = new tsjapi.Linker(() => linkUrl);
-        return {
-            status: 200,
-            body: await this.serializeItems(childType, entity, {
-                linkers: { document: nestedLinker, resource: nestedLinker },
-            }),
-        };
     }
 
     private async processNestedDelete(
