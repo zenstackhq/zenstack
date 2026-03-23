@@ -144,7 +144,7 @@ type ZodNullableIf<T extends z.ZodType, Condition extends boolean> = Condition e
 type ZodArrayIf<T extends z.ZodType, Condition extends boolean> = Condition extends true ? z.ZodArray<T> : T;
 
 // -------------------------------------------------------------------------
-// Query options types (Prisma-style include / select / omit)
+// Query options types (ORM-style include / select / omit)
 // -------------------------------------------------------------------------
 
 /**
@@ -176,7 +176,7 @@ type RelatedModel<
 > = GetModelFieldType<Schema, Model, Field> extends GetModels<Schema> ? GetModelFieldType<Schema, Model, Field> : never;
 
 /**
- * Prisma-style query options accepted by `makeModelSchema`.
+ * ORM-style query options accepted by `makeModelSchema`.
  *
  * Exactly mirrors the `select` / `include` / `omit` vocabulary:
  * - `select`  — pick specific fields (scalars and/or relations). Mutually
@@ -281,8 +281,11 @@ type SelectEntryToZod<
     Model extends GetModels<Schema>,
     Field extends GetModelFields<Schema, Model>,
     Value,
-> = Value extends true
-    ? // `true` — use the default shape for this field (scalar or relation)
+> = Value extends boolean
+    ? // `true` or widened `boolean` — use the default shape for this field.
+      // Handling `boolean` (not just literal `true`) prevents the type from
+      // collapsing to `never` when callers use a boolean variable instead of
+      // a literal (e.g. `const pick: boolean = true`).
       GetModelFieldsShape<Schema, Model>[FieldInShape<Schema, Model, Field>]
     : Value extends object
       ? // nested options — must be a relation field

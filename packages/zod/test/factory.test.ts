@@ -107,13 +107,13 @@ describe('SchemaFactory - makeModelSchema', () => {
             // scalar array
             expectTypeOf<Post['tags']>().toEqualTypeOf<string[]>();
 
-            const createPostSchema = factory.makeModelCreateSchema('Post');
-            type PostCreate = z.infer<typeof createPostSchema>;
+            const _createPostSchema = factory.makeModelCreateSchema('Post');
+            type PostCreate = z.infer<typeof _createPostSchema>;
 
             expectTypeOf<PostCreate['tags']>().toEqualTypeOf<string[]>();
 
-            const updatePostSchema = factory.makeModelUpdateSchema('Post');
-            type PostUpdate = z.infer<typeof updatePostSchema>;
+            const _updatePostSchema = factory.makeModelUpdateSchema('Post');
+            type PostUpdate = z.infer<typeof _updatePostSchema>;
 
             expectTypeOf<PostUpdate['tags']>().toEqualTypeOf<string[] | undefined>();
 
@@ -896,7 +896,7 @@ describe('SchemaFactory - delegate models', () => {
 });
 
 // ---------------------------------------------------------------------------
-// makeModelSchema — Prisma-style options (omit / include / select)
+// makeModelSchema — ORM-style options (omit / include / select)
 // ---------------------------------------------------------------------------
 
 // User without username (the omit use-case baseline)
@@ -1142,18 +1142,64 @@ describe('SchemaFactory - makeModelSchema with options', () => {
         });
     });
 
+    // ── invalid option combinations ───────────────────────────────────────────
+    describe('invalid option combinations', () => {
+        it('throws when select and include are used together', () => {
+            expect(() =>
+                factory.makeModelSchema('User', { select: { id: true }, include: { posts: true } } as any),
+            ).toThrow('`select` and `include` cannot be used together');
+        });
+
+        it('throws when select and omit are used together', () => {
+            expect(() =>
+                factory.makeModelSchema('User', { select: { id: true }, omit: { username: true } } as any),
+            ).toThrow('`select` and `omit` cannot be used together');
+        });
+
+        it('throws when select and include are used together in nested relation options', () => {
+            expect(() =>
+                factory.makeModelSchema('User', {
+                    include: { posts: { select: { id: true }, include: {} } as any },
+                }),
+            ).toThrow('`select` and `include` cannot be used together');
+        });
+    });
+
     // ── runtime error handling ────────────────────────────────────────────────
     describe('runtime validation still applies with options', () => {
-        it('@@validate still runs with omit options', () => {
+        it('@@validate still runs with omit when the referenced field is present in the shape', () => {
+            // omitting `username` leaves `age` in the shape, so @@validate(age >= 18) still fires
             const schema = factory.makeModelSchema('User', { omit: { username: true } });
-            // age: 16 still fails @@validate(age >= 18)
             expect(schema.safeParse({ ...validUserNoUsername, age: 16 }).success).toBe(false);
+            expect(schema.safeParse({ ...validUserNoUsername, age: 18 }).success).toBe(true);
+        });
+
+        it('@@validate is skipped when its referenced field is omitted', () => {
+            // omitting `age` removes the field that @@validate(age >= 18) references,
+            // so the rule is silently skipped — age: 16 is no longer validated
+            const { age: _, username: _u, ...validUserNoAgeOrUsername } = validUser;
+            const schema = factory.makeModelSchema('User', { omit: { age: true, username: true } });
+            expect(schema.safeParse(validUserNoAgeOrUsername).success).toBe(true);
         });
 
         it('field validation still runs with select options', () => {
             const schema = factory.makeModelSchema('User', { select: { email: true } });
             expect(schema.safeParse({ email: 'not-an-email' }).success).toBe(false);
             expect(schema.safeParse({ email: 'valid@example.com' }).success).toBe(true);
+        });
+
+        it('@@validate is skipped with select when the referenced field is not selected', () => {
+            // selecting only `email` omits `age`, so @@validate(age >= 18) is skipped
+            const schema = factory.makeModelSchema('User', { select: { email: true } });
+            // would fail @@validate if age were present and < 18, but age isn't in the shape
+            expect(schema.safeParse({ email: 'valid@example.com' }).success).toBe(true);
+        });
+
+        it('@@validate still runs with select when the referenced field is selected', () => {
+            // selecting both `email` and `age` keeps the @@validate(age >= 18) rule active
+            const schema = factory.makeModelSchema('User', { select: { email: true, age: true } });
+            expect(schema.safeParse({ email: 'valid@example.com', age: 16 }).success).toBe(false);
+            expect(schema.safeParse({ email: 'valid@example.com', age: 18 }).success).toBe(true);
         });
     });
 });

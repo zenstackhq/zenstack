@@ -39,6 +39,37 @@ type RawOptions = {
     omit?: Record<string, unknown>;
 };
 
+/**
+ * Recursive Zod schema that validates a `RawOptions` object at runtime,
+ * enforcing the same mutual-exclusion rules that the TypeScript union type
+ * enforces at compile time:
+ *  - `select` and `include` cannot be used together.
+ *  - `select` and `omit` cannot be used together.
+ * Nested relation options are validated with the same rules.
+ */
+const rawOptionsSchema: z.ZodType<RawOptions> = z.lazy(() =>
+    z
+        .object({
+            select: z.record(z.string(), z.union([z.boolean(), rawOptionsSchema])).optional(),
+            include: z.record(z.string(), z.union([z.boolean(), rawOptionsSchema])).optional(),
+            omit: z.record(z.string(), z.boolean()).optional(),
+        })
+        .superRefine((val, ctx) => {
+            if (val.select && val.include) {
+                ctx.addIssue({
+                    code: 'custom',
+                    message: '`select` and `include` cannot be used together',
+                });
+            }
+            if (val.select && val.omit) {
+                ctx.addIssue({
+                    code: 'custom',
+                    message: '`select` and `omit` cannot be used together',
+                });
+            }
+        }),
+);
+
 class SchemaFactory<Schema extends SchemaDef> {
     private readonly schema: SchemaAccessor<Schema>;
 
@@ -92,15 +123,18 @@ class SchemaFactory<Schema extends SchemaDef> {
         }
 
         // ── Options path ─────────────────────────────────────────────────────
-        const rawOptions = options as unknown as RawOptions;
+        const rawOptions = rawOptionsSchema.parse(options);
         const fields = this.buildFieldsWithOptions(model as string, rawOptions);
         const shape = z.strictObject(fields);
-        // @@validate expressions reference fields by name — when `select` is
-        // used only a subset of fields is present, so running @@validate would
-        // silently evaluate missing fields as null and produce false negatives.
-        // We therefore only apply model-level custom validation on the
-        // include/omit path where all scalar fields are still present.
-        const withValidation = rawOptions.select ? shape : addCustomValidation(shape, modelDef.attributes);
+        // @@validate expressions reference fields by name. When `select` or
+        // `omit` produces a partial shape, some fields referenced by @@validate
+        // may be absent. Applying those rules would cause false negatives (the
+        // field evaluates to null) or make the schema impossible to satisfy
+        // (strict parsing rejects a field the refinement needs).
+        // We therefore apply each @@validate rule only when every field it
+        // references is present in the resulting shape.
+        const presentFields = new Set(Object.keys(fields));
+        const withValidation = addCustomValidation(shape, modelDef.attributes, presentFields);
         return this.applyDescription(withValidation, modelDef.attributes) as unknown as z.ZodObject<
             GetModelSchemaShapeWithOptions<Schema, Model, Options>,
             z.core.$strict
