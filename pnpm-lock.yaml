@@ -477,6 +477,12 @@ importers:
       vscode-languageserver:
         specifier: ^9.0.1
         version: 9.0.1
+      vscode-uri:
+        specifier: ^3.1.0
+        version: 3.1.0
+      zod:
+        specifier: 'catalog:'
+        version: 4.1.12
     devDependencies:
       '@types/vscode':
         specifier: ^1.90.0

@@ -1,14 +1,21 @@
-import { init } from 'mixpanel';
 import type { Mixpanel } from 'mixpanel';
+import { init } from 'mixpanel';
 import * as os from 'os';
-import * as vscode from 'vscode';
-import { getMachineId } from './machine-id-utils';
 import { v5 as uuidv5 } from 'uuid';
+import * as vscode from 'vscode';
 import { version as extensionVersion } from '../../package.json';
+import { getMachineId } from './machine-id-utils';
 
 export const VSCODE_TELEMETRY_TRACKING_TOKEN = '<VSCODE_TELEMETRY_TRACKING_TOKEN>';
 
-export type TelemetryEvents = 'extension:activate' | 'extension:zmodel-preview' | 'extension:zmodel-save';
+export type TelemetryEvents =
+    | 'extension:activate'
+    | 'extension:zmodel-preview'
+    | 'extension:zmodel-save'
+    | 'extension:signin:show'
+    | 'extension:signin:start'
+    | 'extension:signin:error'
+    | 'extension:signin:complete';
 
 export class VSCodeTelemetry {
     private readonly mixpanel: Mixpanel | undefined;
@@ -55,6 +62,16 @@ export class VSCodeTelemetry {
                 ...properties,
             };
             this.mixpanel.track(event, payload);
+        }
+    }
+
+    identify(userId: string) {
+        if (this.mixpanel) {
+            this.mixpanel.track('$identify', {
+                $identified_id: userId,
+                $anon_id: this.deviceId,
+                token: VSCODE_TELEMETRY_TRACKING_TOKEN,
+            });
         }
     }
 }

@@ -36,7 +36,9 @@
         "mixpanel": "^0.18.0",
         "uuid": "^11.1.0",
         "vscode-languageclient": "^9.0.1",
-        "vscode-languageserver": "^9.0.1"
+        "vscode-languageserver": "^9.0.1",
+        "vscode-uri": "^3.1.0",
+        "zod": "catalog:"
     },
     "devDependencies": {
         "@types/vscode": "^1.90.0",
@@ -81,6 +83,68 @@
                 "language": "zmodel-v3",
                 "scopeName": "source.zmodel-v3",
                 "path": "./syntaxes/zmodel.tmLanguage.json"
+            }
+        ],
+        "menus": {
+            "editor/title": [
+                {
+                    "command": "zenstack.preview-zmodel-v3",
+                    "when": "editorLangId == zmodel-v3",
+                    "group": "navigation"
+                },
+                {
+                    "command": "zenstack.save-zmodel-documentation-v3",
+                    "when": "(activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor') && zenstack.isMarkdownPreview == true",
+                    "group": "navigation"
+                }
+            ],
+            "commandPalette": [
+                {
+                    "command": "zenstack.preview-zmodel-v3",
+                    "when": "editorLangId == zmodel-v3"
+                },
+                {
+                    "command": "zenstack.clear-documentation-cache-v3"
+                },
+                {
+                    "command": "zenstack.logout-v3"
+                }
+            ]
+        },
+        "commands": [
+            {
+                "command": "zenstack.preview-zmodel-v3",
+                "title": "ZenStack: Preview ZModel Documentation",
+                "icon": "$(preview)"
+            },
+            {
+                "command": "zenstack.save-zmodel-documentation-v3",
+                "title": "ZenStack: Save ZModel Documentation",
+                "icon": "$(save)"
+            },
+            {
+                "command": "zenstack.clear-documentation-cache-v3",
+                "title": "ZenStack: Clear Documentation Cache",
+                "icon": "$(trash)"
+            },
+            {
+                "command": "zenstack.logout-v3",
+                "title": "ZenStack: Logout",
+                "icon": "$(log-out)"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "zenstack.preview-zmodel-v3",
+                "key": "ctrl+shift+v",
+                "mac": "cmd+shift+v",
+                "when": "editorLangId == zmodel-v3"
+            },
+            {
+                "command": "zenstack.save-zmodel-documentation-v3",
+                "key": "ctrl+shift+s",
+                "mac": "cmd+shift+s",
+                "when": "(activeWebviewPanelId == 'markdown.preview' || activeCustomEditorId == 'vscode.markdown.preview.editor') && zenstack.isMarkdownPreview == true"
             }
         ]
     },
