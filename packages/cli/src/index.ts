@@ -1,7 +1,7 @@
-import 'dotenv/config';
 import { ZModelLanguageMetaData } from '@zenstackhq/language';
 import colors from 'colors';
 import { Command, CommanderError, Option } from 'commander';
+import 'dotenv/config';
 import * as actions from './actions';
 import { CliError } from './cli-error';
 import { telemetry } from './telemetry';
