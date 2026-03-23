@@ -26,7 +26,6 @@ import {
     addDecimalValidation,
     addNumberValidation,
     addStringValidation,
-    type PresentFieldsShape,
 } from './utils';
 
 export function createSchemaFactory<Schema extends SchemaDef>(schema: Schema) {
@@ -127,15 +126,13 @@ class SchemaFactory<Schema extends SchemaDef> {
         const rawOptions = rawOptionsSchema.parse(options);
         const fields = this.buildFieldsWithOptions(model as string, rawOptions);
         const shape = z.strictObject(fields);
-        // @@validate expressions reference fields by name. When `select` or
-        // `omit` produces a partial shape, some fields referenced by @@validate
-        // may be absent. Applying those rules would cause false negatives (the
-        // field evaluates to null) or make the schema impossible to satisfy
-        // (strict parsing rejects a field the refinement needs).
-        // We therefore apply each @@validate rule only when every field it
-        // references is present in the resulting shape.
-        const presentShape = this.buildPresentShape(model as string, rawOptions);
-        const withValidation = addCustomValidation(shape, modelDef.attributes, presentShape);
+        // @@validate conditions only reference scalar fields of the same model
+        // (the ZModel compiler rejects relation fields). When `select` or `omit`
+        // produces a partial shape some of those scalar fields may be absent;
+        // we skip any rule that references a missing field so it can't produce
+        // a false negative against a partial payload.
+        const presentFields = this.buildPresentFields(model as string, rawOptions);
+        const withValidation = addCustomValidation(shape, modelDef.attributes, presentFields);
         return this.applyDescription(withValidation, modelDef.attributes) as unknown as z.ZodObject<
             GetModelSchemaShapeWithOptions<Schema, Model, Options>,
             z.core.$strict
@@ -286,46 +283,37 @@ class SchemaFactory<Schema extends SchemaDef> {
     }
 
     /**
-     * Builds a `PresentFieldsShape` tree from `options` that mirrors exactly
-     * what fields will be present in the resulting schema. Used by
-     * `addCustomValidation` to decide which `@@validate` rules to apply.
+     * Returns the set of scalar field names that will be present in the
+     * resulting schema after applying `options`. Used by `addCustomValidation`
+     * to skip `@@validate` rules that reference an absent field.
      *
-     * - `true`                — field is fully present (all sub-fields available).
-     * - `PresentFieldsShape`  — field is present with a nested sub-selection.
+     * Only scalar fields matter here because `@@validate` conditions are
+     * restricted by the ZModel compiler to scalar fields of the same model.
      */
-    private buildPresentShape(model: string, options: RawOptions): PresentFieldsShape {
-        const { select, include, omit } = options;
+    private buildPresentFields(model: string, options: RawOptions): ReadonlySet<string> {
+        const { select, omit } = options;
         const modelDef = this.schema.requireModel(model);
-        const shape: PresentFieldsShape = {};
+        const fields = new Set<string>();
 
         if (select) {
+            // Only scalar fields explicitly selected with a truthy value.
             for (const [key, value] of Object.entries(select)) {
                 if (!value) continue;
                 const fieldDef = modelDef.fields[key];
-                if (!fieldDef) continue;
-                shape[key] =
-                    typeof value === 'object' ? this.buildPresentShape(fieldDef.type, value as RawOptions) : true;
+                if (fieldDef && !fieldDef.relation) {
+                    fields.add(key);
+                }
             }
         } else {
-            // All scalar fields minus omitted ones.
+            // All scalar fields minus explicitly omitted ones.
             for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
                 if (fieldDef.relation) continue;
                 if (omit?.[fieldName] === true) continue;
-                shape[fieldName] = true;
-            }
-            // Included relation fields.
-            if (include) {
-                for (const [key, value] of Object.entries(include)) {
-                    if (!value) continue;
-                    const fieldDef = modelDef.fields[key];
-                    if (!fieldDef) continue;
-                    shape[key] =
-                        typeof value === 'object' ? this.buildPresentShape(fieldDef.type, value as RawOptions) : true;
-                }
+                fields.add(fieldName);
             }
         }
 
-        return shape;
+        return fields;
     }
 
     /**

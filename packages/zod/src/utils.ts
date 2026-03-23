@@ -262,129 +262,8 @@ export function addListValidation(
 }
 
 /**
- * Represents the set of fields present in a (potentially partial) model shape.
- *
- * - `true`              — the field is fully present (all its own fields are available).
- * - `PresentFieldsShape` — the field is present but with a nested sub-selection;
- *                          only the listed sub-fields are available.
- *
- * This mirrors the `select` / `include` / `omit` options tree so that
- * `@@validate` rules referencing nested relation fields (e.g. `author.email`)
- * can be checked precisely against what is actually projected.
- */
-export type PresentFieldsShape = { [field: string]: true | PresentFieldsShape };
-
-/**
- * Returns `true` when every field reference in `expr` is fully satisfied by
- * `shape` — meaning the field (and any nested member path) is present in the
- * projected shape.
- *
- * Handles arbitrarily deep member expressions (`author.address.city`) by
- * recursively walking the `PresentFieldsShape` tree:
- * - If the receiver field maps to `true`, the full sub-tree is available →
- *   any member path on it is valid.
- * - If the receiver field maps to a nested `PresentFieldsShape`, each member
- *   in the path must be present in that nested shape.
- */
-function allFieldRefsPresent(expr: Expression, shape: PresentFieldsShape): boolean {
-    switch (expr.kind) {
-        case 'literal':
-        case 'null':
-        case 'this':
-        case 'binding':
-            return true;
-        case 'array':
-            return expr.items.every((item) => allFieldRefsPresent(item, shape));
-        case 'field':
-            return expr.field in shape;
-        case 'member': {
-            // member expressions: receiver.member1.member2...
-            // The receiver must be a simple field reference.
-            if (expr.receiver.kind !== 'field') {
-                // Complex receiver (e.g. nested member) — would need deeper
-                // analysis; conservatively treat as missing.
-                return false;
-            }
-            const receiverField = expr.receiver.field;
-            if (!(receiverField in shape)) return false;
-            const receiverShape = shape[receiverField];
-            // noUncheckedIndexedAccess: guard undefined even after `in` check.
-            if (receiverShape === undefined) return false;
-            // If the receiver is fully present, every member path is available.
-            if (receiverShape === true) return true;
-            // Navigate the nested shape one member at a time.
-            let current: PresentFieldsShape = receiverShape;
-            for (const member of expr.members) {
-                if (!(member in current)) return false;
-                const next = current[member];
-                // noUncheckedIndexedAccess: guard against undefined even
-                // after the `in` check (TS doesn't narrow index signatures).
-                if (next === undefined) return false;
-                // Subtree is fully present — remaining members are all valid.
-                if (next === true) return true;
-                current = next;
-            }
-            return true;
-        }
-        case 'unary':
-            return allFieldRefsPresent(expr.operand, shape);
-        case 'binary':
-            return allFieldRefsPresent(expr.left, shape) && allFieldRefsPresent(expr.right, shape);
-        case 'call':
-            return (expr.args ?? []).every((arg) => allFieldRefsPresent(arg, shape));
-    }
-}
-
-/**
- * Applies `@@validate` rules from `attributes` to `schema` as Zod refinements.
- *
- * When `presentShape` is provided, only rules whose every field reference is
- * fully satisfied by the shape are applied. Rules that reference a field (or
- * nested member path) absent from the shape are silently skipped — they cannot
- * be evaluated correctly against a partial payload.
- *
- * Omit `presentShape` (or pass `undefined`) to apply all rules unconditionally,
- * which is the correct behaviour for full-model schemas.
- */
-export function addCustomValidation(
-    schema: z.ZodSchema,
-    attributes: readonly AttributeApplication[] | undefined,
-    presentShape?: PresentFieldsShape,
-): z.ZodSchema {
-    const attrs = attributes?.filter((a) => a.name === '@@validate');
-    if (!attrs || attrs.length === 0) {
-        return schema;
-    }
-
-    let result = schema;
-    for (const attr of attrs) {
-        const expr = attr.args?.[0]?.value;
-        if (!expr) {
-            continue;
-        }
-
-        // Skip rules whose field references are not fully satisfied by the shape.
-        if (presentShape !== undefined && !allFieldRefsPresent(expr, presentShape)) {
-            continue;
-        }
-
-        const message = getArgValue<string>(attr.args?.[1]?.value);
-        const pathExpr = attr.args?.[2]?.value;
-        let path: string[] | undefined = undefined;
-        if (pathExpr && ExpressionUtils.isArray(pathExpr)) {
-            path = pathExpr.items.map((e) => ExpressionUtils.getLiteralValue(e) as string);
-        }
-        result = applyValidation(result, expr, message, path);
-    }
-    return result;
-}
-
-/**
- * Recursively collects all top-level field names referenced by `kind: 'field'`
- * nodes inside an expression tree. For member expressions (`author.email`),
- * only the receiver field name (`author`) is collected.
- *
- * @see allFieldRefsPresent for a shape-aware check that handles nested paths.
+ * Recursively collects all field names referenced by `kind: 'field'` nodes
+ * inside an expression tree.
  */
 export function collectFieldRefs(expr: Expression): Set<string> {
     const refs = new Set<string>();
@@ -414,6 +293,57 @@ export function collectFieldRefs(expr: Expression): Set<string> {
     }
     walk(expr);
     return refs;
+}
+
+/**
+ * Applies `@@validate` rules from `attributes` to `schema` as Zod refinements.
+ *
+ * When `presentFields` is provided, only rules whose every field reference is
+ * present in the set are applied. Rules that reference a field absent from the
+ * set are silently skipped — they cannot be evaluated correctly against a
+ * partial payload (e.g. when `select` or `omit` has been used).
+ *
+ * Omit `presentFields` (or pass `undefined`) to apply all rules
+ * unconditionally, which is the correct behaviour for full-model schemas.
+ *
+ * Note: `@@validate` conditions are restricted by the ZModel compiler to
+ * scalar fields of the same model only — relation fields are a compile error.
+ * A flat field-name set is therefore sufficient.
+ */
+export function addCustomValidation(
+    schema: z.ZodSchema,
+    attributes: readonly AttributeApplication[] | undefined,
+    presentFields?: ReadonlySet<string>,
+): z.ZodSchema {
+    const attrs = attributes?.filter((a) => a.name === '@@validate');
+    if (!attrs || attrs.length === 0) {
+        return schema;
+    }
+
+    let result = schema;
+    for (const attr of attrs) {
+        const expr = attr.args?.[0]?.value;
+        if (!expr) {
+            continue;
+        }
+
+        // Skip rules that reference a field absent from the partial shape.
+        if (presentFields !== undefined) {
+            const refs = collectFieldRefs(expr);
+            if ([...refs].some((ref) => !presentFields.has(ref))) {
+                continue;
+            }
+        }
+
+        const message = getArgValue<string>(attr.args?.[1]?.value);
+        const pathExpr = attr.args?.[2]?.value;
+        let path: string[] | undefined = undefined;
+        if (pathExpr && ExpressionUtils.isArray(pathExpr)) {
+            path = pathExpr.items.map((e) => ExpressionUtils.getLiteralValue(e) as string);
+        }
+        result = applyValidation(result, expr, message, path);
+    }
+    return result;
 }
 
 function applyValidation(
