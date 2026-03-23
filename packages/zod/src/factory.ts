@@ -26,6 +26,7 @@ import {
     addDecimalValidation,
     addNumberValidation,
     addStringValidation,
+    type PresentFieldsShape,
 } from './utils';
 
 export function createSchemaFactory<Schema extends SchemaDef>(schema: Schema) {
@@ -133,8 +134,8 @@ class SchemaFactory<Schema extends SchemaDef> {
         // (strict parsing rejects a field the refinement needs).
         // We therefore apply each @@validate rule only when every field it
         // references is present in the resulting shape.
-        const presentFields = new Set(Object.keys(fields));
-        const withValidation = addCustomValidation(shape, modelDef.attributes, presentFields);
+        const presentShape = this.buildPresentShape(model as string, rawOptions);
+        const withValidation = addCustomValidation(shape, modelDef.attributes, presentShape);
         return this.applyDescription(withValidation, modelDef.attributes) as unknown as z.ZodObject<
             GetModelSchemaShapeWithOptions<Schema, Model, Options>,
             z.core.$strict
@@ -211,11 +212,11 @@ class SchemaFactory<Schema extends SchemaDef> {
                 if (!value) continue; // false → skip
 
                 const fieldDef = modelDef.fields[key];
-                if (!fieldDef) continue;
+                if (!fieldDef) {
+                    throw new SchemaFactoryError(`Field "${key}" does not exist on model "${model}"`);
+                }
 
                 if (fieldDef.relation) {
-                    // Relation field: recurse if value is a nested options object,
-                    // otherwise use the default lazy schema.
                     const subOptions = typeof value === 'object' ? (value as RawOptions) : undefined;
                     const relSchema = this.makeRelationFieldSchema(fieldDef, subOptions);
                     fields[key] = this.applyDescription(
@@ -223,28 +224,53 @@ class SchemaFactory<Schema extends SchemaDef> {
                         fieldDef.attributes,
                     );
                 } else {
+                    if (typeof value === 'object') {
+                        throw new SchemaFactoryError(
+                            `Field "${key}" on model "${model}" is a scalar field and cannot have nested options`,
+                        );
+                    }
                     fields[key] = this.applyDescription(this.makeScalarFieldSchema(fieldDef), fieldDef.attributes);
                 }
             }
         } else {
             // ── include + omit branch ────────────────────────────────────────
+            // Validate omit keys up-front.
+            if (omit) {
+                for (const key of Object.keys(omit)) {
+                    const fieldDef = modelDef.fields[key];
+                    if (!fieldDef) {
+                        throw new SchemaFactoryError(`Field "${key}" does not exist on model "${model}"`);
+                    }
+                    if (fieldDef.relation) {
+                        throw new SchemaFactoryError(
+                            `Field "${key}" on model "${model}" is a relation field and cannot be used in "omit"`,
+                        );
+                    }
+                }
+            }
+
             // Start with all scalar fields, applying omit exclusions.
             for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
-                if (fieldDef.relation) continue; // relations handled below
+                if (fieldDef.relation) continue;
 
-                // Skip if this field is explicitly omitted.
-                if (omit && (omit as Record<string, unknown>)[fieldName] === true) continue;
-
+                if (omit?.[fieldName] === true) continue;
                 fields[fieldName] = this.applyDescription(this.makeScalarFieldSchema(fieldDef), fieldDef.attributes);
             }
 
-            // Add included relation fields.
+            // Validate include keys and add relation fields.
             if (include) {
                 for (const [key, value] of Object.entries(include)) {
                     if (!value) continue; // false → skip
 
                     const fieldDef = modelDef.fields[key];
-                    if (!fieldDef?.relation) continue;
+                    if (!fieldDef) {
+                        throw new SchemaFactoryError(`Field "${key}" does not exist on model "${model}"`);
+                    }
+                    if (!fieldDef.relation) {
+                        throw new SchemaFactoryError(
+                            `Field "${key}" on model "${model}" is not a relation field and cannot be used in "include"`,
+                        );
+                    }
 
                     const subOptions = typeof value === 'object' ? (value as RawOptions) : undefined;
                     const relSchema = this.makeRelationFieldSchema(fieldDef, subOptions);
@@ -257,6 +283,49 @@ class SchemaFactory<Schema extends SchemaDef> {
         }
 
         return fields;
+    }
+
+    /**
+     * Builds a `PresentFieldsShape` tree from `options` that mirrors exactly
+     * what fields will be present in the resulting schema. Used by
+     * `addCustomValidation` to decide which `@@validate` rules to apply.
+     *
+     * - `true`                — field is fully present (all sub-fields available).
+     * - `PresentFieldsShape`  — field is present with a nested sub-selection.
+     */
+    private buildPresentShape(model: string, options: RawOptions): PresentFieldsShape {
+        const { select, include, omit } = options;
+        const modelDef = this.schema.requireModel(model);
+        const shape: PresentFieldsShape = {};
+
+        if (select) {
+            for (const [key, value] of Object.entries(select)) {
+                if (!value) continue;
+                const fieldDef = modelDef.fields[key];
+                if (!fieldDef) continue;
+                shape[key] =
+                    typeof value === 'object' ? this.buildPresentShape(fieldDef.type, value as RawOptions) : true;
+            }
+        } else {
+            // All scalar fields minus omitted ones.
+            for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
+                if (fieldDef.relation) continue;
+                if (omit?.[fieldName] === true) continue;
+                shape[fieldName] = true;
+            }
+            // Included relation fields.
+            if (include) {
+                for (const [key, value] of Object.entries(include)) {
+                    if (!value) continue;
+                    const fieldDef = modelDef.fields[key];
+                    if (!fieldDef) continue;
+                    shape[key] =
+                        typeof value === 'object' ? this.buildPresentShape(fieldDef.type, value as RawOptions) : true;
+                }
+            }
+        }
+
+        return shape;
     }
 
     /**

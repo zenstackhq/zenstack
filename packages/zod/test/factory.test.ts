@@ -1163,6 +1163,42 @@ describe('SchemaFactory - makeModelSchema with options', () => {
                 }),
             ).toThrow('`select` and `include` cannot be used together');
         });
+
+        it('throws when select references a non-existent field', () => {
+            expect(() => factory.makeModelSchema('User', { select: { nonExistent: true } as any })).toThrow(
+                'Field "nonExistent" does not exist on model "User"',
+            );
+        });
+
+        it('throws when select provides nested options for a scalar field', () => {
+            expect(() =>
+                factory.makeModelSchema('User', { select: { email: { select: { id: true } } } as any }),
+            ).toThrow('Field "email" on model "User" is a scalar field and cannot have nested options');
+        });
+
+        it('throws when include references a non-existent field', () => {
+            expect(() => factory.makeModelSchema('User', { include: { nonExistent: true } as any })).toThrow(
+                'Field "nonExistent" does not exist on model "User"',
+            );
+        });
+
+        it('throws when include references a scalar field', () => {
+            expect(() => factory.makeModelSchema('User', { include: { email: true } as any })).toThrow(
+                'Field "email" on model "User" is not a relation field and cannot be used in "include"',
+            );
+        });
+
+        it('throws when omit references a non-existent field', () => {
+            expect(() => factory.makeModelSchema('User', { omit: { nonExistent: true } as any })).toThrow(
+                'Field "nonExistent" does not exist on model "User"',
+            );
+        });
+
+        it('throws when omit references a relation field', () => {
+            expect(() => factory.makeModelSchema('User', { omit: { posts: true } as any })).toThrow(
+                'Field "posts" on model "User" is a relation field and cannot be used in "omit"',
+            );
+        });
     });
 
     // ── runtime error handling ────────────────────────────────────────────────
