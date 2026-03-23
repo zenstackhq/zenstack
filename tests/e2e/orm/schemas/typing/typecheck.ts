@@ -7,7 +7,7 @@ import { schema } from './schema';
 const client = new ZenStackClient(schema, {
     dialect: new SqliteDialect({ database: new SQLite('./zenstack/test.db') }),
     computedFields: {
-        User: {
+        user: {
             postCount: (eb) =>
                 eb
                     .selectFrom('Post')

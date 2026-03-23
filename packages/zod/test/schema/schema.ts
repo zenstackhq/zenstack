@@ -8,7 +8,7 @@
 import { type SchemaDef, ExpressionUtils } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
     provider = {
-        type: "sqlite"
+        type: "postgresql"
     } as const;
     models = {
         User: {
@@ -124,6 +124,11 @@ export class SchemaType implements SchemaDef {
                 published: {
                     name: "published",
                     type: "Boolean"
+                },
+                tags: {
+                    name: "tags",
+                    type: "String",
+                    array: true
                 },
                 author: {
                     name: "author",
@@ -302,6 +307,11 @@ export class SchemaType implements SchemaDef {
         Address: {
             name: "Address",
             fields: {
+                residents: {
+                    name: "residents",
+                    type: "String",
+                    array: true
+                },
                 street: {
                     name: "street",
                     type: "String",

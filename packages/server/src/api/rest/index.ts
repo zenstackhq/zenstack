@@ -1,4 +1,4 @@
-import { clone, enumerate, lowerCaseFirst, paramCase } from '@zenstackhq/common-helpers';
+import { clone, enumerate, lowerCaseFirst, paramCase, safeJSONStringify } from '@zenstackhq/common-helpers';
 import { ORMError, ORMErrorReason, type ClientContract } from '@zenstackhq/orm';
 import type { FieldDef, ModelDef, SchemaDef } from '@zenstackhq/orm/schema';
 import { Decimal } from 'decimal.js';
@@ -10,9 +10,11 @@ import z from 'zod';
 import { fromError } from 'zod-validation-error/v4';
 import type { ApiHandler, LogConfig, RequestContext, Response } from '../../types';
 import { getProcedureDef, mapProcedureArgs } from '../common/procedures';
-import { loggerSchema } from '../common/schemas';
+import { loggerSchema, queryOptionsSchema } from '../common/schemas';
+import type { CommonHandlerOptions, OpenApiSpecGenerator, OpenApiSpecOptions } from '../common/types';
 import { processSuperJsonRequestPayload } from '../common/utils';
 import { getZodErrorMessage, log, registerCustomSerializers } from '../utils';
+import { RestApiSpecGenerator } from './openapi';
 
 /**
  * Options for {@link RestApiHandler}
@@ -64,7 +66,7 @@ export type RestApiHandlerOptions<Schema extends SchemaDef = SchemaDef> = {
      * Mapping from model names to unique field name to be used as resource's ID.
      */
     externalIdMapping?: Record<string, string>;
-};
+} & CommonHandlerOptions<Schema>;
 
 type RelationshipInfo = {
     type: string;
@@ -127,7 +129,7 @@ registerCustomSerializers();
 /**
  * RESTful-style API request handler (compliant with JSON:API)
  */
-export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiHandler<Schema> {
+export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiHandler<Schema>, OpenApiSpecGenerator {
     // resource serializers
     private serializers = new Map<string, Serializer>();
 
@@ -298,6 +300,7 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
             urlSegmentCharset: z.string().min(1).optional(),
             modelNameMapping: z.record(z.string(), z.string()).optional(),
             externalIdMapping: z.record(z.string(), z.string()).optional(),
+            queryOptions: queryOptionsSchema.optional(),
         });
         const parseResult = schema.safeParse(options);
         if (!parseResult.success) {
@@ -505,7 +508,13 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
     }
 
     private handleGenericError(err: unknown): Response | PromiseLike<Response> {
-        return this.makeError('unknownError', err instanceof Error ? `${err.message}\n${err.stack}` : 'Unknown error');
+        const resp = this.makeError('unknownError', err instanceof Error ? `${err.message}` : 'Unknown error');
+        log(
+            this.options.log,
+            'debug',
+            () => `sending error response: ${safeJSONStringify(resp)}${err instanceof Error ? '\n' + err.stack : ''}`,
+        );
+        return resp;
     }
 
     private async processProcedureRequest({
@@ -582,14 +591,18 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
 
     private makeProcBadInputErrorResponse(message: string): Response {
         const resp = this.makeError('invalidPayload', message, 400);
-        log(this.log, 'debug', () => `sending error response: ${JSON.stringify(resp)}`);
+        log(this.log, 'debug', () => `sending error response: ${safeJSONStringify(resp)}`);
         return resp;
     }
 
     private makeProcGenericErrorResponse(err: unknown): Response {
         const message = err instanceof Error ? err.message : 'unknown error';
         const resp = this.makeError('unknownError', message, 500);
-        log(this.log, 'debug', () => `sending error response: ${JSON.stringify(resp)}`);
+        log(
+            this.log,
+            'debug',
+            () => `sending error response: ${safeJSONStringify(resp)}${err instanceof Error ? '\n' + err.stack : ''}`,
+        );
         return resp;
     }
 
@@ -2060,9 +2073,7 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
             }
         } else {
             if (op === 'between') {
-                const parts = value
-                    .split(',')
-                    .map((v) => this.coerce(fieldDef, v));
+                const parts = value.split(',').map((v) => this.coerce(fieldDef, v));
                 if (parts.length !== 2) {
                     throw new InvalidValueError(`"between" expects exactly 2 comma-separated values`);
                 }
@@ -2201,4 +2212,11 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
     }
 
     //#endregion
+
+    async generateSpec(options?: OpenApiSpecOptions) {
+        const generator = new RestApiSpecGenerator(this.options);
+        return generator.generateSpec(options);
+    }
 }
+
+export { RestApiSpecGenerator } from './openapi';

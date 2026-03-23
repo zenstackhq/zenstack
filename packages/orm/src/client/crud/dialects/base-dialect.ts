@@ -1,4 +1,4 @@
-import { enumerate, invariant, isPlainObject } from '@zenstackhq/common-helpers';
+import { enumerate, invariant, isPlainObject, lowerCaseFirst } from '@zenstackhq/common-helpers';
 import type { AliasableExpression, Expression, ExpressionBuilder, ExpressionWrapper, SqlBool, ValueNode } from 'kysely';
 import { expressionBuilder, sql, type SelectQueryBuilder } from 'kysely';
 import { match, P } from 'ts-pattern';
@@ -26,9 +26,8 @@ import {
     getManyToManyRelation,
     getRelationForeignKeyFieldPairs,
     isEnum,
-    isInheritedField,
-    isRelationField,
     isTypeDef,
+    getModelFields,
     makeDefaultOrderBy,
     requireField,
     requireIdFields,
@@ -1127,33 +1126,26 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         omit: Record<string, boolean | undefined> | undefined | null,
         modelAlias: string,
     ) {
-        const modelDef = requireModel(this.schema, model);
         let result = query;
 
-        for (const field of Object.keys(modelDef.fields)) {
-            if (isRelationField(this.schema, model, field)) {
+        for (const fieldDef of getModelFields(this.schema, model, { inherited: true, computed: true })) {
+            if (this.shouldOmitField(omit, model, fieldDef.name)) {
                 continue;
             }
-            if (this.shouldOmitField(omit, model, field)) {
-                continue;
-            }
-            result = this.buildSelectField(result, model, modelAlias, field);
+            result = this.buildSelectField(result, model, modelAlias, fieldDef.name);
         }
 
         // select all fields from delegate descendants and pack into a JSON field `$delegate$Model`
         const descendants = getDelegateDescendantModels(this.schema, model);
         for (const subModel of descendants) {
             result = this.buildDelegateJoin(model, modelAlias, subModel.name, result);
-            result = result.select((eb) => {
+            result = result.select(() => {
                 const jsonObject: Record<string, Expression<any>> = {};
-                for (const field of Object.keys(subModel.fields)) {
-                    if (
-                        isRelationField(this.schema, subModel.name, field) ||
-                        isInheritedField(this.schema, subModel.name, field)
-                    ) {
+                for (const fieldDef of getModelFields(this.schema, subModel.name, { computed: true })) {
+                    if (this.shouldOmitField(omit, subModel.name, fieldDef.name)) {
                         continue;
                     }
-                    jsonObject[field] = eb.ref(`${subModel.name}.${field}`);
+                    jsonObject[fieldDef.name] = this.fieldRef(subModel.name, fieldDef.name, subModel.name);
                 }
                 return this.buildJsonObject(jsonObject).as(`${DELEGATE_JOINED_FIELD_PREFIX}${subModel.name}`);
             });
@@ -1168,12 +1160,12 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             return (omit as any)[field];
         }
 
-        if (
-            this.options.omit?.[model] &&
-            typeof this.options.omit[model] === 'object' &&
-            typeof (this.options.omit[model] as any)[field] === 'boolean'
-        ) {
-            return (this.options.omit[model] as any)[field];
+        // client-level: check both uncapitalized (current) and original (backward compat) model name
+        const uncapModel = lowerCaseFirst(model);
+        const omitConfig = (this.options.omit as Record<string, any> | undefined)?.[uncapModel] ??
+            (this.options.omit as Record<string, any> | undefined)?.[model];
+        if (omitConfig && typeof omitConfig === 'object' && typeof omitConfig[field] === 'boolean') {
+            return omitConfig[field];
         }
 
         // schema-level
@@ -1363,7 +1355,9 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             let computer: Function | undefined;
             if ('computedFields' in this.options) {
                 const computedFields = this.options.computedFields as Record<string, any>;
-                computer = computedFields?.[fieldDef.originModel ?? model]?.[field];
+                // check both uncapitalized (current) and original (backward compat) model name
+                const computedModel = fieldDef.originModel ?? model;
+                computer = computedFields?.[lowerCaseFirst(computedModel)]?.[field] ?? computedFields?.[computedModel]?.[field];
             }
             if (!computer) {
                 throw createConfigError(`Computed field "${field}" implementation not provided for model "${model}"`);

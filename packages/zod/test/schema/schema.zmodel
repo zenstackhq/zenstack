@@ -1,5 +1,5 @@
 datasource db {
-    provider = 'sqlite'
+    provider = 'postgresql'
 }
 
 enum Status {
@@ -11,9 +11,10 @@ enum Status {
 }
 
 type Address {
-    street String  @meta("description", "Street address line")
-    city   String  @length(2)
-    zip    String?
+    residents String[]
+    street    String   @meta("description", "Street address line")
+    city      String   @length(2)
+    zip       String?
 
     @@validate(zip == null || length(zip) == 5, "Zip code must be exactly 5 characters", ["zip"])
     @@meta("description", "A mailing address")
@@ -42,20 +43,21 @@ model User {
 }
 
 model Post {
-    id        String  @id @default(cuid())
+    id        String   @id @default(cuid())
     title     String
     published Boolean
-    author    User?   @relation(fields: [authorId], references: [id])
+    tags      String[]
+    author    User?    @relation(fields: [authorId], references: [id])
     authorId  String?
 }
 
 // --- Computed fields ---
 model Product {
-    id          String @id @default(cuid())
-    name        String
-    price       Float
-    discount    Float  @default(0)
-    finalPrice  Float  @computed
+    id         String @id @default(cuid())
+    name       String
+    price      Float
+    discount   Float  @default(0)
+    finalPrice Float  @computed
 }
 
 // --- Delegate models ---

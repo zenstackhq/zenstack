@@ -10,7 +10,7 @@
         "url": "https://github.com/zenstackhq/zenstack"
     },
     "scripts": {
-        "build": "tsc --noEmit && tsup",
+        "build": "tsc --noEmit && tsup && tsx scripts/post-build.ts",
         "watch": "tsup --watch",
         "lint": "eslint src --ext ts",
         "vscode:publish": "pnpm build && vsce publish --no-dependencies --follow-symlinks",
@@ -33,13 +33,16 @@
     "dependencies": {
         "@zenstackhq/language": "workspace:*",
         "langium": "catalog:",
+        "mixpanel": "^0.18.0",
+        "uuid": "^11.1.0",
         "vscode-languageclient": "^9.0.1",
         "vscode-languageserver": "^9.0.1"
     },
     "devDependencies": {
         "@types/vscode": "^1.90.0",
         "@zenstackhq/eslint-config": "workspace:*",
-        "@zenstackhq/typescript-config": "workspace:*"
+        "@zenstackhq/typescript-config": "workspace:*",
+        "dotenv": "^17.2.3"
     },
     "files": [
         "dist",

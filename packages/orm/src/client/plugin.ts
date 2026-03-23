@@ -1,8 +1,9 @@
 import type { OperationNode, QueryId, QueryResult, RootOperationNode, UnknownRow } from 'kysely';
 import type { ZodType } from 'zod';
 import type { ClientContract, ZModelFunction } from '.';
-import type { GetModels, SchemaDef } from '../schema';
+import type { GetModelFields, GetModels, NonRelationFields, SchemaDef } from '../schema';
 import type { MaybePromise } from '../utils/type-utils';
+import type { MapModelFieldType } from './crud-types';
 import type { AllCrudOperations, CoreCrudOperations } from './crud/operations/base';
 
 type AllowedExtQueryArgKeys = CoreCrudOperations | '$create' | '$read' | '$update' | '$delete' | '$all';
@@ -21,12 +22,66 @@ export type ExtQueryArgsBase = {
 export type ExtClientMembersBase = Record<string, unknown>;
 
 /**
+ * Base shape of plugin-extended result fields.
+ * Keyed by model name, each value maps field names to their definitions.
+ * `needs` keys are constrained to non-relation fields of the corresponding model.
+ */
+export type ExtResultBase<Schema extends SchemaDef = SchemaDef> = {
+    [M in GetModels<Schema> as Uncapitalize<M>]?: Record<
+        string,
+        {
+            needs: Partial<Record<NonRelationFields<Schema, M>, true>>;
+            compute: (...args: any[]) => any;
+        }
+    >;
+};
+
+/**
+ * Mapped type that provides per-field contextual typing for `compute` callbacks
+ * based on the `needs` declaration. Uses a separate type parameter `R_` that captures
+ * the needs shape (model → field → { neededField: true }), then links each field's
+ * `compute` parameter to exactly the keys declared in its `needs`.
+ */
+export type ExtResultInferenceArgs<Schema extends SchemaDef, R_> = {
+    [K in keyof R_ & string]: {
+        [P in keyof R_[K]]?: {
+            needs?: {
+                // constraint for `needs` keys
+                [F in keyof R_[K][P]]: F extends NonRelationFields<Schema, ModelNameFromKey<Schema, K>> ? true : never;
+            } & Partial<Record<NonRelationFields<Schema, ModelNameFromKey<Schema, K>>, true>>; // further intersects with all possible keys for intellisense
+
+            // refine `computes`'s parameter type based on the inferred type of `needs`
+            compute: (data: ExtResultComputeData<Schema, ModelNameFromKey<Schema, K>, R_[K][P]>) => unknown;
+        };
+    };
+};
+
+/**
+ * Reverse-maps an uncapitalized key back to the original model name in the schema.
+ * E.g., for a schema with model `myModel`, the key `myModel` maps back to `myModel`
+ * (not `MyModel` as `Capitalize` would produce).
+ */
+type ModelNameFromKey<Schema extends SchemaDef, K extends string> = {
+    [M in GetModels<Schema>]: Uncapitalize<M> extends K ? M : never;
+}[GetModels<Schema>];
+
+/**
+ * Maps the needs shape `S` to an object with actual schema field types.
+ * For each key in `S` that is a valid non-relation field of model `M`,
+ * resolves the TypeScript type from the schema field definition.
+ */
+type ExtResultComputeData<Schema extends SchemaDef, M extends GetModels<Schema>, S> = {
+    [F in keyof S & GetModelFields<Schema, M>]: MapModelFieldType<Schema, M, F>;
+};
+
+/**
  * ZenStack runtime plugin.
  */
 export interface RuntimePlugin<
     Schema extends SchemaDef,
     ExtQueryArgs extends ExtQueryArgsBase,
     ExtClientMembers extends Record<string, unknown>,
+    ExtResult extends ExtResultBase<Schema>,
 > {
     /**
      * Plugin ID.
@@ -81,19 +136,80 @@ export interface RuntimePlugin<
      * Extended client members (methods and properties).
      */
     client?: ExtClientMembers;
+
+    /**
+     * Extended result fields on query results.
+     * Keyed by model name, each value defines computed fields with `needs` and `compute`.
+     */
+    result?: ExtResult;
 }
 
-export type AnyPlugin = RuntimePlugin<any, any, any>;
+export type AnyPlugin = RuntimePlugin<any, any, any, any>;
 
 /**
- * Defines a ZenStack runtime plugin.
+ * Defines a ZenStack runtime plugin based on type of the given schema.
+ *
+ * @see {@link https://zenstack.dev/docs/orm/plugins/|Plugin Documentation}
+ *
+ * @example
+ * ```typescript
+ * definePlugin(schema, {
+ *     id: 'my-plugin',
+ *     result: {
+ *         user: {
+ *             fullName: {
+ *                 needs: { firstName: true, lastName: true },
+ *                 compute: (user) => `${user.firstName} ${user.lastName}`,
+ *             },
+ *         },
+ *     },
+ * });
+ * ```
  */
 export function definePlugin<
     Schema extends SchemaDef,
     const ExtQueryArgs extends ExtQueryArgsBase = {},
     const ExtClientMembers extends Record<string, unknown> = {},
->(plugin: RuntimePlugin<Schema, ExtQueryArgs, ExtClientMembers>): RuntimePlugin<any, ExtQueryArgs, ExtClientMembers> {
-    return plugin;
+    const ExtResult extends ExtResultBase<Schema> = {},
+    R_ = {},
+>(
+    schema: Schema,
+    plugin: RuntimePlugin<Schema, ExtQueryArgs, ExtClientMembers, ExtResult> & {
+        result?: ExtResultInferenceArgs<Schema, R_>;
+    },
+): RuntimePlugin<Schema, ExtQueryArgs, ExtClientMembers, ExtResult>;
+
+/**
+ * Defines a ZenStack runtime plugin.
+ *
+ * @see {@link https://zenstack.dev/docs/orm/plugins/|Plugin Documentation}
+ *
+ * @example
+ * ```typescript
+ * definePlugin(schema, {
+ *     id: 'my-plugin',
+ *     result: {
+ *         user: {
+ *             fullName: {
+ *                 needs: { firstName: true, lastName: true },
+ *                 compute: (user) => `${user.firstName} ${user.lastName}`,
+ *             },
+ *         },
+ *     },
+ * });
+ * ```
+ *  */
+export function definePlugin<
+    Schema extends SchemaDef,
+    const ExtQueryArgs extends ExtQueryArgsBase = {},
+    const ExtClientMembers extends Record<string, unknown> = {},
+    const ExtResult extends ExtResultBase<Schema> = {},
+>(
+    plugin: RuntimePlugin<Schema, ExtQueryArgs, ExtClientMembers, ExtResult>,
+): RuntimePlugin<Schema, ExtQueryArgs, ExtClientMembers, ExtResult>;
+
+export function definePlugin(...args: unknown[]) {
+    return args.length === 2 ? args[1] : args[0];
 }
 
 // #region OnProcedure hooks

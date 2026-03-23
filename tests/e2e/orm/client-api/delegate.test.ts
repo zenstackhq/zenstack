@@ -39,7 +39,7 @@ describe('Delegate model tests ', () => {
                         },
                     },
                 }),
-            ).rejects.toThrow('is a delegate');
+            ).rejects.toThrow('Unrecognized key: "create"');
 
             // create entity with two levels of delegation
             await expect(

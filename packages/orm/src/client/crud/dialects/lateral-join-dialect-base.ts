@@ -245,12 +245,12 @@ export abstract class LateralJoinDialectBase<Schema extends SchemaDef> extends B
             );
         }
 
-        if (typeof payload === 'object' && payload.include && typeof payload.include === 'object') {
+        if (typeof payload === 'object' && (payload as any).include && typeof (payload as any).include === 'object') {
             // include relation fields
 
             Object.assign(
                 objArgs,
-                ...Object.entries<any>(payload.include)
+                ...Object.entries<any>((payload as any).include)
                     .filter(([, value]) => value)
                     .map(([field]) => ({
                         [field]: eb.ref(`${parentResultName}$${field}.$data`),
@@ -270,7 +270,7 @@ export abstract class LateralJoinDialectBase<Schema extends SchemaDef> extends B
     ) {
         let result = query;
         if (typeof payload === 'object') {
-            const selectInclude = payload.include ?? payload.select;
+            const selectInclude = (payload as any).include ?? payload.select;
             if (selectInclude && typeof selectInclude === 'object') {
                 Object.entries<any>(selectInclude)
                     .filter(([, value]) => value)
