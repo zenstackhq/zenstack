@@ -970,14 +970,16 @@ export type SelectIncludeOmit<
      * Explicitly omit fields from the query result.
      */
     omit?: (OmitInput<Schema, Model> & ExtResultSelectOmitFields<ExtResult, Model & string>) | null;
-} & (AllowRelation extends true
-    ? {
-          /**
-           * Specifies relations to be included in the query result. All scalar fields are included.
-           */
-          include?: IncludeInput<Schema, Model, Options, AllowCount, ExtResult> | null;
-      }
-    : {});
+} & {
+    /**
+     * Specifies relations to be included in the query result. All scalar fields are included.
+     */
+    [K in AllowRelation extends true
+        ? RelationFields<Schema, Model> extends never
+            ? never
+            : 'include'
+        : never]?: IncludeInput<Schema, Model, Options, AllowCount, ExtResult> | null;
+};
 
 export type SelectInput<
     Schema extends SchemaDef,
