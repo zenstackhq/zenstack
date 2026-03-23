@@ -1,6 +1,6 @@
 {
     "name": "regression",
-    "version": "3.4.6",
+    "version": "3.5.0",
     "private": true,
     "type": "module",
     "scripts": {
