@@ -34,6 +34,7 @@ ZenStack is a TypeScript database toolkit for developing full-stack or backend N
 - 🧩 Designed for extensibility and flexibility
 - ⚙️ Automatic CRUD web APIs with adapters for popular frameworks
 - 🏖️ Automatic [TanStack Query](https://github.com/TanStack/query) hooks for easy CRUD from the frontend
+- 💎 [Zod](https://zod.dev) schema generation
 
 # What's New in V3
 
