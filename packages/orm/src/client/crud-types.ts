@@ -6,7 +6,6 @@ import type {
     FieldHasDefault,
     FieldIsArray,
     FieldIsDelegateDiscriminator,
-    FieldIsDelegateRelation,
     FieldIsRelation,
     FieldType,
     ForeignKeyFields,
@@ -58,9 +57,9 @@ import type {
     CoreUpdateOperations,
 } from './crud/operations/base';
 import type { FilterKind, QueryOptions } from './options';
-import type { ExtQueryArgsBase } from './plugin';
+import type { ExtQueryArgsBase, ExtResultBase } from './plugin';
 import type { ToKyselySchema } from './query-builder';
-import type { GetSlicedFilterKindsForField, GetSlicedModels } from './type-utils';
+import type { GetSlicedFilterKindsForField, GetSlicedModels, ModelAllowsCreate } from './type-utils';
 
 //#region Query results
 
@@ -122,10 +121,10 @@ type OptionsLevelOmit<
     Model extends GetModels<Schema>,
     Field extends GetModelFields<Schema, Model>,
     Options extends QueryOptions<Schema>,
-> = Model extends keyof Options['omit']
-    ? Field extends keyof Options['omit'][Model]
-        ? Options['omit'][Model][Field] extends boolean
-            ? Options['omit'][Model][Field]
+> = Uncapitalize<Model> extends keyof Options['omit']
+    ? Field extends keyof Options['omit'][Uncapitalize<Model>]
+        ? Options['omit'][Uncapitalize<Model>][Field] extends boolean
+            ? Options['omit'][Uncapitalize<Model>][Field]
             : undefined
         : undefined
     : undefined;
@@ -152,21 +151,25 @@ type ModelSelectResult<
     Select,
     Omit,
     Options extends QueryOptions<Schema>,
+    ExtResult extends ExtResultBase<Schema> = {},
 > = {
     [Key in keyof Select as Select[Key] extends false | undefined
         ? // not selected
           never
-        : Key extends '_count'
-          ? // select "_count"
-            Select[Key] extends SelectCount<Schema, Model, Options>
-              ? Key
-              : never
-          : Key extends keyof Omit
-            ? Omit[Key] extends true
-                ? //   omit
-                  never
-                : Key
-            : Key]: Key extends '_count'
+        : Key extends keyof ExtractExtResult<ExtResult, Model & string>
+          ? // ext result field — handled by SelectAwareExtResult intersection in ModelResult
+            never
+          : Key extends '_count'
+            ? // select "_count"
+              Select[Key] extends SelectCount<Schema, Model, Options>
+                ? Key
+                : never
+            : Key extends keyof Omit
+              ? Omit[Key] extends true
+                  ? //   omit
+                    never
+                  : Key
+              : Key]: Key extends '_count'
         ? // select "_count" result
           SelectCountResult<Schema, Model, Select[Key]>
         : Key extends NonRelationFields<Schema, Model>
@@ -180,7 +183,8 @@ type ModelSelectResult<
                   Select[Key],
                   Options,
                   ModelFieldIsOptional<Schema, Model, Key>,
-                  FieldIsArray<Schema, Model, Key>
+                  FieldIsArray<Schema, Model, Key>,
+                  ExtResult
               >
             : never;
 };
@@ -201,12 +205,13 @@ export type ModelResult<
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     Optional = false,
     Array = false,
+    ExtResult extends ExtResultBase<Schema> = {},
 > = WrapType<
-    Args extends {
+    (Args extends {
         select: infer S extends object;
         omit?: infer O extends object;
     } & Record<string, unknown>
-        ? ModelSelectResult<Schema, Model, S, O, Options>
+        ? ModelSelectResult<Schema, Model, S, O, Options, ExtResult>
         : Args extends {
                 include: infer I extends object;
                 omit?: infer O extends object;
@@ -222,7 +227,8 @@ export type ModelResult<
                     I[Key],
                     Options,
                     ModelFieldIsOptional<Schema, Model, Key>,
-                    FieldIsArray<Schema, Model, Key>
+                    FieldIsArray<Schema, Model, Key>,
+                    ExtResult
                 >;
             } & ('_count' extends keyof I
                     ? I['_count'] extends false | undefined
@@ -231,7 +237,9 @@ export type ModelResult<
                     : {})
           : Args extends { omit: infer O } & Record<string, unknown>
             ? DefaultModelResult<Schema, Model, O, Options, false, false>
-            : DefaultModelResult<Schema, Model, undefined, Options, false, false>,
+            : DefaultModelResult<Schema, Model, undefined, Options, false, false>) &
+        // intersect with fields contributed by result extension plugins
+        SelectAwareExtResult<ExtResult, Model & string, Args>,
     Optional,
     Array
 >;
@@ -243,14 +251,16 @@ export type SimplifiedResult<
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     Optional = false,
     Array = false,
-> = Simplify<ModelResult<Schema, Model, Args, Options, Optional, Array>>;
+    ExtResult extends ExtResultBase<Schema> = {},
+> = Simplify<ModelResult<Schema, Model, Args, Options, Optional, Array, ExtResult>>;
 
 export type SimplifiedPlainResult<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Args = {},
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
-> = Simplify<ModelResult<Schema, Model, Args, Options, false, false>>;
+    ExtResult extends ExtResultBase<Schema> = {},
+> = Simplify<ModelResult<Schema, Model, Args, Options, false, false, ExtResult>>;
 
 export type TypeDefResult<
     Schema extends SchemaDef,
@@ -946,24 +956,30 @@ export type SelectIncludeOmit<
     AllowCount extends boolean,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     AllowRelation extends boolean = true,
+    ExtResult extends ExtResultBase<Schema> = {},
 > = {
     /**
      * Explicitly select fields and relations to be returned by the query.
      */
-    select?: SelectInput<Schema, Model, Options, AllowCount, AllowRelation> | null;
+    select?:
+        | (SelectInput<Schema, Model, Options, AllowCount, AllowRelation, ExtResult> &
+              ExtResultSelectOmitFields<ExtResult, Model & string>)
+        | null;
 
     /**
      * Explicitly omit fields from the query result.
      */
-    omit?: OmitInput<Schema, Model> | null;
-} & (AllowRelation extends true
-    ? {
-          /**
-           * Specifies relations to be included in the query result. All scalar fields are included.
-           */
-          include?: IncludeInput<Schema, Model, Options, AllowCount> | null;
-      }
-    : {});
+    omit?: (OmitInput<Schema, Model> & ExtResultSelectOmitFields<ExtResult, Model & string>) | null;
+} & {
+    /**
+     * Specifies relations to be included in the query result. All scalar fields are included.
+     */
+    [K in AllowRelation extends true
+        ? RelationFields<Schema, Model> extends never
+            ? never
+            : 'include'
+        : never]?: IncludeInput<Schema, Model, Options, AllowCount, ExtResult> | null;
+};
 
 export type SelectInput<
     Schema extends SchemaDef,
@@ -971,9 +987,10 @@ export type SelectInput<
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     AllowCount extends boolean = true,
     AllowRelation extends boolean = true,
+    ExtResult extends ExtResultBase<Schema> = {},
 > = {
     [Key in NonRelationFields<Schema, Model>]?: boolean;
-} & (AllowRelation extends true ? IncludeInput<Schema, Model, Options, AllowCount> : {});
+} & (AllowRelation extends true ? IncludeInput<Schema, Model, Options, AllowCount, ExtResult> : {});
 
 type SelectCount<Schema extends SchemaDef, Model extends GetModels<Schema>, Options extends QueryOptions<Schema>> =
     | boolean
@@ -995,6 +1012,7 @@ export type IncludeInput<
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     AllowCount extends boolean = true,
+    ExtResult extends ExtResultBase<Schema> = {},
 > = {
     [Key in RelationFields<Schema, Model> as RelationFieldType<Schema, Model, Key> extends GetSlicedModels<
         Schema,
@@ -1013,7 +1031,8 @@ export type IncludeInput<
                   ? true
                   : ModelFieldIsOptional<Schema, Model, Key> extends true
                     ? true
-                    : false
+                    : false,
+              ExtResult
           >;
 } & (AllowCount extends true
     ? // _count is only allowed if the model has to-many relations
@@ -1087,7 +1106,7 @@ type RelationFilter<
 
 //#region Field utils
 
-type MapModelFieldType<
+export type MapModelFieldType<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends GetModelFields<Schema, Model>,
@@ -1203,6 +1222,7 @@ export type FindArgs<
     Options extends QueryOptions<Schema>,
     Collection extends boolean,
     AllowFilter extends boolean = true,
+    ExtResult extends ExtResultBase<Schema> = {},
 > = (Collection extends true
     ? SortAndTakeArgs<Schema, Model, Options> &
           (ProviderSupportsDistinct<Schema> extends true
@@ -1215,21 +1235,23 @@ export type FindArgs<
               : {})
     : {}) &
     (AllowFilter extends true ? FilterArgs<Schema, Model, Options> : {}) &
-    SelectIncludeOmit<Schema, Model, true, Options>;
+    SelectIncludeOmit<Schema, Model, true, Options, true, ExtResult>;
 
 export type FindManyArgs<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     ExtQueryArgs extends ExtQueryArgsBase = {},
-> = FindArgs<Schema, Model, Options, true> & ExtractExtQueryArgs<ExtQueryArgs, 'findMany'>;
+    ExtResult extends ExtResultBase<Schema> = {},
+> = FindArgs<Schema, Model, Options, true, true, ExtResult> & ExtractExtQueryArgs<ExtQueryArgs, 'findMany'>;
 
 export type FindFirstArgs<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     ExtQueryArgs extends ExtQueryArgsBase = {},
-> = FindArgs<Schema, Model, Options, true> & ExtractExtQueryArgs<ExtQueryArgs, 'findFirst'>;
+    ExtResult extends ExtResultBase<Schema> = {},
+> = FindArgs<Schema, Model, Options, true, true, ExtResult> & ExtractExtQueryArgs<ExtQueryArgs, 'findFirst'>;
 
 export type ExistsArgs<
     Schema extends SchemaDef,
@@ -1243,9 +1265,10 @@ export type FindUniqueArgs<
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     ExtQueryArgs extends ExtQueryArgsBase = {},
+    ExtResult extends ExtResultBase<Schema> = {},
 > = {
     where: WhereUniqueInput<Schema, Model, Options>;
-} & SelectIncludeOmit<Schema, Model, true, Options> &
+} & SelectIncludeOmit<Schema, Model, true, Options, true, ExtResult> &
     ExtractExtQueryArgs<ExtQueryArgs, 'findUnique'>;
 
 //#endregion
@@ -1257,9 +1280,10 @@ export type CreateArgs<
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     ExtQueryArgs extends ExtQueryArgsBase = {},
+    ExtResult extends ExtResultBase<Schema> = {},
 > = {
     data: CreateInput<Schema, Model, Options>;
-} & SelectIncludeOmit<Schema, Model, true, Options> &
+} & SelectIncludeOmit<Schema, Model, true, Options, true, ExtResult> &
     ExtractExtQueryArgs<ExtQueryArgs, 'create'>;
 
 export type CreateManyArgs<
@@ -1274,8 +1298,9 @@ export type CreateManyAndReturnArgs<
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     ExtQueryArgs extends ExtQueryArgsBase = {},
+    ExtResult extends ExtResultBase<Schema> = {},
 > = CreateManyInput<Schema, Model> &
-    SelectIncludeOmit<Schema, Model, false, Options, false> &
+    SelectIncludeOmit<Schema, Model, false, Options, false, ExtResult> &
     ExtractExtQueryArgs<ExtQueryArgs, 'createManyAndReturn'>;
 
 type OptionalWrap<Schema extends SchemaDef, Model extends GetModels<Schema>, T extends object> = Optional<
@@ -1331,6 +1356,15 @@ type CreateFKPayload<Schema extends SchemaDef, Model extends GetModels<Schema>> 
     }
 >;
 
+type RelationModelAllowsCreate<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Field extends RelationFields<Schema, Model>,
+> =
+    GetModelFieldType<Schema, Model, Field> extends GetModels<Schema>
+        ? ModelAllowsCreate<Schema, GetModelFieldType<Schema, Model, Field>>
+        : false;
+
 type CreateRelationFieldPayload<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
@@ -1360,8 +1394,10 @@ type CreateRelationFieldPayload<
     },
     // no "createMany" for non-array fields
     | (FieldIsArray<Schema, Model, Field> extends true ? never : 'createMany')
-    // exclude operations not applicable to delegate models
-    | (FieldIsDelegateRelation<Schema, Model, Field> extends true ? 'create' | 'createMany' | 'connectOrCreate' : never)
+    // exclude create operations for models that don't allow create
+    | (RelationModelAllowsCreate<Schema, Model, Field> extends true
+          ? never
+          : 'create' | 'createMany' | 'connectOrCreate')
 >;
 
 type CreateRelationPayload<
@@ -1484,6 +1520,7 @@ export type UpdateArgs<
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     ExtQueryArgs extends ExtQueryArgsBase = {},
+    ExtResult extends ExtResultBase<Schema> = {},
 > = {
     /**
      * The data to update the record with.
@@ -1494,7 +1531,7 @@ export type UpdateArgs<
      * The unique filter to find the record to update.
      */
     where: WhereUniqueInput<Schema, Model, Options>;
-} & SelectIncludeOmit<Schema, Model, true, Options> &
+} & SelectIncludeOmit<Schema, Model, true, Options, true, ExtResult> &
     ExtractExtQueryArgs<ExtQueryArgs, 'update'>;
 
 export type UpdateManyArgs<
@@ -1509,8 +1546,9 @@ export type UpdateManyAndReturnArgs<
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     ExtQueryArgs extends ExtQueryArgsBase = {},
+    ExtResult extends ExtResultBase<Schema> = {},
 > = UpdateManyPayload<Schema, Model, Options> &
-    SelectIncludeOmit<Schema, Model, false, Options, false> &
+    SelectIncludeOmit<Schema, Model, false, Options, false, ExtResult> &
     ExtractExtQueryArgs<ExtQueryArgs, 'updateManyAndReturn'>;
 
 type UpdateManyPayload<
@@ -1540,6 +1578,7 @@ export type UpsertArgs<
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     ExtQueryArgs extends ExtQueryArgsBase = {},
+    ExtResult extends ExtResultBase<Schema> = {},
 > = {
     /**
      * The data to create the record if it doesn't exist.
@@ -1555,7 +1594,7 @@ export type UpsertArgs<
      * The unique filter to find the record to update.
      */
     where: WhereUniqueInput<Schema, Model, Options>;
-} & SelectIncludeOmit<Schema, Model, true, Options> &
+} & SelectIncludeOmit<Schema, Model, true, Options, true, ExtResult> &
     ExtractExtQueryArgs<ExtQueryArgs, 'upsert'>;
 
 type UpdateScalarInput<
@@ -1715,10 +1754,10 @@ type ToManyRelationUpdateInput<
          */
         set?: SetRelationInput<Schema, Model, Field, Options>;
     },
-    // exclude
-    FieldIsDelegateRelation<Schema, Model, Field> extends true
-        ? 'create' | 'createMany' | 'connectOrCreate' | 'upsert'
-        : never
+    // exclude create operations for models that don't allow create
+    RelationModelAllowsCreate<Schema, Model, Field> extends true
+        ? never
+        : 'create' | 'createMany' | 'connectOrCreate' | 'upsert'
 >;
 
 type ToOneRelationUpdateInput<
@@ -1765,7 +1804,8 @@ type ToOneRelationUpdateInput<
               delete?: NestedDeleteInput<Schema, Model, Field, Options>;
           }
         : {}),
-    FieldIsDelegateRelation<Schema, Model, Field> extends true ? 'create' | 'connectOrCreate' | 'upsert' : never
+    // exclude create operations for models that don't allow create
+    RelationModelAllowsCreate<Schema, Model, Field> extends true ? never : 'create' | 'connectOrCreate' | 'upsert'
 >;
 
 // #endregion
@@ -1777,12 +1817,13 @@ export type DeleteArgs<
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     ExtQueryArgs extends ExtQueryArgsBase = {},
+    ExtResult extends ExtResultBase<Schema> = {},
 > = {
     /**
      * The unique filter to find the record to delete.
      */
     where: WhereUniqueInput<Schema, Model, Options>;
-} & SelectIncludeOmit<Schema, Model, true, Options> &
+} & SelectIncludeOmit<Schema, Model, true, Options, true, ExtResult> &
     ExtractExtQueryArgs<ExtQueryArgs, 'delete'>;
 
 export type DeleteManyArgs<
@@ -2408,5 +2449,66 @@ type ExtractExtQueryArgs<ExtQueryArgs, Operation extends CoreCrudOperations> = (
             : {}
         : {}) &
     ('$all' extends keyof ExtQueryArgs ? ExtQueryArgs['$all'] : {});
+
+/**
+ * Extracts extended result field types for a specific model from ExtResult.
+ * Maps `{ needs, compute }` definitions to `{ fieldName: ReturnType<compute> }`.
+ * When ExtResult is `{}`, this resolves to `{}` (no-op for intersection).
+ */
+export type ExtractExtResult<ExtResult extends ExtResultBase, Model extends string> =
+    Uncapitalize<Model> extends keyof ExtResult
+        ? {
+              [K in keyof ExtResult[Uncapitalize<Model>]]: ExtResult[Uncapitalize<Model>][K] extends {
+                  compute: (...args: any[]) => infer R;
+              }
+                  ? R
+                  : never;
+          }
+        : {};
+
+/**
+ * Extracts extended result field names as optional boolean keys for use in select/omit inputs.
+ * When ExtResult is `{}`, this resolves to `{}` (no-op for intersection).
+ */
+export type ExtResultSelectOmitFields<
+    ExtResult extends ExtResultBase,
+    Model extends string,
+> = keyof ExtResult extends never
+    ? {}
+    : Uncapitalize<Model> extends keyof ExtResult
+      ? { [K in keyof ExtResult[Uncapitalize<Model>]]?: boolean }
+      : {};
+
+type TruthyKeys<S, Keys extends string> = {
+    [K in Keys]: K extends keyof S ? (S[K] extends false | undefined ? never : K) : never;
+}[Keys];
+
+/**
+ * Select/omit-aware version of ExtractExtResult.
+ * - If T has `select`, only includes ext result fields that are explicitly selected.
+ * - If T has `omit`, excludes ext result fields that are explicitly omitted.
+ * - Otherwise, includes all ext result fields.
+ */
+export type SelectAwareExtResult<
+    ExtResult extends ExtResultBase,
+    Model extends string,
+    T,
+> = keyof ExtResult extends never
+    ? {}
+    : T extends { select: infer S }
+      ? S extends null | undefined
+          ? ExtractExtResult<ExtResult, Model>
+          : Pick<
+                ExtractExtResult<ExtResult, Model>,
+                TruthyKeys<S, Extract<keyof S & string, keyof ExtractExtResult<ExtResult, Model>>>
+            >
+      : T extends { omit: infer O }
+        ? O extends null | undefined
+            ? ExtractExtResult<ExtResult, Model>
+            : Omit<
+                  ExtractExtResult<ExtResult, Model>,
+                  TruthyKeys<O, Extract<keyof O & string, keyof ExtractExtResult<ExtResult, Model>>>
+              >
+        : ExtractExtResult<ExtResult, Model>;
 
 // #endregion

@@ -5,7 +5,7 @@
 
 /* eslint-disable */
 
-import { type SchemaDef } from "@zenstackhq/schema";
+import { type SchemaDef, type AttributeApplication } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
     provider = {
         type: "sqlite"
@@ -18,12 +18,12 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "Int",
                     id: true,
-                    attributes: [{ name: "@id" }]
+                    attributes: [{ name: "@id" }] as readonly AttributeApplication[]
                 },
                 config: {
                     name: "config",
                     type: "Configuration",
-                    attributes: [{ name: "@json" }]
+                    attributes: [{ name: "@json" }] as readonly AttributeApplication[]
                 }
             },
             idFields: ["id"],

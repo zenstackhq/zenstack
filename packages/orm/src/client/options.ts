@@ -178,7 +178,8 @@ export type ClientOptions<Schema extends SchemaDef> = QueryOptions<Schema> & {
     plugins?: AnyPlugin[];
 
     /**
-     * Logging configuration.
+     * Logging configuration. Extends Kysely's log config with a `'warning'` level
+     * for ZenStack-specific diagnostics (e.g., slow query warnings).
      */
     log?: KyselyConfig['log'];
 
@@ -193,8 +194,11 @@ export type ClientOptions<Schema extends SchemaDef> = QueryOptions<Schema> & {
     fixPostgresTimezone?: boolean;
 
     /**
-     * Whether to enable input validations expressed with attributes like `@email`, `@regex`,
-     * `@@validate`, etc. Defaults to `true`.
+     * Whether to enable query args validation. Defaults to `true`.
+     *
+     * **USE WITH CAUTION**, as setting it to `false` will allow malformed input to pass through, causing
+     * incorrect SQL generation or runtime errors. If you use validation attributes like `@email`, `@regex`,
+     * etc., in ZModel, they will be ignored too.
      */
     validateInput?: boolean;
 
@@ -208,9 +212,25 @@ export type ClientOptions<Schema extends SchemaDef> = QueryOptions<Schema> & {
     useCompactAliasNames?: boolean;
 
     /**
-     * Whether to skip validation for computed fields.
+     * Whether to skip validation for whether all computed fields are properly defined.
      */
     skipValidationForComputedFields?: boolean;
+
+    /**
+     * Diagnostics related options.
+     */
+    diagnostics?: {
+        /**
+         * Threshold in milliseconds for determining slow queries. If not specified, no query will be considered slow.
+         */
+        slowQueryThresholdMs?: number;
+
+        /**
+         * Maximum number of slow query records to keep in memory. Defaults to `100`. When the number is exceeded, the
+         * entry with the lowest duration will be removed. Set to `Infinity` to keep unlimited records.
+         */
+        slowQueryMaxRecords?: number;
+    };
 } & (HasComputedFields<Schema> extends true
         ? {
               /**
@@ -232,13 +252,13 @@ export type ClientOptions<Schema extends SchemaDef> = QueryOptions<Schema> & {
  * Config for omitting fields in ORM query results.
  */
 export type OmitConfig<Schema extends SchemaDef> = {
-    [Model in GetModels<Schema>]?: {
+    [Model in GetModels<Schema> as Uncapitalize<Model>]?: {
         [Field in GetModelFields<Schema, Model> as Field extends ScalarFields<Schema, Model> ? Field : never]?: boolean;
     };
 };
 
 export type ComputedFieldsOptions<Schema extends SchemaDef> = {
-    [Model in GetModels<Schema> as 'computedFields' extends keyof GetModel<Schema, Model> ? Model : never]: {
+    [Model in GetModels<Schema> as 'computedFields' extends keyof GetModel<Schema, Model> ? Uncapitalize<Model> : never]: {
         [Field in keyof Schema['models'][Model]['computedFields']]: Schema['models'][Model]['computedFields'][Field] extends infer Func
             ? Func extends (...args: any[]) => infer R
                 ? (

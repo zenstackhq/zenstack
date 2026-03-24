@@ -23,6 +23,7 @@ import {
     OperatorNode,
     ParensNode,
     PrimitiveValueListNode,
+    RawNode,
     ReferenceNode,
     ReturningNode,
     SelectAllNode,
@@ -42,6 +43,7 @@ import {
 import { match } from 'ts-pattern';
 import { ColumnCollector } from './column-collector';
 import { ExpressionTransformer } from './expression-transformer';
+import type { PolicyPluginOptions } from './options';
 import type { Policy, PolicyOperation } from './types';
 import {
     buildIsFalse,
@@ -67,19 +69,21 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
     private readonly dialect: BaseCrudDialect<Schema>;
     private readonly eb = expressionBuilder<any, any>();
 
-    constructor(private readonly client: ClientContract<Schema>) {
+    constructor(
+        private readonly client: ClientContract<Schema>,
+        private readonly options: PolicyPluginOptions = {},
+    ) {
         super();
         this.dialect = getCrudDialect(this.client.$schema, this.client.$options);
-    }
-
-    get kysely() {
-        return this.client.$qb;
     }
 
     // #region main entry point
 
     async handle(node: RootOperationNode, proceed: ProceedKyselyQueryFunction) {
         if (!this.isCrudQueryNode(node)) {
+            if (this.options.dangerouslyAllowRawSql && RawNode.is(node as never)) {
+                return proceed(node);
+            }
             // non-CRUD queries are not allowed
             throw createRejectedByPolicyError(
                 undefined,

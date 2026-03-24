@@ -2,12 +2,27 @@ import * as path from 'node:path';
 import type * as vscode from 'vscode';
 import type { LanguageClientOptions, ServerOptions } from 'vscode-languageclient/node.js';
 import { LanguageClient, TransportKind } from 'vscode-languageclient/node.js';
+import { DocumentationCache } from './documentation-cache';
+import { ReleaseNotesManager } from './release-notes-manager';
+import telemetry from './vscode-telemetry';
+import { ZenStackAuthenticationProvider } from './zenstack-auth-provider';
+import { ZModelPreview } from './zmodel-preview';
 
 let client: LanguageClient;
 
 // This function is called when the extension is activated.
 export function activate(context: vscode.ExtensionContext): void {
+    telemetry.track('extension:activate');
+
+    // Initialize and register the ZenStack authentication provider
+    context.subscriptions.push(new ZenStackAuthenticationProvider(context));
+
     client = startLanguageClient(context);
+
+    const documentationCache = new DocumentationCache(context);
+    context.subscriptions.push(documentationCache);
+    context.subscriptions.push(new ZModelPreview(context, client, documentationCache));
+    context.subscriptions.push(new ReleaseNotesManager(context));
 }
 
 // This function is called when the extension is deactivated.

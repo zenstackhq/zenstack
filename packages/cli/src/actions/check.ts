@@ -29,7 +29,9 @@ async function checkPluginResolution(schemaFile: string, model: Model) {
     for (const plugin of plugins) {
         const provider = getPluginProvider(plugin);
         if (!provider.startsWith('@core/')) {
-            await loadPluginModule(provider, path.dirname(schemaFile));
+            const pluginSourcePath =
+                plugin.$cstNode?.parent?.element.$document?.uri?.fsPath ?? schemaFile;
+            await loadPluginModule(provider, path.dirname(pluginSourcePath));
         }
     }
 }

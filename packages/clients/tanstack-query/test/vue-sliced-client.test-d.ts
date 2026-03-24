@@ -1,4 +1,4 @@
-import { ZenStackClient, type GetQueryOptions } from '@zenstackhq/orm';
+import { ZenStackClient } from '@zenstackhq/orm';
 import { describe, expectTypeOf, it } from 'vitest';
 import { useClientQueries } from '../src/vue';
 import { schema } from './schemas/basic/schema-lite';
@@ -20,7 +20,7 @@ describe('Vue client sliced client test', () => {
     });
 
     it('works with sliced models', () => {
-        const client = useClientQueries<typeof schema, GetQueryOptions<typeof _db>>(schema);
+        const client = useClientQueries<typeof _db>(schema);
 
         expectTypeOf(client).toHaveProperty('user');
         expectTypeOf(client).toHaveProperty('post');
@@ -28,18 +28,17 @@ describe('Vue client sliced client test', () => {
     });
 
     it('works with sliced operations', () => {
-        const client = useClientQueries<
-            typeof schema,
-            {
-                slicing: {
-                    models: {
-                        user: {
-                            includedOperations: ['findUnique', 'findMany', 'update'];
-                        };
-                    };
-                };
-            }
-        >(schema);
+        const _slicedOps = new ZenStackClient(schema, {
+            dialect: {} as any,
+            slicing: {
+                models: {
+                    user: {
+                        includedOperations: ['findUnique', 'findMany', 'update'],
+                    },
+                },
+            },
+        });
+        const client = useClientQueries<typeof _slicedOps>(schema);
 
         expectTypeOf(client.user).toHaveProperty('useFindUnique');
         expectTypeOf(client.user).toHaveProperty('useFindMany');
@@ -48,22 +47,21 @@ describe('Vue client sliced client test', () => {
     });
 
     it('works with sliced filters', () => {
-        const client = useClientQueries<
-            typeof schema,
-            {
-                slicing: {
-                    models: {
-                        user: {
-                            fields: {
-                                $all: {
-                                    includedFilterKinds: ['Equality'];
-                                };
-                            };
-                        };
-                    };
-                };
-            }
-        >(schema);
+        const _slicedFilters = new ZenStackClient(schema, {
+            dialect: {} as any,
+            slicing: {
+                models: {
+                    user: {
+                        fields: {
+                            $all: {
+                                includedFilterKinds: ['Equality'],
+                            },
+                        },
+                    },
+                },
+            },
+        });
+        const client = useClientQueries<typeof _slicedFilters>(schema);
 
         // Equality filter should be allowed
         client.user.useFindMany({
@@ -76,15 +74,15 @@ describe('Vue client sliced client test', () => {
     });
 
     it('works with sliced procedures', () => {
-        const client = useClientQueries<
-            typeof procSchema,
-            {
-                slicing: {
-                    includedProcedures: ['greet', 'sum'];
-                    excludedProcedures: ['sum'];
-                };
-            }
-        >(procSchema);
+        const _slicedProcs = new ZenStackClient(procSchema, {
+            dialect: {} as any,
+            procedures: {} as any,
+            slicing: {
+                includedProcedures: ['greet', 'sum'],
+                excludedProcedures: ['sum'],
+            },
+        });
+        const client = useClientQueries<typeof _slicedProcs>(procSchema);
 
         expectTypeOf(client.$procs).toHaveProperty('greet');
         expectTypeOf(client.$procs).not.toHaveProperty('sum');

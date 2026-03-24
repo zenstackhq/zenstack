@@ -64,6 +64,15 @@ type FieldInfo = {
     array?: boolean;
 };
 
+function toFieldInfo(def: FieldDef): FieldInfo {
+    return {
+        name: def.name,
+        type: def.type,
+        optional: def.optional,
+        array: def.array,
+    };
+}
+
 /**
  * Create a factory for generating Zod schemas to validate ORM query inputs.
  */
@@ -108,6 +117,7 @@ export class ZodSchemaFactory<
     private readonly allFilterKinds = [...new Set(Object.values(FILTER_PROPERTY_TO_KIND))];
     private readonly schema: Schema;
     private readonly options: Options;
+    private readonly extraValidationsEnabled = true;
 
     constructor(client: ClientContract<Schema, Options, ExtQueryArgs, any>);
     constructor(schema: Schema, options?: Options);
@@ -121,12 +131,16 @@ export class ZodSchemaFactory<
         }
     }
 
-    private get plugins(): RuntimePlugin<Schema, any, any>[] {
+    private get plugins(): RuntimePlugin<Schema, any, any, any>[] {
         return this.options.plugins ?? [];
     }
 
-    private get extraValidationsEnabled() {
-        return this.options.validateInput !== false;
+    /**
+     * Returns model field entries, excluding Unsupported fields.
+     */
+    private getModelFields(model: string): [string, FieldDef][] {
+        const modelDef = requireModel(this.schema, model);
+        return Object.entries(modelDef.fields).filter(([, def]) => def.type !== 'Unsupported');
     }
 
     private shouldIncludeRelations(options?: CreateSchemaOptions): boolean {
@@ -151,14 +165,11 @@ export class ZodSchemaFactory<
         return this.schemaCache.set(cacheKey, schema);
     }
 
-    // @ts-ignore
-    private printCacheStats(detailed = false) {
-        console.log('Schema cache size:', this.schemaCache.size);
-        if (detailed) {
-            for (const key of this.schemaCache.keys()) {
-                console.log(`\t${key}`);
-            }
-        }
+    get cacheStats() {
+        return {
+            size: this.schemaCache.size,
+            keys: [...this.schemaCache.keys()],
+        };
     }
 
     // #endregion
@@ -337,8 +348,6 @@ export class ZodSchemaFactory<
         withAggregations = false,
         options?: CreateSchemaOptions,
     ): ZodType {
-        const modelDef = requireModel(this.schema, model);
-
         // unique field used in unique filters bypass filter slicing
         const uniqueFieldNames = unique
             ? getUniqueFields(this.schema, model)
@@ -353,8 +362,7 @@ export class ZodSchemaFactory<
         const nextOpts = this.nextOptions(options);
 
         const fields: Record<string, any> = {};
-        for (const field of Object.keys(modelDef.fields)) {
-            const fieldDef = requireField(this.schema, model, field);
+        for (const [field, fieldDef] of this.getModelFields(model)) {
             let fieldSchema: ZodType | undefined;
 
             if (fieldDef.relation) {
@@ -403,16 +411,26 @@ export class ZodSchemaFactory<
                 if (enumDef) {
                     // enum
                     if (Object.keys(enumDef.values).length > 0) {
-                        fieldSchema = this.makeEnumFilterSchema(model, fieldDef, withAggregations, ignoreSlicing);
+                        fieldSchema = this.makeEnumFilterSchema(
+                            model,
+                            toFieldInfo(fieldDef),
+                            withAggregations,
+                            ignoreSlicing,
+                        );
                     }
                 } else if (fieldDef.array) {
                     // array field
-                    fieldSchema = this.makeArrayFilterSchema(model, fieldDef);
+                    fieldSchema = this.makeArrayFilterSchema(model, toFieldInfo(fieldDef));
                 } else if (this.isTypeDefType(fieldDef.type)) {
-                    fieldSchema = this.makeTypedJsonFilterSchema(model, fieldDef);
+                    fieldSchema = this.makeTypedJsonFilterSchema(model, toFieldInfo(fieldDef));
                 } else {
                     // primitive field
-                    fieldSchema = this.makePrimitiveFilterSchema(model, fieldDef, withAggregations, ignoreSlicing);
+                    fieldSchema = this.makePrimitiveFilterSchema(
+                        model,
+                        toFieldInfo(fieldDef),
+                        withAggregations,
+                        ignoreSlicing,
+                    );
                 }
             }
 
@@ -437,12 +455,22 @@ export class ZodSchemaFactory<
                                     if (enumDef) {
                                         // enum
                                         if (Object.keys(enumDef.values).length > 0) {
-                                            fieldSchema = this.makeEnumFilterSchema(model, def, false, true);
+                                            fieldSchema = this.makeEnumFilterSchema(
+                                                model,
+                                                toFieldInfo(def),
+                                                false,
+                                                true,
+                                            );
                                         } else {
                                             fieldSchema = z.never();
                                         }
                                     } else {
-                                        fieldSchema = this.makePrimitiveFilterSchema(model, def, false, true);
+                                        fieldSchema = this.makePrimitiveFilterSchema(
+                                            model,
+                                            toFieldInfo(def),
+                                            false,
+                                            true,
+                                        );
                                     }
                                     return [key, fieldSchema];
                                 }),
@@ -514,18 +542,28 @@ export class ZodSchemaFactory<
             for (const [fieldName, fieldDef] of Object.entries(typeDef.fields)) {
                 if (this.isTypeDefType(fieldDef.type)) {
                     // recursive typed JSON - use same model/field for nested typed JSON
-                    fieldSchemas[fieldName] = this.makeTypedJsonFilterSchema(contextModel, fieldDef).optional();
+                    fieldSchemas[fieldName] = this.makeTypedJsonFilterSchema(
+                        contextModel,
+                        toFieldInfo(fieldDef),
+                    ).optional();
                 } else {
                     // enum, array, primitives
                     const enumDef = getEnum(this.schema, fieldDef.type);
                     if (enumDef) {
-                        fieldSchemas[fieldName] = this.makeEnumFilterSchema(contextModel, fieldDef, false).optional();
+                        fieldSchemas[fieldName] = this.makeEnumFilterSchema(
+                            contextModel,
+                            toFieldInfo(fieldDef),
+                            false,
+                        ).optional();
                     } else if (fieldDef.array) {
-                        fieldSchemas[fieldName] = this.makeArrayFilterSchema(contextModel, fieldDef).optional();
+                        fieldSchemas[fieldName] = this.makeArrayFilterSchema(
+                            contextModel,
+                            toFieldInfo(fieldDef),
+                        ).optional();
                     } else {
                         fieldSchemas[fieldName] = this.makePrimitiveFilterSchema(
                             contextModel,
-                            fieldDef,
+                            toFieldInfo(fieldDef),
                             false,
                         ).optional();
                     }
@@ -877,10 +915,8 @@ export class ZodSchemaFactory<
 
     @cache()
     private makeSelectSchema(model: string, options?: CreateSchemaOptions) {
-        const modelDef = requireModel(this.schema, model);
         const fields: Record<string, ZodType> = {};
-        for (const field of Object.keys(modelDef.fields)) {
-            const fieldDef = requireField(this.schema, model, field);
+        for (const [field, fieldDef] of this.getModelFields(model)) {
             if (fieldDef.relation) {
                 if (!this.shouldIncludeRelations(options)) {
                     continue;
@@ -900,6 +936,8 @@ export class ZodSchemaFactory<
                 fields['_count'] = _countSchema;
             }
         }
+
+        this.addExtResultFields(model, fields);
 
         return z.strictObject(fields);
     }
@@ -992,10 +1030,8 @@ export class ZodSchemaFactory<
 
     @cache()
     private makeOmitSchema(model: string) {
-        const modelDef = requireModel(this.schema, model);
         const fields: Record<string, ZodType> = {};
-        for (const field of Object.keys(modelDef.fields)) {
-            const fieldDef = requireField(this.schema, model, field);
+        for (const [field, fieldDef] of this.getModelFields(model)) {
             if (!fieldDef.relation) {
                 if (this.options.allowQueryTimeOmitOverride !== false) {
                     // if override is allowed, use boolean
@@ -1006,7 +1042,24 @@ export class ZodSchemaFactory<
                 }
             }
         }
+
+        this.addExtResultFields(model, fields);
+
         return z.strictObject(fields);
+    }
+
+    private addExtResultFields(model: string, fields: Record<string, ZodType>) {
+        for (const plugin of this.plugins) {
+            const resultConfig = plugin.result;
+            if (resultConfig) {
+                const modelConfig = resultConfig[lowerCaseFirst(model)];
+                if (modelConfig) {
+                    for (const field of Object.keys(modelConfig)) {
+                        fields[field] = z.boolean().optional();
+                    }
+                }
+            }
+        }
     }
 
     @cache()
@@ -1043,12 +1096,10 @@ export class ZodSchemaFactory<
         WithAggregation: boolean,
         options?: CreateSchemaOptions,
     ) {
-        const modelDef = requireModel(this.schema, model);
         const fields: Record<string, ZodType> = {};
         const sort = z.union([z.literal('asc'), z.literal('desc')]);
         const nextOpts = this.nextOptions(options);
-        for (const field of Object.keys(modelDef.fields)) {
-            const fieldDef = requireField(this.schema, model, field);
+        for (const [field, fieldDef] of this.getModelFields(model)) {
             if (fieldDef.relation) {
                 // relations
                 if (withRelation && this.shouldIncludeRelations(options)) {
@@ -1098,8 +1149,9 @@ export class ZodSchemaFactory<
 
     @cache()
     private makeDistinctSchema(model: string) {
-        const modelDef = requireModel(this.schema, model);
-        const nonRelationFields = Object.keys(modelDef.fields).filter((field) => !modelDef.fields[field]?.relation);
+        const nonRelationFields = this.getModelFields(model)
+            .filter(([, def]) => !def.relation)
+            .map(([name]) => name);
         return nonRelationFields.length > 0 ? this.orArray(z.enum(nonRelationFields as any), true) : z.never();
     }
 
@@ -1170,20 +1222,18 @@ export class ZodSchemaFactory<
         const uncheckedVariantFields: Record<string, ZodType> = {};
         const checkedVariantFields: Record<string, ZodType> = {};
         const modelDef = requireModel(this.schema, model);
+        const modelFields = this.getModelFields(model);
         const hasRelation =
-            !skipRelations &&
-            Object.entries(modelDef.fields).some(([f, def]) => !withoutFields.includes(f) && def.relation);
+            !skipRelations && modelFields.some(([f, def]) => !withoutFields.includes(f) && def.relation);
 
         const nextOpts = this.nextOptions(options);
 
-        Object.keys(modelDef.fields).forEach((field) => {
+        modelFields.forEach(([field, fieldDef]) => {
             if (withoutFields.includes(field)) {
                 return;
             }
 
-            const fieldDef = requireField(this.schema, model, field);
-
-            // skip computed fields and discriminator fields, they cannot be set on create
+            // skip computed fields and discriminator fields
             if (fieldDef.computed || fieldDef.isDiscriminator) {
                 return;
             }
@@ -1302,21 +1352,28 @@ export class ZodSchemaFactory<
         const fieldDef = requireField(this.schema, model, field);
         const fieldType = fieldDef.type;
         const array = !!fieldDef.array;
+        const canCreateModel = this.canCreateModel(fieldType);
         const fields: Record<string, ZodType> = {
-            create: this.makeCreateDataSchema(
+            connect: this.makeConnectDataSchema(fieldType, array, options).optional(),
+        };
+
+        if (canCreateModel) {
+            fields['create'] = this.makeCreateDataSchema(
                 fieldDef.type,
                 !!fieldDef.array,
                 withoutFields,
                 false,
                 options,
-            ).optional(),
+            ).optional();
+            fields['connectOrCreate'] = this.makeConnectOrCreateDataSchema(
+                fieldType,
+                array,
+                withoutFields,
+                options,
+            ).optional();
+        }
 
-            connect: this.makeConnectDataSchema(fieldType, array, options).optional(),
-
-            connectOrCreate: this.makeConnectOrCreateDataSchema(fieldType, array, withoutFields, options).optional(),
-        };
-
-        if (array) {
+        if (array && canCreateModel) {
             fields['createMany'] = this.makeCreateManyPayloadSchema(fieldType, withoutFields, options).optional();
         }
 
@@ -1346,19 +1403,21 @@ export class ZodSchemaFactory<
                       ])
                       .optional();
 
-            let upsertWhere = this.makeWhereSchema(fieldType, true, false, false, options);
-            if (!fieldDef.array) {
-                // to-one relation, can upsert without where clause
-                upsertWhere = upsertWhere.optional();
+            if (canCreateModel) {
+                let upsertWhere = this.makeWhereSchema(fieldType, true, false, false, options);
+                if (!fieldDef.array) {
+                    // to-one relation, can upsert without where clause
+                    upsertWhere = upsertWhere.optional();
+                }
+                fields['upsert'] = this.orArray(
+                    z.strictObject({
+                        where: upsertWhere,
+                        create: this.makeCreateDataSchema(fieldType, false, withoutFields, false, options),
+                        update: this.makeUpdateDataSchema(fieldType, withoutFields, false, options),
+                    }),
+                    true,
+                ).optional();
             }
-            fields['upsert'] = this.orArray(
-                z.strictObject({
-                    where: upsertWhere,
-                    create: this.makeCreateDataSchema(fieldType, false, withoutFields, false, options),
-                    update: this.makeUpdateDataSchema(fieldType, withoutFields, false, options),
-                }),
-                true,
-            ).optional();
 
             if (array) {
                 // to-many relation specifics
@@ -1524,21 +1583,19 @@ export class ZodSchemaFactory<
         const uncheckedVariantFields: Record<string, ZodType> = {};
         const checkedVariantFields: Record<string, ZodType> = {};
         const modelDef = requireModel(this.schema, model);
+        const modelFields = this.getModelFields(model);
         const hasRelation =
-            !skipRelations &&
-            Object.entries(modelDef.fields).some(([key, value]) => value.relation && !withoutFields.includes(key));
+            !skipRelations && modelFields.some(([key, value]) => value.relation && !withoutFields.includes(key));
 
         const nextOpts = this.nextOptions(options);
 
-        Object.keys(modelDef.fields).forEach((field) => {
+        modelFields.forEach(([field, fieldDef]) => {
             if (withoutFields.includes(field)) {
                 return;
             }
 
-            const fieldDef = requireField(this.schema, model, field);
-
+            // skip computed fields and discriminator fields
             if (fieldDef.computed || fieldDef.isDiscriminator) {
-                // skip computed fields and discriminator fields, they cannot be updated
                 return;
             }
 
@@ -1698,13 +1755,12 @@ export class ZodSchemaFactory<
 
     @cache()
     private makeCountAggregateInputSchema(model: string) {
-        const modelDef = requireModel(this.schema, model);
         return z.union([
             z.literal(true),
             z.strictObject({
                 _all: z.literal(true).optional(),
-                ...Object.keys(modelDef.fields).reduce(
-                    (acc, field) => {
+                ...this.getModelFields(model).reduce(
+                    (acc, [field]) => {
                         acc[field] = z.literal(true).optional();
                         return acc;
                     },
@@ -1741,11 +1797,9 @@ export class ZodSchemaFactory<
 
     @cache()
     private makeSumAvgInputSchema(model: string) {
-        const modelDef = requireModel(this.schema, model);
         return z.strictObject(
-            Object.keys(modelDef.fields).reduce(
-                (acc, field) => {
-                    const fieldDef = requireField(this.schema, model, field);
+            this.getModelFields(model).reduce(
+                (acc, [field, fieldDef]) => {
                     if (this.isNumericField(fieldDef)) {
                         acc[field] = z.literal(true).optional();
                     }
@@ -1758,11 +1812,9 @@ export class ZodSchemaFactory<
 
     @cache()
     private makeMinMaxInputSchema(model: string) {
-        const modelDef = requireModel(this.schema, model);
         return z.strictObject(
-            Object.keys(modelDef.fields).reduce(
-                (acc, field) => {
-                    const fieldDef = requireField(this.schema, model, field);
+            this.getModelFields(model).reduce(
+                (acc, [field, fieldDef]) => {
                     if (!fieldDef.relation && !fieldDef.array) {
                         acc[field] = z.literal(true).optional();
                     }
@@ -1782,8 +1834,9 @@ export class ZodSchemaFactory<
         model: Model,
         options?: CreateSchemaOptions,
     ): ZodType<GroupByArgs<Schema, Model, Options, ExtQueryArgs>> {
-        const modelDef = requireModel(this.schema, model);
-        const nonRelationFields = Object.keys(modelDef.fields).filter((field) => !modelDef.fields[field]?.relation);
+        const nonRelationFields = this.getModelFields(model)
+            .filter(([, def]) => !def.relation)
+            .map(([name]) => name);
         const bySchema =
             nonRelationFields.length > 0
                 ? this.orArray(z.enum(nonRelationFields as [string, ...string[]]), true)
@@ -2185,10 +2238,20 @@ export class ZodSchemaFactory<
         }
     }
 
-    /**
-     * Checks if a model is included in the slicing configuration.
-     * Returns true if the model is allowed, false if it's excluded.
-     */
+    private canCreateModel(model: string) {
+        const modelDef = requireModel(this.schema, model);
+        if (modelDef.isDelegate) {
+            return false;
+        }
+        const hasRequiredUnsupportedFields = Object.values(modelDef.fields).some(
+            (fieldDef) => fieldDef.type === 'Unsupported' && !fieldDef.optional && !fieldHasDefaultValue(fieldDef),
+        );
+        if (hasRequiredUnsupportedFields) {
+            return false;
+        }
+        return true;
+    }
+
     private isModelAllowed(targetModel: string): boolean {
         const slicing = this.options.slicing;
         if (!slicing) {

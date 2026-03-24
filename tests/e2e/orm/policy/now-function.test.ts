@@ -118,7 +118,9 @@ model Log {
         // anonymous user - rejected
         await expect(db.log.create({ data: { message: 'test' } })).toBeRejectedByPolicy();
         // authenticated user with auto-filled createdAt - allowed
-        await expect(db.$setAuth({ id: 1 }).log.create({ data: { message: 'test' } })).resolves.toMatchObject({
+        await expect(
+            db.$setAuth({ id: 1 }).log.create({ data: { message: 'test', createdAt: new Date(Date.now() - 1000) } }),
+        ).resolves.toMatchObject({
             message: 'test',
         });
     });

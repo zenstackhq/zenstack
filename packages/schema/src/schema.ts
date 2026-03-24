@@ -63,6 +63,8 @@ export type UpdatedAtInfo = {
     ignore?: readonly string[];
 };
 
+export type FieldDefault = MappedBuiltinType | Expression | readonly unknown[];
+
 export type FieldDef = {
     name: string;
     type: string;
@@ -72,7 +74,7 @@ export type FieldDef = {
     unique?: boolean;
     updatedAt?: boolean | UpdatedAtInfo;
     attributes?: readonly AttributeApplication[];
-    default?: MappedBuiltinType | Expression | readonly unknown[];
+    default?: FieldDefault;
     omit?: boolean;
     relation?: RelationInfo;
     foreignKeyFor?: readonly string[];
@@ -150,10 +152,15 @@ export type GetTypeDefs<Schema extends SchemaDef> = Extract<keyof Schema['typeDe
 export type GetTypeDef<Schema extends SchemaDef, TypeDef extends GetTypeDefs<Schema>> =
     Schema['typeDefs'] extends Record<string, unknown> ? Schema['typeDefs'][TypeDef] : never;
 
-export type GetModelFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = Extract<
-    keyof GetModel<Schema, Model>['fields'],
-    string
->;
+export type GetModelFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = keyof {
+    [Key in Extract<keyof GetModel<Schema, Model>['fields'], string> as FieldIsUnsupported<
+        Schema,
+        Model,
+        Key
+    > extends true
+        ? never
+        : Key]: never;
+};
 
 export type GetModelField<
     Schema extends SchemaDef,
@@ -281,11 +288,21 @@ export type FieldIsComputed<
     Field extends GetModelFields<Schema, Model>,
 > = GetModelField<Schema, Model, Field>['computed'] extends true ? true : false;
 
+export type FieldIsUnsupported<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Field extends string,
+> = Field extends keyof GetModel<Schema, Model>['fields']
+    ? GetModel<Schema, Model>['fields'][Field]['type'] extends 'Unsupported'
+        ? true
+        : false
+    : never;
+
 export type FieldHasDefault<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends GetModelFields<Schema, Model>,
-> = GetModelField<Schema, Model, Field>['default'] extends object | number | string | boolean
+> = 'default' extends keyof GetModelField<Schema, Model, Field>
     ? true
     : GetModelField<Schema, Model, Field>['updatedAt'] extends true | UpdatedAtInfo
       ? true

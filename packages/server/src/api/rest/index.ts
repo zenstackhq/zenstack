@@ -1,4 +1,4 @@
-import { clone, enumerate, lowerCaseFirst, paramCase } from '@zenstackhq/common-helpers';
+import { clone, enumerate, lowerCaseFirst, paramCase, safeJSONStringify } from '@zenstackhq/common-helpers';
 import { ORMError, ORMErrorReason, type ClientContract } from '@zenstackhq/orm';
 import type { FieldDef, ModelDef, SchemaDef } from '@zenstackhq/orm/schema';
 import { Decimal } from 'decimal.js';
@@ -10,9 +10,11 @@ import z from 'zod';
 import { fromError } from 'zod-validation-error/v4';
 import type { ApiHandler, LogConfig, RequestContext, Response } from '../../types';
 import { getProcedureDef, mapProcedureArgs } from '../common/procedures';
-import { loggerSchema } from '../common/schemas';
+import { loggerSchema, queryOptionsSchema } from '../common/schemas';
+import type { CommonHandlerOptions, OpenApiSpecGenerator, OpenApiSpecOptions } from '../common/types';
 import { processSuperJsonRequestPayload } from '../common/utils';
 import { getZodErrorMessage, log, registerCustomSerializers } from '../utils';
+import { RestApiSpecGenerator } from './openapi';
 
 /**
  * Options for {@link RestApiHandler}
@@ -64,7 +66,16 @@ export type RestApiHandlerOptions<Schema extends SchemaDef = SchemaDef> = {
      * Mapping from model names to unique field name to be used as resource's ID.
      */
     externalIdMapping?: Record<string, string>;
-};
+
+    /**
+     * When `true`, enables nested route handling for all to-many relations:
+     * `/:parentType/:parentId/:relationName` (collection) and
+     * `/:parentType/:parentId/:relationName/:childId` (single).
+     *
+     * Defaults to `false`.
+     */
+    nestedRoutes?: boolean;
+} & CommonHandlerOptions<Schema>;
 
 type RelationshipInfo = {
     type: string;
@@ -84,10 +95,12 @@ type Match = {
     type: string;
     id: string;
     relationship: string;
+    childId?: string;
 };
 
 enum UrlPatterns {
     SINGLE = 'single',
+    NESTED_SINGLE = 'nestedSingle',
     FETCH_RELATIONSHIP = 'fetchRelationship',
     RELATIONSHIP = 'relationship',
     COLLECTION = 'collection',
@@ -127,7 +140,7 @@ registerCustomSerializers();
 /**
  * RESTful-style API request handler (compliant with JSON:API)
  */
-export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiHandler<Schema> {
+export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiHandler<Schema>, OpenApiSpecGenerator {
     // resource serializers
     private serializers = new Map<string, Serializer>();
 
@@ -262,6 +275,7 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
     private modelNameMapping: Record<string, string>;
     private reverseModelNameMapping: Record<string, string>;
     private externalIdMapping: Record<string, string>;
+    private nestedRoutes: boolean;
 
     constructor(private readonly options: RestApiHandlerOptions<Schema>) {
         this.validateOptions(options);
@@ -282,6 +296,8 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
             Object.entries(this.externalIdMapping).map(([k, v]) => [lowerCaseFirst(k), v]),
         );
 
+        this.nestedRoutes = options.nestedRoutes ?? false;
+
         this.urlPatternMap = this.buildUrlPatternMap(segmentCharset);
 
         this.buildTypeMap();
@@ -298,6 +314,8 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
             urlSegmentCharset: z.string().min(1).optional(),
             modelNameMapping: z.record(z.string(), z.string()).optional(),
             externalIdMapping: z.record(z.string(), z.string()).optional(),
+            queryOptions: queryOptionsSchema.optional(),
+            nestedRoutes: z.boolean().optional(),
         });
         const parseResult = schema.safeParse(options);
         if (!parseResult.success) {
@@ -322,6 +340,10 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
 
         return {
             [UrlPatterns.SINGLE]: new UrlPattern(buildPath([':type', ':id']), options),
+            [UrlPatterns.NESTED_SINGLE]: new UrlPattern(
+                buildPath([':type', ':id', ':relationship', ':childId']),
+                options,
+            ),
             [UrlPatterns.FETCH_RELATIONSHIP]: new UrlPattern(buildPath([':type', ':id', ':relationship']), options),
             [UrlPatterns.RELATIONSHIP]: new UrlPattern(
                 buildPath([':type', ':id', 'relationships', ':relationship']),
@@ -333,6 +355,70 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
 
     private mapModelName(modelName: string): string {
         return this.modelNameMapping[modelName] ?? modelName;
+    }
+
+    /**
+     * Resolves child model type and reverse relation from a parent relation name.
+     * e.g. given parentType='user', parentRelation='posts', returns { childType:'post', reverseRelation:'author' }
+     */
+    private resolveNestedRelation(
+        parentType: string,
+        parentRelation: string,
+    ): { childType: string; reverseRelation: string; isCollection: boolean } | undefined {
+        const parentInfo = this.getModelInfo(parentType);
+        if (!parentInfo) return undefined;
+        const field: FieldDef | undefined = this.schema.models[parentInfo.name]?.fields[parentRelation];
+        if (!field?.relation) return undefined;
+        const reverseRelation = field.relation.opposite;
+        if (!reverseRelation) return undefined;
+        return { childType: lowerCaseFirst(field.type), reverseRelation, isCollection: !!field.array };
+    }
+
+    private mergeFilters(left: any, right: any) {
+        if (!left) {
+            return right;
+        }
+        if (!right) {
+            return left;
+        }
+        return { AND: [left, right] };
+    }
+
+    /**
+     * Builds a WHERE filter for the child model that constrains results to those belonging to the given parent.
+     * @param parentType  lowercased parent model name
+     * @param parentId    parent resource ID string
+     * @param parentRelation  relation field name on the parent model (e.g. 'posts')
+     */
+    private buildNestedParentFilter(parentType: string, parentId: string, parentRelation: string) {
+        const parentInfo = this.getModelInfo(parentType);
+        if (!parentInfo) {
+            return { filter: undefined, error: this.makeUnsupportedModelError(parentType) };
+        }
+
+        const resolved = this.resolveNestedRelation(parentType, parentRelation);
+        if (!resolved) {
+            return {
+                filter: undefined,
+                error: this.makeError(
+                    'invalidPath',
+                    `invalid nested route: cannot resolve relation "${parentType}.${parentRelation}"`,
+                ),
+            };
+        }
+
+        const { reverseRelation } = resolved;
+        const childInfo = this.getModelInfo(resolved.childType);
+        if (!childInfo) {
+            return { filter: undefined, error: this.makeUnsupportedModelError(resolved.childType) };
+        }
+
+        const reverseRelInfo = childInfo.relationships[reverseRelation];
+        const relationFilter = reverseRelInfo?.isCollection
+            ? { [reverseRelation]: { some: this.makeIdFilter(parentInfo.idFields, parentId, false) } }
+            : { [reverseRelation]: { is: this.makeIdFilter(parentInfo.idFields, parentId, false) } };
+
+        return { filter: relationFilter, error: undefined };
     }
 
     private matchUrlPattern(path: string, routeType: UrlPatterns): Match | undefined {
@@ -396,6 +482,18 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
                         );
                     }
 
+                    // /:type/:id/:relationship/:childId — nested single read
+                    match = this.matchUrlPattern(path, UrlPatterns.NESTED_SINGLE);
+                    if (match && this.nestedRoutes && this.resolveNestedRelation(match.type, match.relationship)?.isCollection) {
+                        return await this.processNestedSingleRead(
+                            client,
+                            match.type,
+                            match.id,
+                            match.relationship,
+                            match.childId!,
+                            query,
+                        );
+                    }
                     match = this.matchUrlPattern(path, UrlPatterns.COLLECTION);
                     if (match) {
                         // collection read
@@ -408,6 +506,18 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
                 case 'POST': {
                     if (!requestBody) {
                         return this.makeError('invalidPayload');
+                    }
+                    // /:type/:id/:relationship — nested create
+                    const nestedMatch = this.matchUrlPattern(path, UrlPatterns.FETCH_RELATIONSHIP);
+                    if (nestedMatch && this.nestedRoutes && this.resolveNestedRelation(nestedMatch.type, nestedMatch.relationship)?.isCollection) {
+                        return await this.processNestedCreate(
+                            client,
+                            nestedMatch.type,
+                            nestedMatch.id,
+                            nestedMatch.relationship,
+                            query,
+                            requestBody,
+                        );
                     }
                     let match = this.matchUrlPattern(path, UrlPatterns.COLLECTION);
                     if (match) {
@@ -444,12 +554,8 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
                     if (!requestBody) {
                         return this.makeError('invalidPayload');
                     }
-                    let match = this.matchUrlPattern(path, UrlPatterns.SINGLE);
-                    if (match) {
-                        // resource update
-                        return await this.processUpdate(client, match.type, match.id, query, requestBody);
-                    }
-                    match = this.matchUrlPattern(path, UrlPatterns.RELATIONSHIP);
+                    // Check RELATIONSHIP before NESTED_SINGLE to avoid ambiguity on /:type/:id/relationships/:rel
+                    let match = this.matchUrlPattern(path, UrlPatterns.RELATIONSHIP);
                     if (match) {
                         // relationship update
                         return await this.processRelationshipCRUD(
@@ -462,18 +568,53 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
                             requestBody,
                         );
                     }
-
+                    // /:type/:id/:relationship — nested update (to-one)
+                    const nestedToOnePatchMatch = this.matchUrlPattern(path, UrlPatterns.FETCH_RELATIONSHIP);
+                    if (
+                        nestedToOnePatchMatch &&
+                        this.nestedRoutes &&
+                        this.resolveNestedRelation(nestedToOnePatchMatch.type, nestedToOnePatchMatch.relationship) &&
+                        !this.resolveNestedRelation(nestedToOnePatchMatch.type, nestedToOnePatchMatch.relationship)
+                            ?.isCollection
+                    ) {
+                        return await this.processNestedUpdate(
+                            client,
+                            nestedToOnePatchMatch.type,
+                            nestedToOnePatchMatch.id,
+                            nestedToOnePatchMatch.relationship,
+                            undefined,
+                            query,
+                            requestBody,
+                        );
+                    }
+                    // /:type/:id/:relationship/:childId — nested update (to-many)
+                    const nestedPatchMatch = this.matchUrlPattern(path, UrlPatterns.NESTED_SINGLE);
+                    if (
+                        nestedPatchMatch &&
+                        this.nestedRoutes &&
+                        this.resolveNestedRelation(nestedPatchMatch.type, nestedPatchMatch.relationship)?.isCollection
+                    ) {
+                        return await this.processNestedUpdate(
+                            client,
+                            nestedPatchMatch.type,
+                            nestedPatchMatch.id,
+                            nestedPatchMatch.relationship,
+                            nestedPatchMatch.childId!,
+                            query,
+                            requestBody,
+                        );
+                    }
+                    match = this.matchUrlPattern(path, UrlPatterns.SINGLE);
+                    if (match) {
+                        // resource update
+                        return await this.processUpdate(client, match.type, match.id, query, requestBody);
+                    }
                     return this.makeError('invalidPath');
                 }
 
                 case 'DELETE': {
-                    let match = this.matchUrlPattern(path, UrlPatterns.SINGLE);
-                    if (match) {
-                        // resource deletion
-                        return await this.processDelete(client, match.type, match.id);
-                    }
-
-                    match = this.matchUrlPattern(path, UrlPatterns.RELATIONSHIP);
+                    // Check RELATIONSHIP before NESTED_SINGLE to avoid ambiguity on /:type/:id/relationships/:rel
+                    let match = this.matchUrlPattern(path, UrlPatterns.RELATIONSHIP);
                     if (match) {
                         // relationship deletion (collection relationship only)
                         return await this.processRelationshipCRUD(
@@ -486,7 +627,26 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
                             requestBody,
                         );
                     }
-
+                    // /:type/:id/:relationship/:childId — nested delete (one-to-many child)
+                    const nestedDeleteMatch = this.matchUrlPattern(path, UrlPatterns.NESTED_SINGLE);
+                    if (
+                        nestedDeleteMatch &&
+                        this.nestedRoutes &&
+                        this.resolveNestedRelation(nestedDeleteMatch.type, nestedDeleteMatch.relationship)?.isCollection
+                    ) {
+                        return await this.processNestedDelete(
+                            client,
+                            nestedDeleteMatch.type,
+                            nestedDeleteMatch.id,
+                            nestedDeleteMatch.relationship,
+                            nestedDeleteMatch.childId!,
+                        );
+                    }
+                    match = this.matchUrlPattern(path, UrlPatterns.SINGLE);
+                    if (match) {
+                        // resource deletion
+                        return await this.processDelete(client, match.type, match.id);
+                    }
                     return this.makeError('invalidPath');
                 }
 
@@ -505,7 +665,13 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
     }
 
     private handleGenericError(err: unknown): Response | PromiseLike<Response> {
-        return this.makeError('unknownError', err instanceof Error ? `${err.message}\n${err.stack}` : 'Unknown error');
+        const resp = this.makeError('unknownError', err instanceof Error ? `${err.message}` : 'Unknown error');
+        log(
+            this.options.log,
+            'debug',
+            () => `sending error response: ${safeJSONStringify(resp)}${err instanceof Error ? '\n' + err.stack : ''}`,
+        );
+        return resp;
     }
 
     private async processProcedureRequest({
@@ -582,15 +748,60 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
 
     private makeProcBadInputErrorResponse(message: string): Response {
         const resp = this.makeError('invalidPayload', message, 400);
-        log(this.log, 'debug', () => `sending error response: ${JSON.stringify(resp)}`);
+        log(this.log, 'debug', () => `sending error response: ${safeJSONStringify(resp)}`);
         return resp;
     }
 
     private makeProcGenericErrorResponse(err: unknown): Response {
         const message = err instanceof Error ? err.message : 'unknown error';
         const resp = this.makeError('unknownError', message, 500);
-        log(this.log, 'debug', () => `sending error response: ${JSON.stringify(resp)}`);
+        log(
+            this.log,
+            'debug',
+            () => `sending error response: ${safeJSONStringify(resp)}${err instanceof Error ? '\n' + err.stack : ''}`,
+        );
         return resp;
+    }
+
+    /**
+     * Builds the ORM `args` object (include, select) shared by single-read operations.
+     * Returns the args to pass to findUnique/findFirst and the resolved `include` list for serialization,
+     * or an error response if query params are invalid.
+     */
+    private buildSingleReadArgs(
+        type: string,
+        query: Record<string, string | string[]> | undefined,
+    ): { args: any; include: string[] | undefined; error?: Response } {
+        const args: any = {};
+
+        // include IDs of relation fields so that they can be serialized
+        this.includeRelationshipIds(type, args, 'include');
+
+        // handle "include" query parameter
+        let include: string[] | undefined;
+        if (query?.['include']) {
+            const { select, error, allIncludes } = this.buildRelationSelect(type, query['include'], query);
+            if (error) {
+                return { args, include, error };
+            }
+            if (select) {
+                args.include = { ...args.include, ...select };
+            }
+            include = allIncludes;
+        }
+
+        // handle partial results for requested type
+        const { select, error } = this.buildPartialSelect(type, query);
+        if (error) return { args, include, error };
+        if (select) {
+            args.select = { ...select, ...args.select };
+            if (args.include) {
+                args.select = { ...args.select, ...args.include };
+                args.include = undefined;
+            }
+        }
+
+        return { args, include };
     }
 
     private async processSingleRead(
@@ -604,37 +815,10 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
             return this.makeUnsupportedModelError(type);
         }
 
-        const args: any = { where: this.makeIdFilter(typeInfo.idFields, resourceId) };
-
-        // include IDs of relation fields so that they can be serialized
-        this.includeRelationshipIds(type, args, 'include');
-
-        // handle "include" query parameter
-        let include: string[] | undefined;
-        if (query?.['include']) {
-            const { select, error, allIncludes } = this.buildRelationSelect(type, query['include'], query);
-            if (error) {
-                return error;
-            }
-            if (select) {
-                args.include = { ...args.include, ...select };
-            }
-            include = allIncludes;
-        }
-
-        // handle partial results for requested type
-        const { select, error } = this.buildPartialSelect(type, query);
+        const { args, include, error } = this.buildSingleReadArgs(type, query);
         if (error) return error;
-        if (select) {
-            args.select = { ...select, ...args.select };
-            if (args.include) {
-                args.select = {
-                    ...args.select,
-                    ...args.include,
-                };
-                args.include = undefined;
-            }
-        }
+
+        args.where = this.makeIdFilter(typeInfo.idFields, resourceId);
 
         const entity = await (client as any)[type].findUnique(args);
 
@@ -870,7 +1054,13 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
         if (limit === Infinity) {
             const entities = await (client as any)[type].findMany(args);
 
-            const body = await this.serializeItems(type, entities, { include });
+            const mappedType = this.mapModelName(type);
+            const body = await this.serializeItems(type, entities, {
+                include,
+                linkers: {
+                    document: new tsjapi.Linker(() => this.makeLinkUrl(`/${mappedType}`)),
+                },
+            });
             const total = entities.length;
             body.meta = this.addTotalCountToMeta(body.meta, total);
 
@@ -892,6 +1082,7 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
             const options: Partial<SerializerOptions> = {
                 include,
                 linkers: {
+                    document: new tsjapi.Linker(() => this.makeLinkUrl(`/${mappedType}`)),
                     paginator: this.makePaginator(url, offset, limit, total),
                 },
             };
@@ -903,6 +1094,294 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
                 body: body,
             };
         }
+    }
+
+    /**
+     * Builds link URL for a nested resource using parent type, parent ID, relation name, and optional child ID.
+     * Uses the parent model name mapping for the parent segment; the relation name is used as-is.
+     */
+    private makeNestedLinkUrl(parentType: string, parentId: string, parentRelation: string, childId?: string) {
+        const mappedParentType = this.mapModelName(parentType);
+        const base = `/${mappedParentType}/${parentId}/${parentRelation}`;
+        return childId ? `${base}/${childId}` : base;
+    }
+
+    private async processNestedSingleRead(
+        client: ClientContract<Schema>,
+        parentType: string,
+        parentId: string,
+        parentRelation: string,
+        childId: string,
+        query: Record<string, string | string[]> | undefined,
+    ): Promise<Response> {
+        const resolved = this.resolveNestedRelation(parentType, parentRelation);
+        if (!resolved) {
+            return this.makeError('invalidPath');
+        }
+
+        const { filter: nestedFilter, error: nestedError } = this.buildNestedParentFilter(
+            parentType,
+            parentId,
+            parentRelation,
+        );
+        if (nestedError) return nestedError;
+
+        const childType = resolved.childType;
+        const typeInfo = this.getModelInfo(childType)!;
+
+        const { args, include, error } = this.buildSingleReadArgs(childType, query);
+        if (error) return error;
+
+        args.where = this.mergeFilters(this.makeIdFilter(typeInfo.idFields, childId), nestedFilter);
+
+        const entity = await (client as any)[childType].findFirst(args);
+        if (!entity) return this.makeError('notFound');
+
+        const linkUrl = this.makeLinkUrl(this.makeNestedLinkUrl(parentType, parentId, parentRelation, childId));
+        const nestedLinker = new tsjapi.Linker(() => linkUrl);
+        return {
+            status: 200,
+            body: await this.serializeItems(childType, entity, {
+                include,
+                linkers: { document: nestedLinker, resource: nestedLinker },
+            }),
+        };
+    }
+
+    private async processNestedCreate(
+        client: ClientContract<Schema>,
+        parentType: string,
+        parentId: string,
+        parentRelation: string,
+        _query: Record<string, string | string[]> | undefined,
+        requestBody: unknown,
+    ): Promise<Response> {
+        const resolved = this.resolveNestedRelation(parentType, parentRelation);
+        if (!resolved) {
+            return this.makeError('invalidPath');
+        }
+
+        const parentInfo = this.getModelInfo(parentType)!;
+        const childType = resolved.childType;
+        const childInfo = this.getModelInfo(childType)!;
+
+        const { attributes, relationships, error } = this.processRequestBody(requestBody);
+        if (error) return error;
+
+        const createData: any = { ...attributes };
+
+        // Turn relationship payload into `connect` objects, rejecting the parent relation
+        if (relationships) {
+            for (const [key, data] of Object.entries<any>(relationships)) {
+                if (!data?.data) {
+                    return this.makeError('invalidRelationData');
+                }
+                if (key === resolved.reverseRelation) {
+                    return this.makeError(
+                        'invalidPayload',
+                        `Relation "${key}" is controlled by the parent route and cannot be set in the request payload`,
+                    );
+                }
+                const relationInfo = childInfo.relationships[key];
+                if (!relationInfo) {
+                    return this.makeUnsupportedRelationshipError(childType, key, 400);
+                }
+                if (relationInfo.isCollection) {
+                    createData[key] = {
+                        connect: enumerate(data.data).map((item: any) =>
+                            this.makeIdConnect(relationInfo.idFields, item.id),
+                        ),
+                    };
+                } else {
+                    if (typeof data.data !== 'object') {
+                        return this.makeError('invalidRelationData');
+                    }
+                    createData[key] = { connect: this.makeIdConnect(relationInfo.idFields, data.data.id) };
+                }
+            }
+        }
+
+        // Reject scalar FK fields in attributes that would override the parent relation
+        const parentFkFields = Object.values(childInfo.fields).filter((f) =>
+            f.foreignKeyFor?.includes(resolved.reverseRelation),
+        );
+        if (parentFkFields.some((f) => Object.prototype.hasOwnProperty.call(createData, f.name))) {
+            return this.makeError(
+                'invalidPayload',
+                `Relation "${resolved.reverseRelation}" is controlled by the parent route and cannot be set in the request payload`,
+            );
+        }
+
+        // Atomically create child nested in parent update; ORM throws NOT_FOUND if parent doesn't exist
+        await (client as any)[parentType].update({
+            where: this.makeIdFilter(parentInfo.idFields, parentId),
+            data: { [parentRelation]: { create: createData } },
+        });
+
+        // Fetch the created child — most recently created for this parent
+        const { filter: nestedFilter, error: filterError } = this.buildNestedParentFilter(
+            parentType,
+            parentId,
+            parentRelation,
+        );
+        if (filterError) return filterError;
+
+        const fetchArgs: any = { where: nestedFilter };
+        this.includeRelationshipIds(childType, fetchArgs, 'include');
+        if (childInfo.idFields[0]) {
+            fetchArgs.orderBy = { [childInfo.idFields[0].name]: 'desc' };
+        }
+
+        const entity = await (client as any)[childType].findFirst(fetchArgs);
+        if (!entity) return this.makeError('notFound');
+
+        const collectionPath = this.makeNestedLinkUrl(parentType, parentId, parentRelation);
+        const resourceLinker = new tsjapi.Linker((item: any) =>
+            this.makeLinkUrl(`${collectionPath}/${this.getId(childInfo.name, item)}`),
+        );
+        return {
+            status: 201,
+            body: await this.serializeItems(childType, entity, {
+                linkers: { document: resourceLinker, resource: resourceLinker },
+            }),
+        };
+    }
+
+    /**
+     * Builds the ORM `data` payload for a nested update, shared by both to-many (childId present)
+     * and to-one (childId absent) variants.  Returns either `{ updateData }` or `{ error }`.
+     */
+    private buildNestedUpdatePayload(
+        childType: string,
+        typeInfo: ReturnType<RestApiHandler<Schema>['getModelInfo']>,
+        rev: string,
+        requestBody: unknown,
+    ): { updateData: any; error?: never } | { updateData?: never; error: Response } {
+        const { attributes, relationships, error } = this.processRequestBody(requestBody);
+        if (error) return { error };
+
+        const updateData: any = { ...attributes };
+
+        // Reject attempts to change the parent relation via the nested endpoint
+        if (relationships && Object.prototype.hasOwnProperty.call(relationships, rev)) {
+            return { error: this.makeError('invalidPayload', `Relation "${rev}" cannot be changed via a nested route`) };
+        }
+        const fkFields = Object.values(typeInfo!.fields).filter((f) => f.foreignKeyFor?.includes(rev));
+        if (fkFields.some((f) => Object.prototype.hasOwnProperty.call(updateData, f.name))) {
+            return { error: this.makeError('invalidPayload', `Relation "${rev}" cannot be changed via a nested route`) };
+        }
+
+        // Turn relationship payload into connect/set objects
+        if (relationships) {
+            for (const [key, data] of Object.entries<any>(relationships)) {
+                if (!data?.data) {
+                    return { error: this.makeError('invalidRelationData') };
+                }
+                const relationInfo = typeInfo!.relationships[key];
+                if (!relationInfo) {
+                    return { error: this.makeUnsupportedRelationshipError(childType, key, 400) };
+                }
+                if (relationInfo.isCollection) {
+                    updateData[key] = {
+                        set: enumerate(data.data).map((item: any) => ({
+                            [this.makeDefaultIdKey(relationInfo.idFields)]: item.id,
+                        })),
+                    };
+                } else {
+                    if (typeof data.data !== 'object') {
+                        return { error: this.makeError('invalidRelationData') };
+                    }
+                    updateData[key] = {
+                        connect: { [this.makeDefaultIdKey(relationInfo.idFields)]: data.data.id },
+                    };
+                }
+            }
+        }
+
+        return { updateData };
+    }
+
+    /**
+     * Handles PATCH /:type/:id/:relationship/:childId (to-many) and
+     * PATCH /:type/:id/:relationship (to-one, childId undefined).
+     */
+    private async processNestedUpdate(
+        client: ClientContract<Schema>,
+        parentType: string,
+        parentId: string,
+        parentRelation: string,
+        childId: string | undefined,
+        _query: Record<string, string | string[]> | undefined,
+        requestBody: unknown,
+    ): Promise<Response> {
+        const resolved = this.resolveNestedRelation(parentType, parentRelation);
+        if (!resolved) {
+            return this.makeError('invalidPath');
+        }
+
+        const parentInfo = this.getModelInfo(parentType)!;
+        const childType = resolved.childType;
+        const typeInfo = this.getModelInfo(childType)!;
+
+        const { updateData, error } = this.buildNestedUpdatePayload(childType, typeInfo, resolved.reverseRelation, requestBody);
+        if (error) return error;
+
+        if (childId) {
+            // to-many: ORM requires a where filter to identify the child within the collection
+            await (client as any)[parentType].update({
+                where: this.makeIdFilter(parentInfo.idFields, parentId),
+                data: { [parentRelation]: { update: { where: this.makeIdFilter(typeInfo.idFields, childId), data: updateData } } },
+            });
+            const fetchArgs: any = { where: this.makeIdFilter(typeInfo.idFields, childId) };
+            this.includeRelationshipIds(childType, fetchArgs, 'include');
+            const entity = await (client as any)[childType].findUnique(fetchArgs);
+            if (!entity) return this.makeError('notFound');
+            const linkUrl = this.makeLinkUrl(this.makeNestedLinkUrl(parentType, parentId, parentRelation, childId));
+            const nestedLinker = new tsjapi.Linker(() => linkUrl);
+            return { status: 200, body: await this.serializeItems(childType, entity, { linkers: { document: nestedLinker, resource: nestedLinker } }) };
+        } else {
+            // to-one: no where filter needed; fetch via parent select
+            await (client as any)[parentType].update({
+                where: this.makeIdFilter(parentInfo.idFields, parentId),
+                data: { [parentRelation]: { update: updateData } },
+            });
+            const childIncludeArgs: any = {};
+            this.includeRelationshipIds(childType, childIncludeArgs, 'include');
+            const fetchArgs: any = {
+                where: this.makeIdFilter(parentInfo.idFields, parentId),
+                select: { [parentRelation]: childIncludeArgs.include ? { include: childIncludeArgs.include } : true },
+            };
+            const parent = await (client as any)[parentType].findUnique(fetchArgs);
+            const entity = parent?.[parentRelation];
+            if (!entity) return this.makeError('notFound');
+            const linkUrl = this.makeLinkUrl(this.makeNestedLinkUrl(parentType, parentId, parentRelation));
+            const nestedLinker = new tsjapi.Linker(() => linkUrl);
+            return { status: 200, body: await this.serializeItems(childType, entity, { linkers: { document: nestedLinker, resource: nestedLinker } }) };
+        }
+    }
+
+    private async processNestedDelete(
+        client: ClientContract<Schema>,
+        parentType: string,
+        parentId: string,
+        parentRelation: string,
+        childId: string,
+    ): Promise<Response> {
+        const resolved = this.resolveNestedRelation(parentType, parentRelation);
+        if (!resolved) {
+            return this.makeError('invalidPath');
+        }
+
+        const parentInfo = this.getModelInfo(parentType)!;
+        const typeInfo = this.getModelInfo(resolved.childType)!;
+
+        // Atomically delete child scoped to parent; ORM throws NOT_FOUND if parent or child-belongs-to-parent check fails
+        await (client as any)[parentType].update({
+            where: this.makeIdFilter(parentInfo.idFields, parentId),
+            data: { [parentRelation]: { delete: this.makeIdFilter(typeInfo.idFields, childId) } },
+        });
+
+        return { status: 200, body: { meta: {} } };
     }
 
     private buildPartialSelect(type: string, query: Record<string, string | string[]> | undefined) {
@@ -2060,9 +2539,7 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
             }
         } else {
             if (op === 'between') {
-                const parts = value
-                    .split(',')
-                    .map((v) => this.coerce(fieldDef, v));
+                const parts = value.split(',').map((v) => this.coerce(fieldDef, v));
                 if (parts.length !== 2) {
                     throw new InvalidValueError(`"between" expects exactly 2 comma-separated values`);
                 }
@@ -2201,4 +2678,11 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
     }
 
     //#endregion
+
+    async generateSpec(options?: OpenApiSpecOptions) {
+        const generator = new RestApiSpecGenerator(this.options);
+        return generator.generateSpec(options);
+    }
 }
+
+export { RestApiSpecGenerator } from './openapi';

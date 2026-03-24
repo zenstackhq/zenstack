@@ -695,7 +695,6 @@ describe('Entity mutation hooks tests', () => {
 
 describe('Entity mutation hooks - delegate model interaction', () => {
     it('update on child model succeeds with afterEntityMutation plugin', async () => {
-        console.log('RUNNING!!!!');
         const client = await createTestClient(
             `
 model Base {

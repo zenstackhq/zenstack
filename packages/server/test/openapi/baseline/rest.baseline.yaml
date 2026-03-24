@@ -1,0 +1,4171 @@
+openapi: 3.1.0
+info:
+    title: ZenStack Generated API
+    version: 1.0.0
+tags:
+    - name: user
+      description: User operations
+    - name: profile
+      description: Profile operations
+    - name: post
+      description: Post operations
+    - name: comment
+      description: Comment operations
+    - name: setting
+      description: Setting operations
+    - name: postLike
+      description: PostLike operations
+    - name: postLikeInfo
+      description: PostLikeInfo operations
+paths:
+    /user:
+        get:
+            tags:
+                - user
+            summary: List User resources
+            operationId: listUser
+            parameters:
+                - $ref: "#/components/parameters/include"
+                - $ref: "#/components/parameters/sort"
+                - $ref: "#/components/parameters/pageOffset"
+                - $ref: "#/components/parameters/pageLimit"
+                - name: filter[id]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by User ID
+                - name: filter[createdAt]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by createdAt
+                - name: filter[createdAt][$lt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[createdAt][$lte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[createdAt][$gt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[createdAt][$gte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[updatedAt]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by updatedAt
+                - name: filter[updatedAt][$lt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[updatedAt][$lte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[updatedAt][$gt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[updatedAt][$gte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[email]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by email
+                - name: filter[email][$contains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[email][$icontains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[email][$search]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[email][$startsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[email][$endsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[address]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by address
+                - name: filter[someJson]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by someJson
+            responses:
+                "200":
+                    description: List of User resources
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/UserListResponse"
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        post:
+            tags:
+                - user
+            summary: Create a User resource
+            operationId: createUser
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/UserCreateRequest"
+            responses:
+                "201":
+                    description: Created User resource
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/UserResponse"
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "422":
+                    description: Operation is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /user/{id}:
+        get:
+            tags:
+                - user
+            summary: Get a User resource by ID
+            operationId: getUser
+            parameters:
+                - $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/include"
+            responses:
+                "200":
+                    description: User resource
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/UserResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        patch:
+            tags:
+                - user
+            summary: Update a User resource
+            operationId: updateUser
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/UserUpdateRequest"
+            responses:
+                "200":
+                    description: Updated User resource
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/UserResponse"
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "422":
+                    description: Operation is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        delete:
+            tags:
+                - user
+            summary: Delete a User resource
+            operationId: deleteUser
+            parameters:
+                - $ref: "#/components/parameters/id"
+            responses:
+                "200":
+                    description: Deleted successfully
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /user/{id}/posts:
+        get:
+            tags:
+                - user
+            summary: Fetch related Post for User
+            operationId: getUser_posts
+            parameters:
+                - $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/include"
+                - $ref: "#/components/parameters/sort"
+                - $ref: "#/components/parameters/pageOffset"
+                - $ref: "#/components/parameters/pageLimit"
+                - name: filter[id]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by Post ID
+                - name: filter[createdAt]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by createdAt
+                - name: filter[createdAt][$lt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[createdAt][$lte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[createdAt][$gt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[createdAt][$gte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[updatedAt]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by updatedAt
+                - name: filter[updatedAt][$lt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[updatedAt][$lte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[updatedAt][$gt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[updatedAt][$gte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[title]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by title
+                - name: filter[title][$contains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[title][$icontains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[title][$search]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[title][$startsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[title][$endsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[authorId]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by authorId
+                - name: filter[authorId][$contains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[authorId][$icontains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[authorId][$search]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[authorId][$startsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[authorId][$endsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[published]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by published
+                - name: filter[publishedAt]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by publishedAt
+                - name: filter[publishedAt][$lt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[publishedAt][$lte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[publishedAt][$gt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[publishedAt][$gte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[viewCount]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by viewCount
+                - name: filter[viewCount][$lt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[viewCount][$lte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[viewCount][$gt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[viewCount][$gte]
+                  in: query
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Related Post resource(s)
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/PostListResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /user/{id}/relationships/posts:
+        get:
+            tags:
+                - user
+            summary: Fetch posts relationship
+            operationId: getUser_relationships_posts
+            parameters:
+                - $ref: "#/components/parameters/id"
+            responses:
+                "200":
+                    description: posts relationship
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_toManyRelationshipWithLinks"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        put:
+            tags:
+                - user
+            summary: Replace posts relationship
+            operationId: putUser_relationships_posts
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toManyRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        patch:
+            tags:
+                - user
+            summary: Update posts relationship
+            operationId: patchUser_relationships_posts
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toManyRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        post:
+            tags:
+                - user
+            summary: Add to posts collection relationship
+            operationId: postUser_relationships_posts
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toManyRelationshipRequest"
+            responses:
+                "200":
+                    description: Added to relationship collection
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /user/{id}/likes:
+        get:
+            tags:
+                - user
+            summary: Fetch related PostLike for User
+            operationId: getUser_likes
+            parameters:
+                - $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/include"
+                - $ref: "#/components/parameters/sort"
+                - $ref: "#/components/parameters/pageOffset"
+                - $ref: "#/components/parameters/pageLimit"
+                - name: filter[id]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by PostLike ID
+                - name: filter[superLike]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by superLike
+            responses:
+                "200":
+                    description: Related PostLike resource(s)
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/PostLikeListResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /user/{id}/relationships/likes:
+        get:
+            tags:
+                - user
+            summary: Fetch likes relationship
+            operationId: getUser_relationships_likes
+            parameters:
+                - $ref: "#/components/parameters/id"
+            responses:
+                "200":
+                    description: likes relationship
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_toManyRelationshipWithLinks"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        put:
+            tags:
+                - user
+            summary: Replace likes relationship
+            operationId: putUser_relationships_likes
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toManyRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        patch:
+            tags:
+                - user
+            summary: Update likes relationship
+            operationId: patchUser_relationships_likes
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toManyRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        post:
+            tags:
+                - user
+            summary: Add to likes collection relationship
+            operationId: postUser_relationships_likes
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toManyRelationshipRequest"
+            responses:
+                "200":
+                    description: Added to relationship collection
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /user/{id}/profile:
+        get:
+            tags:
+                - user
+            summary: Fetch related Profile for User
+            operationId: getUser_profile
+            parameters:
+                - $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/include"
+            responses:
+                "200":
+                    description: Related Profile resource(s)
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/ProfileResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /user/{id}/relationships/profile:
+        get:
+            tags:
+                - user
+            summary: Fetch profile relationship
+            operationId: getUser_relationships_profile
+            parameters:
+                - $ref: "#/components/parameters/id"
+            responses:
+                "200":
+                    description: profile relationship
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_toOneRelationshipWithLinks"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        put:
+            tags:
+                - user
+            summary: Replace profile relationship
+            operationId: putUser_relationships_profile
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        patch:
+            tags:
+                - user
+            summary: Update profile relationship
+            operationId: patchUser_relationships_profile
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /profile:
+        get:
+            tags:
+                - profile
+            summary: List Profile resources
+            operationId: listProfile
+            parameters:
+                - $ref: "#/components/parameters/include"
+                - $ref: "#/components/parameters/sort"
+                - $ref: "#/components/parameters/pageOffset"
+                - $ref: "#/components/parameters/pageLimit"
+                - name: filter[id]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by Profile ID
+                - name: filter[gender]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by gender
+                - name: filter[gender][$contains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[gender][$icontains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[gender][$search]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[gender][$startsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[gender][$endsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by userId
+                - name: filter[userId][$contains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$icontains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$search]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$startsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$endsWith]
+                  in: query
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: List of Profile resources
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/ProfileListResponse"
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        post:
+            tags:
+                - profile
+            summary: Create a Profile resource
+            operationId: createProfile
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/ProfileCreateRequest"
+            responses:
+                "201":
+                    description: Created Profile resource
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/ProfileResponse"
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "422":
+                    description: Operation is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /profile/{id}:
+        get:
+            tags:
+                - profile
+            summary: Get a Profile resource by ID
+            operationId: getProfile
+            parameters:
+                - $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/include"
+            responses:
+                "200":
+                    description: Profile resource
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/ProfileResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        patch:
+            tags:
+                - profile
+            summary: Update a Profile resource
+            operationId: updateProfile
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/ProfileUpdateRequest"
+            responses:
+                "200":
+                    description: Updated Profile resource
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/ProfileResponse"
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "422":
+                    description: Operation is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        delete:
+            tags:
+                - profile
+            summary: Delete a Profile resource
+            operationId: deleteProfile
+            parameters:
+                - $ref: "#/components/parameters/id"
+            responses:
+                "200":
+                    description: Deleted successfully
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /profile/{id}/user:
+        get:
+            tags:
+                - profile
+            summary: Fetch related User for Profile
+            operationId: getProfile_user
+            parameters:
+                - $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/include"
+            responses:
+                "200":
+                    description: Related User resource(s)
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/UserResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /profile/{id}/relationships/user:
+        get:
+            tags:
+                - profile
+            summary: Fetch user relationship
+            operationId: getProfile_relationships_user
+            parameters:
+                - $ref: "#/components/parameters/id"
+            responses:
+                "200":
+                    description: user relationship
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_toOneRelationshipWithLinks"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        put:
+            tags:
+                - profile
+            summary: Replace user relationship
+            operationId: putProfile_relationships_user
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        patch:
+            tags:
+                - profile
+            summary: Update user relationship
+            operationId: patchProfile_relationships_user
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /post:
+        get:
+            tags:
+                - post
+            summary: List Post resources
+            operationId: listPost
+            parameters:
+                - $ref: "#/components/parameters/include"
+                - $ref: "#/components/parameters/sort"
+                - $ref: "#/components/parameters/pageOffset"
+                - $ref: "#/components/parameters/pageLimit"
+                - name: filter[id]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by Post ID
+                - name: filter[createdAt]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by createdAt
+                - name: filter[createdAt][$lt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[createdAt][$lte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[createdAt][$gt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[createdAt][$gte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[updatedAt]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by updatedAt
+                - name: filter[updatedAt][$lt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[updatedAt][$lte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[updatedAt][$gt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[updatedAt][$gte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[title]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by title
+                - name: filter[title][$contains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[title][$icontains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[title][$search]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[title][$startsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[title][$endsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[authorId]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by authorId
+                - name: filter[authorId][$contains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[authorId][$icontains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[authorId][$search]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[authorId][$startsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[authorId][$endsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[published]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by published
+                - name: filter[publishedAt]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by publishedAt
+                - name: filter[publishedAt][$lt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[publishedAt][$lte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[publishedAt][$gt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[publishedAt][$gte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[viewCount]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by viewCount
+                - name: filter[viewCount][$lt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[viewCount][$lte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[viewCount][$gt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[viewCount][$gte]
+                  in: query
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: List of Post resources
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/PostListResponse"
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        post:
+            tags:
+                - post
+            summary: Create a Post resource
+            operationId: createPost
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/PostCreateRequest"
+            responses:
+                "201":
+                    description: Created Post resource
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/PostResponse"
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "422":
+                    description: Operation is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /post/{id}:
+        get:
+            tags:
+                - post
+            summary: Get a Post resource by ID
+            operationId: getPost
+            parameters:
+                - $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/include"
+            responses:
+                "200":
+                    description: Post resource
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/PostResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        patch:
+            tags:
+                - post
+            summary: Update a Post resource
+            operationId: updatePost
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/PostUpdateRequest"
+            responses:
+                "200":
+                    description: Updated Post resource
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/PostResponse"
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "422":
+                    description: Operation is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        delete:
+            tags:
+                - post
+            summary: Delete a Post resource
+            operationId: deletePost
+            parameters:
+                - $ref: "#/components/parameters/id"
+            responses:
+                "200":
+                    description: Deleted successfully
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /post/{id}/author:
+        get:
+            tags:
+                - post
+            summary: Fetch related User for Post
+            operationId: getPost_author
+            parameters:
+                - $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/include"
+            responses:
+                "200":
+                    description: Related User resource(s)
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/UserResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /post/{id}/relationships/author:
+        get:
+            tags:
+                - post
+            summary: Fetch author relationship
+            operationId: getPost_relationships_author
+            parameters:
+                - $ref: "#/components/parameters/id"
+            responses:
+                "200":
+                    description: author relationship
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_toOneRelationshipWithLinks"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        put:
+            tags:
+                - post
+            summary: Replace author relationship
+            operationId: putPost_relationships_author
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        patch:
+            tags:
+                - post
+            summary: Update author relationship
+            operationId: patchPost_relationships_author
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /post/{id}/comments:
+        get:
+            tags:
+                - post
+            summary: Fetch related Comment for Post
+            operationId: getPost_comments
+            parameters:
+                - $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/include"
+                - $ref: "#/components/parameters/sort"
+                - $ref: "#/components/parameters/pageOffset"
+                - $ref: "#/components/parameters/pageLimit"
+                - name: filter[id]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by Comment ID
+                - name: filter[postId]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by postId
+                - name: filter[postId][$lt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$lte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$gt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$gte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[content]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by content
+                - name: filter[content][$contains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[content][$icontains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[content][$search]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[content][$startsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[content][$endsWith]
+                  in: query
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Related Comment resource(s)
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/CommentListResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /post/{id}/relationships/comments:
+        get:
+            tags:
+                - post
+            summary: Fetch comments relationship
+            operationId: getPost_relationships_comments
+            parameters:
+                - $ref: "#/components/parameters/id"
+            responses:
+                "200":
+                    description: comments relationship
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_toManyRelationshipWithLinks"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        put:
+            tags:
+                - post
+            summary: Replace comments relationship
+            operationId: putPost_relationships_comments
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toManyRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        patch:
+            tags:
+                - post
+            summary: Update comments relationship
+            operationId: patchPost_relationships_comments
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toManyRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        post:
+            tags:
+                - post
+            summary: Add to comments collection relationship
+            operationId: postPost_relationships_comments
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toManyRelationshipRequest"
+            responses:
+                "200":
+                    description: Added to relationship collection
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /post/{id}/likes:
+        get:
+            tags:
+                - post
+            summary: Fetch related PostLike for Post
+            operationId: getPost_likes
+            parameters:
+                - $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/include"
+                - $ref: "#/components/parameters/sort"
+                - $ref: "#/components/parameters/pageOffset"
+                - $ref: "#/components/parameters/pageLimit"
+                - name: filter[id]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by PostLike ID
+                - name: filter[superLike]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by superLike
+            responses:
+                "200":
+                    description: Related PostLike resource(s)
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/PostLikeListResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /post/{id}/relationships/likes:
+        get:
+            tags:
+                - post
+            summary: Fetch likes relationship
+            operationId: getPost_relationships_likes
+            parameters:
+                - $ref: "#/components/parameters/id"
+            responses:
+                "200":
+                    description: likes relationship
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_toManyRelationshipWithLinks"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        put:
+            tags:
+                - post
+            summary: Replace likes relationship
+            operationId: putPost_relationships_likes
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toManyRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        patch:
+            tags:
+                - post
+            summary: Update likes relationship
+            operationId: patchPost_relationships_likes
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toManyRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        post:
+            tags:
+                - post
+            summary: Add to likes collection relationship
+            operationId: postPost_relationships_likes
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toManyRelationshipRequest"
+            responses:
+                "200":
+                    description: Added to relationship collection
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /post/{id}/setting:
+        get:
+            tags:
+                - post
+            summary: Fetch related Setting for Post
+            operationId: getPost_setting
+            parameters:
+                - $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/include"
+            responses:
+                "200":
+                    description: Related Setting resource(s)
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/SettingResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /post/{id}/relationships/setting:
+        get:
+            tags:
+                - post
+            summary: Fetch setting relationship
+            operationId: getPost_relationships_setting
+            parameters:
+                - $ref: "#/components/parameters/id"
+            responses:
+                "200":
+                    description: setting relationship
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_toOneRelationshipWithLinks"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        put:
+            tags:
+                - post
+            summary: Replace setting relationship
+            operationId: putPost_relationships_setting
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        patch:
+            tags:
+                - post
+            summary: Update setting relationship
+            operationId: patchPost_relationships_setting
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /comment:
+        get:
+            tags:
+                - comment
+            summary: List Comment resources
+            operationId: listComment
+            parameters:
+                - $ref: "#/components/parameters/include"
+                - $ref: "#/components/parameters/sort"
+                - $ref: "#/components/parameters/pageOffset"
+                - $ref: "#/components/parameters/pageLimit"
+                - name: filter[id]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by Comment ID
+                - name: filter[postId]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by postId
+                - name: filter[postId][$lt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$lte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$gt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$gte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[content]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by content
+                - name: filter[content][$contains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[content][$icontains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[content][$search]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[content][$startsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[content][$endsWith]
+                  in: query
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: List of Comment resources
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/CommentListResponse"
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        post:
+            tags:
+                - comment
+            summary: Create a Comment resource
+            operationId: createComment
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/CommentCreateRequest"
+            responses:
+                "201":
+                    description: Created Comment resource
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/CommentResponse"
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "422":
+                    description: Operation is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /comment/{id}:
+        get:
+            tags:
+                - comment
+            summary: Get a Comment resource by ID
+            operationId: getComment
+            parameters:
+                - $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/include"
+            responses:
+                "200":
+                    description: Comment resource
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/CommentResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        patch:
+            tags:
+                - comment
+            summary: Update a Comment resource
+            operationId: updateComment
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/CommentUpdateRequest"
+            responses:
+                "200":
+                    description: Updated Comment resource
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/CommentResponse"
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "422":
+                    description: Operation is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        delete:
+            tags:
+                - comment
+            summary: Delete a Comment resource
+            operationId: deleteComment
+            parameters:
+                - $ref: "#/components/parameters/id"
+            responses:
+                "200":
+                    description: Deleted successfully
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /comment/{id}/post:
+        get:
+            tags:
+                - comment
+            summary: Fetch related Post for Comment
+            operationId: getComment_post
+            parameters:
+                - $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/include"
+            responses:
+                "200":
+                    description: Related Post resource(s)
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/PostResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /comment/{id}/relationships/post:
+        get:
+            tags:
+                - comment
+            summary: Fetch post relationship
+            operationId: getComment_relationships_post
+            parameters:
+                - $ref: "#/components/parameters/id"
+            responses:
+                "200":
+                    description: post relationship
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_toOneRelationshipWithLinks"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        put:
+            tags:
+                - comment
+            summary: Replace post relationship
+            operationId: putComment_relationships_post
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        patch:
+            tags:
+                - comment
+            summary: Update post relationship
+            operationId: patchComment_relationships_post
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /setting:
+        get:
+            tags:
+                - setting
+            summary: List Setting resources
+            operationId: listSetting
+            parameters:
+                - $ref: "#/components/parameters/include"
+                - $ref: "#/components/parameters/sort"
+                - $ref: "#/components/parameters/pageOffset"
+                - $ref: "#/components/parameters/pageLimit"
+                - name: filter[id]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by Setting ID
+                - name: filter[boost]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by boost
+                - name: filter[boost][$lt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[boost][$lte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[boost][$gt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[boost][$gte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by postId
+                - name: filter[postId][$lt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$lte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$gt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$gte]
+                  in: query
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: List of Setting resources
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/SettingListResponse"
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        post:
+            tags:
+                - setting
+            summary: Create a Setting resource
+            operationId: createSetting
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/SettingCreateRequest"
+            responses:
+                "201":
+                    description: Created Setting resource
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/SettingResponse"
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "422":
+                    description: Operation is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /setting/{id}:
+        get:
+            tags:
+                - setting
+            summary: Get a Setting resource by ID
+            operationId: getSetting
+            parameters:
+                - $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/include"
+            responses:
+                "200":
+                    description: Setting resource
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/SettingResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        patch:
+            tags:
+                - setting
+            summary: Update a Setting resource
+            operationId: updateSetting
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/SettingUpdateRequest"
+            responses:
+                "200":
+                    description: Updated Setting resource
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/SettingResponse"
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "422":
+                    description: Operation is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        delete:
+            tags:
+                - setting
+            summary: Delete a Setting resource
+            operationId: deleteSetting
+            parameters:
+                - $ref: "#/components/parameters/id"
+            responses:
+                "200":
+                    description: Deleted successfully
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /setting/{id}/post:
+        get:
+            tags:
+                - setting
+            summary: Fetch related Post for Setting
+            operationId: getSetting_post
+            parameters:
+                - $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/include"
+            responses:
+                "200":
+                    description: Related Post resource(s)
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/PostResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /setting/{id}/relationships/post:
+        get:
+            tags:
+                - setting
+            summary: Fetch post relationship
+            operationId: getSetting_relationships_post
+            parameters:
+                - $ref: "#/components/parameters/id"
+            responses:
+                "200":
+                    description: post relationship
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_toOneRelationshipWithLinks"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        put:
+            tags:
+                - setting
+            summary: Replace post relationship
+            operationId: putSetting_relationships_post
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        patch:
+            tags:
+                - setting
+            summary: Update post relationship
+            operationId: patchSetting_relationships_post
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /postLike:
+        get:
+            tags:
+                - postLike
+            summary: List PostLike resources
+            operationId: listPostLike
+            parameters:
+                - $ref: "#/components/parameters/include"
+                - $ref: "#/components/parameters/sort"
+                - $ref: "#/components/parameters/pageOffset"
+                - $ref: "#/components/parameters/pageLimit"
+                - name: filter[id]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by PostLike ID
+                - name: filter[superLike]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by superLike
+            responses:
+                "200":
+                    description: List of PostLike resources
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/PostLikeListResponse"
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        post:
+            tags:
+                - postLike
+            summary: Create a PostLike resource
+            operationId: createPostLike
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/PostLikeCreateRequest"
+            responses:
+                "201":
+                    description: Created PostLike resource
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/PostLikeResponse"
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "422":
+                    description: Operation is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /postLike/{id}:
+        get:
+            tags:
+                - postLike
+            summary: Get a PostLike resource by ID
+            operationId: getPostLike
+            parameters:
+                - $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/include"
+            responses:
+                "200":
+                    description: PostLike resource
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/PostLikeResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        patch:
+            tags:
+                - postLike
+            summary: Update a PostLike resource
+            operationId: updatePostLike
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/PostLikeUpdateRequest"
+            responses:
+                "200":
+                    description: Updated PostLike resource
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/PostLikeResponse"
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "422":
+                    description: Operation is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        delete:
+            tags:
+                - postLike
+            summary: Delete a PostLike resource
+            operationId: deletePostLike
+            parameters:
+                - $ref: "#/components/parameters/id"
+            responses:
+                "200":
+                    description: Deleted successfully
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /postLike/{id}/post:
+        get:
+            tags:
+                - postLike
+            summary: Fetch related Post for PostLike
+            operationId: getPostLike_post
+            parameters:
+                - $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/include"
+            responses:
+                "200":
+                    description: Related Post resource(s)
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/PostResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /postLike/{id}/relationships/post:
+        get:
+            tags:
+                - postLike
+            summary: Fetch post relationship
+            operationId: getPostLike_relationships_post
+            parameters:
+                - $ref: "#/components/parameters/id"
+            responses:
+                "200":
+                    description: post relationship
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_toOneRelationshipWithLinks"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        put:
+            tags:
+                - postLike
+            summary: Replace post relationship
+            operationId: putPostLike_relationships_post
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        patch:
+            tags:
+                - postLike
+            summary: Update post relationship
+            operationId: patchPostLike_relationships_post
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /postLike/{id}/user:
+        get:
+            tags:
+                - postLike
+            summary: Fetch related User for PostLike
+            operationId: getPostLike_user
+            parameters:
+                - $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/include"
+            responses:
+                "200":
+                    description: Related User resource(s)
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/UserResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /postLike/{id}/relationships/user:
+        get:
+            tags:
+                - postLike
+            summary: Fetch user relationship
+            operationId: getPostLike_relationships_user
+            parameters:
+                - $ref: "#/components/parameters/id"
+            responses:
+                "200":
+                    description: user relationship
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_toOneRelationshipWithLinks"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        put:
+            tags:
+                - postLike
+            summary: Replace user relationship
+            operationId: putPostLike_relationships_user
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        patch:
+            tags:
+                - postLike
+            summary: Update user relationship
+            operationId: patchPostLike_relationships_user
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /postLike/{id}/likeInfos:
+        get:
+            tags:
+                - postLike
+            summary: Fetch related PostLikeInfo for PostLike
+            operationId: getPostLike_likeInfos
+            parameters:
+                - $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/include"
+                - $ref: "#/components/parameters/sort"
+                - $ref: "#/components/parameters/pageOffset"
+                - $ref: "#/components/parameters/pageLimit"
+                - name: filter[id]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by PostLikeInfo ID
+                - name: filter[text]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by text
+                - name: filter[text][$contains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[text][$icontains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[text][$search]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[text][$startsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[text][$endsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by postId
+                - name: filter[postId][$lt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$lte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$gt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$gte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by userId
+                - name: filter[userId][$contains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$icontains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$search]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$startsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$endsWith]
+                  in: query
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: Related PostLikeInfo resource(s)
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/PostLikeInfoListResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /postLike/{id}/relationships/likeInfos:
+        get:
+            tags:
+                - postLike
+            summary: Fetch likeInfos relationship
+            operationId: getPostLike_relationships_likeInfos
+            parameters:
+                - $ref: "#/components/parameters/id"
+            responses:
+                "200":
+                    description: likeInfos relationship
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_toManyRelationshipWithLinks"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        put:
+            tags:
+                - postLike
+            summary: Replace likeInfos relationship
+            operationId: putPostLike_relationships_likeInfos
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toManyRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        patch:
+            tags:
+                - postLike
+            summary: Update likeInfos relationship
+            operationId: patchPostLike_relationships_likeInfos
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toManyRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        post:
+            tags:
+                - postLike
+            summary: Add to likeInfos collection relationship
+            operationId: postPostLike_relationships_likeInfos
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toManyRelationshipRequest"
+            responses:
+                "200":
+                    description: Added to relationship collection
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /postLikeInfo:
+        get:
+            tags:
+                - postLikeInfo
+            summary: List PostLikeInfo resources
+            operationId: listPostLikeInfo
+            parameters:
+                - $ref: "#/components/parameters/include"
+                - $ref: "#/components/parameters/sort"
+                - $ref: "#/components/parameters/pageOffset"
+                - $ref: "#/components/parameters/pageLimit"
+                - name: filter[id]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by PostLikeInfo ID
+                - name: filter[text]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by text
+                - name: filter[text][$contains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[text][$icontains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[text][$search]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[text][$startsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[text][$endsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by postId
+                - name: filter[postId][$lt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$lte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$gt]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[postId][$gte]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId]
+                  in: query
+                  schema:
+                      type: string
+                  description: Filter by userId
+                - name: filter[userId][$contains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$icontains]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$search]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$startsWith]
+                  in: query
+                  schema:
+                      type: string
+                - name: filter[userId][$endsWith]
+                  in: query
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: List of PostLikeInfo resources
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/PostLikeInfoListResponse"
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        post:
+            tags:
+                - postLikeInfo
+            summary: Create a PostLikeInfo resource
+            operationId: createPostLikeInfo
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/PostLikeInfoCreateRequest"
+            responses:
+                "201":
+                    description: Created PostLikeInfo resource
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/PostLikeInfoResponse"
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "422":
+                    description: Operation is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /postLikeInfo/{id}:
+        get:
+            tags:
+                - postLikeInfo
+            summary: Get a PostLikeInfo resource by ID
+            operationId: getPostLikeInfo
+            parameters:
+                - $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/include"
+            responses:
+                "200":
+                    description: PostLikeInfo resource
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/PostLikeInfoResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        patch:
+            tags:
+                - postLikeInfo
+            summary: Update a PostLikeInfo resource
+            operationId: updatePostLikeInfo
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/PostLikeInfoUpdateRequest"
+            responses:
+                "200":
+                    description: Updated PostLikeInfo resource
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/PostLikeInfoResponse"
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+                "422":
+                    description: Operation is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        delete:
+            tags:
+                - postLikeInfo
+            summary: Delete a PostLikeInfo resource
+            operationId: deletePostLikeInfo
+            parameters:
+                - $ref: "#/components/parameters/id"
+            responses:
+                "200":
+                    description: Deleted successfully
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /postLikeInfo/{id}/postLike:
+        get:
+            tags:
+                - postLikeInfo
+            summary: Fetch related PostLike for PostLikeInfo
+            operationId: getPostLikeInfo_postLike
+            parameters:
+                - $ref: "#/components/parameters/id"
+                - $ref: "#/components/parameters/include"
+            responses:
+                "200":
+                    description: Related PostLike resource(s)
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/PostLikeResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+    /postLikeInfo/{id}/relationships/postLike:
+        get:
+            tags:
+                - postLikeInfo
+            summary: Fetch postLike relationship
+            operationId: getPostLikeInfo_relationships_postLike
+            parameters:
+                - $ref: "#/components/parameters/id"
+            responses:
+                "200":
+                    description: postLike relationship
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_toOneRelationshipWithLinks"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        put:
+            tags:
+                - postLikeInfo
+            summary: Replace postLike relationship
+            operationId: putPostLikeInfo_relationships_postLike
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+        patch:
+            tags:
+                - postLikeInfo
+            summary: Update postLike relationship
+            operationId: patchPostLikeInfo_relationships_postLike
+            parameters:
+                - $ref: "#/components/parameters/id"
+            requestBody:
+                required: true
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: "#/components/schemas/_toOneRelationshipRequest"
+            responses:
+                "200":
+                    description: Relationship updated
+                "400":
+                    description: Error occurred while processing the request
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: "#/components/schemas/_errorResponse"
+components:
+    schemas:
+        _jsonapi:
+            type: object
+            properties:
+                version:
+                    type: string
+                meta:
+                    type: object
+        _meta:
+            type: object
+            additionalProperties: true
+        _links:
+            type: object
+            properties:
+                self:
+                    type: string
+                related:
+                    type: string
+        _pagination:
+            type: object
+            properties:
+                first:
+                    oneOf:
+                        - type: string
+                        - type: "null"
+                last:
+                    oneOf:
+                        - type: string
+                        - type: "null"
+                prev:
+                    oneOf:
+                        - type: string
+                        - type: "null"
+                next:
+                    oneOf:
+                        - type: string
+                        - type: "null"
+        _errors:
+            type: array
+            items:
+                type: object
+                properties:
+                    status:
+                        type: integer
+                    code:
+                        type: string
+                    title:
+                        type: string
+                    detail:
+                        type: string
+                required:
+                    - status
+                    - title
+        _errorResponse:
+            type: object
+            properties:
+                errors:
+                    $ref: "#/components/schemas/_errors"
+            required:
+                - errors
+        _resourceIdentifier:
+            type: object
+            properties:
+                type:
+                    type: string
+                id:
+                    type: string
+            required:
+                - type
+                - id
+        _resource:
+            type: object
+            properties:
+                type:
+                    type: string
+                id:
+                    type: string
+                attributes:
+                    type: object
+                relationships:
+                    type: object
+                links:
+                    $ref: "#/components/schemas/_links"
+                meta:
+                    $ref: "#/components/schemas/_meta"
+            required:
+                - type
+                - id
+        _relationLinks:
+            type: object
+            properties:
+                self:
+                    type: string
+                related:
+                    type: string
+        _pagedRelationLinks:
+            type: object
+            allOf:
+                - $ref: "#/components/schemas/_relationLinks"
+                - $ref: "#/components/schemas/_pagination"
+        _toOneRelationship:
+            type: object
+            properties:
+                data:
+                    oneOf:
+                        - $ref: "#/components/schemas/_resourceIdentifier"
+                        - type: "null"
+        _toManyRelationship:
+            type: object
+            properties:
+                data:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/_resourceIdentifier"
+        _toOneRelationshipWithLinks:
+            type: object
+            allOf:
+                - $ref: "#/components/schemas/_toOneRelationship"
+                - properties:
+                      links:
+                          $ref: "#/components/schemas/_relationLinks"
+        _toManyRelationshipWithLinks:
+            type: object
+            allOf:
+                - $ref: "#/components/schemas/_toManyRelationship"
+                - properties:
+                      links:
+                          $ref: "#/components/schemas/_pagedRelationLinks"
+        _toManyRelationshipRequest:
+            type: object
+            properties:
+                data:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/_resourceIdentifier"
+            required:
+                - data
+        _toOneRelationshipRequest:
+            type: object
+            properties:
+                data:
+                    oneOf:
+                        - $ref: "#/components/schemas/_resourceIdentifier"
+                        - type: "null"
+            required:
+                - data
+        _toManyRelationshipResponse:
+            type: object
+            properties:
+                data:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/_resourceIdentifier"
+                links:
+                    $ref: "#/components/schemas/_pagedRelationLinks"
+                meta:
+                    $ref: "#/components/schemas/_meta"
+        _toOneRelationshipResponse:
+            type: object
+            properties:
+                data:
+                    oneOf:
+                        - $ref: "#/components/schemas/_resourceIdentifier"
+                        - type: "null"
+                links:
+                    $ref: "#/components/schemas/_relationLinks"
+                meta:
+                    $ref: "#/components/schemas/_meta"
+        Address:
+            type: object
+            properties:
+                city:
+                    type: string
+            required:
+                - city
+        User:
+            type: object
+            properties:
+                attributes:
+                    type: object
+                    properties:
+                        myId:
+                            type: string
+                        createdAt:
+                            type: string
+                            format: date-time
+                        updatedAt:
+                            type: string
+                            format: date-time
+                        email:
+                            type: string
+                        address:
+                            oneOf:
+                                - $ref: "#/components/schemas/Address"
+                                - type: "null"
+                        someJson:
+                            oneOf:
+                                - {}
+                                - type: "null"
+                    required:
+                        - myId
+                        - createdAt
+                        - updatedAt
+                        - email
+                relationships:
+                    type: object
+                    properties:
+                        posts:
+                            $ref: "#/components/schemas/_toManyRelationshipWithLinks"
+                        likes:
+                            $ref: "#/components/schemas/_toManyRelationshipWithLinks"
+                        profile:
+                            oneOf:
+                                - type: "null"
+                                - $ref: "#/components/schemas/_toOneRelationshipWithLinks"
+        UserCreateRequest:
+            type: object
+            properties:
+                data:
+                    type: object
+                    properties:
+                        type:
+                            type: string
+                        attributes:
+                            type: object
+                            properties:
+                                createdAt:
+                                    type: string
+                                    format: date-time
+                                email:
+                                    type: string
+                                address:
+                                    oneOf:
+                                        - $ref: "#/components/schemas/Address"
+                                        - type: "null"
+                                someJson:
+                                    oneOf:
+                                        - {}
+                                        - type: "null"
+                            required:
+                                - email
+                        relationships:
+                            type: object
+                            properties:
+                                posts:
+                                    type: object
+                                    properties:
+                                        data:
+                                            type: array
+                                            items:
+                                                $ref: "#/components/schemas/_resourceIdentifier"
+                                likes:
+                                    type: object
+                                    properties:
+                                        data:
+                                            type: array
+                                            items:
+                                                $ref: "#/components/schemas/_resourceIdentifier"
+                                profile:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: "#/components/schemas/_resourceIdentifier"
+                    required:
+                        - type
+            required:
+                - data
+        UserUpdateRequest:
+            type: object
+            properties:
+                data:
+                    type: object
+                    properties:
+                        type:
+                            type: string
+                        id:
+                            type: string
+                        attributes:
+                            type: object
+                            properties:
+                                myId:
+                                    type: string
+                                createdAt:
+                                    type: string
+                                    format: date-time
+                                email:
+                                    type: string
+                                address:
+                                    oneOf:
+                                        - $ref: "#/components/schemas/Address"
+                                        - type: "null"
+                                someJson:
+                                    oneOf:
+                                        - {}
+                                        - type: "null"
+                        relationships:
+                            type: object
+                            properties:
+                                posts:
+                                    type: object
+                                    properties:
+                                        data:
+                                            type: array
+                                            items:
+                                                $ref: "#/components/schemas/_resourceIdentifier"
+                                likes:
+                                    type: object
+                                    properties:
+                                        data:
+                                            type: array
+                                            items:
+                                                $ref: "#/components/schemas/_resourceIdentifier"
+                                profile:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: "#/components/schemas/_resourceIdentifier"
+                    required:
+                        - type
+                        - id
+            required:
+                - data
+        UserResponse:
+            type: object
+            properties:
+                jsonapi:
+                    $ref: "#/components/schemas/_jsonapi"
+                data:
+                    allOf:
+                        - $ref: "#/components/schemas/User"
+                        - $ref: "#/components/schemas/_resource"
+                meta:
+                    $ref: "#/components/schemas/_meta"
+        UserListResponse:
+            type: object
+            properties:
+                jsonapi:
+                    $ref: "#/components/schemas/_jsonapi"
+                data:
+                    type: array
+                    items:
+                        allOf:
+                            - $ref: "#/components/schemas/User"
+                            - $ref: "#/components/schemas/_resource"
+                links:
+                    allOf:
+                        - $ref: "#/components/schemas/_pagination"
+                        - $ref: "#/components/schemas/_links"
+                meta:
+                    $ref: "#/components/schemas/_meta"
+        Profile:
+            type: object
+            properties:
+                attributes:
+                    type: object
+                    properties:
+                        id:
+                            type: integer
+                        gender:
+                            type: string
+                        userId:
+                            type: string
+                    required:
+                        - id
+                        - gender
+                        - userId
+                relationships:
+                    type: object
+                    properties:
+                        user:
+                            $ref: "#/components/schemas/_toOneRelationshipWithLinks"
+        ProfileCreateRequest:
+            type: object
+            properties:
+                data:
+                    type: object
+                    properties:
+                        type:
+                            type: string
+                        attributes:
+                            type: object
+                            properties:
+                                gender:
+                                    type: string
+                            required:
+                                - gender
+                        relationships:
+                            type: object
+                            properties:
+                                user:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: "#/components/schemas/_resourceIdentifier"
+                    required:
+                        - type
+            required:
+                - data
+        ProfileUpdateRequest:
+            type: object
+            properties:
+                data:
+                    type: object
+                    properties:
+                        type:
+                            type: string
+                        id:
+                            type: string
+                        attributes:
+                            type: object
+                            properties:
+                                id:
+                                    type: integer
+                                gender:
+                                    type: string
+                        relationships:
+                            type: object
+                            properties:
+                                user:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: "#/components/schemas/_resourceIdentifier"
+                    required:
+                        - type
+                        - id
+            required:
+                - data
+        ProfileResponse:
+            type: object
+            properties:
+                jsonapi:
+                    $ref: "#/components/schemas/_jsonapi"
+                data:
+                    allOf:
+                        - $ref: "#/components/schemas/Profile"
+                        - $ref: "#/components/schemas/_resource"
+                meta:
+                    $ref: "#/components/schemas/_meta"
+        ProfileListResponse:
+            type: object
+            properties:
+                jsonapi:
+                    $ref: "#/components/schemas/_jsonapi"
+                data:
+                    type: array
+                    items:
+                        allOf:
+                            - $ref: "#/components/schemas/Profile"
+                            - $ref: "#/components/schemas/_resource"
+                links:
+                    allOf:
+                        - $ref: "#/components/schemas/_pagination"
+                        - $ref: "#/components/schemas/_links"
+                meta:
+                    $ref: "#/components/schemas/_meta"
+        Post:
+            type: object
+            properties:
+                attributes:
+                    type: object
+                    properties:
+                        id:
+                            type: integer
+                        createdAt:
+                            type: string
+                            format: date-time
+                        updatedAt:
+                            type: string
+                            format: date-time
+                        title:
+                            type: string
+                        authorId:
+                            oneOf:
+                                - type: string
+                                - type: "null"
+                        published:
+                            type: boolean
+                        publishedAt:
+                            oneOf:
+                                - type: string
+                                  format: date-time
+                                - type: "null"
+                        viewCount:
+                            type: integer
+                    required:
+                        - id
+                        - createdAt
+                        - updatedAt
+                        - title
+                        - published
+                        - viewCount
+                relationships:
+                    type: object
+                    properties:
+                        author:
+                            oneOf:
+                                - type: "null"
+                                - $ref: "#/components/schemas/_toOneRelationshipWithLinks"
+                        comments:
+                            $ref: "#/components/schemas/_toManyRelationshipWithLinks"
+                        likes:
+                            $ref: "#/components/schemas/_toManyRelationshipWithLinks"
+                        setting:
+                            oneOf:
+                                - type: "null"
+                                - $ref: "#/components/schemas/_toOneRelationshipWithLinks"
+        PostCreateRequest:
+            type: object
+            properties:
+                data:
+                    type: object
+                    properties:
+                        type:
+                            type: string
+                        attributes:
+                            type: object
+                            properties:
+                                createdAt:
+                                    type: string
+                                    format: date-time
+                                title:
+                                    type: string
+                                published:
+                                    type: boolean
+                                publishedAt:
+                                    oneOf:
+                                        - type: string
+                                          format: date-time
+                                        - type: "null"
+                                viewCount:
+                                    type: integer
+                            required:
+                                - title
+                        relationships:
+                            type: object
+                            properties:
+                                author:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: "#/components/schemas/_resourceIdentifier"
+                                comments:
+                                    type: object
+                                    properties:
+                                        data:
+                                            type: array
+                                            items:
+                                                $ref: "#/components/schemas/_resourceIdentifier"
+                                likes:
+                                    type: object
+                                    properties:
+                                        data:
+                                            type: array
+                                            items:
+                                                $ref: "#/components/schemas/_resourceIdentifier"
+                                setting:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: "#/components/schemas/_resourceIdentifier"
+                    required:
+                        - type
+            required:
+                - data
+        PostUpdateRequest:
+            type: object
+            properties:
+                data:
+                    type: object
+                    properties:
+                        type:
+                            type: string
+                        id:
+                            type: string
+                        attributes:
+                            type: object
+                            properties:
+                                id:
+                                    type: integer
+                                createdAt:
+                                    type: string
+                                    format: date-time
+                                title:
+                                    type: string
+                                published:
+                                    type: boolean
+                                publishedAt:
+                                    oneOf:
+                                        - type: string
+                                          format: date-time
+                                        - type: "null"
+                                viewCount:
+                                    type: integer
+                        relationships:
+                            type: object
+                            properties:
+                                author:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: "#/components/schemas/_resourceIdentifier"
+                                comments:
+                                    type: object
+                                    properties:
+                                        data:
+                                            type: array
+                                            items:
+                                                $ref: "#/components/schemas/_resourceIdentifier"
+                                likes:
+                                    type: object
+                                    properties:
+                                        data:
+                                            type: array
+                                            items:
+                                                $ref: "#/components/schemas/_resourceIdentifier"
+                                setting:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: "#/components/schemas/_resourceIdentifier"
+                    required:
+                        - type
+                        - id
+            required:
+                - data
+        PostResponse:
+            type: object
+            properties:
+                jsonapi:
+                    $ref: "#/components/schemas/_jsonapi"
+                data:
+                    allOf:
+                        - $ref: "#/components/schemas/Post"
+                        - $ref: "#/components/schemas/_resource"
+                meta:
+                    $ref: "#/components/schemas/_meta"
+        PostListResponse:
+            type: object
+            properties:
+                jsonapi:
+                    $ref: "#/components/schemas/_jsonapi"
+                data:
+                    type: array
+                    items:
+                        allOf:
+                            - $ref: "#/components/schemas/Post"
+                            - $ref: "#/components/schemas/_resource"
+                links:
+                    allOf:
+                        - $ref: "#/components/schemas/_pagination"
+                        - $ref: "#/components/schemas/_links"
+                meta:
+                    $ref: "#/components/schemas/_meta"
+        Comment:
+            type: object
+            properties:
+                attributes:
+                    type: object
+                    properties:
+                        id:
+                            type: integer
+                        postId:
+                            type: integer
+                        content:
+                            type: string
+                    required:
+                        - id
+                        - postId
+                        - content
+                relationships:
+                    type: object
+                    properties:
+                        post:
+                            $ref: "#/components/schemas/_toOneRelationshipWithLinks"
+        CommentCreateRequest:
+            type: object
+            properties:
+                data:
+                    type: object
+                    properties:
+                        type:
+                            type: string
+                        attributes:
+                            type: object
+                            properties:
+                                content:
+                                    type: string
+                            required:
+                                - content
+                        relationships:
+                            type: object
+                            properties:
+                                post:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: "#/components/schemas/_resourceIdentifier"
+                    required:
+                        - type
+            required:
+                - data
+        CommentUpdateRequest:
+            type: object
+            properties:
+                data:
+                    type: object
+                    properties:
+                        type:
+                            type: string
+                        id:
+                            type: string
+                        attributes:
+                            type: object
+                            properties:
+                                id:
+                                    type: integer
+                                content:
+                                    type: string
+                        relationships:
+                            type: object
+                            properties:
+                                post:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: "#/components/schemas/_resourceIdentifier"
+                    required:
+                        - type
+                        - id
+            required:
+                - data
+        CommentResponse:
+            type: object
+            properties:
+                jsonapi:
+                    $ref: "#/components/schemas/_jsonapi"
+                data:
+                    allOf:
+                        - $ref: "#/components/schemas/Comment"
+                        - $ref: "#/components/schemas/_resource"
+                meta:
+                    $ref: "#/components/schemas/_meta"
+        CommentListResponse:
+            type: object
+            properties:
+                jsonapi:
+                    $ref: "#/components/schemas/_jsonapi"
+                data:
+                    type: array
+                    items:
+                        allOf:
+                            - $ref: "#/components/schemas/Comment"
+                            - $ref: "#/components/schemas/_resource"
+                links:
+                    allOf:
+                        - $ref: "#/components/schemas/_pagination"
+                        - $ref: "#/components/schemas/_links"
+                meta:
+                    $ref: "#/components/schemas/_meta"
+        Setting:
+            type: object
+            properties:
+                attributes:
+                    type: object
+                    properties:
+                        id:
+                            type: integer
+                        boost:
+                            type: integer
+                        postId:
+                            type: integer
+                    required:
+                        - id
+                        - boost
+                        - postId
+                relationships:
+                    type: object
+                    properties:
+                        post:
+                            $ref: "#/components/schemas/_toOneRelationshipWithLinks"
+        SettingCreateRequest:
+            type: object
+            properties:
+                data:
+                    type: object
+                    properties:
+                        type:
+                            type: string
+                        attributes:
+                            type: object
+                            properties:
+                                boost:
+                                    type: integer
+                            required:
+                                - boost
+                        relationships:
+                            type: object
+                            properties:
+                                post:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: "#/components/schemas/_resourceIdentifier"
+                    required:
+                        - type
+            required:
+                - data
+        SettingUpdateRequest:
+            type: object
+            properties:
+                data:
+                    type: object
+                    properties:
+                        type:
+                            type: string
+                        id:
+                            type: string
+                        attributes:
+                            type: object
+                            properties:
+                                id:
+                                    type: integer
+                                boost:
+                                    type: integer
+                        relationships:
+                            type: object
+                            properties:
+                                post:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: "#/components/schemas/_resourceIdentifier"
+                    required:
+                        - type
+                        - id
+            required:
+                - data
+        SettingResponse:
+            type: object
+            properties:
+                jsonapi:
+                    $ref: "#/components/schemas/_jsonapi"
+                data:
+                    allOf:
+                        - $ref: "#/components/schemas/Setting"
+                        - $ref: "#/components/schemas/_resource"
+                meta:
+                    $ref: "#/components/schemas/_meta"
+        SettingListResponse:
+            type: object
+            properties:
+                jsonapi:
+                    $ref: "#/components/schemas/_jsonapi"
+                data:
+                    type: array
+                    items:
+                        allOf:
+                            - $ref: "#/components/schemas/Setting"
+                            - $ref: "#/components/schemas/_resource"
+                links:
+                    allOf:
+                        - $ref: "#/components/schemas/_pagination"
+                        - $ref: "#/components/schemas/_links"
+                meta:
+                    $ref: "#/components/schemas/_meta"
+        PostLike:
+            type: object
+            properties:
+                attributes:
+                    type: object
+                    properties:
+                        postId:
+                            type: integer
+                        userId:
+                            type: string
+                        superLike:
+                            type: boolean
+                    required:
+                        - postId
+                        - userId
+                        - superLike
+                relationships:
+                    type: object
+                    properties:
+                        post:
+                            $ref: "#/components/schemas/_toOneRelationshipWithLinks"
+                        user:
+                            $ref: "#/components/schemas/_toOneRelationshipWithLinks"
+                        likeInfos:
+                            $ref: "#/components/schemas/_toManyRelationshipWithLinks"
+        PostLikeCreateRequest:
+            type: object
+            properties:
+                data:
+                    type: object
+                    properties:
+                        type:
+                            type: string
+                        attributes:
+                            type: object
+                            properties:
+                                superLike:
+                                    type: boolean
+                            required:
+                                - superLike
+                        relationships:
+                            type: object
+                            properties:
+                                post:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: "#/components/schemas/_resourceIdentifier"
+                                user:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: "#/components/schemas/_resourceIdentifier"
+                                likeInfos:
+                                    type: object
+                                    properties:
+                                        data:
+                                            type: array
+                                            items:
+                                                $ref: "#/components/schemas/_resourceIdentifier"
+                    required:
+                        - type
+            required:
+                - data
+        PostLikeUpdateRequest:
+            type: object
+            properties:
+                data:
+                    type: object
+                    properties:
+                        type:
+                            type: string
+                        id:
+                            type: string
+                        attributes:
+                            type: object
+                            properties:
+                                superLike:
+                                    type: boolean
+                        relationships:
+                            type: object
+                            properties:
+                                post:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: "#/components/schemas/_resourceIdentifier"
+                                user:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: "#/components/schemas/_resourceIdentifier"
+                                likeInfos:
+                                    type: object
+                                    properties:
+                                        data:
+                                            type: array
+                                            items:
+                                                $ref: "#/components/schemas/_resourceIdentifier"
+                    required:
+                        - type
+                        - id
+            required:
+                - data
+        PostLikeResponse:
+            type: object
+            properties:
+                jsonapi:
+                    $ref: "#/components/schemas/_jsonapi"
+                data:
+                    allOf:
+                        - $ref: "#/components/schemas/PostLike"
+                        - $ref: "#/components/schemas/_resource"
+                meta:
+                    $ref: "#/components/schemas/_meta"
+        PostLikeListResponse:
+            type: object
+            properties:
+                jsonapi:
+                    $ref: "#/components/schemas/_jsonapi"
+                data:
+                    type: array
+                    items:
+                        allOf:
+                            - $ref: "#/components/schemas/PostLike"
+                            - $ref: "#/components/schemas/_resource"
+                links:
+                    allOf:
+                        - $ref: "#/components/schemas/_pagination"
+                        - $ref: "#/components/schemas/_links"
+                meta:
+                    $ref: "#/components/schemas/_meta"
+        PostLikeInfo:
+            type: object
+            properties:
+                attributes:
+                    type: object
+                    properties:
+                        id:
+                            type: integer
+                        text:
+                            type: string
+                        postId:
+                            type: integer
+                        userId:
+                            type: string
+                    required:
+                        - id
+                        - text
+                        - postId
+                        - userId
+                relationships:
+                    type: object
+                    properties:
+                        postLike:
+                            $ref: "#/components/schemas/_toOneRelationshipWithLinks"
+        PostLikeInfoCreateRequest:
+            type: object
+            properties:
+                data:
+                    type: object
+                    properties:
+                        type:
+                            type: string
+                        attributes:
+                            type: object
+                            properties:
+                                text:
+                                    type: string
+                            required:
+                                - text
+                        relationships:
+                            type: object
+                            properties:
+                                postLike:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: "#/components/schemas/_resourceIdentifier"
+                    required:
+                        - type
+            required:
+                - data
+        PostLikeInfoUpdateRequest:
+            type: object
+            properties:
+                data:
+                    type: object
+                    properties:
+                        type:
+                            type: string
+                        id:
+                            type: string
+                        attributes:
+                            type: object
+                            properties:
+                                id:
+                                    type: integer
+                                text:
+                                    type: string
+                        relationships:
+                            type: object
+                            properties:
+                                postLike:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: "#/components/schemas/_resourceIdentifier"
+                    required:
+                        - type
+                        - id
+            required:
+                - data
+        PostLikeInfoResponse:
+            type: object
+            properties:
+                jsonapi:
+                    $ref: "#/components/schemas/_jsonapi"
+                data:
+                    allOf:
+                        - $ref: "#/components/schemas/PostLikeInfo"
+                        - $ref: "#/components/schemas/_resource"
+                meta:
+                    $ref: "#/components/schemas/_meta"
+        PostLikeInfoListResponse:
+            type: object
+            properties:
+                jsonapi:
+                    $ref: "#/components/schemas/_jsonapi"
+                data:
+                    type: array
+                    items:
+                        allOf:
+                            - $ref: "#/components/schemas/PostLikeInfo"
+                            - $ref: "#/components/schemas/_resource"
+                links:
+                    allOf:
+                        - $ref: "#/components/schemas/_pagination"
+                        - $ref: "#/components/schemas/_links"
+                meta:
+                    $ref: "#/components/schemas/_meta"
+    parameters:
+        id:
+            name: id
+            in: path
+            required: true
+            schema:
+                type: string
+            description: Resource ID
+        include:
+            name: include
+            in: query
+            schema:
+                type: string
+            description: Comma-separated list of relationships to include
+        sort:
+            name: sort
+            in: query
+            schema:
+                type: string
+            description: Comma-separated list of fields to sort by. Prefix with - for descending
+        pageOffset:
+            name: page[offset]
+            in: query
+            schema:
+                type: integer
+                minimum: 0
+            description: Page offset
+        pageLimit:
+            name: page[limit]
+            in: query
+            schema:
+                type: integer
+                minimum: 1
+            description: Page limit
