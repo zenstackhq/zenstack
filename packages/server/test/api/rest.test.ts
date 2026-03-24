@@ -3549,4 +3549,640 @@ mutation procedure sum(a: Int, b: Int): Int
             expect(r.body).toMatchObject({ data: 3 });
         });
     });
+
+    describe('Nested routes', () => {
+        let nestedClient: ClientContract<SchemaDef>;
+        let nestedHandler: (any: any) => Promise<{ status: number; body: any }>;
+
+        const nestedSchema = `
+        model User {
+            id String @id @default(cuid())
+            email String @unique
+            posts Post[]
+        }
+
+        model Post {
+            id Int @id @default(autoincrement())
+            title String
+            author User @relation(fields: [authorId], references: [id])
+            authorId String
+        }
+        `;
+
+        beforeEach(async () => {
+            nestedClient = await createTestClient(nestedSchema);
+            const api = new RestApiHandler({
+                schema: nestedClient.$schema,
+                endpoint: 'http://localhost/api',
+                nestedRoutes: true,
+            });
+            nestedHandler = (args) => api.handleRequest({ ...args, url: new URL(`http://localhost/${args.path}`) });
+        });
+
+        it('scopes nested collection reads to parent', async () => {
+            await nestedClient.user.create({
+                data: {
+                    id: 'u1',
+                    email: 'u1@test.com',
+                    posts: {
+                        create: [{ title: 'u1-post-1' }, { title: 'u1-post-2' }],
+                    },
+                },
+            });
+
+            await nestedClient.user.create({
+                data: {
+                    id: 'u2',
+                    email: 'u2@test.com',
+                    posts: {
+                        create: [{ title: 'u2-post-1' }],
+                    },
+                },
+            });
+
+            const r = await nestedHandler({
+                method: 'get',
+                path: '/user/u1/posts',
+                client: nestedClient,
+            });
+
+            expect(r.status).toBe(200);
+            expect(r.body.data).toHaveLength(2);
+            expect(r.body.data.map((item: any) => item.attributes.title).sort()).toEqual(['u1-post-1', 'u1-post-2']);
+        });
+
+        it('returns 404 for nested collection read when parent does not exist', async () => {
+            const r = await nestedHandler({
+                method: 'get',
+                path: '/user/nonexistent/posts',
+                client: nestedClient,
+            });
+            expect(r.status).toBe(404);
+        });
+
+        it('scopes nested single reads to parent', async () => {
+            await nestedClient.user.create({
+                data: {
+                    id: 'u1',
+                    email: 'u1@test.com',
+                },
+            });
+
+            const user2 = await nestedClient.user.create({
+                data: {
+                    id: 'u2',
+                    email: 'u2@test.com',
+                    posts: {
+                        create: [{ title: 'u2-post-1' }],
+                    },
+                },
+                include: {
+                    posts: true,
+                },
+            });
+
+            const postId = user2.posts[0]!.id;
+
+            const denied = await nestedHandler({
+                method: 'get',
+                path: `/user/u1/posts/${postId}`,
+                client: nestedClient,
+            });
+            expect(denied.status).toBe(404);
+
+            const allowed = await nestedHandler({
+                method: 'get',
+                path: `/user/u2/posts/${postId}`,
+                client: nestedClient,
+            });
+            expect(allowed.status).toBe(200);
+            expect(allowed.body.data.attributes.title).toBe('u2-post-1');
+        });
+
+        it('returns 404 for nested single read when parent does not exist', async () => {
+            const r = await nestedHandler({
+                method: 'get',
+                path: '/user/nonexistent/posts/1',
+                client: nestedClient,
+            });
+            expect(r.status).toBe(404);
+        });
+
+        it('returns 404 for nested create when parent does not exist', async () => {
+            const r = await nestedHandler({
+                method: 'post',
+                path: '/user/nonexistent/posts',
+                client: nestedClient,
+                requestBody: {
+                    data: {
+                        type: 'Post',
+                        attributes: { title: 'orphan' },
+                    },
+                },
+            });
+            expect(r.status).toBe(404);
+        });
+
+        it('binds nested creates to parent relation automatically', async () => {
+            await nestedClient.user.create({
+                data: {
+                    id: 'u1',
+                    email: 'u1@test.com',
+                },
+            });
+
+            const created = await nestedHandler({
+                method: 'post',
+                path: '/user/u1/posts',
+                client: nestedClient,
+                requestBody: {
+                    data: {
+                        type: 'Post',
+                        attributes: {
+                            title: 'nested-created',
+                        },
+                    },
+                },
+            });
+
+            expect(created.status).toBe(201);
+
+            const dbPost = await nestedClient.post.findFirst({
+                where: {
+                    title: 'nested-created',
+                },
+            });
+
+            expect(dbPost?.authorId).toBe('u1');
+        });
+
+        it('rejects nested create when payload specifies the forced parent relation', async () => {
+            await nestedClient.user.create({
+                data: { id: 'u1', email: 'u1@test.com' },
+            });
+            await nestedClient.user.create({
+                data: { id: 'u2', email: 'u2@test.com' },
+            });
+
+            const r = await nestedHandler({
+                method: 'post',
+                path: '/user/u1/posts',
+                client: nestedClient,
+                requestBody: {
+                    data: {
+                        type: 'Post',
+                        attributes: { title: 'conflict' },
+                        relationships: {
+                            author: { data: { type: 'User', id: 'u2' } },
+                        },
+                    },
+                },
+            });
+
+            expect(r.status).toBe(400);
+        });
+
+        it('rejects nested create when attributes contain scalar FK for the forced parent relation', async () => {
+            await nestedClient.user.create({
+                data: { id: 'u1', email: 'u1@test.com' },
+            });
+            await nestedClient.user.create({
+                data: { id: 'u2', email: 'u2@test.com' },
+            });
+
+            const r = await nestedHandler({
+                method: 'post',
+                path: '/user/u1/posts',
+                client: nestedClient,
+                requestBody: {
+                    data: {
+                        type: 'Post',
+                        attributes: { title: 'conflict', authorId: 'u2' },
+                    },
+                },
+            });
+
+            expect(r.status).toBe(400);
+        });
+
+        it('scopes nested collection reads with filter and pagination', async () => {
+            await nestedClient.user.create({
+                data: {
+                    id: 'u1',
+                    email: 'u1@test.com',
+                    posts: {
+                        create: [{ title: 'alpha' }, { title: 'beta' }, { title: 'gamma' }],
+                    },
+                },
+            });
+
+            const filtered = await nestedHandler({
+                method: 'get',
+                path: '/user/u1/posts',
+                query: { 'filter[title]': 'alpha' },
+                client: nestedClient,
+            });
+            expect(filtered.status).toBe(200);
+            expect(filtered.body.data).toHaveLength(1);
+            expect(filtered.body.data[0].attributes.title).toBe('alpha');
+
+            const paged = await nestedHandler({
+                method: 'get',
+                path: '/user/u1/posts',
+                query: { 'page[limit]': '2', 'page[offset]': '0' },
+                client: nestedClient,
+            });
+            expect(paged.status).toBe(200);
+            expect(paged.body.data).toHaveLength(2);
+        });
+
+        it('updates a child scoped to parent (PATCH)', async () => {
+            const user1 = await nestedClient.user.create({
+                data: {
+                    id: 'u1',
+                    email: 'u1@test.com',
+                    posts: { create: [{ title: 'original' }] },
+                },
+                include: { posts: true },
+            });
+            const postId = user1.posts[0]!.id;
+
+            await nestedClient.user.create({ data: { id: 'u2', email: 'u2@test.com' } });
+
+            // Cannot update a post that belongs to a different parent
+            const denied = await nestedHandler({
+                method: 'patch',
+                path: `/user/u2/posts/${postId}`,
+                client: nestedClient,
+                requestBody: {
+                    data: { type: 'Post', attributes: { title: 'denied-update' } },
+                },
+            });
+            expect(denied.status).toBe(404);
+
+            // Can update a post that belongs to the correct parent
+            const allowed = await nestedHandler({
+                method: 'patch',
+                path: `/user/u1/posts/${postId}`,
+                client: nestedClient,
+                requestBody: {
+                    data: { type: 'Post', attributes: { title: 'updated' } },
+                },
+            });
+            expect(allowed.status).toBe(200);
+            expect(allowed.body.data.attributes.title).toBe('updated');
+        });
+
+        it('rejects nested PATCH when payload tries to change the parent relation', async () => {
+            const user1 = await nestedClient.user.create({
+                data: {
+                    id: 'u1',
+                    email: 'u1@test.com',
+                    posts: { create: [{ title: 'post' }] },
+                },
+                include: { posts: true },
+            });
+            const postId = user1.posts[0]!.id;
+            await nestedClient.user.create({ data: { id: 'u2', email: 'u2@test.com' } });
+
+            const r = await nestedHandler({
+                method: 'patch',
+                path: `/user/u1/posts/${postId}`,
+                client: nestedClient,
+                requestBody: {
+                    data: {
+                        type: 'Post',
+                        attributes: { title: 'new' },
+                        relationships: {
+                            author: { data: { type: 'User', id: 'u2' } },
+                        },
+                    },
+                },
+            });
+            expect(r.status).toBe(400);
+        });
+
+        it('rejects nested PATCH when attributes contain camelCase FK field', async () => {
+            const user1 = await nestedClient.user.create({
+                data: {
+                    id: 'u1',
+                    email: 'u1@test.com',
+                    posts: { create: [{ title: 'post' }] },
+                },
+                include: { posts: true },
+            });
+            const postId = user1.posts[0]!.id;
+            await nestedClient.user.create({ data: { id: 'u2', email: 'u2@test.com' } });
+
+            const r = await nestedHandler({
+                method: 'patch',
+                path: `/user/u1/posts/${postId}`,
+                client: nestedClient,
+                requestBody: {
+                    data: {
+                        type: 'Post',
+                        attributes: { title: 'new', authorId: 'u2' },
+                    },
+                },
+            });
+            expect(r.status).toBe(400);
+        });
+
+        it('deletes a child scoped to parent (DELETE)', async () => {
+            const user1 = await nestedClient.user.create({
+                data: {
+                    id: 'u1',
+                    email: 'u1@test.com',
+                    posts: { create: [{ title: 'to-delete' }] },
+                },
+                include: { posts: true },
+            });
+            const postId = user1.posts[0]!.id;
+            await nestedClient.user.create({ data: { id: 'u2', email: 'u2@test.com' } });
+
+            // Cannot delete a post via the wrong parent
+            const denied = await nestedHandler({
+                method: 'delete',
+                path: `/user/u2/posts/${postId}`,
+                client: nestedClient,
+            });
+            expect(denied.status).toBe(404);
+
+            // Can delete via the correct parent
+            const allowed = await nestedHandler({
+                method: 'delete',
+                path: `/user/u1/posts/${postId}`,
+                client: nestedClient,
+            });
+            expect(allowed.status).toBe(200);
+
+            const gone = await nestedClient.post.findFirst({ where: { id: postId } });
+            expect(gone).toBeNull();
+        });
+
+        it('falls back to fetchRelated for non-configured 3-segment paths', async () => {
+            const user1 = await nestedClient.user.create({
+                data: {
+                    id: 'u1',
+                    email: 'u1@test.com',
+                    posts: { create: [{ title: 'p1' }] },
+                },
+            });
+
+            // 'author' is a relation on Post, not a nestedRoute → fetchRelated
+            const post = await nestedClient.post.findFirst({ where: { authorId: 'u1' } });
+            const r = await nestedHandler({
+                method: 'get',
+                path: `/post/${post!.id}/author`,
+                client: nestedClient,
+            });
+            expect(r.status).toBe(200);
+            expect(r.body.data.id).toBe(user1.id);
+        });
+
+        it('supports PATCH /:type/:id/:relationship for to-one nested update', async () => {
+            await nestedClient.user.create({ data: { id: 'u1', email: 'u1@test.com' } });
+            await nestedClient.user.create({ data: { id: 'u2', email: 'u2@test.com' } });
+            const post = await nestedClient.post.create({
+                data: { title: 'my-post', author: { connect: { id: 'u1' } } },
+            });
+
+            // PATCH /post/:id/author — update the to-one related author's attributes
+            const updated = await nestedHandler({
+                method: 'patch',
+                path: `/post/${post.id}/author`,
+                client: nestedClient,
+                requestBody: {
+                    data: { type: 'user', id: 'u1', attributes: { email: 'u1-new@test.com' } },
+                },
+            });
+            expect(updated.status).toBe(200);
+            expect(updated.body.data.attributes.email).toBe('u1-new@test.com');
+            expect(updated.body.links.self).toBe(`http://localhost/api/post/${post.id}/author`);
+            expect(updated.body.data.links.self).toBe(`http://localhost/api/post/${post.id}/author`);
+
+            // Verify the DB was actually updated
+            const dbUser = await nestedClient.user.findUnique({ where: { id: 'u1' } });
+            expect(dbUser?.email).toBe('u1-new@test.com');
+
+            // Attempting to change the back-relation (posts) via the nested route should be rejected
+            const rejected = await nestedHandler({
+                method: 'patch',
+                path: `/post/${post.id}/author`,
+                client: nestedClient,
+                requestBody: {
+                    data: {
+                        type: 'user',
+                        id: 'u1',
+                        relationships: { posts: { data: [{ type: 'post', id: String(post.id) }] } },
+                    },
+                },
+            });
+            expect(rejected.status).toBe(400);
+        });
+
+        it('returns 400 for PATCH /:type/:id/:relationship to-one when nestedRoutes is not enabled', async () => {
+            const api = new RestApiHandler({
+                schema: nestedClient.$schema,
+                endpoint: 'http://localhost/api',
+                // nestedRoutes not enabled
+            });
+            const plainHandler = (args: any) =>
+                api.handleRequest({ ...args, url: new URL(`http://localhost/${args.path}`) });
+
+            await nestedClient.user.create({ data: { id: 'u1', email: 'u1@test.com' } });
+            const post = await nestedClient.post.create({
+                data: { title: 'my-post', author: { connect: { id: 'u1' } } },
+            });
+
+            const r = await plainHandler({
+                method: 'patch',
+                path: `/post/${post.id}/author`,
+                client: nestedClient,
+                requestBody: { data: { type: 'user', id: 'u1', attributes: { email: 'x@test.com' } } },
+            });
+            expect(r.status).toBe(400);
+        });
+
+        it('returns nested self-links in JSON:API responses for all nested operations', async () => {
+            await nestedClient.user.create({ data: { id: 'u1', email: 'u1@test.com' } });
+
+            // POST /user/u1/posts — nested create
+            const created = await nestedHandler({
+                method: 'post',
+                path: '/user/u1/posts',
+                client: nestedClient,
+                requestBody: { data: { type: 'post', attributes: { title: 'hello' } } },
+            });
+            expect(created.status).toBe(201);
+            const postId = created.body.data.id;
+            expect(created.body.links.self).toBe(`http://localhost/api/user/u1/posts/${postId}`);
+            expect(created.body.data.links.self).toBe(`http://localhost/api/user/u1/posts/${postId}`);
+
+            // GET /user/u1/posts/:id — nested single read
+            const single = await nestedHandler({
+                method: 'get',
+                path: `/user/u1/posts/${postId}`,
+                client: nestedClient,
+            });
+            expect(single.status).toBe(200);
+            expect(single.body.links.self).toBe(`http://localhost/api/user/u1/posts/${postId}`);
+            expect(single.body.data.links.self).toBe(`http://localhost/api/user/u1/posts/${postId}`);
+
+            // PATCH /user/u1/posts/:id — nested update
+            const updated = await nestedHandler({
+                method: 'patch',
+                path: `/user/u1/posts/${postId}`,
+                client: nestedClient,
+                requestBody: { data: { type: 'post', id: String(postId), attributes: { title: 'updated' } } },
+            });
+            expect(updated.status).toBe(200);
+            expect(updated.body.links.self).toBe(`http://localhost/api/user/u1/posts/${postId}`);
+            expect(updated.body.data.links.self).toBe(`http://localhost/api/user/u1/posts/${postId}`);
+        });
+
+        it('works with modelNameMapping on both parent and child segments', async () => {
+            const mappedApi = new RestApiHandler({
+                schema: nestedClient.$schema,
+                endpoint: 'http://localhost/api',
+                modelNameMapping: { User: 'users', Post: 'posts' },
+                nestedRoutes: true,
+            });
+            const mappedHandler = (args: any) =>
+                mappedApi.handleRequest({ ...args, url: new URL(`http://localhost/${args.path}`) });
+
+            await nestedClient.user.create({
+                data: {
+                    id: 'u1',
+                    email: 'u1@test.com',
+                    posts: { create: [{ title: 'mapped-post' }] },
+                },
+            });
+            await nestedClient.user.create({
+                data: { id: 'u2', email: 'u2@test.com' },
+            });
+
+            const collection = await mappedHandler({
+                method: 'get',
+                path: '/users/u1/posts',
+                client: nestedClient,
+            });
+            expect(collection.status).toBe(200);
+            expect(collection.body.data).toHaveLength(1);
+            expect(collection.body.data[0].attributes.title).toBe('mapped-post');
+
+            // Parent with no posts → 200 with empty collection
+            const denied = await mappedHandler({
+                method: 'get',
+                path: '/users/u2/posts',
+                client: nestedClient,
+            });
+            expect(denied.status).toBe(200);
+            expect(denied.body.data).toHaveLength(0);
+        });
+
+        it('falls back to fetchRelated for mapped child names without nestedRoutes', async () => {
+            const mappedApi = new RestApiHandler({
+                schema: nestedClient.$schema,
+                endpoint: 'http://localhost/api',
+                modelNameMapping: { User: 'users', Post: 'posts' },
+            });
+            const mappedHandler = (args: any) =>
+                mappedApi.handleRequest({ ...args, url: new URL(`http://localhost/${args.path}`) });
+
+            await nestedClient.user.create({
+                data: {
+                    id: 'u1',
+                    email: 'u1@test.com',
+                    posts: { create: [{ title: 'mapped-fallback-post' }] },
+                },
+            });
+            await nestedClient.user.create({
+                data: { id: 'u2', email: 'u2@test.com' },
+            });
+
+            const collection = await mappedHandler({
+                method: 'get',
+                path: '/users/u1/posts',
+                client: nestedClient,
+            });
+            expect(collection.status).toBe(200);
+            expect(collection.body.data).toHaveLength(1);
+            expect(collection.body.data[0].attributes.title).toBe('mapped-fallback-post');
+
+            const empty = await mappedHandler({
+                method: 'get',
+                path: '/users/u2/posts',
+                client: nestedClient,
+            });
+            expect(empty.status).toBe(200);
+            expect(empty.body.data).toHaveLength(0);
+        });
+
+        it('exercises mapped nested-route mutations and verifies link metadata', async () => {
+            const mappedApi = new RestApiHandler({
+                schema: nestedClient.$schema,
+                endpoint: 'http://localhost/api',
+                modelNameMapping: { User: 'users', Post: 'posts' },
+                nestedRoutes: true,
+            });
+            const mappedHandler = (args: any) =>
+                mappedApi.handleRequest({ ...args, url: new URL(`http://localhost/${args.path}`) });
+
+            await nestedClient.user.create({ data: { id: 'u1', email: 'u1@test.com' } });
+
+            // POST /users/u1/posts — nested create via mapped route
+            const created = await mappedHandler({
+                method: 'post',
+                path: '/users/u1/posts',
+                client: nestedClient,
+                requestBody: { data: { type: 'posts', attributes: { title: 'mapped-create' } } },
+            });
+            expect(created.status).toBe(201);
+            const postId = created.body.data.id;
+            expect(created.body.links.self).toBe(`http://localhost/api/users/u1/posts/${postId}`);
+            expect(created.body.data.links.self).toBe(`http://localhost/api/users/u1/posts/${postId}`);
+
+            // GET /users/u1/posts — list should contain the new post
+            const afterCreate = await mappedHandler({
+                method: 'get',
+                path: '/users/u1/posts',
+                client: nestedClient,
+            });
+            expect(afterCreate.status).toBe(200);
+            expect(afterCreate.body.data).toHaveLength(1);
+            expect(afterCreate.body.links.self).toBe('http://localhost/api/users/u1/posts');
+
+            // PATCH /users/u1/posts/:id — nested update via mapped route
+            const updated = await mappedHandler({
+                method: 'patch',
+                path: `/users/u1/posts/${postId}`,
+                client: nestedClient,
+                requestBody: {
+                    data: { type: 'posts', id: String(postId), attributes: { title: 'mapped-updated' } },
+                },
+            });
+            expect(updated.status).toBe(200);
+            expect(updated.body.data.attributes.title).toBe('mapped-updated');
+            expect(updated.body.links.self).toBe(`http://localhost/api/users/u1/posts/${postId}`);
+            expect(updated.body.data.links.self).toBe(`http://localhost/api/users/u1/posts/${postId}`);
+
+            // DELETE /users/u1/posts/:id — nested delete via mapped route
+            const deleted = await mappedHandler({
+                method: 'delete',
+                path: `/users/u1/posts/${postId}`,
+                client: nestedClient,
+            });
+            expect(deleted.status).toBe(200);
+
+            // GET /users/u1/posts — list should now be empty
+            const afterDelete = await mappedHandler({
+                method: 'get',
+                path: '/users/u1/posts',
+                client: nestedClient,
+            });
+            expect(afterDelete.status).toBe(200);
+            expect(afterDelete.body.data).toHaveLength(0);
+        });
+    });
 });

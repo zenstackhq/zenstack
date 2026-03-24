@@ -202,6 +202,16 @@ describe('API Handler Options Validation', () => {
             }).toThrow('Invalid options');
         });
 
+        it('should throw error when nestedRoutes is not a boolean', () => {
+            expect(() => {
+                new RestApiHandler({
+                    schema: client.$schema,
+                    endpoint: 'http://localhost/api',
+                    nestedRoutes: 'invalid' as any,
+                });
+            }).toThrow('Invalid options');
+        });
+
         it('should throw error when log is invalid type', () => {
             expect(() => {
                 new RestApiHandler({

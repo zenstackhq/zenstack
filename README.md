@@ -111,3 +111,23 @@ Thank you for your generous support!
 # Community
 
 Join our [discord server](https://discord.gg/Ykhr738dUe) for chat and updates!
+
+# Contributors
+
+Thanks to all the contributors who have helped make ZenStack better!
+
+### Source
+
+<a href="https://github.com/zenstackhq/zenstack/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=zenstackhq/zenstack" />
+</a>
+
+### Docs
+
+<a href="https://github.com/zenstackhq/zenstack-docs/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=zenstackhq/zenstack-docs" />
+</a>
+
+## License
+
+[MIT](LICENSE)
