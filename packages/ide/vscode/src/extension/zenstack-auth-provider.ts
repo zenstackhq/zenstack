@@ -11,6 +11,7 @@ interface JWTClaims {
 export const AUTH_PROVIDER_ID = 'ZenStack';
 export const AUTH_URL = 'https://accounts.zenstack.dev';
 export const API_URL = 'https://api.zenstack.dev';
+const EXTENSION_ID = 'zenstack.zenstack-v3';
 
 export class ZenStackAuthenticationProvider implements vscode.AuthenticationProvider, vscode.Disposable {
     private _onDidChangeSessions =
@@ -111,19 +112,21 @@ export class ZenStackAuthenticationProvider implements vscode.AuthenticationProv
                         reject(new Error('User Cancelled'));
                     });
 
-                    const appName =
-                        vscode.env.appName === 'Visual Studio Code' ? 'vscode' : vscode.env.appName.toLowerCase();
-                    const redirectUrl = `${API_URL}/oauth/oauth_callback?extId=zenstack.zenstack-v3&vscodeapp=${appName}`;
+                    const appName = vscode.env.uriScheme;
+                    const redirectUrl = `${API_URL}/oauth/oauth_callback?vscodeapp=${appName}&extId=${EXTENSION_ID}`;
                     const signInUrl = vscode.Uri.parse(new URL('/sign-in', AUTH_URL).toString()).with({
-                        query: `redirect_url=${redirectUrl}`,
+                        query: `redirect_url=${encodeURIComponent(redirectUrl)}`,
                     });
 
-                    console.log('ZenStack sign-in URL:', signInUrl.toString());
+                    const finalUrl = signInUrl.toString(true);
+                    console.log('ZenStack sign-in URL:', finalUrl);
+
                     // Store the state and resolve function for later use
                     this.pendingAuth = { resolve, reject, scopes };
 
                     // Open the ZenStack sign-in page in the user's default browser
-                    vscode.env.openExternal(signInUrl).then(
+                    // @ts-ignore - vscode issue: https://github.com/microsoft/vscode/issues/85930
+                    vscode.env.openExternal(finalUrl).then(
                         () => {
                             console.log('Opened ZenStack sign-in page in browser');
                             progress.report({ message: 'Waiting for return from browser...' });
