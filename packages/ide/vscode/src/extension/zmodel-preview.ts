@@ -15,6 +15,7 @@ export class ZModelPreview implements vscode.Disposable {
     private documentationCache: DocumentationCache;
     private languageClient: LanguageClient;
     private lastGeneratedMarkdown: string | null = null;
+    private extensionVersion: string;
     // use a zero-width space in the file name to make it non-colliding with user file
     private readonly previewZModelFileName = `zmodel${'\u200B'}-preview.md`;
 
@@ -35,11 +36,13 @@ export class ZModelPreview implements vscode.Disposable {
                 osType: z.string(),
             })
             .optional(),
+        extensionVersion: z.string().optional(),
     });
 
     constructor(context: vscode.ExtensionContext, client: LanguageClient, cache: DocumentationCache) {
         this.documentationCache = cache;
         this.languageClient = client;
+        this.extensionVersion = context.extension.packageJSON.version ?? '';
         this.initialize(context);
     }
 
@@ -223,6 +226,7 @@ export class ZModelPreview implements vscode.Disposable {
                     osRelease: os.release(),
                     osType: os.type(),
                 },
+                extensionVersion: this.extensionVersion,
             };
 
             const allModelsContent = allModels.map((m) => m.content);
