@@ -41,15 +41,14 @@ import * as BuiltinFunctions from './functions';
 import { SchemaDbPusher } from './helpers/schema-db-pusher';
 import type { ClientOptions, ProceduresOptions } from './options';
 import type { AnyPlugin } from './plugin';
+import { createZenStackPromise, type ZenStackPromise } from './promise';
+import { fieldHasDefaultValue, getField, isUnsupportedField, requireModel } from './query-utils';
+import { ResultProcessor } from './result-processor';
 
 type ExtResultFieldDef = {
     needs: Record<string, true>;
     compute: (data: Record<string, any>) => unknown;
 };
-import { getField } from './query-utils';
-import { createZenStackPromise, type ZenStackPromise } from './promise';
-import { fieldHasDefaultValue, isUnsupportedField, requireModel } from './query-utils';
-import { ResultProcessor } from './result-processor';
 
 /**
  * ZenStack ORM client.
@@ -172,7 +171,8 @@ export class ClientImpl {
             if (modelDef.computedFields) {
                 for (const fieldName of Object.keys(modelDef.computedFields)) {
                     // check both uncapitalized (current) and original (backward compat) model name
-                    const modelConfig = computedFieldsConfig?.[lowerCaseFirst(modelName)] ?? computedFieldsConfig?.[modelName];
+                    const modelConfig =
+                        computedFieldsConfig?.[lowerCaseFirst(modelName)] ?? computedFieldsConfig?.[modelName];
                     const fieldConfig = modelConfig?.[fieldName];
                     // Check if the computed field has a configuration
                     if (fieldConfig === null || fieldConfig === undefined) {
@@ -426,7 +426,7 @@ export class ClientImpl {
     }
 
     $setAuth(auth: AuthType<SchemaDef> | undefined) {
-        if (auth !== undefined && typeof auth !== 'object') {
+        if (auth !== undefined && (typeof auth !== 'object' || auth === null || Array.isArray(auth))) {
             throw new Error('Invalid auth object');
         }
         const newClient = new ClientImpl(this.schema, this.$options, this);

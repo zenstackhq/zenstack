@@ -124,12 +124,13 @@ export type ClientContract<
     $queryRawUnsafe<T = unknown>(query: string, ...values: any[]): ZenStackPromise<Schema, T>;
 
     /**
-     * The current user identity.
+     * The current user identity. If the client is not bound to any user context, returns `undefined`.
      */
     get $auth(): AuthType<Schema> | undefined;
 
     /**
      * Returns a new client bound to the specified user identity. The original client remains unchanged.
+     * Pass `undefined` to return a client without any user context.
      *
      * @example
      * ```
