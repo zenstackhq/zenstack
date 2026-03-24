@@ -142,3 +142,218 @@ type ZodOptionalAndNullableIf<T extends z.ZodType, Condition extends boolean> = 
 type ZodOptionalIf<T extends z.ZodType, Condition extends boolean> = Condition extends true ? z.ZodOptional<T> : T;
 type ZodNullableIf<T extends z.ZodType, Condition extends boolean> = Condition extends true ? z.ZodNullable<T> : T;
 type ZodArrayIf<T extends z.ZodType, Condition extends boolean> = Condition extends true ? z.ZodArray<T> : T;
+
+// -------------------------------------------------------------------------
+// Query options types (ORM-style include / select / omit)
+// -------------------------------------------------------------------------
+
+/**
+ * The non-relation scalar fields of a model (excludes relation fields and
+ * foreign-key fields that back a relation).
+ */
+type ScalarModelFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+    [Field in GetModelFields<Schema, Model> as FieldIsRelation<Schema, Model, Field> extends true
+        ? never
+        : Field]: Field;
+};
+
+/**
+ * The relation fields of a model.
+ */
+type RelationModelFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+    [Field in GetModelFields<Schema, Model> as FieldIsRelation<Schema, Model, Field> extends true
+        ? Field
+        : never]: Field;
+};
+
+/**
+ * For a relation field, resolve the related model name.
+ */
+type RelatedModel<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Field extends GetModelFields<Schema, Model>,
+> = GetModelFieldType<Schema, Model, Field> extends GetModels<Schema> ? GetModelFieldType<Schema, Model, Field> : never;
+
+/**
+ * ORM-style query options accepted by `makeModelSchema`.
+ *
+ * Exactly mirrors the `select` / `include` / `omit` vocabulary:
+ * - `select`  — pick specific fields (scalars and/or relations). Mutually
+ *               exclusive with `include` and `omit`.
+ * - `include` — start with all scalar fields, then add the named relation
+ *               fields. Can be combined with `omit`.
+ * - `omit`    — remove named scalar fields from the default scalar set.
+ *               Can be combined with `include`, mutually exclusive with
+ *               `select`.
+ */
+export type ModelSchemaOptions<Schema extends SchemaDef, Model extends GetModels<Schema>> =
+    | {
+          /**
+           * Pick only the listed fields. Values can be `true` (include with
+           * default shape) or a nested options object (for relation fields).
+           */
+          select: {
+              [Field in GetModelFields<Schema, Model>]?: FieldIsRelation<Schema, Model, Field> extends true
+                  ? boolean | ModelSchemaOptions<Schema, RelatedModel<Schema, Model, Field>>
+                  : boolean;
+          };
+          include?: never;
+          omit?: never;
+      }
+    | {
+          select?: never;
+          /**
+           * Add the listed relation fields on top of the scalar fields.
+           * Values can be `true` / `{}` (default shape) or a nested options
+           * object.
+           */
+          include?: {
+              [Field in keyof RelationModelFields<Schema, Model>]?: Field extends GetModelFields<Schema, Model>
+                  ? boolean | ModelSchemaOptions<Schema, RelatedModel<Schema, Model, Field>>
+                  : never;
+          };
+          /**
+           * Remove the listed scalar fields from the output.
+           */
+          omit?: {
+              [Field in keyof ScalarModelFields<Schema, Model>]?: boolean;
+          };
+      };
+
+// ---- Output shape helpers ------------------------------------------------
+
+/**
+ * Narrows `Field` so it can safely index `GetModelFieldsShape`. The mapped
+ * type uses a `as`-remapping clause, so TypeScript widens the key set and
+ * `Field extends GetModelFields<…>` alone is not enough for indexing.
+ */
+type FieldInShape<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Field extends GetModelFields<Schema, Model>,
+> = Field & keyof GetModelFieldsShape<Schema, Model>;
+
+/**
+ * Zod shape produced when a relation field is included via `include: { field:
+ * true }` or `select: { field: true }` — identical to how the existing
+ * `makeModelSchema` (no-options) represents relation fields: optional, carries
+ * array-ness and nullability from the field definition.
+ */
+type RelationFieldZodDefault<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Field extends GetModelFields<Schema, Model>,
+> = GetModelFieldsShape<Schema, Model>[FieldInShape<Schema, Model, Field>];
+
+/**
+ * Zod shape for a relation field included with nested options.  We recurse
+ * into `GetModelSchemaShapeWithOptions` for the related model, then re-apply
+ * the same optional/array/nullable wrappers as the default relation field.
+ */
+type RelationFieldZodWithOptions<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Field extends GetModelFields<Schema, Model>,
+    Options,
+> =
+    RelatedModel<Schema, Model, Field> extends GetModels<Schema>
+        ? ZodNullableIf<
+              z.ZodOptional<
+                  ZodArrayIf<
+                      z.ZodObject<
+                          GetModelSchemaShapeWithOptions<Schema, RelatedModel<Schema, Model, Field>, Options>,
+                          z.core.$strict
+                      >,
+                      FieldIsArray<Schema, Model, Field>
+                  >
+              >,
+              ModelFieldIsOptional<Schema, Model, Field>
+          >
+        : never;
+
+/**
+ * Resolve the Zod type for a single field given a select-entry value (`true`
+ * or a nested options object).
+ */
+type SelectEntryToZod<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Field extends GetModelFields<Schema, Model>,
+    Value,
+> = Value extends boolean
+    ? // `true` or widened `boolean` — use the default shape for this field.
+      // Handling `boolean` (not just literal `true`) prevents the type from
+      // collapsing to `never` when callers use a boolean variable instead of
+      // a literal (e.g. `const pick: boolean = true`).
+      GetModelFieldsShape<Schema, Model>[FieldInShape<Schema, Model, Field>]
+    : Value extends object
+      ? // nested options — must be a relation field
+        RelationFieldZodWithOptions<Schema, Model, Field, Value>
+      : never;
+
+/**
+ * Build the Zod shape for the `select` branch: only the listed fields,
+ * recursing into relations when given nested options.
+ */
+type BuildSelectShape<Schema extends SchemaDef, Model extends GetModels<Schema>, S extends Record<string, unknown>> = {
+    [Field in keyof S & GetModelFields<Schema, Model> as S[Field] extends false ? never : Field]: SelectEntryToZod<
+        Schema,
+        Model,
+        Field,
+        S[Field]
+    >;
+};
+
+/**
+ * Build the Zod shape for the `include` + `omit` branch:
+ * - All scalar fields, minus any that appear in `omit` with value `true`.
+ * - Plus the relation fields listed in `include`.
+ */
+type BuildIncludeOmitShape<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    I extends Record<string, unknown> | undefined,
+    O extends Record<string, unknown> | undefined,
+> =
+    // scalar fields, omitting those explicitly excluded
+    {
+        [Field in GetModelFields<Schema, Model> as FieldIsRelation<Schema, Model, Field> extends true
+            ? never
+            : O extends object
+              ? Field extends keyof O
+                  ? O[Field] extends true
+                      ? never
+                      : Field
+                  : Field
+              : Field]: GetModelFieldsShape<Schema, Model>[FieldInShape<Schema, Model, Field>];
+    } & (I extends object // included relation fields
+        ? {
+              [Field in keyof I & GetModelFields<Schema, Model> as I[Field] extends false
+                  ? never
+                  : Field]: I[Field] extends object
+                  ? RelationFieldZodWithOptions<Schema, Model, Field, I[Field]>
+                  : RelationFieldZodDefault<Schema, Model, Field>;
+          }
+        : // no include — empty, so the intersection is a no-op
+          {});
+
+/**
+ * The top-level conditional that maps options → Zod shape.
+ *
+ * - No options / undefined  → existing `GetModelFieldsShape` (no change).
+ * - `{ select: S }`         → `BuildSelectShape`.
+ * - `{ include?, omit? }`   → `BuildIncludeOmitShape`.
+ */
+export type GetModelSchemaShapeWithOptions<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options,
+> = Options extends { select: infer S extends Record<string, unknown> }
+    ? BuildSelectShape<Schema, Model, S>
+    : Options extends {
+            include?: infer I extends Record<string, unknown> | undefined;
+            omit?: infer O extends Record<string, unknown> | undefined;
+        }
+      ? BuildIncludeOmitShape<Schema, Model, I, O>
+      : GetModelFieldsShape<Schema, Model>;

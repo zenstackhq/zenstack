@@ -261,9 +261,59 @@ export function addListValidation(
     return result;
 }
 
+/**
+ * Recursively collects all field names referenced by `kind: 'field'` nodes
+ * inside an expression tree.
+ */
+export function collectFieldRefs(expr: Expression): Set<string> {
+    const refs = new Set<string>();
+    function walk(e: Expression): void {
+        switch (e.kind) {
+            case 'field':
+                refs.add(e.field);
+                break;
+            case 'unary':
+                walk(e.operand);
+                break;
+            case 'binary':
+                walk(e.left);
+                walk(e.right);
+                break;
+            case 'call':
+                e.args?.forEach(walk);
+                break;
+            case 'array':
+                e.items.forEach(walk);
+                break;
+            case 'member':
+                walk(e.receiver);
+                break;
+            // literal / null / this / binding — no field refs
+        }
+    }
+    walk(expr);
+    return refs;
+}
+
+/**
+ * Applies `@@validate` rules from `attributes` to `schema` as Zod refinements.
+ *
+ * When `presentFields` is provided, only rules whose every field reference is
+ * present in the set are applied. Rules that reference a field absent from the
+ * set are silently skipped — they cannot be evaluated correctly against a
+ * partial payload (e.g. when `select` or `omit` has been used).
+ *
+ * Omit `presentFields` (or pass `undefined`) to apply all rules
+ * unconditionally, which is the correct behaviour for full-model schemas.
+ *
+ * Note: `@@validate` conditions are restricted by the ZModel compiler to
+ * scalar fields of the same model only — relation fields are a compile error.
+ * A flat field-name set is therefore sufficient.
+ */
 export function addCustomValidation(
     schema: z.ZodSchema,
     attributes: readonly AttributeApplication[] | undefined,
+    presentFields?: ReadonlySet<string>,
 ): z.ZodSchema {
     const attrs = attributes?.filter((a) => a.name === '@@validate');
     if (!attrs || attrs.length === 0) {
@@ -276,6 +326,15 @@ export function addCustomValidation(
         if (!expr) {
             continue;
         }
+
+        // Skip rules that reference a field absent from the partial shape.
+        if (presentFields !== undefined) {
+            const refs = collectFieldRefs(expr);
+            if ([...refs].some((ref) => !presentFields.has(ref))) {
+                continue;
+            }
+        }
+
         const message = getArgValue<string>(attr.args?.[1]?.value);
         const pathExpr = attr.args?.[2]?.value;
         let path: string[] | undefined = undefined;

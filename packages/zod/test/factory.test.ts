@@ -107,13 +107,13 @@ describe('SchemaFactory - makeModelSchema', () => {
             // scalar array
             expectTypeOf<Post['tags']>().toEqualTypeOf<string[]>();
 
-            const createPostSchema = factory.makeModelCreateSchema('Post');
-            type PostCreate = z.infer<typeof createPostSchema>;
+            const _createPostSchema = factory.makeModelCreateSchema('Post');
+            type PostCreate = z.infer<typeof _createPostSchema>;
 
             expectTypeOf<PostCreate['tags']>().toEqualTypeOf<string[]>();
 
-            const updatePostSchema = factory.makeModelUpdateSchema('Post');
-            type PostUpdate = z.infer<typeof updatePostSchema>;
+            const _updatePostSchema = factory.makeModelUpdateSchema('Post');
+            type PostUpdate = z.infer<typeof _updatePostSchema>;
 
             expectTypeOf<PostUpdate['tags']>().toEqualTypeOf<string[] | undefined>();
 
@@ -891,6 +891,351 @@ describe('SchemaFactory - delegate models', () => {
             const _schema = factory.makeModelUpdateSchema('Asset');
             type AssetUpdate = z.infer<typeof _schema>;
             expectTypeOf<AssetUpdate>().not.toHaveProperty('assetType');
+        });
+    });
+});
+
+// ---------------------------------------------------------------------------
+// makeModelSchema — ORM-style options (omit / include / select)
+// ---------------------------------------------------------------------------
+
+// User without username (the omit use-case baseline)
+const validUserNoUsername = (() => {
+    const { username: _, ...rest } = validUser;
+    return rest;
+})();
+
+describe('SchemaFactory - makeModelSchema with options', () => {
+    // ── omit ────────────────────────────────────────────────────────────────
+    describe('omit', () => {
+        it('excludes the omitted scalar field at runtime', () => {
+            const schema = factory.makeModelSchema('User', { omit: { username: true } });
+            // validUserNoUsername has no username field — should pass
+            expect(schema.safeParse(validUserNoUsername).success).toBe(true);
+        });
+
+        it('rejects when the omitted field is present (strict object)', () => {
+            const schema = factory.makeModelSchema('User', { omit: { username: true } });
+            // passing the full validUser (which has username) must fail because
+            // the schema is strict and username is no longer a known key
+            expect(schema.safeParse(validUser).success).toBe(false);
+        });
+
+        it('infers omitted field is absent from the output type', () => {
+            const _schema = factory.makeModelSchema('User', { omit: { username: true } });
+            type Result = z.infer<typeof _schema>;
+            expectTypeOf<Result>().not.toHaveProperty('username');
+        });
+
+        it('keeps all other scalar fields when one is omitted', () => {
+            const _schema = factory.makeModelSchema('User', { omit: { username: true } });
+            type Result = z.infer<typeof _schema>;
+            expectTypeOf<Result>().toHaveProperty('id');
+            expectTypeOf<Result['id']>().toEqualTypeOf<string>();
+            expectTypeOf<Result>().toHaveProperty('email');
+            expectTypeOf<Result['email']>().toEqualTypeOf<string>();
+        });
+
+        it('omit: {} (empty) keeps all scalar fields', () => {
+            const schema = factory.makeModelSchema('User', { omit: {} });
+            expect(schema.safeParse(validUser).success).toBe(true);
+        });
+
+        it('can omit multiple fields', () => {
+            const schema = factory.makeModelSchema('User', { omit: { username: true, avatar: true } });
+            const { username: _u, avatar: _a, ...rest } = validUser;
+            expect(schema.safeParse(rest).success).toBe(true);
+        });
+
+        it('infers multiple omitted fields absent', () => {
+            const _schema = factory.makeModelSchema('User', { omit: { username: true, avatar: true } });
+            type Result = z.infer<typeof _schema>;
+            expectTypeOf<Result>().not.toHaveProperty('username');
+            expectTypeOf<Result>().not.toHaveProperty('avatar');
+            expectTypeOf<Result>().toHaveProperty('email');
+        });
+    });
+
+    // ── include ─────────────────────────────────────────────────────────────
+    describe('include', () => {
+        it('adds the relation field alongside all scalars', () => {
+            const schema = factory.makeModelSchema('User', { include: { posts: true } });
+            // All scalar fields must still be present
+            expect(schema.safeParse(validUser).success).toBe(true);
+        });
+
+        it('the included relation field is optional', () => {
+            const schema = factory.makeModelSchema('User', { include: { posts: true } });
+            // omitting posts should still pass
+            expect(schema.safeParse(validUser).success).toBe(true);
+        });
+
+        it('infers included relation field in output type', () => {
+            const _schema = factory.makeModelSchema('User', { include: { posts: true } });
+            type Result = z.infer<typeof _schema>;
+            expectTypeOf<Result>().toHaveProperty('posts');
+            const _postSchema = factory.makeModelSchema('Post');
+            type Post = z.infer<typeof _postSchema>;
+            expectTypeOf<Result['posts']>().toEqualTypeOf<Post[] | undefined>();
+        });
+
+        it('infers scalar fields still present when using include', () => {
+            const _schema = factory.makeModelSchema('User', { include: { posts: true } });
+            type Result = z.infer<typeof _schema>;
+            expectTypeOf<Result['id']>().toEqualTypeOf<string>();
+            expectTypeOf<Result['email']>().toEqualTypeOf<string>();
+            expectTypeOf<Result['username']>().toEqualTypeOf<string>();
+        });
+
+        it('include: false skips the relation', () => {
+            const schema = factory.makeModelSchema('User', { include: { posts: false } });
+            // posts field must not be in the strict schema
+            expect(schema.safeParse({ ...validUser, posts: [] }).success).toBe(false);
+        });
+
+        it('include with nested select on relation', () => {
+            const schema = factory.makeModelSchema('User', {
+                include: { posts: { select: { title: true } } },
+            });
+            // posts with only title should pass
+            expect(schema.safeParse({ ...validUser, posts: [{ title: 'Hello' }] }).success).toBe(true);
+            // posts with extra field should fail (strict)
+            expect(schema.safeParse({ ...validUser, posts: [{ title: 'Hello', published: true }] }).success).toBe(
+                false,
+            );
+        });
+
+        it('infers nested select shape on included relation', () => {
+            const _schema = factory.makeModelSchema('User', {
+                include: { posts: { select: { title: true } } },
+            });
+            type Result = z.infer<typeof _schema>;
+            type Posts = Exclude<Result['posts'], undefined>;
+            type Post = Posts extends Array<infer P> ? P : never;
+            expectTypeOf<Post>().toHaveProperty('title');
+            expectTypeOf<Post['title']>().toEqualTypeOf<string>();
+            expectTypeOf<Post>().not.toHaveProperty('id');
+        });
+    });
+
+    // ── include + omit ───────────────────────────────────────────────────────
+    describe('include + omit', () => {
+        it('omits the scalar field and adds the relation', () => {
+            const schema = factory.makeModelSchema('User', {
+                omit: { username: true },
+                include: { posts: true },
+            });
+            expect(schema.safeParse({ ...validUserNoUsername, posts: [] }).success).toBe(true);
+        });
+
+        it('rejects when omitted field is present', () => {
+            const schema = factory.makeModelSchema('User', {
+                omit: { username: true },
+                include: { posts: true },
+            });
+            expect(schema.safeParse({ ...validUser, posts: [] }).success).toBe(false);
+        });
+
+        it('infers combined shape correctly', () => {
+            const _schema = factory.makeModelSchema('User', {
+                omit: { username: true },
+                include: { posts: true },
+            });
+            type Result = z.infer<typeof _schema>;
+            expectTypeOf<Result>().not.toHaveProperty('username');
+            expectTypeOf<Result>().toHaveProperty('email');
+            expectTypeOf<Result>().toHaveProperty('posts');
+        });
+    });
+
+    // ── select ───────────────────────────────────────────────────────────────
+    describe('select', () => {
+        it('returns only the selected scalar fields', () => {
+            const schema = factory.makeModelSchema('User', { select: { id: true, email: true } });
+            expect(schema.safeParse({ id: 'u1', email: 'a@b.com' }).success).toBe(true);
+        });
+
+        it('rejects when a non-selected field is present (strict)', () => {
+            const schema = factory.makeModelSchema('User', { select: { id: true, email: true } });
+            expect(schema.safeParse({ id: 'u1', email: 'a@b.com', username: 'alice' }).success).toBe(false);
+        });
+
+        it('rejects when a selected field is missing', () => {
+            const schema = factory.makeModelSchema('User', { select: { id: true, email: true } });
+            expect(schema.safeParse({ id: 'u1' }).success).toBe(false);
+        });
+
+        it('infers only selected fields in output type', () => {
+            const _schema = factory.makeModelSchema('User', { select: { id: true, email: true } });
+            type Result = z.infer<typeof _schema>;
+            expectTypeOf<Result>().toHaveProperty('id');
+            expectTypeOf<Result['id']>().toEqualTypeOf<string>();
+            expectTypeOf<Result>().toHaveProperty('email');
+            expectTypeOf<Result['email']>().toEqualTypeOf<string>();
+            expectTypeOf<Result>().not.toHaveProperty('username');
+            expectTypeOf<Result>().not.toHaveProperty('posts');
+        });
+
+        it('select: false on a field excludes it', () => {
+            const schema = factory.makeModelSchema('User', { select: { id: true, email: false } });
+            expect(schema.safeParse({ id: 'u1' }).success).toBe(true);
+            expect(schema.safeParse({ id: 'u1', email: 'a@b.com' }).success).toBe(false);
+        });
+
+        it('select with a relation field (true) includes the relation', () => {
+            const schema = factory.makeModelSchema('User', { select: { id: true, posts: true } });
+            expect(schema.safeParse({ id: 'u1', posts: [] }).success).toBe(true);
+            // email should not be present
+            expect(schema.safeParse({ id: 'u1', posts: [], email: 'a@b.com' }).success).toBe(false);
+        });
+
+        it('infers relation field type when selected with true', () => {
+            const _schema = factory.makeModelSchema('User', { select: { id: true, posts: true } });
+            type Result = z.infer<typeof _schema>;
+            expectTypeOf<Result>().toHaveProperty('id');
+            expectTypeOf<Result>().toHaveProperty('posts');
+            expectTypeOf<Result>().not.toHaveProperty('email');
+        });
+
+        it('select with nested options on a relation', () => {
+            const schema = factory.makeModelSchema('User', {
+                select: {
+                    id: true,
+                    posts: { select: { title: true, published: true } },
+                },
+            });
+            expect(schema.safeParse({ id: 'u1', posts: [{ title: 'Hello', published: true }] }).success).toBe(true);
+            // extra field in nested post
+            expect(schema.safeParse({ id: 'u1', posts: [{ title: 'Hello', published: true, id: 'p1' }] }).success).toBe(
+                false,
+            );
+        });
+
+        it('infers nested select shape on relation when selected with options', () => {
+            const _schema = factory.makeModelSchema('User', {
+                select: {
+                    id: true,
+                    posts: { select: { title: true } },
+                },
+            });
+            type Result = z.infer<typeof _schema>;
+            type Posts = Exclude<Result['posts'], undefined>;
+            type Post = Posts extends Array<infer P> ? P : never;
+            expectTypeOf<Post>().toHaveProperty('title');
+            expectTypeOf<Post['title']>().toEqualTypeOf<string>();
+            expectTypeOf<Post>().not.toHaveProperty('id');
+            expectTypeOf<Post>().not.toHaveProperty('published');
+        });
+
+        it('select on Post with author relation (nested include)', () => {
+            const schema = factory.makeModelSchema('Post', {
+                select: {
+                    id: true,
+                    author: { select: { id: true, email: true } },
+                },
+            });
+            expect(schema.safeParse({ id: 'p1', author: { id: 'u1', email: 'a@b.com' } }).success).toBe(true);
+            // author with extra field
+            expect(schema.safeParse({ id: 'p1', author: { id: 'u1', email: 'a@b.com', username: 'x' } }).success).toBe(
+                false,
+            );
+        });
+    });
+
+    // ── invalid option combinations ───────────────────────────────────────────
+    describe('invalid option combinations', () => {
+        it('throws when select and include are used together', () => {
+            expect(() =>
+                factory.makeModelSchema('User', { select: { id: true }, include: { posts: true } } as any),
+            ).toThrow('`select` and `include` cannot be used together');
+        });
+
+        it('throws when select and omit are used together', () => {
+            expect(() =>
+                factory.makeModelSchema('User', { select: { id: true }, omit: { username: true } } as any),
+            ).toThrow('`select` and `omit` cannot be used together');
+        });
+
+        it('throws when select and include are used together in nested relation options', () => {
+            expect(() =>
+                factory.makeModelSchema('User', {
+                    include: { posts: { select: { id: true }, include: {} } as any },
+                }),
+            ).toThrow('`select` and `include` cannot be used together');
+        });
+
+        it('throws when select references a non-existent field', () => {
+            expect(() => factory.makeModelSchema('User', { select: { nonExistent: true } as any })).toThrow(
+                'Field "nonExistent" does not exist on model "User"',
+            );
+        });
+
+        it('throws when select provides nested options for a scalar field', () => {
+            expect(() =>
+                factory.makeModelSchema('User', { select: { email: { select: { id: true } } } as any }),
+            ).toThrow('Field "email" on model "User" is a scalar field and cannot have nested options');
+        });
+
+        it('throws when include references a non-existent field', () => {
+            expect(() => factory.makeModelSchema('User', { include: { nonExistent: true } as any })).toThrow(
+                'Field "nonExistent" does not exist on model "User"',
+            );
+        });
+
+        it('throws when include references a scalar field', () => {
+            expect(() => factory.makeModelSchema('User', { include: { email: true } as any })).toThrow(
+                'Field "email" on model "User" is not a relation field and cannot be used in "include"',
+            );
+        });
+
+        it('throws when omit references a non-existent field', () => {
+            expect(() => factory.makeModelSchema('User', { omit: { nonExistent: true } as any })).toThrow(
+                'Field "nonExistent" does not exist on model "User"',
+            );
+        });
+
+        it('throws when omit references a relation field', () => {
+            expect(() => factory.makeModelSchema('User', { omit: { posts: true } as any })).toThrow(
+                'Field "posts" on model "User" is a relation field and cannot be used in "omit"',
+            );
+        });
+    });
+
+    // ── runtime error handling ────────────────────────────────────────────────
+    describe('runtime validation still applies with options', () => {
+        it('@@validate still runs with omit when the referenced field is present in the shape', () => {
+            // omitting `username` leaves `age` in the shape, so @@validate(age >= 18) still fires
+            const schema = factory.makeModelSchema('User', { omit: { username: true } });
+            expect(schema.safeParse({ ...validUserNoUsername, age: 16 }).success).toBe(false);
+            expect(schema.safeParse({ ...validUserNoUsername, age: 18 }).success).toBe(true);
+        });
+
+        it('@@validate is skipped when its referenced field is omitted', () => {
+            // omitting `age` removes the field that @@validate(age >= 18) references,
+            // so the rule is silently skipped — age: 16 is no longer validated
+            const { age: _, username: _u, ...validUserNoAgeOrUsername } = validUser;
+            const schema = factory.makeModelSchema('User', { omit: { age: true, username: true } });
+            expect(schema.safeParse(validUserNoAgeOrUsername).success).toBe(true);
+        });
+
+        it('field validation still runs with select options', () => {
+            const schema = factory.makeModelSchema('User', { select: { email: true } });
+            expect(schema.safeParse({ email: 'not-an-email' }).success).toBe(false);
+            expect(schema.safeParse({ email: 'valid@example.com' }).success).toBe(true);
+        });
+
+        it('@@validate is skipped with select when the referenced field is not selected', () => {
+            // selecting only `email` omits `age`, so @@validate(age >= 18) is skipped
+            const schema = factory.makeModelSchema('User', { select: { email: true } });
+            // would fail @@validate if age were present and < 18, but age isn't in the shape
+            expect(schema.safeParse({ email: 'valid@example.com' }).success).toBe(true);
+        });
+
+        it('@@validate still runs with select when the referenced field is selected', () => {
+            // selecting both `email` and `age` keeps the @@validate(age >= 18) rule active
+            const schema = factory.makeModelSchema('User', { select: { email: true, age: true } });
+            expect(schema.safeParse({ email: 'valid@example.com', age: 16 }).success).toBe(false);
+            expect(schema.safeParse({ email: 'valid@example.com', age: 18 }).success).toBe(true);
         });
     });
 });
