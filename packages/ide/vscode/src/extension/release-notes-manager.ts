@@ -41,7 +41,7 @@ export class ReleaseNotesManager implements vscode.Disposable {
             // Read the release notes HTML file
             const releaseNotesPath = vscode.Uri.joinPath(
                 this.extensionContext.extensionUri,
-                'dist/res/zmodel-v3-preview-release-notes.html',
+                'res/zmodel-v3-preview-release-notes.html',
             );
 
             const htmlBytes = await vscode.workspace.fs.readFile(releaseNotesPath);
