@@ -44,8 +44,7 @@ connection.onRequest('zenstack/getAllImportedZModelURIs', async (params: { textD
         });
 
         let hasSyntaxErrors = false;
-        for (const docUri of [uri, ...importedURIs]) {
-            const doc = await langiumDocuments.getOrCreateDocument(docUri);
+        for (const doc of [document, ...importedDocuments]) {
             if (
                 doc.parseResult.lexerErrors.length > 0 ||
                 doc.parseResult.parserErrors.length > 0 ||
