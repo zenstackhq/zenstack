@@ -204,11 +204,8 @@ export class ZenStackAuthenticationProvider implements vscode.AuthenticationProv
                 throw new Error('Invalid JWT format');
             }
 
-            // Decode the payload (second part)
-            const payload = parts[1]!;
-            // Add padding if needed for base64 decoding
-            const paddedPayload = payload + '='.repeat((4 - (payload.length % 4)) % 4);
-            const decoded = atob(paddedPayload);
+            // Decode the payload (second part) - JWT uses base64url encoding
+            const decoded = Buffer.from(parts[1]!, 'base64url').toString('utf8');
 
             return JSON.parse(decoded);
         } catch (error) {
