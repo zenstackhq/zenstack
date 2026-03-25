@@ -244,7 +244,7 @@ export async function loadPluginModule(provider: string, basePath: string) {
     const importAsEsm = async (spec: string) => {
         try {
             const result = (await import(spec)).default as CliPlugin;
-            return result;
+            return typeof result.generate === 'function' ? result : undefined;
         } catch (err) {
             throw new CliError(`Failed to load plugin module from ${spec}: ${(err as Error).message}`);
         }
@@ -254,7 +254,7 @@ export async function loadPluginModule(provider: string, basePath: string) {
     const importAsTs = async (spec: string) => {
         try {
             const result = (await jiti.import(spec, { default: true })) as CliPlugin;
-            return result;
+            return typeof result.generate === 'function' ? result : undefined;
         } catch (err) {
             throw new CliError(`Failed to load plugin module from ${spec}: ${(err as Error).message}`);
         }
@@ -294,7 +294,7 @@ export async function loadPluginModule(provider: string, basePath: string) {
     // try jiti import for bare package specifiers (handles workspace packages)
     try {
         const result = (await jiti.import(moduleSpec, { default: true })) as CliPlugin;
-        return result;
+        return typeof result.generate === 'function' ? result : undefined;
     } catch {
         // fall through to last resort
     }
@@ -303,7 +303,7 @@ export async function loadPluginModule(provider: string, basePath: string) {
     try {
         const mod = await import(moduleSpec);
         // plugin may not export a generator, return undefined in that case
-        return mod.default as CliPlugin | undefined;
+        return typeof mod.default?.generate === 'function' ? (mod.default as CliPlugin) : undefined;
     } catch (err) {
         const errorCode = (err as NodeJS.ErrnoException)?.code;
         if (errorCode === 'ERR_MODULE_NOT_FOUND' || errorCode === 'MODULE_NOT_FOUND') {

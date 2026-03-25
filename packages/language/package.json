@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/language",
     "description": "ZenStack ZModel language specification",
-    "version": "3.5.0",
+    "version": "3.5.1",
     "license": "MIT",
     "author": "ZenStack Team",
     "files": [

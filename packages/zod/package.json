@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/zod",
-    "version": "3.5.0",
+    "version": "3.5.1",
     "description": "ZenStack Zod integration",
     "type": "module",
     "scripts": {
