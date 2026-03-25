@@ -244,7 +244,7 @@ export async function loadPluginModule(provider: string, basePath: string) {
     const importAsEsm = async (spec: string) => {
         try {
             const result = (await import(spec)).default as CliPlugin;
-            return typeof result.generate === 'function' ? result : undefined;
+            return typeof result?.generate === 'function' ? result : undefined;
         } catch (err) {
             throw new CliError(`Failed to load plugin module from ${spec}: ${(err as Error).message}`);
         }
@@ -254,7 +254,7 @@ export async function loadPluginModule(provider: string, basePath: string) {
     const importAsTs = async (spec: string) => {
         try {
             const result = (await jiti.import(spec, { default: true })) as CliPlugin;
-            return typeof result.generate === 'function' ? result : undefined;
+            return typeof result?.generate === 'function' ? result : undefined;
         } catch (err) {
             throw new CliError(`Failed to load plugin module from ${spec}: ${(err as Error).message}`);
         }
