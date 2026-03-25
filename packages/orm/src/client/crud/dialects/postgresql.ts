@@ -11,7 +11,7 @@ import {
 import { parse as parsePostgresArray } from 'postgres-array';
 import { AnyNullClass, DbNullClass, JsonNullClass } from '../../../common-types';
 import type { BuiltinType, FieldDef, SchemaDef } from '../../../schema';
-import type { SortOrder } from '../../crud-types';
+import type { NullsOrder, SortOrder } from '../../crud-types';
 import { createInvalidInputError } from '../../errors';
 import type { ClientOptions } from '../../options';
 import { isEnum, isTypeDef } from '../../query-utils';
@@ -272,8 +272,24 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
 
     // #region other overrides
 
-    protected buildArrayAgg(arg: Expression<any>) {
-        return this.eb.fn.coalesce(sql`jsonb_agg(${arg})`, sql`'[]'::jsonb`);
+    protected buildArrayAgg(
+        arg: Expression<any>,
+        orderBy?: { expr: Expression<any>; sort: SortOrder; nulls?: NullsOrder }[],
+    ) {
+        if (!orderBy || orderBy.length === 0) {
+            return this.eb.fn.coalesce(sql`jsonb_agg(${arg})`, sql`'[]'::jsonb`);
+        }
+
+        const orderBySql = sql.join(
+            orderBy.map(({ expr, sort, nulls }) => {
+                const dir = sql.raw(sort.toUpperCase());
+                const nullsSql = nulls ? sql` NULLS ${sql.raw(nulls.toUpperCase())}` : sql``;
+                return sql`${expr} ${dir}${nullsSql}`;
+            }),
+            sql.raw(', '),
+        );
+
+        return this.eb.fn.coalesce(sql`jsonb_agg(${arg} ORDER BY ${orderBySql})`, sql`'[]'::jsonb`);
     }
 
     override buildSkipTake(

@@ -2,9 +2,10 @@ import { invariant } from '@zenstackhq/common-helpers';
 import { type AliasableExpression, type Expression, type ExpressionBuilder, type SelectQueryBuilder } from 'kysely';
 import type { FieldDef, GetModels, SchemaDef } from '../../../schema';
 import { DELEGATE_JOINED_FIELD_PREFIX } from '../../constants';
-import type { FindArgs } from '../../crud-types';
+import type { FindArgs, NullsOrder, SortOrder } from '../../crud-types';
 import {
     buildJoinPairs,
+    ensureArray,
     getDelegateDescendantModels,
     getManyToManyRelation,
     isRelationField,
@@ -23,7 +24,10 @@ export abstract class LateralJoinDialectBase<Schema extends SchemaDef> extends B
     /**
      * Builds an array aggregation expression.
      */
-    protected abstract buildArrayAgg(arg: Expression<any>): AliasableExpression<any>;
+    protected abstract buildArrayAgg(
+        arg: Expression<any>,
+        orderBy?: { expr: Expression<any>; sort: SortOrder; nulls?: NullsOrder }[],
+    ): AliasableExpression<any>;
 
     override buildRelationSelection(
         query: SelectQueryBuilder<any, any, any>,
@@ -172,13 +176,44 @@ export abstract class LateralJoinDialectBase<Schema extends SchemaDef> extends B
             );
 
             if (relationFieldDef.array) {
-                return this.buildArrayAgg(this.buildJsonObject(objArgs)).as('$data');
+                const orderBy = this.buildRelationOrderByExpressions(relationModel, relationModelAlias, payload);
+                return this.buildArrayAgg(this.buildJsonObject(objArgs), orderBy).as('$data');
             } else {
                 return this.buildJsonObject(objArgs).as('$data');
             }
         });
 
         return qb;
+    }
+
+    private buildRelationOrderByExpressions(
+        model: string,
+        modelAlias: string,
+        payload: true | FindArgs<Schema, GetModels<Schema>, any, true>,
+    ): { expr: Expression<any>; sort: SortOrder; nulls?: NullsOrder }[] | undefined {
+        if (payload === true || !payload.orderBy) {
+            return undefined;
+        }
+
+        type ScalarSortValue = SortOrder | { sort: SortOrder; nulls?: NullsOrder };
+        const items: { expr: Expression<any>; sort: SortOrder; nulls?: NullsOrder }[] = [];
+
+        for (const orderBy of ensureArray(payload.orderBy)) {
+            for (const [field, value] of Object.entries(orderBy) as [string, ScalarSortValue | undefined][]) {
+                if (!value || requireField(this.schema, model, field).relation) {
+                    continue;
+                }
+
+                const expr = this.fieldRef(model, field, modelAlias);
+                if (typeof value === 'string') {
+                    items.push({ expr, sort: value });
+                } else {
+                    items.push({ expr, sort: value.sort, nulls: value.nulls });
+                }
+            }
+        }
+
+        return items.length > 0 ? items : undefined;
     }
 
     private buildRelationObjectArgs(
