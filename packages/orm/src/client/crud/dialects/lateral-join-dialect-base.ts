@@ -186,6 +186,14 @@ export abstract class LateralJoinDialectBase<Schema extends SchemaDef> extends B
         return qb;
     }
 
+    /**
+     * Extracts scalar `orderBy` clauses from the relation payload and maps them to
+     * the array-aggregation ordering format.
+     *
+     * For to-many relations aggregated into a JSON array (via lateral joins), this
+     * lets us preserve a stable ordering by passing `{ expr, sort, nulls? }` into
+     * the dialect's `buildArrayAgg` implementation.
+     */
     private buildRelationOrderByExpressions(
         model: string,
         modelAlias: string,
