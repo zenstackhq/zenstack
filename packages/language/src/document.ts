@@ -141,6 +141,7 @@ export async function loadDocument(
     if (additionalErrors.length > 0) {
         return {
             success: false,
+            model: returnPartialModelForError ? (document.parseResult.value as Model) : undefined,
             errors: additionalErrors,
             warnings,
         };
