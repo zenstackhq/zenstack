@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/server",
-    "version": "3.5.1",
+    "version": "3.5.2",
     "description": "ZenStack automatic CRUD API handlers and server adapters",
     "type": "module",
     "scripts": {

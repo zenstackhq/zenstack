@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/orm",
-    "version": "3.5.1",
+    "version": "3.5.2",
     "description": "ZenStack ORM",
     "type": "module",
     "scripts": {
