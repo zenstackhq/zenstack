@@ -20,15 +20,27 @@ import type {
 import type Decimal from 'decimal.js';
 import type z from 'zod';
 
+/**
+ * Scalar-only shape returned by the no-options `makeModelSchema` overload.
+ * Relation fields are excluded by default — use `include` or `select` to opt in.
+ */
 export type GetModelFieldsShape<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
-    // scalar fields
     [Field in GetModelFields<Schema, Model> as FieldIsRelation<Schema, Model, Field> extends true
         ? never
         : Field]: ZodOptionalAndNullableIf<
         ZodArrayIf<MapModelFieldToZod<Schema, Model, Field>, FieldIsArray<Schema, Model, Field>>,
         ModelFieldIsOptional<Schema, Model, Field>
     >;
-} & {
+};
+
+/**
+ * Full shape including both scalar and relation fields — used internally for
+ * type lookups (e.g. resolving relation field Zod types in include/select).
+ */
+type GetAllModelFieldsShape<Schema extends SchemaDef, Model extends GetModels<Schema>> = GetModelFieldsShape<
+    Schema,
+    Model
+> & {
     // relation fields, always optional
     [Field in GetModelFields<Schema, Model> as FieldIsRelation<Schema, Model, Field> extends true
         ? Field
@@ -234,7 +246,7 @@ type FieldInShape<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends GetModelFields<Schema, Model>,
-> = Field & keyof GetModelFieldsShape<Schema, Model>;
+> = Field & keyof GetAllModelFieldsShape<Schema, Model>;
 
 /**
  * Zod shape produced when a relation field is included via `include: { field:
@@ -246,7 +258,7 @@ type RelationFieldZodDefault<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends GetModelFields<Schema, Model>,
-> = GetModelFieldsShape<Schema, Model>[FieldInShape<Schema, Model, Field>];
+> = GetAllModelFieldsShape<Schema, Model>[FieldInShape<Schema, Model, Field>];
 
 /**
  * Zod shape for a relation field included with nested options.  We recurse
@@ -288,7 +300,7 @@ type SelectEntryToZod<
       // Handling `boolean` (not just literal `true`) prevents the type from
       // collapsing to `never` when callers use a boolean variable instead of
       // a literal (e.g. `const pick: boolean = true`).
-      GetModelFieldsShape<Schema, Model>[FieldInShape<Schema, Model, Field>]
+      GetAllModelFieldsShape<Schema, Model>[FieldInShape<Schema, Model, Field>]
     : Value extends object
       ? // nested options — must be a relation field
         RelationFieldZodWithOptions<Schema, Model, Field, Value>
@@ -321,7 +333,7 @@ type BuildIncludeOmitShape<
               ? Field extends keyof O
                   ? never
                   : Field
-              : Field]: GetModelFieldsShape<Schema, Model>[FieldInShape<Schema, Model, Field>];
+              : Field]: GetAllModelFieldsShape<Schema, Model>[FieldInShape<Schema, Model, Field>];
     } & (I extends object // included relation fields
         ? {
               [Field in keyof I & GetModelFields<Schema, Model>]: I[Field] extends object

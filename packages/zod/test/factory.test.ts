@@ -83,11 +83,8 @@ describe('SchemaFactory - makeModelSchema', () => {
             expectTypeOf<Address['zip']>().toEqualTypeOf<string | null | undefined>();
             expectTypeOf<User['address']>().toEqualTypeOf<Address | null | undefined>();
 
-            // relation field present
-            expectTypeOf<User>().toHaveProperty('posts');
-            const _postSchema = factory.makeModelSchema('Post');
-            type Post = z.infer<typeof _postSchema>;
-            expectTypeOf<User['posts']>().toEqualTypeOf<Post[] | undefined>();
+            // relation fields are NOT present by default — use include/select to opt in
+            expectTypeOf<User>().not.toHaveProperty('posts');
         });
 
         it('infers correct field types for Post', () => {
@@ -117,16 +114,20 @@ describe('SchemaFactory - makeModelSchema', () => {
 
             expectTypeOf<PostUpdate['tags']>().toEqualTypeOf<string[] | undefined>();
 
-            // optional relation field present in type
-            expectTypeOf<Post>().toHaveProperty('author');
-            const _userSchema = factory.makeModelSchema('User');
-            type User = z.infer<typeof _userSchema>;
-            expectTypeOf<Post['author']>().toEqualTypeOf<User | undefined | null>();
+            // relation fields are NOT present by default — use include/select to opt in
+            expectTypeOf<Post>().not.toHaveProperty('author');
         });
 
-        it('accepts a fully valid User', () => {
+        it('accepts a fully valid User (no relation fields)', () => {
             const userSchema = factory.makeModelSchema('User');
             expect(userSchema.safeParse(validUser).success).toBe(true);
+        });
+
+        it('rejects relation fields in default schema (strict object)', () => {
+            const userSchema = factory.makeModelSchema('User');
+            // relation fields are not part of the default schema, so they are rejected
+            const result = userSchema.safeParse({ ...validUser, posts: [] });
+            expect(result.success).toBe(false);
         });
 
         it('accepts a fully valid Post', () => {

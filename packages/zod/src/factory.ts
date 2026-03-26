@@ -93,26 +93,16 @@ class SchemaFactory<Schema extends SchemaDef> {
         const modelDef = this.schema.requireModel(model);
 
         if (!options) {
-            // ── No-options path (original behaviour) ─────────────────────────
+            // ── No-options path: scalar fields only (relations excluded by default) ──
             const fields: Record<string, z.ZodType> = {};
 
             for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
-                if (fieldDef.relation) {
-                    const relatedModelName = fieldDef.type;
-                    const lazySchema: z.ZodType = z.lazy(() =>
-                        this.makeModelSchema(relatedModelName as GetModels<Schema>),
-                    );
-                    // relation fields are always optional
-                    fields[fieldName] = this.applyDescription(
-                        this.applyCardinality(lazySchema, fieldDef).optional(),
-                        fieldDef.attributes,
-                    );
-                } else {
-                    fields[fieldName] = this.applyDescription(
-                        this.makeScalarFieldSchema(fieldDef),
-                        fieldDef.attributes,
-                    );
-                }
+                // Relation fields are excluded by default — use `include` or `select`
+                // to opt in, mirroring ORM behaviour and avoiding infinite
+                // nesting for circular relations.
+                if (fieldDef.relation) continue;
+
+                fields[fieldName] = this.applyDescription(this.makeScalarFieldSchema(fieldDef), fieldDef.attributes);
             }
 
             const shape = z.strictObject(fields);
