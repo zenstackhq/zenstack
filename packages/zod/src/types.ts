@@ -331,7 +331,9 @@ type BuildIncludeOmitShape<
             ? never
             : O extends object
               ? Field extends keyof O
-                  ? never
+                  ? O[Field] extends true
+                      ? never
+                      : Field
                   : Field
               : Field]: GetAllModelFieldsShape<Schema, Model>[FieldInShape<Schema, Model, Field>];
     } & (I extends object // included relation fields

@@ -49,7 +49,7 @@ type RawOptions = {
  */
 const rawOptionsSchema: z.ZodType<RawOptions> = z.lazy(() =>
     z
-        .object({
+        .strictObject({
             select: z.record(z.string(), z.union([z.literal(true), rawOptionsSchema])).optional(),
             include: z.record(z.string(), z.union([z.literal(true), rawOptionsSchema])).optional(),
             omit: z.record(z.string(), z.literal(true)).optional(),
