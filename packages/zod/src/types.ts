@@ -190,13 +190,14 @@ type RelatedModel<
 export type ModelSchemaOptions<Schema extends SchemaDef, Model extends GetModels<Schema>> =
     | {
           /**
-           * Pick only the listed fields. Values can be `true` (include with
+           * Pick only the listed fields. Values must be `true` (include with
            * default shape) or a nested options object (for relation fields).
+           * Only `true` is accepted — ORM convention.
            */
           select: {
               [Field in GetModelFields<Schema, Model>]?: FieldIsRelation<Schema, Model, Field> extends true
-                  ? boolean | ModelSchemaOptions<Schema, RelatedModel<Schema, Model, Field>>
-                  : boolean;
+                  ? true | ModelSchemaOptions<Schema, RelatedModel<Schema, Model, Field>>
+                  : true;
           };
           include?: never;
           omit?: never;
@@ -205,19 +206,20 @@ export type ModelSchemaOptions<Schema extends SchemaDef, Model extends GetModels
           select?: never;
           /**
            * Add the listed relation fields on top of the scalar fields.
-           * Values can be `true` / `{}` (default shape) or a nested options
-           * object.
+           * Values must be `true` (default shape) or a nested options object.
+           * Only `true` is accepted — ORM convention.
            */
           include?: {
               [Field in keyof RelationModelFields<Schema, Model>]?: Field extends GetModelFields<Schema, Model>
-                  ? boolean | ModelSchemaOptions<Schema, RelatedModel<Schema, Model, Field>>
+                  ? true | ModelSchemaOptions<Schema, RelatedModel<Schema, Model, Field>>
                   : never;
           };
           /**
            * Remove the listed scalar fields from the output.
+           * Only `true` is accepted — ORM convention.
            */
           omit?: {
-              [Field in keyof ScalarModelFields<Schema, Model>]?: boolean;
+              [Field in keyof ScalarModelFields<Schema, Model>]?: true;
           };
       };
 
@@ -297,12 +299,7 @@ type SelectEntryToZod<
  * recursing into relations when given nested options.
  */
 type BuildSelectShape<Schema extends SchemaDef, Model extends GetModels<Schema>, S extends Record<string, unknown>> = {
-    [Field in keyof S & GetModelFields<Schema, Model> as S[Field] extends false ? never : Field]: SelectEntryToZod<
-        Schema,
-        Model,
-        Field,
-        S[Field]
-    >;
+    [Field in keyof S & GetModelFields<Schema, Model>]: SelectEntryToZod<Schema, Model, Field, S[Field]>;
 };
 
 /**
@@ -316,22 +313,18 @@ type BuildIncludeOmitShape<
     I extends Record<string, unknown> | undefined,
     O extends Record<string, unknown> | undefined,
 > =
-    // scalar fields, omitting those explicitly excluded
+    // scalar fields, omitting those explicitly excluded (only `true` omits a field)
     {
         [Field in GetModelFields<Schema, Model> as FieldIsRelation<Schema, Model, Field> extends true
             ? never
             : O extends object
               ? Field extends keyof O
-                  ? O[Field] extends true
-                      ? never
-                      : Field
+                  ? never
                   : Field
               : Field]: GetModelFieldsShape<Schema, Model>[FieldInShape<Schema, Model, Field>];
     } & (I extends object // included relation fields
         ? {
-              [Field in keyof I & GetModelFields<Schema, Model> as I[Field] extends false
-                  ? never
-                  : Field]: I[Field] extends object
+              [Field in keyof I & GetModelFields<Schema, Model>]: I[Field] extends object
                   ? RelationFieldZodWithOptions<Schema, Model, Field, I[Field]>
                   : RelationFieldZodDefault<Schema, Model, Field>;
           }

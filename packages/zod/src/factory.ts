@@ -34,9 +34,9 @@ export function createSchemaFactory<Schema extends SchemaDef>(schema: Schema) {
 
 /** Internal untyped representation of the options object used at runtime. */
 type RawOptions = {
-    select?: Record<string, unknown>;
-    include?: Record<string, unknown>;
-    omit?: Record<string, unknown>;
+    select?: Record<string, true | RawOptions>;
+    include?: Record<string, true | RawOptions>;
+    omit?: Record<string, true>;
 };
 
 /**
@@ -50,9 +50,9 @@ type RawOptions = {
 const rawOptionsSchema: z.ZodType<RawOptions> = z.lazy(() =>
     z
         .object({
-            select: z.record(z.string(), z.union([z.boolean(), rawOptionsSchema])).optional(),
-            include: z.record(z.string(), z.union([z.boolean(), rawOptionsSchema])).optional(),
-            omit: z.record(z.string(), z.boolean()).optional(),
+            select: z.record(z.string(), z.union([z.literal(true), rawOptionsSchema])).optional(),
+            include: z.record(z.string(), z.union([z.literal(true), rawOptionsSchema])).optional(),
+            omit: z.record(z.string(), z.literal(true)).optional(),
         })
         .superRefine((val, ctx) => {
             if (val.select && val.include) {
@@ -204,10 +204,8 @@ class SchemaFactory<Schema extends SchemaDef> {
 
         if (select) {
             // ── select branch ────────────────────────────────────────────────
-            // Only include fields that are explicitly listed with a truthy value.
+            // Only include fields that are explicitly listed (value is always `true` or nested options).
             for (const [key, value] of Object.entries(select)) {
-                if (!value) continue; // false → skip
-
                 const fieldDef = modelDef.fields[key];
                 if (!fieldDef) {
                     throw new SchemaFactoryError(`Field "${key}" does not exist on model "${model}"`);
@@ -257,8 +255,6 @@ class SchemaFactory<Schema extends SchemaDef> {
             // Validate include keys and add relation fields.
             if (include) {
                 for (const [key, value] of Object.entries(include)) {
-                    if (!value) continue; // false → skip
-
                     const fieldDef = modelDef.fields[key];
                     if (!fieldDef) {
                         throw new SchemaFactoryError(`Field "${key}" does not exist on model "${model}"`);
@@ -296,9 +292,8 @@ class SchemaFactory<Schema extends SchemaDef> {
         const fields = new Set<string>();
 
         if (select) {
-            // Only scalar fields explicitly selected with a truthy value.
-            for (const [key, value] of Object.entries(select)) {
-                if (!value) continue;
+            // Only scalar fields explicitly selected (value is always `true` or nested options).
+            for (const [key] of Object.entries(select)) {
                 const fieldDef = modelDef.fields[key];
                 if (fieldDef && !fieldDef.relation) {
                     fields.add(key);

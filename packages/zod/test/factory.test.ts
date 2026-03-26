@@ -987,12 +987,6 @@ describe('SchemaFactory - makeModelSchema with options', () => {
             expectTypeOf<Result['username']>().toEqualTypeOf<string>();
         });
 
-        it('include: false skips the relation', () => {
-            const schema = factory.makeModelSchema('User', { include: { posts: false } });
-            // posts field must not be in the strict schema
-            expect(schema.safeParse({ ...validUser, posts: [] }).success).toBe(false);
-        });
-
         it('include with nested select on relation', () => {
             const schema = factory.makeModelSchema('User', {
                 include: { posts: { select: { title: true } } },
@@ -1074,12 +1068,6 @@ describe('SchemaFactory - makeModelSchema with options', () => {
             expectTypeOf<Result['email']>().toEqualTypeOf<string>();
             expectTypeOf<Result>().not.toHaveProperty('username');
             expectTypeOf<Result>().not.toHaveProperty('posts');
-        });
-
-        it('select: false on a field excludes it', () => {
-            const schema = factory.makeModelSchema('User', { select: { id: true, email: false } });
-            expect(schema.safeParse({ id: 'u1' }).success).toBe(true);
-            expect(schema.safeParse({ id: 'u1', email: 'a@b.com' }).success).toBe(false);
         });
 
         it('select with a relation field (true) includes the relation', () => {
