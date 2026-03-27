@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { createTestClient } from '@zenstackhq/testtools';
 
-const TEST_DB = 'client-api-relation-test-order-by-nested-includes';
+const TEST_DB = 'order-by-nested-includes';
 
 const schema = `
 model User {
@@ -56,7 +56,7 @@ function makeCommentsData(count: number) {
     });
 }
 
-describe.each([{ provider: 'sqlite' as const }, { provider: 'postgresql' as const }])(
+describe.each([{ provider: 'sqlite' as const }, { provider: 'postgresql' as const }, {provider: 'mysql' as const}])(
     'Relation orderBy with nested includes ($provider)',
     ({ provider }) => {
         let db: any;
@@ -71,6 +71,7 @@ describe.each([{ provider: 'sqlite' as const }, { provider: 'postgresql' as cons
             db = await createTestClient(schema, {
                 provider,
                 dbName: `${TEST_DB}-${provider}-count-${count}`,
+                debug:true,
             });
 
             await db.user.create({ data: { id: 'u1', email: 'u1@example.com' } });

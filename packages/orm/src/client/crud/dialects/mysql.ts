@@ -194,31 +194,12 @@ export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDiale
 
     protected buildArrayAgg(
         arg: Expression<any>,
-        orderBy?: { expr: Expression<any>; sort: SortOrder; nulls?: NullsOrder }[],
+        _orderBy?: { expr: Expression<any>; sort: SortOrder; nulls?: NullsOrder }[],
     ): AliasableExpression<any> {
-        if (!orderBy || orderBy.length === 0) {
-            return this.eb.fn.coalesce(sql`JSON_ARRAYAGG(${arg})`, sql`JSON_ARRAY()`);
-        }
-
-        // MySQL doesn't support explicit `NULLS FIRST|LAST` in ORDER BY, so emulate it
-        // by ordering on a boolean null-check first.
-        const orderBySql = sql.join(
-            orderBy.flatMap(({ expr, sort, nulls }) => {
-                const dir = sql.raw(sort.toUpperCase());
-                if (!nulls) {
-                    return [sql`${expr} ${dir}`];
-                }
-
-                const nullsSql = nulls === 'first' ? sql`(${expr} IS NULL) DESC` : sql`(${expr} IS NULL) ASC`;
-                return [nullsSql, sql`${expr} ${dir}`];
-            }),
-            sql.raw(', '),
-        );
-
-        return this.eb.fn.coalesce(
-            sql`JSON_ARRAYAGG(${arg} ORDER BY ${orderBySql})`,
-            sql`JSON_ARRAY()`,
-        );
+        // MySQL doesn't support ORDER BY inside JSON_ARRAYAGG.
+        // For relation queries that need deterministic ordering, ordering is applied
+        // by the input subquery before aggregation.
+        return this.eb.fn.coalesce(sql`JSON_ARRAYAGG(${arg})`, sql`JSON_ARRAY()`);
     }
 
     override buildSkipTake(
