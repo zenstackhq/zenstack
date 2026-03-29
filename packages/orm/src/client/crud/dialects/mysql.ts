@@ -12,7 +12,7 @@ import {
 } from 'kysely';
 import { AnyNullClass, DbNullClass, JsonNullClass } from '../../../common-types';
 import type { BuiltinType, FieldDef, SchemaDef } from '../../../schema';
-import type { SortOrder } from '../../crud-types';
+import type { NullsOrder, SortOrder } from '../../crud-types';
 import { createInvalidInputError, createNotSupportedError } from '../../errors';
 import type { ClientOptions } from '../../options';
 import { isTypeDef } from '../../query-utils';
@@ -192,7 +192,13 @@ export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDiale
         return this.eb.exists(this.eb.selectFrom(innerQuery.as('$exists_sub')).select(this.eb.lit(1).as('_')));
     }
 
-    protected buildArrayAgg(arg: Expression<any>): AliasableExpression<any> {
+    protected buildArrayAgg(
+        arg: Expression<any>,
+        _orderBy?: { expr: Expression<any>; sort: SortOrder; nulls?: NullsOrder }[],
+    ): AliasableExpression<any> {
+        // MySQL doesn't support ORDER BY inside JSON_ARRAYAGG.
+        // For relation queries that need deterministic ordering, ordering is applied
+        // by the input subquery before aggregation.
         return this.eb.fn.coalesce(sql`JSON_ARRAYAGG(${arg})`, sql`JSON_ARRAY()`);
     }
 
