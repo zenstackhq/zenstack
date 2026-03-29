@@ -33,9 +33,10 @@ export async function loadDocument(
     fileName: string,
     additionalModelFiles: string[] = [],
     mergeImports: boolean = true,
+    returnPartialModelForError: boolean = false,
 ): Promise<
     | { success: true; model: Model; warnings: string[]; services: ZModelServices }
-    | { success: false; errors: string[]; warnings: string[] }
+    | { success: false; model?: Model; errors: string[]; warnings: string[] }
 > {
     const { ZModelLanguage: services } = createZModelServices(false);
     const extensions = services.LanguageMetaData.fileExtensions;
@@ -116,6 +117,7 @@ export async function loadDocument(
     if (errors.length > 0) {
         return {
             success: false,
+            model: returnPartialModelForError ? (document.parseResult.value as Model) : undefined,
             errors,
             warnings,
         };
@@ -139,6 +141,7 @@ export async function loadDocument(
     if (additionalErrors.length > 0) {
         return {
             success: false,
+            model: returnPartialModelForError ? (document.parseResult.value as Model) : undefined,
             errors: additionalErrors,
             warnings,
         };

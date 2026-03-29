@@ -567,6 +567,163 @@ describe('REST OpenAPI spec generation - queryOptions', () => {
     });
 });
 
+describe('REST OpenAPI spec generation - nestedRoutes', () => {
+    let handler: RestApiHandler;
+    let spec: any;
+
+    beforeAll(async () => {
+        const client = await createTestClient(schema);
+        handler = new RestApiHandler({
+            schema: client.$schema,
+            endpoint: 'http://localhost/api',
+            nestedRoutes: true,
+        });
+        spec = await handler.generateSpec();
+    });
+
+    it('does not generate nested single paths when nestedRoutes is false', async () => {
+        const client = await createTestClient(schema);
+        const plainHandler = new RestApiHandler({
+            schema: client.$schema,
+            endpoint: 'http://localhost/api',
+        });
+        const plainSpec = await plainHandler.generateSpec();
+        expect(plainSpec.paths?.['/user/{id}/posts/{childId}']).toBeUndefined();
+        expect(plainSpec.paths?.['/post/{id}/comments/{childId}']).toBeUndefined();
+        // fetch-related path should not have POST on plain handler
+        expect((plainSpec.paths as any)['/user/{id}/posts']?.post).toBeUndefined();
+        // fetch-related path should not have PATCH for to-one on plain handler
+        expect((plainSpec.paths as any)['/post/{id}/setting']?.patch).toBeUndefined();
+    });
+
+    it('generates nested single paths for collection relations', () => {
+        // User -> posts (collection)
+        expect(spec.paths['/user/{id}/posts/{childId}']).toBeDefined();
+        // Post -> comments (collection)
+        expect(spec.paths['/post/{id}/comments/{childId}']).toBeDefined();
+        // User -> likes (collection, compound-ID child: PostLike has @@id([postId, userId]))
+        expect(spec.paths['/user/{id}/likes/{childId}']).toBeDefined();
+    });
+
+    it('does not generate nested single paths for to-one relations', () => {
+        // Post -> setting (to-one)
+        expect(spec.paths['/post/{id}/setting/{childId}']).toBeUndefined();
+        // Post -> author (to-one)
+        expect(spec.paths['/post/{id}/author/{childId}']).toBeUndefined();
+    });
+
+    it('nested single path has GET, PATCH, DELETE', () => {
+        const path = spec.paths['/user/{id}/posts/{childId}'];
+        expect(path.get).toBeDefined();
+        expect(path.patch).toBeDefined();
+        expect(path.delete).toBeDefined();
+    });
+
+    it('nested single path GET returns single resource response', () => {
+        const getOp = spec.paths['/user/{id}/posts/{childId}'].get;
+        const schema = getOp.responses['200'].content['application/vnd.api+json'].schema;
+        expect(schema.$ref).toBe('#/components/schemas/PostResponse');
+    });
+
+    it('nested single path PATCH uses UpdateRequest body', () => {
+        const patchOp = spec.paths['/user/{id}/posts/{childId}'].patch;
+        const schema = patchOp.requestBody.content['application/vnd.api+json'].schema;
+        expect(schema.$ref).toBe('#/components/schemas/PostUpdateRequest');
+    });
+
+    it('nested single path has childId path parameter', () => {
+        const getOp = spec.paths['/user/{id}/posts/{childId}'].get;
+        const params = getOp.parameters;
+        const childIdParam = params.find((p: any) => p.name === 'childId');
+        expect(childIdParam).toBeDefined();
+        expect(childIdParam.in).toBe('path');
+        expect(childIdParam.required).toBe(true);
+    });
+
+    it('fetch-related path has POST for collection relation when nestedRoutes enabled', () => {
+        const postsPath = spec.paths['/user/{id}/posts'];
+        expect(postsPath.get).toBeDefined();
+        expect(postsPath.post).toBeDefined();
+    });
+
+    it('fetch-related POST uses CreateRequest body', () => {
+        const postOp = spec.paths['/user/{id}/posts'].post;
+        const schema = postOp.requestBody.content['application/vnd.api+json'].schema;
+        expect(schema.$ref).toBe('#/components/schemas/PostCreateRequest');
+    });
+
+    it('fetch-related POST returns 201 with resource response', () => {
+        const postOp = spec.paths['/user/{id}/posts'].post;
+        const schema = postOp.responses['201'].content['application/vnd.api+json'].schema;
+        expect(schema.$ref).toBe('#/components/schemas/PostResponse');
+    });
+
+    it('fetch-related path has PATCH for to-one relation when nestedRoutes enabled', () => {
+        // Post -> setting is to-one
+        const settingPath = spec.paths['/post/{id}/setting'];
+        expect(settingPath.get).toBeDefined();
+        expect(settingPath.patch).toBeDefined();
+        // to-one should not get POST (no nested create for to-one)
+        expect(settingPath.post).toBeUndefined();
+    });
+
+    it('fetch-related PATCH for to-one uses UpdateRequest body', () => {
+        const patchOp = spec.paths['/post/{id}/setting'].patch;
+        const schema = patchOp.requestBody.content['application/vnd.api+json'].schema;
+        expect(schema.$ref).toBe('#/components/schemas/SettingUpdateRequest');
+    });
+
+    it('fetch-related path does not have PATCH for to-many (collection) relation', () => {
+        // User -> posts is a to-many relation; PATCH should only be generated for to-one
+        const postsPath = spec.paths['/user/{id}/posts'];
+        expect(postsPath.patch).toBeUndefined();
+    });
+
+    it('spec passes OpenAPI 3.1 validation', async () => {
+        // Deep clone to avoid validate() mutating $ref strings in the shared spec object
+        await validate(JSON.parse(JSON.stringify(spec)));
+    });
+
+    it('operationIds are unique for nested paths', () => {
+        const allOperationIds: string[] = [];
+        for (const pathItem of Object.values(spec.paths as Record<string, any>)) {
+            for (const method of ['get', 'post', 'patch', 'put', 'delete']) {
+                if (pathItem[method]?.operationId) {
+                    allOperationIds.push(pathItem[method].operationId);
+                }
+            }
+        }
+        const unique = new Set(allOperationIds);
+        expect(unique.size).toBe(allOperationIds.length);
+    });
+
+    it('nestedRoutes respects queryOptions slicing excludedOperations', async () => {
+        const client = await createTestClient(schema);
+        const slicedHandler = new RestApiHandler({
+            schema: client.$schema,
+            endpoint: 'http://localhost/api',
+            nestedRoutes: true,
+            queryOptions: {
+                slicing: {
+                    models: {
+                        post: { excludedOperations: ['create', 'delete', 'update'] },
+                    },
+                } as any,
+            },
+        });
+        const s = await slicedHandler.generateSpec();
+
+        // Nested create (POST /user/{id}/posts) should be absent
+        expect((s.paths as any)['/user/{id}/posts']?.post).toBeUndefined();
+        // Nested single GET should still exist (findUnique not excluded)
+        expect((s.paths as any)['/user/{id}/posts/{childId}']?.get).toBeDefined();
+        // Nested single DELETE should be absent
+        expect((s.paths as any)['/user/{id}/posts/{childId}']?.delete).toBeUndefined();
+        // Nested single PATCH (update) should be absent
+        expect((s.paths as any)['/user/{id}/posts/{childId}']?.patch).toBeUndefined();
+    });
+});
+
 describe('REST OpenAPI spec generation - @meta description', () => {
     const metaSchema = `
 model User {
