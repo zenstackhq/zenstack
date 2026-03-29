@@ -213,10 +213,16 @@ export abstract class LateralJoinDialectBase<Schema extends SchemaDef> extends B
                 }
 
                 const expr = this.fieldRef(model, field, modelAlias);
+                let sort = typeof value === 'string' ? value : value.sort;
+                if (payload.take !== undefined && payload.take < 0) {
+                    // negative `take` requires negated sorting, and the result order
+                    // will be corrected during post-read processing
+                    sort = this.negateSort(sort, true);
+                }
                 if (typeof value === 'string') {
-                    items.push({ expr, sort: value });
+                    items.push({ expr, sort });
                 } else {
-                    items.push({ expr, sort: value.sort, nulls: value.nulls });
+                    items.push({ expr, sort, nulls: value.nulls });
                 }
             }
         }
