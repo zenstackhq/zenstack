@@ -1,6 +1,5 @@
 {
     "name": "@zenstackhq/cli",
-    "publisher": "zenstack",
     "displayName": "ZenStack CLI",
     "description": "FullStack database toolkit with built-in access control and automatic API generation.",
     "version": "3.5.2",
