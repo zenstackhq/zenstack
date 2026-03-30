@@ -838,5 +838,20 @@ describe('Client filter tests ', () => {
         expect(withUndefinedBranch?.email).toBe(baseline?.email);
         expect(onlyUndefinedBranch).toBeNull();
     });
+
+    it('strips undefined filter operators inside OR branches', async () => {
+        await createUser('alice@test.com', { name: 'Alice', role: 'ADMIN' });
+        await createUser('bob@test.com', { name: 'Bob', role: 'USER' });
+
+        const result = await client.user.findMany({
+            where: {
+                OR: [{ name: { startsWith: 'A', contains: undefined } }],
+            } as any,
+        });
+
+        expect(result).toHaveLength(1);
+        expect(result[0]!.name).toBe('Alice');
+    });
+
     // TODO: filter for bigint, decimal, bytes
 });

@@ -2539,7 +2539,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                 for (const [key, value] of Object.entries(args)) {
                     if (value === undefined) {
                         delete args[key as keyof typeof args];
-                    } else if (value && isPlainObject(value)) {
+                    } else if (value && (isPlainObject(value) || Array.isArray(value))) {
                         this.doNormalizeArgs(value);
                     }
                 }
