@@ -264,9 +264,16 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             .with('AND', () =>
                 this.and(...enumerate(payload).map((subPayload) => this.buildFilter(model, modelAlias, subPayload))),
             )
-            .with('OR', () =>
-                this.or(...enumerate(payload).map((subPayload) => this.buildFilter(model, modelAlias, subPayload))),
-            )
+            .with('OR', () => {
+                const allBranches = enumerate(payload).map((subPayload) =>
+                    this.buildFilter(model, modelAlias, subPayload)
+                );
+                const meaningfulBranches = allBranches.filter((expr) => !this.isTrue(expr));
+                if (meaningfulBranches.length === 0) {
+                    return allBranches.length > 0 ? this.true() : this.false();
+                }
+                return this.or(...meaningfulBranches);
+            })
             .with('NOT', () => this.eb.not(this.buildCompositeFilter(model, modelAlias, 'AND', payload)))
             .exhaustive();
     }

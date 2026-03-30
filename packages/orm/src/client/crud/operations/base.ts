@@ -2531,11 +2531,17 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
 
     private doNormalizeArgs(args: unknown) {
         if (args && typeof args === 'object') {
-            for (const [key, value] of Object.entries(args)) {
-                if (value === undefined) {
-                    delete args[key as keyof typeof args];
-                } else if (value && isPlainObject(value)) {
-                    this.doNormalizeArgs(value);
+            if (Array.isArray(args)) {
+                for (const element of args) {
+                    this.doNormalizeArgs(element);
+                }
+            } else {
+                for (const [key, value] of Object.entries(args)) {
+                    if (value === undefined) {
+                        delete args[key as keyof typeof args];
+                    } else if (value && isPlainObject(value)) {
+                        this.doNormalizeArgs(value);
+                    }
                 }
             }
         }

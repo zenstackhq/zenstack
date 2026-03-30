@@ -801,5 +801,35 @@ describe('Client filter tests ', () => {
         await expect(client.user.findMany({ where: { id: undefined } })).toResolveWithLength(1);
     });
 
+    it('ignores undefined branch inside OR filter', async () => {
+        await createUser('u1@test.com', {
+            name: 'First',
+            role: 'ADMIN',
+            profile: { create: { id: 'p1', bio: 'bio1' } },
+        });
+        const user2 = await createUser('u2@test.com', {
+            name: 'Second',
+            role: 'USER',
+            profile: { create: { id: 'p2', bio: 'bio2' } },
+        });
+
+        const baseline = await client.user.findFirst({
+            where: {
+                OR: [{ id: user2.id }],
+            } as any,
+            orderBy: { createdAt: 'asc' },
+        });
+
+        const withUndefinedBranch = await client.user.findFirst({
+            where: {
+                OR: [{ id: undefined }, { id: user2.id }],
+            } as any,
+            orderBy: { createdAt: 'asc' },
+        });
+
+        expect(baseline?.email).toBe(user2.email);
+        expect(withUndefinedBranch?.email).toBe(baseline?.email);
+    });
+
     // TODO: filter for bigint, decimal, bytes
 });
