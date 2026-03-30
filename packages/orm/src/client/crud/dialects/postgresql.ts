@@ -32,6 +32,34 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         Json: 'jsonb',
     };
 
+    // Maps @db.* attribute names to PostgreSQL SQL types for use in VALUES table casts
+    private static readonly dbAttributeToSqlTypeMap: Record<string, string> = {
+        '@db.Uuid': 'uuid',
+        '@db.Citext': 'citext',
+        '@db.Inet': 'inet',
+        '@db.Bit': 'bit',
+        '@db.VarBit': 'varbit',
+        '@db.Xml': 'xml',
+        '@db.Json': 'json',
+        '@db.JsonB': 'jsonb',
+        '@db.ByteA': 'bytea',
+        '@db.Text': 'text',
+        '@db.Char': 'bpchar',
+        '@db.VarChar': 'varchar',
+        '@db.Date': 'date',
+        '@db.Time': 'time',
+        '@db.Timetz': 'timetz',
+        '@db.Timestamp': 'timestamp',
+        '@db.Timestamptz': 'timestamptz',
+        '@db.SmallInt': 'smallint',
+        '@db.Integer': 'integer',
+        '@db.BigInt': 'bigint',
+        '@db.Real': 'real',
+        '@db.DoublePrecision': 'double precision',
+        '@db.Decimal': 'decimal',
+        '@db.Boolean': 'boolean',
+    };
+
     constructor(schema: Schema, options: ClientOptions<Schema>) {
         super(schema, options);
         this.overrideTypeParsers();
@@ -406,13 +434,43 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         );
     }
 
-    private getSqlType(zmodelType: string) {
+    private getSqlType(zmodelType: string, attributes?: FieldDef['attributes']) {
+        // Check @db.* attributes first — they specify the exact native PostgreSQL type
+        if (attributes) {
+            for (const attr of attributes) {
+                const mapped = PostgresCrudDialect.dbAttributeToSqlTypeMap[attr.name];
+                if (mapped) {
+                    return mapped;
+                }
+            }
+        }
         if (isEnum(this.schema, zmodelType)) {
             // reduce enum to text for type compatibility
             return 'text';
         } else {
             return this.zmodelToSqlTypeMap[zmodelType] ?? 'text';
         }
+    }
+
+    override buildComparison(
+        left: Expression<unknown>,
+        leftFieldDef: FieldDef | undefined,
+        op: string,
+        right: Expression<unknown>,
+        rightFieldDef: FieldDef | undefined,
+    ) {
+        const leftHasNativeType = leftFieldDef?.attributes?.some((a) => a.name.startsWith('@db.')) ?? false;
+        const rightHasNativeType = rightFieldDef?.attributes?.some((a) => a.name.startsWith('@db.')) ?? false;
+        // When one side has a @db.* native type override and the other doesn't (or its type can't be
+        // determined, e.g. auth() values arrive as untyped params), cast the @db.* side back to the
+        // base SQL type for its ZModel type so PostgreSQL doesn't reject the comparison
+        // (e.g. "operator does not exist: uuid = text").
+        if (leftHasNativeType && !rightHasNativeType) {
+            left = this.eb.cast(left, sql.raw(this.getSqlType(leftFieldDef!.type)));
+        } else if (rightHasNativeType && !leftHasNativeType) {
+            right = this.eb.cast(right, sql.raw(this.getSqlType(rightFieldDef!.type)));
+        }
+        return super.buildComparison(left, leftFieldDef, op, right, rightFieldDef);
     }
 
     override getStringCasingBehavior() {
@@ -449,7 +507,7 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
             )
             .select(
                 fields.map((f, i) => {
-                    const mappedType = this.getSqlType(f.type);
+                    const mappedType = this.getSqlType(f.type, f.attributes);
                     const castType = f.array ? sql`${sql.raw(mappedType)}[]` : sql.raw(mappedType);
                     return this.eb.cast(sql.ref(`$values.column${i + 1}`), castType).as(f.name);
                 }),

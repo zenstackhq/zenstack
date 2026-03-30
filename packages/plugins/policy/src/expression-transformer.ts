@@ -265,7 +265,13 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         } else if (this.isNullNode(left)) {
             return this.transformNullCheck(right, expr.op);
         } else {
-            return BinaryOperationNode.create(left, this.transformOperator(op), right);
+            const leftFieldDef = this.getFieldDefFromFieldRef(normalizedLeft, context.modelOrType);
+            const rightFieldDef = this.getFieldDefFromFieldRef(normalizedRight, context.modelOrType);
+            // Map ZModel operator to SQL operator string
+            const sqlOp = op === '==' ? '=' : op;
+            return this.dialect
+                .buildComparison(new ExpressionWrapper(left), leftFieldDef, sqlOp, new ExpressionWrapper(right), rightFieldDef)
+                .toOperationNode();
         }
     }
 
@@ -576,13 +582,6 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         // only '!' operator for now
         invariant(expr.op === '!', 'only "!" operator is supported');
         return logicalNot(this.dialect, this.transform(expr.operand, context));
-    }
-
-    private transformOperator(op: Exclude<BinaryOperator, '?' | '!' | '^'>) {
-        const mappedOp = match(op)
-            .with('==', () => '=' as const)
-            .otherwise(() => op);
-        return OperatorNode.create(mappedOp);
     }
 
     @expr('call')
