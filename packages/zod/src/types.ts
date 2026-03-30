@@ -188,16 +188,29 @@ type RelatedModel<
 > = GetModelFieldType<Schema, Model, Field> extends GetModels<Schema> ? GetModelFieldType<Schema, Model, Field> : never;
 
 /**
+ * Controls which fields are made optional in the generated schema.
+ *
+ * - `"all"`      — every field in the schema becomes optional.
+ * - `"defaults"` — only fields that have a default value (`@default`) or are
+ *                  auto-managed (`@updatedAt`) are made optional; all other
+ *                  fields retain their original optionality.
+ */
+export type ModelSchemaOptionality = 'all' | 'defaults';
+
+/**
  * ORM-style query options accepted by `makeModelSchema`.
  *
  * Exactly mirrors the `select` / `include` / `omit` vocabulary:
- * - `select`  — pick specific fields (scalars and/or relations). Mutually
- *               exclusive with `include` and `omit`.
- * - `include` — start with all scalar fields, then add the named relation
- *               fields. Can be combined with `omit`.
- * - `omit`    — remove named scalar fields from the default scalar set.
- *               Can be combined with `include`, mutually exclusive with
- *               `select`.
+ * - `select`      — pick specific fields (scalars and/or relations). Mutually
+ *                   exclusive with `include` and `omit`.
+ * - `include`     — start with all scalar fields, then add the named relation
+ *                   fields. Can be combined with `omit`.
+ * - `omit`        — remove named scalar fields from the default scalar set.
+ *                   Can be combined with `include`, mutually exclusive with
+ *                   `select`.
+ * - `optionality` — when `"all"`, every field becomes optional. When
+ *                   `"defaults"`, only fields with a `@default` value or
+ *                   `@updatedAt` are made optional.
  */
 export type ModelSchemaOptions<Schema extends SchemaDef, Model extends GetModels<Schema>> =
     | {
@@ -213,6 +226,12 @@ export type ModelSchemaOptions<Schema extends SchemaDef, Model extends GetModels
           };
           include?: never;
           omit?: never;
+          /**
+           * Controls which fields are made optional.
+           * - `"all"`      — every field becomes optional.
+           * - `"defaults"` — only fields with `@default` or `@updatedAt` become optional.
+           */
+          optionality?: ModelSchemaOptionality;
       }
     | {
           select?: never;
@@ -233,6 +252,12 @@ export type ModelSchemaOptions<Schema extends SchemaDef, Model extends GetModels
           omit?: {
               [Field in keyof ScalarModelFields<Schema, Model>]?: true;
           };
+          /**
+           * Controls which fields are made optional.
+           * - `"all"`      — every field becomes optional.
+           * - `"defaults"` — only fields with `@default` or `@updatedAt` become optional.
+           */
+          optionality?: ModelSchemaOptionality;
       };
 
 // ---- Output shape helpers ------------------------------------------------
@@ -346,21 +371,38 @@ type BuildIncludeOmitShape<
           {});
 
 /**
+ * Wraps every field in a shape with `z.ZodOptional` when `Optionality` is `"all"`.
+ * When `Optionality` is anything else the shape is returned as-is.
+ */
+type ApplyOptionality<Shape extends Record<string, z.ZodType>, Optionality> = Optionality extends 'all'
+    ? { [K in keyof Shape]: z.ZodOptional<Shape[K]> }
+    : Shape;
+
+/**
  * The top-level conditional that maps options → Zod shape.
  *
  * - No options / undefined  → existing `GetModelFieldsShape` (no change).
- * - `{ select: S }`         → `BuildSelectShape`.
- * - `{ include?, omit? }`   → `BuildIncludeOmitShape`.
+ * - `{ select: S }`         → `BuildSelectShape` (+ optionality wrapper).
+ * - `{ include?, omit? }`   → `BuildIncludeOmitShape` (+ optionality wrapper).
+ *
+ * Note: `optionality: "defaults"` is handled fully at runtime (it requires
+ * knowledge of which fields carry a `@default` / `@updatedAt` attribute that
+ * is only available in the schema def at runtime). The static type cannot
+ * distinguish "has-default" from "no-default" fields, so `"defaults"` is
+ * intentionally left unrepresented in the output type — callers receive the
+ * same shape they would without `optionality` (i.e. fields that happen to have
+ * defaults are already typed as optional via `ModelFieldIsOptional`).
  */
 export type GetModelSchemaShapeWithOptions<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options,
-> = Options extends { select: infer S extends Record<string, unknown> }
-    ? BuildSelectShape<Schema, Model, S>
+> = Options extends { select: infer S extends Record<string, unknown>; optionality?: infer Opt }
+    ? ApplyOptionality<BuildSelectShape<Schema, Model, S>, Opt>
     : Options extends {
             include?: infer I extends Record<string, unknown> | undefined;
             omit?: infer O extends Record<string, unknown> | undefined;
+            optionality?: infer Opt;
         }
-      ? BuildIncludeOmitShape<Schema, Model, I, O>
+      ? ApplyOptionality<BuildIncludeOmitShape<Schema, Model, I, O>, Opt>
       : GetModelFieldsShape<Schema, Model>;

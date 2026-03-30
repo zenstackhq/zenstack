@@ -37,6 +37,7 @@ type RawOptions = {
     select?: Record<string, true | RawOptions>;
     include?: Record<string, true | RawOptions>;
     omit?: Record<string, true>;
+    optionality?: 'all' | 'defaults';
 };
 
 /**
@@ -53,6 +54,7 @@ const rawOptionsSchema: z.ZodType<RawOptions> = z.lazy(() =>
             select: z.record(z.string(), z.union([z.literal(true), rawOptionsSchema])).optional(),
             include: z.record(z.string(), z.union([z.literal(true), rawOptionsSchema])).optional(),
             omit: z.record(z.string(), z.literal(true)).optional(),
+            optionality: z.enum(['all', 'defaults']).optional(),
         })
         .superRefine((val, ctx) => {
             if (val.select && val.include) {
@@ -115,7 +117,8 @@ class SchemaFactory<Schema extends SchemaDef> {
         // ── Options path ─────────────────────────────────────────────────────
         const rawOptions = rawOptionsSchema.parse(options);
         const fields = this.buildFieldsWithOptions(model as string, rawOptions);
-        const shape = z.strictObject(fields);
+        const optionalizedFields = this.applyOptionality(fields, model as string, rawOptions.optionality);
+        const shape = z.strictObject(optionalizedFields);
         // @@validate conditions only reference scalar fields of the same model
         // (the ZModel compiler rejects relation fields). When `select` or `omit`
         // produces a partial shape some of those scalar fields may be absent;
@@ -182,6 +185,41 @@ class SchemaFactory<Schema extends SchemaDef> {
     // -------------------------------------------------------------------------
     // Options-aware field building
     // -------------------------------------------------------------------------
+
+    /**
+     * Applies the `optionality` option to a fields map.
+     *
+     * - `"all"`      — wraps every field in `z.ZodOptional`.
+     * - `"defaults"` — only wraps fields that have a `@default` attribute or
+     *                  are `@updatedAt` in `z.ZodOptional`. Fields that are
+     *                  already optional (nullable optional) retain their shape;
+     *                  we just add the outer optional layer.
+     * - `undefined`  — returns the fields map unchanged.
+     */
+    private applyOptionality(
+        fields: Record<string, z.ZodType>,
+        model: string,
+        optionality: 'all' | 'defaults' | undefined,
+    ): Record<string, z.ZodType> {
+        if (!optionality) return fields;
+
+        const modelDef = this.schema.requireModel(model);
+        const result: Record<string, z.ZodType> = {};
+
+        for (const [fieldName, fieldSchema] of Object.entries(fields)) {
+            if (optionality === 'all') {
+                result[fieldName] = this.wrapOptionalPreservingMeta(fieldSchema);
+            } else {
+                // optionality === 'defaults'
+                const fieldDef = modelDef.fields[fieldName];
+                const hasDefault =
+                    fieldDef && (fieldDef.default !== undefined || fieldDef.updatedAt || fieldDef.optional);
+                result[fieldName] = hasDefault ? this.wrapOptionalPreservingMeta(fieldSchema) : fieldSchema;
+            }
+        }
+
+        return result;
+    }
 
     /**
      * Internal loose options shape used at runtime (we've already validated the
@@ -386,6 +424,21 @@ class SchemaFactory<Schema extends SchemaDef> {
             z.array(z.lazy(() => this.makeJsonSchema())),
             z.object({}).catchall(z.lazy(() => this.makeJsonSchema())),
         ]);
+    }
+
+    /**
+     * Wraps a schema with `.optional()` and copies any `description` from its
+     * metadata onto the resulting `ZodOptional`, so that callers inspecting
+     * `.meta()?.description` on shape fields still find the value after
+     * optionality has been applied.
+     */
+    private wrapOptionalPreservingMeta(schema: z.ZodType): z.ZodType {
+        const optional = schema.optional();
+        const description = schema.meta()?.description as string | undefined;
+        if (description) {
+            return optional.meta({ description });
+        }
+        return optional;
     }
 
     private applyCardinality(schema: z.ZodType, fieldDef: FieldDef): z.ZodType {
