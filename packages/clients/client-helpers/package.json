@@ -1,8 +1,19 @@
 {
     "name": "@zenstackhq/client-helpers",
-    "version": "3.5.2",
+    "displayName": "ZenStack Client Helpers",
     "description": "Helpers for implementing clients that consume ZenStack's CRUD service",
+    "version": "3.5.2",
     "type": "module",
+    "author": {
+        "name": "ZenStack Team",
+        "email": "contact@zenstack.dev"
+    },
+    "homepage": "https://zenstack.dev",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/zenstackhq/zenstack"
+    },
+    "license": "MIT",
     "scripts": {
         "build": "tsc --noEmit && tsup-node && pnpm test:typecheck",
         "watch": "tsup-node --watch",
@@ -11,8 +22,6 @@
         "test:typecheck": "tsc --noEmit --project tsconfig.test.json",
         "pack": "pnpm pack"
     },
-    "author": "ZenStack Team",
-    "license": "MIT",
     "files": [
         "dist"
     ],
@@ -39,5 +48,6 @@
         "@zenstackhq/sdk": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*",
         "@zenstackhq/vitest-config": "workspace:*"
-    }
+    },
+    "funding": "https://github.com/sponsors/zenstackhq"
 }

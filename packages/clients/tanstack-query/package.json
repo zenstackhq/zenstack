@@ -1,8 +1,19 @@
 {
     "name": "@zenstackhq/tanstack-query",
-    "version": "3.5.2",
+    "displayName": "ZenStack TanStack Query Integration",
     "description": "TanStack Query Client for consuming ZenStack v3's CRUD service",
+    "version": "3.5.2",
     "type": "module",
+    "author": {
+        "name": "ZenStack Team",
+        "email": "contact@zenstack.dev"
+    },
+    "homepage": "https://zenstack.dev",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/zenstackhq/zenstack"
+    },
+    "license": "MIT",
     "scripts": {
         "build": "pnpm build:general && pnpm build:svelte && pnpm test:generate && pnpm test:typecheck",
         "build:general": "tsc -p tsconfig.general.json",
@@ -23,8 +34,6 @@
         "orm",
         "fullstack"
     ],
-    "author": "ZenStack Team",
-    "license": "MIT",
     "files": [
         "dist"
     ],
@@ -87,5 +96,6 @@
         "@tanstack/svelte-query": {
             "optional": true
         }
-    }
+    },
+    "funding": "https://github.com/sponsors/zenstackhq"
 }

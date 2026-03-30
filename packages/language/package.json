@@ -1,14 +1,23 @@
 {
     "name": "@zenstackhq/language",
+    "displayName": "ZenStack Language Tooling",
     "description": "ZenStack ZModel language specification",
     "version": "3.5.2",
+    "type": "module",
+    "author": {
+        "name": "ZenStack Team",
+        "email": "contact@zenstack.dev"
+    },
+    "homepage": "https://zenstack.dev",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/zenstackhq/zenstack"
+    },
     "license": "MIT",
-    "author": "ZenStack Team",
     "files": [
         "dist",
         "res"
     ],
-    "type": "module",
     "scripts": {
         "build": "pnpm langium:generate && tsc --noEmit && tsup-node",
         "watch": "tsup-node --watch",
@@ -80,5 +89,6 @@
         "glob": "^11.1.0",
         "langium-cli": "catalog:",
         "tmp": "catalog:"
-    }
+    },
+    "funding": "https://github.com/sponsors/zenstackhq"
 }

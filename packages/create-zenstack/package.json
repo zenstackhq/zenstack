@@ -1,16 +1,25 @@
 {
     "name": "create-zenstack",
-    "version": "3.5.2",
+    "displayName": "Create ZenStack",
     "description": "Create a new ZenStack project",
+    "version": "3.5.2",
     "type": "module",
+    "author": {
+        "name": "ZenStack Team",
+        "email": "contact@zenstack.dev"
+    },
+    "homepage": "https://zenstack.dev",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/zenstackhq/zenstack"
+    },
+    "license": "MIT",
     "scripts": {
         "build": "tsc --noEmit && tsup-node",
         "lint": "eslint src --ext ts",
         "pack": "pnpm pack"
     },
     "keywords": [],
-    "author": "ZenStack Team",
-    "license": "MIT",
     "files": [
         "dist"
     ],
@@ -37,5 +46,6 @@
     "devDependencies": {
         "@zenstackhq/eslint-config": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*"
-    }
+    },
+    "funding": "https://github.com/sponsors/zenstackhq"
 }
