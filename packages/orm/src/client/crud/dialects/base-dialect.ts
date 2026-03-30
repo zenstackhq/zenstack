@@ -266,8 +266,8 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             )
             .with('OR', () => {
                 const branches = enumerate(payload)
-                    .map((subPayload) => this.buildFilter(model, modelAlias, subPayload))
-                    .filter((expr) => !this.isTrue(expr));
+                    .filter((subPayload) => !this.isAllUndefinedFilter(subPayload))
+                    .map((subPayload) => this.buildFilter(model, modelAlias, subPayload));
                 return this.or(...branches);
             })
             .with('NOT', () => this.eb.not(this.buildCompositeFilter(model, modelAlias, 'AND', payload)))
@@ -803,6 +803,9 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             if (excludeKeys.includes(op)) {
                 continue;
             }
+            if (value === undefined) {
+                continue;
+            }
             const rhs = Array.isArray(value) ? value.map(getRhs) : getRhs(value);
             const condition = match(op)
                 .with('equals', () => (rhs === null ? this.eb(lhs, 'is', null) : this.eb(lhs, '=', rhs)))
@@ -881,6 +884,10 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             for (const [key, value] of Object.entries(payload)) {
                 if (key === 'mode' || consumedKeys.includes(key)) {
                     // already consumed
+                    continue;
+                }
+
+                if (value === undefined) {
                     continue;
                 }
 
@@ -1165,7 +1172,8 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
         // client-level: check both uncapitalized (current) and original (backward compat) model name
         const uncapModel = lowerCaseFirst(model);
-        const omitConfig = (this.options.omit as Record<string, any> | undefined)?.[uncapModel] ??
+        const omitConfig =
+            (this.options.omit as Record<string, any> | undefined)?.[uncapModel] ??
             (this.options.omit as Record<string, any> | undefined)?.[model];
         if (omitConfig && typeof omitConfig === 'object' && typeof omitConfig[field] === 'boolean') {
             return omitConfig[field];
@@ -1302,6 +1310,14 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         return this.eb.lit<SqlBool>(this.transformInput(false, 'Boolean', false) as boolean);
     }
 
+    private isAllUndefinedFilter(payload: unknown): boolean {
+        if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+            return false;
+        }
+        const entries = Object.entries(payload);
+        return entries.length > 0 && entries.every(([, v]) => v === undefined);
+    }
+
     public isTrue(expression: Expression<SqlBool>) {
         const node = expression.toOperationNode();
         if (node.kind !== 'ValueNode') {
@@ -1360,7 +1376,9 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                 const computedFields = this.options.computedFields as Record<string, any>;
                 // check both uncapitalized (current) and original (backward compat) model name
                 const computedModel = fieldDef.originModel ?? model;
-                computer = computedFields?.[lowerCaseFirst(computedModel)]?.[field] ?? computedFields?.[computedModel]?.[field];
+                computer =
+                    computedFields?.[lowerCaseFirst(computedModel)]?.[field] ??
+                    computedFields?.[computedModel]?.[field];
             }
             if (!computer) {
                 throw createConfigError(`Computed field "${field}" implementation not provided for model "${model}"`);
