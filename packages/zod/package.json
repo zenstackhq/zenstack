@@ -1,8 +1,19 @@
 {
     "name": "@zenstackhq/zod",
+    "displayName": "ZenStack Zod Integration",
+    "description": "Automatically deriving Zod schemas from ZModel schemas",
     "version": "3.5.2",
-    "description": "ZenStack Zod integration",
     "type": "module",
+    "author": {
+        "name": "ZenStack Team",
+        "email": "contact@zenstack.dev"
+    },
+    "homepage": "https://zenstack.dev",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/zenstackhq/zenstack"
+    },
+    "license": "MIT",
     "scripts": {
         "build": "tsc --noEmit && tsup-node",
         "watch": "tsup-node --watch",
@@ -18,8 +29,6 @@
     "files": [
         "dist"
     ],
-    "author": "",
-    "license": "MIT",
     "exports": {
         ".": {
             "import": {
@@ -44,5 +53,6 @@
     },
     "peerDependencies": {
         "zod": "catalog:"
-    }
+    },
+    "funding": "https://github.com/sponsors/zenstackhq"
 }
