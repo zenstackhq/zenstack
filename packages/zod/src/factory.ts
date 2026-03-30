@@ -132,6 +132,9 @@ class SchemaFactory<Schema extends SchemaDef> {
         >;
     }
 
+    /**
+     * @deprecated Use `makeModelSchema(model, { optionality: 'defaults' })` instead.
+     */
     makeModelCreateSchema<Model extends GetModels<Schema>>(
         model: Model,
     ): z.ZodObject<GetModelCreateFieldsShape<Schema, Model>, z.core.$strict> {
@@ -158,6 +161,9 @@ class SchemaFactory<Schema extends SchemaDef> {
         ) as unknown as z.ZodObject<GetModelCreateFieldsShape<Schema, Model>, z.core.$strict>;
     }
 
+    /**
+     * @deprecated Use `makeModelSchema(model, { optionality: 'all' })` instead.
+     */
     makeModelUpdateSchema<Model extends GetModels<Schema>>(
         model: Model,
     ): z.ZodObject<GetModelUpdateFieldsShape<Schema, Model>, z.core.$strict> {
