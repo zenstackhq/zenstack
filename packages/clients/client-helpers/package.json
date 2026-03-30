@@ -2,7 +2,7 @@
     "name": "@zenstackhq/client-helpers",
     "displayName": "ZenStack Client Helpers",
     "description": "Helpers for implementing clients that consume ZenStack's CRUD service",
-    "version": "3.5.2",
+    "version": "3.5.3",
     "type": "module",
     "author": {
         "name": "ZenStack Team",

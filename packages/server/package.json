@@ -2,7 +2,7 @@
     "name": "@zenstackhq/server",
     "displayName": "ZenStack Automatic CRUD Server",
     "description": "ZenStack automatic CRUD API handlers and server adapters for popular frameworks",
-    "version": "3.5.2",
+    "version": "3.5.3",
     "type": "module",
     "author": {
         "name": "ZenStack Team",
