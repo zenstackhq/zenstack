@@ -24,10 +24,10 @@ import {
     flattenCompoundUniqueFilters,
     getDelegateDescendantModels,
     getManyToManyRelation,
+    getModelFields,
     getRelationForeignKeyFieldPairs,
     isEnum,
     isTypeDef,
-    getModelFields,
     makeDefaultOrderBy,
     requireField,
     requireIdFields,
@@ -1162,7 +1162,8 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
         // client-level: check both uncapitalized (current) and original (backward compat) model name
         const uncapModel = lowerCaseFirst(model);
-        const omitConfig = (this.options.omit as Record<string, any> | undefined)?.[uncapModel] ??
+        const omitConfig =
+            (this.options.omit as Record<string, any> | undefined)?.[uncapModel] ??
             (this.options.omit as Record<string, any> | undefined)?.[model];
         if (omitConfig && typeof omitConfig === 'object' && typeof omitConfig[field] === 'boolean') {
             return omitConfig[field];
@@ -1357,7 +1358,9 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                 const computedFields = this.options.computedFields as Record<string, any>;
                 // check both uncapitalized (current) and original (backward compat) model name
                 const computedModel = fieldDef.originModel ?? model;
-                computer = computedFields?.[lowerCaseFirst(computedModel)]?.[field] ?? computedFields?.[computedModel]?.[field];
+                computer =
+                    computedFields?.[lowerCaseFirst(computedModel)]?.[field] ??
+                    computedFields?.[computedModel]?.[field];
             }
             if (!computer) {
                 throw createConfigError(`Computed field "${field}" implementation not provided for model "${model}"`);
@@ -1488,6 +1491,19 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
      * Builds a VALUES table and select all fields from it.
      */
     abstract buildValuesTableSelect(fields: FieldDef[], rows: unknown[][]): SelectQueryBuilder<any, any, any>;
+
+    /**
+     * Builds a binary comparison expression between two operands.
+     */
+    buildComparison(
+        left: Expression<unknown>,
+        _leftFieldDef: FieldDef | undefined,
+        op: string,
+        right: Expression<unknown>,
+        _rightFieldDef: FieldDef | undefined,
+    ): Expression<SqlBool> {
+        return this.eb(left, op as any, right) as Expression<SqlBool>;
+    }
 
     /**
      * Builds a JSON path selection expression.
