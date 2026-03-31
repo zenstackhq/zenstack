@@ -265,8 +265,18 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         } else if (this.isNullNode(left)) {
             return this.transformNullCheck(right, expr.op);
         } else {
-            const leftFieldDef = this.getFieldDefFromFieldRef(normalizedLeft, context.modelOrType);
-            const rightFieldDef = this.getFieldDefFromFieldRef(normalizedRight, context.modelOrType);
+            // `this.foo` references belong to `thisType`, not `modelOrType` (which is the
+            // collection element type in predicate contexts); everything else uses `modelOrType`.
+            const leftModel =
+                ExpressionUtils.isMember(normalizedLeft) && ExpressionUtils.isThis(normalizedLeft.receiver)
+                    ? context.thisType
+                    : context.modelOrType;
+            const rightModel =
+                ExpressionUtils.isMember(normalizedRight) && ExpressionUtils.isThis(normalizedRight.receiver)
+                    ? context.thisType
+                    : context.modelOrType;
+            const leftFieldDef = this.getFieldDefFromFieldRef(normalizedLeft, leftModel);
+            const rightFieldDef = this.getFieldDefFromFieldRef(normalizedRight, rightModel);
             // Map ZModel operator to SQL operator string
             const sqlOp = op === '==' ? '=' : op;
             return this.dialect
@@ -992,6 +1002,19 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             ExpressionUtils.isThis(expr.receiver)
         ) {
             return QueryUtils.getField(this.schema, model, expr.members[0]!);
+        } else if (ExpressionUtils.isMember(expr) && ExpressionUtils.isField(expr.receiver)) {
+            // relation chain access (e.g. `owner.id`, `user.profile.uuid_field`): walk the
+            // relation hops and return the terminal field's FieldDef so native-type info
+            // (@db.*) is available for casting in buildComparison
+            const receiverDef = QueryUtils.getField(this.schema, model, expr.receiver.field);
+            if (!receiverDef?.relation) return undefined;
+            let currModel = receiverDef.type;
+            for (let i = 0; i < expr.members.length - 1; i++) {
+                const hopDef = QueryUtils.getField(this.schema, currModel, expr.members[i]!);
+                if (!hopDef?.relation) return undefined;
+                currModel = hopDef.type;
+            }
+            return QueryUtils.getField(this.schema, currModel, expr.members[expr.members.length - 1]!);
         } else {
             return undefined;
         }

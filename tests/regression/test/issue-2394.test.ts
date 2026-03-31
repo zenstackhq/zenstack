@@ -48,6 +48,89 @@ model Foo {
         await expect(db.foo.update({ where: { id: newId }, data: { value: 1 } })).toResolveTruthy();
     });
 
+    it('should work with policies comparing related @db.Uuid field to plain string field (single-hop)', async () => {
+        // `owner.tag` (a non-FK @db.Uuid field) generates a correlated subquery whose result
+        // type is uuid, compared against tagRef which is plain text. FK fields are all kept
+        // type-compatible so the migration engine doesn't reject the schema.
+        const db = await createPolicyTestClient(
+            `
+model User {
+    id    String @id @default(uuid()) @db.Uuid
+    tag   String @db.Uuid
+    items Item[]
+
+    @@allow('all', true)
+}
+
+model Item {
+    id      String @id @default(uuid()) @db.Uuid
+    ownerId String @db.Uuid
+    owner   User   @relation(fields: [ownerId], references: [id])
+    tagRef  String
+
+    @@allow('all', owner.tag == tagRef)
+}
+            `,
+            { provider: 'postgresql', usePrismaPush: true },
+        );
+
+        const rawDb = db.$unuseAll();
+        const tag = randomUUID();
+        const user = await rawDb.user.create({ data: { tag } });
+        await rawDb.item.create({ data: { ownerId: user.id, tagRef: tag } });
+
+        const items = await db.item.findMany();
+        expect(items).toHaveLength(1);
+    });
+
+    it('should work with policies comparing related @db.Uuid field to plain string field (multi-hop)', async () => {
+        // `org.owner.token` is a two-hop chain through non-FK @db.Uuid fields; without
+        // multi-hop traversal the terminal FieldDef is invisible and the uuid/text mismatch
+        // is not caught. All FK fields are kept type-compatible with their PKs.
+        const db = await createPolicyTestClient(
+            `
+model User {
+    id        String      @id @default(uuid()) @db.Uuid
+    token     String      @db.Uuid
+    ownedOrgs Org[]
+    orgs      OrgMember[]
+
+    @@allow('all', true)
+}
+
+model Org {
+    id      String      @id @default(uuid()) @db.Uuid
+    ownerId String      @db.Uuid
+    owner   User        @relation(fields: [ownerId], references: [id])
+    members OrgMember[]
+
+    @@allow('all', true)
+}
+
+model OrgMember {
+    id         String @id @default(uuid()) @db.Uuid
+    orgId      String @db.Uuid
+    org        Org    @relation(fields: [orgId], references: [id])
+    userId     String @db.Uuid
+    user       User   @relation(fields: [userId], references: [id])
+    tokenRef   String
+
+    @@allow('all', org.owner.token == tokenRef)
+}
+            `,
+            { provider: 'postgresql', usePrismaPush: true },
+        );
+
+        const rawDb = db.$unuseAll();
+        const token = randomUUID();
+        const user = await rawDb.user.create({ data: { token } });
+        const org = await rawDb.org.create({ data: { ownerId: user.id } });
+        await rawDb.orgMember.create({ data: { orgId: org.id, userId: user.id, tokenRef: token } });
+
+        const members = await db.orgMember.findMany();
+        expect(members).toHaveLength(1);
+    });
+
     it('should work with policies comparing @db.Uuid field to auth()', async () => {
         // Exercises transformAuthBinary: `id == auth()` expands to `id == auth().id`, where auth().id
         // is emitted as a text parameter even though the auth model's id also has @db.Uuid.
