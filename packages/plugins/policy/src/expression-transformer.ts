@@ -265,18 +265,8 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         } else if (this.isNullNode(left)) {
             return this.transformNullCheck(right, expr.op);
         } else {
-            // `this.foo` references belong to `thisType`, not `modelOrType` (which is the
-            // collection element type in predicate contexts); everything else uses `modelOrType`.
-            const leftModel =
-                ExpressionUtils.isMember(normalizedLeft) && ExpressionUtils.isThis(normalizedLeft.receiver)
-                    ? context.thisType
-                    : context.modelOrType;
-            const rightModel =
-                ExpressionUtils.isMember(normalizedRight) && ExpressionUtils.isThis(normalizedRight.receiver)
-                    ? context.thisType
-                    : context.modelOrType;
-            const leftFieldDef = this.getFieldDefFromFieldRef(normalizedLeft, leftModel);
-            const rightFieldDef = this.getFieldDefFromFieldRef(normalizedRight, rightModel);
+            const leftFieldDef = this.getFieldDefFromFieldRef(normalizedLeft, context);
+            const rightFieldDef = this.getFieldDefFromFieldRef(normalizedRight, context);
             // Map ZModel operator to SQL operator string
             const sqlOp = op === '==' ? '=' : op;
             return this.dialect
@@ -314,17 +304,17 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         // if relation fields are used directly in comparison, it can only be compared with null,
         // so we normalize the args with the id field (use the first id field if multiple)
         let normalizedLeft: Expression = expr.left;
-        if (this.isRelationField(expr.left, context.modelOrType)) {
+        if (this.isRelationField(expr.left, context)) {
             invariant(ExpressionUtils.isNull(expr.right), 'only null comparison is supported for relation field');
-            const leftRelDef = this.getFieldDefFromFieldRef(expr.left, context.modelOrType);
+            const leftRelDef = this.getFieldDefFromFieldRef(expr.left, context);
             invariant(leftRelDef, 'failed to get relation field definition');
             const idFields = QueryUtils.requireIdFields(this.schema, leftRelDef.type);
             normalizedLeft = this.makeOrAppendMember(normalizedLeft, idFields[0]!);
         }
         let normalizedRight: Expression = expr.right;
-        if (this.isRelationField(expr.right, context.modelOrType)) {
+        if (this.isRelationField(expr.right, context)) {
             invariant(ExpressionUtils.isNull(expr.left), 'only null comparison is supported for relation field');
-            const rightRelDef = this.getFieldDefFromFieldRef(expr.right, context.modelOrType);
+            const rightRelDef = this.getFieldDefFromFieldRef(expr.right, context);
             invariant(rightRelDef, 'failed to get relation field definition');
             const idFields = QueryUtils.requireIdFields(this.schema, rightRelDef.type);
             normalizedRight = this.makeOrAppendMember(normalizedRight, idFields[0]!);
@@ -365,7 +355,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         );
 
         let newContextModel: string;
-        const fieldDef = this.getFieldDefFromFieldRef(expr.left, context.modelOrType);
+        const fieldDef = this.getFieldDefFromFieldRef(expr.left, context);
         if (fieldDef) {
             invariant(fieldDef.relation, `field is not a relation: ${JSON.stringify(expr.left)}`);
             newContextModel = fieldDef.type;
@@ -988,12 +978,18 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         }
     }
 
-    private isRelationField(expr: Expression, model: string) {
-        const fieldDef = this.getFieldDefFromFieldRef(expr, model);
+    private isRelationField(expr: Expression, context: ExpressionTransformerContext) {
+        const fieldDef = this.getFieldDefFromFieldRef(expr, context);
         return !!fieldDef?.relation;
     }
 
-    private getFieldDefFromFieldRef(expr: Expression, model: string): FieldDef | undefined {
+    private getFieldDefFromFieldRef(expr: Expression, context: ExpressionTransformerContext): FieldDef | undefined {
+        // `this.foo` references belong to `thisType` (the outer model in collection-predicate
+        // contexts); everything else uses `modelOrType`.
+        const model =
+            ExpressionUtils.isMember(expr) && ExpressionUtils.isThis(expr.receiver)
+                ? context.thisType
+                : context.modelOrType;
         if (ExpressionUtils.isField(expr)) {
             return QueryUtils.getField(this.schema, model, expr.field);
         } else if (
