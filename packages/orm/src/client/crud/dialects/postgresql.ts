@@ -452,6 +452,19 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         }
     }
 
+    // Resolves the effective SQL type for a field: the native type from any @db.* attribute,
+    // or the base ZModel SQL type if no attribute is present, or undefined if the field is unknown.
+    private resolveFieldSqlType(fieldDef: FieldDef | undefined): { sqlType: string | undefined; hasDbOverride: boolean } {
+        if (!fieldDef) {
+            return { sqlType: undefined, hasDbOverride: false };
+        }
+        const dbAttr = fieldDef.attributes?.find((a) => a.name.startsWith('@db.'));
+        if (dbAttr) {
+            return { sqlType: PostgresCrudDialect.dbAttributeToSqlTypeMap[dbAttr.name], hasDbOverride: true };
+        }
+        return { sqlType: this.getSqlType(fieldDef.type), hasDbOverride: false };
+    }
+
     override buildComparison(
         left: Expression<unknown>,
         leftFieldDef: FieldDef | undefined,
@@ -459,16 +472,18 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         right: Expression<unknown>,
         rightFieldDef: FieldDef | undefined,
     ) {
-        const leftHasNativeType = leftFieldDef?.attributes?.some((a) => a.name.startsWith('@db.')) ?? false;
-        const rightHasNativeType = rightFieldDef?.attributes?.some((a) => a.name.startsWith('@db.')) ?? false;
-        // When one side has a @db.* native type override and the other doesn't (or its type can't be
-        // determined, e.g. auth() values arrive as untyped params), cast the @db.* side back to the
-        // base SQL type for its ZModel type so PostgreSQL doesn't reject the comparison
+        const leftResolved = this.resolveFieldSqlType(leftFieldDef);
+        const rightResolved = this.resolveFieldSqlType(rightFieldDef);
+        // If the resolved SQL types differ and at least one side carries a @db.* native type override,
+        // cast that side back to its base ZModel SQL type so PostgreSQL doesn't reject the comparison
         // (e.g. "operator does not exist: uuid = text").
-        if (leftHasNativeType && !rightHasNativeType) {
-            left = this.eb.cast(left, sql.raw(this.getSqlType(leftFieldDef!.type)));
-        } else if (rightHasNativeType && !leftHasNativeType) {
-            right = this.eb.cast(right, sql.raw(this.getSqlType(rightFieldDef!.type)));
+        if (leftResolved.sqlType !== rightResolved.sqlType && (leftResolved.hasDbOverride || rightResolved.hasDbOverride)) {
+            if (leftResolved.hasDbOverride) {
+                left = this.eb.cast(left, sql.raw(this.getSqlType(leftFieldDef!.type)));
+            }
+            if (rightResolved.hasDbOverride) {
+                right = this.eb.cast(right, sql.raw(this.getSqlType(rightFieldDef!.type)));
+            }
         }
         return super.buildComparison(left, leftFieldDef, op, right, rightFieldDef);
     }
