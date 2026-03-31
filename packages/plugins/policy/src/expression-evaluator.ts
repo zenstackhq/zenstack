@@ -1,4 +1,5 @@
 import { invariant } from '@zenstackhq/common-helpers';
+import type { CRUD_EXT } from '@zenstackhq/orm';
 import {
     ExpressionUtils,
     type ArrayExpression,
@@ -18,6 +19,8 @@ type ExpressionEvaluatorContext = {
     thisValue?: any;
     // scope for resolving references to collection predicate bindings
     bindingScope?: Record<string, any>;
+    operation: CRUD_EXT;
+    thisType: string;
 };
 
 /**
@@ -44,6 +47,10 @@ export class ExpressionEvaluator {
     private evaluateCall(expr: CallExpression, context: ExpressionEvaluatorContext): any {
         if (expr.function === 'auth') {
             return context.auth;
+        } else if (expr.function === 'currentModel') {
+            return context.thisType;
+        } else if (expr.function === 'currentOperation') {
+            return context.operation;
         } else {
             throw new Error(`Unsupported call expression function: ${expr.function}`);
         }
