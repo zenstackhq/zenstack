@@ -2,7 +2,7 @@
     "name": "@zenstackhq/orm",
     "displayName": "ZenStack ORM",
     "description": "ZenStack ORM",
-    "version": "3.5.2",
+    "version": "3.5.3",
     "type": "module",
     "author": {
         "name": "ZenStack Team",
