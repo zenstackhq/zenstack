@@ -17,9 +17,13 @@ describe('Regression for issue #2536', () => {
                 users User[] @relation("UserGroups")
             }
 
-            model Foo {
-                id String @id @default(cuid())
+            // define a mixin to also check that currentModel correctly resolves to the model where the mixin is applied
+            type AuthPolicyMixin {
                 @@allow('all', auth().groups?[modelName == currentModel() && modelOperation == currentOperation()])
+            }
+
+            model Foo with AuthPolicyMixin {
+                id String @id @default(cuid())
             }
             `,
         );
