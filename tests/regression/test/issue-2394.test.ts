@@ -57,7 +57,7 @@ model User {
     id    String @id @default(uuid()) @db.Uuid
     value Int
 
-    @@allow('all', id == auth())
+    @@allow('all', id == auth().id)
 }
             `,
             { provider: 'postgresql', usePrismaPush: true },
