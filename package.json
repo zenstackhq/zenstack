@@ -1,9 +1,20 @@
 {
     "name": "zenstack-v3",
-    "version": "3.5.2",
+    "displayName": "ZenStack",
     "description": "ZenStack",
-    "packageManager": "pnpm@10.23.0",
+    "version": "3.5.3",
     "type": "module",
+    "author": {
+        "name": "ZenStack Team",
+        "email": "contact@zenstack.dev"
+    },
+    "homepage": "https://zenstack.dev",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/zenstackhq/zenstack"
+    },
+    "license": "MIT",
+    "packageManager": "pnpm@10.23.0",
     "scripts": {
         "build": "turbo run build",
         "watch": "turbo run watch build",
@@ -25,8 +36,6 @@
         "unpublish-preview": "pnpm --filter \"./packages/**\" -r --shell-mode exec -- npm unpublish -f --registry https://preview.registry.zenstack.dev/ \"\\$PNPM_PACKAGE_NAME\""
     },
     "keywords": [],
-    "author": "",
-    "license": "MIT",
     "devDependencies": {
         "@eslint/js": "^9.29.0",
         "@types/node": "catalog:",
@@ -56,5 +65,6 @@
             "lodash-es@>=4.0.0 <=4.17.22": ">=4.17.23",
             "lodash@>=4.0.0 <=4.17.22": ">=4.17.23"
         }
-    }
+    },
+    "funding": "https://github.com/sponsors/zenstackhq"
 }

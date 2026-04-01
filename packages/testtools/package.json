@@ -1,8 +1,19 @@
 {
     "name": "@zenstackhq/testtools",
-    "version": "3.5.2",
+    "displayName": "ZenStack Test Tools",
     "description": "ZenStack Test Tools",
+    "version": "3.5.3",
     "type": "module",
+    "author": {
+        "name": "ZenStack Team",
+        "email": "contact@zenstack.dev"
+    },
+    "homepage": "https://zenstack.dev",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/zenstackhq/zenstack"
+    },
+    "license": "MIT",
     "scripts": {
         "build": "tsc --noEmit && tsup-node",
         "watch": "tsup-node --watch",
@@ -10,8 +21,6 @@
         "pack": "pnpm pack"
     },
     "keywords": [],
-    "author": "ZenStack Team",
-    "license": "MIT",
     "files": [
         "dist"
     ],
@@ -56,5 +65,6 @@
         "@zenstackhq/eslint-config": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*",
         "typescript": "catalog:"
-    }
+    },
+    "funding": "https://github.com/sponsors/zenstackhq"
 }
