@@ -337,6 +337,8 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 thisValue: context.contextValue,
                 auth: this.auth,
                 bindingScope: this.getEvaluationBindingScope(context.bindingScope),
+                operation: context.operation,
+                thisType: context.thisType,
             });
 
             // get LHS's type
@@ -436,6 +438,8 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 auth: this.auth,
                 thisValue: context.contextValue,
                 bindingScope: this.getEvaluationBindingScope(context.bindingScope),
+                operation: context.operation,
+                thisType: context.thisType,
             });
             return this.transformValue(value, 'Boolean');
         } else {
