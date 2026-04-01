@@ -554,7 +554,8 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         }
 
         if (fromRelation && m2m) {
-            // connect many-to-many relation
+            // connect many-to-many relation; mark the newly created model so the
+            // policy plugin can skip the circular update-policy check on it
             await this.handleManyToManyRelation(
                 kysely,
                 'connect',
@@ -565,6 +566,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                 m2m.otherField,
                 [createdEntity],
                 m2m.joinTable,
+                m2m.otherModel,
             );
         }
 
@@ -647,6 +649,10 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         return parentFkFields;
     }
 
+    // Marker embedded in the INSERT end modifier to signal to the policy plugin
+    // that one side of the join was just created in this operation.
+    static readonly M2M_CREATED_MODEL_MARKER_PREFIX = '/*ZS:M2M_CREATED:';
+
     private async handleManyToManyRelation<Action extends 'connect' | 'disconnect'>(
         kysely: AnyKysely,
         action: Action,
@@ -657,6 +663,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         rightField: string,
         rightEntities: any[],
         joinTable: string,
+        newlyCreatedModel?: string,
     ): Promise<void> {
         if (rightEntities.length === 0) {
             return;
@@ -694,6 +701,14 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                 )
                 // case for `INSERT IGNORE` syntax
                 .$if(this.dialect.insertIgnoreMethod === 'ignore', (qb) => qb.ignore())
+                // embed a marker so the policy plugin knows which model was just created
+                .$if(newlyCreatedModel !== undefined, (qb) =>
+                    qb.modifyEnd(
+                        sql.raw(
+                            `${BaseOperationHandler.M2M_CREATED_MODEL_MARKER_PREFIX}${newlyCreatedModel}*/`,
+                        ),
+                    ),
+                )
                 .execute();
         } else {
             const eb = expressionBuilder<any, any>();
@@ -829,7 +844,9 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                 }
 
                 case 'connect': {
-                    await this.connectRelation(kysely, relationModel, subPayload, fromRelationContext);
+                    // contextModel was just created; pass it so the policy plugin can
+                    // skip the circular update-policy check on the newly created side
+                    await this.connectRelation(kysely, relationModel, subPayload, fromRelationContext, contextModel);
                     break;
                 }
 
@@ -839,7 +856,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                         if (!found) {
                             await this.create(kysely, relationModel, item.create, fromRelationContext);
                         } else {
-                            await this.connectRelation(kysely, relationModel, found, fromRelationContext);
+                            await this.connectRelation(kysely, relationModel, found, fromRelationContext, contextModel);
                         }
                     }
                     break;
@@ -1910,7 +1927,13 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
 
     // #region relation manipulation
 
-    protected async connectRelation(kysely: AnyKysely, model: string, data: any, fromRelation: FromRelationContext) {
+    protected async connectRelation(
+        kysely: AnyKysely,
+        model: string,
+        data: any,
+        fromRelation: FromRelationContext,
+        newlyCreatedModel?: string,
+    ) {
         const _data = this.normalizeRelationManipulationInput(model, data);
         if (_data.length === 0) {
             return;
@@ -1933,6 +1956,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                 m2m.otherField!,
                 allIds,
                 m2m.joinTable,
+                newlyCreatedModel,
             );
         } else {
             const { ownedByModel, keyPairs } = getRelationForeignKeyFieldPairs(
