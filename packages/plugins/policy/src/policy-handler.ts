@@ -784,7 +784,6 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         for (const values of valueRows) {
             if (isManyToManyJoinTable) {
                 await this.enforcePreCreatePolicyForManyToManyJoinTable(
-                    node,
                     mutationModel,
                     fields,
                     values.map((v) => v.node),
@@ -802,7 +801,6 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
     }
 
     private async enforcePreCreatePolicyForManyToManyJoinTable(
-        node: InsertQueryNode,
         tableName: string,
         fields: string[],
         values: OperationNode[],
@@ -825,24 +823,15 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         invariant(aValue !== null && aValue !== undefined, 'A value cannot be null or undefined');
         invariant(bValue !== null && bValue !== undefined, 'B value cannot be null or undefined');
 
-        // If one side was just created in this operation, its update-policy check is
-        // inherently circular (it has no relations yet), so we skip it.  The create
-        // policy for that side was already verified earlier in the operation.
-        const newlyCreatedModel = this.extractNewlyCreatedModel(node);
-
         const eb = expressionBuilder<any, any>();
 
-        const filterA = newlyCreatedModel === m2m.firstModel
-            ? trueNode(this.dialect)
-            : this.buildPolicyFilter(m2m.firstModel, undefined, 'update');
+        const filterA = this.buildPolicyFilter(m2m.firstModel, undefined, 'update');
         const queryA = eb
             .selectFrom(m2m.firstModel)
             .where(eb(eb.ref(`${m2m.firstModel}.${m2m.firstIdField}`), '=', aValue))
             .select(() => new ExpressionWrapper(filterA).as('_'));
 
-        const filterB = newlyCreatedModel === m2m.secondModel
-            ? trueNode(this.dialect)
-            : this.buildPolicyFilter(m2m.secondModel, undefined, 'update');
+        const filterB = this.buildPolicyFilter(m2m.secondModel, undefined, 'update');
         const queryB = eb
             .selectFrom(m2m.secondModel)
             .where(eb(eb.ref(`${m2m.secondModel}.${m2m.secondIdField}`), '=', bValue))
@@ -861,7 +850,7 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         if (!result.rows[0]?.$conditionA) {
             throw createRejectedByPolicyError(
                 m2m.firstModel,
-                RejectedByPolicyReason.NO_ACCESS,
+                RejectedByPolicyReason.CANNOT_READ_BACK,
                 `many-to-many relation participant model "${m2m.firstModel}" not updatable`,
             );
         }
@@ -872,19 +861,6 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
                 `many-to-many relation participant model "${m2m.secondModel}" not updatable`,
             );
         }
-    }
-
-    private extractNewlyCreatedModel(node: InsertQueryNode): string | undefined {
-        const prefix = '/*ZS:M2M_CREATED:';
-        for (const modifier of node.endModifiers ?? []) {
-            if (RawNode.is(modifier)) {
-                const fragment = modifier.sqlFragments[0];
-                if (fragment?.startsWith(prefix)) {
-                    return fragment.slice(prefix.length, -2); // strip prefix and trailing */
-                }
-            }
-        }
-        return undefined;
     }
 
     private async enforcePreCreatePolicyForOne(
