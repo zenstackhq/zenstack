@@ -77,15 +77,15 @@ export type DefaultModelResult<
     // SchemaDef interface), skip all delegate expansion. Checking [string] extends [Model]
     // is O(1) and short-circuits before any of the more expensive type computations run,
     // keeping the total instantiation count within TypeScript's recursion budget.
-    _IsGenericModel = [string] extends [Model] ? true : false,
+    IsGenericModel = [string] extends [Model] ? true : false,
 > = WrapType<
-    _IsGenericModel extends true
+    IsGenericModel extends true
         ? // generic model — return flat type immediately to avoid expensive recursion
-          { [Key in NonRelationFields<Schema, Model> as ShouldOmitField<Schema, Model, Options, Key, Omit> extends true ? never : Key]: MapModelFieldType<Schema, Model, Key> }
+          FlatModelResult<Schema, Model, Omit, Options>
         : IsDelegateModel<Schema, Model> extends true
           ? // delegate model's selection result is a union of all sub-models
             DelegateUnionResult<Schema, Model, Options, GetSubModels<Schema, Model>, Omit>
-          : { [Key in NonRelationFields<Schema, Model> as ShouldOmitField<Schema, Model, Options, Key, Omit> extends true ? never : Key]: MapModelFieldType<Schema, Model, Key> },
+          : FlatModelResult<Schema, Model, Omit, Options>,
     Optional,
     Array
 >;
@@ -156,8 +156,8 @@ type DelegateUnionResult<
     Options extends QueryOptions<Schema>,
     SubModel extends GetModels<Schema>,
     Omit = undefined,
-    _Depth extends readonly 0[] = [],
-> = _Depth['length'] extends 10 // hard stop so generic SchemaDef never infinite-loops
+    Depth extends readonly 0[] = [],
+> = Depth['length'] extends 10 // hard stop so generic SchemaDef never infinite-loops
     ? never
     : SubModel extends string // typescript union distribution
       ? IsDelegateModel<Schema, SubModel> extends true
@@ -170,7 +170,7 @@ type DelegateUnionResult<
                   Options,
                   GetSubModels<Schema, SubModel>,
                   Omit,
-                  [..._Depth, 0]
+                  [...Depth, 0]
               > & { [K in GetModelDiscriminator<Schema, Model>]: SubModel }
             : // leaf model — produce a flat scalar result and fix the discriminator
               FlatModelResult<Schema, SubModel, Omit, Options> &
