@@ -17,16 +17,16 @@ async function find() {
     // @ts-expect-error
     console.log(r.rating);
 
-    // TODO: discriminated sub-model fields
-    // if (r.assetType === 'Video') {
-    //     // video
-    //     console.log(r.duration);
-    //     // only one choice `RatedVideo`
-    //     console.log(r.rating);
-    // } else {
-    //     // image
-    //     console.log(r.format);
-    // }
+    // discriminated union narrows sub-model fields
+    if (r.assetType === 'Video') {
+        // video
+        console.log(r.duration);
+        // only one choice `RatedVideo`
+        console.log(r.rating);
+    } else {
+        // image
+        console.log(r.format);
+    }
 
     // if fields are explicitly selected, then no sub-model fields are available
     const r1 = await client.asset.findFirstOrThrow({
@@ -52,16 +52,16 @@ async function find() {
     // @ts-expect-error
     console.log(r2.assets[0]?.rating);
 
-    // TODO: discriminated sub-model fields
-    // if (r2.assets[0]?.assetType === 'Video') {
-    //     // video
-    //     console.log(r2.assets[0]?.duration);
-    //     // only one choice `RatedVideo`
-    //     console.log(r2.assets[0]?.rating);
-    // } else {
-    //     // image
-    //     console.log(r2.assets[0]?.format);
-    // }
+    // discriminated union narrows sub-model fields when queried via relation
+    if (r2.assets[0]?.assetType === 'Video') {
+        // video
+        console.log(r2.assets[0]?.duration);
+        // only one choice `RatedVideo`
+        console.log(r2.assets[0]?.rating);
+    } else {
+        // image
+        console.log(r2.assets[0]?.format);
+    }
 
     // sub model behavior
     const r3 = await client.ratedVideo.findFirstOrThrow();
