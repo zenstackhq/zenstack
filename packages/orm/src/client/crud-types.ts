@@ -74,7 +74,7 @@ export type DefaultModelResult<
     Optional = false,
     Array = false,
     // Guard: if Model is the generic `string` type (which happens when Schema is the base
-    // SchemaDef interface), skip all delegate expansion.  Checking [string] extends [Model]
+    // SchemaDef interface), skip all delegate expansion. Checking [string] extends [Model]
     // is O(1) and short-circuits before any of the more expensive type computations run,
     // keeping the total instantiation count within TypeScript's recursion budget.
     _IsGenericModel = [string] extends [Model] ? true : false,
@@ -143,11 +143,13 @@ type FlatModelResult<
         : Key]: MapModelFieldType<Schema, Model, Key>;
 };
 
-// Builds a discriminated union from a delegate model's direct sub-models. A depth counter
-// (tuple length) prevents infinite type instantiation when Schema is the generic SchemaDef.
+// Builds a discriminated union from a delegate model's direct sub-models. Recursion depth
+// is tracked via a tuple (each level appends a `0` element); the hard stop at length 10
+// ensures the type terminates even for the generic SchemaDef case.
 // Each union branch fixes the parent discriminator field to the sub-model name.
-// When a sub-model is itself a delegate, we recurse into its own sub-models instead of
-// stopping, so multi-level delegation (e.g. Asset → Video → RatedVideo) is fully expanded.
+// When a sub-model is itself a delegate, we recurse into its own sub-models so all
+// concrete leaf types appear in the union, each picking up the accumulated
+// discriminator overrides from both levels.
 type DelegateUnionResult<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
