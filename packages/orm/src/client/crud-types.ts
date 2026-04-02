@@ -12,17 +12,14 @@ import type {
     GetEnum,
     GetEnums,
     GetModel,
-    GetModelDiscriminator,
     GetModelField,
     GetModelFields,
     GetModelFieldType,
     GetModels,
-    GetSubModels,
     GetTypeDefField,
     GetTypeDefFields,
     GetTypeDefFieldType,
     GetTypeDefs,
-    IsDelegateModel,
     ModelFieldIsOptional,
     NonRelationFields,
     ProcedureDef,
@@ -73,19 +70,27 @@ export type DefaultModelResult<
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     Optional = false,
     Array = false,
-    // Guard: if Model is the generic `string` type (which happens when Schema is the base
-    // SchemaDef interface), skip all delegate expansion. Checking [string] extends [Model]
-    // is O(1) and short-circuits before any of the more expensive type computations run,
-    // keeping the total instantiation count within TypeScript's recursion budget.
-    _IsGenericModel = [string] extends [Model] ? true : false,
 > = WrapType<
-    _IsGenericModel extends true
-        ? // generic model — return flat type immediately to avoid expensive recursion
-          { [Key in NonRelationFields<Schema, Model> as ShouldOmitField<Schema, Model, Options, Key, Omit> extends true ? never : Key]: MapModelFieldType<Schema, Model, Key> }
-        : IsDelegateModel<Schema, Model> extends true
-          ? // delegate model's selection result is a union of all sub-models
-            DelegateUnionResult<Schema, Model, Options, GetSubModels<Schema, Model>, Omit>
-          : { [Key in NonRelationFields<Schema, Model> as ShouldOmitField<Schema, Model, Options, Key, Omit> extends true ? never : Key]: MapModelFieldType<Schema, Model, Key> },
+    {
+        [Key in NonRelationFields<Schema, Model> as ShouldOmitField<Schema, Model, Options, Key, Omit> extends true
+            ? never
+            : Key]: MapModelFieldType<Schema, Model, Key>;
+    },
+    // TODO: revisit how to efficiently implement discriminated sub model types
+    // IsDelegateModel<Schema, Model> extends true
+    //     ? // delegate model's selection result is a union of all sub-models
+    //       DelegateUnionResult<Schema, Model, Options, GetSubModels<Schema, Model>, Omit>
+    //     : {
+    //           [Key in NonRelationFields<Schema, Model> as ShouldOmitField<
+    //               Schema,
+    //               Model,
+    //               Options,
+    //               Key,
+    //               Omit
+    //           > extends true
+    //               ? never
+    //               : Key]: MapModelFieldType<Schema, Model, Key>;
+    //       },
     Optional,
     Array
 >;
@@ -130,52 +135,15 @@ type SchemaLevelOmit<
     Field extends GetModelFields<Schema, Model>,
 > = GetModelField<Schema, Model, Field>['omit'] extends true ? true : false;
 
-// Flat scalar-only result for a single model (no delegate expansion). Used as the leaf case
-// in DelegateUnionResult so that we never call DefaultModelResult from within itself.
-type FlatModelResult<
-    Schema extends SchemaDef,
-    Model extends GetModels<Schema>,
-    Omit,
-    Options extends QueryOptions<Schema>,
-> = {
-    [Key in NonRelationFields<Schema, Model> as ShouldOmitField<Schema, Model, Options, Key, Omit> extends true
-        ? never
-        : Key]: MapModelFieldType<Schema, Model, Key>;
-};
-
-// Builds a discriminated union from a delegate model's direct sub-models. Recursion depth
-// is tracked via a tuple (each level appends a `0` element); the hard stop at length 10
-// ensures the type terminates even for the generic SchemaDef case.
-// Each union branch fixes the parent discriminator field to the sub-model name.
-// When a sub-model is itself a delegate, we recurse into its own sub-models so all
-// concrete leaf types appear in the union, each picking up the accumulated
-// discriminator overrides from both levels.
-type DelegateUnionResult<
-    Schema extends SchemaDef,
-    Model extends GetModels<Schema>,
-    Options extends QueryOptions<Schema>,
-    SubModel extends GetModels<Schema>,
-    Omit = undefined,
-    _Depth extends readonly 0[] = [],
-> = _Depth['length'] extends 10 // hard stop so generic SchemaDef never infinite-loops
-    ? never
-    : SubModel extends string // typescript union distribution
-      ? IsDelegateModel<Schema, SubModel> extends true
-            ? // sub-model is itself a delegate — recurse into its own sub-models so all
-              // concrete leaf types appear in the union, each picking up the accumulated
-              // discriminator overrides from both levels
-              DelegateUnionResult<
-                  Schema,
-                  SubModel,
-                  Options,
-                  GetSubModels<Schema, SubModel>,
-                  Omit,
-                  [..._Depth, 0]
-              > & { [K in GetModelDiscriminator<Schema, Model>]: SubModel }
-            : // leaf model — produce a flat scalar result and fix the discriminator
-              FlatModelResult<Schema, SubModel, Omit, Options> &
-                  { [K in GetModelDiscriminator<Schema, Model>]: SubModel }
-      : never;
+// type DelegateUnionResult<
+//     Schema extends SchemaDef,
+//     Model extends GetModels<Schema>,
+//     Options extends QueryOptions<Schema>,
+//     SubModel extends GetModels<Schema>,
+//     Omit = undefined,
+// > = SubModel extends string // typescript union distribution
+//     ? DefaultModelResult<Schema, SubModel, Options, Omit> & { [K in GetModelDiscriminator<Schema, Model>]: SubModel } // fixate discriminated field
+//     : never;
 
 type ModelSelectResult<
     Schema extends SchemaDef,
