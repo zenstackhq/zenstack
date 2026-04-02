@@ -1,8 +1,19 @@
 {
     "name": "@zenstackhq/better-auth",
-    "version": "3.5.1",
+    "displayName": "ZenStack Better Auth Adapter",
     "description": "ZenStack Better Auth Adapter. This adapter is modified from better-auth's Prisma adapter.",
+    "version": "3.5.3",
     "type": "module",
+    "author": {
+        "name": "ZenStack Team",
+        "email": "contact@zenstack.dev"
+    },
+    "homepage": "https://zenstack.dev",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/zenstackhq/zenstack"
+    },
+    "license": "MIT",
     "scripts": {
         "build": "tsc --noEmit && tsup-node",
         "watch": "tsup-node --watch",
@@ -14,8 +25,6 @@
         "better-auth",
         "auth"
     ],
-    "author": "ZenStack Team",
-    "license": "MIT",
     "files": [
         "dist"
     ],
@@ -55,5 +64,6 @@
         "@zenstackhq/typescript-config": "workspace:*",
         "@zenstackhq/vitest-config": "workspace:*",
         "tmp": "catalog:"
-    }
+    },
+    "funding": "https://github.com/sponsors/zenstackhq"
 }

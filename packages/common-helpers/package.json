@@ -1,8 +1,19 @@
 {
     "name": "@zenstackhq/common-helpers",
-    "version": "3.5.1",
+    "displayName": "ZenStack Common Helpers",
     "description": "ZenStack Common Helpers",
+    "version": "3.5.3",
     "type": "module",
+    "author": {
+        "name": "ZenStack Team",
+        "email": "contact@zenstack.dev"
+    },
+    "homepage": "https://zenstack.dev",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/zenstackhq/zenstack"
+    },
+    "license": "MIT",
     "scripts": {
         "build": "tsc --noEmit && tsup-node",
         "watch": "tsup-node --watch",
@@ -11,8 +22,6 @@
         "pack": "pnpm pack"
     },
     "keywords": [],
-    "author": "ZenStack Team",
-    "license": "MIT",
     "files": [
         "dist"
     ],
@@ -32,5 +41,6 @@
         "@zenstackhq/typescript-config": "workspace:*",
         "@zenstackhq/eslint-config": "workspace:*",
         "@zenstackhq/vitest-config": "workspace:*"
-    }
+    },
+    "funding": "https://github.com/sponsors/zenstackhq"
 }

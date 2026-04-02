@@ -265,7 +265,13 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         } else if (this.isNullNode(left)) {
             return this.transformNullCheck(right, expr.op);
         } else {
-            return BinaryOperationNode.create(left, this.transformOperator(op), right);
+            const leftFieldDef = this.getFieldDefFromFieldRef(normalizedLeft, context);
+            const rightFieldDef = this.getFieldDefFromFieldRef(normalizedRight, context);
+            // Map ZModel operator to SQL operator string
+            const sqlOp = op === '==' ? '=' : op;
+            return this.dialect
+                .buildComparison(new ExpressionWrapper(left), leftFieldDef, sqlOp, new ExpressionWrapper(right), rightFieldDef)
+                .toOperationNode();
         }
     }
 
@@ -298,17 +304,17 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         // if relation fields are used directly in comparison, it can only be compared with null,
         // so we normalize the args with the id field (use the first id field if multiple)
         let normalizedLeft: Expression = expr.left;
-        if (this.isRelationField(expr.left, context.modelOrType)) {
+        if (this.isRelationField(expr.left, context)) {
             invariant(ExpressionUtils.isNull(expr.right), 'only null comparison is supported for relation field');
-            const leftRelDef = this.getFieldDefFromFieldRef(expr.left, context.modelOrType);
+            const leftRelDef = this.getFieldDefFromFieldRef(expr.left, context);
             invariant(leftRelDef, 'failed to get relation field definition');
             const idFields = QueryUtils.requireIdFields(this.schema, leftRelDef.type);
             normalizedLeft = this.makeOrAppendMember(normalizedLeft, idFields[0]!);
         }
         let normalizedRight: Expression = expr.right;
-        if (this.isRelationField(expr.right, context.modelOrType)) {
+        if (this.isRelationField(expr.right, context)) {
             invariant(ExpressionUtils.isNull(expr.left), 'only null comparison is supported for relation field');
-            const rightRelDef = this.getFieldDefFromFieldRef(expr.right, context.modelOrType);
+            const rightRelDef = this.getFieldDefFromFieldRef(expr.right, context);
             invariant(rightRelDef, 'failed to get relation field definition');
             const idFields = QueryUtils.requireIdFields(this.schema, rightRelDef.type);
             normalizedRight = this.makeOrAppendMember(normalizedRight, idFields[0]!);
@@ -331,6 +337,8 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 thisValue: context.contextValue,
                 auth: this.auth,
                 bindingScope: this.getEvaluationBindingScope(context.bindingScope),
+                operation: context.operation,
+                thisType: context.thisType,
             });
 
             // get LHS's type
@@ -349,7 +357,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         );
 
         let newContextModel: string;
-        const fieldDef = this.getFieldDefFromFieldRef(expr.left, context.modelOrType);
+        const fieldDef = this.getFieldDefFromFieldRef(expr.left, context);
         if (fieldDef) {
             invariant(fieldDef.relation, `field is not a relation: ${JSON.stringify(expr.left)}`);
             newContextModel = fieldDef.type;
@@ -430,6 +438,8 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 auth: this.auth,
                 thisValue: context.contextValue,
                 bindingScope: this.getEvaluationBindingScope(context.bindingScope),
+                operation: context.operation,
+                thisType: context.thisType,
             });
             return this.transformValue(value, 'Boolean');
         } else {
@@ -576,13 +586,6 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         // only '!' operator for now
         invariant(expr.op === '!', 'only "!" operator is supported');
         return logicalNot(this.dialect, this.transform(expr.operand, context));
-    }
-
-    private transformOperator(op: Exclude<BinaryOperator, '?' | '!' | '^'>) {
-        const mappedOp = match(op)
-            .with('==', () => '=' as const)
-            .otherwise(() => op);
-        return OperatorNode.create(mappedOp);
     }
 
     @expr('call')
@@ -979,12 +982,18 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         }
     }
 
-    private isRelationField(expr: Expression, model: string) {
-        const fieldDef = this.getFieldDefFromFieldRef(expr, model);
+    private isRelationField(expr: Expression, context: ExpressionTransformerContext) {
+        const fieldDef = this.getFieldDefFromFieldRef(expr, context);
         return !!fieldDef?.relation;
     }
 
-    private getFieldDefFromFieldRef(expr: Expression, model: string): FieldDef | undefined {
+    private getFieldDefFromFieldRef(expr: Expression, context: ExpressionTransformerContext): FieldDef | undefined {
+        // `this.foo` references belong to `thisType` (the outer model in collection-predicate
+        // contexts); everything else uses `modelOrType`.
+        const model =
+            ExpressionUtils.isMember(expr) && ExpressionUtils.isThis(expr.receiver)
+                ? context.thisType
+                : context.modelOrType;
         if (ExpressionUtils.isField(expr)) {
             return QueryUtils.getField(this.schema, model, expr.field);
         } else if (
@@ -993,6 +1002,19 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             ExpressionUtils.isThis(expr.receiver)
         ) {
             return QueryUtils.getField(this.schema, model, expr.members[0]!);
+        } else if (ExpressionUtils.isMember(expr) && ExpressionUtils.isField(expr.receiver)) {
+            // relation chain access (e.g. `owner.id`, `user.profile.uuid_field`): walk the
+            // relation hops and return the terminal field's FieldDef so native-type info
+            // (@db.*) is available for casting in buildComparison
+            const receiverDef = QueryUtils.getField(this.schema, model, expr.receiver.field);
+            if (!receiverDef?.relation) return undefined;
+            let currModel = receiverDef.type;
+            for (let i = 0; i < expr.members.length - 1; i++) {
+                const hopDef = QueryUtils.getField(this.schema, currModel, expr.members[i]!);
+                if (!hopDef?.relation) return undefined;
+                currModel = hopDef.type;
+            }
+            return QueryUtils.getField(this.schema, currModel, expr.members[expr.members.length - 1]!);
         } else {
             return undefined;
         }
