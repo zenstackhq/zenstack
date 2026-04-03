@@ -479,7 +479,7 @@ describe('Client find tests ', () => {
         ).toResolveFalsy();
 
         // NOT
-        await expect(client.user.findMany({ where: { NOT: [] } })).resolves.toHaveLength(0);
+        await expect(client.user.findMany({ where: { NOT: [] } })).resolves.toHaveLength(2);
         await expect(
             client.user.findFirst({
                 where: {
