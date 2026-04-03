@@ -260,14 +260,41 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         key: (typeof LOGICAL_COMBINATORS)[number],
         payload: any,
     ): Expression<SqlBool> {
+        // Normalize payload: ensure array, remove empty objects and objects with
+        // only undefined fields values
+        const normalizedPayload = enumerate(payload).filter((el) => {
+            if (typeof el === 'object' && el !== null && !Array.isArray(el)) {
+                const entries = Object.entries(el);
+                return entries.some(([, v]) => v !== undefined);
+            } else {
+                return true;
+            }
+        });
+
+        const normalizedFilters = normalizedPayload.map((el) => this.buildFilter(model, modelAlias, el));
+
         return match(key)
-            .with('AND', () =>
-                this.and(...enumerate(payload).map((subPayload) => this.buildFilter(model, modelAlias, subPayload))),
-            )
-            .with('OR', () =>
-                this.or(...enumerate(payload).map((subPayload) => this.buildFilter(model, modelAlias, subPayload))),
-            )
-            .with('NOT', () => this.eb.not(this.buildCompositeFilter(model, modelAlias, 'AND', payload)))
+            .with('AND', () => {
+                if (normalizedFilters.length === 0) {
+                    // AND of no conditions is a no-op, return true
+                    return this.true();
+                }
+                return this.and(...normalizedFilters);
+            })
+            .with('OR', () => {
+                if (normalizedFilters.length === 0) {
+                    // OR of no conditions is always false, return false
+                    return this.false();
+                }
+                return this.or(...normalizedFilters);
+            })
+            .with('NOT', () => {
+                if (normalizedFilters.length === 0) {
+                    // NOT of no conditions is a no-op, return true
+                    return this.true();
+                }
+                return this.not(...normalizedFilters);
+            })
             .exhaustive();
     }
 
@@ -800,6 +827,9 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             if (excludeKeys.includes(op)) {
                 continue;
             }
+            if (value === undefined) {
+                continue;
+            }
             const rhs = Array.isArray(value) ? value.map(getRhs) : getRhs(value);
             const condition = match(op)
                 .with('equals', () => (rhs === null ? this.eb(lhs, 'is', null) : this.eb(lhs, '=', rhs)))
@@ -878,6 +908,10 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             for (const [key, value] of Object.entries(payload)) {
                 if (key === 'mode' || consumedKeys.includes(key)) {
                     // already consumed
+                    continue;
+                }
+
+                if (value === undefined) {
                     continue;
                 }
 
