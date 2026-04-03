@@ -2,7 +2,7 @@
     "name": "@zenstackhq/plugin-policy",
     "displayName": "ZenStack Access Policy Plugin",
     "description": "ZenStack plugin that enforces access control policies defined in the schema",
-    "version": "3.5.4",
+    "version": "3.5.5",
     "type": "module",
     "author": {
         "name": "ZenStack Team",
