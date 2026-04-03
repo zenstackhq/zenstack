@@ -1,8 +1,19 @@
 {
     "name": "@zenstackhq/server",
-    "version": "3.5.1",
-    "description": "ZenStack automatic CRUD API handlers and server adapters",
+    "displayName": "ZenStack Automatic CRUD Server",
+    "description": "ZenStack automatic CRUD API handlers and server adapters for popular frameworks",
+    "version": "3.5.3",
     "type": "module",
+    "author": {
+        "name": "ZenStack Team",
+        "email": "contact@zenstack.dev"
+    },
+    "homepage": "https://zenstack.dev",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/zenstackhq/zenstack"
+    },
+    "license": "MIT",
     "scripts": {
         "build": "tsc --noEmit && tsup-node",
         "watch": "tsup-node --watch",
@@ -20,8 +31,6 @@
         "elysia",
         "tanstack-start"
     ],
-    "author": "ZenStack Team",
-    "license": "MIT",
     "files": [
         "dist"
     ],
@@ -190,5 +199,6 @@
         "@sveltejs/kit": {
             "optional": true
         }
-    }
+    },
+    "funding": "https://github.com/sponsors/zenstackhq"
 }

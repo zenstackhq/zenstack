@@ -1,8 +1,19 @@
 {
     "name": "@zenstackhq/schema",
-    "version": "3.5.1",
-    "description": "ZenStack Runtime Schema",
+    "displayName": "ZenStack Schema Object Model",
+    "description": "TypeScript representation of ZModel schema",
+    "version": "3.5.3",
     "type": "module",
+    "author": {
+        "name": "ZenStack Team",
+        "email": "contact@zenstack.dev"
+    },
+    "homepage": "https://zenstack.dev",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/zenstackhq/zenstack"
+    },
+    "license": "MIT",
     "scripts": {
         "build": "tsc --noEmit && tsup-node",
         "watch": "tsup-node --watch",
@@ -12,8 +23,6 @@
         "test:generate": "tsx ../../scripts/test-generate.ts ."
     },
     "keywords": [],
-    "author": "ZenStack Team",
-    "license": "MIT",
     "files": [
         "dist"
     ],
@@ -40,5 +49,6 @@
         "@zenstackhq/eslint-config": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*",
         "@zenstackhq/vitest-config": "workspace:*"
-    }
+    },
+    "funding": "https://github.com/sponsors/zenstackhq"
 }

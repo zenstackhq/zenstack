@@ -1527,6 +1527,19 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
     abstract buildValuesTableSelect(fields: FieldDef[], rows: unknown[][]): SelectQueryBuilder<any, any, any>;
 
     /**
+     * Builds a binary comparison expression between two operands.
+     */
+    buildComparison(
+        left: Expression<unknown>,
+        _leftFieldDef: FieldDef | undefined,
+        op: string,
+        right: Expression<unknown>,
+        _rightFieldDef: FieldDef | undefined,
+    ): Expression<SqlBool> {
+        return this.eb(left, op as any, right) as Expression<SqlBool>;
+    }
+
+    /**
      * Builds a JSON path selection expression.
      */
     protected abstract buildJsonPathSelection(receiver: Expression<any>, path: string | undefined): Expression<any>;

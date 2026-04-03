@@ -1,8 +1,19 @@
 {
     "name": "@zenstackhq/orm",
-    "version": "3.5.1",
+    "displayName": "ZenStack ORM",
     "description": "ZenStack ORM",
+    "version": "3.5.3",
     "type": "module",
+    "author": {
+        "name": "ZenStack Team",
+        "email": "contact@zenstack.dev"
+    },
+    "homepage": "https://zenstack.dev",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/zenstackhq/zenstack"
+    },
+    "license": "MIT",
     "scripts": {
         "build": "tsc --noEmit && tsup-node",
         "watch": "tsup-node --watch",
@@ -10,8 +21,6 @@
         "pack": "pnpm pack"
     },
     "keywords": [],
-    "author": "ZenStack Team",
-    "license": "MIT",
     "files": [
         "dist"
     ],
@@ -139,5 +148,6 @@
         "@zenstackhq/vitest-config": "workspace:*",
         "tsx": "^4.19.2",
         "zod": "^4.1.0"
-    }
+    },
+    "funding": "https://github.com/sponsors/zenstackhq"
 }

@@ -61,6 +61,10 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         return this.handlerOptions?.queryOptions;
     }
 
+    private get nestedRoutes(): boolean {
+        return this.handlerOptions.nestedRoutes ?? false;
+    }
+
     generateSpec(options?: OpenApiSpecOptions): OpenAPIV3_1.Document {
         this.specOptions = options;
         return {
@@ -124,13 +128,27 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 const relIdFields = this.getIdFields(relModelDef);
                 if (relIdFields.length === 0) continue;
 
-                // GET /{model}/{id}/{field} — fetch related
-                paths[`/${modelPath}/{id}/${fieldName}`] = this.buildFetchRelatedPath(
+                // GET /{model}/{id}/{field} — fetch related (+ nested create/update when nestedRoutes enabled)
+                paths[`/${modelPath}/{id}/${fieldName}`] = this.buildRelatedPath(
                     modelName,
                     fieldName,
                     fieldDef,
                     tag,
                 );
+
+                // Nested single resource path: /{model}/{id}/{field}/{childId}
+                if (this.nestedRoutes && fieldDef.array) {
+                    const nestedSinglePath = this.buildNestedSinglePath(
+                        modelName,
+                        fieldName,
+                        fieldDef,
+                        relModelDef,
+                        tag,
+                    );
+                    if (Object.keys(nestedSinglePath).length > 0) {
+                        paths[`/${modelPath}/{id}/${fieldName}/{childId}`] = nestedSinglePath;
+                    }
+                }
 
                 // Relationship management path
                 paths[`/${modelPath}/{id}/relationships/${fieldName}`] = this.buildRelationshipPath(
@@ -299,17 +317,17 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         return result;
     }
 
-    private buildFetchRelatedPath(
+    private buildRelatedPath(
         modelName: string,
         fieldName: string,
         fieldDef: FieldDef,
         tag: string,
     ): Record<string, any> {
         const isCollection = !!fieldDef.array;
+        const relModelDef = this.schema.models[fieldDef.type];
         const params: any[] = [{ $ref: '#/components/parameters/id' }, { $ref: '#/components/parameters/include' }];
 
-        if (isCollection && this.schema.models[fieldDef.type]) {
-            const relModelDef = this.schema.models[fieldDef.type]!;
+        if (isCollection && relModelDef) {
             params.push(
                 { $ref: '#/components/parameters/sort' },
                 { $ref: '#/components/parameters/pageOffset' },
@@ -318,7 +336,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             );
         }
 
-        return {
+        const pathItem: Record<string, any> = {
             get: {
                 tags: [tag],
                 summary: `Fetch related ${fieldDef.type} for ${modelName}`,
@@ -339,6 +357,153 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 },
             },
         };
+
+        if (this.nestedRoutes && relModelDef) {
+            const mayDeny = this.mayDenyAccess(relModelDef, isCollection ? 'create' : 'update');
+            if (isCollection && isOperationIncluded(fieldDef.type, 'create', this.queryOptions)) {
+                // POST /{model}/{id}/{field} — nested create
+                pathItem['post'] = {
+                    tags: [tag],
+                    summary: `Create a nested ${fieldDef.type} under ${modelName}`,
+                    operationId: `create${modelName}_${fieldName}`,
+                    parameters: [{ $ref: '#/components/parameters/id' }],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'application/vnd.api+json': {
+                                schema: { $ref: `#/components/schemas/${fieldDef.type}CreateRequest` },
+                            },
+                        },
+                    },
+                    responses: {
+                        '201': {
+                            description: `Created ${fieldDef.type} resource`,
+                            content: {
+                                'application/vnd.api+json': {
+                                    schema: { $ref: `#/components/schemas/${fieldDef.type}Response` },
+                                },
+                            },
+                        },
+                        '400': ERROR_400,
+                        ...(mayDeny && { '403': ERROR_403 }),
+                        '422': ERROR_422,
+                    },
+                };
+            } else if (!isCollection && isOperationIncluded(fieldDef.type, 'update', this.queryOptions)) {
+                // PATCH /{model}/{id}/{field} — nested to-one update
+                pathItem['patch'] = {
+                    tags: [tag],
+                    summary: `Update nested ${fieldDef.type} under ${modelName}`,
+                    operationId: `update${modelName}_${fieldName}`,
+                    parameters: [{ $ref: '#/components/parameters/id' }],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'application/vnd.api+json': {
+                                schema: { $ref: `#/components/schemas/${fieldDef.type}UpdateRequest` },
+                            },
+                        },
+                    },
+                    responses: {
+                        '200': {
+                            description: `Updated ${fieldDef.type} resource`,
+                            content: {
+                                'application/vnd.api+json': {
+                                    schema: { $ref: `#/components/schemas/${fieldDef.type}Response` },
+                                },
+                            },
+                        },
+                        '400': ERROR_400,
+                        ...(mayDeny && { '403': ERROR_403 }),
+                        '404': ERROR_404,
+                        '422': ERROR_422,
+                    },
+                };
+            }
+        }
+
+        return pathItem;
+    }
+
+    private buildNestedSinglePath(
+        modelName: string,
+        fieldName: string,
+        fieldDef: FieldDef,
+        relModelDef: ModelDef,
+        tag: string,
+    ): Record<string, any> {
+        const childIdParam = { name: 'childId', in: 'path', required: true, schema: { type: 'string' } };
+        const idParam = { $ref: '#/components/parameters/id' };
+        const mayDenyUpdate = this.mayDenyAccess(relModelDef, 'update');
+        const mayDenyDelete = this.mayDenyAccess(relModelDef, 'delete');
+        const result: Record<string, any> = {};
+
+        if (isOperationIncluded(fieldDef.type, 'findUnique', this.queryOptions)) {
+            result['get'] = {
+                tags: [tag],
+                summary: `Get a nested ${fieldDef.type} by ID under ${modelName}`,
+                operationId: `get${modelName}_${fieldName}_single`,
+                parameters: [idParam, childIdParam, { $ref: '#/components/parameters/include' }],
+                responses: {
+                    '200': {
+                        description: `${fieldDef.type} resource`,
+                        content: {
+                            'application/vnd.api+json': {
+                                schema: { $ref: `#/components/schemas/${fieldDef.type}Response` },
+                            },
+                        },
+                    },
+                    '404': ERROR_404,
+                },
+            };
+        }
+
+        if (isOperationIncluded(fieldDef.type, 'update', this.queryOptions)) {
+            result['patch'] = {
+                tags: [tag],
+                summary: `Update a nested ${fieldDef.type} by ID under ${modelName}`,
+                operationId: `update${modelName}_${fieldName}_single`,
+                parameters: [idParam, childIdParam],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/vnd.api+json': {
+                            schema: { $ref: `#/components/schemas/${fieldDef.type}UpdateRequest` },
+                        },
+                    },
+                },
+                responses: {
+                    '200': {
+                        description: `Updated ${fieldDef.type} resource`,
+                        content: {
+                            'application/vnd.api+json': {
+                                schema: { $ref: `#/components/schemas/${fieldDef.type}Response` },
+                            },
+                        },
+                    },
+                    '400': ERROR_400,
+                    ...(mayDenyUpdate && { '403': ERROR_403 }),
+                    '404': ERROR_404,
+                    '422': ERROR_422,
+                },
+            };
+        }
+
+        if (isOperationIncluded(fieldDef.type, 'delete', this.queryOptions)) {
+            result['delete'] = {
+                tags: [tag],
+                summary: `Delete a nested ${fieldDef.type} by ID under ${modelName}`,
+                operationId: `delete${modelName}_${fieldName}_single`,
+                parameters: [idParam, childIdParam],
+                responses: {
+                    '200': { description: 'Deleted successfully' },
+                    ...(mayDenyDelete && { '403': ERROR_403 }),
+                    '404': ERROR_404,
+                },
+            };
+        }
+
+        return result;
     }
 
     private buildRelationshipPath(

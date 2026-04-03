@@ -11,7 +11,7 @@ import {
 import { parse as parsePostgresArray } from 'postgres-array';
 import { AnyNullClass, DbNullClass, JsonNullClass } from '../../../common-types';
 import type { BuiltinType, FieldDef, SchemaDef } from '../../../schema';
-import type { SortOrder } from '../../crud-types';
+import type { NullsOrder, SortOrder } from '../../crud-types';
 import { createInvalidInputError } from '../../errors';
 import type { ClientOptions } from '../../options';
 import { isEnum, isTypeDef } from '../../query-utils';
@@ -30,6 +30,34 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         DateTime: 'timestamp',
         Bytes: 'bytea',
         Json: 'jsonb',
+    };
+
+    // Maps @db.* attribute names to PostgreSQL SQL types for use in VALUES table casts
+    private static readonly dbAttributeToSqlTypeMap: Record<string, string> = {
+        '@db.Uuid': 'uuid',
+        '@db.Citext': 'citext',
+        '@db.Inet': 'inet',
+        '@db.Bit': 'bit',
+        '@db.VarBit': 'varbit',
+        '@db.Xml': 'xml',
+        '@db.Json': 'json',
+        '@db.JsonB': 'jsonb',
+        '@db.ByteA': 'bytea',
+        '@db.Text': 'text',
+        '@db.Char': 'bpchar',
+        '@db.VarChar': 'varchar',
+        '@db.Date': 'date',
+        '@db.Time': 'time',
+        '@db.Timetz': 'timetz',
+        '@db.Timestamp': 'timestamp',
+        '@db.Timestamptz': 'timestamptz',
+        '@db.SmallInt': 'smallint',
+        '@db.Integer': 'integer',
+        '@db.BigInt': 'bigint',
+        '@db.Real': 'real',
+        '@db.DoublePrecision': 'double precision',
+        '@db.Decimal': 'decimal',
+        '@db.Boolean': 'boolean',
     };
 
     constructor(schema: Schema, options: ClientOptions<Schema>) {
@@ -272,8 +300,24 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
 
     // #region other overrides
 
-    protected buildArrayAgg(arg: Expression<any>) {
-        return this.eb.fn.coalesce(sql`jsonb_agg(${arg})`, sql`'[]'::jsonb`);
+    protected buildArrayAgg(
+        arg: Expression<any>,
+        orderBy?: { expr: Expression<any>; sort: SortOrder; nulls?: NullsOrder }[],
+    ) {
+        if (!orderBy || orderBy.length === 0) {
+            return this.eb.fn.coalesce(sql`jsonb_agg(${arg})`, sql`'[]'::jsonb`);
+        }
+
+        const orderBySql = sql.join(
+            orderBy.map(({ expr, sort, nulls }) => {
+                const dir = sql.raw(sort.toUpperCase());
+                const nullsSql = nulls ? sql` NULLS ${sql.raw(nulls.toUpperCase())}` : sql``;
+                return sql`${expr} ${dir}${nullsSql}`;
+            }),
+            sql.raw(', '),
+        );
+
+        return this.eb.fn.coalesce(sql`jsonb_agg(${arg} ORDER BY ${orderBySql})`, sql`'[]'::jsonb`);
     }
 
     override buildSkipTake(
@@ -390,13 +434,58 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         );
     }
 
-    private getSqlType(zmodelType: string) {
+    private getSqlType(zmodelType: string, attributes?: FieldDef['attributes']) {
+        // Check @db.* attributes first — they specify the exact native PostgreSQL type
+        if (attributes) {
+            for (const attr of attributes) {
+                const mapped = PostgresCrudDialect.dbAttributeToSqlTypeMap[attr.name];
+                if (mapped) {
+                    return mapped;
+                }
+            }
+        }
         if (isEnum(this.schema, zmodelType)) {
             // reduce enum to text for type compatibility
             return 'text';
         } else {
             return this.zmodelToSqlTypeMap[zmodelType] ?? 'text';
         }
+    }
+
+    // Resolves the effective SQL type for a field: the native type from any @db.* attribute,
+    // or the base ZModel SQL type if no attribute is present, or undefined if the field is unknown.
+    private resolveFieldSqlType(fieldDef: FieldDef | undefined): { sqlType: string | undefined; hasDbOverride: boolean } {
+        if (!fieldDef) {
+            return { sqlType: undefined, hasDbOverride: false };
+        }
+        const dbAttr = fieldDef.attributes?.find((a) => a.name.startsWith('@db.'));
+        if (dbAttr) {
+            return { sqlType: PostgresCrudDialect.dbAttributeToSqlTypeMap[dbAttr.name], hasDbOverride: true };
+        }
+        return { sqlType: this.getSqlType(fieldDef.type), hasDbOverride: false };
+    }
+
+    override buildComparison(
+        left: Expression<unknown>,
+        leftFieldDef: FieldDef | undefined,
+        op: string,
+        right: Expression<unknown>,
+        rightFieldDef: FieldDef | undefined,
+    ) {
+        const leftResolved = this.resolveFieldSqlType(leftFieldDef);
+        const rightResolved = this.resolveFieldSqlType(rightFieldDef);
+        // If the resolved SQL types differ and at least one side carries a @db.* native type override,
+        // cast that side back to its base ZModel SQL type so PostgreSQL doesn't reject the comparison
+        // (e.g. "operator does not exist: uuid = text").
+        if (leftResolved.sqlType !== rightResolved.sqlType && (leftResolved.hasDbOverride || rightResolved.hasDbOverride)) {
+            if (leftResolved.hasDbOverride) {
+                left = this.eb.cast(left, sql.raw(this.getSqlType(leftFieldDef!.type)));
+            }
+            if (rightResolved.hasDbOverride) {
+                right = this.eb.cast(right, sql.raw(this.getSqlType(rightFieldDef!.type)));
+            }
+        }
+        return super.buildComparison(left, leftFieldDef, op, right, rightFieldDef);
     }
 
     override getStringCasingBehavior() {
@@ -433,7 +522,7 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
             )
             .select(
                 fields.map((f, i) => {
-                    const mappedType = this.getSqlType(f.type);
+                    const mappedType = this.getSqlType(f.type, f.attributes);
                     const castType = f.array ? sql`${sql.raw(mappedType)}[]` : sql.raw(mappedType);
                     return this.eb.cast(sql.ref(`$values.column${i + 1}`), castType).as(f.name);
                 }),
