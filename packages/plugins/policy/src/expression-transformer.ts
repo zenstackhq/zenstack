@@ -125,6 +125,9 @@ function expr(kind: Expression['kind']) {
     };
 }
 
+/**
+ * Utility for transforming a ZModel expression into a Kysely OperationNode.
+ */
 export class ExpressionTransformer<Schema extends SchemaDef> {
     private readonly dialect: BaseCrudDialect<Schema>;
     private readonly eb = expressionBuilder<any, any>();
@@ -270,7 +273,13 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             // Map ZModel operator to SQL operator string
             const sqlOp = op === '==' ? '=' : op;
             return this.dialect
-                .buildComparison(new ExpressionWrapper(left), leftFieldDef, sqlOp, new ExpressionWrapper(right), rightFieldDef)
+                .buildComparison(
+                    new ExpressionWrapper(left),
+                    leftFieldDef,
+                    sqlOp,
+                    new ExpressionWrapper(right),
+                    rightFieldDef,
+                )
                 .toOperationNode();
         }
     }

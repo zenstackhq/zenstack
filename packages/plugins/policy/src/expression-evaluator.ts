@@ -24,7 +24,7 @@ type ExpressionEvaluatorContext = {
 };
 
 /**
- * Evaluate a schema expression into a JavaScript value.
+ * Utility for evaluating a ZModel expression into a JavaScript value.
  */
 export class ExpressionEvaluator {
     evaluate(expression: Expression, context: ExpressionEvaluatorContext): any {
