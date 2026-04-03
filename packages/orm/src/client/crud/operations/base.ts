@@ -18,7 +18,7 @@ import * as uuid from 'uuid';
 import type { BuiltinType, Expression, FieldDef } from '../../../schema';
 import { ExpressionUtils, type GetModels, type ModelDef, type SchemaDef } from '../../../schema';
 import type { AnyKysely } from '../../../utils/kysely-utils';
-import { extractFields, fieldsToSelectObject } from '../../../utils/object-utils';
+import { extractFields, fieldsToSelectObject, isEmptyObject } from '../../../utils/object-utils';
 import { NUMERIC_FIELD_TYPES } from '../../constants';
 import { TransactionIsolationLevel, type ClientContract, type CRUD } from '../../contract';
 import type { FindArgs, SelectIncludeOmit, WhereInput } from '../../crud-types';
@@ -1152,7 +1152,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
 
         const parentWhere = await this.buildUpdateParentRelationFilter(kysely, fromRelation);
 
-        let combinedWhere: Record<string, unknown> = where ?? {};
+        let combinedWhere: Record<string, unknown> = where ?? true;
         if (Object.keys(parentWhere).length > 0) {
             combinedWhere = Object.keys(combinedWhere).length > 0 ? { AND: [parentWhere, combinedWhere] } : parentWhere;
         }
@@ -1574,7 +1574,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         }
 
         const parentWhere = await this.buildUpdateParentRelationFilter(kysely, fromRelation);
-        let combinedWhere: WhereInput<Schema, GetModels<Schema>, any, false> = where ?? {};
+        let combinedWhere: WhereInput<Schema, GetModels<Schema>, any, false> = where ?? true;
         if (Object.keys(parentWhere).length > 0) {
             combinedWhere = Object.keys(combinedWhere).length > 0 ? { AND: [parentWhere, combinedWhere] } : parentWhere;
         }
@@ -1890,12 +1890,12 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                 }
 
                 case 'delete': {
-                    await this.deleteRelation(kysely, fieldModel, value, fromRelationContext, true);
+                    await this.deleteRelation(kysely, fieldModel, value, fromRelationContext, true, true);
                     break;
                 }
 
                 case 'deleteMany': {
-                    await this.deleteRelation(kysely, fieldModel, value, fromRelationContext, false);
+                    await this.deleteRelation(kysely, fieldModel, value, fromRelationContext, false, false);
                     break;
                 }
 
@@ -2031,6 +2031,9 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             } else {
                 disconnectConditions = [true];
             }
+        } else if (isEmptyObject(data)) {
+            // empty object means true
+            disconnectConditions = [true];
         } else {
             disconnectConditions = this.normalizeRelationManipulationInput(model, data);
 
@@ -2235,15 +2238,24 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         model: GetModels<Schema>,
         data: any,
         fromRelation: FromRelationContext,
+        uniqueDelete: boolean,
         throwForNotFound: boolean,
     ) {
         let deleteConditions: any[] = [];
-        let expectedDeleteCount: number;
+        let expectedDeleteCount = -1; // -1 means no expected delete count check
         if (typeof data === 'boolean') {
             if (data === false) {
                 return;
             } else {
                 deleteConditions = [true];
+                if (uniqueDelete) {
+                    expectedDeleteCount = 1;
+                }
+            }
+        } else if (isEmptyObject(data)) {
+            // empty object means true
+            deleteConditions = [true];
+            if (uniqueDelete) {
                 expectedDeleteCount = 1;
             }
         } else {
@@ -2251,7 +2263,10 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             if (deleteConditions.length === 0) {
                 return;
             }
-            expectedDeleteCount = deleteConditions.length;
+            if (uniqueDelete) {
+                // each delete condition is one unique match
+                expectedDeleteCount = deleteConditions.length;
+            }
         }
 
         let deleteResult: Awaited<ReturnType<typeof this.delete>>;
@@ -2319,7 +2334,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         }
 
         // validate result
-        if (throwForNotFound && expectedDeleteCount > (deleteResult.numAffectedRows ?? 0)) {
+        if (throwForNotFound && expectedDeleteCount >= 0 && expectedDeleteCount > (deleteResult.numAffectedRows ?? 0)) {
             // some entities were not deleted
             throw createNotFoundError(deleteFromModel);
         }

@@ -24,10 +24,10 @@ import {
     flattenCompoundUniqueFilters,
     getDelegateDescendantModels,
     getManyToManyRelation,
+    getModelFields,
     getRelationForeignKeyFieldPairs,
     isEnum,
     isTypeDef,
-    getModelFields,
     makeDefaultOrderBy,
     requireField,
     requireIdFields,
@@ -260,17 +260,41 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         key: (typeof LOGICAL_COMBINATORS)[number],
         payload: any,
     ): Expression<SqlBool> {
+        // Normalize payload: ensure array, remove empty objects and objects with
+        // only undefined fields values
+        const normalizedPayload = enumerate(payload).filter((el) => {
+            if (typeof el === 'object' && el !== null && !Array.isArray(el)) {
+                const entries = Object.entries(el);
+                return entries.some(([, v]) => v !== undefined);
+            } else {
+                return true;
+            }
+        });
+
+        const normalizedFilters = normalizedPayload.map((el) => this.buildFilter(model, modelAlias, el));
+
         return match(key)
-            .with('AND', () =>
-                this.and(...enumerate(payload).map((subPayload) => this.buildFilter(model, modelAlias, subPayload))),
-            )
-            .with('OR', () => {
-                const branches = enumerate(payload)
-                    .filter((subPayload) => !this.isAllUndefinedFilter(subPayload))
-                    .map((subPayload) => this.buildFilter(model, modelAlias, subPayload));
-                return this.or(...branches);
+            .with('AND', () => {
+                if (normalizedFilters.length === 0) {
+                    // AND of no conditions is a no-op, return true
+                    return this.true();
+                }
+                return this.and(...normalizedFilters);
             })
-            .with('NOT', () => this.eb.not(this.buildCompositeFilter(model, modelAlias, 'AND', payload)))
+            .with('OR', () => {
+                if (normalizedFilters.length === 0) {
+                    // OR of no conditions is always false, return false
+                    return this.false();
+                }
+                return this.or(...normalizedFilters);
+            })
+            .with('NOT', () => {
+                if (normalizedFilters.length === 0) {
+                    // NOT of no conditions is a no-op, return true
+                    return this.true();
+                }
+                return this.not(...normalizedFilters);
+            })
             .exhaustive();
     }
 
@@ -1308,14 +1332,6 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
     public false(): Expression<SqlBool> {
         return this.eb.lit<SqlBool>(this.transformInput(false, 'Boolean', false) as boolean);
-    }
-
-    private isAllUndefinedFilter(payload: unknown): boolean {
-        if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-            return false;
-        }
-        const entries = Object.entries(payload);
-        return entries.length > 0 && entries.every(([, v]) => v === undefined);
     }
 
     public isTrue(expression: Expression<SqlBool>) {

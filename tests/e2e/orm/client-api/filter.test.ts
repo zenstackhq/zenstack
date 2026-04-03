@@ -853,5 +853,29 @@ describe('Client filter tests ', () => {
         expect(result[0]!.name).toBe('Alice');
     });
 
+    describe('AND/OR/NOT with no-op filters', () => {
+        beforeEach(async () => {
+            await createUser('u1@test.com', { name: 'Alice', role: 'ADMIN' });
+            await createUser('u2@test.com', { name: 'Bob', role: 'USER' });
+        });
+
+        it('AND is no-op for empty array, array with all-undefined object, and plain all-undefined object', async () => {
+            await expect(client.user.findMany({ where: { AND: [] } })).toResolveWithLength(2);
+            await expect(client.user.findMany({ where: { AND: [{ id: undefined }] } })).toResolveWithLength(2);
+            await expect(client.user.findMany({ where: { AND: { id: undefined } } as any })).toResolveWithLength(2);
+        });
+
+        it('OR returns no records for empty array, array with all-undefined object, and plain all-undefined object', async () => {
+            await expect(client.user.findMany({ where: { OR: [] } })).toResolveWithLength(0);
+            await expect(client.user.findMany({ where: { OR: [{ id: undefined }] } })).toResolveWithLength(0);
+        });
+
+        it('NOT is no-op for empty array, array with all-undefined object, and plain all-undefined object', async () => {
+            await expect(client.user.findMany({ where: { NOT: [] } })).toResolveWithLength(2);
+            await expect(client.user.findMany({ where: { NOT: [{ id: undefined }] } })).toResolveWithLength(2);
+            await expect(client.user.findMany({ where: { NOT: { id: undefined } } })).toResolveWithLength(2);
+        });
+    });
+
     // TODO: filter for bigint, decimal, bytes
 });
