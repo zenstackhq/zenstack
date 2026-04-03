@@ -158,7 +158,10 @@ type DelegateUnionResult<
     Omit = undefined,
     Depth extends readonly 0[] = [],
 > = Depth['length'] extends 10 // hard stop so generic SchemaDef never infinite-loops
-    ? never
+    ? SubModel extends string
+        ? FlatModelResult<Schema, SubModel, Omit, Options> &
+              { [K in GetModelDiscriminator<Schema, Model>]: SubModel }
+        : never
     : SubModel extends string // typescript union distribution
       ? IsDelegateModel<Schema, SubModel> extends true
             ? // sub-model is itself a delegate — recurse into its own sub-models so all
