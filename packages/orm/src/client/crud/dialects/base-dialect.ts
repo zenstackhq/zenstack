@@ -571,6 +571,10 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         }
 
         if (isTypeDef(this.schema, fieldDef.type)) {
+            if (payload instanceof DbNullClass || payload instanceof JsonNullClass || payload instanceof AnyNullClass) {
+                // null sentinel passed directly (e.g. where: { field: DbNull }) — treat like { equals: sentinel }
+                return this.buildJsonValueFilterClause(fieldRef, payload);
+            }
             return this.buildJsonFilter(fieldRef, payload, fieldDef);
         }
 

@@ -1,0 +1,18 @@
+datasource db {
+    provider = "sqlite"
+    url      = "file:./dev.db"
+}
+
+type Metadata {
+    someString String
+    someInt    Int
+}
+
+model Foo {
+    id               String    @id @default(cuid())
+    createdAt        DateTime  @default(now())
+    updatedAt        DateTime  @updatedAt
+
+    metadata         Metadata  @json
+    optionalMetadata Metadata? @json
+}
