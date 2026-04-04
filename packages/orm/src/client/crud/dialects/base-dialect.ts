@@ -1292,25 +1292,29 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             const fieldModel = fieldDef.type as GetModels<Schema>;
             let fieldCountQuery: SelectQueryBuilder<any, any, any>;
 
+            // Use a unique alias for the subquery to avoid ambiguous references when
+            // fieldModel === model (self-referential relation on a delegate model)
+            const subQueryAlias = tmpAlias(`${parentAlias}$_${field}$count`);
+
             // join conditions
             const m2m = getManyToManyRelation(this.schema, model, field);
             if (m2m) {
                 // many-to-many relation, count the join table
-                fieldCountQuery = this.buildModelSelect(fieldModel, fieldModel, value as any, false)
+                fieldCountQuery = this.buildModelSelect(fieldModel, subQueryAlias, value as any, false)
                     .innerJoin(m2m.joinTable, (join) =>
                         join
-                            .onRef(`${m2m.joinTable}.${m2m.otherFkName}`, '=', `${fieldModel}.${m2m.otherPKName}`)
+                            .onRef(`${m2m.joinTable}.${m2m.otherFkName}`, '=', `${subQueryAlias}.${m2m.otherPKName}`)
                             .onRef(`${m2m.joinTable}.${m2m.parentFkName}`, '=', `${parentAlias}.${m2m.parentPKName}`),
                     )
                     .select(eb.fn.countAll().as(`_count$${field}`));
             } else {
                 // build a nested query to count the number of records in the relation
-                fieldCountQuery = this.buildModelSelect(fieldModel, fieldModel, value as any, false).select(
+                fieldCountQuery = this.buildModelSelect(fieldModel, subQueryAlias, value as any, false).select(
                     eb.fn.countAll().as(`_count$${field}`),
                 );
 
                 // join conditions
-                const joinPairs = buildJoinPairs(this.schema, model, parentAlias, field, fieldModel);
+                const joinPairs = buildJoinPairs(this.schema, model, parentAlias, field, subQueryAlias);
                 for (const [left, right] of joinPairs) {
                     fieldCountQuery = fieldCountQuery.whereRef(left, '=', right);
                 }
