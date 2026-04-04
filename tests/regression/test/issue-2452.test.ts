@@ -7,9 +7,9 @@ describe('Regression for issue 2452', () => {
         const db = await createTestClient(
             `
 enum ContentType {
-    POST
-    ARTICLE
-    QUESTION
+    Post
+    Article
+    Question
 }
 
 model Content {
@@ -24,6 +24,7 @@ model Post extends Content {
     parent   Post?   @relation("PostReplies", fields: [parentId], references: [id])
 }
         `,
+            { provider: 'postgresql' },
         );
 
         // Create a parent post with 2 replies
