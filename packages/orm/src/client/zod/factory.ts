@@ -613,8 +613,9 @@ export class ZodSchemaFactory<
     // For optional typed JSON fields, allow DbNull, JsonNull, and null.
     // z.union doesn't work here because `z.any()` (returned by `makeScalarSchema`)
     // always wins, so we create a wrapper superRefine instead.
-    private makeNullableTypedJsonMutationSchema(type: string, attributes?: readonly AttributeApplication[]) {
-        const baseSchema = this.makeScalarSchema(type, attributes);
+    // The caller must pass the already-built fieldSchema so that array/list
+    // mutation shapes (set, push, etc.) are preserved.
+    private makeNullableTypedJsonMutationSchema(fieldSchema: z.ZodTypeAny) {
         return z
             .any()
             .superRefine((value, ctx) => {
@@ -626,7 +627,7 @@ export class ZodSchemaFactory<
                 ) {
                     return;
                 }
-                const parseResult = baseSchema.safeParse(value);
+                const parseResult = fieldSchema.safeParse(value);
                 if (!parseResult.success) {
                     parseResult.error.issues.forEach((issue) => ctx.addIssue(issue as any));
                 }
@@ -1337,7 +1338,7 @@ export class ZodSchemaFactory<
                         // DbNull for Json fields
                         fieldSchema = z.union([fieldSchema, z.instanceof(DbNullClass)]);
                     } else if (this.isTypeDefType(fieldDef.type)) {
-                        fieldSchema = this.makeNullableTypedJsonMutationSchema(fieldDef.type, fieldDef.attributes);
+                        fieldSchema = this.makeNullableTypedJsonMutationSchema(fieldSchema);
                     } else {
                         fieldSchema = fieldSchema.nullable();
                     }
@@ -1697,7 +1698,7 @@ export class ZodSchemaFactory<
                         // DbNull for Json fields
                         fieldSchema = z.union([fieldSchema, z.instanceof(DbNullClass)]);
                     } else if (this.isTypeDefType(fieldDef.type)) {
-                        fieldSchema = this.makeNullableTypedJsonMutationSchema(fieldDef.type, fieldDef.attributes);
+                        fieldSchema = this.makeNullableTypedJsonMutationSchema(fieldSchema);
                     } else {
                         fieldSchema = fieldSchema.nullable();
                     }
