@@ -335,10 +335,25 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
     }
 
     override buildJsonObject(value: Record<string, Expression<unknown>>) {
-        return this.eb.fn(
-            'jsonb_build_object',
-            Object.entries(value).flatMap(([key, value]) => [sql.lit(key), value]),
-        );
+        const entries = Object.entries(value);
+
+        // PostgreSQL's FUNC_MAX_ARGS limit is 100. jsonb_build_object takes key-value pairs,
+        // so at most 50 pairs (100 args) fit in one call. Split larger objects and merge with ||.
+        const MAX_PAIRS = 50;
+
+        const buildChunk = (chunk: [string, Expression<unknown>][]) =>
+            this.eb.fn('jsonb_build_object', chunk.flatMap(([k, v]) => [sql.lit(k), v]));
+
+        if (entries.length <= MAX_PAIRS) {
+            return buildChunk(entries);
+        }
+
+        const chunks: Expression<unknown>[] = [];
+        for (let i = 0; i < entries.length; i += MAX_PAIRS) {
+            chunks.push(buildChunk(entries.slice(i, i + MAX_PAIRS)));
+        }
+
+        return chunks.reduce((acc, chunk) => sql`${acc} || ${chunk}`) as AliasableExpression<unknown>;
     }
 
     override castInt<T extends Expression<any>>(expression: T): T {
