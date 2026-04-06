@@ -557,6 +557,69 @@ describe('Delegate model tests ', () => {
                 }),
             ).toResolveFalsy();
         });
+
+        it('works with $is sub-model filter on base model', async () => {
+            // add an Image so we can test OR semantics of $is
+            await client.image.create({
+                data: { format: 'png', viewCount: 2 },
+            });
+
+            // $is: { Video: {} } — all assets that are Videos (2 RatedVideos)
+            await expect(
+                client.asset.findMany({
+                    where: { $is: { Video: {} } },
+                }),
+            ).toResolveWithLength(2);
+
+            // $is: { Video: null } — null value also means "is a Video"
+            await expect(
+                client.asset.findMany({
+                    where: { $is: { Video: null } },
+                }),
+            ).toResolveWithLength(2);
+
+            // $is: { Video: { duration: { gt: 100 } } } — only v2
+            await expect(
+                client.asset.findMany({
+                    where: { $is: { Video: { duration: { gt: 100 } } } },
+                }),
+            ).toResolveWithLength(1);
+
+            // $is combined with base-model field filter
+            await expect(
+                client.asset.findMany({
+                    where: { viewCount: { gt: 0 }, $is: { Video: { duration: { gt: 100 } } } },
+                }),
+            ).toResolveWithLength(1);
+
+            // $is: { Video: { duration: { gte: 100 } } } — both videos
+            await expect(
+                client.asset.findMany({
+                    where: { $is: { Video: { duration: { gte: 100 } } } },
+                }),
+            ).toResolveWithLength(2);
+
+            // $is with multiple sub-models → OR semantics (1 Video with viewCount>0 OR the Image)
+            await expect(
+                client.asset.findMany({
+                    where: { $is: { Video: { duration: { gt: 100 } }, Image: { format: 'png' } } },
+                }),
+            ).toResolveWithLength(2);
+
+            // $is on Video (which is itself a delegate) — filter on its sub-model RatedVideo
+            await expect(
+                client.video.findMany({
+                    where: { $is: { RatedVideo: { rating: 5 } } },
+                }),
+            ).toResolveWithLength(1);
+
+            // nested $is: Asset.$is.Video.$is.RatedVideo
+            await expect(
+                client.asset.findMany({
+                    where: { $is: { Video: { $is: { RatedVideo: { rating: 5 } } } } },
+                }),
+            ).toResolveWithLength(1);
+        });
     });
 
     describe('Delegate update tests', () => {
