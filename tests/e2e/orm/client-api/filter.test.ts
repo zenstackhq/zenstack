@@ -801,5 +801,81 @@ describe('Client filter tests ', () => {
         await expect(client.user.findMany({ where: { id: undefined } })).toResolveWithLength(1);
     });
 
+    it('ignores undefined branch inside OR filters', async () => {
+        await createUser('u1@test.com', {
+            name: 'First',
+            role: 'ADMIN',
+            profile: { create: { id: 'p1', bio: 'bio1' } },
+        });
+        const user2 = await createUser('u2@test.com', {
+            name: 'Second',
+            role: 'USER',
+            profile: { create: { id: 'p2', bio: 'bio2' } },
+        });
+
+        const baseline = await client.user.findFirst({
+            where: {
+                OR: [{ id: user2.id }],
+            } as any,
+            orderBy: { createdAt: 'asc' },
+        });
+
+        const withUndefinedBranch = await client.user.findFirst({
+            where: {
+                OR: [{ id: undefined }, { id: user2.id }],
+            } as any,
+            orderBy: { createdAt: 'asc' },
+        });
+
+        const onlyUndefinedBranch = await client.user.findFirst({
+            where: {
+                OR: [{ id: undefined }],
+            } as any,
+            orderBy: { createdAt: 'asc' },
+        });
+
+        expect(baseline?.email).toBe(user2.email);
+        expect(withUndefinedBranch?.email).toBe(baseline?.email);
+        expect(onlyUndefinedBranch).toBeNull();
+    });
+
+    it('strips undefined filter operators inside OR branches', async () => {
+        await createUser('alice@test.com', { name: 'Alice', role: 'ADMIN' });
+        await createUser('bob@test.com', { name: 'Bob', role: 'USER' });
+
+        const result = await client.user.findMany({
+            where: {
+                OR: [{ name: { startsWith: 'A', contains: undefined } }],
+            } as any,
+        });
+
+        expect(result).toHaveLength(1);
+        expect(result[0]!.name).toBe('Alice');
+    });
+
+    describe('AND/OR/NOT with no-op filters', () => {
+        beforeEach(async () => {
+            await createUser('u1@test.com', { name: 'Alice', role: 'ADMIN' });
+            await createUser('u2@test.com', { name: 'Bob', role: 'USER' });
+        });
+
+        it('AND is no-op for empty array, array with all-undefined object, and plain all-undefined object', async () => {
+            await expect(client.user.findMany({ where: { AND: [] } })).toResolveWithLength(2);
+            await expect(client.user.findMany({ where: { AND: [{ id: undefined }] } })).toResolveWithLength(2);
+            await expect(client.user.findMany({ where: { AND: { id: undefined } } as any })).toResolveWithLength(2);
+        });
+
+        it('OR returns no records for empty array, array with all-undefined object, and plain all-undefined object', async () => {
+            await expect(client.user.findMany({ where: { OR: [] } })).toResolveWithLength(0);
+            await expect(client.user.findMany({ where: { OR: [{ id: undefined }] } })).toResolveWithLength(0);
+        });
+
+        it('NOT is no-op for empty array, array with all-undefined object, and plain all-undefined object', async () => {
+            await expect(client.user.findMany({ where: { NOT: [] } })).toResolveWithLength(2);
+            await expect(client.user.findMany({ where: { NOT: [{ id: undefined }] } })).toResolveWithLength(2);
+            await expect(client.user.findMany({ where: { NOT: { id: undefined } } })).toResolveWithLength(2);
+        });
+    });
+
     // TODO: filter for bigint, decimal, bytes
 });
