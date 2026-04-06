@@ -2,7 +2,7 @@
     "name": "@zenstackhq/zod",
     "displayName": "ZenStack Zod Integration",
     "description": "Automatically deriving Zod schemas from ZModel schemas",
-    "version": "3.5.5",
+    "version": "3.5.6",
     "type": "module",
     "author": {
         "name": "ZenStack Team",
