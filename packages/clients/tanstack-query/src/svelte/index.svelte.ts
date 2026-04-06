@@ -125,8 +125,8 @@ export type ModelQueryOptions<T> = Omit<CreateQueryOptions<T, DefaultError>, 'qu
 
 export type ModelQueryResult<T> = CreateQueryResult<WithOptimistic<T>, DefaultError> & { queryKey: QueryKey };
 
-export type ModelInfiniteQueryOptions<T> = Omit<
-    CreateInfiniteQueryOptions<T, DefaultError, InfiniteData<T>>,
+export type ModelInfiniteQueryOptions<T, TPageParam = unknown> = Omit<
+    CreateInfiniteQueryOptions<T, DefaultError, InfiniteData<T, TPageParam>, QueryKey, TPageParam>,
     'queryKey' | 'initialPageParam'
 > &
     QueryContext;
@@ -147,7 +147,10 @@ export type ModelMutationModelResult<
     Array extends boolean = false,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     ExtResult extends ExtResultBase<Schema> = {},
-> = Omit<ModelMutationResult<SimplifiedResult<Schema, Model, TArgs, Options, false, Array, ExtResult>, TArgs>, 'mutateAsync'> & {
+> = Omit<
+    ModelMutationResult<SimplifiedResult<Schema, Model, TArgs, Options, false, Array, ExtResult>, TArgs>,
+    'mutateAsync'
+> & {
     mutateAsync<T extends TArgs>(
         args: T,
         options?: ModelMutationOptions<SimplifiedResult<Schema, Model, T, Options, false, Array, ExtResult>, T>,
@@ -159,7 +162,12 @@ export type ClientHooks<
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     ExtResult extends ExtResultBase<Schema> = {},
 > = {
-    [Model in GetSlicedModels<Schema, Options> as `${Uncapitalize<Model>}`]: ModelQueryHooks<Schema, Model, Options, ExtResult>;
+    [Model in GetSlicedModels<Schema, Options> as `${Uncapitalize<Model>}`]: ModelQueryHooks<
+        Schema,
+        Model,
+        Options,
+        ExtResult
+    >;
 } & ProcedureHooks<Schema, Options>;
 
 type ProcedureHookGroup<Schema extends SchemaDef, Options extends QueryOptions<Schema>> = {
@@ -238,10 +246,14 @@ export type ModelQueryHooks<
             options?: Accessor<ModelQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>>,
         ): ModelQueryResult<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>;
 
-        useInfiniteFindMany<T extends FindManyArgs<Schema, Model, Options, {}, ExtResult>>(
+        useInfiniteFindMany<T extends FindManyArgs<Schema, Model, Options, {}, ExtResult>, TPageParam = unknown>(
             args?: Accessor<SelectSubset<T, FindManyArgs<Schema, Model, Options, {}, ExtResult>>>,
-            options?: Accessor<ModelInfiniteQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>>,
-        ): ModelInfiniteQueryResult<InfiniteData<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>>;
+            options?: Accessor<
+                ModelInfiniteQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[], TPageParam>
+            >,
+        ): ModelInfiniteQueryResult<
+            InfiniteData<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[], TPageParam>
+        >;
 
         useCreate<T extends CreateArgs<Schema, Model, Options, {}, ExtResult>>(
             options?: Accessor<ModelMutationOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>, T>>,
@@ -310,23 +322,20 @@ export type ModelQueryHooks<
  * const client = useClientQueries<DbType>(schema)
  * ```
  */
-export function useClientQueries<
-    SchemaOrClient extends SchemaDef | ClientContract<any, any, any, any, any>,
->(
+export function useClientQueries<SchemaOrClient extends SchemaDef | ClientContract<any, any, any, any, any>>(
     schema: InferSchema<SchemaOrClient>,
     options?: Accessor<QueryContext>,
-): ClientHooks<InferSchema<SchemaOrClient>, InferOptions<SchemaOrClient, InferSchema<SchemaOrClient>>, InferExtResult<SchemaOrClient> extends ExtResultBase<InferSchema<SchemaOrClient>> ? InferExtResult<SchemaOrClient> : {}> {
-    const result = Object.keys(schema.models).reduce(
-        (acc, model) => {
-            (acc as any)[lowerCaseFirst(model)] = useModelQueries(
-                schema as any,
-                model as any,
-                options,
-            );
-            return acc;
-        },
-        {} as any,
-    );
+): ClientHooks<
+    InferSchema<SchemaOrClient>,
+    InferOptions<SchemaOrClient, InferSchema<SchemaOrClient>>,
+    InferExtResult<SchemaOrClient> extends ExtResultBase<InferSchema<SchemaOrClient>>
+        ? InferExtResult<SchemaOrClient>
+        : {}
+> {
+    const result = Object.keys(schema.models).reduce((acc, model) => {
+        (acc as any)[lowerCaseFirst(model)] = useModelQueries(schema as any, model as any, options);
+        return acc;
+    }, {} as any);
 
     const procedures = (schema as any).procedures as Record<string, { mutation?: boolean }> | undefined;
     if (procedures) {
@@ -376,7 +385,11 @@ export function useModelQueries<
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema>,
     ExtResult extends ExtResultBase<Schema> = {},
->(schema: Schema, model: Model, rootOptions?: Accessor<QueryContext>): ModelQueryHooks<Schema, Model, Options, ExtResult> {
+>(
+    schema: Schema,
+    model: Model,
+    rootOptions?: Accessor<QueryContext>,
+): ModelQueryHooks<Schema, Model, Options, ExtResult> {
     const modelDef = Object.values(schema.models).find((m) => m.name.toLowerCase() === model.toLowerCase());
     if (!modelDef) {
         throw new Error(`Model "${model}" not found in schema`);
@@ -487,14 +500,20 @@ export function useInternalQuery<TQueryFnData, TData>(
     return createQueryResult(query, queryKey);
 }
 
-export function useInternalInfiniteQuery<TQueryFnData, TData>(
+export function useInternalInfiniteQuery<TQueryFnData, TData, TPageParam = unknown>(
     _schema: SchemaDef,
     model: string,
     operation: string,
-    args: Accessor<unknown>,
+    args?: Accessor<unknown>,
     options?: Accessor<
         Omit<
-            CreateInfiniteQueryOptions<TQueryFnData, DefaultError, InfiniteData<TData>>,
+            CreateInfiniteQueryOptions<
+                TQueryFnData,
+                DefaultError,
+                InfiniteData<TData, TPageParam>,
+                QueryKey,
+                TPageParam
+            >,
             'queryKey' | 'initialPageParam'
         > &
             QueryContext
@@ -502,21 +521,37 @@ export function useInternalInfiniteQuery<TQueryFnData, TData>(
 ) {
     const { endpoint, fetch } = useFetchOptions(options);
 
-    const queryKey = $derived(getQueryKey(model, operation, args(), { infinite: true, optimisticUpdate: false }));
+    const queryKey = $derived(getQueryKey(model, operation, args?.(), { infinite: true, optimisticUpdate: false }));
 
     const finalOptions = () => {
-        const queryFn: QueryFunction<TQueryFnData, QueryKey, unknown> = ({ pageParam, signal }) =>
-            fetcher<TQueryFnData>(makeUrl(endpoint, model, operation, pageParam ?? args()), { signal }, fetch);
+        const queryFn: QueryFunction<TQueryFnData, QueryKey, TPageParam> = ({ pageParam, signal }) =>
+            fetcher<TQueryFnData>(makeUrl(endpoint, model, operation, pageParam ?? args?.()), { signal }, fetch);
         const optionsValue = options?.() ?? { getNextPageParam: () => undefined };
         return {
             queryKey,
             queryFn,
-            initialPageParam: args(),
+            initialPageParam: args?.() as TPageParam,
             ...optionsValue,
         };
     };
 
-    const query = createInfiniteQuery<TQueryFnData, DefaultError, InfiniteData<TData>>(finalOptions);
+    const query = createInfiniteQuery<
+        TQueryFnData,
+        DefaultError,
+        InfiniteData<TData, TPageParam>,
+        QueryKey,
+        TPageParam
+    >(
+        finalOptions as unknown as Accessor<
+            CreateInfiniteQueryOptions<
+                TQueryFnData,
+                DefaultError,
+                InfiniteData<TData, TPageParam>,
+                QueryKey,
+                TPageParam
+            >
+        >,
+    );
     // svelte-ignore state_referenced_locally
     return createQueryResult(query, queryKey);
 }

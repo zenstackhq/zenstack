@@ -38,6 +38,15 @@ check(
 // @ts-expect-error
 check(client.user.useInfiniteFindMany().data.value?.pages[0]?.[0]?.$optimistic);
 
+// TPageParam should be inferred from getNextPageParam, not typed as unknown
+const infiniteResult = client.user.useInfiniteFindMany(
+    {},
+    {
+        getNextPageParam: (_lastPage: unknown, _allPages: unknown, lastPageParam: { cursor: string }) => lastPageParam,
+    },
+);
+check(infiniteResult.data.value?.pageParams[0]?.cursor);
+
 check(client.user.useCount().data.value?.toFixed(2));
 check(client.user.useCount({ select: { email: true } }).data.value?.email.toFixed(2));
 

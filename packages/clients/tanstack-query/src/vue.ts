@@ -118,8 +118,11 @@ export type ModelQueryOptions<T> = MaybeRefOrGetter<
 
 export type ModelQueryResult<T> = UseQueryReturnType<WithOptimistic<T>, DefaultError> & { queryKey: Ref<QueryKey> };
 
-export type ModelInfiniteQueryOptions<T> = MaybeRefOrGetter<
-    Omit<UnwrapRef<UseInfiniteQueryOptions<T, DefaultError, InfiniteData<T>>>, 'queryKey' | 'initialPageParam'> &
+export type ModelInfiniteQueryOptions<T, TPageParam = unknown> = MaybeRefOrGetter<
+    Omit<
+        UnwrapRef<UseInfiniteQueryOptions<T, DefaultError, InfiniteData<T, TPageParam>, QueryKey, TPageParam>>,
+        'queryKey' | 'initialPageParam'
+    > &
         QueryContext
 >;
 
@@ -241,10 +244,10 @@ export type ModelQueryHooks<
             options?: MaybeRefOrGetter<ModelQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>>,
         ): ModelQueryResult<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>;
 
-        useInfiniteFindMany<T extends FindManyArgs<Schema, Model, Options, {}, ExtResult>>(
+        useInfiniteFindMany<T extends FindManyArgs<Schema, Model, Options, {}, ExtResult>, TPageParam = unknown>(
             args?: MaybeRefOrGetter<SelectSubset<T, FindManyArgs<Schema, Model, Options, {}, ExtResult>>>,
-            options?: MaybeRefOrGetter<ModelInfiniteQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>>,
-        ): ModelInfiniteQueryResult<InfiniteData<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>>;
+            options?: MaybeRefOrGetter<ModelInfiniteQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[], TPageParam>>,
+        ): ModelInfiniteQueryResult<InfiniteData<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[], TPageParam>>;
 
         useCreate<T extends CreateArgs<Schema, Model, Options, {}, ExtResult>>(
             options?: MaybeRefOrGetter<ModelMutationOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>, T>>,
@@ -510,14 +513,16 @@ export function useInternalQuery<TQueryFnData, TData>(
     return { queryKey, ...useQuery<TQueryFnData, DefaultError, TData>(finalOptions) };
 }
 
-export function useInternalInfiniteQuery<TQueryFnData, TData>(
+export function useInternalInfiniteQuery<TQueryFnData, TData, TPageParam = unknown>(
     _schema: SchemaDef,
     model: string,
     operation: string,
     args: MaybeRefOrGetter<unknown>,
     options: MaybeRefOrGetter<
         | (Omit<
-              UnwrapRef<UseInfiniteQueryOptions<TQueryFnData, DefaultError, InfiniteData<TData>>>,
+              UnwrapRef<
+                  UseInfiniteQueryOptions<TQueryFnData, DefaultError, InfiniteData<TData, TPageParam>, QueryKey, TPageParam>
+              >,
               'queryKey' | 'initialPageParam'
           > &
               QueryContext)
@@ -543,7 +548,7 @@ export function useInternalInfiniteQuery<TQueryFnData, TData>(
                 const reqUrl = makeUrl(endpoint, model, operation, argsValue);
                 return fetcher<TQueryFnData>(reqUrl, { signal }, fetch);
             },
-            initialPageParam: toValue(argsValue),
+            initialPageParam: toValue(argsValue) as TPageParam,
             ...toValue(options),
         };
     });
