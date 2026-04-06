@@ -166,7 +166,14 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         result = this.buildOrderBy(result, model, modelAlias, effectiveOrderBy, negateOrderBy, take);
 
         if (args.cursor) {
-            result = this.buildCursorFilter(model, result, args.cursor, args.orderBy, negateOrderBy, modelAlias);
+            result = this.buildCursorFilter(
+                model,
+                result,
+                args.cursor,
+                effectiveOrderBy as OrArray<Record<string, SortOrder>> | undefined,
+                negateOrderBy,
+                modelAlias,
+            );
         }
         return result;
     }
