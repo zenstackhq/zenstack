@@ -286,7 +286,8 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         const discriminatorField = getDiscriminatorField(this.schema, model);
         if (!discriminatorField) {
             throw createInvalidInputError(
-                `"$is" filter is only supported on delegate models; "${model}" is not a delegate model`,
+                `"$is" filter is only supported on delegate models; "${model}" is not a delegate model. ` +
+                    `Only models with a @@delegate attribute support the "$is" filter.`,
             );
         }
 
@@ -305,7 +306,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                 conditions.push(discriminatorCheck);
             } else {
                 // build a correlated EXISTS subquery for sub-model-specific field filters
-                const subAlias = tmpAlias(`${modelAlias}$is$${subModelName}`);
+                const subAlias = tmpAlias(`${modelAlias}__is__${subModelName}`);
                 const idFields = requireIdFields(this.schema, model);
 
                 // correlate sub-model rows to the outer model rows via primary key
