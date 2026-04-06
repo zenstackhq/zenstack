@@ -504,7 +504,7 @@ export function useInternalInfiniteQuery<TQueryFnData, TData, TPageParam = unkno
     _schema: SchemaDef,
     model: string,
     operation: string,
-    args: Accessor<unknown>,
+    args?: Accessor<unknown>,
     options?: Accessor<
         Omit<
             CreateInfiniteQueryOptions<
@@ -521,16 +521,16 @@ export function useInternalInfiniteQuery<TQueryFnData, TData, TPageParam = unkno
 ) {
     const { endpoint, fetch } = useFetchOptions(options);
 
-    const queryKey = $derived(getQueryKey(model, operation, args(), { infinite: true, optimisticUpdate: false }));
+    const queryKey = $derived(getQueryKey(model, operation, args?.(), { infinite: true, optimisticUpdate: false }));
 
     const finalOptions = () => {
         const queryFn: QueryFunction<TQueryFnData, QueryKey, TPageParam> = ({ pageParam, signal }) =>
-            fetcher<TQueryFnData>(makeUrl(endpoint, model, operation, pageParam ?? args()), { signal }, fetch);
+            fetcher<TQueryFnData>(makeUrl(endpoint, model, operation, pageParam ?? args?.()), { signal }, fetch);
         const optionsValue = options?.() ?? { getNextPageParam: () => undefined };
         return {
             queryKey,
             queryFn,
-            initialPageParam: args() as TPageParam,
+            initialPageParam: args?.() as TPageParam,
             ...optionsValue,
         };
     };
