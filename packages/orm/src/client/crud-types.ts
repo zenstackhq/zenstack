@@ -347,6 +347,22 @@ export type WhereInput<
     AND?: OrArray<WhereInput<Schema, Model, Options, ScalarOnly>>;
     OR?: WhereInput<Schema, Model, Options, ScalarOnly>[];
     NOT?: OrArray<WhereInput<Schema, Model, Options, ScalarOnly>>;
+} & (IsDelegateModel<Schema, Model> extends true
+    ? { $is?: SubModelWhereInput<Schema, Model, Options, ScalarOnly> }
+    : object);
+
+/**
+ * Where filter that targets a specific sub-model of a delegate (polymorphic) base model.
+ * Keys are direct sub-model names; values are `WhereInput` for that sub-model.
+ * Multiple sub-model entries are combined with OR semantics.
+ */
+export type SubModelWhereInput<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ScalarOnly extends boolean = false,
+> = {
+    [SubModel in GetSubModels<Schema, Model>]?: WhereInput<Schema, SubModel, Options, ScalarOnly> | null;
 };
 
 type FieldFilter<
