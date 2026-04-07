@@ -220,6 +220,31 @@ async function find() {
     console.log(u.posts[0]?.author?.role);
     // @ts-expect-error
     console.log(u.posts[0]?.author?.email);
+
+    // unknown fields in `where` clause should produce TypeScript errors
+    // @ts-expect-error notExistsColumn is not a valid field
+    await client.user.findMany({
+        where: {
+            email: 'test@test.com',
+            notExistsColumn: 1,
+        },
+    });
+
+    // @ts-expect-error notExistsColumn is not a valid field
+    await client.user.findFirst({
+        where: {
+            email: 'test@test.com',
+            notExistsColumn: 1,
+        },
+    });
+
+    // valid where fields should not produce errors
+    await client.user.findMany({
+        where: {
+            email: { contains: '@test.com' },
+            name: { not: null },
+        },
+    });
 }
 
 async function create() {

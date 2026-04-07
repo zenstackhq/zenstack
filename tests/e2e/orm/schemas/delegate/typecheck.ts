@@ -176,11 +176,39 @@ async function queryBuilder() {
     client.$qb.selectFrom('Video').select(['viewCount']).execute();
 }
 
+async function whereEPC() {
+    // unknown fields in `where` clause should produce a TypeScript error
+    // @ts-expect-error notExistsColumn is not a valid field
+    await client.asset.findMany({
+        where: {
+            viewCount: 1,
+            notExistsColumn: 1,
+        },
+    });
+
+    // @ts-expect-error notExistsColumn is not a valid field
+    await client.asset.findFirst({
+        where: {
+            viewCount: 1,
+            notExistsColumn: 1,
+        },
+    });
+
+    // valid fields should not produce errors
+    await client.asset.findMany({
+        where: {
+            viewCount: { gt: 0 },
+            published: true,
+        },
+    });
+}
+
 async function main() {
     await create();
     await update();
     await find();
     await queryBuilder();
+    await whereEPC();
 }
 
 main();
