@@ -306,8 +306,8 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
     /**
      * Builds a filter expression for the `$is` operator on a delegate (polymorphic) base model.
-     * Each key in `payload` is a direct sub-model name; the value is an optional `WhereInput` for
-     * that sub-model. Multiple sub-model entries are combined with OR semantics.
+     * Each key in `payload` is a camelCase sub-model name; the value is `true` (match any instance)
+     * or a `WhereInput` for that sub-model. Multiple sub-model entries are combined with OR semantics.
      */
     private buildIsFilter(model: string, modelAlias: string, payload: Record<string, any>): Expression<SqlBool> {
         const discriminatorField = getDiscriminatorField(this.schema, model);
@@ -324,11 +324,21 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
         const conditions: Expression<SqlBool>[] = [];
 
-        for (const [subModelName, subWhere] of Object.entries(payload)) {
+        for (const [subModelKey, subWhere] of Object.entries(payload)) {
+            // Map camelCase user-facing key back to PascalCase model name. ZenStack model names are
+            // always PascalCase (e.g. RatedVideo), so the camelCase key is simply the first character
+            // lowercased (e.g. ratedVideo). Uppercasing the first character recovers the original name.
+            const subModelName = subModelKey.charAt(0).toUpperCase() + subModelKey.slice(1);
             // discriminator must equal the sub-model name
             const discriminatorCheck = this.eb(discriminatorRef, '=', subModelName);
 
-            if (subWhere == null || (typeof subWhere === 'object' && Object.keys(subWhere).length === 0)) {
+            // `true`, null, or an empty object all mean "match any instance of this sub-model type"
+            const isMatchAny =
+                subWhere === true ||
+                subWhere == null ||
+                (typeof subWhere === 'object' && Object.keys(subWhere).length === 0);
+
+            if (isMatchAny) {
                 // no sub-model field filter — just check the discriminator
                 conditions.push(discriminatorCheck);
             } else {

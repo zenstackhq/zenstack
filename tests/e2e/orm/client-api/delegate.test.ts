@@ -564,59 +564,52 @@ describe('Delegate model tests ', () => {
                 data: { format: 'png', viewCount: 2 },
             });
 
-            // $is: { Video: {} } — all assets that are Videos (2 RatedVideos)
+            // $is: { video: true } — all assets that are Videos (2 RatedVideos)
             await expect(
                 client.asset.findMany({
-                    where: { $is: { Video: {} } },
+                    where: { $is: { video: true } },
                 }),
             ).toResolveWithLength(2);
 
-            // $is: { Video: null } — null value also means "is a Video"
+            // $is: { video: { duration: { gt: 100 } } } — only v2
             await expect(
                 client.asset.findMany({
-                    where: { $is: { Video: null } },
-                }),
-            ).toResolveWithLength(2);
-
-            // $is: { Video: { duration: { gt: 100 } } } — only v2
-            await expect(
-                client.asset.findMany({
-                    where: { $is: { Video: { duration: { gt: 100 } } } },
+                    where: { $is: { video: { duration: { gt: 100 } } } },
                 }),
             ).toResolveWithLength(1);
 
             // $is combined with base-model field filter
             await expect(
                 client.asset.findMany({
-                    where: { viewCount: { gt: 0 }, $is: { Video: { duration: { gt: 100 } } } },
+                    where: { viewCount: { gt: 0 }, $is: { video: { duration: { gt: 100 } } } },
                 }),
             ).toResolveWithLength(1);
 
-            // $is: { Video: { duration: { gte: 100 } } } — both videos
+            // $is: { video: { duration: { gte: 100 } } } — both videos
             await expect(
                 client.asset.findMany({
-                    where: { $is: { Video: { duration: { gte: 100 } } } },
+                    where: { $is: { video: { duration: { gte: 100 } } } },
                 }),
             ).toResolveWithLength(2);
 
             // $is with multiple sub-models → OR semantics (1 Video with viewCount>0 OR the Image)
             await expect(
                 client.asset.findMany({
-                    where: { $is: { Video: { duration: { gt: 100 } }, Image: { format: 'png' } } },
+                    where: { $is: { video: { duration: { gt: 100 } }, image: { format: 'png' } } },
                 }),
             ).toResolveWithLength(2);
 
-            // $is on Video (which is itself a delegate) — filter on its sub-model RatedVideo
+            // $is on Video (which is itself a delegate) — filter on its sub-model ratedVideo
             await expect(
                 client.video.findMany({
-                    where: { $is: { RatedVideo: { rating: 5 } } },
+                    where: { $is: { ratedVideo: { rating: 5 } } },
                 }),
             ).toResolveWithLength(1);
 
-            // nested $is: Asset.$is.Video.$is.RatedVideo
+            // nested $is: Asset.$is.video.$is.ratedVideo
             await expect(
                 client.asset.findMany({
-                    where: { $is: { Video: { $is: { RatedVideo: { rating: 5 } } } } },
+                    where: { $is: { video: { $is: { ratedVideo: { rating: 5 } } } } },
                 }),
             ).toResolveWithLength(1);
         });

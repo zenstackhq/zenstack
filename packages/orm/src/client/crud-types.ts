@@ -353,8 +353,8 @@ export type WhereInput<
 
 /**
  * Where filter that targets a specific sub-model of a delegate (polymorphic) base model.
- * Keys are direct sub-model names; values are `WhereInput` for that sub-model.
- * Multiple sub-model entries are combined with OR semantics.
+ * Keys are camelCase sub-model names; values are `true` (match any instance) or a `WhereInput`
+ * for that sub-model. Multiple sub-model entries are combined with OR semantics.
  */
 export type SubModelWhereInput<
     Schema extends SchemaDef,
@@ -362,7 +362,9 @@ export type SubModelWhereInput<
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     ScalarOnly extends boolean = false,
 > = {
-    [SubModel in GetSubModels<Schema, Model>]?: WhereInput<Schema, SubModel, Options, ScalarOnly> | null;
+    [SubModel in GetSubModels<Schema, Model> as Uncapitalize<SubModel & string>]?:
+        | true
+        | WhereInput<Schema, SubModel, Options, ScalarOnly>;
 };
 
 type FieldFilter<

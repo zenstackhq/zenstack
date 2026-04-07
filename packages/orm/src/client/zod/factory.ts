@@ -490,10 +490,12 @@ export class ZodSchemaFactory<
             const subModelSchema = z.object(
                 Object.fromEntries(
                     modelDef.subModels.map((subModel) => [
-                        subModel,
+                        subModel.charAt(0).toLowerCase() + subModel.slice(1),
                         z
-                            .lazy(() => this.makeWhereSchema(subModel, false, false, false, options))
-                            .nullish()
+                            .union([
+                                z.literal(true),
+                                z.lazy(() => this.makeWhereSchema(subModel, false, false, false, options)),
+                            ])
                             .optional(),
                     ]),
                 ),
