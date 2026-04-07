@@ -1104,6 +1104,14 @@ export type SelectSubset<T, U> = {
       ? 'Please either choose `select` or `omit`.'
       : {});
 
+/**
+ * Strips the `where` field from an args type so the remaining fields can be used as
+ * the generic type parameter `T` in CRUD methods, allowing `where` to be typed directly
+ * and benefit from TypeScript's excess property checking.
+ * @internal
+ */
+export type OmitWhere<T> = Omit<T, 'where'>;
+
 type ToManyRelationFilter<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
