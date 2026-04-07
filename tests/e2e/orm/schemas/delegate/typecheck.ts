@@ -178,18 +178,18 @@ async function queryBuilder() {
 
 async function whereEPC() {
     // unknown fields in `where` clause should produce a TypeScript error
-    // @ts-expect-error notExistsColumn is not a valid field
     await client.asset.findMany({
         where: {
             viewCount: 1,
+            // @ts-expect-error notExistsColumn is not a valid field
             notExistsColumn: 1,
         },
     });
 
-    // @ts-expect-error notExistsColumn is not a valid field
     await client.asset.findFirst({
         where: {
             viewCount: 1,
+            // @ts-expect-error notExistsColumn is not a valid field
             notExistsColumn: 1,
         },
     });
@@ -198,8 +198,17 @@ async function whereEPC() {
     await client.asset.findMany({
         where: {
             viewCount: { gt: 0 },
-            published: true,
         },
+    });
+
+    // unknown fields in `where` clause for update should also produce TypeScript errors
+    await client.asset.update({
+        where: {
+            id: 1,
+            // @ts-expect-error notExistsColumn is not a valid field
+            notExistsColumn: 1,
+        },
+        data: { viewCount: 2 },
     });
 }
 

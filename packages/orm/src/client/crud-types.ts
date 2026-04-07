@@ -1112,6 +1112,34 @@ export type SelectSubset<T, U> = {
  */
 export type OmitWhere<T> = Omit<T, 'where'>;
 
+/**
+ * Like {@link Subset} but maps the `where` key to `unknown` (instead of `never`) when
+ * `where` is not present in `U`. This is used in CRUD method signatures where `where`
+ * is separately typed as `{ where: WhereXxxInput }`: because TypeScript infers T from
+ * the full argument object (including the `where` field), a naive `Subset<T, OmitWhere<U>>`
+ * would produce `where: never` in the mapped result, collapsing the `where` type in the
+ * intersection to `never`. Mapping to `unknown` instead gives
+ * `{ where: W } & { where: unknown }` = `{ where: W }`, preserving both the correct type
+ * and TypeScript's excess-property checking on `where`.
+ * @internal
+ */
+export type SubsetWithWhere<T, U> = {
+    [key in keyof T]: key extends keyof U ? T[key] : key extends 'where' ? unknown : never;
+};
+
+/**
+ * Like {@link SelectSubset} but maps the `where` key to `unknown` (instead of `never`) when
+ * `where` is not present in `U`. See {@link SubsetWithWhere} for the rationale.
+ * @internal
+ */
+export type SelectSubsetWithWhere<T, U> = {
+    [key in keyof T]: key extends keyof U ? T[key] : key extends 'where' ? unknown : never;
+} & (T extends { select: any; include: any }
+    ? 'Please either choose `select` or `include`.'
+    : T extends { select: any; omit: any }
+      ? 'Please either choose `select` or `omit`.'
+      : {});
+
 type ToManyRelationFilter<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,

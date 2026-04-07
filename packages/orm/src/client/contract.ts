@@ -31,8 +31,10 @@ import type {
     OmitWhere,
     ProcedureFunc,
     SelectSubset,
+    SelectSubsetWithWhere,
     SimplifiedPlainResult,
     Subset,
+    SubsetWithWhere,
     TypeDefResult,
     UpdateArgs,
     UpdateManyAndReturnArgs,
@@ -409,7 +411,7 @@ export type AllModelOperations<
                * ```
                */
               updateManyAndReturn<T extends OmitWhere<UpdateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>(
-                  args: { where?: WhereInput<Schema, Model, Options> } & Subset<T, UpdateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>,
+                  args: { where?: WhereInput<Schema, Model, Options> } & SubsetWithWhere<T, OmitWhere<UpdateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>,
               ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>;
           });
 
@@ -748,7 +750,7 @@ type CommonModelOperations<
      * ```
      */
     update<T extends OmitWhere<UpdateArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>(
-        args: { where: WhereUniqueInput<Schema, Model, Options> } & SelectSubset<T, UpdateArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>,
+        args: { where: WhereUniqueInput<Schema, Model, Options> } & SelectSubsetWithWhere<T, OmitWhere<UpdateArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>,
     ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>>;
 
     /**
@@ -772,7 +774,7 @@ type CommonModelOperations<
      * });
      */
     updateMany<T extends OmitWhere<UpdateManyArgs<Schema, Model, Options, ExtQueryArgs>>>(
-        args: { where?: WhereInput<Schema, Model, Options> } & Subset<T, UpdateManyArgs<Schema, Model, Options, ExtQueryArgs>>,
+        args: { where?: WhereInput<Schema, Model, Options> } & SubsetWithWhere<T, OmitWhere<UpdateManyArgs<Schema, Model, Options, ExtQueryArgs>>>,
     ): ZenStackPromise<Schema, BatchResult>;
 
     /**
@@ -796,7 +798,7 @@ type CommonModelOperations<
      * ```
      */
     upsert<T extends OmitWhere<UpsertArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>(
-        args: { where: WhereUniqueInput<Schema, Model, Options> } & SelectSubset<T, UpsertArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>,
+        args: { where: WhereUniqueInput<Schema, Model, Options> } & SelectSubsetWithWhere<T, OmitWhere<UpsertArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>,
     ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>>;
 
     /**
