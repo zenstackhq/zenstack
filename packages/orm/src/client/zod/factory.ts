@@ -1143,6 +1143,10 @@ export class ZodSchemaFactory<
     ) {
         const fields: Record<string, ZodType> = {};
         const sort = z.union([z.literal('asc'), z.literal('desc')]);
+        const refineAtMostOneKey = (s: ZodObject) =>
+            s.refine((v: object) => Object.keys(v).length <= 1, {
+                message: 'Each orderBy element must have at most one key',
+            });
         const nextOpts = this.nextOptions(options);
         for (const [field, fieldDef] of this.getModelFields(model)) {
             if (fieldDef.relation) {
@@ -1156,9 +1160,8 @@ export class ZodSchemaFactory<
                             nextOpts,
                         );
                         if (fieldDef.array) {
-                            relationOrderBy = relationOrderBy.extend({
-                                _count: sort,
-                            });
+                            // safeExtend drops existing refinements, so re-apply after extending
+                            relationOrderBy = refineAtMostOneKey(relationOrderBy.safeExtend({ _count: sort }));
                         }
                         return relationOrderBy.optional();
                     });
@@ -1189,7 +1192,7 @@ export class ZodSchemaFactory<
             }
         }
 
-        return z.strictObject(fields);
+        return refineAtMostOneKey(z.strictObject(fields));
     }
 
     @cache()

@@ -139,21 +139,42 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         }
         result = this.buildSkipTake(result, skip, take);
 
-        // orderBy
-        result = this.buildOrderBy(result, model, modelAlias, args.orderBy, negateOrderBy, take);
-
         // distinct
+        let distinctFields: string[] = [];
         if ('distinct' in args && (args as any).distinct) {
-            const distinct = ensureArray((args as any).distinct) as string[];
+            distinctFields = ensureArray((args as any).distinct) as string[];
             if (this.supportsDistinctOn) {
-                result = result.distinctOn(distinct.map((f) => this.eb.ref(`${modelAlias}.${f}`)));
+                result = result.distinctOn(distinctFields.map((f) => this.eb.ref(`${modelAlias}.${f}`)));
             } else {
                 throw createNotSupportedError(`"distinct" is not supported by "${this.schema.provider.type}" provider`);
             }
         }
 
+        // orderBy
+        // Some dialects (e.g., postgres) requires DISTINCT ON expressions to match the leftmost ORDER BY expressions.
+        // Prepend distinct fields only when the user-supplied orderBy doesn't already satisfy this.
+        let effectiveOrderBy = args.orderBy;
+        if (distinctFields.length > 0 && this.supportsDistinctOn) {
+            const existingOrderBy = enumerate(args.orderBy).filter((o) => Object.keys(o as object).length > 0);
+            const alreadySatisfied = distinctFields.every(
+                (f, i) => i < existingOrderBy.length && Object.keys(existingOrderBy[i] as object)[0] === f,
+            );
+            if (existingOrderBy.length > 0 && !alreadySatisfied) {
+                const prependedOrderBy = distinctFields.map((f) => ({ [f]: 'asc' })) as any[];
+                effectiveOrderBy = [...prependedOrderBy, ...existingOrderBy];
+            }
+        }
+        result = this.buildOrderBy(result, model, modelAlias, effectiveOrderBy, negateOrderBy, take);
+
         if (args.cursor) {
-            result = this.buildCursorFilter(model, result, args.cursor, args.orderBy, negateOrderBy, modelAlias);
+            result = this.buildCursorFilter(
+                model,
+                result,
+                args.cursor,
+                effectiveOrderBy as OrArray<Record<string, SortOrder>> | undefined,
+                negateOrderBy,
+                modelAlias,
+            );
         }
         return result;
     }
