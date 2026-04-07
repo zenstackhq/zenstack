@@ -409,7 +409,7 @@ export type AllModelOperations<
                * ```
                */
               updateManyAndReturn<T extends OmitWhere<UpdateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>(
-                  args: { where?: WhereInput<Schema, Model, Options> } & Subset<T, OmitWhere<UpdateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>,
+                  args: { where?: WhereInput<Schema, Model, Options> } & Subset<T, UpdateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>,
               ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>;
           });
 
@@ -502,7 +502,7 @@ type CommonModelOperations<
      * ```
      */
     findMany<T extends OmitWhere<FindManyArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>(
-        args?: { where?: WhereInput<Schema, Model, Options> } & SelectSubset<T, OmitWhere<FindManyArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>,
+        args?: { where?: WhereInput<Schema, Model, Options> } & SelectSubset<T, FindManyArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>,
     ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>;
 
     /**
@@ -512,7 +512,7 @@ type CommonModelOperations<
      * @see {@link findMany}
      */
     findUnique<T extends OmitWhere<FindUniqueArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>(
-        args: { where: WhereUniqueInput<Schema, Model, Options> } & SelectSubset<T, OmitWhere<FindUniqueArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>,
+        args: { where: WhereUniqueInput<Schema, Model, Options> } & SelectSubset<T, FindUniqueArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>,
     ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options, ExtResult> | null>;
 
     /**
@@ -522,7 +522,7 @@ type CommonModelOperations<
      * @see {@link findMany}
      */
     findUniqueOrThrow<T extends OmitWhere<FindUniqueArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>(
-        args: { where: WhereUniqueInput<Schema, Model, Options> } & SelectSubset<T, OmitWhere<FindUniqueArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>,
+        args: { where: WhereUniqueInput<Schema, Model, Options> } & SelectSubset<T, FindUniqueArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>,
     ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>>;
 
     /**
@@ -532,7 +532,7 @@ type CommonModelOperations<
      * @see {@link findMany}
      */
     findFirst<T extends OmitWhere<FindFirstArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>(
-        args?: { where?: WhereInput<Schema, Model, Options> } & SelectSubset<T, OmitWhere<FindFirstArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>,
+        args?: { where?: WhereInput<Schema, Model, Options> } & SelectSubset<T, FindFirstArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>,
     ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options, ExtResult> | null>;
 
     /**
@@ -542,7 +542,7 @@ type CommonModelOperations<
      * @see {@link findMany}
      */
     findFirstOrThrow<T extends OmitWhere<FindFirstArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>(
-        args?: { where?: WhereInput<Schema, Model, Options> } & SelectSubset<T, OmitWhere<FindFirstArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>,
+        args?: { where?: WhereInput<Schema, Model, Options> } & SelectSubset<T, FindFirstArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>,
     ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>>;
 
     /**
@@ -748,7 +748,7 @@ type CommonModelOperations<
      * ```
      */
     update<T extends OmitWhere<UpdateArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>(
-        args: { where: WhereUniqueInput<Schema, Model, Options> } & SelectSubset<T, OmitWhere<UpdateArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>,
+        args: { where: WhereUniqueInput<Schema, Model, Options> } & SelectSubset<T, UpdateArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>,
     ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>>;
 
     /**
@@ -772,7 +772,7 @@ type CommonModelOperations<
      * });
      */
     updateMany<T extends OmitWhere<UpdateManyArgs<Schema, Model, Options, ExtQueryArgs>>>(
-        args: { where?: WhereInput<Schema, Model, Options> } & Subset<T, OmitWhere<UpdateManyArgs<Schema, Model, Options, ExtQueryArgs>>>,
+        args: { where?: WhereInput<Schema, Model, Options> } & Subset<T, UpdateManyArgs<Schema, Model, Options, ExtQueryArgs>>,
     ): ZenStackPromise<Schema, BatchResult>;
 
     /**
@@ -796,7 +796,7 @@ type CommonModelOperations<
      * ```
      */
     upsert<T extends OmitWhere<UpsertArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>(
-        args: { where: WhereUniqueInput<Schema, Model, Options> } & SelectSubset<T, OmitWhere<UpsertArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>,
+        args: { where: WhereUniqueInput<Schema, Model, Options> } & SelectSubset<T, UpsertArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>,
     ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>>;
 
     /**
@@ -819,7 +819,7 @@ type CommonModelOperations<
      * ```
      */
     delete<T extends OmitWhere<DeleteArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>(
-        args: { where: WhereUniqueInput<Schema, Model, Options> } & SelectSubset<T, OmitWhere<DeleteArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>,
+        args: { where: WhereUniqueInput<Schema, Model, Options> } & SelectSubset<T, DeleteArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>,
     ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>>;
 
     /**
@@ -842,7 +842,7 @@ type CommonModelOperations<
      * ```
      */
     deleteMany<T extends OmitWhere<DeleteManyArgs<Schema, Model, Options, ExtQueryArgs>>>(
-        args?: { where?: WhereInput<Schema, Model, Options> } & Subset<T, OmitWhere<DeleteManyArgs<Schema, Model, Options, ExtQueryArgs>>>,
+        args?: { where?: WhereInput<Schema, Model, Options> } & Subset<T, DeleteManyArgs<Schema, Model, Options, ExtQueryArgs>>,
     ): ZenStackPromise<Schema, BatchResult>;
 
     /**
