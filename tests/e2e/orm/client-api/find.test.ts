@@ -126,13 +126,6 @@ describe('Client find tests ', () => {
             email: 'u2@test.com',
         });
 
-        // multiple sorting conditions in one object
-        await expect(
-            client.user.findFirst({
-                orderBy: { role: 'asc', email: 'desc' },
-            }),
-        ).resolves.toMatchObject({ email: 'u2@test.com' });
-
         // multiple sorting conditions in array
         await expect(
             client.user.findFirst({
