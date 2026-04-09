@@ -62,6 +62,7 @@ type FieldInfo = {
     type: string;
     optional?: boolean;
     array?: boolean;
+    attributes?: readonly AttributeApplication[];
 };
 
 function toFieldInfo(def: FieldDef): FieldInfo {
@@ -70,7 +71,12 @@ function toFieldInfo(def: FieldDef): FieldInfo {
         type: def.type,
         optional: def.optional,
         array: def.array,
+        attributes: def.attributes,
     };
+}
+
+function hasDbDateAttribute(fieldInfo: FieldInfo): boolean {
+    return !!fieldInfo.attributes?.some((a) => a.name === '@db.Date');
 }
 
 /**
@@ -717,7 +723,7 @@ export class ZodSchemaFactory<
                 ),
             )
             .with('Boolean', () => this.makeBooleanFilterSchema(optional, withAggregations, allowedFilterKinds))
-            .with('DateTime', () => this.makeDateTimeFilterSchema(optional, withAggregations, allowedFilterKinds))
+            .with('DateTime', () => this.makeDateTimeFilterSchema(fieldInfo, optional, withAggregations, allowedFilterKinds))
             .with('Bytes', () => this.makeBytesFilterSchema(optional, withAggregations, allowedFilterKinds))
             .with('Json', () => this.makeJsonFilterSchema(contextModel, fieldInfo.name, optional))
             .with('Unsupported', () => z.never())
@@ -778,14 +784,21 @@ export class ZodSchemaFactory<
 
     @cache()
     private makeDateTimeFilterSchema(
+        fieldInfo: FieldInfo,
         optional: boolean,
         withAggregations: boolean,
         allowedFilterKinds: string[] | undefined,
     ): ZodType {
+        // Accept plain date strings (e.g. "2024-01-15") for fields mapped to a
+        // database date-only column (@db.Date), in addition to the standard
+        // ISO datetime format required for full timestamp columns.
+        const valueSchema = hasDbDateAttribute(fieldInfo)
+            ? z.union([z.iso.date(), z.iso.datetime(), z.date()])
+            : z.union([z.iso.datetime(), z.date()]);
         return this.makeCommonPrimitiveFilterSchema(
-            z.union([z.iso.datetime(), z.date()]),
+            valueSchema,
             optional,
-            () => z.lazy(() => this.makeDateTimeFilterSchema(optional, withAggregations, allowedFilterKinds)),
+            () => z.lazy(() => this.makeDateTimeFilterSchema(fieldInfo, optional, withAggregations, allowedFilterKinds)),
             withAggregations ? ['_count', '_min', '_max'] : undefined,
             allowedFilterKinds,
         );
