@@ -854,7 +854,7 @@ export class ZodSchemaFactory<
 
     @cache()
     private makeDateTimeValueSchema(): ZodType {
-        const schema = z.union([z.iso.datetime(), z.date()]);
+        const schema = z.union([z.iso.date(), z.iso.datetime(), z.date()]);
         this.registerSchema('DateTime', schema);
         return schema;
     }
