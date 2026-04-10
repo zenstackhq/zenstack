@@ -1177,14 +1177,14 @@ export class ZodSchemaFactory<
             }
         }
 
-        // _relevance ordering for fuzzy/full-text search
-        const scalarFieldNames = this.getModelFields(model)
-            .filter(([, def]) => !def.relation)
+        // _relevance ordering for fuzzy search (string fields only)
+        const stringFieldNames = this.getModelFields(model)
+            .filter(([, def]) => !def.relation && def.type === 'String')
             .map(([name]) => name);
-        if (scalarFieldNames.length > 0) {
+        if (stringFieldNames.length > 0) {
             fields['_relevance'] = z
                 .strictObject({
-                    fields: z.array(z.enum(scalarFieldNames as [string, ...string[]])).min(1),
+                    fields: z.array(z.enum(stringFieldNames as [string, ...string[]])).min(1),
                     search: z.string(),
                     sort,
                 })

@@ -166,6 +166,12 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         result = this.buildOrderBy(result, model, modelAlias, effectiveOrderBy, negateOrderBy, take);
 
         if (args.cursor) {
+            if (
+                effectiveOrderBy &&
+                enumerate(effectiveOrderBy).some((ob: any) => typeof ob === 'object' && '_relevance' in ob)
+            ) {
+                throw createNotSupportedError('cursor pagination cannot be combined with "_relevance" ordering');
+            }
             result = this.buildCursorFilter(
                 model,
                 result,

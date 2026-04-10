@@ -909,16 +909,23 @@ type TypedJsonFieldsFilter<
 export type SortOrder = 'asc' | 'desc';
 export type NullsOrder = 'first' | 'last';
 
+type StringFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+    [Key in NonRelationFields<Schema, Model>]: MapModelFieldType<Schema, Model, Key> extends string | null
+        ? Key
+        : never;
+}[NonRelationFields<Schema, Model>];
+
 export type RelevanceOrderBy<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
     /**
-     * Sorts by the relevance of a fuzzy/full-text search. Uses similarity() on PostgreSQL,
-     * MATCH AGAINST scoring on MySQL.
+     * Sorts by fuzzy search relevance using PostgreSQL `similarity()` from `pg_trgm`.
+     * Not supported on MySQL or SQLite (throws `NotSupported` at runtime).
+     * Cannot be combined with cursor-based pagination.
      */
     _relevance?: {
         /**
-         * Fields to compute relevance against.
+         * String fields to compute relevance against (must be non-empty).
          */
-        fields: NonRelationFields<Schema, Model>[];
+        fields: [StringFields<Schema, Model>, ...StringFields<Schema, Model>[]];
         /**
          * The search term to compute relevance for.
          */
