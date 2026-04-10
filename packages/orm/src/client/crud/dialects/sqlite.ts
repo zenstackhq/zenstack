@@ -543,5 +543,22 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
             return ob;
         });
     }
+
+    override buildFuzzyFilter(_fieldRef: Expression<any>, _value: string): Expression<SqlBool> {
+        throw createNotSupportedError('"fuzzy" filter is not supported by the "sqlite" provider');
+    }
+
+    override buildFuzzyContainsFilter(_fieldRef: Expression<any>, _value: string): Expression<SqlBool> {
+        throw createNotSupportedError('"fuzzyContains" filter is not supported by the "sqlite" provider');
+    }
+
+    override buildRelevanceOrderBy(
+        _query: SelectQueryBuilder<any, any, any>,
+        _fieldRefs: Expression<any>[],
+        _search: string,
+        _sort: SortOrder,
+    ): SelectQueryBuilder<any, any, any> {
+        throw createNotSupportedError('"_relevance" ordering is not supported by the "sqlite" provider');
+    }
     // #endregion
 }

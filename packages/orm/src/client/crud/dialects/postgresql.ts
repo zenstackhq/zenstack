@@ -558,4 +558,34 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
     }
 
     // #endregion
+
+    // #region search
+
+    override buildFuzzyFilter(fieldRef: Expression<any>, value: string): Expression<SqlBool> {
+        return sql<SqlBool>`unaccent(lower(${fieldRef})) % unaccent(lower(${sql.val(value)}))`;
+    }
+
+    override buildFuzzyContainsFilter(fieldRef: Expression<any>, value: string): Expression<SqlBool> {
+        return sql<SqlBool>`unaccent(lower(${sql.val(value)})) <% unaccent(lower(${fieldRef}))`;
+    }
+
+    override buildRelevanceOrderBy(
+        query: SelectQueryBuilder<any, any, any>,
+        fieldRefs: Expression<any>[],
+        search: string,
+        sort: SortOrder,
+    ): SelectQueryBuilder<any, any, any> {
+        if (fieldRefs.length === 1) {
+            return query.orderBy(
+                sql`similarity(unaccent(lower(${fieldRefs[0]})), unaccent(lower(${sql.val(search)})))`,
+                sort,
+            );
+        }
+        const similarities = fieldRefs.map(
+            (ref) => sql`similarity(unaccent(lower(${ref})), unaccent(lower(${sql.val(search)})))`,
+        );
+        return query.orderBy(sql`GREATEST(${sql.join(similarities)})`, sort);
+    }
+
+    // #endregion
 }
