@@ -114,8 +114,12 @@ function errorResponse(description: string): OpenAPIV3_1.ResponseObject {
 
 const ERROR_400 = errorResponse('Error occurred while processing the request');
 const ERROR_403 = errorResponse('Forbidden: insufficient permissions to perform this operation');
+const ERROR_404 = errorResponse('Resource not found');
 const ERROR_422 = errorResponse('Operation is unprocessable due to validation errors');
 const ERROR_500 = errorResponse('Internal server error');
+
+// Operations that may throw NOT_FOUND when the target record does not exist
+const NOT_FOUND_OPERATIONS = new Set<string>(['update', 'delete']);
 
 /**
  * Generates an OpenAPI v3.1 specification for the RPC-style API handler.
@@ -336,6 +340,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                     },
                 },
                 '400': ERROR_400,
+                ...(NOT_FOUND_OPERATIONS.has(op) && { '404': ERROR_404 }),
                 '422': ERROR_422,
                 '500': ERROR_500,
                 ...(mayDenyAccess(modelDef, this.policyOp(op), this.specOptions?.respectAccessPolicies) && {
@@ -412,6 +417,9 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                     },
                 },
                 '400': ERROR_400,
+                '403': ERROR_403,
+                '404': ERROR_404,
+                '422': ERROR_422,
                 '500': ERROR_500,
             },
         };
@@ -480,6 +488,9 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                     },
                 },
                 '400': ERROR_400,
+                '403': ERROR_403,
+                '404': ERROR_404,
+                '422': ERROR_422,
                 '500': ERROR_500,
             },
         };

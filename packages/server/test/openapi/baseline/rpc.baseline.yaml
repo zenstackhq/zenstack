@@ -323,6 +323,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/_rpcErrorResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_rpcErrorResponse"
                 "422":
                     description: Operation is unprocessable due to validation errors
                     content:
@@ -502,6 +508,12 @@ paths:
                                             serialization: {}
                 "400":
                     description: Error occurred while processing the request
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_rpcErrorResponse"
+                "404":
+                    description: Resource not found
                     content:
                         application/json:
                             schema:
@@ -1067,6 +1079,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/_rpcErrorResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_rpcErrorResponse"
                 "422":
                     description: Operation is unprocessable due to validation errors
                     content:
@@ -1246,6 +1264,12 @@ paths:
                                             serialization: {}
                 "400":
                     description: Error occurred while processing the request
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_rpcErrorResponse"
+                "404":
+                    description: Resource not found
                     content:
                         application/json:
                             schema:
@@ -1811,6 +1835,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/_rpcErrorResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_rpcErrorResponse"
                 "422":
                     description: Operation is unprocessable due to validation errors
                     content:
@@ -1990,6 +2020,12 @@ paths:
                                             serialization: {}
                 "400":
                     description: Error occurred while processing the request
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_rpcErrorResponse"
+                "404":
+                    description: Resource not found
                     content:
                         application/json:
                             schema:
@@ -2555,6 +2591,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/_rpcErrorResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_rpcErrorResponse"
                 "422":
                     description: Operation is unprocessable due to validation errors
                     content:
@@ -2734,6 +2776,12 @@ paths:
                                             serialization: {}
                 "400":
                     description: Error occurred while processing the request
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_rpcErrorResponse"
+                "404":
+                    description: Resource not found
                     content:
                         application/json:
                             schema:
@@ -3299,6 +3347,12 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/_rpcErrorResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_rpcErrorResponse"
                 "422":
                     description: Operation is unprocessable due to validation errors
                     content:
@@ -3478,6 +3532,12 @@ paths:
                                             serialization: {}
                 "400":
                     description: Error occurred while processing the request
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_rpcErrorResponse"
+                "404":
+                    description: Resource not found
                     content:
                         application/json:
                             schema:
@@ -3762,6 +3822,24 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/_rpcErrorResponse"
+                "403":
+                    description: "Forbidden: insufficient permissions to perform this operation"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_rpcErrorResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_rpcErrorResponse"
+                "422":
+                    description: Operation is unprocessable due to validation errors
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_rpcErrorResponse"
                 "500":
                     description: Internal server error
                     content:
@@ -3801,6 +3879,24 @@ paths:
                                             serialization: {}
                 "400":
                     description: Error occurred while processing the request
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_rpcErrorResponse"
+                "403":
+                    description: "Forbidden: insufficient permissions to perform this operation"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_rpcErrorResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_rpcErrorResponse"
+                "422":
+                    description: Operation is unprocessable due to validation errors
                     content:
                         application/json:
                             schema:
@@ -3848,6 +3944,24 @@ paths:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/_rpcErrorResponse"
+                "403":
+                    description: "Forbidden: insufficient permissions to perform this operation"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_rpcErrorResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_rpcErrorResponse"
+                "422":
+                    description: Operation is unprocessable due to validation errors
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_rpcErrorResponse"
                 "500":
                     description: Internal server error
                     content:
@@ -3883,6 +3997,24 @@ paths:
                                 $ref: "#/components/schemas/_rpcSuccessResponse"
                 "400":
                     description: Error occurred while processing the request
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_rpcErrorResponse"
+                "403":
+                    description: "Forbidden: insufficient permissions to perform this operation"
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_rpcErrorResponse"
+                "404":
+                    description: Resource not found
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/_rpcErrorResponse"
+                "422":
+                    description: Operation is unprocessable due to validation errors
                     content:
                         application/json:
                             schema:
