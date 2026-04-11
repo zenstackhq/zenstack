@@ -201,7 +201,11 @@ export class ZodSchemaFactory<
      * before serialization.
      */
     toJSONSchema() {
-        // reset schema registry
+        // Reset both the registry and the builder cache so that all eager calls
+        // below re-execute their bodies and re-register schemas into the fresh registry.
+        // Without clearing schemaCache, a second call to toJSONSchema() would hit cache
+        // on every builder and never call registerSchema(), leaving the registry empty.
+        this.schemaCache.clear();
         this.schemaRegistry.clear();
 
         // Eagerly build schemas for included models so they are registered before serialization.
