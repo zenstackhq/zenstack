@@ -197,7 +197,7 @@ export class ZodSchemaFactory<
      * Returns a JSON Schema document containing all registered Zod schemas as named definitions.
      * The returned object has the shape `{ schemas: { [id]: jsonSchema } }`.
      *
-     * Eagerly builds all top-level schemas for every model so the registry is　fully populated
+     * Eagerly builds all top-level schemas for every model so the registry is fully populated
      * before serialization.
      */
     toJSONSchema() {
