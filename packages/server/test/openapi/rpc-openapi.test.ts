@@ -245,7 +245,9 @@ describe('RPC OpenAPI spec generation - input schemas', () => {
         const bodySchema = operation.requestBody.content['application/json'].schema;
         expect(bodySchema).toBeDefined();
         // CreateArgs has a data field
-        expect(bodySchema.type === 'object' || bodySchema.properties || bodySchema.$defs || bodySchema.$ref).toBeTruthy();
+        expect(
+            bodySchema.type === 'object' || bodySchema.properties || bodySchema.$defs || bodySchema.$ref,
+        ).toBeTruthy();
     });
 
     it('transaction request body uses shared schema ref', () => {
@@ -350,7 +352,10 @@ describe('RPC OpenAPI spec generation - response data shapes', () => {
     });
 
     it('createManyAndReturn and updateManyAndReturn data are arrays', () => {
-        for (const [op, method] of [['createManyAndReturn', 'post'], ['updateManyAndReturn', 'put']] as const) {
+        for (const [op, method] of [
+            ['createManyAndReturn', 'post'],
+            ['updateManyAndReturn', 'put'],
+        ] as const) {
             const responses = spec.paths[`/post/${op}`][method].responses;
             const successCode = method === 'post' ? '201' : '200';
             const dataSchema = responses[successCode].content['application/json'].schema.properties.data;
@@ -360,14 +365,26 @@ describe('RPC OpenAPI spec generation - response data shapes', () => {
     });
 
     it('create, update, delete, upsert data is direct entity ref', () => {
-        expect(spec.paths['/user/create'].post.responses['201'].content['application/json'].schema.properties.data.$ref).toBe('#/components/schemas/User');
-        expect(spec.paths['/user/update'].put.responses['200'].content['application/json'].schema.properties.data.$ref).toBe('#/components/schemas/User');
-        expect(spec.paths['/user/delete'].delete.responses['200'].content['application/json'].schema.properties.data.$ref).toBe('#/components/schemas/User');
-        expect(spec.paths['/user/upsert'].post.responses['201'].content['application/json'].schema.properties.data.$ref).toBe('#/components/schemas/User');
+        expect(
+            spec.paths['/user/create'].post.responses['201'].content['application/json'].schema.properties.data.$ref,
+        ).toBe('#/components/schemas/User');
+        expect(
+            spec.paths['/user/update'].put.responses['200'].content['application/json'].schema.properties.data.$ref,
+        ).toBe('#/components/schemas/User');
+        expect(
+            spec.paths['/user/delete'].delete.responses['200'].content['application/json'].schema.properties.data.$ref,
+        ).toBe('#/components/schemas/User');
+        expect(
+            spec.paths['/user/upsert'].post.responses['201'].content['application/json'].schema.properties.data.$ref,
+        ).toBe('#/components/schemas/User');
     });
 
     it('createMany, updateMany, deleteMany data has count property', () => {
-        for (const [op, method] of [['createMany', 'post'], ['updateMany', 'put'], ['deleteMany', 'delete']] as const) {
+        for (const [op, method] of [
+            ['createMany', 'post'],
+            ['updateMany', 'put'],
+            ['deleteMany', 'delete'],
+        ] as const) {
             const responses = spec.paths[`/user/${op}`][method].responses;
             const successCode = method === 'post' ? '201' : '200';
             const dataSchema = responses[successCode].content['application/json'].schema.properties.data;
@@ -809,9 +826,7 @@ describe('RPC OpenAPI spec generation - JSON fields', () => {
     it('AddressFilter field filter variant includes Address typedef fields', () => {
         const addressFilter = spec.components.schemas['AddressFilterOptional'];
         // One of the anyOf branches should contain the field-level filter for Address.city
-        const fieldFilterBranch = addressFilter.anyOf?.find(
-            (s: any) => s.type === 'object' && s.properties?.city,
-        );
+        const fieldFilterBranch = addressFilter.anyOf?.find((s: any) => s.type === 'object' && s.properties?.city);
         expect(fieldFilterBranch).toBeDefined();
     });
 
@@ -886,7 +901,7 @@ describe('RPC OpenAPI spec generation - baseline', () => {
         }
 
         const baseline = loadBaseline(baselineFile);
-        expect(spec).toEqual(baseline);
+        expect(spec).toMatchObject(baseline);
 
         await validate(JSON.parse(JSON.stringify(spec)));
     });

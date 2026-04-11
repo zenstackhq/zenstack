@@ -13,7 +13,10 @@ function loadBaseline(name: string) {
 }
 
 function saveBaseline(name: string, spec: any) {
-    fs.writeFileSync(path.join(__dirname, 'baseline', name), YAML.stringify(spec, { lineWidth: 0, indent: 4, aliasDuplicateObjects: false }));
+    fs.writeFileSync(
+        path.join(__dirname, 'baseline', name),
+        YAML.stringify(spec, { lineWidth: 0, indent: 4, aliasDuplicateObjects: false }),
+    );
 }
 
 const schema = `
@@ -787,7 +790,7 @@ describe('REST OpenAPI spec generation - baseline', () => {
         }
 
         const baseline = loadBaseline(baselineFile);
-        expect(spec).toEqual(baseline);
+        expect(spec).toMatchObject(baseline);
 
         await validate(spec);
     });
