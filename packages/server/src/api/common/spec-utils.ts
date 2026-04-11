@@ -1,6 +1,9 @@
 import { lowerCaseFirst } from '@zenstackhq/common-helpers';
 import type { QueryOptions } from '@zenstackhq/orm';
-import { ExpressionUtils, type AttributeApplication, type SchemaDef } from '@zenstackhq/orm/schema';
+import { ExpressionUtils, type AttributeApplication, type ModelDef, type SchemaDef } from '@zenstackhq/orm/schema';
+
+export const DEFAULT_SPEC_TITLE = 'ZenStack Generated API';
+export const DEFAULT_SPEC_VERSION = '1.0.0';
 
 /**
  * Checks if a model is included based on slicing options.
@@ -95,6 +98,49 @@ export function isFilterKindIncluded(
     if (included && !included.includes(filterKind)) return false;
 
     return true;
+}
+
+/**
+ * Checks if an operation on a model may be denied by access policies.
+ * Returns true when `respectAccessPolicies` is enabled and the model's policies
+ * for the given operation are NOT a constant allow.
+ */
+export function mayDenyAccess(modelDef: ModelDef, operation: string, respectAccessPolicies?: boolean): boolean {
+    if (!respectAccessPolicies) return false;
+
+    const policyAttrs = (modelDef.attributes ?? []).filter(
+        (attr) => attr.name === '@@allow' || attr.name === '@@deny',
+    );
+
+    // No policy rules at all means default-deny
+    if (policyAttrs.length === 0) return true;
+
+    const getArgByName = (args: AttributeApplication['args'], name: string) =>
+        args?.find((a) => a.name === name)?.value;
+
+    const matchesOperation = (args: AttributeApplication['args']) => {
+        const val = getArgByName(args, 'operation');
+        if (!val || val.kind !== 'literal' || typeof val.value !== 'string') return false;
+        const ops = val.value.split(',').map((s) => s.trim());
+        return ops.includes(operation) || ops.includes('all');
+    };
+
+    const hasEffectiveDeny = policyAttrs.some((attr) => {
+        if (attr.name !== '@@deny' || !matchesOperation(attr.args)) return false;
+        const condition = getArgByName(attr.args, 'condition');
+        // @@deny('op', false) is a no-op — skip it
+        return !(condition?.kind === 'literal' && condition.value === false);
+    });
+    if (hasEffectiveDeny) return true;
+
+    const relevantAllow = policyAttrs.filter((attr) => attr.name === '@@allow' && matchesOperation(attr.args));
+
+    const hasConstantAllow = relevantAllow.some((attr) => {
+        const condition = getArgByName(attr.args, 'condition');
+        return condition?.kind === 'literal' && condition.value === true;
+    });
+
+    return !hasConstantAllow;
 }
 
 /**

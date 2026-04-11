@@ -8,7 +8,7 @@ import { fromError } from 'zod-validation-error/v4';
 import type { ApiHandler, LogConfig, RequestContext, Response } from '../../types';
 import { getProcedureDef, mapProcedureArgs, PROCEDURE_ROUTE_PREFIXES } from '../common/procedures';
 import { loggerSchema, queryOptionsSchema } from '../common/schemas';
-import type { CommonHandlerOptions } from '../common/types';
+import type { CommonHandlerOptions, OpenApiSpecGenerator, OpenApiSpecOptions } from '../common/types';
 import { processSuperJsonRequestPayload, unmarshalQ } from '../common/utils';
 import { log, registerCustomSerializers } from '../utils';
 
@@ -35,7 +35,7 @@ export type RPCApiHandlerOptions<Schema extends SchemaDef = SchemaDef> = {
 /**
  * RPC style API request handler that mirrors the ZenStackClient API
  */
-export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiHandler<Schema> {
+export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiHandler<Schema>, OpenApiSpecGenerator {
     constructor(private readonly options: RPCApiHandlerOptions<Schema>) {
         this.validateOptions(options);
     }
@@ -432,6 +432,12 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
         const resp = { status, body: { error } };
         log(this.options.log, 'debug', () => `sending error response: ${safeJSONStringify(resp)}`);
         return resp;
+    }
+
+    async generateSpec(options?: OpenApiSpecOptions) {
+        const { RPCApiSpecGenerator } = await import('./openapi');
+        const generator = new RPCApiSpecGenerator(this.options);
+        return generator.generateSpec(options);
     }
 
     private async processRequestPayload(args: any) {
