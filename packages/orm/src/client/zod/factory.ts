@@ -55,20 +55,6 @@ import {
 import { cache } from './cache-decorator';
 
 /**
- * A `z.toJSONSchema` override that strips `minimum`/`maximum`/`exclusiveMinimum`/`exclusiveMaximum`
- * from number schemas. Zod emits safe-integer bounds by default which add noise to JSON schema.
- */
-function removeNumberBounds(ctx: { jsonSchema: Record<string, unknown> }) {
-    const t = ctx.jsonSchema['type'];
-    if (t === 'number' || t === 'integer') {
-        delete ctx.jsonSchema['minimum'];
-        delete ctx.jsonSchema['maximum'];
-        delete ctx.jsonSchema['exclusiveMinimum'];
-        delete ctx.jsonSchema['exclusiveMaximum'];
-    }
-}
-
-/**
  * Create a factory for generating Zod schemas to validate ORM query inputs.
  */
 export function createQuerySchemaFactory<
@@ -230,7 +216,7 @@ export class ZodSchemaFactory<
         for (const procName of Object.keys(this.schema.procedures ?? {})) {
             this.makeProcedureArgsSchema(procName);
         }
-        return z.toJSONSchema(this.schemaRegistry, { unrepresentable: 'any', override: removeNumberBounds });
+        return z.toJSONSchema(this.schemaRegistry, { unrepresentable: 'any' });
     }
 
     get cacheStats() {

@@ -901,7 +901,7 @@ describe('RPC OpenAPI spec generation - baseline', () => {
         }
 
         const baseline = loadBaseline(baselineFile);
-        expect(spec).toMatchObject(baseline);
+        expect(spec).toEqual(baseline);
 
         await validate(JSON.parse(JSON.stringify(spec)));
     });
