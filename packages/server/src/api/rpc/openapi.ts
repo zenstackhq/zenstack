@@ -668,9 +668,13 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             if (fieldDef.omit) continue;
 
             if (fieldDef.relation) {
-                // Relation fields appear only with `include` — mark as optional
+                // Relation fields appear only with `include` — mark as optional.
+                // To-one optional relations are nullable (the ORM returns null when not found).
                 const refSchema: ReferenceObject = { $ref: `#/components/schemas/${fieldDef.type}` };
-                properties[fieldName] = fieldDef.array ? { type: 'array', items: refSchema } : refSchema;
+                const base: SchemaObject | ReferenceObject = fieldDef.array
+                    ? { type: 'array', items: refSchema }
+                    : refSchema;
+                properties[fieldName] = !fieldDef.array && fieldDef.optional ? { anyOf: [base, { type: 'null' }] } : base;
             } else if (this.schema.enums?.[fieldDef.type]) {
                 // Enum field
                 const refSchema: ReferenceObject = { $ref: `#/components/schemas/${fieldDef.type}` };

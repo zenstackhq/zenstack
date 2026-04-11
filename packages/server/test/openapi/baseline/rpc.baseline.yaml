@@ -14712,7 +14712,9 @@ components:
                     items:
                         $ref: "#/components/schemas/Post"
                 profile:
-                    $ref: "#/components/schemas/Profile"
+                    anyOf:
+                        - $ref: "#/components/schemas/Profile"
+                        - type: "null"
                 address:
                     anyOf:
                         - $ref: "#/components/schemas/Address"
@@ -14757,7 +14759,9 @@ components:
                 title:
                     type: string
                 author:
-                    $ref: "#/components/schemas/User"
+                    anyOf:
+                        - $ref: "#/components/schemas/User"
+                        - type: "null"
                 authorId:
                     anyOf:
                         - type: string
@@ -14776,7 +14780,9 @@ components:
                     items:
                         $ref: "#/components/schemas/Comment"
                 setting:
-                    $ref: "#/components/schemas/Setting"
+                    anyOf:
+                        - $ref: "#/components/schemas/Setting"
+                        - type: "null"
             required:
                 - id
                 - createdAt
