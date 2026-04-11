@@ -351,7 +351,9 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
 
         if (inputSchemaRef) {
             if (isQueryOp) {
-                // OAPI 3.1 supports content-typed parameters for structured query values
+                // OAPI 3.1 supports content-typed parameters for structured query values.
+                // `meta` is an optional companion to `q` used to carry SuperJSON serialization
+                // metadata (see unmarshalQ in api/common/utils.ts).
                 operation['parameters'] = [
                     {
                         name: 'q',
@@ -360,6 +362,12 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                         content: {
                             [JSON_CT]: { schema: inputSchemaRef },
                         },
+                    },
+                    {
+                        name: 'meta',
+                        in: 'query',
+                        description: 'JSON-encoded SuperJSON serialization metadata for the "q" parameter',
+                        schema: { type: 'string' },
                     },
                 ];
             } else {
@@ -386,10 +394,14 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 ? { $ref: `#/components/schemas/${argsSchemaId}` }
                 : { type: 'object' };
 
-        // The RPC handler accepts { args: { param1: val, ... } } envelope
+        // The RPC handler accepts { args: { param1: val, ... } } envelope.
+        // `args` is required when the procedure has at least one non-optional parameter
+        // (mapProcedureArgs throws 'missing procedure arguments' otherwise).
+        const hasRequiredParams = Object.values(procDef.params ?? {}).some((p) => !p.optional);
         const envelopeSchema: SchemaObject = {
             type: 'object',
             properties: { args: argsSchemaRef },
+            ...(hasRequiredParams && { required: ['args'] }),
         };
 
         const op: Record<string, unknown> = {
@@ -433,6 +445,12 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                     content: {
                         [JSON_CT]: { schema: envelopeSchema },
                     },
+                },
+                {
+                    name: 'meta',
+                    in: 'query',
+                    description: 'JSON-encoded SuperJSON serialization metadata for the "q" parameter',
+                    schema: { type: 'string' },
                 },
             ];
         } else {

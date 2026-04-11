@@ -62,6 +62,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/UserFindManyArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /user/findUnique:
         get:
             tags:
@@ -110,6 +115,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/UserFindUniqueArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /user/findFirst:
         get:
             tags:
@@ -158,6 +168,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/UserFindFirstArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /user/create:
         post:
             tags:
@@ -538,6 +553,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/UserDeleteArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /user/deleteMany:
         delete:
             tags:
@@ -589,6 +609,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/UserDeleteManyArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /user/count:
         get:
             tags:
@@ -634,6 +659,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/UserCountArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /user/aggregate:
         get:
             tags:
@@ -679,6 +709,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/UserAggregateArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /user/groupBy:
         get:
             tags:
@@ -724,6 +759,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/UserGroupByArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /user/exists:
         get:
             tags:
@@ -770,6 +810,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/UserExistsArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /profile/findMany:
         get:
             tags:
@@ -818,6 +863,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/ProfileFindManyArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /profile/findUnique:
         get:
             tags:
@@ -866,6 +916,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/ProfileFindUniqueArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /profile/findFirst:
         get:
             tags:
@@ -914,6 +969,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/ProfileFindFirstArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /profile/create:
         post:
             tags:
@@ -1294,6 +1354,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/ProfileDeleteArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /profile/deleteMany:
         delete:
             tags:
@@ -1345,6 +1410,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/ProfileDeleteManyArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /profile/count:
         get:
             tags:
@@ -1390,6 +1460,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/ProfileCountArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /profile/aggregate:
         get:
             tags:
@@ -1435,6 +1510,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/ProfileAggregateArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /profile/groupBy:
         get:
             tags:
@@ -1480,6 +1560,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/ProfileGroupByArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /profile/exists:
         get:
             tags:
@@ -1526,6 +1611,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/ProfileExistsArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /post/findMany:
         get:
             tags:
@@ -1574,6 +1664,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/PostFindManyArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /post/findUnique:
         get:
             tags:
@@ -1622,6 +1717,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/PostFindUniqueArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /post/findFirst:
         get:
             tags:
@@ -1670,6 +1770,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/PostFindFirstArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /post/create:
         post:
             tags:
@@ -2050,6 +2155,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/PostDeleteArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /post/deleteMany:
         delete:
             tags:
@@ -2101,6 +2211,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/PostDeleteManyArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /post/count:
         get:
             tags:
@@ -2146,6 +2261,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/PostCountArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /post/aggregate:
         get:
             tags:
@@ -2191,6 +2311,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/PostAggregateArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /post/groupBy:
         get:
             tags:
@@ -2236,6 +2361,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/PostGroupByArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /post/exists:
         get:
             tags:
@@ -2282,6 +2412,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/PostExistsArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /comment/findMany:
         get:
             tags:
@@ -2330,6 +2465,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/CommentFindManyArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /comment/findUnique:
         get:
             tags:
@@ -2378,6 +2518,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/CommentFindUniqueArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /comment/findFirst:
         get:
             tags:
@@ -2426,6 +2571,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/CommentFindFirstArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /comment/create:
         post:
             tags:
@@ -2806,6 +2956,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/CommentDeleteArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /comment/deleteMany:
         delete:
             tags:
@@ -2857,6 +3012,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/CommentDeleteManyArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /comment/count:
         get:
             tags:
@@ -2902,6 +3062,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/CommentCountArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /comment/aggregate:
         get:
             tags:
@@ -2947,6 +3112,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/CommentAggregateArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /comment/groupBy:
         get:
             tags:
@@ -2992,6 +3162,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/CommentGroupByArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /comment/exists:
         get:
             tags:
@@ -3038,6 +3213,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/CommentExistsArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /setting/findMany:
         get:
             tags:
@@ -3086,6 +3266,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/SettingFindManyArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /setting/findUnique:
         get:
             tags:
@@ -3134,6 +3319,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/SettingFindUniqueArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /setting/findFirst:
         get:
             tags:
@@ -3182,6 +3372,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/SettingFindFirstArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /setting/create:
         post:
             tags:
@@ -3562,6 +3757,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/SettingDeleteArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /setting/deleteMany:
         delete:
             tags:
@@ -3613,6 +3813,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/SettingDeleteManyArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /setting/count:
         get:
             tags:
@@ -3658,6 +3863,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/SettingCountArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /setting/aggregate:
         get:
             tags:
@@ -3703,6 +3913,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/SettingAggregateArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /setting/groupBy:
         get:
             tags:
@@ -3748,6 +3963,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/SettingGroupByArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /setting/exists:
         get:
             tags:
@@ -3794,6 +4014,11 @@ paths:
                       application/json:
                           schema:
                               $ref: "#/components/schemas/SettingExistsArgs"
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /$procs/findPostsByUser:
         get:
             tags:
@@ -3857,6 +4082,13 @@ paths:
                               properties:
                                   args:
                                       $ref: "#/components/schemas/findPostsByUserProcArgs"
+                              required:
+                                  - args
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /$procs/getPostCount:
         get:
             tags:
@@ -3918,6 +4150,13 @@ paths:
                               properties:
                                   args:
                                       $ref: "#/components/schemas/getPostCountProcArgs"
+                              required:
+                                  - args
+                - name: meta
+                  in: query
+                  description: JSON-encoded SuperJSON serialization metadata for the "q" parameter
+                  schema:
+                      type: string
     /$procs/publishPost:
         post:
             tags:
@@ -3976,6 +4215,8 @@ paths:
                             properties:
                                 args:
                                     $ref: "#/components/schemas/publishPostProcArgs"
+                            required:
+                                - args
     /$transaction/sequential:
         post:
             tags:
