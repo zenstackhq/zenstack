@@ -1978,7 +1978,7 @@ export class ZodSchemaFactory<
     makeAggregateSchema<Model extends GetModels<Schema>>(
         model: Model,
         options?: CreateSchemaOptions,
-    ): ZodType<AggregateArgs<Schema, Model, Options, ExtQueryArgs> | undefined> {
+    ): ZodType<AggregateArgs<Schema, Model, Options, ExtQueryArgs>> {
         const result = this.mergePluginArgsSchema(
             z.strictObject({
                 where: this.makeWhereSchema(model, false, false, false, options).optional(),
@@ -1992,7 +1992,7 @@ export class ZodSchemaFactory<
                 _max: this.makeMinMaxInputSchema(model).optional(),
             }),
             'aggregate',
-        ).optional() as ZodType<AggregateArgs<Schema, Model, Options, ExtQueryArgs> | undefined>;
+        ) as unknown as ZodType<AggregateArgs<Schema, Model, Options, ExtQueryArgs>>;
         this.registerSchema(`${model}AggregateArgs`, result);
         return result;
     }

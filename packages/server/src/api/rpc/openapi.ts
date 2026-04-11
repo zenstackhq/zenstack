@@ -351,13 +351,18 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
 
         if (inputSchemaRef) {
             if (isQueryOp) {
+                // `q` is required when the input schema has required fields (e.g. `where` for delete/findUnique).
                 // OAPI 3.1 supports content-typed parameters for structured query values.
                 // `meta` is an optional companion to `q` used to carry SuperJSON serialization
                 // metadata (see unmarshalQ in api/common/utils.ts).
+                const inputSchemaId = `${modelName}${upperCaseFirst(op)}Args`;
+                const inputSchema = this.registrySchemas[inputSchemaId];
+                const qRequired = Array.isArray(inputSchema?.required) && inputSchema.required.length > 0;
                 operation['parameters'] = [
                     {
                         name: 'q',
                         in: 'query',
+                        ...(qRequired && { required: true }),
                         description: `JSON-encoded arguments for ${modelName}.${op}`,
                         content: {
                             [JSON_CT]: { schema: inputSchemaRef },
@@ -436,29 +441,35 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             },
         };
 
+        const hasParams = Object.keys(procDef.params ?? {}).length > 0;
         if (method === 'get') {
-            op['parameters'] = [
-                {
-                    name: 'q',
-                    in: 'query',
-                    description: `JSON-encoded arguments for procedure ${procName}`,
+            if (hasParams) {
+                op['parameters'] = [
+                    {
+                        name: 'q',
+                        in: 'query',
+                        ...(hasRequiredParams && { required: true }),
+                        description: `JSON-encoded arguments for procedure ${procName}`,
+                        content: {
+                            [JSON_CT]: { schema: envelopeSchema },
+                        },
+                    },
+                    {
+                        name: 'meta',
+                        in: 'query',
+                        description: 'JSON-encoded SuperJSON serialization metadata for the "q" parameter',
+                        schema: { type: 'string' },
+                    },
+                ];
+            }
+        } else {
+            if (hasParams) {
+                op['requestBody'] = {
                     content: {
                         [JSON_CT]: { schema: envelopeSchema },
                     },
-                },
-                {
-                    name: 'meta',
-                    in: 'query',
-                    description: 'JSON-encoded SuperJSON serialization metadata for the "q" parameter',
-                    schema: { type: 'string' },
-                },
-            ];
-        } else {
-            op['requestBody'] = {
-                content: {
-                    [JSON_CT]: { schema: envelopeSchema },
-                },
-            };
+                };
+            }
         }
 
         return op;

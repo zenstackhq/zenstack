@@ -110,6 +110,7 @@ paths:
             parameters:
                 - name: q
                   in: query
+                  required: true
                   description: JSON-encoded arguments for User.findUnique
                   content:
                       application/json:
@@ -548,6 +549,7 @@ paths:
             parameters:
                 - name: q
                   in: query
+                  required: true
                   description: JSON-encoded arguments for User.delete
                   content:
                       application/json:
@@ -704,6 +706,7 @@ paths:
             parameters:
                 - name: q
                   in: query
+                  required: true
                   description: JSON-encoded arguments for User.aggregate
                   content:
                       application/json:
@@ -754,6 +757,7 @@ paths:
             parameters:
                 - name: q
                   in: query
+                  required: true
                   description: JSON-encoded arguments for User.groupBy
                   content:
                       application/json:
@@ -911,6 +915,7 @@ paths:
             parameters:
                 - name: q
                   in: query
+                  required: true
                   description: JSON-encoded arguments for Profile.findUnique
                   content:
                       application/json:
@@ -1349,6 +1354,7 @@ paths:
             parameters:
                 - name: q
                   in: query
+                  required: true
                   description: JSON-encoded arguments for Profile.delete
                   content:
                       application/json:
@@ -1505,6 +1511,7 @@ paths:
             parameters:
                 - name: q
                   in: query
+                  required: true
                   description: JSON-encoded arguments for Profile.aggregate
                   content:
                       application/json:
@@ -1555,6 +1562,7 @@ paths:
             parameters:
                 - name: q
                   in: query
+                  required: true
                   description: JSON-encoded arguments for Profile.groupBy
                   content:
                       application/json:
@@ -1712,6 +1720,7 @@ paths:
             parameters:
                 - name: q
                   in: query
+                  required: true
                   description: JSON-encoded arguments for Post.findUnique
                   content:
                       application/json:
@@ -2150,6 +2159,7 @@ paths:
             parameters:
                 - name: q
                   in: query
+                  required: true
                   description: JSON-encoded arguments for Post.delete
                   content:
                       application/json:
@@ -2306,6 +2316,7 @@ paths:
             parameters:
                 - name: q
                   in: query
+                  required: true
                   description: JSON-encoded arguments for Post.aggregate
                   content:
                       application/json:
@@ -2356,6 +2367,7 @@ paths:
             parameters:
                 - name: q
                   in: query
+                  required: true
                   description: JSON-encoded arguments for Post.groupBy
                   content:
                       application/json:
@@ -2513,6 +2525,7 @@ paths:
             parameters:
                 - name: q
                   in: query
+                  required: true
                   description: JSON-encoded arguments for Comment.findUnique
                   content:
                       application/json:
@@ -2951,6 +2964,7 @@ paths:
             parameters:
                 - name: q
                   in: query
+                  required: true
                   description: JSON-encoded arguments for Comment.delete
                   content:
                       application/json:
@@ -3107,6 +3121,7 @@ paths:
             parameters:
                 - name: q
                   in: query
+                  required: true
                   description: JSON-encoded arguments for Comment.aggregate
                   content:
                       application/json:
@@ -3157,6 +3172,7 @@ paths:
             parameters:
                 - name: q
                   in: query
+                  required: true
                   description: JSON-encoded arguments for Comment.groupBy
                   content:
                       application/json:
@@ -3314,6 +3330,7 @@ paths:
             parameters:
                 - name: q
                   in: query
+                  required: true
                   description: JSON-encoded arguments for Setting.findUnique
                   content:
                       application/json:
@@ -3752,6 +3769,7 @@ paths:
             parameters:
                 - name: q
                   in: query
+                  required: true
                   description: JSON-encoded arguments for Setting.delete
                   content:
                       application/json:
@@ -3908,6 +3926,7 @@ paths:
             parameters:
                 - name: q
                   in: query
+                  required: true
                   description: JSON-encoded arguments for Setting.aggregate
                   content:
                       application/json:
@@ -3958,6 +3977,7 @@ paths:
             parameters:
                 - name: q
                   in: query
+                  required: true
                   description: JSON-encoded arguments for Setting.groupBy
                   content:
                       application/json:
@@ -4074,6 +4094,7 @@ paths:
             parameters:
                 - name: q
                   in: query
+                  required: true
                   description: JSON-encoded arguments for procedure findPostsByUser
                   content:
                       application/json:
@@ -4142,6 +4163,7 @@ paths:
             parameters:
                 - name: q
                   in: query
+                  required: true
                   description: JSON-encoded arguments for procedure getPostCount
                   content:
                       application/json:
@@ -6228,6 +6250,8 @@ components:
                     const: true
             additionalProperties: false
         UserAggregateArgs:
+            required:
+                - _count
             type: object
             properties:
                 where:
@@ -7332,6 +7356,8 @@ components:
                     const: true
             additionalProperties: false
         ProfileAggregateArgs:
+            required:
+                - _count
             type: object
             properties:
                 where:
@@ -9320,6 +9346,8 @@ components:
                     const: true
             additionalProperties: false
         PostAggregateArgs:
+            required:
+                - _count
             type: object
             properties:
                 where:
@@ -10481,6 +10509,8 @@ components:
                     const: true
             additionalProperties: false
         CommentAggregateArgs:
+            required:
+                - _count
             type: object
             properties:
                 where:
@@ -11391,6 +11421,8 @@ components:
                     const: true
             additionalProperties: false
         SettingAggregateArgs:
+            required:
+                - _count
             type: object
             properties:
                 where:
