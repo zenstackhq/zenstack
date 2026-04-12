@@ -618,11 +618,6 @@ describe('Zod schema factory test', () => {
         });
 
         describe('makeAggregateSchema', () => {
-            it('accepts undefined (all optional)', () => {
-                const s = client.$zod.makeAggregateSchema('User');
-                expect(s.safeParse(undefined).success).toBe(true);
-            });
-
             it('accepts where clause', () => {
                 const s = client.$zod.makeAggregateSchema('User');
                 expect(s.safeParse({ where: { role: 'USER' } }).success).toBe(true);

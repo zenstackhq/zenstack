@@ -1,1 +1,1 @@
-export { createQuerySchemaFactory } from './factory';
+export { createQuerySchemaFactory, type ZodSchemaFactory } from './factory';

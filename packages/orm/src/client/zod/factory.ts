@@ -1,4 +1,4 @@
-import { enumerate, invariant, lowerCaseFirst } from '@zenstackhq/common-helpers';
+import { enumerate, invariant, lowerCaseFirst, upperCaseFirst } from '@zenstackhq/common-helpers';
 import { ZodUtils } from '@zenstackhq/zod';
 import Decimal from 'decimal.js';
 import { match, P } from 'ts-pattern';
@@ -40,7 +40,7 @@ import {
     type CoreCrudOperations,
 } from '../crud/operations/base';
 import { createInternalError } from '../errors';
-import type { ClientOptions } from '../options';
+import type { ClientOptions, QueryOptions } from '../options';
 import type { AnyPlugin, ExtQueryArgsBase, RuntimePlugin } from '../plugin';
 import {
     fieldHasDefaultValue,
@@ -53,25 +53,6 @@ import {
     requireModel,
 } from '../query-utils';
 import { cache } from './cache-decorator';
-
-/**
- * Minimal field information needed for filter schema generation.
- */
-type FieldInfo = {
-    name: string;
-    type: string;
-    optional?: boolean;
-    array?: boolean;
-};
-
-function toFieldInfo(def: FieldDef): FieldInfo {
-    return {
-        name: def.name,
-        type: def.type,
-        optional: def.optional,
-        array: def.array,
-    };
-}
 
 /**
  * Create a factory for generating Zod schemas to validate ORM query inputs.
@@ -90,6 +71,14 @@ export function createQuerySchemaFactory<
     Options extends ClientOptions<Schema> = ClientOptions<Schema>,
     ExtQueryArgs extends ExtQueryArgsBase = {},
 >(schema: Schema, options?: Options): ZodSchemaFactory<Schema, Options, ExtQueryArgs>;
+
+/**
+ * Create a factory using only query options (e.g. slicing) without a full client config.
+ */
+export function createQuerySchemaFactory<Schema extends SchemaDef>(
+    schema: Schema,
+    options?: QueryOptions<Schema>,
+): ZodSchemaFactory<Schema>;
 
 export function createQuerySchemaFactory(clientOrSchema: any, options?: any) {
     return new ZodSchemaFactory(clientOrSchema, options);
@@ -114,6 +103,7 @@ export class ZodSchemaFactory<
     ExtQueryArgs extends ExtQueryArgsBase = {},
 > {
     private readonly schemaCache = new Map<string, ZodType>();
+    private readonly schemaRegistry = z.registry<{ id: string }>();
     private readonly allFilterKinds = [...new Set(Object.values(FILTER_PROPERTY_TO_KIND))];
     private readonly schema: Schema;
     private readonly options: Options;
@@ -162,7 +152,79 @@ export class ZodSchemaFactory<
 
     // @ts-ignore
     private setCache(cacheKey: string, schema: ZodType) {
-        return this.schemaCache.set(cacheKey, schema);
+        this.schemaCache.set(cacheKey, schema);
+    }
+
+    /**
+     * Builds a suffix to append to schema IDs when filter variants differ from defaults.
+     * Ensures different combinations of optional, array, and allowedFilterKinds produce distinct registry entries.
+     */
+    private filterSchemaSuffix(opts: {
+        optional?: boolean;
+        array?: boolean;
+        withAggregations?: boolean;
+        allowedFilterKinds?: string[] | undefined;
+    }): string {
+        const parts: string[] = [];
+        if (opts.optional) parts.push('Optional');
+        if (opts.array) parts.push('Array');
+        if (opts.withAggregations) parts.push('Agg');
+        if (opts.allowedFilterKinds) parts.push(...opts.allowedFilterKinds.slice().sort());
+        return parts.length ? `${parts.join('')}` : '';
+    }
+
+    /**
+     * Registers a schema in the registry under the given id.
+     * Safe to call multiple times with the same id: first registration wins, subsequent ones are silently skipped.
+     */
+    private registerSchema(id: string, schema: ZodType) {
+        if (!this.schemaRegistry.has(schema)) {
+            try {
+                this.schemaRegistry.add(schema, { id });
+            } catch {
+                // id already taken by a different schema variant (e.g. different options) — skip
+            }
+        }
+    }
+
+    /**
+     * Returns a JSON Schema document containing all registered Zod schemas as named definitions.
+     * The returned object has the shape `{ schemas: { [id]: jsonSchema } }`.
+     *
+     * Eagerly builds all top-level schemas for every model so the registry is fully populated
+     * before serialization.
+     */
+    toJSONSchema() {
+        // Reset both the registry and the builder cache so that all eager calls
+        // below re-execute their bodies and re-register schemas into the fresh registry.
+        this.schemaCache.clear();
+        this.schemaRegistry.clear();
+
+        // Eagerly build schemas for included models so they are registered before serialization.
+        for (const model of Object.keys(this.schema.models).filter((m) => this.isModelAllowed(m))) {
+            const m = model as GetModels<Schema>;
+            this.makeFindUniqueSchema(m);
+            this.makeFindFirstSchema(m);
+            this.makeFindManySchema(m);
+            this.makeExistsSchema(m);
+            this.makeCreateSchema(m);
+            this.makeCreateManySchema(m);
+            this.makeCreateManyAndReturnSchema(m);
+            this.makeUpdateSchema(m);
+            this.makeUpdateManySchema(m);
+            this.makeUpdateManyAndReturnSchema(m);
+            this.makeUpsertSchema(m);
+            this.makeDeleteSchema(m);
+            this.makeDeleteManySchema(m);
+            this.makeCountSchema(m);
+            this.makeAggregateSchema(m);
+            this.makeGroupBySchema(m);
+        }
+        // Eagerly build args schemas for all procedures.
+        for (const procName of Object.keys(this.schema.procedures ?? {})) {
+            this.makeProcedureArgsSchema(procName);
+        }
+        return z.toJSONSchema(this.schemaRegistry, { unrepresentable: 'any' });
     }
 
     get cacheStats() {
@@ -240,6 +302,7 @@ export class ZodSchemaFactory<
         if (!unique) {
             result = result.optional();
         }
+        this.registerSchema(`${model}${upperCaseFirst(operation)}Args`, result);
         return result;
     }
 
@@ -251,9 +314,11 @@ export class ZodSchemaFactory<
         const baseSchema = z.strictObject({
             where: this.makeWhereSchema(model, false, false, false, options).optional(),
         });
-        return this.mergePluginArgsSchema(baseSchema, 'exists').optional() as ZodType<
+        const result = this.mergePluginArgsSchema(baseSchema, 'exists').optional() as ZodType<
             ExistsArgs<Schema, Model, Options, ExtQueryArgs> | undefined
         >;
+        this.registerSchema(`${model}ExistsArgs`, result);
+        return result;
     }
 
     private makeScalarSchema(type: string, attributes?: readonly AttributeApplication[]) {
@@ -294,9 +359,9 @@ export class ZodSchemaFactory<
                         ZodUtils.addDecimalValidation(z.string(), attributes, this.extraValidationsEnabled),
                     ]);
                 })
-                .with('DateTime', () => z.union([z.date(), z.iso.datetime()]))
+                .with('DateTime', () => this.makeDateTimeValueSchema())
                 .with('Bytes', () => z.instanceof(Uint8Array))
-                .with('Json', () => this.makeJsonValueSchema(false, false))
+                .with('Json', () => this.makeJsonValueSchema())
                 .otherwise(() => z.unknown());
         }
     }
@@ -305,7 +370,9 @@ export class ZodSchemaFactory<
     private makeEnumSchema(_enum: string) {
         const enumDef = getEnum(this.schema, _enum);
         invariant(enumDef, `Enum "${_enum}" not found in schema`);
-        return z.enum(Object.keys(enumDef.values) as [string, ...string[]]);
+        const schema = z.enum(Object.keys(enumDef.values) as [string, ...string[]]);
+        this.registerSchema(_enum, schema);
+        return schema;
     }
 
     @cache()
@@ -337,6 +404,7 @@ export class ZodSchemaFactory<
             }
         });
 
+        this.registerSchema(type, finalSchema);
         return finalSchema;
     }
 
@@ -380,21 +448,19 @@ export class ZodSchemaFactory<
                         this.makeWhereSchema(fieldDef.type, false, false, false, nextOpts).optional(),
                     );
 
-                    // optional to-one relation allows null
-                    fieldSchema = this.nullableIf(fieldSchema, !fieldDef.array && !!fieldDef.optional);
-
                     if (fieldDef.array) {
                         // to-many relation
-                        fieldSchema = z.union([
-                            fieldSchema,
-                            z.strictObject({
-                                some: fieldSchema.optional(),
-                                every: fieldSchema.optional(),
-                                none: fieldSchema.optional(),
-                            }),
-                        ]);
+                        fieldSchema = z.strictObject({
+                            some: fieldSchema.optional(),
+                            every: fieldSchema.optional(),
+                            none: fieldSchema.optional(),
+                        });
                     } else {
                         // to-one relation
+
+                        // optional to-one relation allows null
+                        fieldSchema = this.nullableIf(fieldSchema, !fieldDef.array && !!fieldDef.optional);
+
                         fieldSchema = z.union([
                             fieldSchema,
                             z.strictObject({
@@ -406,30 +472,37 @@ export class ZodSchemaFactory<
                 }
             } else {
                 const ignoreSlicing = !!uniqueFieldNames?.includes(field);
+                const allowedFilterKinds = ignoreSlicing ? undefined : this.getEffectiveFilterKinds(model, field);
 
                 const enumDef = getEnum(this.schema, fieldDef.type);
                 if (enumDef) {
                     // enum
                     if (Object.keys(enumDef.values).length > 0) {
                         fieldSchema = this.makeEnumFilterSchema(
-                            model,
-                            toFieldInfo(fieldDef),
+                            fieldDef.type,
+                            !!fieldDef.optional,
+                            !!fieldDef.array,
                             withAggregations,
-                            ignoreSlicing,
+                            allowedFilterKinds,
                         );
                     }
                 } else if (fieldDef.array) {
                     // array field
-                    fieldSchema = this.makeArrayFilterSchema(model, toFieldInfo(fieldDef));
+                    fieldSchema = this.makeArrayFilterSchema(fieldDef.type, allowedFilterKinds);
                 } else if (this.isTypeDefType(fieldDef.type)) {
-                    fieldSchema = this.makeTypedJsonFilterSchema(model, toFieldInfo(fieldDef));
+                    fieldSchema = this.makeTypedJsonFilterSchema(
+                        fieldDef.type,
+                        !!fieldDef.optional,
+                        !!fieldDef.array,
+                        allowedFilterKinds,
+                    );
                 } else {
                     // primitive field
                     fieldSchema = this.makePrimitiveFilterSchema(
-                        model,
-                        toFieldInfo(fieldDef),
+                        fieldDef.type as BuiltinType,
+                        !!fieldDef.optional,
                         withAggregations,
-                        ignoreSlicing,
+                        allowedFilterKinds,
                     );
                 }
             }
@@ -453,23 +526,24 @@ export class ZodSchemaFactory<
                                     let fieldSchema: ZodType;
                                     const enumDef = getEnum(this.schema, def.type);
                                     if (enumDef) {
-                                        // enum
+                                        // enum (ignoreSlicing=true → undefined allowedFilterKinds)
                                         if (Object.keys(enumDef.values).length > 0) {
                                             fieldSchema = this.makeEnumFilterSchema(
-                                                model,
-                                                toFieldInfo(def),
+                                                def.type,
+                                                !!def.optional,
+                                                !!def.array,
                                                 false,
-                                                true,
+                                                undefined,
                                             );
                                         } else {
                                             fieldSchema = z.never();
                                         }
                                     } else {
                                         fieldSchema = this.makePrimitiveFilterSchema(
-                                            model,
-                                            toFieldInfo(def),
+                                            def.type as BuiltinType,
+                                            !!def.optional,
                                             false,
-                                            true,
+                                            undefined,
                                         );
                                     }
                                     return [key, fieldSchema];
@@ -521,50 +595,54 @@ export class ZodSchemaFactory<
             }
         }
 
+        let schemaId = unique ? `${model}WhereUniqueInput` : `${model}WhereInput`;
+        if (withoutRelationFields) schemaId += 'WithoutRelation';
+        if (withAggregations) schemaId += 'WithAggregation';
+        this.registerSchema(schemaId, result);
         return result;
     }
 
     @cache()
-    private makeTypedJsonFilterSchema(contextModel: string | undefined, fieldInfo: FieldInfo) {
-        const field = fieldInfo.name;
-        const type = fieldInfo.type;
-        const optional = !!fieldInfo.optional;
-        const array = !!fieldInfo.array;
-
+    private makeTypedJsonFilterSchema(
+        type: string,
+        optional: boolean,
+        array: boolean,
+        allowedFilterKinds: string[] | undefined,
+    ) {
         const typeDef = getTypeDef(this.schema, type);
         invariant(typeDef, `Type definition "${type}" not found in schema`);
 
         const candidates: ZodType[] = [];
 
         if (!array) {
-            // fields filter
+            // fields filter — typedef sub-fields are not model fields, no slicing applies
             const fieldSchemas: Record<string, ZodType> = {};
             for (const [fieldName, fieldDef] of Object.entries(typeDef.fields)) {
                 if (this.isTypeDefType(fieldDef.type)) {
-                    // recursive typed JSON - use same model/field for nested typed JSON
                     fieldSchemas[fieldName] = this.makeTypedJsonFilterSchema(
-                        contextModel,
-                        toFieldInfo(fieldDef),
+                        fieldDef.type,
+                        !!fieldDef.optional,
+                        !!fieldDef.array,
+                        undefined,
                     ).optional();
                 } else {
-                    // enum, array, primitives
                     const enumDef = getEnum(this.schema, fieldDef.type);
                     if (enumDef) {
                         fieldSchemas[fieldName] = this.makeEnumFilterSchema(
-                            contextModel,
-                            toFieldInfo(fieldDef),
+                            fieldDef.type,
+                            !!fieldDef.optional,
+                            !!fieldDef.array,
                             false,
+                            undefined,
                         ).optional();
                     } else if (fieldDef.array) {
-                        fieldSchemas[fieldName] = this.makeArrayFilterSchema(
-                            contextModel,
-                            toFieldInfo(fieldDef),
-                        ).optional();
+                        fieldSchemas[fieldName] = this.makeArrayFilterSchema(fieldDef.type, undefined).optional();
                     } else {
                         fieldSchemas[fieldName] = this.makePrimitiveFilterSchema(
-                            contextModel,
-                            toFieldInfo(fieldDef),
+                            fieldDef.type as BuiltinType,
+                            !!fieldDef.optional,
                             false,
+                            undefined,
                         ).optional();
                     }
                 }
@@ -574,7 +652,7 @@ export class ZodSchemaFactory<
         }
 
         const recursiveSchema = z
-            .lazy(() => this.makeTypedJsonFilterSchema(contextModel, { name: field, type, optional, array: false }))
+            .lazy(() => this.makeTypedJsonFilterSchema(type, optional, false, allowedFilterKinds))
             .optional();
         if (array) {
             // array filter
@@ -596,7 +674,7 @@ export class ZodSchemaFactory<
         }
 
         // plain json filter
-        candidates.push(this.makeJsonFilterSchema(contextModel, field, optional));
+        candidates.push(this.makeJsonFilterSchema(optional, allowedFilterKinds));
 
         if (optional) {
             // allow null and null sentinel values
@@ -607,7 +685,9 @@ export class ZodSchemaFactory<
         }
 
         // either plain json filter or field filters
-        return z.union(candidates);
+        const result = z.union(candidates);
+        this.registerSchema(`${type}Filter${this.filterSchemaSuffix({ optional, array, allowedFilterKinds })}`, result);
+        return result;
     }
 
     // For optional typed JSON fields, allow DbNull, JsonNull, and null.
@@ -641,45 +721,55 @@ export class ZodSchemaFactory<
 
     @cache()
     private makeEnumFilterSchema(
-        model: string | undefined,
-        fieldInfo: FieldInfo,
+        enumName: string,
+        optional: boolean,
+        array: boolean,
         withAggregations: boolean,
-        ignoreSlicing: boolean = false,
+        allowedFilterKinds: string[] | undefined,
     ) {
-        const enumName = fieldInfo.type;
-        const optional = !!fieldInfo.optional;
-        const array = !!fieldInfo.array;
-
         const enumDef = getEnum(this.schema, enumName);
         invariant(enumDef, `Enum "${enumName}" not found in schema`);
         const baseSchema = z.enum(Object.keys(enumDef.values) as [string, ...string[]]);
+        let schema: ZodType;
         if (array) {
-            return this.internalMakeArrayFilterSchema(model, fieldInfo.name, baseSchema);
-        }
-        const allowedFilterKinds = ignoreSlicing ? undefined : this.getEffectiveFilterKinds(model, fieldInfo.name);
-        const components = this.makeCommonPrimitiveFilterComponents(
-            baseSchema,
-            optional,
-            () => z.lazy(() => this.makeEnumFilterSchema(model, fieldInfo, withAggregations)),
-            ['equals', 'in', 'notIn', 'not'],
-            withAggregations ? ['_count', '_min', '_max'] : undefined,
-            allowedFilterKinds,
-        );
+            schema = this.internalMakeArrayFilterSchema(baseSchema, allowedFilterKinds);
+        } else {
+            const components = this.makeCommonPrimitiveFilterComponents(
+                baseSchema,
+                optional,
+                () =>
+                    z.lazy(() =>
+                        this.makeEnumFilterSchema(enumName, optional, array, withAggregations, allowedFilterKinds),
+                    ),
+                ['equals', 'in', 'notIn', 'not'],
+                withAggregations ? ['_count', '_min', '_max'] : undefined,
+                allowedFilterKinds,
+            );
 
-        return this.createUnionFilterSchema(baseSchema, optional, components, allowedFilterKinds);
+            schema = this.createUnionFilterSchema(baseSchema, optional, components, allowedFilterKinds);
+        }
+        this.registerSchema(
+            `${enumName}Filter${this.filterSchemaSuffix({ optional, array, allowedFilterKinds, withAggregations })}`,
+            schema,
+        );
+        return schema;
     }
 
     @cache()
-    private makeArrayFilterSchema(model: string | undefined, fieldInfo: FieldInfo) {
-        return this.internalMakeArrayFilterSchema(
-            model,
-            fieldInfo.name,
-            this.makeScalarSchema(fieldInfo.type as BuiltinType),
+    @cache()
+    private makeArrayFilterSchema(fieldType: string, allowedFilterKinds: string[] | undefined) {
+        const schema = this.internalMakeArrayFilterSchema(
+            this.makeScalarSchema(fieldType as BuiltinType),
+            allowedFilterKinds,
         );
+        this.registerSchema(
+            `${fieldType}ArrayFilter${this.filterSchemaSuffix({ array: true, allowedFilterKinds })}`,
+            schema,
+        );
+        return schema;
     }
 
-    private internalMakeArrayFilterSchema(contextModel: string | undefined, field: string, elementSchema: ZodType) {
-        const allowedFilterKinds = this.getEffectiveFilterKinds(contextModel, field);
+    private internalMakeArrayFilterSchema(elementSchema: ZodType, allowedFilterKinds: string[] | undefined) {
         const operators = {
             equals: elementSchema.array().optional(),
             has: elementSchema.optional(),
@@ -696,84 +786,75 @@ export class ZodSchemaFactory<
 
     @cache()
     private makePrimitiveFilterSchema(
-        contextModel: string | undefined,
-        fieldInfo: FieldInfo,
+        type: BuiltinType,
+        optional: boolean,
         withAggregations: boolean,
-        ignoreSlicing = false,
+        allowedFilterKinds: string[] | undefined,
     ) {
-        const allowedFilterKinds = ignoreSlicing
-            ? undefined
-            : this.getEffectiveFilterKinds(contextModel, fieldInfo.name);
-        const type = fieldInfo.type as BuiltinType;
-        const optional = !!fieldInfo.optional;
         return match(type)
             .with('String', () => this.makeStringFilterSchema(optional, withAggregations, allowedFilterKinds))
             .with(P.union('Int', 'Float', 'Decimal', 'BigInt'), (type) =>
-                this.makeNumberFilterSchema(
-                    this.makeScalarSchema(type),
-                    optional,
-                    withAggregations,
-                    allowedFilterKinds,
-                ),
+                this.makeNumberFilterSchema(type, optional, withAggregations, allowedFilterKinds),
             )
             .with('Boolean', () => this.makeBooleanFilterSchema(optional, withAggregations, allowedFilterKinds))
             .with('DateTime', () => this.makeDateTimeFilterSchema(optional, withAggregations, allowedFilterKinds))
             .with('Bytes', () => this.makeBytesFilterSchema(optional, withAggregations, allowedFilterKinds))
-            .with('Json', () => this.makeJsonFilterSchema(contextModel, fieldInfo.name, optional))
+            .with('Json', () => this.makeJsonFilterSchema(optional, allowedFilterKinds))
             .with('Unsupported', () => z.never())
             .exhaustive();
     }
 
-    private makeJsonValueSchema(nullable: boolean, forFilter: boolean): ZodType {
-        const options: ZodType[] = [z.string(), z.number(), z.boolean(), z.instanceof(JsonNullClass)];
-
-        if (forFilter) {
-            options.push(z.instanceof(DbNullClass));
-        } else {
-            if (nullable) {
-                // for mutation, allow DbNull only if nullable
-                options.push(z.instanceof(DbNullClass));
-            }
-        }
-
-        if (forFilter) {
-            options.push(z.instanceof(AnyNullClass));
-        }
-
+    @cache()
+    private makeJsonValueSchema(): ZodType {
         const schema = z.union([
-            ...options,
-            z.lazy(() => z.union([this.makeJsonValueSchema(false, false), z.null()]).array()),
+            z.string(),
+            z.number(),
+            z.boolean(),
+            z.instanceof(JsonNullClass),
+            z.lazy(() => z.union([this.makeJsonValueSchema(), z.null()]).array()),
             z.record(
                 z.string(),
-                z.lazy(() => z.union([this.makeJsonValueSchema(false, false), z.null()])),
+                z.lazy(() => z.union([this.makeJsonValueSchema(), z.null()])),
             ),
         ]);
-        return this.nullableIf(schema, nullable);
+        this.registerSchema('JsonValue', schema);
+        return schema;
     }
 
     @cache()
-    private makeJsonFilterSchema(contextModel: string | undefined, field: string, optional: boolean) {
-        const allowedFilterKinds = this.getEffectiveFilterKinds(contextModel, field);
-
+    private makeJsonFilterSchema(optional: boolean, allowedFilterKinds: string[] | undefined) {
         // Check if Json filter kind is allowed
         if (allowedFilterKinds && !allowedFilterKinds.includes('Json')) {
             // Return a never schema if Json filters are not allowed
             return z.never();
         }
 
-        const valueSchema = this.makeJsonValueSchema(optional, true);
-        return z.strictObject({
+        // Extend the base JsonValue with filter-only null sentinels, flattened into one union
+        const jsonValue = this.makeJsonValueSchema();
+        const filterMembers: ZodType[] = [jsonValue, z.instanceof(DbNullClass), z.instanceof(AnyNullClass)];
+        if (optional) filterMembers.push(z.null());
+        const filterValueSchema = z.union(filterMembers as [ZodType, ZodType, ...ZodType[]]);
+        const schema = z.strictObject({
             path: z.string().optional(),
-            equals: valueSchema.optional(),
-            not: valueSchema.optional(),
+            equals: filterValueSchema.optional(),
+            not: filterValueSchema.optional(),
             string_contains: z.string().optional(),
             string_starts_with: z.string().optional(),
             string_ends_with: z.string().optional(),
             mode: this.makeStringModeSchema().optional(),
-            array_contains: valueSchema.optional(),
-            array_starts_with: valueSchema.optional(),
-            array_ends_with: valueSchema.optional(),
+            array_contains: filterValueSchema.optional(),
+            array_starts_with: filterValueSchema.optional(),
+            array_ends_with: filterValueSchema.optional(),
         });
+        this.registerSchema(`JsonFilter${this.filterSchemaSuffix({ optional, allowedFilterKinds })}`, schema);
+        return schema;
+    }
+
+    @cache()
+    private makeDateTimeValueSchema(): ZodType {
+        const schema = z.union([z.iso.datetime(), z.date()]);
+        this.registerSchema('DateTime', schema);
+        return schema;
     }
 
     @cache()
@@ -782,13 +863,18 @@ export class ZodSchemaFactory<
         withAggregations: boolean,
         allowedFilterKinds: string[] | undefined,
     ): ZodType {
-        return this.makeCommonPrimitiveFilterSchema(
-            z.union([z.iso.datetime(), z.date()]),
+        const schema = this.makeCommonPrimitiveFilterSchema(
+            this.makeDateTimeValueSchema(),
             optional,
             () => z.lazy(() => this.makeDateTimeFilterSchema(optional, withAggregations, allowedFilterKinds)),
             withAggregations ? ['_count', '_min', '_max'] : undefined,
             allowedFilterKinds,
         );
+        this.registerSchema(
+            `DateTimeFilter${this.filterSchemaSuffix({ optional, allowedFilterKinds, withAggregations })}`,
+            schema,
+        );
+        return schema;
     }
 
     @cache()
@@ -806,7 +892,12 @@ export class ZodSchemaFactory<
             allowedFilterKinds,
         );
 
-        return this.createUnionFilterSchema(z.boolean(), optional, components, allowedFilterKinds);
+        const schema = this.createUnionFilterSchema(z.boolean(), optional, components, allowedFilterKinds);
+        this.registerSchema(
+            `BooleanFilter${this.filterSchemaSuffix({ optional, allowedFilterKinds, withAggregations })}`,
+            schema,
+        );
+        return schema;
     }
 
     @cache()
@@ -825,7 +916,12 @@ export class ZodSchemaFactory<
             allowedFilterKinds,
         );
 
-        return this.createUnionFilterSchema(baseSchema, optional, components, allowedFilterKinds);
+        const schema = this.createUnionFilterSchema(baseSchema, optional, components, allowedFilterKinds);
+        this.registerSchema(
+            `BytesFilter${this.filterSchemaSuffix({ optional, allowedFilterKinds, withAggregations })}`,
+            schema,
+        );
+        return schema;
     }
 
     private makeCommonPrimitiveFilterComponents(
@@ -849,7 +945,7 @@ export class ZodSchemaFactory<
             between: baseSchema.array().length(2).optional(),
             not: makeThis().optional(),
             ...(withAggregations?.includes('_count')
-                ? { _count: this.makeNumberFilterSchema(z.number().int(), false, false, undefined).optional() }
+                ? { _count: this.makeNumberFilterSchema('Int', false, false, undefined).optional() }
                 : {}),
             ...(withAggregations?.includes('_avg') ? { _avg: commonAggSchema() } : {}),
             ...(withAggregations?.includes('_sum') ? { _sum: commonAggSchema() } : {}),
@@ -886,21 +982,28 @@ export class ZodSchemaFactory<
         return this.createUnionFilterSchema(baseSchema, optional, components, allowedFilterKinds);
     }
 
+    @cache()
     private makeNumberFilterSchema(
-        baseSchema: ZodType,
+        type: 'Int' | 'Float' | 'Decimal' | 'BigInt',
         optional: boolean,
         withAggregations: boolean,
         allowedFilterKinds: string[] | undefined,
     ): ZodType {
-        return this.makeCommonPrimitiveFilterSchema(
-            baseSchema,
+        const schema = this.makeCommonPrimitiveFilterSchema(
+            this.makeScalarSchema(type),
             optional,
-            () => z.lazy(() => this.makeNumberFilterSchema(baseSchema, optional, withAggregations, allowedFilterKinds)),
+            () => z.lazy(() => this.makeNumberFilterSchema(type, optional, withAggregations, allowedFilterKinds)),
             withAggregations ? ['_count', '_avg', '_sum', '_min', '_max'] : undefined,
             allowedFilterKinds,
         );
+        this.registerSchema(
+            `${type}Filter${this.filterSchemaSuffix({ optional, allowedFilterKinds, withAggregations })}`,
+            schema,
+        );
+        return schema;
     }
 
+    @cache()
     private makeStringFilterSchema(
         optional: boolean,
         withAggregations: boolean,
@@ -934,7 +1037,12 @@ export class ZodSchemaFactory<
             ...filteredStringOperators,
         };
 
-        return this.createUnionFilterSchema(z.string(), optional, allComponents, allowedFilterKinds);
+        const schema = this.createUnionFilterSchema(z.string(), optional, allComponents, allowedFilterKinds);
+        this.registerSchema(
+            `StringFilter${this.filterSchemaSuffix({ optional, allowedFilterKinds, withAggregations })}`,
+            schema,
+        );
+        return schema;
     }
 
     private makeStringModeSchema() {
@@ -967,7 +1075,9 @@ export class ZodSchemaFactory<
 
         this.addExtResultFields(model, fields);
 
-        return z.strictObject(fields);
+        const result = z.strictObject(fields);
+        this.registerSchema(`${model}Select`, result);
+        return result;
     }
 
     @cache()
@@ -976,7 +1086,7 @@ export class ZodSchemaFactory<
         const toManyRelations = Object.values(modelDef.fields).filter((def) => def.relation && def.array);
         if (toManyRelations.length > 0) {
             const nextOpts = this.nextOptions(options);
-            return z
+            const schema = z
                 .union([
                     z.literal(true),
                     z.strictObject({
@@ -1005,6 +1115,8 @@ export class ZodSchemaFactory<
                     }),
                 ])
                 .optional();
+            this.registerSchema(`${model}CountSelection`, schema);
+            return schema;
         } else {
             return z.never();
         }
@@ -1053,7 +1165,9 @@ export class ZodSchemaFactory<
         objSchema = this.refineForSelectOmitMutuallyExclusive(objSchema);
         objSchema = this.refineForSelectHasTruthyField(objSchema);
 
-        return z.union([z.boolean(), objSchema]);
+        const result = z.union([z.boolean(), objSchema]);
+        this.registerSchema(`${model}${upperCaseFirst(field)}RelationInput`, result);
+        return result;
     }
 
     @cache()
@@ -1073,7 +1187,9 @@ export class ZodSchemaFactory<
 
         this.addExtResultFields(model, fields);
 
-        return z.strictObject(fields);
+        const result = z.strictObject(fields);
+        this.registerSchema(`${model}OmitInput`, result);
+        return result;
     }
 
     private addExtResultFields(model: string, fields: Record<string, ZodType>) {
@@ -1114,7 +1230,9 @@ export class ZodSchemaFactory<
             }
         }
 
-        return z.strictObject(fields);
+        const result = z.strictObject(fields);
+        this.registerSchema(`${model}Include`, result);
+        return result;
     }
 
     @cache()
@@ -1135,19 +1253,21 @@ export class ZodSchemaFactory<
             if (fieldDef.relation) {
                 // relations
                 if (withRelation && this.shouldIncludeRelations(options)) {
-                    fields[field] = z.lazy(() => {
-                        let relationOrderBy = this.makeOrderBySchema(
-                            fieldDef.type,
-                            withRelation,
-                            WithAggregation,
-                            nextOpts,
-                        );
-                        if (fieldDef.array) {
-                            // safeExtend drops existing refinements, so re-apply after extending
-                            relationOrderBy = refineAtMostOneKey(relationOrderBy.safeExtend({ _count: sort }));
-                        }
-                        return relationOrderBy.optional();
-                    });
+                    fields[field] = z
+                        .lazy(() => {
+                            let relationOrderBy = this.makeOrderBySchema(
+                                fieldDef.type,
+                                withRelation,
+                                WithAggregation,
+                                nextOpts,
+                            );
+                            if (fieldDef.array) {
+                                // safeExtend drops existing refinements, so re-apply after extending
+                                relationOrderBy = refineAtMostOneKey(relationOrderBy.safeExtend({ _count: sort }));
+                            }
+                            return relationOrderBy;
+                        })
+                        .optional();
                 }
             } else {
                 // scalars
@@ -1175,7 +1295,14 @@ export class ZodSchemaFactory<
             }
         }
 
-        return refineAtMostOneKey(z.strictObject(fields));
+        const schema = refineAtMostOneKey(z.strictObject(fields));
+
+        let schemaId = `${model}OrderBy`;
+        if (withRelation) schemaId += 'WithRelation';
+        if (WithAggregation) schemaId += 'WithAggregation';
+        schemaId += 'Input';
+        this.registerSchema(schemaId, schema);
+        return schema;
     }
 
     @cache()
@@ -1183,12 +1310,16 @@ export class ZodSchemaFactory<
         const nonRelationFields = this.getModelFields(model)
             .filter(([, def]) => !def.relation)
             .map(([name]) => name);
-        return nonRelationFields.length > 0 ? this.orArray(z.enum(nonRelationFields as any), true) : z.never();
+        const schema = nonRelationFields.length > 0 ? this.orArray(z.enum(nonRelationFields as any), true) : z.never();
+        this.registerSchema(`${model}DistinctInput`, schema);
+        return schema;
     }
 
+    @cache()
     private makeCursorSchema(model: string, options?: CreateSchemaOptions) {
-        // `makeWhereSchema` is already cached
-        return this.makeWhereSchema(model, true, true, false, options).optional();
+        const schema = this.makeWhereSchema(model, true, true, false, options).optional();
+        this.registerSchema(`${model}CursorInput`, schema);
+        return schema;
     }
 
     // #endregion
@@ -1211,6 +1342,7 @@ export class ZodSchemaFactory<
         schema = this.refineForSelectIncludeMutuallyExclusive(schema);
         schema = this.refineForSelectOmitMutuallyExclusive(schema);
         schema = this.refineForSelectHasTruthyField(schema);
+        this.registerSchema(`${model}CreateArgs`, schema);
         return schema as ZodType<CreateArgs<Schema, Model, Options, ExtQueryArgs>>;
     }
 
@@ -1219,10 +1351,12 @@ export class ZodSchemaFactory<
         model: Model,
         options?: CreateSchemaOptions,
     ): ZodType<CreateManyArgs<Schema, Model, Options, ExtQueryArgs>> {
-        return this.mergePluginArgsSchema(
+        const result = this.mergePluginArgsSchema(
             this.makeCreateManyPayloadSchema(model, [], options),
             'createMany',
         ) as unknown as ZodType<CreateManyArgs<Schema, Model, Options, ExtQueryArgs>>;
+        this.registerSchema(`${model}CreateManyArgs`, result);
+        return result;
     }
 
     @cache()
@@ -1236,9 +1370,11 @@ export class ZodSchemaFactory<
             omit: this.makeOmitSchema(model).optional().nullable(),
         });
         result = this.mergePluginArgsSchema(result, 'createManyAndReturn');
-        return this.refineForSelectHasTruthyField(
+        const schema = this.refineForSelectHasTruthyField(
             this.refineForSelectOmitMutuallyExclusive(result),
         ).optional() as ZodType<CreateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs>>;
+        this.registerSchema(`${model}CreateManyAndReturnArgs`, schema);
+        return schema;
     }
 
     @cache()
@@ -1362,16 +1498,21 @@ export class ZodSchemaFactory<
             ? ZodUtils.addCustomValidation(z.strictObject(checkedVariantFields), modelDef.attributes)
             : z.strictObject(checkedVariantFields);
 
-        if (!hasRelation) {
-            return this.orArray(uncheckedCreateSchema, canBeArray);
-        } else {
-            return z.union([
-                uncheckedCreateSchema,
-                checkedCreateSchema,
-                ...(canBeArray ? [z.array(uncheckedCreateSchema)] : []),
-                ...(canBeArray ? [z.array(checkedCreateSchema)] : []),
-            ]);
-        }
+        const result = !hasRelation
+            ? this.orArray(uncheckedCreateSchema, canBeArray)
+            : z.union([
+                  uncheckedCreateSchema,
+                  checkedCreateSchema,
+                  ...(canBeArray ? [z.array(uncheckedCreateSchema)] : []),
+                  ...(canBeArray ? [z.array(checkedCreateSchema)] : []),
+              ]);
+
+        const idParts = [`${model}CreateData`];
+        if (canBeArray) idParts.push('Array');
+        if (withoutRelationFields) idParts.push('WithoutRelation');
+        if (withoutFields.length) idParts.push(`Without${withoutFields.slice().sort().join('')}`);
+        this.registerSchema(idParts.join(''), result);
+        return result;
     }
 
     @cache()
@@ -1525,10 +1666,14 @@ export class ZodSchemaFactory<
 
     @cache()
     private makeCreateManyPayloadSchema(model: string, withoutFields: string[], options?: CreateSchemaOptions) {
-        return z.strictObject({
+        const schema = z.strictObject({
             data: this.makeCreateDataSchema(model, true, withoutFields, true, options),
             skipDuplicates: z.boolean().optional(),
         });
+        const idParts = [`${model}CreateManyPayload`];
+        if (withoutFields.length) idParts.push(`Without${withoutFields.slice().sort().join('')}`);
+        this.registerSchema(idParts.join(''), schema);
+        return schema;
     }
 
     // #endregion
@@ -1551,6 +1696,7 @@ export class ZodSchemaFactory<
         schema = this.refineForSelectIncludeMutuallyExclusive(schema);
         schema = this.refineForSelectOmitMutuallyExclusive(schema);
         schema = this.refineForSelectHasTruthyField(schema);
+        this.registerSchema(`${model}UpdateArgs`, schema);
         return schema as ZodType<UpdateArgs<Schema, Model, Options, ExtQueryArgs>>;
     }
 
@@ -1559,7 +1705,7 @@ export class ZodSchemaFactory<
         model: Model,
         options?: CreateSchemaOptions,
     ): ZodType<UpdateManyArgs<Schema, Model, Options, ExtQueryArgs>> {
-        return this.mergePluginArgsSchema(
+        const result = this.mergePluginArgsSchema(
             z.strictObject({
                 where: this.makeWhereSchema(model, false, false, false, options).optional(),
                 data: this.makeUpdateDataSchema(model, [], true, options),
@@ -1567,6 +1713,8 @@ export class ZodSchemaFactory<
             }),
             'updateMany',
         ) as unknown as ZodType<UpdateManyArgs<Schema, Model, Options, ExtQueryArgs>>;
+        this.registerSchema(`${model}UpdateManyArgs`, result);
+        return result;
     }
 
     @cache()
@@ -1582,6 +1730,7 @@ export class ZodSchemaFactory<
         });
         schema = this.refineForSelectOmitMutuallyExclusive(schema);
         schema = this.refineForSelectHasTruthyField(schema);
+        this.registerSchema(`${model}UpdateManyAndReturnArgs`, schema);
         return schema as ZodType<UpdateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs>>;
     }
 
@@ -1602,6 +1751,7 @@ export class ZodSchemaFactory<
         schema = this.refineForSelectIncludeMutuallyExclusive(schema);
         schema = this.refineForSelectOmitMutuallyExclusive(schema);
         schema = this.refineForSelectHasTruthyField(schema);
+        this.registerSchema(`${model}UpsertArgs`, schema);
         return schema as ZodType<UpsertArgs<Schema, Model, Options, ExtQueryArgs>>;
     }
 
@@ -1724,11 +1874,13 @@ export class ZodSchemaFactory<
         const checkedUpdateSchema = this.extraValidationsEnabled
             ? ZodUtils.addCustomValidation(z.strictObject(checkedVariantFields), modelDef.attributes)
             : z.strictObject(checkedVariantFields);
-        if (!hasRelation) {
-            return uncheckedUpdateSchema;
-        } else {
-            return z.union([uncheckedUpdateSchema, checkedUpdateSchema]);
-        }
+        const result = !hasRelation ? uncheckedUpdateSchema : z.union([uncheckedUpdateSchema, checkedUpdateSchema]);
+
+        const idParts = [`${model}UpdateData`];
+        if (withoutRelationFields) idParts.push('WithoutRelation');
+        if (withoutFields.length) idParts.push(`Without${withoutFields.slice().sort().join('')}`);
+        this.registerSchema(idParts.join(''), result);
+        return result;
     }
 
     // #endregion
@@ -1750,6 +1902,7 @@ export class ZodSchemaFactory<
         schema = this.refineForSelectIncludeMutuallyExclusive(schema);
         schema = this.refineForSelectOmitMutuallyExclusive(schema);
         schema = this.refineForSelectHasTruthyField(schema);
+        this.registerSchema(`${model}DeleteArgs`, schema);
         return schema as ZodType<DeleteArgs<Schema, Model, Options, ExtQueryArgs>>;
     }
 
@@ -1758,13 +1911,15 @@ export class ZodSchemaFactory<
         model: Model,
         options?: CreateSchemaOptions,
     ): ZodType<DeleteManyArgs<Schema, Model, Options, ExtQueryArgs> | undefined> {
-        return this.mergePluginArgsSchema(
+        const result = this.mergePluginArgsSchema(
             z.strictObject({
                 where: this.makeWhereSchema(model, false, false, false, options).optional(),
                 limit: z.number().int().nonnegative().optional(),
             }),
             'deleteMany',
         ).optional() as unknown as ZodType<DeleteManyArgs<Schema, Model, Options, ExtQueryArgs> | undefined>;
+        this.registerSchema(`${model}DeleteManyArgs`, result);
+        return result;
     }
 
     // #endregion
@@ -1776,7 +1931,7 @@ export class ZodSchemaFactory<
         model: Model,
         options?: CreateSchemaOptions,
     ): ZodType<CountArgs<Schema, Model, Options, ExtQueryArgs> | undefined> {
-        return this.mergePluginArgsSchema(
+        const result = this.mergePluginArgsSchema(
             z.strictObject({
                 where: this.makeWhereSchema(model, false, false, false, options).optional(),
                 skip: this.makeSkipSchema().optional(),
@@ -1786,11 +1941,13 @@ export class ZodSchemaFactory<
             }),
             'count',
         ).optional() as ZodType<CountArgs<Schema, Model, Options, ExtQueryArgs> | undefined>;
+        this.registerSchema(`${model}CountArgs`, result);
+        return result;
     }
 
     @cache()
     private makeCountAggregateInputSchema(model: string) {
-        return z.union([
+        const schema = z.union([
             z.literal(true),
             z.strictObject({
                 _all: z.literal(true).optional(),
@@ -1803,6 +1960,8 @@ export class ZodSchemaFactory<
                 ),
             }),
         ]);
+        this.registerSchema(`${model}CountAggregateInput`, schema);
+        return schema;
     }
 
     // #endregion
@@ -1813,8 +1972,8 @@ export class ZodSchemaFactory<
     makeAggregateSchema<Model extends GetModels<Schema>>(
         model: Model,
         options?: CreateSchemaOptions,
-    ): ZodType<AggregateArgs<Schema, Model, Options, ExtQueryArgs> | undefined> {
-        return this.mergePluginArgsSchema(
+    ): ZodType<AggregateArgs<Schema, Model, Options, ExtQueryArgs>> {
+        const result = this.mergePluginArgsSchema(
             z.strictObject({
                 where: this.makeWhereSchema(model, false, false, false, options).optional(),
                 skip: this.makeSkipSchema().optional(),
@@ -1827,12 +1986,14 @@ export class ZodSchemaFactory<
                 _max: this.makeMinMaxInputSchema(model).optional(),
             }),
             'aggregate',
-        ).optional() as ZodType<AggregateArgs<Schema, Model, Options, ExtQueryArgs> | undefined>;
+        ) as unknown as ZodType<AggregateArgs<Schema, Model, Options, ExtQueryArgs>>;
+        this.registerSchema(`${model}AggregateArgs`, result);
+        return result;
     }
 
     @cache()
     private makeSumAvgInputSchema(model: string) {
-        return z.strictObject(
+        const schema = z.strictObject(
             this.getModelFields(model).reduce(
                 (acc, [field, fieldDef]) => {
                     if (this.isNumericField(fieldDef)) {
@@ -1843,11 +2004,13 @@ export class ZodSchemaFactory<
                 {} as Record<string, ZodType>,
             ),
         );
+        this.registerSchema(`${model}SumAvgAggregateInput`, schema);
+        return schema;
     }
 
     @cache()
     private makeMinMaxInputSchema(model: string) {
-        return z.strictObject(
+        const schema = z.strictObject(
             this.getModelFields(model).reduce(
                 (acc, [field, fieldDef]) => {
                     if (!fieldDef.relation && !fieldDef.array) {
@@ -1858,6 +2021,8 @@ export class ZodSchemaFactory<
                 {} as Record<string, ZodType>,
             ),
         );
+        this.registerSchema(`${model}MinMaxAggregateInput`, schema);
+        return schema;
     }
 
     // #endregion
@@ -1936,6 +2101,7 @@ export class ZodSchemaFactory<
             return true;
         }, 'fields in "orderBy" must be in "by"');
 
+        this.registerSchema(`${model}GroupByArgs`, schema);
         return schema as ZodType<GroupByArgs<Schema, Model, Options, ExtQueryArgs>>;
     }
 
@@ -1956,14 +2122,31 @@ export class ZodSchemaFactory<
         return true;
     }
 
+    @cache()
     private makeHavingSchema(model: string, options?: CreateSchemaOptions) {
-        // `makeWhereSchema` is cached
-        return this.makeWhereSchema(model, false, true, true, options);
+        const schema = this.makeWhereSchema(model, false, true, true, options);
+        this.registerSchema(`${model}HavingInput`, schema);
+        return schema;
     }
 
     // #endregion
 
     // #region Procedures
+
+    @cache()
+    makeProcedureArgsSchema(procName: string): ZodType {
+        const procDef = (this.schema.procedures ?? {})[procName];
+        if (!procDef) {
+            throw createInternalError(`Procedure not found: ${procName}`);
+        }
+        const shape: Record<string, ZodType> = {};
+        for (const param of Object.values(procDef.params ?? {})) {
+            shape[param.name] = this.makeProcedureParamSchema(param);
+        }
+        const schema = z.object(shape);
+        this.registerSchema(`${procName}ProcArgs`, schema);
+        return schema;
+    }
 
     @cache()
     makeProcedureParamSchema(
