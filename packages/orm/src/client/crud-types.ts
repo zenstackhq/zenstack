@@ -347,6 +347,22 @@ export type WhereInput<
     AND?: OrArray<WhereInput<Schema, Model, Options, ScalarOnly>>;
     OR?: WhereInput<Schema, Model, Options, ScalarOnly>[];
     NOT?: OrArray<WhereInput<Schema, Model, Options, ScalarOnly>>;
+} & (IsDelegateModel<Schema, Model> extends true
+    ? { $is?: SubModelWhereInput<Schema, Model, Options, ScalarOnly> }
+    : object);
+
+/**
+ * Where filter that targets a specific sub-model of a delegate (polymorphic) base model.
+ * Keys are direct sub-model names; values are `WhereInput` for that sub-model.
+ * Multiple sub-model entries are combined with OR semantics.
+ */
+export type SubModelWhereInput<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ScalarOnly extends boolean = false,
+> = {
+    [SubModel in GetSubModels<Schema, Model>]?: WhereInput<Schema, SubModel, Options, ScalarOnly> | null;
 };
 
 type FieldFilter<
@@ -1082,6 +1098,42 @@ export type Subset<T, U> = {
 
 export type SelectSubset<T, U> = {
     [key in keyof T]: key extends keyof U ? T[key] : never;
+} & (T extends { select: any; include: any }
+    ? 'Please either choose `select` or `include`.'
+    : T extends { select: any; omit: any }
+      ? 'Please either choose `select` or `omit`.'
+      : {});
+
+/**
+ * Strips the `where` field from an args type so the remaining fields can be used as
+ * the generic type parameter `T` in CRUD methods, allowing `where` to be typed directly
+ * and benefit from TypeScript's excess property checking.
+ * @internal
+ */
+export type OmitWhere<T> = Omit<T, 'where'>;
+
+/**
+ * Like {@link Subset} but maps the `where` key to `unknown` (instead of `never`) when
+ * `where` is not present in `U`. This is used in CRUD method signatures where `where`
+ * is separately typed as `{ where: WhereXxxInput }`: because TypeScript infers T from
+ * the full argument object (including the `where` field), a naive `Subset<T, OmitWhere<U>>`
+ * would produce `where: never` in the mapped result, collapsing the `where` type in the
+ * intersection to `never`. Mapping to `unknown` instead gives
+ * `{ where: W } & { where: unknown }` = `{ where: W }`, preserving both the correct type
+ * and TypeScript's excess-property checking on `where`.
+ * @internal
+ */
+export type SubsetWithWhere<T, U> = {
+    [key in keyof T]: key extends keyof U ? T[key] : key extends 'where' ? unknown : never;
+};
+
+/**
+ * Like {@link SelectSubset} but maps the `where` key to `unknown` (instead of `never`) when
+ * `where` is not present in `U`. See {@link SubsetWithWhere} for the rationale.
+ * @internal
+ */
+export type SelectSubsetWithWhere<T, U> = {
+    [key in keyof T]: key extends keyof U ? T[key] : key extends 'where' ? unknown : never;
 } & (T extends { select: any; include: any }
     ? 'Please either choose `select` or `include`.'
     : T extends { select: any; omit: any }

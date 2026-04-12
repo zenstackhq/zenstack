@@ -220,6 +220,30 @@ async function find() {
     console.log(u.posts[0]?.author?.role);
     // @ts-expect-error
     console.log(u.posts[0]?.author?.email);
+
+    // unknown fields in `where` clause should produce TypeScript errors
+    await client.user.findMany({
+        where: {
+            email: 'test@test.com',
+            // @ts-expect-error notExistsColumn is not a valid field
+            notExistsColumn: 1,
+        },
+    });
+
+    await client.user.findFirst({
+        where: {
+            email: 'test@test.com',
+            // @ts-expect-error notExistsColumn is not a valid field
+            notExistsColumn: 1,
+        },
+    });
+
+    // valid where fields should not produce errors
+    await client.user.findMany({
+        where: {
+            email: { contains: '@test.com' },
+        },
+    });
 }
 
 async function create() {
@@ -553,6 +577,35 @@ async function update() {
             name: 'Alex New',
             email: 'alex@zenstack.dev',
         },
+    });
+
+    // unknown fields in `where` clause should produce TypeScript errors for update/upsert/updateMany
+    await client.user.update({
+        where: {
+            id: 1,
+            // @ts-expect-error notExistsColumn is not a valid field
+            notExistsColumn: 1,
+        },
+        data: { name: 'Alex' },
+    });
+
+    await client.user.upsert({
+        where: {
+            id: 1,
+            // @ts-expect-error notExistsColumn is not a valid field
+            notExistsColumn: 1,
+        },
+        create: { name: 'Alex', email: 'alex@zenstack.dev' },
+        update: { name: 'Alex New' },
+    });
+
+    await client.user.updateMany({
+        where: {
+            email: 'test@test.com',
+            // @ts-expect-error notExistsColumn is not a valid field
+            notExistsColumn: 1,
+        },
+        data: { name: 'Alex' },
     });
 }
 
