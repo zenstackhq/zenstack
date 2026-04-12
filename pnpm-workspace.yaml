@@ -15,7 +15,7 @@ catalog:
     '@types/tmp': ^0.2.6
     better-sqlite3: ^12.5.0
     decimal.js: ^10.4.3
-    kysely: ~0.28.15
+    kysely: ~0.28.16
     langium: 3.5.0
     langium-cli: 3.5.0
     next: 16.1.6
