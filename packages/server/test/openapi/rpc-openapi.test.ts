@@ -1033,7 +1033,7 @@ model User {
 
 describe('RPC OpenAPI spec generation - baseline', () => {
     it('matches baseline', async () => {
-        const client = await createTestClient(schema);
+        const client = await createTestClient(schema, { provider: 'postgresql' });
         const handler = new RPCApiHandler({ schema: client.$schema });
         const spec = await generateSpec(handler);
         const baselineFile = 'rpc.baseline.yaml';

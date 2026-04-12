@@ -4322,6 +4322,12 @@ components:
                           type: string
                       contains:
                           type: string
+                      mode:
+                          anyOf:
+                              - type: string
+                                const: default
+                              - type: string
+                                const: insensitive
                   additionalProperties: false
         DateTime:
             anyOf:
@@ -4578,6 +4584,12 @@ components:
                           type: string
                       contains:
                           type: string
+                      mode:
+                          anyOf:
+                              - type: string
+                                const: default
+                              - type: string
+                                const: insensitive
                   additionalProperties: false
         BooleanFilter:
             anyOf:
@@ -6461,6 +6473,12 @@ components:
                           type: string
                       contains:
                           type: string
+                      mode:
+                          anyOf:
+                              - type: string
+                                const: default
+                              - type: string
+                                const: insensitive
                   additionalProperties: false
         DateTimeFilterAgg:
             anyOf:
@@ -9569,6 +9587,12 @@ components:
                           type: string
                       contains:
                           type: string
+                      mode:
+                          anyOf:
+                              - type: string
+                                const: default
+                              - type: string
+                                const: insensitive
                   additionalProperties: false
         BooleanFilterAgg:
             anyOf:
