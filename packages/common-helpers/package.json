@@ -2,7 +2,7 @@
     "name": "@zenstackhq/common-helpers",
     "displayName": "ZenStack Common Helpers",
     "description": "ZenStack Common Helpers",
-    "version": "3.5.4",
+    "version": "3.6.0",
     "type": "module",
     "author": {
         "name": "ZenStack Team",

@@ -37,6 +37,16 @@ describe('React client typing test', () => {
                 },
             ).data?.pages[1]?.[0]?.email,
         );
+
+        // TPageParam should be inferred from getNextPageParam, not typed as unknown
+        const infiniteResult = client.user.useInfiniteFindMany(
+            {},
+            {
+                getNextPageParam: (_lastPage, _allPages, lastPageParam: { cursor: string }) => lastPageParam,
+            },
+        );
+        check(infiniteResult.data?.pageParams[0]?.cursor);
+
         // @ts-expect-error
         check(client.user.useInfiniteFindMany().data?.pages[0]?.[0]?.$optimistic);
 

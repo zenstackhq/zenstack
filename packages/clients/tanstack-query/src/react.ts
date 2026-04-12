@@ -119,15 +119,15 @@ export type ModelSuspenseQueryResult<T> = UseSuspenseQueryResult<WithOptimistic<
     queryKey: QueryKey;
 };
 
-export type ModelInfiniteQueryOptions<T> = Omit<
-    UseInfiniteQueryOptions<T, DefaultError, InfiniteData<T>>,
+export type ModelInfiniteQueryOptions<T, TPageParam = unknown> = Omit<
+    UseInfiniteQueryOptions<T, DefaultError, InfiniteData<T, TPageParam>, QueryKey, TPageParam>,
     'queryKey' | 'initialPageParam'
 >;
 
 export type ModelInfiniteQueryResult<T> = UseInfiniteQueryResult<T, DefaultError> & { queryKey: QueryKey };
 
-export type ModelSuspenseInfiniteQueryOptions<T> = Omit<
-    UseSuspenseInfiniteQueryOptions<T, DefaultError, InfiniteData<T>>,
+export type ModelSuspenseInfiniteQueryOptions<T, TPageParam = unknown> = Omit<
+    UseSuspenseInfiniteQueryOptions<T, DefaultError, InfiniteData<T, TPageParam>, QueryKey, TPageParam>,
     'queryKey' | 'initialPageParam'
 >;
 
@@ -263,15 +263,15 @@ export type ModelQueryHooks<
             options?: ModelSuspenseQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>,
         ): ModelSuspenseQueryResult<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>;
 
-        useInfiniteFindMany<T extends FindManyArgs<Schema, Model, Options, {}, ExtResult>>(
+        useInfiniteFindMany<T extends FindManyArgs<Schema, Model, Options, {}, ExtResult>, TPageParam = unknown>(
             args?: SelectSubset<T, FindManyArgs<Schema, Model, Options, {}, ExtResult>>,
-            options?: ModelInfiniteQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>,
-        ): ModelInfiniteQueryResult<InfiniteData<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>>;
+            options?: ModelInfiniteQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[], TPageParam>,
+        ): ModelInfiniteQueryResult<InfiniteData<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[], TPageParam>>;
 
-        useSuspenseInfiniteFindMany<T extends FindManyArgs<Schema, Model, Options, {}, ExtResult>>(
+        useSuspenseInfiniteFindMany<T extends FindManyArgs<Schema, Model, Options, {}, ExtResult>, TPageParam = unknown>(
             args?: SelectSubset<T, FindManyArgs<Schema, Model, Options, {}, ExtResult>>,
-            options?: ModelSuspenseInfiniteQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>,
-        ): ModelSuspenseInfiniteQueryResult<InfiniteData<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>>;
+            options?: ModelSuspenseInfiniteQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[], TPageParam>,
+        ): ModelSuspenseInfiniteQueryResult<InfiniteData<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[], TPageParam>>;
 
         useCreate<T extends CreateArgs<Schema, Model, Options, {}, ExtResult>>(
             options?: ModelMutationOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>, T>,
@@ -592,14 +592,14 @@ export function useInternalSuspenseQuery<TQueryFnData, TData>(
     };
 }
 
-export function useInternalInfiniteQuery<TQueryFnData, TData>(
+export function useInternalInfiniteQuery<TQueryFnData, TData, TPageParam = unknown>(
     _schema: SchemaDef,
     model: string,
     operation: string,
     args: unknown,
     options:
         | (Omit<
-              UseInfiniteQueryOptions<TQueryFnData, DefaultError, InfiniteData<TData>>,
+              UseInfiniteQueryOptions<TQueryFnData, DefaultError, InfiniteData<TData, TPageParam>, QueryKey, TPageParam>,
               'queryKey' | 'initialPageParam'
           > &
               QueryContext)
@@ -615,19 +615,19 @@ export function useInternalInfiniteQuery<TQueryFnData, TData>(
             queryFn: ({ pageParam, signal }) => {
                 return fetcher<TQueryFnData>(makeUrl(endpoint, model, operation, pageParam ?? args), { signal }, fetch);
             },
-            initialPageParam: args,
+            initialPageParam: args as TPageParam,
             ...options,
         }),
     };
 }
 
-export function useInternalSuspenseInfiniteQuery<TQueryFnData, TData>(
+export function useInternalSuspenseInfiniteQuery<TQueryFnData, TData, TPageParam = unknown>(
     _schema: SchemaDef,
     model: string,
     operation: string,
     args: unknown,
     options: Omit<
-        UseSuspenseInfiniteQueryOptions<TQueryFnData, DefaultError, InfiniteData<TData>> & QueryContext,
+        UseSuspenseInfiniteQueryOptions<TQueryFnData, DefaultError, InfiniteData<TData, TPageParam>, QueryKey, TPageParam> & QueryContext,
         'queryKey' | 'initialPageParam'
     >,
 ) {
@@ -640,7 +640,7 @@ export function useInternalSuspenseInfiniteQuery<TQueryFnData, TData>(
             queryFn: ({ pageParam, signal }) => {
                 return fetcher<TQueryFnData>(makeUrl(endpoint, model, operation, pageParam ?? args), { signal }, fetch);
             },
-            initialPageParam: args,
+            initialPageParam: args as TPageParam,
             ...options,
         }),
     };

@@ -2,7 +2,7 @@
     "name": "@zenstackhq/tanstack-query",
     "displayName": "ZenStack TanStack Query Integration",
     "description": "TanStack Query Client for consuming ZenStack v3's CRUD service",
-    "version": "3.5.4",
+    "version": "3.6.0",
     "type": "module",
     "author": {
         "name": "ZenStack Team",
@@ -74,7 +74,7 @@
         "@zenstackhq/sdk": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*",
         "@zenstackhq/vitest-config": "workspace:*",
-        "happy-dom": "^20.0.10",
+        "happy-dom": "^20.8.9",
         "nock": "^14.0.10",
         "react": "catalog:",
         "svelte": "catalog:",

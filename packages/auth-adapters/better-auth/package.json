@@ -2,7 +2,7 @@
     "name": "@zenstackhq/better-auth",
     "displayName": "ZenStack Better Auth Adapter",
     "description": "ZenStack Better Auth Adapter. This adapter is modified from better-auth's Prisma adapter.",
-    "version": "3.5.4",
+    "version": "3.6.0",
     "type": "module",
     "author": {
         "name": "ZenStack Team",

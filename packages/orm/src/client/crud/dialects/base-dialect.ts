@@ -138,21 +138,42 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         }
         result = this.buildSkipTake(result, skip, take);
 
-        // orderBy
-        result = this.buildOrderBy(result, model, modelAlias, args.orderBy, negateOrderBy, take);
-
         // distinct
+        let distinctFields: string[] = [];
         if ('distinct' in args && (args as any).distinct) {
-            const distinct = ensureArray((args as any).distinct) as string[];
+            distinctFields = ensureArray((args as any).distinct) as string[];
             if (this.supportsDistinctOn) {
-                result = result.distinctOn(distinct.map((f) => this.eb.ref(`${modelAlias}.${f}`)));
+                result = result.distinctOn(distinctFields.map((f) => this.eb.ref(`${modelAlias}.${f}`)));
             } else {
                 throw createNotSupportedError(`"distinct" is not supported by "${this.schema.provider.type}" provider`);
             }
         }
 
+        // orderBy
+        // Some dialects (e.g., postgres) requires DISTINCT ON expressions to match the leftmost ORDER BY expressions.
+        // Prepend distinct fields only when the user-supplied orderBy doesn't already satisfy this.
+        let effectiveOrderBy = args.orderBy;
+        if (distinctFields.length > 0 && this.supportsDistinctOn) {
+            const existingOrderBy = enumerate(args.orderBy).filter((o) => Object.keys(o as object).length > 0);
+            const alreadySatisfied = distinctFields.every(
+                (f, i) => i < existingOrderBy.length && Object.keys(existingOrderBy[i] as object)[0] === f,
+            );
+            if (existingOrderBy.length > 0 && !alreadySatisfied) {
+                const prependedOrderBy = distinctFields.map((f) => ({ [f]: 'asc' })) as any[];
+                effectiveOrderBy = [...prependedOrderBy, ...existingOrderBy];
+            }
+        }
+        result = this.buildOrderBy(result, model, modelAlias, effectiveOrderBy, negateOrderBy, take);
+
         if (args.cursor) {
-            result = this.buildCursorFilter(model, result, args.cursor, args.orderBy, negateOrderBy, modelAlias);
+            result = this.buildCursorFilter(
+                model,
+                result,
+                args.cursor,
+                effectiveOrderBy as OrArray<Record<string, SortOrder>> | undefined,
+                negateOrderBy,
+                modelAlias,
+            );
         }
         return result;
     }
@@ -571,6 +592,10 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         }
 
         if (isTypeDef(this.schema, fieldDef.type)) {
+            if (payload instanceof DbNullClass || payload instanceof JsonNullClass || payload instanceof AnyNullClass) {
+                // null sentinel passed directly (e.g. where: { field: DbNull }) — treat like { equals: sentinel }
+                return this.buildJsonValueFilterClause(fieldRef, payload);
+            }
             return this.buildJsonFilter(fieldRef, payload, fieldDef);
         }
 
@@ -1288,25 +1313,29 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             const fieldModel = fieldDef.type as GetModels<Schema>;
             let fieldCountQuery: SelectQueryBuilder<any, any, any>;
 
+            // Use a unique alias for the subquery to avoid ambiguous references when
+            // fieldModel === model (self-referential relation on a delegate model)
+            const subQueryAlias = tmpAlias(`${parentAlias}$_${field}$count`);
+
             // join conditions
             const m2m = getManyToManyRelation(this.schema, model, field);
             if (m2m) {
                 // many-to-many relation, count the join table
-                fieldCountQuery = this.buildModelSelect(fieldModel, fieldModel, value as any, false)
+                fieldCountQuery = this.buildModelSelect(fieldModel, subQueryAlias, value as any, false)
                     .innerJoin(m2m.joinTable, (join) =>
                         join
-                            .onRef(`${m2m.joinTable}.${m2m.otherFkName}`, '=', `${fieldModel}.${m2m.otherPKName}`)
+                            .onRef(`${m2m.joinTable}.${m2m.otherFkName}`, '=', `${subQueryAlias}.${m2m.otherPKName}`)
                             .onRef(`${m2m.joinTable}.${m2m.parentFkName}`, '=', `${parentAlias}.${m2m.parentPKName}`),
                     )
                     .select(eb.fn.countAll().as(`_count$${field}`));
             } else {
                 // build a nested query to count the number of records in the relation
-                fieldCountQuery = this.buildModelSelect(fieldModel, fieldModel, value as any, false).select(
+                fieldCountQuery = this.buildModelSelect(fieldModel, subQueryAlias, value as any, false).select(
                     eb.fn.countAll().as(`_count$${field}`),
                 );
 
                 // join conditions
-                const joinPairs = buildJoinPairs(this.schema, model, parentAlias, field, fieldModel);
+                const joinPairs = buildJoinPairs(this.schema, model, parentAlias, field, subQueryAlias);
                 for (const [left, right] of joinPairs) {
                     fieldCountQuery = fieldCountQuery.whereRef(left, '=', right);
                 }

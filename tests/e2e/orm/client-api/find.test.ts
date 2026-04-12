@@ -126,13 +126,6 @@ describe('Client find tests ', () => {
             email: 'u2@test.com',
         });
 
-        // multiple sorting conditions in one object
-        await expect(
-            client.user.findFirst({
-                orderBy: { role: 'asc', email: 'desc' },
-            }),
-        ).resolves.toMatchObject({ email: 'u2@test.com' });
-
         // multiple sorting conditions in array
         await expect(
             client.user.findFirst({
@@ -1187,6 +1180,21 @@ describe('Client find tests ', () => {
         expect(result3?.posts).toHaveLength(1);
         expect(result3?._count).toBeDefined();
         expect(result3?._count.posts).toBe(1);
+    });
+
+    it('rejects orderBy array elements with multiple keys', async () => {
+        await createUser(client, 'u1@test.com');
+
+        // zero keys is valid
+        await expect(client.user.findMany({ orderBy: [{}] })).resolves.toBeDefined();
+
+        // single key is valid
+        await expect(client.user.findMany({ orderBy: [{ email: 'asc' }] })).resolves.toBeDefined();
+
+        // multiple keys in one element is rejected
+        await expect(
+            client.user.findMany({ orderBy: [{ email: 'asc', role: 'desc' }] } as any),
+        ).toBeRejectedByValidation();
     });
 
     it('supports $expr', async () => {

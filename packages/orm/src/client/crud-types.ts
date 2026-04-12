@@ -827,7 +827,7 @@ type TypedJsonTypedFilter<
           | (Array extends true
                 ? ArrayTypedJsonFilter<Schema, TypeDefName, AllowedKinds>
                 : NonArrayTypedJsonFilter<Schema, TypeDefName, AllowedKinds>)
-          | (Optional extends true ? null : never)
+          | (Optional extends true ? null | JsonNullValues : never)
     : {};
 
 type ArrayTypedJsonFilter<
@@ -1375,13 +1375,23 @@ type ScalarFieldMutationPayload<
         ? ModelFieldIsOptional<Schema, Model, Field> extends true
             ? JsonValue | JsonNull | DbNull
             : JsonValue | JsonNull
-        : MapModelFieldType<Schema, Model, Field>;
+        : IsTypedJsonField<Schema, Model, Field> extends true
+          ? ModelFieldIsOptional<Schema, Model, Field> extends true
+              ? MapModelFieldType<Schema, Model, Field> | JsonNull | DbNull
+              : MapModelFieldType<Schema, Model, Field>
+          : MapModelFieldType<Schema, Model, Field>;
 
 type IsJsonField<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends GetModelFields<Schema, Model>,
 > = GetModelFieldType<Schema, Model, Field> extends 'Json' ? true : false;
+
+type IsTypedJsonField<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Field extends GetModelFields<Schema, Model>,
+> = GetModelFieldType<Schema, Model, Field> extends GetTypeDefs<Schema> ? true : false;
 
 type CreateFKPayload<Schema extends SchemaDef, Model extends GetModels<Schema>> = OptionalWrap<
     Schema,

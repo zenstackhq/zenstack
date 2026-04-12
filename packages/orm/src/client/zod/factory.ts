@@ -599,12 +599,40 @@ export class ZodSchemaFactory<
         candidates.push(this.makeJsonFilterSchema(contextModel, field, optional));
 
         if (optional) {
-            // allow null as well
+            // allow null and null sentinel values
             candidates.push(z.null());
+            candidates.push(z.instanceof(DbNullClass));
+            candidates.push(z.instanceof(JsonNullClass));
+            candidates.push(z.instanceof(AnyNullClass));
         }
 
         // either plain json filter or field filters
         return z.union(candidates);
+    }
+
+    // For optional typed JSON fields, allow DbNull, JsonNull, and null.
+    // z.union doesn't work here because `z.any()` (returned by `makeScalarSchema`)
+    // always wins, so we create a wrapper superRefine instead.
+    // The caller must pass the already-built fieldSchema so that array/list
+    // mutation shapes (set, push, etc.) are preserved.
+    private makeNullableTypedJsonMutationSchema(fieldSchema: z.ZodTypeAny) {
+        return z
+            .any()
+            .superRefine((value, ctx) => {
+                if (
+                    value instanceof DbNullClass ||
+                    value instanceof JsonNullClass ||
+                    value === null ||
+                    value === undefined
+                ) {
+                    return;
+                }
+                const parseResult = fieldSchema.safeParse(value);
+                if (!parseResult.success) {
+                    parseResult.error.issues.forEach((issue) => ctx.addIssue(issue as any));
+                }
+            })
+            .optional();
     }
 
     private isTypeDefType(type: string) {
@@ -1098,6 +1126,10 @@ export class ZodSchemaFactory<
     ) {
         const fields: Record<string, ZodType> = {};
         const sort = z.union([z.literal('asc'), z.literal('desc')]);
+        const refineAtMostOneKey = (s: ZodObject) =>
+            s.refine((v: object) => Object.keys(v).length <= 1, {
+                message: 'Each orderBy element must have at most one key',
+            });
         const nextOpts = this.nextOptions(options);
         for (const [field, fieldDef] of this.getModelFields(model)) {
             if (fieldDef.relation) {
@@ -1111,9 +1143,8 @@ export class ZodSchemaFactory<
                             nextOpts,
                         );
                         if (fieldDef.array) {
-                            relationOrderBy = relationOrderBy.extend({
-                                _count: sort,
-                            });
+                            // safeExtend drops existing refinements, so re-apply after extending
+                            relationOrderBy = refineAtMostOneKey(relationOrderBy.safeExtend({ _count: sort }));
                         }
                         return relationOrderBy.optional();
                     });
@@ -1144,7 +1175,7 @@ export class ZodSchemaFactory<
             }
         }
 
-        return z.strictObject(fields);
+        return refineAtMostOneKey(z.strictObject(fields));
     }
 
     @cache()
@@ -1309,6 +1340,8 @@ export class ZodSchemaFactory<
                     if (fieldDef.type === 'Json') {
                         // DbNull for Json fields
                         fieldSchema = z.union([fieldSchema, z.instanceof(DbNullClass)]);
+                    } else if (this.isTypeDefType(fieldDef.type)) {
+                        fieldSchema = this.makeNullableTypedJsonMutationSchema(fieldSchema);
                     } else {
                         fieldSchema = fieldSchema.nullable();
                     }
@@ -1667,6 +1700,8 @@ export class ZodSchemaFactory<
                     if (fieldDef.type === 'Json') {
                         // DbNull for Json fields
                         fieldSchema = z.union([fieldSchema, z.instanceof(DbNullClass)]);
+                    } else if (this.isTypeDefType(fieldDef.type)) {
+                        fieldSchema = this.makeNullableTypedJsonMutationSchema(fieldSchema);
                     } else {
                         fieldSchema = fieldSchema.nullable();
                     }
