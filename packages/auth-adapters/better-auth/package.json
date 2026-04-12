@@ -58,6 +58,7 @@
         "@better-auth/core": "1.4.19",
         "better-auth": "1.4.19",
         "@better-auth/cli": "1.4.19",
+        "kysely": "catalog:",
         "@types/tmp": "catalog:",
         "@zenstackhq/cli": "workspace:*",
         "@zenstackhq/eslint-config": "workspace:*",
