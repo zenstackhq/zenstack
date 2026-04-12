@@ -585,6 +585,22 @@ export type StringFilter<
                     mode?: 'default' | 'insensitive';
                 }
               : {}) &
+          ('Fuzzy' extends AllowedKinds
+              ? {
+                    /**
+                     * Performs a fuzzy search on the string field using trigram similarity.
+                     * Uses pg_trgm with unaccent on PostgreSQL. Not supported on MySQL or SQLite.
+                     */
+                    fuzzy?: string;
+
+                    /**
+                     * Performs a fuzzy substring search: checks if the search term is approximately
+                     * contained within the field value. Uses pg_trgm word_similarity on PostgreSQL.
+                     * Not supported on MySQL or SQLite.
+                     */
+                    fuzzyContains?: string;
+                }
+              : {}) &
           (WithAggregations extends true
               ? {
                     /**
@@ -892,6 +908,34 @@ type TypedJsonFieldsFilter<
 
 export type SortOrder = 'asc' | 'desc';
 export type NullsOrder = 'first' | 'last';
+
+type StringFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+    [Key in NonRelationFields<Schema, Model>]: MapModelFieldType<Schema, Model, Key> extends string | null
+        ? Key
+        : never;
+}[NonRelationFields<Schema, Model>];
+
+export type RelevanceOrderBy<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+    /**
+     * Sorts by fuzzy search relevance using PostgreSQL `similarity()` from `pg_trgm`.
+     * Not supported on MySQL or SQLite (throws `NotSupported` at runtime).
+     * Cannot be combined with cursor-based pagination.
+     */
+    _relevance?: {
+        /**
+         * String fields to compute relevance against (must be non-empty).
+         */
+        fields: [StringFields<Schema, Model>, ...StringFields<Schema, Model>[]];
+        /**
+         * The search term to compute relevance for.
+         */
+        search: string;
+        /**
+         * Sort direction.
+         */
+        sort: SortOrder;
+    };
+};
 
 export type OrderBy<
     Schema extends SchemaDef,
@@ -1243,7 +1287,7 @@ type SortAndTakeArgs<
     /**
      * Order by clauses
      */
-    orderBy?: OrArray<OrderBy<Schema, Model, true, false>>;
+    orderBy?: OrArray<OrderBy<Schema, Model, true, false> & RelevanceOrderBy<Schema, Model>>;
 
     /**
      * Cursor for pagination

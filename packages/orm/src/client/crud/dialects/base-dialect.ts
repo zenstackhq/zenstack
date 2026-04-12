@@ -166,6 +166,12 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         result = this.buildOrderBy(result, model, modelAlias, effectiveOrderBy, negateOrderBy, take);
 
         if (args.cursor) {
+            if (
+                effectiveOrderBy &&
+                enumerate(effectiveOrderBy).some((ob: any) => typeof ob === 'object' && '_relevance' in ob)
+            ) {
+                throw createNotSupportedError('cursor pagination cannot be combined with "_relevance" ordering');
+            }
             result = this.buildCursorFilter(
                 model,
                 result,
@@ -932,11 +938,22 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         if (payload && typeof payload === 'object') {
             for (const [key, value] of Object.entries(payload)) {
                 if (key === 'mode' || consumedKeys.includes(key)) {
-                    // already consumed
                     continue;
                 }
 
                 if (value === undefined) {
+                    continue;
+                }
+
+                if (key === 'fuzzy') {
+                    invariant(typeof value === 'string', 'fuzzy value must be a string');
+                    conditions.push(this.buildFuzzyFilter(fieldRef, value));
+                    continue;
+                }
+
+                if (key === 'fuzzyContains') {
+                    invariant(typeof value === 'string', 'fuzzyContains value must be a string');
+                    conditions.push(this.buildFuzzyContainsFilter(fieldRef, value));
                     continue;
                 }
 
@@ -1093,6 +1110,30 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         enumerate(orderBy).forEach((orderBy, index) => {
             for (const [field, value] of Object.entries<any>(orderBy)) {
                 if (!value) {
+                    continue;
+                }
+
+                // _relevance ordering
+                if (field === '_relevance') {
+                    invariant(
+                        typeof value === 'object' && 'fields' in value && 'search' in value && 'sort' in value,
+                        'invalid orderBy value for "_relevance"',
+                    );
+                    invariant(
+                        Array.isArray(value.fields) && value.fields.length > 0,
+                        '_relevance.fields must be a non-empty array',
+                    );
+                    invariant(
+                        value.sort === 'asc' || value.sort === 'desc',
+                        'invalid sort value for "_relevance"',
+                    );
+                    const fieldRefs = value.fields.map((f: string) => buildFieldRef(model, f, modelAlias));
+                    result = this.buildRelevanceOrderBy(
+                        result,
+                        fieldRefs,
+                        value.search,
+                        this.negateSort(value.sort, negated),
+                    );
                     continue;
                 }
 
@@ -1598,6 +1639,27 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         field: Expression<unknown>,
         sort: SortOrder,
         nulls: 'first' | 'last',
+    ): SelectQueryBuilder<any, any, any>;
+
+    /**
+     * Builds a fuzzy search filter for a string field using trigram similarity.
+     */
+    abstract buildFuzzyFilter(fieldRef: Expression<any>, value: string): Expression<SqlBool>;
+
+    /**
+     * Builds a fuzzy substring search filter: checks if the search term is
+     * approximately contained within the field value using word similarity.
+     */
+    abstract buildFuzzyContainsFilter(fieldRef: Expression<any>, value: string): Expression<SqlBool>;
+
+    /**
+     * Builds an ORDER BY clause that sorts by fuzzy relevance to a search term.
+     */
+    abstract buildRelevanceOrderBy(
+        query: SelectQueryBuilder<any, any, any>,
+        fieldRefs: Expression<any>[],
+        search: string,
+        sort: SortOrder,
     ): SelectQueryBuilder<any, any, any>;
 
     // #endregion

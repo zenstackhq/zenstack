@@ -919,6 +919,8 @@ export class ZodSchemaFactory<
             startsWith: z.string().optional(),
             endsWith: z.string().optional(),
             contains: z.string().optional(),
+            fuzzy: z.string().optional(),
+            fuzzyContains: z.string().optional(),
             ...(this.providerSupportsCaseSensitivity
                 ? {
                       mode: this.makeStringModeSchema().optional(),
@@ -1173,6 +1175,20 @@ export class ZodSchemaFactory<
             for (const agg of aggregationFields) {
                 fields[agg] = z.lazy(() => this.makeOrderBySchema(model, true, false, options).optional());
             }
+        }
+
+        // _relevance ordering for fuzzy search (string fields only)
+        const stringFieldNames = this.getModelFields(model)
+            .filter(([, def]) => !def.relation && def.type === 'String')
+            .map(([name]) => name);
+        if (stringFieldNames.length > 0) {
+            fields['_relevance'] = z
+                .strictObject({
+                    fields: z.array(z.enum(stringFieldNames as [string, ...string[]])).min(1),
+                    search: z.string(),
+                    sort,
+                })
+                .optional();
         }
 
         return refineAtMostOneKey(z.strictObject(fields));
