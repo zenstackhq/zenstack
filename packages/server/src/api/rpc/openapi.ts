@@ -538,9 +538,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         // Generate a response-side entity schema for every included model
         const modelEntitySchemas: Record<string, SchemaObject> = {};
         for (const modelName of getIncludedModels(this.schema as SchemaDef, this.queryOptions)) {
-            modelEntitySchemas[modelName] = this.buildModelEntitySchema(
-                (this.schema as SchemaDef).models[modelName],
-            );
+            modelEntitySchemas[modelName] = this.buildModelEntitySchema(this.schema.models[modelName]!);
         }
 
         return {
