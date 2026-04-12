@@ -2,7 +2,7 @@
     "name": "@zenstackhq/schema",
     "displayName": "ZenStack Schema Object Model",
     "description": "TypeScript representation of ZModel schema",
-    "version": "3.5.6",
+    "version": "3.6.0",
     "type": "module",
     "author": {
         "name": "ZenStack Team",
