@@ -453,7 +453,9 @@ export class TsSchemaGenerator {
             ...(dm.isView ? [ts.factory.createPropertyAssignment('isView', ts.factory.createTrue())] : []),
         ];
 
-        const computedFields = dm.fields.filter((f) => hasAttribute(f, '@computed'));
+        const computedFields = allFields.filter(
+            (f) => hasAttribute(f, '@computed') && !getDelegateOriginModel(f, dm),
+        );
 
         if (computedFields.length > 0) {
             fields.push(
