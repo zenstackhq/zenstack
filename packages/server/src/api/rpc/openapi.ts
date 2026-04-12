@@ -188,14 +188,17 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
     private transformRegistrySchemas(schemas: Record<string, unknown>): Record<string, SchemaObject> {
         let result: Record<string, SchemaObject>;
 
-        // Step 1: rewrite bare-ID refs to full component paths.
+        // Step 1: rewrite bare-ID refs to full component paths, and replace repeated
+        // inline integer bound schemas with $refs to shared named schemas.
         // Bare-ID refs produced by the Zod registry look like `"$ref":"SomeName"`.
         // __shared cross-refs look like `"$ref":"__shared#/$defs/schemaN"` and are
         // also rewritten here.
-        const serialized = JSON.stringify(schemas).replace(
-            /"(\$ref)":"([^"#][^"]*)"/g,
-            (_, key, id) => `"${key}":"#/components/schemas/${id}"`,
-        );
+        const INT_PATTERN = '{"type":"integer","minimum":-9007199254740991,"maximum":9007199254740991}';
+        const NON_NEG_INT_PATTERN = '{"type":"integer","minimum":0,"maximum":9007199254740991}';
+        const serialized = JSON.stringify(schemas)
+            .replace(/"(\$ref)":"([^"#][^"]*)"/g, (_, key, id) => `"${key}":"#/components/schemas/${id}"`)
+            .replaceAll(NON_NEG_INT_PATTERN, '{"$ref":"#/components/schemas/_nonNegativeInteger"}')
+            .replaceAll(INT_PATTERN, '{"$ref":"#/components/schemas/_integer"}');
         result = JSON.parse(serialized) as Record<string, SchemaObject>;
 
         // Step 2: resolve __shared/$defs aliases produced by Zod's deduplication
@@ -541,6 +544,8 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         return {
             ...typeDefSchemas,
             ...modelEntitySchemas,
+            _integer: { type: 'integer', minimum: -9007199254740991, maximum: 9007199254740991 },
+            _nonNegativeInteger: { type: 'integer', minimum: 0, maximum: 9007199254740991 },
             _rpcSuccessResponse: {
                 type: 'object',
                 properties: {

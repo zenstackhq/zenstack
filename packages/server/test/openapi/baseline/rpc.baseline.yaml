@@ -706,7 +706,6 @@ paths:
             parameters:
                 - name: q
                   in: query
-                  required: true
                   description: JSON-encoded arguments for User.aggregate
                   content:
                       application/json:
@@ -1511,7 +1510,6 @@ paths:
             parameters:
                 - name: q
                   in: query
-                  required: true
                   description: JSON-encoded arguments for Profile.aggregate
                   content:
                       application/json:
@@ -2316,7 +2314,6 @@ paths:
             parameters:
                 - name: q
                   in: query
-                  required: true
                   description: JSON-encoded arguments for Post.aggregate
                   content:
                       application/json:
@@ -3121,7 +3118,6 @@ paths:
             parameters:
                 - name: q
                   in: query
-                  required: true
                   description: JSON-encoded arguments for Comment.aggregate
                   content:
                       application/json:
@@ -3926,7 +3922,6 @@ paths:
             parameters:
                 - name: q
                   in: query
-                  required: true
                   description: JSON-encoded arguments for Setting.aggregate
                   content:
                       application/json:
@@ -4512,33 +4507,33 @@ components:
             additionalProperties: false
         IntFilter:
             anyOf:
-                - type: integer
+                - $ref: "#/components/schemas/_integer"
                 - type: object
                   properties:
                       equals:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       in:
                           type: array
                           items:
-                              type: integer
+                              $ref: "#/components/schemas/_integer"
                       notIn:
                           type: array
                           items:
-                              type: integer
+                              $ref: "#/components/schemas/_integer"
                       lt:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       lte:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       gt:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       gte:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       between:
                           minItems: 2
                           maxItems: 2
                           type: array
                           items:
-                              type: integer
+                              $ref: "#/components/schemas/_integer"
                       not:
                           $ref: "#/components/schemas/IntFilter"
                   additionalProperties: false
@@ -4721,9 +4716,9 @@ components:
                                 items:
                                     $ref: "#/components/schemas/PostOrderByWithRelationInput"
                       skip:
-                          type: integer
+                          $ref: "#/components/schemas/_nonNegativeInteger"
                       take:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       cursor:
                           $ref: "#/components/schemas/PostCursorInput"
                       distinct:
@@ -5265,7 +5260,7 @@ components:
                         - $ref: "#/components/schemas/UserOmitInput"
                         - type: "null"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
                     type: number
                     const: 1
@@ -5298,9 +5293,9 @@ components:
                         - $ref: "#/components/schemas/UserOmitInput"
                         - type: "null"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
                 orderBy:
                     anyOf:
                         - $ref: "#/components/schemas/UserOrderByWithRelationInput"
@@ -6093,7 +6088,7 @@ components:
                 data:
                     $ref: "#/components/schemas/UserUpdateDataWithoutRelation"
                 limit:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
             required:
                 - data
             additionalProperties: false
@@ -6105,7 +6100,7 @@ components:
                 data:
                     $ref: "#/components/schemas/UserUpdateDataWithoutRelation"
                 limit:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 select:
                     anyOf:
                         - $ref: "#/components/schemas/UserSelect"
@@ -6169,7 +6164,7 @@ components:
                 where:
                     $ref: "#/components/schemas/UserWhereInput"
                 limit:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
             additionalProperties: false
         UserCountAggregateInput:
             anyOf:
@@ -6211,9 +6206,9 @@ components:
                 where:
                     $ref: "#/components/schemas/UserWhereInput"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
                 orderBy:
                     anyOf:
                         - $ref: "#/components/schemas/UserOrderByWithRelationInput"
@@ -6250,16 +6245,14 @@ components:
                     const: true
             additionalProperties: false
         UserAggregateArgs:
-            required:
-                - _count
             type: object
             properties:
                 where:
                     $ref: "#/components/schemas/UserWhereInput"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
                 orderBy:
                     anyOf:
                         - $ref: "#/components/schemas/UserOrderByWithRelationInput"
@@ -6634,9 +6627,9 @@ components:
                 having:
                     $ref: "#/components/schemas/UserWhereInputWithoutRelationWithAggregation"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
                 _count:
                     $ref: "#/components/schemas/UserCountAggregateInput"
                 _avg:
@@ -6875,7 +6868,7 @@ components:
                         - $ref: "#/components/schemas/ProfileOmitInput"
                         - type: "null"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
                     type: number
                     const: 1
@@ -6908,9 +6901,9 @@ components:
                         - $ref: "#/components/schemas/ProfileOmitInput"
                         - type: "null"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
                 orderBy:
                     anyOf:
                         - $ref: "#/components/schemas/ProfileOrderByWithRelationInput"
@@ -6933,7 +6926,7 @@ components:
                 - type: object
                   properties:
                       id:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       gender:
                           type: string
                       userId:
@@ -6945,7 +6938,7 @@ components:
                 - type: object
                   properties:
                       id:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       gender:
                           type: string
                       user:
@@ -6996,7 +6989,7 @@ components:
                 - type: object
                   properties:
                       id:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       gender:
                           type: string
                       userId:
@@ -7010,7 +7003,7 @@ components:
                       type: object
                       properties:
                           id:
-                              type: integer
+                              $ref: "#/components/schemas/_integer"
                           gender:
                               type: string
                           userId:
@@ -7063,7 +7056,7 @@ components:
                   properties:
                       id:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -7086,7 +7079,7 @@ components:
                   properties:
                       id:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -7190,7 +7183,7 @@ components:
             properties:
                 id:
                     anyOf:
-                        - type: integer
+                        - $ref: "#/components/schemas/_integer"
                         - type: object
                           properties:
                               set:
@@ -7217,7 +7210,7 @@ components:
                 data:
                     $ref: "#/components/schemas/ProfileUpdateDataWithoutRelation"
                 limit:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
             required:
                 - data
             additionalProperties: false
@@ -7229,7 +7222,7 @@ components:
                 data:
                     $ref: "#/components/schemas/ProfileUpdateDataWithoutRelation"
                 limit:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 select:
                     anyOf:
                         - $ref: "#/components/schemas/ProfileSelect"
@@ -7293,7 +7286,7 @@ components:
                 where:
                     $ref: "#/components/schemas/ProfileWhereInput"
                 limit:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
             additionalProperties: false
         ProfileCountAggregateInput:
             anyOf:
@@ -7323,9 +7316,9 @@ components:
                 where:
                     $ref: "#/components/schemas/ProfileWhereInput"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
                 orderBy:
                     anyOf:
                         - $ref: "#/components/schemas/ProfileOrderByWithRelationInput"
@@ -7356,16 +7349,14 @@ components:
                     const: true
             additionalProperties: false
         ProfileAggregateArgs:
-            required:
-                - _count
             type: object
             properties:
                 where:
                     $ref: "#/components/schemas/ProfileWhereInput"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
                 orderBy:
                     anyOf:
                         - $ref: "#/components/schemas/ProfileOrderByWithRelationInput"
@@ -7417,162 +7408,162 @@ components:
             additionalProperties: false
         IntFilterAgg:
             anyOf:
-                - type: integer
+                - $ref: "#/components/schemas/_integer"
                 - type: object
                   properties:
                       equals:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       in:
                           type: array
                           items:
-                              type: integer
+                              $ref: "#/components/schemas/_integer"
                       notIn:
                           type: array
                           items:
-                              type: integer
+                              $ref: "#/components/schemas/_integer"
                       lt:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       lte:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       gt:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       gte:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       between:
                           minItems: 2
                           maxItems: 2
                           type: array
                           items:
-                              type: integer
+                              $ref: "#/components/schemas/_integer"
                       not:
                           $ref: "#/components/schemas/IntFilterAgg"
                       _count:
                           $ref: "#/components/schemas/IntFilter"
                       _avg:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     equals:
-                                        type: integer
+                                        $ref: "#/components/schemas/_integer"
                                     in:
                                         type: array
                                         items:
-                                            type: integer
+                                            $ref: "#/components/schemas/_integer"
                                     notIn:
                                         type: array
                                         items:
-                                            type: integer
+                                            $ref: "#/components/schemas/_integer"
                                     lt:
-                                        type: integer
+                                        $ref: "#/components/schemas/_integer"
                                     lte:
-                                        type: integer
+                                        $ref: "#/components/schemas/_integer"
                                     gt:
-                                        type: integer
+                                        $ref: "#/components/schemas/_integer"
                                     gte:
-                                        type: integer
+                                        $ref: "#/components/schemas/_integer"
                                     between:
                                         minItems: 2
                                         maxItems: 2
                                         type: array
                                         items:
-                                            type: integer
+                                            $ref: "#/components/schemas/_integer"
                                     not:
                                         $ref: "#/components/schemas/IntFilterAgg"
                                 additionalProperties: false
                       _sum:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     equals:
-                                        type: integer
+                                        $ref: "#/components/schemas/_integer"
                                     in:
                                         type: array
                                         items:
-                                            type: integer
+                                            $ref: "#/components/schemas/_integer"
                                     notIn:
                                         type: array
                                         items:
-                                            type: integer
+                                            $ref: "#/components/schemas/_integer"
                                     lt:
-                                        type: integer
+                                        $ref: "#/components/schemas/_integer"
                                     lte:
-                                        type: integer
+                                        $ref: "#/components/schemas/_integer"
                                     gt:
-                                        type: integer
+                                        $ref: "#/components/schemas/_integer"
                                     gte:
-                                        type: integer
+                                        $ref: "#/components/schemas/_integer"
                                     between:
                                         minItems: 2
                                         maxItems: 2
                                         type: array
                                         items:
-                                            type: integer
+                                            $ref: "#/components/schemas/_integer"
                                     not:
                                         $ref: "#/components/schemas/IntFilterAgg"
                                 additionalProperties: false
                       _min:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     equals:
-                                        type: integer
+                                        $ref: "#/components/schemas/_integer"
                                     in:
                                         type: array
                                         items:
-                                            type: integer
+                                            $ref: "#/components/schemas/_integer"
                                     notIn:
                                         type: array
                                         items:
-                                            type: integer
+                                            $ref: "#/components/schemas/_integer"
                                     lt:
-                                        type: integer
+                                        $ref: "#/components/schemas/_integer"
                                     lte:
-                                        type: integer
+                                        $ref: "#/components/schemas/_integer"
                                     gt:
-                                        type: integer
+                                        $ref: "#/components/schemas/_integer"
                                     gte:
-                                        type: integer
+                                        $ref: "#/components/schemas/_integer"
                                     between:
                                         minItems: 2
                                         maxItems: 2
                                         type: array
                                         items:
-                                            type: integer
+                                            $ref: "#/components/schemas/_integer"
                                     not:
                                         $ref: "#/components/schemas/IntFilterAgg"
                                 additionalProperties: false
                       _max:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     equals:
-                                        type: integer
+                                        $ref: "#/components/schemas/_integer"
                                     in:
                                         type: array
                                         items:
-                                            type: integer
+                                            $ref: "#/components/schemas/_integer"
                                     notIn:
                                         type: array
                                         items:
-                                            type: integer
+                                            $ref: "#/components/schemas/_integer"
                                     lt:
-                                        type: integer
+                                        $ref: "#/components/schemas/_integer"
                                     lte:
-                                        type: integer
+                                        $ref: "#/components/schemas/_integer"
                                     gt:
-                                        type: integer
+                                        $ref: "#/components/schemas/_integer"
                                     gte:
-                                        type: integer
+                                        $ref: "#/components/schemas/_integer"
                                     between:
                                         minItems: 2
                                         maxItems: 2
                                         type: array
                                         items:
-                                            type: integer
+                                            $ref: "#/components/schemas/_integer"
                                     not:
                                         $ref: "#/components/schemas/IntFilterAgg"
                                 additionalProperties: false
@@ -7632,9 +7623,9 @@ components:
                 having:
                     $ref: "#/components/schemas/ProfileWhereInputWithoutRelationWithAggregation"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
                 _count:
                     $ref: "#/components/schemas/ProfileCountAggregateInput"
                 _avg:
@@ -7820,9 +7811,9 @@ components:
                                 items:
                                     $ref: "#/components/schemas/CommentOrderByWithRelationInput"
                       skip:
-                          type: integer
+                          $ref: "#/components/schemas/_nonNegativeInteger"
                       take:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       cursor:
                           $ref: "#/components/schemas/CommentCursorInput"
                       distinct:
@@ -8132,7 +8123,7 @@ components:
                         - $ref: "#/components/schemas/PostOmitInput"
                         - type: "null"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
                     type: number
                     const: 1
@@ -8165,9 +8156,9 @@ components:
                         - $ref: "#/components/schemas/PostOmitInput"
                         - type: "null"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
                 orderBy:
                     anyOf:
                         - $ref: "#/components/schemas/PostOrderByWithRelationInput"
@@ -8190,7 +8181,7 @@ components:
                 - type: object
                   properties:
                       id:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       createdAt:
                           $ref: "#/components/schemas/DateTime"
                       updatedAt:
@@ -8210,7 +8201,7 @@ components:
                               - $ref: "#/components/schemas/DateTime"
                               - type: "null"
                       viewCount:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       comments:
                           type: object
                           properties:
@@ -8276,7 +8267,7 @@ components:
                 - type: object
                   properties:
                       id:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       createdAt:
                           $ref: "#/components/schemas/DateTime"
                       updatedAt:
@@ -8313,7 +8304,7 @@ components:
                               - $ref: "#/components/schemas/DateTime"
                               - type: "null"
                       viewCount:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       comments:
                           type: object
                           properties:
@@ -8401,7 +8392,7 @@ components:
                 - type: object
                   properties:
                       id:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       createdAt:
                           $ref: "#/components/schemas/DateTime"
                       updatedAt:
@@ -8421,7 +8412,7 @@ components:
                               - $ref: "#/components/schemas/DateTime"
                               - type: "null"
                       viewCount:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                   required:
                       - title
                   additionalProperties: false
@@ -8430,7 +8421,7 @@ components:
                       type: object
                       properties:
                           id:
-                              type: integer
+                              $ref: "#/components/schemas/_integer"
                           createdAt:
                               $ref: "#/components/schemas/DateTime"
                           updatedAt:
@@ -8450,7 +8441,7 @@ components:
                                   - $ref: "#/components/schemas/DateTime"
                                   - type: "null"
                           viewCount:
-                              type: integer
+                              $ref: "#/components/schemas/_integer"
                       required:
                           - title
                       additionalProperties: false
@@ -8498,7 +8489,7 @@ components:
                   properties:
                       id:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -8532,7 +8523,7 @@ components:
                               - type: "null"
                       viewCount:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -8760,7 +8751,7 @@ components:
                   properties:
                       id:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -8859,7 +8850,7 @@ components:
                               - type: "null"
                       viewCount:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -9111,7 +9102,7 @@ components:
             properties:
                 id:
                     anyOf:
-                        - type: integer
+                        - $ref: "#/components/schemas/_integer"
                         - type: object
                           properties:
                               set:
@@ -9145,7 +9136,7 @@ components:
                         - type: "null"
                 viewCount:
                     anyOf:
-                        - type: integer
+                        - $ref: "#/components/schemas/_integer"
                         - type: object
                           properties:
                               set:
@@ -9168,7 +9159,7 @@ components:
                 data:
                     $ref: "#/components/schemas/PostUpdateDataWithoutRelation"
                 limit:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
             required:
                 - data
             additionalProperties: false
@@ -9180,7 +9171,7 @@ components:
                 data:
                     $ref: "#/components/schemas/PostUpdateDataWithoutRelation"
                 limit:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 select:
                     anyOf:
                         - $ref: "#/components/schemas/PostSelect"
@@ -9244,7 +9235,7 @@ components:
                 where:
                     $ref: "#/components/schemas/PostWhereInput"
                 limit:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
             additionalProperties: false
         PostCountAggregateInput:
             anyOf:
@@ -9295,9 +9286,9 @@ components:
                 where:
                     $ref: "#/components/schemas/PostWhereInput"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
                 orderBy:
                     anyOf:
                         - $ref: "#/components/schemas/PostOrderByWithRelationInput"
@@ -9346,16 +9337,14 @@ components:
                     const: true
             additionalProperties: false
         PostAggregateArgs:
-            required:
-                - _count
             type: object
             properties:
                 where:
                     $ref: "#/components/schemas/PostWhereInput"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
                 orderBy:
                     anyOf:
                         - $ref: "#/components/schemas/PostOrderByWithRelationInput"
@@ -9834,9 +9823,9 @@ components:
                 having:
                     $ref: "#/components/schemas/PostWhereInputWithoutRelationWithAggregation"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
                 _count:
                     $ref: "#/components/schemas/PostCountAggregateInput"
                 _avg:
@@ -9997,7 +9986,7 @@ components:
                         - $ref: "#/components/schemas/CommentOmitInput"
                         - type: "null"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
                     type: number
                     const: 1
@@ -10030,9 +10019,9 @@ components:
                         - $ref: "#/components/schemas/CommentOmitInput"
                         - type: "null"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
                 orderBy:
                     anyOf:
                         - $ref: "#/components/schemas/CommentOrderByWithRelationInput"
@@ -10055,9 +10044,9 @@ components:
                 - type: object
                   properties:
                       id:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       postId:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       content:
                           type: string
                   required:
@@ -10067,7 +10056,7 @@ components:
                 - type: object
                   properties:
                       id:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       post:
                           type: object
                           properties:
@@ -10118,9 +10107,9 @@ components:
                 - type: object
                   properties:
                       id:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       postId:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       content:
                           type: string
                   required:
@@ -10132,9 +10121,9 @@ components:
                       type: object
                       properties:
                           id:
-                              type: integer
+                              $ref: "#/components/schemas/_integer"
                           postId:
-                              type: integer
+                              $ref: "#/components/schemas/_integer"
                           content:
                               type: string
                       required:
@@ -10185,7 +10174,7 @@ components:
                   properties:
                       id:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -10201,7 +10190,7 @@ components:
                                 additionalProperties: false
                       postId:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -10222,7 +10211,7 @@ components:
                   properties:
                       id:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -10326,7 +10315,7 @@ components:
             properties:
                 id:
                     anyOf:
-                        - type: integer
+                        - $ref: "#/components/schemas/_integer"
                         - type: object
                           properties:
                               set:
@@ -10342,7 +10331,7 @@ components:
                           additionalProperties: false
                 postId:
                     anyOf:
-                        - type: integer
+                        - $ref: "#/components/schemas/_integer"
                         - type: object
                           properties:
                               set:
@@ -10367,7 +10356,7 @@ components:
                 data:
                     $ref: "#/components/schemas/CommentUpdateDataWithoutRelation"
                 limit:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
             required:
                 - data
             additionalProperties: false
@@ -10379,7 +10368,7 @@ components:
                 data:
                     $ref: "#/components/schemas/CommentUpdateDataWithoutRelation"
                 limit:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 select:
                     anyOf:
                         - $ref: "#/components/schemas/CommentSelect"
@@ -10443,7 +10432,7 @@ components:
                 where:
                     $ref: "#/components/schemas/CommentWhereInput"
                 limit:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
             additionalProperties: false
         CommentCountAggregateInput:
             anyOf:
@@ -10473,9 +10462,9 @@ components:
                 where:
                     $ref: "#/components/schemas/CommentWhereInput"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
                 orderBy:
                     anyOf:
                         - $ref: "#/components/schemas/CommentOrderByWithRelationInput"
@@ -10509,16 +10498,14 @@ components:
                     const: true
             additionalProperties: false
         CommentAggregateArgs:
-            required:
-                - _count
             type: object
             properties:
                 where:
                     $ref: "#/components/schemas/CommentWhereInput"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
                 orderBy:
                     anyOf:
                         - $ref: "#/components/schemas/CommentOrderByWithRelationInput"
@@ -10623,9 +10610,9 @@ components:
                 having:
                     $ref: "#/components/schemas/CommentWhereInputWithoutRelationWithAggregation"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
                 _count:
                     $ref: "#/components/schemas/CommentCountAggregateInput"
                 _avg:
@@ -10864,7 +10851,7 @@ components:
                         - $ref: "#/components/schemas/SettingOmitInput"
                         - type: "null"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
                     type: number
                     const: 1
@@ -10897,9 +10884,9 @@ components:
                         - $ref: "#/components/schemas/SettingOmitInput"
                         - type: "null"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
                 orderBy:
                     anyOf:
                         - $ref: "#/components/schemas/SettingOrderByWithRelationInput"
@@ -10922,11 +10909,11 @@ components:
                 - type: object
                   properties:
                       id:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       boost:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       postId:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                   required:
                       - boost
                       - postId
@@ -10934,9 +10921,9 @@ components:
                 - type: object
                   properties:
                       id:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       boost:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       post:
                           type: object
                           properties:
@@ -10985,11 +10972,11 @@ components:
                 - type: object
                   properties:
                       id:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       boost:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       postId:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                   required:
                       - boost
                       - postId
@@ -10999,11 +10986,11 @@ components:
                       type: object
                       properties:
                           id:
-                              type: integer
+                              $ref: "#/components/schemas/_integer"
                           boost:
-                              type: integer
+                              $ref: "#/components/schemas/_integer"
                           postId:
-                              type: integer
+                              $ref: "#/components/schemas/_integer"
                       required:
                           - boost
                           - postId
@@ -11052,7 +11039,7 @@ components:
                   properties:
                       id:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -11068,7 +11055,7 @@ components:
                                 additionalProperties: false
                       boost:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -11084,7 +11071,7 @@ components:
                                 additionalProperties: false
                       postId:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -11103,7 +11090,7 @@ components:
                   properties:
                       id:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -11119,7 +11106,7 @@ components:
                                 additionalProperties: false
                       boost:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -11221,7 +11208,7 @@ components:
             properties:
                 id:
                     anyOf:
-                        - type: integer
+                        - $ref: "#/components/schemas/_integer"
                         - type: object
                           properties:
                               set:
@@ -11237,7 +11224,7 @@ components:
                           additionalProperties: false
                 boost:
                     anyOf:
-                        - type: integer
+                        - $ref: "#/components/schemas/_integer"
                         - type: object
                           properties:
                               set:
@@ -11253,7 +11240,7 @@ components:
                           additionalProperties: false
                 postId:
                     anyOf:
-                        - type: integer
+                        - $ref: "#/components/schemas/_integer"
                         - type: object
                           properties:
                               set:
@@ -11276,7 +11263,7 @@ components:
                 data:
                     $ref: "#/components/schemas/SettingUpdateDataWithoutRelation"
                 limit:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
             required:
                 - data
             additionalProperties: false
@@ -11288,7 +11275,7 @@ components:
                 data:
                     $ref: "#/components/schemas/SettingUpdateDataWithoutRelation"
                 limit:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 select:
                     anyOf:
                         - $ref: "#/components/schemas/SettingSelect"
@@ -11352,7 +11339,7 @@ components:
                 where:
                     $ref: "#/components/schemas/SettingWhereInput"
                 limit:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
             additionalProperties: false
         SettingCountAggregateInput:
             anyOf:
@@ -11382,9 +11369,9 @@ components:
                 where:
                     $ref: "#/components/schemas/SettingWhereInput"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
                 orderBy:
                     anyOf:
                         - $ref: "#/components/schemas/SettingOrderByWithRelationInput"
@@ -11421,16 +11408,14 @@ components:
                     const: true
             additionalProperties: false
         SettingAggregateArgs:
-            required:
-                - _count
             type: object
             properties:
                 where:
                     $ref: "#/components/schemas/SettingWhereInput"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
                 orderBy:
                     anyOf:
                         - $ref: "#/components/schemas/SettingOrderByWithRelationInput"
@@ -11535,9 +11520,9 @@ components:
                 having:
                     $ref: "#/components/schemas/SettingWhereInputWithoutRelationWithAggregation"
                 skip:
-                    type: integer
+                    $ref: "#/components/schemas/_nonNegativeInteger"
                 take:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
                 _count:
                     $ref: "#/components/schemas/SettingCountAggregateInput"
                 _avg:
@@ -11573,7 +11558,7 @@ components:
             type: object
             properties:
                 postId:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
             required:
                 - postId
             additionalProperties: false
@@ -11679,7 +11664,7 @@ components:
                 - type: object
                   properties:
                       id:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       createdAt:
                           $ref: "#/components/schemas/DateTime"
                       updatedAt:
@@ -11695,7 +11680,7 @@ components:
                               - $ref: "#/components/schemas/DateTime"
                               - type: "null"
                       viewCount:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       comments:
                           type: object
                           properties:
@@ -11761,7 +11746,7 @@ components:
                 - type: object
                   properties:
                       id:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       createdAt:
                           $ref: "#/components/schemas/DateTime"
                       updatedAt:
@@ -11777,7 +11762,7 @@ components:
                               - $ref: "#/components/schemas/DateTime"
                               - type: "null"
                       viewCount:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       comments:
                           type: object
                           properties:
@@ -11845,7 +11830,7 @@ components:
                       type: object
                       properties:
                           id:
-                              type: integer
+                              $ref: "#/components/schemas/_integer"
                           createdAt:
                               $ref: "#/components/schemas/DateTime"
                           updatedAt:
@@ -11861,7 +11846,7 @@ components:
                                   - $ref: "#/components/schemas/DateTime"
                                   - type: "null"
                           viewCount:
-                              type: integer
+                              $ref: "#/components/schemas/_integer"
                           comments:
                               type: object
                               properties:
@@ -11929,7 +11914,7 @@ components:
                       type: object
                       properties:
                           id:
-                              type: integer
+                              $ref: "#/components/schemas/_integer"
                           createdAt:
                               $ref: "#/components/schemas/DateTime"
                           updatedAt:
@@ -11945,7 +11930,7 @@ components:
                                   - $ref: "#/components/schemas/DateTime"
                                   - type: "null"
                           viewCount:
-                              type: integer
+                              $ref: "#/components/schemas/_integer"
                           comments:
                               type: object
                               properties:
@@ -12013,7 +11998,7 @@ components:
                 - type: object
                   properties:
                       id:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       createdAt:
                           $ref: "#/components/schemas/DateTime"
                       updatedAt:
@@ -12029,7 +12014,7 @@ components:
                               - $ref: "#/components/schemas/DateTime"
                               - type: "null"
                       viewCount:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       comments:
                           type: object
                           properties:
@@ -12095,7 +12080,7 @@ components:
                 - type: object
                   properties:
                       id:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       createdAt:
                           $ref: "#/components/schemas/DateTime"
                       updatedAt:
@@ -12111,7 +12096,7 @@ components:
                               - $ref: "#/components/schemas/DateTime"
                               - type: "null"
                       viewCount:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       comments:
                           type: object
                           properties:
@@ -12179,7 +12164,7 @@ components:
                 - type: object
                   properties:
                       id:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       createdAt:
                           $ref: "#/components/schemas/DateTime"
                       updatedAt:
@@ -12195,7 +12180,7 @@ components:
                               - $ref: "#/components/schemas/DateTime"
                               - type: "null"
                       viewCount:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                   required:
                       - title
                   additionalProperties: false
@@ -12204,7 +12189,7 @@ components:
                       type: object
                       properties:
                           id:
-                              type: integer
+                              $ref: "#/components/schemas/_integer"
                           createdAt:
                               $ref: "#/components/schemas/DateTime"
                           updatedAt:
@@ -12220,7 +12205,7 @@ components:
                                   - $ref: "#/components/schemas/DateTime"
                                   - type: "null"
                           viewCount:
-                              type: integer
+                              $ref: "#/components/schemas/_integer"
                       required:
                           - title
                       additionalProperties: false
@@ -12239,7 +12224,7 @@ components:
                 - type: object
                   properties:
                       id:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       content:
                           type: string
                   required:
@@ -12250,7 +12235,7 @@ components:
                       type: object
                       properties:
                           id:
-                              type: integer
+                              $ref: "#/components/schemas/_integer"
                           content:
                               type: string
                       required:
@@ -12260,7 +12245,7 @@ components:
             type: object
             properties:
                 id:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
                 content:
                     type: string
             required:
@@ -12271,7 +12256,7 @@ components:
                 - type: object
                   properties:
                       id:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       content:
                           type: string
                   required:
@@ -12282,7 +12267,7 @@ components:
                       type: object
                       properties:
                           id:
-                              type: integer
+                              $ref: "#/components/schemas/_integer"
                           content:
                               type: string
                       required:
@@ -12302,9 +12287,9 @@ components:
             type: object
             properties:
                 id:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
                 boost:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
             required:
                 - boost
             additionalProperties: false
@@ -12312,7 +12297,7 @@ components:
             type: object
             properties:
                 id:
-                    type: integer
+                    $ref: "#/components/schemas/_integer"
                 gender:
                     type: string
             required:
@@ -12324,7 +12309,7 @@ components:
                   properties:
                       id:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -12354,7 +12339,7 @@ components:
                               - type: "null"
                       viewCount:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -12582,7 +12567,7 @@ components:
                   properties:
                       id:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -12612,7 +12597,7 @@ components:
                               - type: "null"
                       viewCount:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -12841,7 +12826,7 @@ components:
             properties:
                 id:
                     anyOf:
-                        - type: integer
+                        - $ref: "#/components/schemas/_integer"
                         - type: object
                           properties:
                               set:
@@ -12863,7 +12848,7 @@ components:
             properties:
                 id:
                     anyOf:
-                        - type: integer
+                        - $ref: "#/components/schemas/_integer"
                         - type: object
                           properties:
                               set:
@@ -12879,7 +12864,7 @@ components:
                           additionalProperties: false
                 boost:
                     anyOf:
-                        - type: integer
+                        - $ref: "#/components/schemas/_integer"
                         - type: object
                           properties:
                               set:
@@ -12899,7 +12884,7 @@ components:
             properties:
                 id:
                     anyOf:
-                        - type: integer
+                        - $ref: "#/components/schemas/_integer"
                         - type: object
                           properties:
                               set:
@@ -13644,7 +13629,7 @@ components:
                 - type: object
                   properties:
                       id:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       createdAt:
                           $ref: "#/components/schemas/DateTime"
                       updatedAt:
@@ -13664,7 +13649,7 @@ components:
                               - $ref: "#/components/schemas/DateTime"
                               - type: "null"
                       viewCount:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       setting:
                           anyOf:
                               - type: object
@@ -13692,7 +13677,7 @@ components:
                 - type: object
                   properties:
                       id:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       createdAt:
                           $ref: "#/components/schemas/DateTime"
                       updatedAt:
@@ -13729,7 +13714,7 @@ components:
                               - $ref: "#/components/schemas/DateTime"
                               - type: "null"
                       viewCount:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       setting:
                           anyOf:
                               - type: object
@@ -13760,7 +13745,7 @@ components:
                   properties:
                       id:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -13794,7 +13779,7 @@ components:
                               - type: "null"
                       viewCount:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -13882,7 +13867,7 @@ components:
                   properties:
                       id:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -13981,7 +13966,7 @@ components:
                               - type: "null"
                       viewCount:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -14097,7 +14082,7 @@ components:
                 - type: object
                   properties:
                       id:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       createdAt:
                           $ref: "#/components/schemas/DateTime"
                       updatedAt:
@@ -14117,7 +14102,7 @@ components:
                               - $ref: "#/components/schemas/DateTime"
                               - type: "null"
                       viewCount:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       comments:
                           type: object
                           properties:
@@ -14162,7 +14147,7 @@ components:
                 - type: object
                   properties:
                       id:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       createdAt:
                           $ref: "#/components/schemas/DateTime"
                       updatedAt:
@@ -14199,7 +14184,7 @@ components:
                               - $ref: "#/components/schemas/DateTime"
                               - type: "null"
                       viewCount:
-                          type: integer
+                          $ref: "#/components/schemas/_integer"
                       comments:
                           type: object
                           properties:
@@ -14247,7 +14232,7 @@ components:
                   properties:
                       id:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -14281,7 +14266,7 @@ components:
                               - type: "null"
                       viewCount:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -14440,7 +14425,7 @@ components:
                   properties:
                       id:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -14539,7 +14524,7 @@ components:
                               - type: "null"
                       viewCount:
                           anyOf:
-                              - type: integer
+                              - $ref: "#/components/schemas/_integer"
                               - type: object
                                 properties:
                                     set:
@@ -14822,6 +14807,14 @@ components:
                 - id
                 - boost
                 - postId
+        _integer:
+            type: integer
+            minimum: -9007199254740991
+            maximum: 9007199254740991
+        _nonNegativeInteger:
+            type: integer
+            minimum: 0
+            maximum: 9007199254740991
         _rpcSuccessResponse:
             type: object
             properties:
