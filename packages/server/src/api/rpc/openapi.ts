@@ -134,7 +134,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
     private registrySchemas: Record<string, SchemaObject> = {};
 
     constructor(private readonly handlerOptions: RPCApiHandlerOptions<Schema>) {
-        this.factory = createQuerySchemaFactory(handlerOptions.schema);
+        this.factory = createQuerySchemaFactory(handlerOptions.schema, handlerOptions.queryOptions);
     }
 
     private get schema(): SchemaDef {
@@ -535,10 +535,12 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             typeDefSchemas[typeName] = this.buildTypeDefSchema(typeDef);
         }
 
-        // Generate a response-side entity schema for every model
+        // Generate a response-side entity schema for every included model
         const modelEntitySchemas: Record<string, SchemaObject> = {};
-        for (const [modelName, modelDef] of Object.entries(this.schema.models)) {
-            modelEntitySchemas[modelName] = this.buildModelEntitySchema(modelDef);
+        for (const modelName of getIncludedModels(this.schema as SchemaDef, this.queryOptions)) {
+            modelEntitySchemas[modelName] = this.buildModelEntitySchema(
+                (this.schema as SchemaDef).models[modelName],
+            );
         }
 
         return {
@@ -679,7 +681,8 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 const base: SchemaObject | ReferenceObject = fieldDef.array
                     ? { type: 'array', items: refSchema }
                     : refSchema;
-                properties[fieldName] = !fieldDef.array && fieldDef.optional ? { anyOf: [base, { type: 'null' }] } : base;
+                properties[fieldName] =
+                    !fieldDef.array && fieldDef.optional ? { anyOf: [base, { type: 'null' }] } : base;
             } else if (this.schema.enums?.[fieldDef.type]) {
                 // Enum field
                 const refSchema: ReferenceObject = { $ref: `#/components/schemas/${fieldDef.type}` };

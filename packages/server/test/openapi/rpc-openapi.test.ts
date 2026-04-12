@@ -8,6 +8,12 @@ import { RPCApiHandler } from '../../src/api/rpc';
 
 const UPDATE_BASELINE = process.env.UPDATE_BASELINE === '1';
 
+async function generateSpec(handler: RPCApiHandler, options?: Parameters<RPCApiHandler['generateSpec']>[0]) {
+    const spec = await handler.generateSpec(options);
+    await validate(JSON.parse(JSON.stringify(spec)));
+    return spec;
+}
+
 function loadBaseline(name: string) {
     return YAML.parse(fs.readFileSync(path.join(__dirname, 'baseline', name), 'utf-8'), { maxAliasCount: 10000 });
 }
@@ -83,7 +89,7 @@ describe('RPC OpenAPI spec generation - document structure', () => {
     beforeAll(async () => {
         const client = await createTestClient(schema);
         handler = new RPCApiHandler({ schema: client.$schema });
-        spec = await handler.generateSpec();
+        spec = await generateSpec(handler);
     });
 
     it('has correct openapi version and info', () => {
@@ -109,7 +115,7 @@ describe('RPC OpenAPI spec generation - document structure', () => {
     it('custom spec options are reflected in info', async () => {
         const client = await createTestClient(schema);
         const h = new RPCApiHandler({ schema: client.$schema });
-        const s = await h.generateSpec({ title: 'My RPC API', version: '2.0.0', description: 'Desc' });
+        const s = await generateSpec(h, { title: 'My RPC API', version: '2.0.0', description: 'Desc' });
         expect(s.info.title).toBe('My RPC API');
         expect(s.info.version).toBe('2.0.0');
         expect((s.info as any).description).toBe('Desc');
@@ -122,7 +128,7 @@ describe('RPC OpenAPI spec generation - paths and HTTP methods', () => {
     beforeAll(async () => {
         const client = await createTestClient(schema);
         const handler = new RPCApiHandler({ schema: client.$schema });
-        spec = await handler.generateSpec();
+        spec = await generateSpec(handler);
     });
 
     it('generates paths for all CRUD operations per model', () => {
@@ -192,7 +198,7 @@ describe('RPC OpenAPI spec generation - input schemas', () => {
     beforeAll(async () => {
         const client = await createTestClient(schema);
         const handler = new RPCApiHandler({ schema: client.$schema });
-        spec = await handler.generateSpec();
+        spec = await generateSpec(handler);
     });
 
     it('GET operations have q query parameter', () => {
@@ -264,7 +270,7 @@ describe('RPC OpenAPI spec generation - shared schemas', () => {
     beforeAll(async () => {
         const client = await createTestClient(schema);
         const handler = new RPCApiHandler({ schema: client.$schema });
-        spec = await handler.generateSpec();
+        spec = await generateSpec(handler);
     });
 
     it('_rpcSuccessResponse schema exists', () => {
@@ -330,7 +336,7 @@ describe('RPC OpenAPI spec generation - response data shapes', () => {
     beforeAll(async () => {
         const client = await createTestClient(schema);
         const handler = new RPCApiHandler({ schema: client.$schema });
-        spec = await handler.generateSpec();
+        spec = await generateSpec(handler);
     });
 
     it('findUnique and findFirst data is nullable entity ref', () => {
@@ -446,7 +452,7 @@ describe('RPC OpenAPI spec generation - operationIds', () => {
     beforeAll(async () => {
         const client = await createTestClient(schema);
         const handler = new RPCApiHandler({ schema: client.$schema });
-        spec = await handler.generateSpec();
+        spec = await generateSpec(handler);
     });
 
     it('operationIds are unique', () => {
@@ -475,7 +481,7 @@ describe('RPC OpenAPI spec generation - queryOptions slicing', () => {
             schema: client.$schema,
             queryOptions: { slicing: { excludedModels: ['Post'] as any } },
         });
-        const spec = await handler.generateSpec();
+        const spec = await generateSpec(handler);
 
         expect(spec.paths?.['/post/findMany']).toBeUndefined();
         expect(spec.paths?.['/user/findMany']).toBeDefined();
@@ -489,7 +495,7 @@ describe('RPC OpenAPI spec generation - queryOptions slicing', () => {
             schema: client.$schema,
             queryOptions: { slicing: { includedModels: ['User', 'Post'] as any } },
         });
-        const spec = await handler.generateSpec();
+        const spec = await generateSpec(handler);
 
         expect(spec.paths?.['/user/findMany']).toBeDefined();
         expect(spec.paths?.['/post/findMany']).toBeDefined();
@@ -506,7 +512,7 @@ describe('RPC OpenAPI spec generation - queryOptions slicing', () => {
                 } as any,
             },
         });
-        const spec = await handler.generateSpec();
+        const spec = await generateSpec(handler);
 
         expect(spec.paths?.['/post/findMany']).toBeDefined();
         expect(spec.paths?.['/post/create']).toBeUndefined();
@@ -524,7 +530,7 @@ describe('RPC OpenAPI spec generation - queryOptions slicing', () => {
                 } as any,
             },
         });
-        const spec = await handler.generateSpec();
+        const spec = await generateSpec(handler);
 
         expect(spec.paths?.['/user/findMany']).toBeDefined();
         expect(spec.paths?.['/user/findUnique']).toBeDefined();
@@ -542,12 +548,149 @@ describe('RPC OpenAPI spec generation - queryOptions slicing', () => {
                 } as any,
             },
         });
-        const spec = await handler.generateSpec();
+        const spec = await generateSpec(handler);
 
         for (const model of ['user', 'post', 'comment', 'setting', 'profile']) {
             expect(spec.paths?.[`/${model}/delete`]).toBeUndefined();
             expect(spec.paths?.[`/${model}/deleteMany`]).toBeUndefined();
             expect(spec.paths?.[`/${model}/findMany`]).toBeDefined();
+        }
+    });
+
+    it('excludedModels removes model entity schema from components', async () => {
+        const client = await createTestClient(schema);
+        const handler = new RPCApiHandler({
+            schema: client.$schema,
+            queryOptions: { slicing: { excludedModels: ['Post'] as any } },
+        });
+        const spec = await generateSpec(handler);
+
+        expect(spec.components?.schemas?.['Post']).toBeUndefined();
+        expect(spec.components?.schemas?.['User']).toBeDefined();
+    });
+
+    it('includedModels removes excluded model entity schemas from components', async () => {
+        const client = await createTestClient(schema);
+        const handler = new RPCApiHandler({
+            schema: client.$schema,
+            queryOptions: { slicing: { includedModels: ['User'] as any } },
+        });
+        const spec = await generateSpec(handler);
+
+        expect(spec.components?.schemas?.['User']).toBeDefined();
+        expect(spec.components?.schemas?.['Post']).toBeUndefined();
+        expect(spec.components?.schemas?.['Comment']).toBeUndefined();
+    });
+
+    it('excludedModels removes excluded model arg schemas from components', async () => {
+        const client = await createTestClient(schema);
+        const handler = new RPCApiHandler({
+            schema: client.$schema,
+            queryOptions: { slicing: { excludedModels: ['Post'] as any } },
+        });
+        const spec = await generateSpec(handler);
+
+        expect(spec.components?.schemas?.['PostFindManyArgs']).toBeUndefined();
+        expect(spec.components?.schemas?.['PostCreateArgs']).toBeUndefined();
+        expect(spec.components?.schemas?.['UserFindManyArgs']).toBeDefined();
+    });
+
+    it('excludedFilterKinds removes filter operators from field filter schema', async () => {
+        const client = await createTestClient(schema);
+        const handler = new RPCApiHandler({
+            schema: client.$schema,
+            queryOptions: {
+                slicing: {
+                    models: {
+                        user: {
+                            fields: {
+                                email: { excludedFilterKinds: ['Like'] },
+                            },
+                        },
+                    },
+                } as any,
+            },
+        });
+        const spec = await generateSpec(handler);
+
+        // With Like excluded, email uses a sliced filter schema that has no Like operators
+        const userWhereInput = spec.components?.schemas?.['UserWhereInput'] as any;
+        // email should reference a sliced filter variant (not the full StringFilter)
+        const emailRef = userWhereInput?.properties?.email?.['$ref'] as string;
+        expect(emailRef).toBeDefined();
+        const slicedFilterId = emailRef.replace('#/components/schemas/', '');
+        const slicedFilter = spec.components?.schemas?.[slicedFilterId] as any;
+        const filterObj = slicedFilter?.anyOf?.find((s: any) => s.type === 'object');
+        // Like operators should be absent
+        expect(filterObj?.properties?.contains).toBeUndefined();
+        expect(filterObj?.properties?.startsWith).toBeUndefined();
+        expect(filterObj?.properties?.endsWith).toBeUndefined();
+        // Equality operators should still be present
+        expect(filterObj?.properties?.equals).toBeDefined();
+    });
+
+    it('includedFilterKinds limits field filter schema to specified kinds', async () => {
+        const client = await createTestClient(schema);
+        const handler = new RPCApiHandler({
+            schema: client.$schema,
+            queryOptions: {
+                slicing: {
+                    models: {
+                        user: {
+                            fields: {
+                                email: { includedFilterKinds: ['Equality'] },
+                            },
+                        },
+                    },
+                } as any,
+            },
+        });
+        const spec = await generateSpec(handler);
+
+        const userWhereInput = spec.components?.schemas?.['UserWhereInput'] as any;
+        const emailRef = userWhereInput?.properties?.email?.['$ref'] as string;
+        expect(emailRef).toBeDefined();
+        const slicedFilterId = emailRef.replace('#/components/schemas/', '');
+        const slicedFilter = spec.components?.schemas?.[slicedFilterId] as any;
+        const filterObj = slicedFilter?.anyOf?.find((s: any) => s.type === 'object');
+        // Only Equality operators should remain
+        expect(filterObj?.properties?.equals).toBeDefined();
+        expect(filterObj?.properties?.in).toBeDefined();
+        // Like operators should be gone
+        expect(filterObj?.properties?.contains).toBeUndefined();
+        expect(filterObj?.properties?.startsWith).toBeUndefined();
+        // Range operators should be gone
+        expect(filterObj?.properties?.lt).toBeUndefined();
+        expect(filterObj?.properties?.gt).toBeUndefined();
+    });
+
+    it('$all field slicing applies includedFilterKinds to all fields of a model', async () => {
+        const client = await createTestClient(schema);
+        const handler = new RPCApiHandler({
+            schema: client.$schema,
+            queryOptions: {
+                slicing: {
+                    models: {
+                        user: {
+                            fields: { $all: { includedFilterKinds: ['Equality'] } },
+                        },
+                    },
+                } as any,
+            },
+        });
+        const spec = await generateSpec(handler);
+
+        const userWhereInput = spec.components?.schemas?.['UserWhereInput'] as any;
+        // Both email and myId should reference a sliced Equality-only filter schema
+        for (const field of ['email', 'myId']) {
+            const emailRef = userWhereInput?.properties?.[field]?.['$ref'] as string;
+            expect(emailRef).toBeDefined();
+            const slicedFilterId = emailRef.replace('#/components/schemas/', '');
+            const slicedFilter = spec.components?.schemas?.[slicedFilterId] as any;
+            const filterObj = slicedFilter?.anyOf?.find((s: any) => s.type === 'object');
+            expect(filterObj?.properties?.equals).toBeDefined();
+            expect(filterObj?.properties?.contains).toBeUndefined();
+            expect(filterObj?.properties?.lt).toBeUndefined();
         }
     });
 });
@@ -567,7 +710,7 @@ procedure optionalSearch(query: String?): User[]
     it('generates GET path for query procedures', async () => {
         const client = await createTestClient(procSchema);
         const handler = new RPCApiHandler({ schema: client.$schema });
-        const spec = await handler.generateSpec();
+        const spec = await generateSpec(handler);
 
         expect(spec.paths?.['/$procs/getUser']).toBeDefined();
         expect(spec.paths?.['/$procs/getUser']?.get).toBeDefined();
@@ -577,7 +720,7 @@ procedure optionalSearch(query: String?): User[]
     it('generates POST path for mutation procedures', async () => {
         const client = await createTestClient(procSchema);
         const handler = new RPCApiHandler({ schema: client.$schema });
-        const spec = await handler.generateSpec();
+        const spec = await generateSpec(handler);
 
         expect(spec.paths?.['/$procs/createUser']).toBeDefined();
         expect(spec.paths?.['/$procs/createUser']?.post).toBeDefined();
@@ -587,10 +730,10 @@ procedure optionalSearch(query: String?): User[]
     it('query procedure has q parameter with args envelope schema', async () => {
         const client = await createTestClient(procSchema);
         const handler = new RPCApiHandler({ schema: client.$schema });
-        const spec = await handler.generateSpec();
+        const spec = await generateSpec(handler);
 
         const operation = spec.paths?.['/$procs/getUser']?.get;
-        const qParam = operation?.parameters?.find((p: any) => p.name === 'q');
+        const qParam: any = operation?.parameters?.find((p: any) => p.name === 'q');
         expect(qParam).toBeDefined();
         expect(qParam?.content?.['application/json']?.schema).toBeDefined();
         // args is a $ref to the registered ProcArgs component schema
@@ -606,11 +749,11 @@ procedure optionalSearch(query: String?): User[]
     it('mutation procedure has request body with args envelope schema', async () => {
         const client = await createTestClient(procSchema);
         const handler = new RPCApiHandler({ schema: client.$schema });
-        const spec = await handler.generateSpec();
+        const spec = await generateSpec(handler);
 
         const operation = spec?.paths?.['/$procs/createUser']?.post;
         expect(operation?.requestBody).toBeDefined();
-        const bodySchema = operation?.requestBody?.content?.['application/json']?.schema;
+        const bodySchema = (operation?.requestBody as any)?.content?.['application/json']?.schema;
         // args is a $ref to the registered ProcArgs component schema
         const argsRef = bodySchema?.properties?.args?.$ref;
         expect(argsRef).toBeDefined();
@@ -623,7 +766,7 @@ procedure optionalSearch(query: String?): User[]
     it('optional procedure params are not in required array', async () => {
         const client = await createTestClient(procSchema);
         const handler = new RPCApiHandler({ schema: client.$schema });
-        const spec = await handler.generateSpec();
+        const spec = await generateSpec(handler);
 
         const operation = spec?.paths?.['/$procs/optionalSearch']?.get;
         const qParam = operation?.parameters?.find((p: any) => p.name === 'q');
@@ -639,7 +782,7 @@ procedure optionalSearch(query: String?): User[]
     it('procedure operationId uses proc_ prefix', async () => {
         const client = await createTestClient(procSchema);
         const handler = new RPCApiHandler({ schema: client.$schema });
-        const spec = await handler.generateSpec();
+        const spec = await generateSpec(handler);
 
         expect(spec?.paths?.['/$procs/getUser']?.get?.operationId).toBe('proc_getUser');
         expect(spec?.paths?.['/$procs/createUser']?.post?.operationId).toBe('proc_createUser');
@@ -651,7 +794,7 @@ procedure optionalSearch(query: String?): User[]
             schema: client.$schema,
             queryOptions: { slicing: { excludedProcedures: ['getUser'] as any } },
         });
-        const spec = await handler.generateSpec();
+        const spec = await generateSpec(handler);
 
         expect(spec.paths?.['/$procs/getUser']).toBeUndefined();
         expect(spec.paths?.['/$procs/createUser']).toBeDefined();
@@ -669,7 +812,7 @@ model Item {
 `;
         const client = await createTestClient(policySchema);
         const handler = new RPCApiHandler({ schema: client.$schema });
-        const spec = await handler.generateSpec();
+        const spec = await generateSpec(handler);
         expect(spec.paths?.['/item/create']?.post?.responses?.['403']).toBeUndefined();
     });
 
@@ -686,7 +829,7 @@ model Item {
 `;
         const client = await createTestClient(policySchema);
         const handler = new RPCApiHandler({ schema: client.$schema });
-        const spec = await handler.generateSpec({ respectAccessPolicies: true });
+        const spec = await generateSpec(handler, { respectAccessPolicies: true });
 
         expect(spec.paths?.['/item/create']?.post?.responses?.['403']).toBeDefined();
         expect(spec.paths?.['/item/update']?.put?.responses?.['403']).toBeDefined();
@@ -705,7 +848,7 @@ model Item {
 `;
         const client = await createTestClient(policySchema);
         const handler = new RPCApiHandler({ schema: client.$schema });
-        const spec = await handler.generateSpec({ respectAccessPolicies: true });
+        const spec = await generateSpec(handler, { respectAccessPolicies: true });
 
         expect(spec.paths?.['/item/create']?.post?.responses?.['403']).toBeUndefined();
         expect(spec.paths?.['/item/update']?.put?.responses?.['403']).toBeUndefined();
@@ -723,7 +866,7 @@ model Item {
 `;
         const client = await createTestClient(policySchema);
         const handler = new RPCApiHandler({ schema: client.$schema });
-        const spec = await handler.generateSpec({ respectAccessPolicies: true });
+        const spec = await generateSpec(handler, { respectAccessPolicies: true });
         expect(spec.paths?.['/item/create']?.post?.responses?.['403']).toBeDefined();
     });
 
@@ -736,7 +879,7 @@ model Item {
 `;
         const client = await createTestClient(policySchema);
         const handler = new RPCApiHandler({ schema: client.$schema });
-        const spec = await handler.generateSpec({ respectAccessPolicies: true });
+        const spec = await generateSpec(handler, { respectAccessPolicies: true });
 
         expect(spec.paths?.['/item/create']?.post?.responses?.['403']).toBeDefined();
         expect(spec.paths?.['/item/update']?.put?.responses?.['403']).toBeDefined();
@@ -754,7 +897,7 @@ model Item {
 `;
         const client = await createTestClient(policySchema);
         const handler = new RPCApiHandler({ schema: client.$schema });
-        const spec = await handler.generateSpec({ respectAccessPolicies: true });
+        const spec = await generateSpec(handler, { respectAccessPolicies: true });
 
         expect(spec.paths?.['/item/create']?.post?.responses?.['403']).toBeUndefined();
         expect(spec.paths?.['/item/update']?.put?.responses?.['403']).toBeDefined();
@@ -768,7 +911,7 @@ describe('RPC OpenAPI spec generation - JSON fields', () => {
     beforeAll(async () => {
         const client = await createTestClient(schema);
         const handler = new RPCApiHandler({ schema: client.$schema });
-        spec = await handler.generateSpec();
+        spec = await generateSpec(handler);
     });
 
     it('JsonValue schema is registered in components', () => {
@@ -857,7 +1000,7 @@ model User {
     beforeAll(async () => {
         const client = await createTestClient(metaSchema);
         const handler = new RPCApiHandler({ schema: client.$schema });
-        spec = await handler.generateSpec();
+        spec = await generateSpec(handler);
     });
 
     it('model @@meta description appears on entity component schema', () => {
@@ -892,7 +1035,7 @@ describe('RPC OpenAPI spec generation - baseline', () => {
     it('matches baseline', async () => {
         const client = await createTestClient(schema);
         const handler = new RPCApiHandler({ schema: client.$schema });
-        const spec = await handler.generateSpec();
+        const spec = await generateSpec(handler);
         const baselineFile = 'rpc.baseline.yaml';
 
         if (UPDATE_BASELINE) {
@@ -911,7 +1054,7 @@ describe('RPC OpenAPI spec generation - OpenAPI validation', () => {
     it('spec passes OpenAPI 3.1 validation', async () => {
         const client = await createTestClient(schema);
         const handler = new RPCApiHandler({ schema: client.$schema });
-        const spec = await handler.generateSpec();
+        const spec = await generateSpec(handler);
         // Deep clone to avoid validate() mutating $ref strings
         await validate(JSON.parse(JSON.stringify(spec)));
     });
@@ -928,7 +1071,7 @@ mutation procedure createUser(name: String): User
 `;
         const client = await createTestClient(procSchema);
         const handler = new RPCApiHandler({ schema: client.$schema });
-        const spec = await handler.generateSpec();
+        const spec = await generateSpec(handler);
         await validate(JSON.parse(JSON.stringify(spec)));
     });
 });

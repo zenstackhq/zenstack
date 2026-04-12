@@ -40,7 +40,7 @@ import {
     type CoreCrudOperations,
 } from '../crud/operations/base';
 import { createInternalError } from '../errors';
-import type { ClientOptions } from '../options';
+import type { ClientOptions, QueryOptions } from '../options';
 import type { AnyPlugin, ExtQueryArgsBase, RuntimePlugin } from '../plugin';
 import {
     fieldHasDefaultValue,
@@ -71,6 +71,14 @@ export function createQuerySchemaFactory<
     Options extends ClientOptions<Schema> = ClientOptions<Schema>,
     ExtQueryArgs extends ExtQueryArgsBase = {},
 >(schema: Schema, options?: Options): ZodSchemaFactory<Schema, Options, ExtQueryArgs>;
+
+/**
+ * Create a factory using only query options (e.g. slicing) without a full client config.
+ */
+export function createQuerySchemaFactory<Schema extends SchemaDef>(
+    schema: Schema,
+    options?: QueryOptions<Schema>,
+): ZodSchemaFactory<Schema>;
 
 export function createQuerySchemaFactory(clientOrSchema: any, options?: any) {
     return new ZodSchemaFactory(clientOrSchema, options);
