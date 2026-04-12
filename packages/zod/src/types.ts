@@ -20,15 +20,27 @@ import type {
 import type Decimal from 'decimal.js';
 import type z from 'zod';
 
+/**
+ * Scalar-only shape returned by the no-options `makeModelSchema` overload.
+ * Relation fields are excluded by default — use `include` or `select` to opt in.
+ */
 export type GetModelFieldsShape<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
-    // scalar fields
     [Field in GetModelFields<Schema, Model> as FieldIsRelation<Schema, Model, Field> extends true
         ? never
         : Field]: ZodOptionalAndNullableIf<
         ZodArrayIf<MapModelFieldToZod<Schema, Model, Field>, FieldIsArray<Schema, Model, Field>>,
         ModelFieldIsOptional<Schema, Model, Field>
     >;
-} & {
+};
+
+/**
+ * Full shape including both scalar and relation fields — used internally for
+ * type lookups (e.g. resolving relation field Zod types in include/select).
+ */
+type GetAllModelFieldsShape<Schema extends SchemaDef, Model extends GetModels<Schema>> = GetModelFieldsShape<
+    Schema,
+    Model
+> & {
     // relation fields, always optional
     [Field in GetModelFields<Schema, Model> as FieldIsRelation<Schema, Model, Field> extends true
         ? Field
@@ -176,49 +188,76 @@ type RelatedModel<
 > = GetModelFieldType<Schema, Model, Field> extends GetModels<Schema> ? GetModelFieldType<Schema, Model, Field> : never;
 
 /**
+ * Controls which fields are made optional in the generated schema.
+ *
+ * - `"all"`      — every field in the schema becomes optional.
+ * - `"defaults"` — only fields that have a default value (`@default`) or are
+ *                  auto-managed (`@updatedAt`) are made optional; all other
+ *                  fields retain their original optionality.
+ */
+export type ModelSchemaOptionality = 'all' | 'defaults';
+
+/**
  * ORM-style query options accepted by `makeModelSchema`.
  *
  * Exactly mirrors the `select` / `include` / `omit` vocabulary:
- * - `select`  — pick specific fields (scalars and/or relations). Mutually
- *               exclusive with `include` and `omit`.
- * - `include` — start with all scalar fields, then add the named relation
- *               fields. Can be combined with `omit`.
- * - `omit`    — remove named scalar fields from the default scalar set.
- *               Can be combined with `include`, mutually exclusive with
- *               `select`.
+ * - `select`      — pick specific fields (scalars and/or relations). Mutually
+ *                   exclusive with `include` and `omit`.
+ * - `include`     — start with all scalar fields, then add the named relation
+ *                   fields. Can be combined with `omit`.
+ * - `omit`        — remove named scalar fields from the default scalar set.
+ *                   Can be combined with `include`, mutually exclusive with
+ *                   `select`.
+ * - `optionality` — when `"all"`, every field becomes optional. When
+ *                   `"defaults"`, only fields with a `@default` value or
+ *                   `@updatedAt` are made optional.
  */
 export type ModelSchemaOptions<Schema extends SchemaDef, Model extends GetModels<Schema>> =
     | {
           /**
-           * Pick only the listed fields. Values can be `true` (include with
+           * Pick only the listed fields. Values must be `true` (include with
            * default shape) or a nested options object (for relation fields).
+           * Only `true` is accepted — ORM convention.
            */
           select: {
               [Field in GetModelFields<Schema, Model>]?: FieldIsRelation<Schema, Model, Field> extends true
-                  ? boolean | ModelSchemaOptions<Schema, RelatedModel<Schema, Model, Field>>
-                  : boolean;
+                  ? true | ModelSchemaOptions<Schema, RelatedModel<Schema, Model, Field>>
+                  : true;
           };
           include?: never;
           omit?: never;
+          /**
+           * Controls which fields are made optional.
+           * - `"all"`      — every field becomes optional.
+           * - `"defaults"` — only fields with `@default` or `@updatedAt` become optional.
+           */
+          optionality?: ModelSchemaOptionality;
       }
     | {
           select?: never;
           /**
            * Add the listed relation fields on top of the scalar fields.
-           * Values can be `true` / `{}` (default shape) or a nested options
-           * object.
+           * Values must be `true` (default shape) or a nested options object.
+           * Only `true` is accepted — ORM convention.
            */
           include?: {
               [Field in keyof RelationModelFields<Schema, Model>]?: Field extends GetModelFields<Schema, Model>
-                  ? boolean | ModelSchemaOptions<Schema, RelatedModel<Schema, Model, Field>>
+                  ? true | ModelSchemaOptions<Schema, RelatedModel<Schema, Model, Field>>
                   : never;
           };
           /**
            * Remove the listed scalar fields from the output.
+           * Only `true` is accepted — ORM convention.
            */
           omit?: {
-              [Field in keyof ScalarModelFields<Schema, Model>]?: boolean;
+              [Field in keyof ScalarModelFields<Schema, Model>]?: true;
           };
+          /**
+           * Controls which fields are made optional.
+           * - `"all"`      — every field becomes optional.
+           * - `"defaults"` — only fields with `@default` or `@updatedAt` become optional.
+           */
+          optionality?: ModelSchemaOptionality;
       };
 
 // ---- Output shape helpers ------------------------------------------------
@@ -232,7 +271,7 @@ type FieldInShape<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends GetModelFields<Schema, Model>,
-> = Field & keyof GetModelFieldsShape<Schema, Model>;
+> = Field & keyof GetAllModelFieldsShape<Schema, Model>;
 
 /**
  * Zod shape produced when a relation field is included via `include: { field:
@@ -244,7 +283,7 @@ type RelationFieldZodDefault<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends GetModelFields<Schema, Model>,
-> = GetModelFieldsShape<Schema, Model>[FieldInShape<Schema, Model, Field>];
+> = GetAllModelFieldsShape<Schema, Model>[FieldInShape<Schema, Model, Field>];
 
 /**
  * Zod shape for a relation field included with nested options.  We recurse
@@ -286,7 +325,7 @@ type SelectEntryToZod<
       // Handling `boolean` (not just literal `true`) prevents the type from
       // collapsing to `never` when callers use a boolean variable instead of
       // a literal (e.g. `const pick: boolean = true`).
-      GetModelFieldsShape<Schema, Model>[FieldInShape<Schema, Model, Field>]
+      GetAllModelFieldsShape<Schema, Model>[FieldInShape<Schema, Model, Field>]
     : Value extends object
       ? // nested options — must be a relation field
         RelationFieldZodWithOptions<Schema, Model, Field, Value>
@@ -297,12 +336,7 @@ type SelectEntryToZod<
  * recursing into relations when given nested options.
  */
 type BuildSelectShape<Schema extends SchemaDef, Model extends GetModels<Schema>, S extends Record<string, unknown>> = {
-    [Field in keyof S & GetModelFields<Schema, Model> as S[Field] extends false ? never : Field]: SelectEntryToZod<
-        Schema,
-        Model,
-        Field,
-        S[Field]
-    >;
+    [Field in keyof S & GetModelFields<Schema, Model>]: SelectEntryToZod<Schema, Model, Field, S[Field]>;
 };
 
 /**
@@ -316,7 +350,7 @@ type BuildIncludeOmitShape<
     I extends Record<string, unknown> | undefined,
     O extends Record<string, unknown> | undefined,
 > =
-    // scalar fields, omitting those explicitly excluded
+    // scalar fields, omitting those explicitly excluded (only `true` omits a field)
     {
         [Field in GetModelFields<Schema, Model> as FieldIsRelation<Schema, Model, Field> extends true
             ? never
@@ -326,12 +360,10 @@ type BuildIncludeOmitShape<
                       ? never
                       : Field
                   : Field
-              : Field]: GetModelFieldsShape<Schema, Model>[FieldInShape<Schema, Model, Field>];
+              : Field]: GetAllModelFieldsShape<Schema, Model>[FieldInShape<Schema, Model, Field>];
     } & (I extends object // included relation fields
         ? {
-              [Field in keyof I & GetModelFields<Schema, Model> as I[Field] extends false
-                  ? never
-                  : Field]: I[Field] extends object
+              [Field in keyof I & GetModelFields<Schema, Model>]: I[Field] extends object
                   ? RelationFieldZodWithOptions<Schema, Model, Field, I[Field]>
                   : RelationFieldZodDefault<Schema, Model, Field>;
           }
@@ -339,21 +371,38 @@ type BuildIncludeOmitShape<
           {});
 
 /**
+ * Wraps every field in a shape with `z.ZodOptional` when `Optionality` is `"all"`.
+ * When `Optionality` is anything else the shape is returned as-is.
+ */
+type ApplyOptionality<Shape extends Record<string, z.ZodType>, Optionality> = Optionality extends 'all'
+    ? { [K in keyof Shape]: z.ZodOptional<Shape[K]> }
+    : Shape;
+
+/**
  * The top-level conditional that maps options → Zod shape.
  *
  * - No options / undefined  → existing `GetModelFieldsShape` (no change).
- * - `{ select: S }`         → `BuildSelectShape`.
- * - `{ include?, omit? }`   → `BuildIncludeOmitShape`.
+ * - `{ select: S }`         → `BuildSelectShape` (+ optionality wrapper).
+ * - `{ include?, omit? }`   → `BuildIncludeOmitShape` (+ optionality wrapper).
+ *
+ * Note: `optionality: "defaults"` is handled fully at runtime (it requires
+ * knowledge of which fields carry a `@default` / `@updatedAt` attribute that
+ * is only available in the schema def at runtime). The static type cannot
+ * distinguish "has-default" from "no-default" fields, so `"defaults"` is
+ * intentionally left unrepresented in the output type — callers receive the
+ * same shape they would without `optionality` (i.e. fields that happen to have
+ * defaults are already typed as optional via `ModelFieldIsOptional`).
  */
 export type GetModelSchemaShapeWithOptions<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options,
-> = Options extends { select: infer S extends Record<string, unknown> }
-    ? BuildSelectShape<Schema, Model, S>
+> = Options extends { select: infer S extends Record<string, unknown>; optionality?: infer Opt }
+    ? ApplyOptionality<BuildSelectShape<Schema, Model, S>, Opt>
     : Options extends {
             include?: infer I extends Record<string, unknown> | undefined;
             omit?: infer O extends Record<string, unknown> | undefined;
+            optionality?: infer Opt;
         }
-      ? BuildIncludeOmitShape<Schema, Model, I, O>
+      ? ApplyOptionality<BuildIncludeOmitShape<Schema, Model, I, O>, Opt>
       : GetModelFieldsShape<Schema, Model>;
