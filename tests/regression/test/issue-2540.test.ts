@@ -1,26 +1,7 @@
 import { createTestClient } from '@zenstackhq/testtools';
 import { describe, expect, it } from 'vitest';
 
-// Bug: when a model with @computed fields inherited from a mixin type (the `with`
-// keyword) is fetched as a nested relation via an explicit `include`, ZenStack
-// emits the computed field name as a raw column reference inside `jsonb_build_object`
-// while the inner subquery SELECT only contains the real DB columns. This causes
-// PostgreSQL to fail with:
-//   "column $$tN.field_name does not exist"
-//
-// Root cause: `buildSelectField` uses `fieldDef.originModel` (the mixin type name)
-// as the table alias when selecting the computed field into the inner subquery.
-// But the inner subquery aliases the actual table under the model name, not the
-// mixin type name, so the correlated subquery is never emitted and `parentCode`
-// is absent from the subquery's SELECT list. The outer `jsonb_build_object` then
-// references `$$tN.parentCode` which does not exist.
-//
-// The bug does NOT occur when:
-//   - the @computed field is declared directly on the model (not via a mixin type)
-//   - the relation is not explicitly included
-//   - the model is queried directly (not as a nested include)
-
-describe('Computed fields with nested include', () => {
+describe('Regression for issue #2540', () => {
     it('includes computed fields inherited from a mixin type when the model is explicitly included', async () => {
         const db = await createTestClient(
             `
@@ -45,10 +26,6 @@ model Child with ParentRelated {
                 provider: 'postgresql',
                 computedFields: {
                     Child: {
-                        // Correlated subquery — looks up Parent.code via the FK.
-                        // The computed field is inherited from the `ParentRelated` mixin,
-                        // so fieldDef.originModel === 'ParentRelated', which is the
-                        // alias incorrectly used by buildSelectField.
                         parentCode: (eb: any) =>
                             eb
                                 .selectFrom('Parent')
@@ -69,8 +46,7 @@ model Child with ParentRelated {
             parentCode: 'P-001',
         });
 
-        // Querying Parent with include: { children: true } should also work,
-        // but currently fails with "column $$tN.parentCode does not exist"
+        // Querying Parent with include: { children: true } should also work
         await expect(
             db.parent.findFirst({
                 where: { id: parent.id },
