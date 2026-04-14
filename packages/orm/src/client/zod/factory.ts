@@ -854,7 +854,7 @@ export class ZodSchemaFactory<
 
     @cache()
     private makeDateTimeValueSchema(): ZodType {
-        const schema = z.union([z.iso.date(), z.iso.datetime(), z.date()]);
+        const schema = z.union([z.iso.datetime(), z.date()]);
         this.registerSchema('DateTime', schema);
         return schema;
     }
@@ -865,8 +865,9 @@ export class ZodSchemaFactory<
         withAggregations: boolean,
         allowedFilterKinds: string[] | undefined,
     ): ZodType {
+        const filterValueSchema = z.union([z.iso.date(), this.makeDateTimeValueSchema()]);
         const schema = this.makeCommonPrimitiveFilterSchema(
-            this.makeDateTimeValueSchema(),
+            filterValueSchema,
             optional,
             () => z.lazy(() => this.makeDateTimeFilterSchema(optional, withAggregations, allowedFilterKinds)),
             withAggregations ? ['_count', '_min', '_max'] : undefined,
