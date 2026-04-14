@@ -84,9 +84,41 @@ model Event {
         expect(lessThanFound.map((item: { name: string }) => item.name).sort()).toEqual(['Middle', 'Past']);
     });
 
-    it('plain date string is accepted on a regular DateTime field (no @db.Date)', async () => {
+    it('accepts plain date strings in create and update payloads for a @db.Date field only', async () => {
+        const createSchema = client.$zod.makeCreateSchema('Event');
+        const createResult = createSchema.safeParse({ data: { name: 'Conference', eventDate: '2007-05-23' } });
+        expect(
+            createResult.success,
+            `Expected create payload for @db.Date field to be accepted, got: ${JSON.stringify(createResult.error)}`,
+        ).toBe(true);
+
+        const invalidCreateResult = createSchema.safeParse({ data: { name: 'Conference', createdAt: '2007-05-23' } });
+        expect(invalidCreateResult.success).toBe(false);
+
+        const created = await client.event.create({ data: { name: 'Conference', eventDate: '2007-05-23' } });
+
+        const updateSchema = client.$zod.makeUpdateSchema('Event');
+        const updateResult = updateSchema.safeParse({ where: { id: created.id }, data: { eventDate: '2008-05-23' } });
+        expect(
+            updateResult.success,
+            `Expected update payload for @db.Date field to be accepted, got: ${JSON.stringify(updateResult.error)}`,
+        ).toBe(true);
+
+        const invalidUpdateResult = updateSchema.safeParse({
+            where: { id: created.id },
+            data: { createdAt: '2008-05-23' },
+        });
+        expect(invalidUpdateResult.success).toBe(false);
+
+        await client.event.update({ where: { id: created.id }, data: { eventDate: '2008-05-23' } });
+
+        const updated = await client.event.findMany({ where: { id: created.id, eventDate: '2008-05-23' } });
+        expect(updated).toHaveLength(1);
+    });
+
+    it('plain date string is rejected on a regular DateTime field (no @db.Date)', async () => {
         const filterSchema = client.$zod.makeFindManySchema('Event');
         const result = filterSchema.safeParse({ where: { createdAt: '2007-05-23' } });
-        expect(result.success).toBe(true);
+        expect(result.success).toBe(false);
     });
 });
