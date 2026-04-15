@@ -1268,8 +1268,6 @@ describe('SchemaFactory - makeModelSchema with options', () => {
                 const schema = factory.makeModelSchema('Product', { optionality: 'defaults' });
                 // omitting id and discount (both have defaults) should pass
                 expect(schema.safeParse({ name: 'Widget', price: 10.0, finalPrice: 8.0 }).success).toBe(true);
-                // omitting both id AND discount passes
-                expect(schema.safeParse({ name: 'Widget', price: 10.0, finalPrice: 8.0 }).success).toBe(true);
             });
 
             it('keeps fields without @default required with optionality defaults', () => {
