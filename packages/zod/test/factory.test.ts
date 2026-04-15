@@ -83,11 +83,8 @@ describe('SchemaFactory - makeModelSchema', () => {
             expectTypeOf<Address['zip']>().toEqualTypeOf<string | null | undefined>();
             expectTypeOf<User['address']>().toEqualTypeOf<Address | null | undefined>();
 
-            // relation field present
-            expectTypeOf<User>().toHaveProperty('posts');
-            const _postSchema = factory.makeModelSchema('Post');
-            type Post = z.infer<typeof _postSchema>;
-            expectTypeOf<User['posts']>().toEqualTypeOf<Post[] | undefined>();
+            // relation fields are NOT present by default — use include/select to opt in
+            expectTypeOf<User>().not.toHaveProperty('posts');
         });
 
         it('infers correct field types for Post', () => {
@@ -117,16 +114,20 @@ describe('SchemaFactory - makeModelSchema', () => {
 
             expectTypeOf<PostUpdate['tags']>().toEqualTypeOf<string[] | undefined>();
 
-            // optional relation field present in type
-            expectTypeOf<Post>().toHaveProperty('author');
-            const _userSchema = factory.makeModelSchema('User');
-            type User = z.infer<typeof _userSchema>;
-            expectTypeOf<Post['author']>().toEqualTypeOf<User | undefined | null>();
+            // relation fields are NOT present by default — use include/select to opt in
+            expectTypeOf<Post>().not.toHaveProperty('author');
         });
 
-        it('accepts a fully valid User', () => {
+        it('accepts a fully valid User (no relation fields)', () => {
             const userSchema = factory.makeModelSchema('User');
             expect(userSchema.safeParse(validUser).success).toBe(true);
+        });
+
+        it('rejects relation fields in default schema (strict object)', () => {
+            const userSchema = factory.makeModelSchema('User');
+            // relation fields are not part of the default schema, so they are rejected
+            const result = userSchema.safeParse({ ...validUser, posts: [] });
+            expect(result.success).toBe(false);
         });
 
         it('accepts a fully valid Post', () => {
@@ -987,12 +988,6 @@ describe('SchemaFactory - makeModelSchema with options', () => {
             expectTypeOf<Result['username']>().toEqualTypeOf<string>();
         });
 
-        it('include: false skips the relation', () => {
-            const schema = factory.makeModelSchema('User', { include: { posts: false } });
-            // posts field must not be in the strict schema
-            expect(schema.safeParse({ ...validUser, posts: [] }).success).toBe(false);
-        });
-
         it('include with nested select on relation', () => {
             const schema = factory.makeModelSchema('User', {
                 include: { posts: { select: { title: true } } },
@@ -1074,12 +1069,6 @@ describe('SchemaFactory - makeModelSchema with options', () => {
             expectTypeOf<Result['email']>().toEqualTypeOf<string>();
             expectTypeOf<Result>().not.toHaveProperty('username');
             expectTypeOf<Result>().not.toHaveProperty('posts');
-        });
-
-        it('select: false on a field excludes it', () => {
-            const schema = factory.makeModelSchema('User', { select: { id: true, email: false } });
-            expect(schema.safeParse({ id: 'u1' }).success).toBe(true);
-            expect(schema.safeParse({ id: 'u1', email: 'a@b.com' }).success).toBe(false);
         });
 
         it('select with a relation field (true) includes the relation', () => {
@@ -1198,6 +1187,246 @@ describe('SchemaFactory - makeModelSchema with options', () => {
             expect(() => factory.makeModelSchema('User', { omit: { posts: true } as any })).toThrow(
                 'Field "posts" on model "User" is a relation field and cannot be used in "omit"',
             );
+        });
+    });
+
+    // ── optionality ─────────────────────────────────────────────────────────
+    describe('optionality', () => {
+        // optionality: 'all' — every field becomes optional
+        describe("optionality: 'all'", () => {
+            it('accepts an empty object when optionality is all', () => {
+                const schema = factory.makeModelSchema('User', { optionality: 'all' });
+                expect(schema.safeParse({}).success).toBe(true);
+            });
+
+            it('accepts a fully populated object when optionality is all', () => {
+                const schema = factory.makeModelSchema('User', { optionality: 'all' });
+                expect(schema.safeParse(validUser).success).toBe(true);
+            });
+
+            it('rejects extra fields when optionality is all (still strict)', () => {
+                const schema = factory.makeModelSchema('User', { optionality: 'all' });
+                expect(schema.safeParse({ ...validUser, unknownField: 'x' }).success).toBe(false);
+            });
+
+            it('infers all fields as optional when optionality is all', () => {
+                const _schema = factory.makeModelSchema('User', { optionality: 'all' });
+                type Result = z.infer<typeof _schema>;
+                expectTypeOf<Result['id']>().toEqualTypeOf<string | undefined>();
+                expectTypeOf<Result['email']>().toEqualTypeOf<string | undefined>();
+                expectTypeOf<Result['username']>().toEqualTypeOf<string | undefined>();
+                expectTypeOf<Result['active']>().toEqualTypeOf<boolean | undefined>();
+                expectTypeOf<Result['age']>().toEqualTypeOf<number | undefined>();
+            });
+
+            it('still validates field constraints when the field is provided with optionality all', () => {
+                const schema = factory.makeModelSchema('User', { optionality: 'all' });
+                // email constraint still applies when email is provided
+                expect(schema.safeParse({ email: 'not-an-email' }).success).toBe(false);
+                expect(schema.safeParse({ email: 'valid@example.com' }).success).toBe(true);
+                // empty object passes (all optional, null comparisons in @@validate pass through)
+                expect(schema.safeParse({}).success).toBe(true);
+            });
+
+            it('combines optionality all with omit', () => {
+                const schema = factory.makeModelSchema('User', {
+                    omit: { username: true },
+                    optionality: 'all',
+                });
+                // empty object is fine (all optional, username omitted)
+                expect(schema.safeParse({}).success).toBe(true);
+                // username must not be present (strict + omitted)
+                expect(schema.safeParse({ username: 'alice' }).success).toBe(false);
+                // other fields are optional
+                expect(schema.safeParse({ email: 'a@b.com' }).success).toBe(true);
+            });
+
+            it('combines optionality all with select', () => {
+                const schema = factory.makeModelSchema('User', {
+                    select: { id: true, email: true },
+                    optionality: 'all',
+                });
+                // both fields optional → empty passes (no @@validate fields in shape)
+                expect(schema.safeParse({}).success).toBe(true);
+                // non-selected field rejected
+                expect(schema.safeParse({ id: 'u1', username: 'x' }).success).toBe(false);
+                // subset passes
+                expect(schema.safeParse({ id: 'u1' }).success).toBe(true);
+            });
+
+            it('preserves @meta description on fields wrapped by optionality all', () => {
+                const schema = factory.makeModelSchema('User', { optionality: 'all' });
+                expect(schema.shape.email.meta()?.description).toBe("The user's email address");
+            });
+        });
+
+        // optionality: 'defaults' — only fields with @default or @updatedAt become optional
+        describe("optionality: 'defaults'", () => {
+            it('makes fields with @default optional', () => {
+                // Product.discount has @default(0), Product.id has @default(cuid())
+                // finalPrice is computed (no @default) so it must still be provided
+                const schema = factory.makeModelSchema('Product', { optionality: 'defaults' });
+                // omitting id and discount (both have defaults) should pass
+                expect(schema.safeParse({ name: 'Widget', price: 10.0, finalPrice: 8.0 }).success).toBe(true);
+            });
+
+            it('keeps fields without @default required with optionality defaults', () => {
+                const schema = factory.makeModelSchema('Product', { optionality: 'defaults' });
+                // omitting name (no default) should fail
+                expect(schema.safeParse({ price: 10.0, finalPrice: 8.0 }).success).toBe(false);
+                // omitting price (no default) should fail
+                expect(schema.safeParse({ name: 'Widget', finalPrice: 8.0 }).success).toBe(false);
+                // omitting finalPrice (computed, no default) should fail
+                expect(schema.safeParse({ name: 'Widget', price: 10.0 }).success).toBe(false);
+            });
+
+            it('infers fields with @default as optional and others as required', () => {
+                const _schema = factory.makeModelSchema('Product', { optionality: 'defaults' });
+                type Result = z.infer<typeof _schema>;
+                // optionality: 'defaults' is now resolved statically via FieldHasDefault,
+                // which inspects the `default` and `updatedAt` fields on FieldDef.
+                // id has @default(cuid()) → optional
+                expectTypeOf<Result['id']>().toEqualTypeOf<string | undefined>();
+                // discount has @default(0) → optional
+                expectTypeOf<Result['discount']>().toEqualTypeOf<number | undefined>();
+                // name has no default → required (unchanged)
+                expectTypeOf<Result['name']>().toEqualTypeOf<string>();
+                // price has no default → required (unchanged)
+                expectTypeOf<Result['price']>().toEqualTypeOf<number>();
+            });
+
+            it('also makes already-optional (nullable) fields optional with optionality defaults', () => {
+                // User.website is optional: true (nullable optional in the schema)
+                // optionality: 'defaults' should also make it optional in the output
+                const schema = factory.makeModelSchema('User', { optionality: 'defaults' });
+                // website being absent should still pass since it is an optional field
+                const { website: _, ...withoutWebsite } = validUser;
+                expect(schema.safeParse(withoutWebsite).success).toBe(true);
+            });
+
+            it('combines optionality defaults with omit', () => {
+                // omit finalPrice (computed) and apply defaults optionality
+                const schema = factory.makeModelSchema('Product', {
+                    omit: { finalPrice: true },
+                    optionality: 'defaults',
+                });
+                // id and discount have defaults → optional; name and price required
+                expect(schema.safeParse({ name: 'Widget', price: 10.0 }).success).toBe(true);
+                // finalPrice must be absent
+                expect(schema.safeParse({ name: 'Widget', price: 10.0, finalPrice: 8.0 }).success).toBe(false);
+            });
+
+            it('combines optionality defaults with select (only selected fields apply defaults logic)', () => {
+                // select only `id` (has default) and `name` (no default)
+                const schema = factory.makeModelSchema('Product', {
+                    select: { id: true, name: true },
+                    optionality: 'defaults',
+                });
+                // id has default → optional; name has no default → required
+                expect(schema.safeParse({ name: 'Widget' }).success).toBe(true);
+                expect(schema.safeParse({}).success).toBe(false);
+                // non-selected field rejected
+                expect(schema.safeParse({ name: 'Widget', price: 10.0 }).success).toBe(false);
+            });
+
+            it('preserves @meta description on fields wrapped by optionality defaults', () => {
+                // id has @default, so it gets wrapped; email has no @default but has @meta
+                const schema = factory.makeModelSchema('User', { optionality: 'defaults' });
+                expect(schema.shape.email.meta()?.description).toBe("The user's email address");
+            });
+        });
+
+        // Additional type-level assertions for optionality: 'all'
+        describe("optionality: 'all' — type inference", () => {
+            it('infers all scalar fields as optional (including already-optional)', () => {
+                const _schema = factory.makeModelSchema('User', { optionality: 'all' });
+                type Result = z.infer<typeof _schema>;
+                expectTypeOf<Result['email']>().toEqualTypeOf<string | undefined>();
+                expectTypeOf<Result['username']>().toEqualTypeOf<string | undefined>();
+                expectTypeOf<Result['age']>().toEqualTypeOf<number | undefined>();
+                // already-optional nullable field
+                expectTypeOf<Result['website']>().toEqualTypeOf<string | null | undefined>();
+            });
+
+            it('infers omitted field absent even with optionality all', () => {
+                const _schema = factory.makeModelSchema('User', {
+                    omit: { username: true },
+                    optionality: 'all',
+                });
+                type Result = z.infer<typeof _schema>;
+                expectTypeOf<Result>().not.toHaveProperty('username');
+                expectTypeOf<Result['email']>().toEqualTypeOf<string | undefined>();
+            });
+
+            it('infers selected fields as optional when optionality is all', () => {
+                const _schema = factory.makeModelSchema('User', {
+                    select: { id: true, email: true },
+                    optionality: 'all',
+                });
+                type Result = z.infer<typeof _schema>;
+                expectTypeOf<Result['id']>().toEqualTypeOf<string | undefined>();
+                expectTypeOf<Result['email']>().toEqualTypeOf<string | undefined>();
+                expectTypeOf<Result>().not.toHaveProperty('username');
+            });
+        });
+
+        // Additional cases for optionality: 'defaults' with User model
+        describe("optionality: 'defaults' — User model", () => {
+            it('makes @default(cuid) id field optional on User', () => {
+                const schema = factory.makeModelSchema('User', { optionality: 'defaults' });
+                const { id: _, ...withoutId } = validUser;
+                expect(schema.safeParse(withoutId).success).toBe(true);
+            });
+
+            it('keeps non-default fields required on User', () => {
+                const schema = factory.makeModelSchema('User', { optionality: 'defaults' });
+                const { email: _, ...withoutEmail } = validUser;
+                expect(schema.safeParse(withoutEmail).success).toBe(false);
+            });
+
+            it('still accepts the full valid User object', () => {
+                const schema = factory.makeModelSchema('User', { optionality: 'defaults' });
+                expect(schema.safeParse(validUser).success).toBe(true);
+            });
+
+            it('makes @default(autoincrement) and @default(now) fields optional on Asset', () => {
+                const schema = factory.makeModelSchema('Asset', { optionality: 'defaults' });
+                // assetType has no default — must be provided
+                expect(schema.safeParse({ assetType: 'Video' }).success).toBe(true);
+                // omitting assetType fails
+                expect(schema.safeParse({}).success).toBe(false);
+            });
+        });
+
+        // makeModelCreateSchema / makeModelUpdateSchema
+        describe('makeModelCreateSchema and makeModelUpdateSchema', () => {
+            it('makeModelCreateSchema makes @default fields optional', () => {
+                const createSchema = factory.makeModelCreateSchema('User');
+                const { id: _, ...withoutId } = validUser;
+                expect(createSchema.safeParse(withoutId).success).toBe(true);
+            });
+
+            it('makeModelUpdateSchema makes all fields optional', () => {
+                const updateSchema = factory.makeModelUpdateSchema('User');
+                expect(updateSchema.safeParse({}).success).toBe(true);
+                expect(updateSchema.safeParse({ email: 'a@b.com' }).success).toBe(true);
+            });
+
+            it('makeModelUpdateSchema still validates constraints when field is provided', () => {
+                const updateSchema = factory.makeModelUpdateSchema('User');
+                expect(updateSchema.safeParse({ email: 'not-an-email' }).success).toBe(false);
+                expect(updateSchema.safeParse({ email: 'valid@example.com' }).success).toBe(true);
+            });
+
+            it('makeModelUpdateSchema preserves @meta description on fields', () => {
+                const updateSchema = factory.makeModelUpdateSchema('User');
+                expect(updateSchema.shape.email.meta()?.description).toBe("The user's email address");
+            });
+
+            it('makeModelCreateSchema preserves @meta description on fields', () => {
+                const createSchema = factory.makeModelCreateSchema('User');
+                expect(createSchema.shape.email.meta()?.description).toBe("The user's email address");
+            });
         });
     });
 

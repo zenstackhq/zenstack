@@ -387,8 +387,20 @@ function evalExpression(data: any, expr: Expression): unknown {
     }
 }
 
+/**
+ * Sentinel value returned by `evalField` when a field key is entirely absent
+ * from the data object (as opposed to being present with a `null` value).
+ * Used by comparison operators to skip @@validate rules against missing
+ * optional fields (e.g. when `optionality: 'all'` produces a partial payload).
+ */
+const ABSENT = Symbol('absent');
+
 function evalField(data: any, e: FieldExpression) {
-    return data?.[e.field] ?? null;
+    if (data == null || !(e.field in data)) {
+        return ABSENT;
+    }
+    // Coerce undefined to null so downstream code only needs to handle null.
+    return data[e.field] ?? null;
 }
 
 function evalUnary(data: any, expr: UnaryExpression) {
@@ -410,17 +422,28 @@ function evalBinary(data: any, expr: BinaryExpression) {
         case '||':
             return Boolean(left) || Boolean(right);
         case '==':
-            return left == right;
+            // Treat ABSENT the same as null for equality checks — an absent
+            // optional field and an explicit null are semantically equivalent.
+            return (left === ABSENT ? null : left) == (right === ABSENT ? null : right);
         case '!=':
-            return left != right;
+            return (left === ABSENT ? null : left) != (right === ABSENT ? null : right);
         case '<':
-            return (left as any) < (right as any);
         case '<=':
-            return (left as any) <= (right as any);
         case '>':
-            return (left as any) > (right as any);
         case '>=':
-            return (left as any) >= (right as any);
+            // If either operand is the ABSENT sentinel (field not present in the
+            // partial payload), skip the comparison by returning true so that
+            // @@validate rules are not incorrectly triggered against missing
+            // optional fields (e.g. when optionality: 'all' produces a partial
+            // object or a field is omitted/not-selected).
+            if (left === ABSENT || right === ABSENT) return true;
+            return expr.op === '<'
+                ? (left as any) < (right as any)
+                : expr.op === '<='
+                  ? (left as any) <= (right as any)
+                  : expr.op === '>'
+                    ? (left as any) > (right as any)
+                    : (left as any) >= (right as any);
         case '?':
             if (!Array.isArray(left)) {
                 return false;
@@ -464,7 +487,7 @@ function evalCall(data: any, expr: CallExpression) {
     switch (f) {
         // string functions
         case 'length': {
-            if (fieldArg === undefined || fieldArg === null) {
+            if (fieldArg === undefined || fieldArg === null || fieldArg === ABSENT) {
                 return false;
             }
             invariant(
@@ -476,7 +499,7 @@ function evalCall(data: any, expr: CallExpression) {
         case 'startsWith':
         case 'endsWith':
         case 'contains': {
-            if (fieldArg === undefined || fieldArg === null) {
+            if (fieldArg === undefined || fieldArg === null || fieldArg === ABSENT) {
                 return false;
             }
             invariant(typeof fieldArg === 'string', `"${f}" first argument must be a string`);
@@ -500,7 +523,7 @@ function evalCall(data: any, expr: CallExpression) {
                 : applyStringOp(fieldArg, search);
         }
         case 'regex': {
-            if (fieldArg === undefined || fieldArg === null) {
+            if (fieldArg === undefined || fieldArg === null || fieldArg === ABSENT) {
                 return false;
             }
             invariant(typeof fieldArg === 'string', `"${f}" first argument must be a string`);
@@ -511,7 +534,7 @@ function evalCall(data: any, expr: CallExpression) {
         case 'isEmail':
         case 'isUrl':
         case 'isDateTime': {
-            if (fieldArg === undefined || fieldArg === null) {
+            if (fieldArg === undefined || fieldArg === null || fieldArg === ABSENT) {
                 return false;
             }
             invariant(typeof fieldArg === 'string', `"${f}" first argument must be a string`);
@@ -523,7 +546,7 @@ function evalCall(data: any, expr: CallExpression) {
         case 'hasEvery':
         case 'hasSome': {
             invariant(expr.args?.[1], `${f} requires a search argument`);
-            if (fieldArg === undefined || fieldArg === null) {
+            if (fieldArg === undefined || fieldArg === null || fieldArg === ABSENT) {
                 return false;
             }
             invariant(Array.isArray(fieldArg), `"${f}" first argument must be an array field`);
@@ -540,7 +563,7 @@ function evalCall(data: any, expr: CallExpression) {
             }
         }
         case 'isEmpty': {
-            if (fieldArg === undefined || fieldArg === null) {
+            if (fieldArg === undefined || fieldArg === null || fieldArg === ABSENT) {
                 return false;
             }
             invariant(Array.isArray(fieldArg), `"${f}" first argument must be an array field`);
