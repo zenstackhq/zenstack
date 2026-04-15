@@ -355,14 +355,17 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             field,
             joinAlias,
         );
-        const filterResultField = tmpAlias(`${field}$flt`);
-
-        const joinSelect = this.eb
+        const baseJoin = this.eb
             .selectFrom(`${fieldDef.type} as ${joinAlias}`)
+            .select(this.eb.lit(1).as('_'))
             .where(() =>
                 this.and(...joinPairs.map(([left, right]) => this.eb(this.eb.ref(left), '=', this.eb.ref(right)))),
-            )
-            .select(() => this.eb.fn.count(this.eb.lit(1)).as(filterResultField));
+            );
+
+        const existsSelect = (extraFilter?: () => Expression<SqlBool>) => {
+            const q = extraFilter ? baseJoin.where(extraFilter) : baseJoin;
+            return this.buildExistsExpression(q);
+        };
 
         const conditions: Expression<SqlBool>[] = [];
 
@@ -370,46 +373,30 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             if ('is' in payload) {
                 if (payload.is === null) {
                     // check if not found
-                    conditions.push(this.eb(joinSelect, '=', 0));
+                    conditions.push(this.eb.not(existsSelect()));
                 } else {
-                    // check if found
-                    conditions.push(
-                        this.eb(
-                            joinSelect.where(() => this.buildFilter(fieldDef.type, joinAlias, payload.is)),
-                            '>',
-                            0,
-                        ),
-                    );
+                    // check if found that matches the filter
+                    conditions.push(existsSelect(() => this.buildFilter(fieldDef.type, joinAlias, payload.is)));
                 }
             }
 
             if ('isNot' in payload) {
                 if (payload.isNot === null) {
                     // check if found
-                    conditions.push(this.eb(joinSelect, '>', 0));
+                    conditions.push(existsSelect());
                 } else {
                     conditions.push(
                         this.or(
-                            // is null
-                            this.eb(joinSelect, '=', 0),
-                            // found one that matches the filter
-                            this.eb(
-                                joinSelect.where(() => this.buildFilter(fieldDef.type, joinAlias, payload.isNot)),
-                                '=',
-                                0,
-                            ),
+                            // no related row
+                            this.eb.not(existsSelect()),
+                            // related row exists but doesn't match the filter
+                            this.eb.not(existsSelect(() => this.buildFilter(fieldDef.type, joinAlias, payload.isNot))),
                         ),
                     );
                 }
             }
         } else {
-            conditions.push(
-                this.eb(
-                    joinSelect.where(() => this.buildFilter(fieldDef.type, joinAlias, payload)),
-                    '>',
-                    0,
-                ),
-            );
+            conditions.push(existsSelect(() => this.buildFilter(fieldDef.type, joinAlias, payload)));
         }
 
         return this.and(...conditions);
