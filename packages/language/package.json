@@ -19,8 +19,8 @@
         "res"
     ],
     "scripts": {
-        "build": "pnpm langium:generate && tsc --noEmit && tsup-node",
-        "watch": "tsup-node --watch",
+        "build": "pnpm langium:generate && tsx scripts/patch-generated-ast.ts && tsc --noEmit && tsdown",
+        "watch": "tsdown --watch",
         "lint": "eslint src --ext ts",
         "test": "vitest run",
         "langium:generate": "langium generate",
@@ -30,8 +30,8 @@
     "exports": {
         ".": {
             "import": {
-                "types": "./dist/index.d.ts",
-                "default": "./dist/index.js"
+                "types": "./dist/index.d.mts",
+                "default": "./dist/index.mjs"
             },
             "require": {
                 "types": "./dist/index.d.cts",
@@ -40,8 +40,8 @@
         },
         "./ast": {
             "import": {
-                "types": "./dist/ast.d.ts",
-                "default": "./dist/ast.js"
+                "types": "./dist/ast.d.mts",
+                "default": "./dist/ast.mjs"
             },
             "require": {
                 "types": "./dist/ast.d.cts",
@@ -50,8 +50,8 @@
         },
         "./utils": {
             "import": {
-                "types": "./dist/utils.d.ts",
-                "default": "./dist/utils.js"
+                "types": "./dist/utils.d.mts",
+                "default": "./dist/utils.mjs"
             },
             "require": {
                 "types": "./dist/utils.d.cts",
@@ -60,8 +60,8 @@
         },
         "./factory": {
             "import": {
-                "types": "./dist/factory.d.ts",
-                "default": "./dist/factory.js"
+                "types": "./dist/factory.d.mts",
+                "default": "./dist/factory.mjs"
             },
             "require": {
                 "types": "./dist/factory.d.cts",
@@ -84,6 +84,7 @@
         "@types/pluralize": "^0.0.33",
         "@types/tmp": "catalog:",
         "@zenstackhq/eslint-config": "workspace:*",
+        "@zenstackhq/tsdown-config": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*",
         "@zenstackhq/vitest-config": "workspace:*",
         "glob": "^11.1.0",

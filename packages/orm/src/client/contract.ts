@@ -6,7 +6,7 @@ import {
     type RelationFields,
     type RelationFieldType,
     type SchemaDef,
-} from '../schema';
+} from '@zenstackhq/schema';
 import type { AnyKysely } from '../utils/kysely-utils';
 import type { Simplify, UnwrapTuplePromises } from '../utils/type-utils';
 import type { TRANSACTION_UNSUPPORTED_METHODS } from './constants';

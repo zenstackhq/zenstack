@@ -15,8 +15,8 @@
     },
     "license": "MIT",
     "scripts": {
-        "build": "tsc --noEmit && tsup-node",
-        "watch": "tsup-node --watch",
+        "build": "tsc --noEmit && tsdown",
+        "watch": "tsdown --watch",
         "lint": "eslint src --ext ts",
         "test": "vitest run",
         "pack": "pnpm pack"
@@ -31,8 +31,8 @@
     "exports": {
         ".": {
             "import": {
-                "types": "./dist/index.d.ts",
-                "default": "./dist/index.js"
+                "types": "./dist/index.d.mts",
+                "default": "./dist/index.mjs"
             },
             "require": {
                 "types": "./dist/index.d.cts",
@@ -55,15 +55,16 @@
         "better-auth": "^1.3.0"
     },
     "devDependencies": {
-        "@better-auth/core": "1.4.19",
-        "better-auth": "1.4.19",
         "@better-auth/cli": "1.4.19",
-        "kysely": "catalog:",
+        "@better-auth/core": "1.4.19",
         "@types/tmp": "catalog:",
         "@zenstackhq/cli": "workspace:*",
         "@zenstackhq/eslint-config": "workspace:*",
+        "@zenstackhq/tsdown-config": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*",
         "@zenstackhq/vitest-config": "workspace:*",
+        "better-auth": "1.4.19",
+        "kysely": "catalog:",
         "tmp": "catalog:"
     },
     "funding": "https://github.com/sponsors/zenstackhq"

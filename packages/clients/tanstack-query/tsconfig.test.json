@@ -2,7 +2,7 @@
     "extends": "@zenstackhq/typescript-config/base.json",
     "include": ["src/**/*.ts", "test/**/*.ts", "test/**/*.tsx"],
     "compilerOptions": {
-        "lib": ["ESNext"],
+        "lib": ["ESNext", "DOM"],
         "jsx": "react"
     }
 }

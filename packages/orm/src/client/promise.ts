@@ -1,4 +1,4 @@
-import type { SchemaDef } from '../schema';
+import type { SchemaDef } from '@zenstackhq/schema';
 import type { ClientContract } from './contract';
 
 /**

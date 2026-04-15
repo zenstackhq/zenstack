@@ -15,8 +15,8 @@
     },
     "license": "MIT",
     "scripts": {
-        "build": "tsc --noEmit && tsup-node",
-        "watch": "tsup-node --watch",
+        "build": "tsc --noEmit && tsdown",
+        "watch": "tsdown --watch",
         "lint": "eslint src --ext ts",
         "pack": "pnpm pack"
     },
@@ -27,8 +27,8 @@
     "exports": {
         ".": {
             "import": {
-                "types": "./dist/index.d.ts",
-                "default": "./dist/index.js"
+                "types": "./dist/index.d.mts",
+                "default": "./dist/index.mjs"
             },
             "require": {
                 "types": "./dist/index.d.cts",
@@ -37,8 +37,8 @@
         },
         "./schema": {
             "import": {
-                "types": "./dist/schema.d.ts",
-                "default": "./dist/schema.js"
+                "types": "./dist/schema.d.mts",
+                "default": "./dist/schema.mjs"
             },
             "require": {
                 "types": "./dist/schema.d.cts",
@@ -47,8 +47,8 @@
         },
         "./dialects/sqlite": {
             "import": {
-                "types": "./dist/dialects/sqlite.d.ts",
-                "default": "./dist/dialects/sqlite.js"
+                "types": "./dist/dialects/sqlite.d.mts",
+                "default": "./dist/dialects/sqlite.mjs"
             },
             "require": {
                 "types": "./dist/dialects/sqlite.d.cts",
@@ -57,8 +57,8 @@
         },
         "./dialects/postgres": {
             "import": {
-                "types": "./dist/dialects/postgres.d.ts",
-                "default": "./dist/dialects/postgres.js"
+                "types": "./dist/dialects/postgres.d.mts",
+                "default": "./dist/dialects/postgres.mjs"
             },
             "require": {
                 "types": "./dist/dialects/postgres.d.cts",
@@ -67,8 +67,8 @@
         },
         "./dialects/mysql": {
             "import": {
-                "types": "./dist/dialects/mysql.d.ts",
-                "default": "./dist/dialects/mysql.js"
+                "types": "./dist/dialects/mysql.d.mts",
+                "default": "./dist/dialects/mysql.mjs"
             },
             "require": {
                 "types": "./dist/dialects/mysql.d.cts",
@@ -77,8 +77,8 @@
         },
         "./dialects/sql.js": {
             "import": {
-                "types": "./dist/dialects/sql.js.d.ts",
-                "default": "./dist/dialects/sql.js.js"
+                "types": "./dist/dialects/sql.js.d.mts",
+                "default": "./dist/dialects/sql.js.mjs"
             },
             "require": {
                 "types": "./dist/dialects/sql.js.d.cts",
@@ -87,8 +87,8 @@
         },
         "./helpers": {
             "import": {
-                "types": "./dist/helpers.d.ts",
-                "default": "./dist/helpers.js"
+                "types": "./dist/helpers.d.mts",
+                "default": "./dist/helpers.mjs"
             },
             "require": {
                 "types": "./dist/helpers.d.cts",
@@ -144,6 +144,7 @@
         "@types/sql.js": "^1.4.9",
         "@types/toposort": "^2.0.7",
         "@zenstackhq/eslint-config": "workspace:*",
+        "@zenstackhq/tsdown-config": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*",
         "@zenstackhq/vitest-config": "workspace:*",
         "tsx": "^4.19.2",

@@ -1,6 +1,6 @@
-import { defineConfig } from 'tsup';
+import { createConfig } from '@zenstackhq/tsdown-config';
 
-export default defineConfig({
+export default createConfig({
     entry: {
         api: 'src/api/index.ts',
         express: 'src/adapter/express/index.ts',
@@ -12,10 +12,4 @@ export default defineConfig({
         sveltekit: 'src/adapter/sveltekit/index.ts',
         'tanstack-start': 'src/adapter/tanstack-start/index.ts',
     },
-    outDir: 'dist',
-    splitting: false,
-    sourcemap: true,
-    clean: true,
-    dts: true,
-    format: ['cjs', 'esm'],
 });

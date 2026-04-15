@@ -1,7 +1,7 @@
 import { invariant } from '@zenstackhq/common-helpers';
+import { type GetModels, type ProcedureDef, type SchemaDef } from '@zenstackhq/schema';
 import { match } from 'ts-pattern';
 import { ZodType } from 'zod';
-import { type GetModels, type ProcedureDef, type SchemaDef } from '../../../schema';
 import { formatError } from '../../../utils/zod-utils';
 import type { ClientContract } from '../../contract';
 import {

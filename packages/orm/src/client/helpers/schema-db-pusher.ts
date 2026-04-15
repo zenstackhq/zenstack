@@ -1,7 +1,4 @@
 import { invariant } from '@zenstackhq/common-helpers';
-import { CreateTableBuilder, sql, type ColumnDataType, type OnModifyForeignAction, type RawBuilder } from 'kysely';
-import toposort from 'toposort';
-import { match } from 'ts-pattern';
 import {
     ExpressionUtils,
     type BuiltinType,
@@ -10,7 +7,10 @@ import {
     type FieldDef,
     type ModelDef,
     type SchemaDef,
-} from '../../schema';
+} from '@zenstackhq/schema';
+import { CreateTableBuilder, sql, type ColumnDataType, type OnModifyForeignAction, type RawBuilder } from 'kysely';
+import toposort from 'toposort';
+import { match } from 'ts-pattern';
 import type { ToKysely } from '../query-builder';
 import { isUnsupportedField, requireModel } from '../query-utils';
 

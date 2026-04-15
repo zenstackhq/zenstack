@@ -1,5 +1,5 @@
 import { lowerCaseFirst, upperCaseFirst } from '@zenstackhq/common-helpers';
-import { CoreCrudOperations, createQuerySchemaFactory, ZodSchemaFactory } from '@zenstackhq/orm';
+import { CoreCrudOperations, createQuerySchemaFactory, type ZodSchemaFactory } from '@zenstackhq/orm';
 import type { BuiltinType, ModelDef, ProcedureDef, SchemaDef, TypeDefDef } from '@zenstackhq/orm/schema';
 import type { OpenAPIV3_1 } from 'openapi-types';
 import type { RPCApiHandlerOptions } from '.';

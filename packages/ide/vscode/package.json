@@ -10,8 +10,8 @@
         "url": "https://github.com/zenstackhq/zenstack"
     },
     "scripts": {
-        "build": "tsc --noEmit && tsup && tsx scripts/post-build.ts",
-        "watch": "tsup --watch",
+        "build": "tsc --noEmit && tsdown && tsx scripts/post-build.ts",
+        "watch": "tsdown --watch",
         "lint": "eslint src --ext ts",
         "vscode:publish": "pnpm build && vsce publish --no-dependencies --follow-symlinks",
         "vscode:package": "pnpm build && vsce package --no-dependencies --follow-symlinks"
@@ -43,6 +43,7 @@
     "devDependencies": {
         "@types/vscode": "^1.90.0",
         "@zenstackhq/eslint-config": "workspace:*",
+        "@zenstackhq/tsdown-config": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*",
         "dotenv": "^17.2.3"
     },
@@ -151,5 +152,5 @@
     "activationEvents": [
         "onLanguage:zmodel-v3"
     ],
-    "main": "./dist/extension.js"
+    "main": "./dist/extension.cjs"
 }

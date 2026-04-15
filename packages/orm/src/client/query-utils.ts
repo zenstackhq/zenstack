@@ -1,4 +1,5 @@
 import { invariant } from '@zenstackhq/common-helpers';
+import { ExpressionUtils, type FieldDef, type GetModels, type ModelDef, type SchemaDef } from '@zenstackhq/schema';
 import {
     AliasNode,
     ColumnNode,
@@ -9,7 +10,6 @@ import {
     type OperationNode,
 } from 'kysely';
 import { match } from 'ts-pattern';
-import { ExpressionUtils, type FieldDef, type GetModels, type ModelDef, type SchemaDef } from '../schema';
 import { extractFields } from '../utils/object-utils';
 import type { AggregateOperators } from './constants';
 import { createInternalError } from './errors';

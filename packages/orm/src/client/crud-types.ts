@@ -34,7 +34,7 @@ import type {
     TypeDefFieldIsArray,
     TypeDefFieldIsOptional,
     UpdatedAtInfo,
-} from '../schema';
+} from '@zenstackhq/schema';
 import type {
     AtLeast,
     MapBaseType,
@@ -116,13 +116,14 @@ type OptionsLevelOmit<
     Model extends GetModels<Schema>,
     Field extends GetModelFields<Schema, Model>,
     Options extends QueryOptions<Schema>,
-> = Uncapitalize<Model> extends keyof Options['omit']
-    ? Field extends keyof Options['omit'][Uncapitalize<Model>]
-        ? Options['omit'][Uncapitalize<Model>][Field] extends boolean
-            ? Options['omit'][Uncapitalize<Model>][Field]
+> =
+    Uncapitalize<Model> extends keyof Options['omit']
+        ? Field extends keyof Options['omit'][Uncapitalize<Model>]
+            ? Options['omit'][Uncapitalize<Model>][Field] extends boolean
+                ? Options['omit'][Uncapitalize<Model>][Field]
+                : undefined
             : undefined
-        : undefined
-    : undefined;
+        : undefined;
 
 type SchemaLevelOmit<
     Schema extends SchemaDef,
@@ -159,25 +160,18 @@ type DelegateUnionResult<
     Depth extends readonly 0[] = [],
 > = Depth['length'] extends 10 // hard stop so generic SchemaDef never infinite-loops
     ? SubModel extends string
-        ? FlatModelResult<Schema, SubModel, Omit, Options> &
-              { [K in GetModelDiscriminator<Schema, Model>]: SubModel }
+        ? FlatModelResult<Schema, SubModel, Omit, Options> & { [K in GetModelDiscriminator<Schema, Model>]: SubModel }
         : never
     : SubModel extends string // typescript union distribution
       ? IsDelegateModel<Schema, SubModel> extends true
-            ? // sub-model is itself a delegate — recurse into its own sub-models so all
-              // concrete leaf types appear in the union, each picking up the accumulated
-              // discriminator overrides from both levels
-              DelegateUnionResult<
-                  Schema,
-                  SubModel,
-                  Options,
-                  GetSubModels<Schema, SubModel>,
-                  Omit,
-                  [...Depth, 0]
-              > & { [K in GetModelDiscriminator<Schema, Model>]: SubModel }
-            : // leaf model — produce a flat scalar result and fix the discriminator
-              FlatModelResult<Schema, SubModel, Omit, Options> &
-                  { [K in GetModelDiscriminator<Schema, Model>]: SubModel }
+          ? // sub-model is itself a delegate — recurse into its own sub-models so all
+            // concrete leaf types appear in the union, each picking up the accumulated
+            // discriminator overrides from both levels
+            DelegateUnionResult<Schema, SubModel, Options, GetSubModels<Schema, SubModel>, Omit, [...Depth, 0]> & {
+                [K in GetModelDiscriminator<Schema, Model>]: SubModel;
+            }
+          : // leaf model — produce a flat scalar result and fix the discriminator
+            FlatModelResult<Schema, SubModel, Omit, Options> & { [K in GetModelDiscriminator<Schema, Model>]: SubModel }
       : never;
 
 type ModelSelectResult<

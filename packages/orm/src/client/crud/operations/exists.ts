@@ -1,4 +1,4 @@
-import type { SchemaDef } from '../../../schema';
+import type { SchemaDef } from '@zenstackhq/schema';
 import { BaseOperationHandler } from './base';
 
 export class ExistsOperationHandler<Schema extends SchemaDef> extends BaseOperationHandler<Schema> {

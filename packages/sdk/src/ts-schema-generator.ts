@@ -740,7 +740,7 @@ export class TsSchemaGenerator {
         const origin = field.$container;
         return getAttribute(origin, '@@delegate')?.args.some(
             (arg) =>
-                arg.$resolvedParam.name === 'discriminator' &&
+                arg.$resolvedParam?.name === 'discriminator' &&
                 isDataFieldReference(arg.value) &&
                 arg.value.target.ref === field,
         );
@@ -867,7 +867,7 @@ export class TsSchemaGenerator {
         const fkFields: string[] = [];
         if (relation) {
             for (const arg of relation.args) {
-                const param = arg.$resolvedParam.name;
+                const param = arg.$resolvedParam?.name;
                 if (param === 'fields' || param === 'references') {
                     const fieldNames = this.getReferenceNames(arg.value);
                     if (fieldNames) {
@@ -962,7 +962,7 @@ export class TsSchemaGenerator {
     private getRelationName(field: DataField) {
         const relation = getAttribute(field, '@relation');
         if (relation) {
-            const nameArg = relation.args.find((arg) => arg.$resolvedParam.name === 'name');
+            const nameArg = relation.args.find((arg) => arg.$resolvedParam?.name === 'name');
             if (nameArg) {
                 invariant(isLiteralExpr(nameArg.value), 'name must be a literal');
                 return nameArg.value.value as string;
@@ -1051,7 +1051,7 @@ export class TsSchemaGenerator {
     }
 
     private getCompoundUniqueKey(attr: DataModelAttribute, fieldNames: string[]) {
-        const nameArg = attr.args.find((arg) => arg.$resolvedParam.name === 'name');
+        const nameArg = attr.args.find((arg) => arg.$resolvedParam?.name === 'name');
         if (nameArg && isLiteralExpr(nameArg.value)) {
             return nameArg.value.value as string;
         } else {

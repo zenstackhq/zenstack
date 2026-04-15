@@ -1,5 +1,7 @@
 import { createId as cuid2 } from '@paralleldrive/cuid2';
 import { clone, enumerate, invariant, isPlainObject } from '@zenstackhq/common-helpers';
+import type { BuiltinType, Expression, FieldDef } from '@zenstackhq/schema';
+import { ExpressionUtils, type GetModels, type ModelDef, type SchemaDef } from '@zenstackhq/schema';
 import { default as cuid1 } from 'cuid';
 import {
     createQueryId,
@@ -15,8 +17,6 @@ import { nanoid } from 'nanoid';
 import { match } from 'ts-pattern';
 import { ulid } from 'ulid';
 import * as uuid from 'uuid';
-import type { BuiltinType, Expression, FieldDef } from '../../../schema';
-import { ExpressionUtils, type GetModels, type ModelDef, type SchemaDef } from '../../../schema';
 import type { AnyKysely } from '../../../utils/kysely-utils';
 import { extractFields, fieldsToSelectObject, isEmptyObject } from '../../../utils/object-utils';
 import { NUMERIC_FIELD_TYPES } from '../../constants';

@@ -1,3 +1,4 @@
 {
-    "vitest.maximumConfigs": 20
+    "vitest.maximumConfigs": 20,
+    "js/ts.tsdk.path": "node_modules/typescript/lib"
 }

@@ -11,7 +11,7 @@ import type {
     NullExpression,
     ThisExpression,
     UnaryExpression,
-} from '../schema';
+} from '@zenstackhq/schema';
 
 export type VisitResult = void | { abort: true };
 
