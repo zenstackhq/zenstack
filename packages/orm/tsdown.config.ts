@@ -1,6 +1,6 @@
-import { defineConfig } from 'tsup';
+import { createConfig } from '@zenstackhq/tsdown-config';
 
-export default defineConfig({
+export default createConfig({
     entry: {
         index: 'src/index.ts',
         schema: 'src/schema.ts',
@@ -10,10 +10,4 @@ export default defineConfig({
         'dialects/mysql': 'src/dialects/mysql.ts',
         'dialects/sql.js': 'src/dialects/sql.js/index.ts',
     },
-    outDir: 'dist',
-    splitting: false,
-    sourcemap: true,
-    clean: true,
-    dts: true,
-    format: ['cjs', 'esm'],
 });

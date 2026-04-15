@@ -1,5 +1,5 @@
+import type { SchemaDef } from '@zenstackhq/schema';
 import { match } from 'ts-pattern';
-import type { SchemaDef } from '../../../schema';
 import { createNotFoundError, createRejectedByPolicyError, RejectedByPolicyReason } from '../../errors';
 import { BaseOperationHandler } from './base';
 

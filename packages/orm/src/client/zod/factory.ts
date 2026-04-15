@@ -1,16 +1,16 @@
 import { enumerate, invariant, lowerCaseFirst, upperCaseFirst } from '@zenstackhq/common-helpers';
-import { ZodUtils } from '@zenstackhq/zod';
-import Decimal from 'decimal.js';
-import { match, P } from 'ts-pattern';
-import { z, ZodObject, ZodType } from 'zod';
-import { AnyNullClass, DbNullClass, JsonNullClass } from '../../common-types';
 import {
     type AttributeApplication,
     type BuiltinType,
     type FieldDef,
     type GetModels,
     type SchemaDef,
-} from '../../schema';
+} from '@zenstackhq/schema';
+import { ZodUtils } from '@zenstackhq/zod';
+import Decimal from 'decimal.js';
+import { match, P } from 'ts-pattern';
+import { z, ZodObject, ZodType } from 'zod';
+import { AnyNullClass, DbNullClass, JsonNullClass } from '../../common-types';
 import { extractFields } from '../../utils/object-utils';
 import { AggregateOperators, FILTER_PROPERTY_TO_KIND, LOGICAL_COMBINATORS, NUMERIC_FIELD_TYPES } from '../constants';
 import type { ClientContract } from '../contract';

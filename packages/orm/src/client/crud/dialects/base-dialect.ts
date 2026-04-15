@@ -1,9 +1,9 @@
 import { enumerate, invariant, isPlainObject, lowerCaseFirst } from '@zenstackhq/common-helpers';
+import type { BuiltinType, DataSourceProviderType, FieldDef, GetModels, ModelDef, SchemaDef } from '@zenstackhq/schema';
 import type { AliasableExpression, Expression, ExpressionBuilder, ExpressionWrapper, SqlBool, ValueNode } from 'kysely';
 import { expressionBuilder, sql, type SelectQueryBuilder } from 'kysely';
 import { match, P } from 'ts-pattern';
 import { AnyNullClass, DbNullClass, JsonNullClass } from '../../../common-types';
-import type { BuiltinType, DataSourceProviderType, FieldDef, GetModels, ModelDef, SchemaDef } from '../../../schema';
 import type { OrArray } from '../../../utils/type-utils';
 import { AggregateOperators, DELEGATE_JOINED_FIELD_PREFIX, LOGICAL_COMBINATORS } from '../../constants';
 import type {

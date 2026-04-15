@@ -6,7 +6,7 @@
     "configurations": [
         {
             "name": "Debug CLI",
-            "program": "${workspaceFolder}/packages/cli/dist/index.js",
+            "program": "${workspaceFolder}/packages/cli/dist/index.mjs",
             "request": "launch",
             "skipFiles": ["<node_internals>/**"],
             "type": "node",

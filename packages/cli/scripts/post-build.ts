@@ -8,7 +8,7 @@ if (!token) {
     console.warn('TELEMETRY_TRACKING_TOKEN is not set.');
 }
 
-const filesToProcess = ['dist/index.js', 'dist/index.cjs'];
+const filesToProcess = ['dist/index.mjs', 'dist/index.cjs'];
 const _dirname = path.dirname(fileURLToPath(import.meta.url));
 
 for (const file of filesToProcess) {

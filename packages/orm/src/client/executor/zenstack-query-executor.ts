@@ -1,4 +1,5 @@
 import { invariant } from '@zenstackhq/common-helpers';
+import type { ModelDef, SchemaDef, TypeDefDef } from '@zenstackhq/schema';
 import type { QueryId } from 'kysely';
 import {
     AndNode,
@@ -30,7 +31,6 @@ import {
     type RootOperationNode,
 } from 'kysely';
 import { match } from 'ts-pattern';
-import type { ModelDef, SchemaDef, TypeDefDef } from '../../schema';
 import type { ClientImpl } from '../client-impl';
 import { TransactionIsolationLevel, type ClientContract } from '../contract';
 import { getCrudDialect } from '../crud/dialects';

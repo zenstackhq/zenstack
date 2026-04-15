@@ -1,7 +1,7 @@
 import type { OperationNode, QueryId, QueryResult, RootOperationNode, UnknownRow } from 'kysely';
 import type { ZodType } from 'zod';
 import type { ClientContract, ZModelFunction } from '.';
-import type { GetModelFields, GetModels, NonRelationFields, SchemaDef } from '../schema';
+import type { GetModelFields, GetModels, NonRelationFields, SchemaDef } from '@zenstackhq/schema';
 import type { MaybePromise } from '../utils/type-utils';
 import type { MapModelFieldType } from './crud-types';
 import type { AllCrudOperations, CoreCrudOperations } from './crud/operations/base';

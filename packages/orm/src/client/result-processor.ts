@@ -1,4 +1,4 @@
-import type { BuiltinType, FieldDef, GetModels, SchemaDef } from '../schema';
+import type { BuiltinType, FieldDef, GetModels, SchemaDef } from '@zenstackhq/schema';
 import { DELEGATE_JOINED_FIELD_PREFIX } from './constants';
 import { getCrudDialect } from './crud/dialects';
 import type { BaseCrudDialect } from './crud/dialects/base-dialect';

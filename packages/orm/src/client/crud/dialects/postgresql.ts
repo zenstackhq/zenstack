@@ -1,4 +1,5 @@
 import { invariant } from '@zenstackhq/common-helpers';
+import type { BuiltinType, FieldDef, SchemaDef } from '@zenstackhq/schema';
 import Decimal from 'decimal.js';
 import {
     expressionBuilder,
@@ -10,7 +11,6 @@ import {
 } from 'kysely';
 import { parse as parsePostgresArray } from 'postgres-array';
 import { AnyNullClass, DbNullClass, JsonNullClass } from '../../../common-types';
-import type { BuiltinType, FieldDef, SchemaDef } from '../../../schema';
 import type { NullsOrder, SortOrder } from '../../crud-types';
 import { createInvalidInputError } from '../../errors';
 import type { ClientOptions } from '../../options';
@@ -342,7 +342,10 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         const MAX_PAIRS = 50;
 
         const buildChunk = (chunk: [string, Expression<unknown>][]) =>
-            this.eb.fn('jsonb_build_object', chunk.flatMap(([k, v]) => [sql.lit(k), v]));
+            this.eb.fn(
+                'jsonb_build_object',
+                chunk.flatMap(([k, v]) => [sql.lit(k), v]),
+            );
 
         if (entries.length <= MAX_PAIRS) {
             return buildChunk(entries);
@@ -469,7 +472,10 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
 
     // Resolves the effective SQL type for a field: the native type from any @db.* attribute,
     // or the base ZModel SQL type if no attribute is present, or undefined if the field is unknown.
-    private resolveFieldSqlType(fieldDef: FieldDef | undefined): { sqlType: string | undefined; hasDbOverride: boolean } {
+    private resolveFieldSqlType(fieldDef: FieldDef | undefined): {
+        sqlType: string | undefined;
+        hasDbOverride: boolean;
+    } {
         if (!fieldDef) {
             return { sqlType: undefined, hasDbOverride: false };
         }
@@ -492,7 +498,10 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         // If the resolved SQL types differ and at least one side carries a @db.* native type override,
         // cast that side back to its base ZModel SQL type so PostgreSQL doesn't reject the comparison
         // (e.g. "operator does not exist: uuid = text").
-        if (leftResolved.sqlType !== rightResolved.sqlType && (leftResolved.hasDbOverride || rightResolved.hasDbOverride)) {
+        if (
+            leftResolved.sqlType !== rightResolved.sqlType &&
+            (leftResolved.hasDbOverride || rightResolved.hasDbOverride)
+        ) {
             if (leftResolved.hasDbOverride) {
                 left = this.eb.cast(left, sql.raw(this.getSqlType(leftFieldDef!.type)));
             }

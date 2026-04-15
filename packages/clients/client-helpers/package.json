@@ -15,8 +15,8 @@
     },
     "license": "MIT",
     "scripts": {
-        "build": "tsc --noEmit && tsup-node && pnpm test:typecheck",
-        "watch": "tsup-node --watch",
+        "build": "tsc --noEmit && tsdown && pnpm test:typecheck",
+        "watch": "tsdown --watch",
         "lint": "eslint src --ext ts",
         "test": "vitest run",
         "test:typecheck": "tsc --noEmit --project tsconfig.test.json",
@@ -27,25 +27,27 @@
     ],
     "exports": {
         ".": {
-            "types": "./dist/index.d.ts",
-            "default": "./dist/index.js"
+            "types": "./dist/index.d.mts",
+            "default": "./dist/index.mjs"
         },
         "./fetch": {
-            "types": "./dist/fetch.d.ts",
-            "default": "./dist/fetch.js"
+            "types": "./dist/fetch.d.mts",
+            "default": "./dist/fetch.mjs"
         }
     },
     "dependencies": {
         "@zenstackhq/common-helpers": "workspace:*",
         "@zenstackhq/schema": "workspace:*",
         "decimal.js": "catalog:",
-        "superjson": "^2.2.3"
-    },
-    "devDependencies": {
-        "@zenstackhq/eslint-config": "workspace:*",
+        "superjson": "^2.2.3",
         "@zenstackhq/language": "workspace:*",
         "@zenstackhq/orm": "workspace:*",
-        "@zenstackhq/sdk": "workspace:*",
+        "@zenstackhq/sdk": "workspace:*"
+    },
+    "devDependencies": {
+        "@types/node": "catalog:",
+        "@zenstackhq/eslint-config": "workspace:*",
+        "@zenstackhq/tsdown-config": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*",
         "@zenstackhq/vitest-config": "workspace:*"
     },

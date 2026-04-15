@@ -2,7 +2,8 @@
     "extends": "@zenstackhq/typescript-config/base.json",
     "include": ["src/svelte/**/*.ts"],
     "compilerOptions": {
-        "lib": ["ESNext"],
+        "rootDir": "src",
+        "lib": ["ESNext", "DOM"],
         "outDir": "dist",
         "noEmit": false
     }

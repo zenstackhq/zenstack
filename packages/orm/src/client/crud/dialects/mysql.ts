@@ -1,4 +1,5 @@
 import { invariant } from '@zenstackhq/common-helpers';
+import type { BuiltinType, FieldDef, SchemaDef } from '@zenstackhq/schema';
 import Decimal from 'decimal.js';
 import type { AliasableExpression, TableExpression } from 'kysely';
 import {
@@ -11,7 +12,6 @@ import {
     type SqlBool,
 } from 'kysely';
 import { AnyNullClass, DbNullClass, JsonNullClass } from '../../../common-types';
-import type { BuiltinType, FieldDef, SchemaDef } from '../../../schema';
 import type { NullsOrder, SortOrder } from '../../crud-types';
 import { createInvalidInputError, createNotSupportedError } from '../../errors';
 import type { ClientOptions } from '../../options';

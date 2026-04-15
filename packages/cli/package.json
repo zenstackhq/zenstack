@@ -30,8 +30,8 @@
         "bin"
     ],
     "scripts": {
-        "build": "tsc --noEmit && tsup-node",
-        "watch": "tsup-node --watch",
+        "build": "tsc --noEmit && tsdown",
+        "watch": "tsdown --watch",
         "lint": "eslint src --ext ts",
         "test": "vitest run",
         "pack": "pnpm pack"
@@ -73,6 +73,7 @@
         "@types/tmp": "catalog:",
         "@zenstackhq/eslint-config": "workspace:*",
         "@zenstackhq/testtools": "workspace:*",
+        "@zenstackhq/tsdown-config": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*",
         "@zenstackhq/vitest-config": "workspace:*",
         "tmp": "catalog:"

@@ -9,8 +9,8 @@ if (!telemetryToken) {
     console.warn('Warning: VSCODE_TELEMETRY_TRACKING_TOKEN environment variable is not set, skipping token injection');
     process.exit(0);
 }
-const file = 'dist/extension.js';
+const file = 'dist/extension.cjs';
 let content = fs.readFileSync(file, 'utf-8');
 content = content.replace('<VSCODE_TELEMETRY_TRACKING_TOKEN>', telemetryToken);
 fs.writeFileSync(file, content, 'utf-8');
-console.log('Telemetry token injected into dist/extension.js');
+console.log('Telemetry token injected into dist/extension.cjs');

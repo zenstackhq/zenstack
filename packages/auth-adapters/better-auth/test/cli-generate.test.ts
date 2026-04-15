@@ -28,7 +28,7 @@ function generateSchema(configFile: string): string {
  * Helper function to verify schema with zenstack check
  */
 function verifySchema(schemaPath: string) {
-    const cliPath = path.join(__dirname, '../../../cli/dist/index.js');
+    const cliPath = path.join(__dirname, '../../../cli/dist/index.mjs');
     const workDir = path.dirname(schemaPath);
 
     expect(fs.existsSync(schemaPath)).toBe(true);

@@ -1,5 +1,5 @@
+import type { GetModel, GetModelFields, GetModels, ProcedureDef, ScalarFields, SchemaDef } from '@zenstackhq/schema';
 import type { Dialect, Expression, ExpressionBuilder, KyselyConfig, OperandExpression } from 'kysely';
-import type { GetModel, GetModelFields, GetModels, ProcedureDef, ScalarFields, SchemaDef } from '../schema';
 import type { FilterPropertyToKind } from './constants';
 import type { ClientContract, CRUD_EXT } from './contract';
 import type { GetProcedureNames, ProcedureHandlerFunc } from './crud-types';
@@ -258,7 +258,9 @@ export type OmitConfig<Schema extends SchemaDef> = {
 };
 
 export type ComputedFieldsOptions<Schema extends SchemaDef> = {
-    [Model in GetModels<Schema> as 'computedFields' extends keyof GetModel<Schema, Model> ? Uncapitalize<Model> : never]: {
+    [Model in GetModels<Schema> as 'computedFields' extends keyof GetModel<Schema, Model>
+        ? Uncapitalize<Model>
+        : never]: {
         [Field in keyof Schema['models'][Model]['computedFields']]: Schema['models'][Model]['computedFields'][Field] extends infer Func
             ? Func extends (...args: any[]) => infer R
                 ? (

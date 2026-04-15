@@ -3,7 +3,8 @@
     "include": ["src/**/*.ts"],
     "exclude": ["src/svelte"],
     "compilerOptions": {
-        "lib": ["ESNext"],
+        "rootDir": "src",
+        "lib": ["ESNext", "DOM"],
         "outDir": "dist",
         "noEmit": false
     }
