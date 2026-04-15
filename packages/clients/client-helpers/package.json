@@ -38,11 +38,9 @@
     "dependencies": {
         "@zenstackhq/common-helpers": "workspace:*",
         "@zenstackhq/schema": "workspace:*",
-        "decimal.js": "catalog:",
-        "superjson": "^2.2.3",
-        "@zenstackhq/language": "workspace:*",
         "@zenstackhq/orm": "workspace:*",
-        "@zenstackhq/sdk": "workspace:*"
+        "decimal.js": "catalog:",
+        "superjson": "^2.2.3"
     },
     "devDependencies": {
         "@types/node": "catalog:",
