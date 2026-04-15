@@ -1285,14 +1285,12 @@ describe('SchemaFactory - makeModelSchema with options', () => {
             it('infers fields with @default as optional and others as required', () => {
                 const _schema = factory.makeModelSchema('Product', { optionality: 'defaults' });
                 type Result = z.infer<typeof _schema>;
-                // Note: optionality: 'defaults' is handled purely at runtime — the static
-                // TypeScript type cannot distinguish which fields carry @default without
-                // running the schema. The type is therefore identical to the no-options
-                // shape (fields appear as their original types).
-                // id has @default at runtime but the static type still shows string
-                expectTypeOf<Result['id']>().toEqualTypeOf<string>();
-                // discount already has a default so it is typed as optional in the base shape
-                expectTypeOf<Result['discount']>().toEqualTypeOf<number>();
+                // optionality: 'defaults' is now resolved statically via FieldHasDefault,
+                // which inspects the `default` and `updatedAt` fields on FieldDef.
+                // id has @default(cuid()) → optional
+                expectTypeOf<Result['id']>().toEqualTypeOf<string | undefined>();
+                // discount has @default(0) → optional
+                expectTypeOf<Result['discount']>().toEqualTypeOf<number | undefined>();
                 // name has no default → required (unchanged)
                 expectTypeOf<Result['name']>().toEqualTypeOf<string>();
                 // price has no default → required (unchanged)

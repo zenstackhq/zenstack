@@ -372,11 +372,26 @@ type BuildIncludeOmitShape<
 
 /**
  * Wraps every field in a shape with `z.ZodOptional` when `Optionality` is `"all"`.
+ * When `Optionality` is `"defaults"`, only fields that carry a `@default` or
+ * `@updatedAt` attribute (as detected by `FieldHasDefault`) are wrapped.
  * When `Optionality` is anything else the shape is returned as-is.
  */
-type ApplyOptionality<Shape extends Record<string, z.ZodType>, Optionality> = Optionality extends 'all'
+type ApplyOptionality<
+    Shape extends Record<string, z.ZodType>,
+    Optionality,
+    Schema extends SchemaDef = never,
+    Model extends GetModels<Schema> = never,
+> = Optionality extends 'all'
     ? { [K in keyof Shape]: z.ZodOptional<Shape[K]> }
-    : Shape;
+    : Optionality extends 'defaults'
+      ? {
+            [K in keyof Shape]: K extends GetModelFields<Schema, Model>
+                ? FieldHasDefault<Schema, Model, K> extends true
+                    ? z.ZodOptional<Shape[K]>
+                    : Shape[K]
+                : Shape[K];
+        }
+      : Shape;
 
 /**
  * The top-level conditional that maps options → Zod shape.
@@ -385,24 +400,20 @@ type ApplyOptionality<Shape extends Record<string, z.ZodType>, Optionality> = Op
  * - `{ select: S }`         → `BuildSelectShape` (+ optionality wrapper).
  * - `{ include?, omit? }`   → `BuildIncludeOmitShape` (+ optionality wrapper).
  *
- * Note: `optionality: "defaults"` is handled fully at runtime (it requires
- * knowledge of which fields carry a `@default` / `@updatedAt` attribute that
- * is only available in the schema def at runtime). The static type cannot
- * distinguish "has-default" from "no-default" fields, so `"defaults"` is
- * intentionally left unrepresented in the output type — callers receive the
- * same shape they would without `optionality` (i.e. fields that happen to have
- * defaults are already typed as optional via `ModelFieldIsOptional`).
+ * `optionality: "defaults"` is inferred statically using `FieldHasDefault`,
+ * which inspects the `default` and `updatedAt` fields on `FieldDef` to
+ * determine which fields should become optional.
  */
 export type GetModelSchemaShapeWithOptions<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options,
 > = Options extends { select: infer S extends Record<string, unknown>; optionality?: infer Opt }
-    ? ApplyOptionality<BuildSelectShape<Schema, Model, S>, Opt>
+    ? ApplyOptionality<BuildSelectShape<Schema, Model, S>, Opt, Schema, Model>
     : Options extends {
             include?: infer I extends Record<string, unknown> | undefined;
             omit?: infer O extends Record<string, unknown> | undefined;
             optionality?: infer Opt;
         }
-      ? ApplyOptionality<BuildIncludeOmitShape<Schema, Model, I, O>, Opt>
+      ? ApplyOptionality<BuildIncludeOmitShape<Schema, Model, I, O>, Opt, Schema, Model>
       : GetModelFieldsShape<Schema, Model>;

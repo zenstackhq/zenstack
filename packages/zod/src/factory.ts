@@ -327,7 +327,7 @@ class SchemaFactory<Schema extends SchemaDef> {
 
         if (select) {
             // Only scalar fields explicitly selected (value is always `true` or nested options).
-            for (const [key] of Object.entries(select)) {
+            for (const key of Object.keys(select)) {
                 const fieldDef = modelDef.fields[key];
                 if (fieldDef && !fieldDef.relation) {
                     fields.add(key);
