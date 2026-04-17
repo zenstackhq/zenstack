@@ -243,4 +243,49 @@ model Article with WithAuthor {
             id2: '2',
         });
     });
+
+    it('resolves opposite relation correctly when a relation field is inherited from a delegate base', async () => {
+        // Regression: getOppositeRelationField was using contextModel (e.g. Person) as the source
+        // for the opposite-relation lookup, but the back-reference points to the delegate base
+        // (Entity), not the concrete subtype. This caused the nested-create TypeScript type to
+        // collapse to `undefined`.
+        const schema = `
+type WithName {
+    name String
+}
+
+model Attachment {
+    id       String @id @default(cuid())
+    url      String
+    entityId String
+    entity   Entity @relation(fields: [entityId], references: [id])
+}
+
+model Entity with WithName {
+    id          String       @id @default(cuid())
+    attachments Attachment[]
+    type        String
+    @@delegate(type)
+}
+
+model Person extends Entity {
+    age Int?
+}
+        `;
+
+        const client = await createTestClient(schema, { usePrismaPush: true });
+
+        await expect(
+            client.person.create({
+                data: {
+                    name: 'Alice',
+                    attachments: { create: { url: 'https://example.com' } },
+                },
+                include: { attachments: true },
+            }),
+        ).resolves.toMatchObject({
+            name: 'Alice',
+            attachments: [{ url: 'https://example.com', entityId: expect.any(String) }],
+        });
+    });
 });
