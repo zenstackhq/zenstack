@@ -109,7 +109,27 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             if (!hasAttribute(field, '@json')) {
                 accept('error', 'Custom-typed field must have @json attribute', { node: field });
             }
+            if (this.typeDefHasModelField(field.type.reference!.ref as TypeDef)) {
+                accept('error', 'Type used as JSON field type cannot have relation fields', { node: field });
+            }
         }
+    }
+
+    private typeDefHasModelField(typeDef: TypeDef, visited = new Set<TypeDef>()): boolean {
+        if (visited.has(typeDef)) return false;
+        visited.add(typeDef);
+
+        for (const field of getAllFields(typeDef)) {
+            if (isDataModel(field.type.reference?.ref)) {
+                return true;
+            }
+            if (isTypeDef(field.type.reference?.ref)) {
+                if (this.typeDefHasModelField(field.type.reference.ref as TypeDef, visited)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private validateAttributes(dm: DataModel, accept: ValidationAcceptor) {
