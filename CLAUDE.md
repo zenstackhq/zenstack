@@ -79,6 +79,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Always target the `dev` branch (not `main`) when creating PRs
 
+## Git Workflow
+
+- Never commit or push changes unless explicitly asked to do so
+
 ## Development Notes
 
 - Always run `zenstack generate` after modifying ZModel schemas
