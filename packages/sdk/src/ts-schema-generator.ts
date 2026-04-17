@@ -941,6 +941,12 @@ export class TsSchemaGenerator {
             return undefined;
         }
 
+        // For mixin-inherited fields the container is a TypeDef, so the concrete model is the
+        // right source. For fields owned by a DataModel (own field or inherited via delegate base)
+        // use that DataModel directly — the opposite relation points to the owning model, not the
+        // concrete subtype.
+        const sourceModel = isTypeDef(field.$container) ? contextModel : (field.$container as DataModel);
+
         const targetModel = field.type.reference.ref as DataModel;
         const relationName = this.getRelationName(field);
         for (const otherField of getAllFields(targetModel)) {
@@ -948,7 +954,7 @@ export class TsSchemaGenerator {
                 // backlink field is never self
                 continue;
             }
-            if (otherField.type.reference?.ref === contextModel) {
+            if (otherField.type.reference?.ref === sourceModel) {
                 if (relationName) {
                     // if relation has a name, the opposite side must match
                     const otherRelationName = this.getRelationName(otherField);
