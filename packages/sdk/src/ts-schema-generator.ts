@@ -709,10 +709,12 @@ export class TsSchemaGenerator {
         }
 
         if (isDataModel(field.type.reference?.ref)) {
-            objectFields.push(ts.factory.createPropertyAssignment('relation', this.createRelationObject(field)));
+            objectFields.push(
+                ts.factory.createPropertyAssignment('relation', this.createRelationObject(field, contextModel)),
+            );
         }
 
-        const fkFor = this.getForeignKeyFor(field);
+        const fkFor = this.getForeignKeyFor(field, contextModel);
         if (fkFor && fkFor.length > 0) {
             objectFields.push(
                 ts.factory.createPropertyAssignment(
@@ -846,10 +848,10 @@ export class TsSchemaGenerator {
         );
     }
 
-    private createRelationObject(field: DataField) {
+    private createRelationObject(field: DataField, contextModel: DataModel | undefined) {
         const relationFields: ts.PropertyAssignment[] = [];
 
-        const oppositeRelation = this.getOppositeRelationField(field);
+        const oppositeRelation = this.getOppositeRelationField(field, contextModel);
         if (oppositeRelation) {
             relationFields.push(
                 ts.factory.createPropertyAssignment('opposite', ts.factory.createStringLiteral(oppositeRelation.name)),
@@ -912,9 +914,12 @@ export class TsSchemaGenerator {
         return isArrayExpr(expr) && expr.items.map((item) => (item as ReferenceExpr).target.$refText);
     }
 
-    private getForeignKeyFor(field: DataField) {
+    private getForeignKeyFor(field: DataField, contextModel: DataModel | undefined) {
+        if (!contextModel) {
+            return [];
+        }
         const result: string[] = [];
-        for (const f of field.$container.fields) {
+        for (const f of getAllFields(contextModel)) {
             const relation = getAttribute(f, '@relation');
             if (relation) {
                 for (const arg of relation.args) {
@@ -931,15 +936,20 @@ export class TsSchemaGenerator {
         return result;
     }
 
-    private getOppositeRelationField(field: DataField) {
-        if (!field.type.reference?.ref || !isDataModel(field.type.reference?.ref)) {
+    private getOppositeRelationField(field: DataField, contextModel: DataModel | undefined) {
+        if (!field.type.reference?.ref || !isDataModel(field.type.reference?.ref) || !contextModel) {
             return undefined;
         }
 
-        const sourceModel = field.$container as DataModel;
+        // For mixin-inherited fields the container is a TypeDef, so the concrete model is the
+        // right source. For fields owned by a DataModel (own field or inherited via delegate base)
+        // use that DataModel directly — the opposite relation points to the owning model, not the
+        // concrete subtype.
+        const sourceModel = isTypeDef(field.$container) ? contextModel : (field.$container as DataModel);
+
         const targetModel = field.type.reference.ref as DataModel;
         const relationName = this.getRelationName(field);
-        for (const otherField of targetModel.fields) {
+        for (const otherField of getAllFields(targetModel)) {
             if (otherField === field) {
                 // backlink field is never self
                 continue;
