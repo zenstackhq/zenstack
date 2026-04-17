@@ -48,6 +48,7 @@ import {
     type OperationNode,
 } from 'kysely';
 import { match } from 'ts-pattern';
+import { AUTH_CTE_PREFIX, AUTH_ID_COL, AUTH_PARENT_ID_COL, authCteName } from './auth-cte-builder';
 import { ExpressionEvaluator } from './expression-evaluator';
 import { CollectionPredicateOperator } from './types';
 import {
@@ -110,6 +111,21 @@ export type ExpressionTransformerContext = {
      * The table alias name used to compile `this` keyword
      */
     thisAlias?: string;
+
+    /**
+     * When set, we are inside a `transformAuthCollectionPredicate` subquery.
+     * Relation accesses on the current model should use the nested auth CTE
+     * (`$auth$<authCtePath>$<field>`) instead of the real DB table, and
+     * link rows via the synthetic `$auth$pid = $id` FK.
+     */
+    authCtePath?: string[];
+
+    /**
+     * When true, the expression being transformed is an argument to a function call
+     * that contains an `auth()` access. Auth member accesses in this context must
+     * use the CTE path so the function receives a proper SQL expression.
+     */
+    authInFunctionArg?: boolean;
 };
 
 // a registry of expression handlers marked with @expr
@@ -334,13 +350,18 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
     private transformCollectionPredicate(expr: BinaryExpression, context: ExpressionTransformerContext) {
         this.ensureCollectionPredicateOperator(expr.op);
 
-        if (this.isAuthMember(expr.left) || context.contextValue) {
+        if (this.isAuthMember(expr.left)) {
+            // LHS is an auth() member chain — resolve entirely via auth CTEs.
+            return this.transformAuthCollectionPredicate(expr, context);
+        }
+
+        if (context.contextValue) {
             invariant(
                 ExpressionUtils.isMember(expr.left) || ExpressionUtils.isField(expr.left),
                 'expected member or field expression',
             );
 
-            // LHS of the expression is evaluated as a value
+            // LHS of the expression is evaluated as a concrete JS value (e.g. post-update hook).
             const evaluator = new ExpressionEvaluator();
             const receiver = evaluator.evaluate(expr.left, {
                 thisValue: context.contextValue,
@@ -350,11 +371,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 thisType: context.thisType,
             });
 
-            // get LHS's type
-            const baseType = this.isAuthMember(expr.left) ? this.authType : context.modelOrType;
-            const memberType = this.getMemberType(baseType, expr.left);
-
-            // transform the entire expression with a value LHS and the correct context type
+            const memberType = this.getMemberType(context.modelOrType, expr.left);
             return this.transformValueCollectionPredicate(receiver, expr, { ...context, modelOrType: memberType });
         }
 
@@ -392,18 +409,37 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             }
         }
 
+        // When inside an auth CTE context, compute the child CTE path and alias so the
+        // inner predicate's fields and any deeper relation accesses resolve against auth CTEs.
+        // This must happen before bindingScope so the new binding can use the auth CTE alias.
+        let innerAlias: string | undefined;
+        let innerAuthCtePath: string[] | undefined;
+        if (context.authCtePath !== undefined) {
+            if (ExpressionUtils.isField(expr.left)) {
+                // Simple field: e.g. `someField?[...]` inside auth CTE context
+                innerAuthCtePath = [...context.authCtePath, expr.left.field];
+                innerAlias = authCteName(innerAuthCtePath);
+            } else if (ExpressionUtils.isMember(expr.left) && ExpressionUtils.isBinding(expr.left.receiver)) {
+                // Binding member: e.g. `c.staff?[s, ...]` where `c` is an auth CTE binding.
+                // The inner CTE path is the current path extended by all the member steps.
+                innerAuthCtePath = [...context.authCtePath, ...expr.left.members];
+                innerAlias = authCteName(innerAuthCtePath);
+            }
+        }
+
         const bindingScope = expr.binding
             ? {
                   ...(context.bindingScope ?? {}),
-                  [expr.binding]: { type: newContextModel, alias: newContextModel },
+                  [expr.binding]: { type: newContextModel, alias: innerAlias ?? newContextModel },
               }
             : context.bindingScope;
 
         let predicateFilter = this.transform(expr.right, {
             ...context,
             modelOrType: newContextModel,
-            alias: undefined,
+            alias: innerAlias,
             bindingScope: bindingScope,
+            authCtePath: innerAuthCtePath,
         });
 
         if (expr.op === '!') {
@@ -427,6 +463,136 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
 
     private ensureCollectionPredicateOperator(op: BinaryOperator): asserts op is CollectionPredicateOperator {
         invariant(CollectionPredicateOperator.includes(op as any), 'expected "?" or "!" or "^" operator');
+    }
+
+    /**
+     * Handles a collection predicate whose LHS is rooted at `auth()`.
+     * e.g. `auth().roles?[name == 'admin']` or `auth().org.roles?[id == this.roleId]`
+     */
+    private transformAuthCollectionPredicate(
+        expr: BinaryExpression,
+        context: ExpressionTransformerContext,
+    ): OperationNode {
+        this.ensureCollectionPredicateOperator(expr.op);
+        invariant(ExpressionUtils.isMember(expr.left), 'expected member expression on LHS');
+        invariant(this.isAuthCall((expr.left as MemberExpression).receiver), 'expected auth() receiver');
+
+        const members = (expr.left as MemberExpression).members;
+
+        // Walk the member chain to determine the element type.
+        let currentType = this.authType;
+        const pathParts: string[] = [];
+        for (const member of members) {
+            const fieldDef = QueryUtils.requireField(this.schema, currentType, member);
+            pathParts.push(member);
+            currentType = fieldDef.type;
+        }
+
+        // Use value-based evaluation unless the predicate's RHS either:
+        //  - references a (non-auth) model field (this.field / non-auth binding), or
+        //  - contains a function call the JS evaluator cannot handle.
+        if (
+            this.auth == null ||
+            (!this.exprContainsFieldRef(expr.right, context.bindingScope) && !containsNonEvaluatableCall(expr.right))
+        ) {
+            const evaluator = new ExpressionEvaluator();
+            const rawReceiver = evaluator.evaluate(expr.left, {
+                thisValue: context.contextValue,
+                auth: this.auth,
+                bindingScope: this.getEvaluationBindingScope(context.bindingScope),
+                operation: context.operation,
+                thisType: context.thisType,
+            });
+            // When auth is provided but the collection field is absent, treat it as empty list.
+            const receiver = this.auth != null && rawReceiver == null ? [] : rawReceiver;
+            return this.transformValueCollectionPredicate(receiver, expr, { ...context, modelOrType: currentType });
+        }
+
+        const cteName = authCteName(pathParts);
+
+        const bindingScope = expr.binding
+            ? { ...(context.bindingScope ?? {}), [expr.binding]: { type: currentType, alias: cteName } }
+            : context.bindingScope;
+
+        let predicateFilter = this.transform(expr.right, {
+            ...context,
+            modelOrType: currentType,
+            alias: cteName,
+            bindingScope,
+            // Signal to nested transforms that relation accesses should use auth CTEs.
+            authCtePath: pathParts,
+        });
+
+        // For "every" (!), negate: NOT EXISTS (items that violate the condition).
+        if (expr.op === '!') {
+            predicateFilter = logicalNot(this.dialect, predicateFilter);
+        }
+
+        const count = FunctionNode.create('count', [ValueNode.createImmediate(1)]);
+        const predicateResult = match(expr.op)
+            .with('?', () => BinaryOperationNode.create(count, OperatorNode.create('>'), ValueNode.createImmediate(0)))
+            .with('!', () => BinaryOperationNode.create(count, OperatorNode.create('='), ValueNode.createImmediate(0)))
+            .with('^', () => BinaryOperationNode.create(count, OperatorNode.create('='), ValueNode.createImmediate(0)))
+            .exhaustive();
+
+        // Return a subquery of the form:
+        //   (SELECT COUNT(1) [>|=] 0 AS _ FROM $auth$<path> WHERE <predicate>)
+        const resultNode: SelectQueryNode = {
+            kind: 'SelectQueryNode',
+            from: FromNode.create([TableNode.create(cteName)]),
+            where: WhereNode.create(predicateFilter),
+            selections: [SelectionNode.create(AliasNode.create(predicateResult, IdentifierNode.create('_')))],
+        };
+        return resultNode;
+    }
+
+    /**
+     * Resolves an `auth().<member>.<member>...` chain to a SQL value.
+     *
+     * If the caller supplied the relation chain as inline data in the auth JS object,
+     * we evaluate it directly as a SQL literal (as an optimization) so that inline
+     * values are respected exactly as provided.
+     *
+     * Otherwise we resolve via the pre-built DB-backed auth CTEs:
+     *   Scalar terminal → scalar subquery:  (SELECT "field" FROM "$auth$<path>")
+     *   Relation terminal → SelectQueryNode over the child CTE (used in EXISTS etc.)
+     */
+    private transformAuthMemberRef(expr: MemberExpression, context: ExpressionTransformerContext): OperationNode {
+        // Use value-based evaluation by default; only use the CTE path when the auth
+        // member is an argument to a function call (authInFunctionArg flag) or auth is null.
+        if (this.auth == null || !context.authInFunctionArg) {
+            return this.valueMemberAccess(this.auth, expr, this.authType);
+        }
+
+        let currentType = this.authType;
+        const pathParts: string[] = [];
+
+        // Walk all but the last member to build the CTE path.
+        for (let i = 0; i < expr.members.length - 1; i++) {
+            const member = expr.members[i]!;
+            const fieldDef = QueryUtils.requireField(this.schema, currentType, member);
+            pathParts.push(member);
+            currentType = fieldDef.type;
+        }
+
+        const lastMember = expr.members[expr.members.length - 1]!;
+        const fieldDef = QueryUtils.requireField(this.schema, currentType, lastMember);
+        const cteName = authCteName(pathParts);
+
+        if (!fieldDef.relation) {
+            // Scalar field: scalar subquery from the CTE.
+            // e.g. (SELECT "id" FROM "$auth") or (SELECT "name" FROM "$auth$org")
+            return this.eb.selectFrom(cteName).select(lastMember).toOperationNode();
+        } else {
+            // Relation field: expose the child CTE as a SelectQueryNode so
+            // collection-predicate and null-check callers can treat it uniformly.
+            const childCteName = authCteName([...pathParts, lastMember]);
+            const node: SelectQueryNode = {
+                kind: 'SelectQueryNode',
+                from: FromNode.create([TableNode.create(childCteName)]),
+            };
+            return node;
+        }
     }
 
     private transformValueCollectionPredicate(
@@ -494,6 +660,57 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                     .exhaustive()
             );
         }
+    }
+
+    /**
+     * Returns true if `expr` contains a reference to the context model — i.e. a `this`
+     * expression or a binding whose alias is not an auth CTE (meaning it points to a DB
+     * model row rather than an auth collection element).
+     *
+     * When true, a collection predicate involving auth data cannot be evaluated purely
+     * from the JS auth object; it must be resolved with a SQL JOIN via auth CTEs.
+     */
+    private exprContainsFieldRef(expr: Expression, bindingScope?: BindingScope): boolean {
+        if (ExpressionUtils.isThis(expr)) return true;
+        if (ExpressionUtils.isMember(expr)) {
+            if (ExpressionUtils.isThis(expr.receiver)) return true;
+            if (ExpressionUtils.isBinding(expr.receiver)) {
+                const scope = bindingScope?.[expr.receiver.name];
+                // An auth-collection binding has an alias that starts with AUTH_CTE_PREFIX.
+                // Any other binding (e.g. an outer DB-model collection binding) needs CTE.
+                if (scope && !scope.alias.startsWith(AUTH_CTE_PREFIX)) return true;
+            }
+            return this.exprContainsFieldRef(expr.receiver, bindingScope);
+        }
+        if (ExpressionUtils.isBinary(expr)) {
+            return (
+                this.exprContainsFieldRef(expr.left, bindingScope) ||
+                this.exprContainsFieldRef(expr.right, bindingScope)
+            );
+        }
+        if (ExpressionUtils.isUnary(expr)) {
+            return this.exprContainsFieldRef(expr.operand, bindingScope);
+        }
+        if (ExpressionUtils.isCall(expr)) {
+            return (expr.args ?? []).some((a) => this.exprContainsFieldRef(a, bindingScope));
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if `expr` is or contains an `auth().<member>` access anywhere in its tree.
+     * Used to decide whether a function-call argument requires the CTE path.
+     */
+    private exprContainsAuthRef(expr: Expression): boolean {
+        if (ExpressionUtils.isMember(expr) && this.isAuthCall(expr.receiver)) return true;
+        if (ExpressionUtils.isBinary(expr)) {
+            return this.exprContainsAuthRef(expr.left) || this.exprContainsAuthRef(expr.right);
+        }
+        if (ExpressionUtils.isUnary(expr)) return this.exprContainsAuthRef(expr.operand);
+        if (ExpressionUtils.isCall(expr) && expr.function !== 'auth') {
+            return (expr.args ?? []).some((a) => this.exprContainsAuthRef(a));
+        }
+        return false;
     }
 
     private getMemberType(receiverType: string, expr: MemberExpression | FieldExpression) {
@@ -615,7 +832,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             {
                 client: this.client,
                 dialect: this.dialect,
-                model: context.modelOrType as GetModels<Schema>,
+                model: context.thisType as GetModels<Schema>,
                 modelAlias: context.alias ?? context.modelOrType,
                 operation: context.operation,
             },
@@ -642,7 +859,10 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             // field references are passed as-is, without translating to joins, etc.
             return this.eb.ref(arg.field);
         } else {
-            return new ExpressionWrapper(this.transform(arg, context));
+            // If the argument contains an auth() access, signal that it should use the CTE
+            // path so the function receives a proper SQL expression rather than a literal.
+            const argContext = this.exprContainsAuthRef(arg) ? { ...context, authInFunctionArg: true } : context;
+            return new ExpressionWrapper(this.transform(arg, argContext));
         }
     }
 
@@ -657,9 +877,9 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             }
         }
 
-        // `auth()` member access
+        // `auth()` member access — resolved via pre-built auth CTEs or value evaluation.
         if (this.isAuthCall(expr.receiver)) {
-            return this.valueMemberAccess(this.auth, expr, this.authType);
+            return this.transformAuthMemberRef(expr, context);
         }
 
         // `before()` member access
@@ -828,6 +1048,24 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         relationModel: string,
         context: ExpressionTransformerContext,
     ): SelectQueryNode {
+        // Inside an auth CTE context: use the pre-built nested auth CTE instead of the
+        // real DB table.  Rows are linked to the parent CTE via the synthetic FK columns.
+        if (context.authCtePath !== undefined) {
+            const childCtePath = [...context.authCtePath, field];
+            const childCteName = authCteName(childCtePath);
+            const parentCteName = authCteName(context.authCtePath);
+            const condition = BinaryOperationNode.create(
+                ReferenceNode.create(ColumnNode.create(AUTH_PARENT_ID_COL), TableNode.create(childCteName)),
+                OperatorNode.create('='),
+                ReferenceNode.create(ColumnNode.create(AUTH_ID_COL), TableNode.create(parentCteName)),
+            );
+            return {
+                kind: 'SelectQueryNode',
+                from: FromNode.create([TableNode.create(childCteName)]),
+                where: WhereNode.create(condition),
+            };
+        }
+
         const m2m = QueryUtils.getManyToManyRelation(this.schema, context.modelOrType, field);
         if (m2m) {
             return this.transformManyToManyRelationAccess(m2m, context);
@@ -1011,6 +1249,16 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             ExpressionUtils.isThis(expr.receiver)
         ) {
             return QueryUtils.getField(this.schema, model, expr.members[0]!);
+        } else if (ExpressionUtils.isMember(expr) && this.isAuthCall(expr.receiver)) {
+            // auth().field or auth().relation.field — walk the auth type chain.
+            let currType = this.authType;
+            for (const member of expr.members) {
+                const fieldDef = QueryUtils.getField(this.schema, currType, member);
+                if (!fieldDef) return undefined;
+                if (member === expr.members[expr.members.length - 1]) return fieldDef;
+                currType = fieldDef.type;
+            }
+            return undefined;
         } else if (ExpressionUtils.isMember(expr) && ExpressionUtils.isField(expr.receiver)) {
             // relation chain access (e.g. `owner.id`, `user.profile.uuid_field`): walk the
             // relation hops and return the terminal field's FieldDef so native-type info
@@ -1028,4 +1276,131 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             return undefined;
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// Static analysis helpers — module-level (no class instance required)
+// ---------------------------------------------------------------------------
+
+function _isAuthCall(expr: Expression): boolean {
+    return ExpressionUtils.isCall(expr) && expr.function === 'auth';
+}
+
+/**
+ * Returns true if `expr` contains a reference to the context model row — i.e., a `this`
+ * expression or a binding that is NOT in the `authBindings` set (meaning it refers to a DB
+ * model row rather than an auth CTE element).
+ *
+ * `authBindings` tracks iterator names introduced by auth collection predicates so that
+ * `auth().roles?[r, r.name == 'admin']` correctly identifies `r` as an auth binding (not
+ * a context ref), and only `this.field` or outer DB-model bindings trigger CTE generation.
+ */
+function _containsContextRef(expr: Expression, authBindings: ReadonlySet<string>): boolean {
+    if (ExpressionUtils.isThis(expr)) return true;
+    if (ExpressionUtils.isBinding(expr)) {
+        // A binding is a context ref only if it's NOT an auth collection iterator
+        return !authBindings.has(expr.name);
+    }
+    if (ExpressionUtils.isMember(expr)) {
+        if (ExpressionUtils.isThis(expr.receiver)) return true;
+        if (ExpressionUtils.isBinding(expr.receiver)) {
+            return !authBindings.has(expr.receiver.name);
+        }
+        return _containsContextRef(expr.receiver, authBindings);
+    }
+    if (ExpressionUtils.isBinary(expr)) {
+        return _containsContextRef(expr.left, authBindings) || _containsContextRef(expr.right, authBindings);
+    }
+    if (ExpressionUtils.isUnary(expr)) return _containsContextRef(expr.operand, authBindings);
+    if (ExpressionUtils.isCall(expr)) return (expr.args ?? []).some((a) => _containsContextRef(a, authBindings));
+    return false;
+}
+
+/**
+ * The built-in ZModel functions that the JS ExpressionEvaluator can handle.
+ * Any call expression whose function name is NOT in this set requires the SQL/CTE
+ * path because the evaluator will throw on unrecognised function names.
+ */
+const EVALUATOR_BUILTIN_FUNCTIONS = new Set(['auth']);
+
+/**
+ * Returns true if `expr` contains any function call that the JS ExpressionEvaluator
+ * cannot handle (i.e. any call that is not a known built-in).
+ * Used to force the CTE path for auth collection predicates whose body uses
+ * ZModel functions such as `contains`, `hasEvery`, `isEmpty`, etc.
+ */
+export function containsNonEvaluatableCall(expr: Expression): boolean {
+    if (ExpressionUtils.isCall(expr)) {
+        if (!EVALUATOR_BUILTIN_FUNCTIONS.has(expr.function)) return true;
+        return (expr.args ?? []).some(containsNonEvaluatableCall);
+    }
+    if (ExpressionUtils.isMember(expr)) return containsNonEvaluatableCall(expr.receiver);
+    if (ExpressionUtils.isBinary(expr)) {
+        return containsNonEvaluatableCall(expr.left) || containsNonEvaluatableCall(expr.right);
+    }
+    if (ExpressionUtils.isUnary(expr)) return containsNonEvaluatableCall(expr.operand);
+    return false;
+}
+
+/**
+ * Returns true if `expr` contains any `auth().<member>` access anywhere in its tree.
+ */
+function _containsAuthRef(expr: Expression): boolean {
+    if (ExpressionUtils.isMember(expr) && _isAuthCall(expr.receiver)) return true;
+    if (ExpressionUtils.isBinary(expr)) {
+        return _containsAuthRef(expr.left) || _containsAuthRef(expr.right);
+    }
+    if (ExpressionUtils.isUnary(expr)) return _containsAuthRef(expr.operand);
+    if (ExpressionUtils.isCall(expr) && !_isAuthCall(expr)) {
+        return (expr.args ?? []).some(_containsAuthRef);
+    }
+    return false;
+}
+
+function _needsCte(expr: Expression, inFunctionArg: boolean, authBindings: ReadonlySet<string>): boolean {
+    if (ExpressionUtils.isMember(expr)) {
+        if (_isAuthCall(expr.receiver)) {
+            // auth().X — needs CTE only when used as a function call argument
+            return inFunctionArg;
+        }
+        return _needsCte(expr.receiver, inFunctionArg, authBindings);
+    }
+    if (ExpressionUtils.isBinary(expr)) {
+        const op = expr.op;
+        // Auth collection predicate: auth().X?[binding, rhs]
+        if ((op === '?' || op === '!' || op === '^') && ExpressionUtils.isMember(expr.left)) {
+            const lhs = expr.left as MemberExpression;
+            if (_isAuthCall(lhs.receiver)) {
+                // Register the iterator binding as an auth binding so the RHS analysis knows
+                // that references to it are auth-CTE references, not context model references.
+                const innerAuthBindings = expr.binding ? new Set([...authBindings, expr.binding]) : authBindings;
+                // CTE needed when the predicate RHS references the context model OR
+                // contains a non-builtin function call the JS evaluator cannot handle.
+                return _containsContextRef(expr.right, innerAuthBindings) || containsNonEvaluatableCall(expr.right);
+            }
+        }
+        return _needsCte(expr.left, inFunctionArg, authBindings) || _needsCte(expr.right, inFunctionArg, authBindings);
+    }
+    if (ExpressionUtils.isUnary(expr)) return _needsCte(expr.operand, inFunctionArg, authBindings);
+    if (ExpressionUtils.isCall(expr)) {
+        if (_isAuthCall(expr)) return false;
+        // Function call: if any arg contains an auth().X reference, all those args need CTE
+        if ((expr.args ?? []).some(_containsAuthRef)) return true;
+        return (expr.args ?? []).some((a) => _needsCte(a, false, authBindings));
+    }
+    return false;
+}
+
+/**
+ * Returns `true` if the given policy expression would require auth CTEs to be built.
+ *
+ * Auth CTEs are needed when the expression either:
+ *  1. Contains an auth collection predicate (`auth().X?[rhs]`) whose RHS references
+ *     the context model row (a `this` expression or a non-auth binding), requiring a
+ *     SQL JOIN via auth CTEs rather than JS value evaluation, OR
+ *  2. Contains an `auth().<field>` member reference inside a function-call argument,
+ *     where the CTE is needed to produce a proper SQL column reference.
+ */
+export function expressionNeedsAuthCte(expr: Expression): boolean {
+    return _needsCte(expr, false, new Set());
 }

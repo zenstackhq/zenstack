@@ -35,12 +35,14 @@ import {
     ValueNode,
     ValuesNode,
     WhereNode,
+    WithNode,
     type Expression as KyselyExpression,
     type OperationNode,
     type QueryResult,
     type RootOperationNode,
 } from 'kysely';
 import { match } from 'ts-pattern';
+import { buildAuthCtes, collectAuthCteUsageFromQuery, mergeAuthWith } from './auth-cte-builder';
 import { ColumnCollector } from './column-collector';
 import { ExpressionTransformer } from './expression-transformer';
 import type { PolicyPluginOptions } from './options';
@@ -80,9 +82,21 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
     // #region main entry point
 
     async handle(node: RootOperationNode, proceed: ProceedKyselyQueryFunction) {
+        // Scan the transformed query node for $auth* CTE references and build
+        // exactly the auth CTEs needed for that specific query — no more, no less.
+        const _proceed: ProceedKyselyQueryFunction = (queryNode) => {
+            const neededFields = collectAuthCteUsageFromQuery(queryNode);
+            if (neededFields.size > 0) {
+                const authCteInfo = buildAuthCtes(this.client.$auth, this.client.$schema, this.dialect, neededFields);
+                if (authCteInfo) {
+                    return proceed(this.injectAuthCtes(queryNode, authCteInfo));
+                }
+            }
+            return proceed(queryNode);
+        };
         if (!this.isCrudQueryNode(node)) {
             if (this.options.dangerouslyAllowRawSql && RawNode.is(node as never)) {
-                return proceed(node);
+                return _proceed(node);
             }
             // non-CRUD queries are not allowed
             throw createRejectedByPolicyError(
@@ -94,7 +108,7 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
 
         if (!this.isMutationQueryNode(node)) {
             // transform and proceed with read directly
-            return proceed(this.transformNode(node));
+            return _proceed(this.transformNode(node));
         }
 
         const { mutationModel } = this.getMutationModel(node);
@@ -106,12 +120,12 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
 
         // create
         if (InsertQueryNode.is(node)) {
-            await this.preCreateCheck(mutationModel, node, proceed);
+            await this.preCreateCheck(mutationModel, node, _proceed);
         }
 
         // update
         if (UpdateQueryNode.is(node)) {
-            await this.preUpdateCheck(mutationModel, node, proceed);
+            await this.preUpdateCheck(mutationModel, node, _proceed);
         }
 
         // post-update: load before-update entities if needed
@@ -121,7 +135,7 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
             beforeUpdateInfo = await this.loadBeforeUpdateEntities(
                 mutationModel,
                 node.where,
-                proceed,
+                _proceed,
                 // force load pre-update entities if dialect doesn't support returning,
                 // so we can rely on pre-update ids to read back updated entities
                 !this.dialect.supportsReturning,
@@ -132,14 +146,14 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
 
         // #region mutation execution
 
-        const result = await proceed(this.transformNode(node));
+        const result = await _proceed(this.transformNode(node));
 
         // #endregion
 
         // #region Post mutation work
 
         if ((result.numAffectedRows ?? 0) > 0 && needsPostUpdateCheck) {
-            await this.postUpdateCheck(mutationModel, beforeUpdateInfo, result, proceed);
+            await this.postUpdateCheck(mutationModel, beforeUpdateInfo, result, _proceed);
         }
 
         // #endregion
@@ -150,7 +164,7 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
             // no need to check read back
             return this.postProcessMutationResult(result, node);
         } else {
-            const readBackResult = await this.processReadBack(node, result, proceed);
+            const readBackResult = await this.processReadBack(node, result, _proceed);
             if (readBackResult.rows.length !== result.rows.length) {
                 throw createRejectedByPolicyError(
                     mutationModel,
@@ -1165,6 +1179,24 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
             alias,
             operation,
         });
+    }
+
+    /**
+     * Injects the auth WITH clause into a query node so `_auth` and related CTE
+     * aliases are in scope for every WHERE fragment emitted by the policy compiler.
+     */
+    private injectAuthCtes(node: RootOperationNode, authCteInfo: { withNode: WithNode }): RootOperationNode {
+        const { withNode } = authCteInfo;
+
+        if (
+            SelectQueryNode.is(node) ||
+            InsertQueryNode.is(node) ||
+            UpdateQueryNode.is(node) ||
+            DeleteQueryNode.is(node)
+        ) {
+            return { ...node, with: mergeAuthWith(node.with, withNode) };
+        }
+        return node;
     }
 
     private getModelPolicies(model: string, operation: PolicyOperation) {

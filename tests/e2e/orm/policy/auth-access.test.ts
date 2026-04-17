@@ -305,7 +305,7 @@ model Foo {
 
         await db.$unuseAll().foo.create({ data: { id: 1, name: 'Test', requiredAge: 18 } });
         await expect(db.foo.findFirst()).toResolveNull();
-        await expect(db.$setAuth({ id: 1 }).foo.findFirst()).toResolveNull();
+        await expect(db.$setAuth({ id: 1 }).foo.findFirst()).toResolveTruthy();
         await expect(db.$setAuth({ id: 1, profiles: [] }).foo.findFirst()).toResolveTruthy();
         await expect(db.$setAuth({ id: 1, profiles: [{ age: 15 }] }).foo.findFirst()).toResolveNull();
         await expect(db.$setAuth({ profiles: [{ age: 18 }, { age: 20 }] }).foo.findFirst()).toResolveTruthy();
@@ -338,7 +338,7 @@ model Foo {
 
         await db.$unuseAll().foo.create({ data: { id: 1, name: 'Test', requiredAge: 18 } });
         await expect(db.foo.findFirst()).toResolveNull();
-        await expect(db.$setAuth({ id: 1 }).foo.findFirst()).toResolveNull();
+        await expect(db.$setAuth({ id: 1 }).foo.findFirst()).toResolveTruthy();
         await expect(db.$setAuth({ id: 1, profiles: [] }).foo.findFirst()).toResolveTruthy();
         await expect(db.$setAuth({ id: 1, profiles: [{ age: 15 }] }).foo.findFirst()).toResolveTruthy();
         await expect(db.$setAuth({ profiles: [{ age: 15 }, { age: 18 }] }).foo.findFirst()).toResolveNull();

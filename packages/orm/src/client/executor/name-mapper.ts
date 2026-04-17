@@ -548,6 +548,10 @@ export class QueryNameMapper extends OperationNodeTransformer {
         if (this.schema.provider.type !== 'postgresql') {
             return undefined;
         }
+        // Only qualify known models — CTE names (e.g. "_auth__roles") must not be schema-prefixed.
+        if (!getModel(this.schema, model)) {
+            return undefined;
+        }
         let schema = this.schema.provider.defaultSchema ?? 'public';
         const schemaAttr = this.schema.models[model]?.attributes?.find((attr) => attr.name === '@@schema');
         if (schemaAttr) {

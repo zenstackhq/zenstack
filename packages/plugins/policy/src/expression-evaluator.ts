@@ -47,11 +47,13 @@ export class ExpressionEvaluator {
     private evaluateCall(expr: CallExpression, context: ExpressionEvaluatorContext): any {
         if (expr.function === 'auth') {
             return context.auth;
-        } else if (expr.function === 'currentModel') {
-            return context.thisType;
-        } else if (expr.function === 'currentOperation') {
-            return context.operation;
-        } else {
+        }
+        //  else if (expr.function === 'currentModel') {
+        //     return context.thisType;
+        // } else if (expr.function === 'currentOperation') {
+        //     return context.operation;
+        // }
+        else {
             throw new Error(`Unsupported call expression function: ${expr.function}`);
         }
     }
