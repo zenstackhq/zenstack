@@ -4,6 +4,7 @@ import { type Model, type Plugin, isDataSource, type LiteralExpr } from '@zensta
 import { type CliPlugin, PrismaSchemaGenerator } from '@zenstackhq/sdk';
 import colors from 'colors';
 import { createJiti } from 'jiti';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -95,7 +96,7 @@ export async function generateTempPrismaSchema(zmodelPath: string, folder?: stri
     if (!folder) {
         folder = path.dirname(zmodelPath);
     }
-    const prismaSchemaFile = path.resolve(folder, '~schema.prisma');
+    const prismaSchemaFile = path.resolve(folder, `~schema.${crypto.randomUUID()}.prisma`);
     fs.writeFileSync(prismaSchemaFile, prismaSchema);
     return prismaSchemaFile;
 }
