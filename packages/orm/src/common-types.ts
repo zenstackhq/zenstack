@@ -1,6 +1,6 @@
 export type JsonValue = string | number | boolean | JsonObject | JsonArray;
 export type JsonObject = { [key: string]: JsonValue | null };
-export type JsonArray = ReadonlyArray<JsonValue | null>;
+export type JsonArray = Array<JsonValue | null>;
 export type JsonNullValues = DbNull | JsonNull | AnyNull;
 
 export class DbNullClass {
