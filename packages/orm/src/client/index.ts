@@ -6,6 +6,7 @@ export { BaseCrudDialect } from './crud/dialects/base-dialect';
 export {
     AllCrudOperations,
     AllReadOperations,
+    AllWriteOperations,
     CoreCreateOperations,
     CoreCrudOperations,
     CoreDeleteOperations,
