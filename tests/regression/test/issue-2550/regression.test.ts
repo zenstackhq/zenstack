@@ -13,8 +13,8 @@ describe('Regression for issue #2550', () => {
     it('matches ORM signature', async () => {
         const db = await createTestClient(schema);
         const _schema = factory.makeModelSchema('Test');
-        const _result = await db.test.findFirstOrThrow();
-        expectTypeOf<typeof _result>().toExtend<z.infer<typeof _schema>>();
+        type T = Awaited<ReturnType<typeof db.test.findFirstOrThrow>>;
+        expectTypeOf<T>().toExtend<z.infer<typeof _schema>>();
     });
 
     it('makeModelSchema Json field type accepts JsonValue (including readonly arrays)', () => {
