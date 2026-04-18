@@ -95,7 +95,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
     /**
      * Transforms output value received from database.
      */
-    transformOutput(value: unknown, _type: BuiltinType, _array: boolean) {
+    transformOutput(value: unknown, _type: BuiltinType, _array: boolean, _fieldDef?: FieldDef) {
         return value;
     }
 

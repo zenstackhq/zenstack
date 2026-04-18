@@ -210,14 +210,14 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         }
     }
 
-    override transformOutput(value: unknown, type: BuiltinType, array: boolean) {
+    override transformOutput(value: unknown, type: BuiltinType, array: boolean, fieldDef?: FieldDef) {
         if (value === null || value === undefined) {
             return value;
         }
 
         switch (type) {
             case 'DateTime':
-                return this.transformOutputDate(value);
+                return this.transformOutputDate(value, fieldDef);
             case 'Bytes':
                 return this.transformOutputBytes(value);
             case 'BigInt':
@@ -255,19 +255,31 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         return new Decimal(value);
     }
 
-    private transformOutputDate(value: unknown) {
-        if (typeof value === 'string') {
-            // PostgreSQL's jsonb_build_object serializes timestamp as ISO 8601 strings,
-            // we force interpret them as UTC dates here if the value does not carry timezone
-            // offset (this happens with "TIMESTAMP WITHOUT TIME ZONE" field type)
-            const normalized = this.hasTimezoneOffset(value) ? value : `${value}Z`;
-            const parsed = new Date(normalized);
-            return Number.isNaN(parsed.getTime())
-                ? value // fallback to original value if parsing fails
-                : parsed;
-        } else {
+    private transformOutputDate(value: unknown, fieldDef?: FieldDef) {
+        if (typeof value !== 'string') {
             return value;
         }
+
+        // @db.Time / @db.Timetz values arrive as bare time strings (e.g. "09:30:00" or
+        // "09:30:00+00") which `new Date` can't parse. Anchor at the Unix epoch date so
+        // they parse into a Date, matching Prisma's behavior.
+        const isTimeField = fieldDef?.attributes?.some(
+            (a) => a.name === '@db.Time' || a.name === '@db.Timetz',
+        );
+        let anchored = isTimeField ? `1970-01-01T${value}` : value;
+
+        // Postgres `timetz` emits the offset as `+HH` (no minutes), which `new Date`
+        // rejects — expand to `+HH:00`.
+        anchored = anchored.replace(/([+-]\d{2})$/, '$1:00');
+
+        // PostgreSQL's jsonb_build_object serializes timestamp as ISO 8601 strings,
+        // we force interpret them as UTC dates here if the value does not carry timezone
+        // offset (this happens with "TIMESTAMP WITHOUT TIME ZONE" field type)
+        const normalized = this.hasTimezoneOffset(anchored) ? anchored : `${anchored}Z`;
+        const parsed = new Date(normalized);
+        return Number.isNaN(parsed.getTime())
+            ? value // fallback to original value if parsing fails
+            : parsed;
     }
 
     private hasTimezoneOffset(value: string) {
