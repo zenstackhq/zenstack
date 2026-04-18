@@ -18,11 +18,15 @@ model Notification extends Asset {
 
     async function setup() {
         const db = await createTestClient(schema);
-        const a = await db.notification.create({ data: { title: 'A' } });
-        await new Promise((r) => setTimeout(r, 2));
-        const b = await db.notification.create({ data: { title: 'B' } });
-        await new Promise((r) => setTimeout(r, 2));
-        const c = await db.notification.create({ data: { title: 'C' } });
+        const a = await db.notification.create({
+            data: { title: 'A', createdAt: new Date('2025-01-01T00:00:00Z') },
+        });
+        const b = await db.notification.create({
+            data: { title: 'B', createdAt: new Date('2025-01-02T00:00:00Z') },
+        });
+        const c = await db.notification.create({
+            data: { title: 'C', createdAt: new Date('2025-01-03T00:00:00Z') },
+        });
         return { db, a, b, c };
     }
 
