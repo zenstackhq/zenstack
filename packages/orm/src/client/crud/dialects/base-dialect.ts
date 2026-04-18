@@ -252,12 +252,17 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                 const [field, order] = orderByItems[j]!;
                 const _order = negateOrderBy ? (order === 'asc' ? 'desc' : 'asc') : order;
                 const op = j === i ? (_order === 'asc' ? '>=' : '<=') : '=';
+                // Fields inherited from a delegate base live on the base table, which is
+                // joined with its model name as alias. See buildSelectModel/buildDelegateJoin.
+                const fieldDef = requireField(this.schema, model, field);
+                const outerAlias = fieldDef.originModel ?? modelAlias;
+                const subSelectAlias = fieldDef.originModel ?? subQueryAlias;
                 andFilters.push(
                     this.eb(
-                        this.eb.ref(`${modelAlias}.${field}`),
+                        this.eb.ref(`${outerAlias}.${field}`),
                         op,
                         this.buildSelectModel(model, subQueryAlias)
-                            .select(`${subQueryAlias}.${field}`)
+                            .select(`${subSelectAlias}.${field}`)
                             .where(cursorFilter),
                     ),
                 );
