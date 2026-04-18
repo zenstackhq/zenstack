@@ -118,7 +118,7 @@ export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDiale
         }
     }
 
-    override transformOutput(value: unknown, type: BuiltinType, array: boolean) {
+    override transformOutput(value: unknown, type: BuiltinType, array: boolean, fieldDef?: FieldDef) {
         if (value === null || value === undefined) {
             return value;
         }
@@ -127,7 +127,7 @@ export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDiale
             case 'Boolean':
                 return this.transformOutputBoolean(value);
             case 'DateTime':
-                return this.transformOutputDate(value);
+                return this.transformOutputDate(value, fieldDef);
             case 'Bytes':
                 return this.transformOutputBytes(value);
             case 'BigInt':
@@ -165,16 +165,22 @@ export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDiale
         return new Decimal(value);
     }
 
-    private transformOutputDate(value: unknown) {
-        if (typeof value === 'string') {
-            // MySQL DateTime columns are returned as strings (non-ISO but parsable as JS Date),
-            // convert to ISO Date by appending 'Z' if not present
-            return new Date(!value.endsWith('Z') ? value + 'Z' : value);
-        } else if (value instanceof Date) {
-            return value;
-        } else {
+    private transformOutputDate(value: unknown, fieldDef?: FieldDef) {
+        if (value instanceof Date) {
             return value;
         }
+        if (typeof value !== 'string') {
+            return value;
+        }
+
+        // MySQL `TIME` columns are returned as bare time strings (e.g. "09:30:00"),
+        // which `new Date` can't parse — anchor at the Unix epoch to match Prisma.
+        const isTimeField = fieldDef?.attributes?.some((a) => a.name === '@db.Time');
+        const anchored = isTimeField ? `1970-01-01T${value}` : value;
+
+        // MySQL DateTime columns are returned as strings (non-ISO but parsable as JS Date),
+        // convert to ISO Date by appending 'Z' if not present
+        return new Date(!anchored.endsWith('Z') ? anchored + 'Z' : anchored);
     }
 
     private transformOutputBytes(value: unknown) {
