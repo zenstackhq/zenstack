@@ -562,6 +562,7 @@ model ExchangeTradingWindow {
     open        DateTime @db.Time(6)
     close       DateTime @db.Time(6)
     openTz      DateTime @db.Timetz(6)
+    effectiveOn DateTime @db.Date
 }
         `;
 
@@ -578,7 +579,7 @@ model ExchangeTradingWindow {
             await client?.$disconnect();
         });
 
-        it('returns @db.Time / @db.Timetz fields as Date via nested include', async () => {
+        it('returns @db.Time / @db.Timetz / @db.Date fields as Date via nested include', async () => {
             const exchange = await client.exchange.create({ data: { name: 'NYSE' } });
 
             await client.$qb
@@ -588,6 +589,7 @@ model ExchangeTradingWindow {
                     open: '09:30:00',
                     close: '16:00:00',
                     openTz: '09:30:00+00',
+                    effectiveOn: '2024-06-15',
                 })
                 .execute();
 
@@ -605,9 +607,13 @@ model ExchangeTradingWindow {
             expect(win.close.toISOString()).toBe('1970-01-01T16:00:00.000Z');
             expect(win.openTz).toBeInstanceOf(Date);
             expect(win.openTz.toISOString()).toBe('1970-01-01T09:30:00.000Z');
+            // @db.Date must not be corrupted by the tz-offset expansion (guarding
+            // against `2024-06-15` being rewritten to `2024-06-15:00`).
+            expect(win.effectiveOn).toBeInstanceOf(Date);
+            expect(win.effectiveOn.toISOString()).toBe('2024-06-15T00:00:00.000Z');
         });
 
-        it('returns @db.Time fields as Date on a direct select', async () => {
+        it('returns @db.Time / @db.Date fields as Date on a direct select', async () => {
             const exchange = await client.exchange.create({ data: { name: 'NYSE' } });
 
             await client.$qb
@@ -617,6 +623,7 @@ model ExchangeTradingWindow {
                     open: '09:30:00',
                     close: '16:00:00',
                     openTz: '09:30:00+00',
+                    effectiveOn: '2024-06-15',
                 })
                 .execute();
 
@@ -629,6 +636,10 @@ model ExchangeTradingWindow {
             expect(windows[0].open.toISOString()).toBe('1970-01-01T09:30:00.000Z');
             expect(windows[0].close).toBeInstanceOf(Date);
             expect(windows[0].openTz).toBeInstanceOf(Date);
+            // On direct select pg's default DATE parser returns a Date anchored in local
+            // time, so we only assert the instance type here — the include path above
+            // exercises the string branch (which is where the offset-expansion bug lived).
+            expect(windows[0].effectiveOn).toBeInstanceOf(Date);
         });
     });
 });

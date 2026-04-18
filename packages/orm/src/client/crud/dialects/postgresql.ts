@@ -262,15 +262,17 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
 
         // @db.Time / @db.Timetz values arrive as bare time strings (e.g. "09:30:00" or
         // "09:30:00+00") which `new Date` can't parse. Anchor at the Unix epoch date so
-        // they parse into a Date, matching Prisma's behavior.
+        // they parse into a Date, matching Prisma's behavior. Also expand Postgres
+        // `timetz`'s minute-less offset (`+HH` -> `+HH:00`) which `new Date` rejects.
+        // Both transforms are gated on the field being time-typed so we never touch
+        // `@db.Date` strings like "2024-06-15" where the trailing `-15` would otherwise
+        // look like a timezone offset.
         const isTimeField = fieldDef?.attributes?.some(
             (a) => a.name === '@db.Time' || a.name === '@db.Timetz',
         );
-        let anchored = isTimeField ? `1970-01-01T${value}` : value;
-
-        // Postgres `timetz` emits the offset as `+HH` (no minutes), which `new Date`
-        // rejects — expand to `+HH:00`.
-        anchored = anchored.replace(/([+-]\d{2})$/, '$1:00');
+        const anchored = isTimeField
+            ? `1970-01-01T${value}`.replace(/([+-]\d{2})$/, '$1:00')
+            : value;
 
         // PostgreSQL's jsonb_build_object serializes timestamp as ISO 8601 strings,
         // we force interpret them as UTC dates here if the value does not carry timezone
