@@ -256,18 +256,29 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
     }
 
     private transformOutputDate(value: unknown) {
-        if (typeof value === 'string') {
-            // PostgreSQL's jsonb_build_object serializes timestamp as ISO 8601 strings,
-            // we force interpret them as UTC dates here if the value does not carry timezone
-            // offset (this happens with "TIMESTAMP WITHOUT TIME ZONE" field type)
-            const normalized = this.hasTimezoneOffset(value) ? value : `${value}Z`;
-            const parsed = new Date(normalized);
-            return Number.isNaN(parsed.getTime())
-                ? value // fallback to original value if parsing fails
-                : parsed;
-        } else {
+        if (typeof value !== 'string') {
             return value;
         }
+
+        // PG `time` / `timetz` values come back as bare time strings ("09:30:00" or
+        // "09:30:00+00") that `new Date` can't parse on their own — anchor at the
+        // Unix epoch and expand `timetz`'s minute-less offset (`+HH` -> `+HH:00`).
+        // Detect by shape rather than the schema attribute so the runtime stays
+        // decoupled from `@db.*` (which is migration/db-push only): time-only
+        // values start with `HH:`, anything date-bearing starts with `YYYY-`.
+        const isTimeOnly = /^\d{2}:/.test(value);
+        const anchored = isTimeOnly
+            ? `1970-01-01T${value}`.replace(/([+-]\d{2})$/, '$1:00')
+            : value;
+
+        // PostgreSQL's jsonb_build_object serializes timestamp as ISO 8601 strings,
+        // we force interpret them as UTC dates here if the value does not carry timezone
+        // offset (this happens with "TIMESTAMP WITHOUT TIME ZONE" field type)
+        const normalized = this.hasTimezoneOffset(anchored) ? anchored : `${anchored}Z`;
+        const parsed = new Date(normalized);
+        return Number.isNaN(parsed.getTime())
+            ? value // fallback to original value if parsing fails
+            : parsed;
     }
 
     private hasTimezoneOffset(value: string) {
