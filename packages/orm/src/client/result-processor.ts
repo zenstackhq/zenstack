@@ -122,10 +122,10 @@ export class ResultProcessor<Schema extends SchemaDef> {
     private processFieldValue(value: unknown, fieldDef: FieldDef) {
         const type = fieldDef.type as BuiltinType;
         if (Array.isArray(value)) {
-            value.forEach((v, i) => (value[i] = this.dialect.transformOutput(v, type, false, fieldDef)));
+            value.forEach((v, i) => (value[i] = this.dialect.transformOutput(v, type, false)));
             return value;
         } else {
-            return this.dialect.transformOutput(value, type, !!fieldDef.array, fieldDef);
+            return this.dialect.transformOutput(value, type, !!fieldDef.array);
         }
     }
 

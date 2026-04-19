@@ -210,14 +210,14 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         }
     }
 
-    override transformOutput(value: unknown, type: BuiltinType, array: boolean, fieldDef?: FieldDef) {
+    override transformOutput(value: unknown, type: BuiltinType, array: boolean) {
         if (value === null || value === undefined) {
             return value;
         }
 
         switch (type) {
             case 'DateTime':
-                return this.transformOutputDate(value, fieldDef);
+                return this.transformOutputDate(value);
             case 'Bytes':
                 return this.transformOutputBytes(value);
             case 'BigInt':
@@ -255,22 +255,19 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         return new Decimal(value);
     }
 
-    private transformOutputDate(value: unknown, fieldDef?: FieldDef) {
+    private transformOutputDate(value: unknown) {
         if (typeof value !== 'string') {
             return value;
         }
 
-        // @db.Time / @db.Timetz values arrive as bare time strings (e.g. "09:30:00" or
-        // "09:30:00+00") which `new Date` can't parse. Anchor at the Unix epoch date so
-        // they parse into a Date, matching Prisma's behavior. Also expand Postgres
-        // `timetz`'s minute-less offset (`+HH` -> `+HH:00`) which `new Date` rejects.
-        // Both transforms are gated on the field being time-typed so we never touch
-        // `@db.Date` strings like "2024-06-15" where the trailing `-15` would otherwise
-        // look like a timezone offset.
-        const isTimeField = fieldDef?.attributes?.some(
-            (a) => a.name === '@db.Time' || a.name === '@db.Timetz',
-        );
-        const anchored = isTimeField
+        // PG `time` / `timetz` values come back as bare time strings ("09:30:00" or
+        // "09:30:00+00") that `new Date` can't parse on their own — anchor at the
+        // Unix epoch and expand `timetz`'s minute-less offset (`+HH` -> `+HH:00`).
+        // Detect by shape rather than the schema attribute so the runtime stays
+        // decoupled from `@db.*` (which is migration/db-push only): time-only
+        // values start with `HH:`, anything date-bearing starts with `YYYY-`.
+        const isTimeOnly = /^\d{2}:/.test(value);
+        const anchored = isTimeOnly
             ? `1970-01-01T${value}`.replace(/([+-]\d{2})$/, '$1:00')
             : value;
 
