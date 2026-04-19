@@ -452,7 +452,11 @@ importers:
 
   packages/config/eslint-config: {}
 
-  packages/config/tsdown-config: {}
+  packages/config/tsdown-config:
+    devDependencies:
+      '@zenstackhq/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
 
   packages/config/typescript-config: {}
 
