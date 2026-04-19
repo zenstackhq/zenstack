@@ -1,7 +1,14 @@
 import process from 'node:process';
 import os from 'node:os';
 import fs from 'node:fs';
-export const isWsl = () => {
+
+/**
+ * Checks if the current process is running under Windows Subsystem for Linux (WSL).
+ * Uses multiple detection methods for reliability.
+ *
+ * @returns `true` if running under WSL, `false` otherwise
+ */
+export const isWsl = (): boolean => {
     if (process.platform !== 'linux') {
         return false;
     }
