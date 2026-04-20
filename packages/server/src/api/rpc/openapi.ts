@@ -1,6 +1,6 @@
 import { lowerCaseFirst, upperCaseFirst } from '@zenstackhq/common-helpers';
 import { CoreCrudOperations, createQuerySchemaFactory, type ZodSchemaFactory } from '@zenstackhq/orm';
-import type { BuiltinType, ModelDef, ProcedureDef, SchemaDef, TypeDefDef } from '@zenstackhq/orm/schema';
+import type { BuiltinType, EnumDef, ModelDef, ProcedureDef, SchemaDef, TypeDefDef } from '@zenstackhq/orm/schema';
 import type { OpenAPIV3_1 } from 'openapi-types';
 import type { RPCApiHandlerOptions } from '.';
 import { PROCEDURE_ROUTE_PREFIXES } from '../common/procedures';
@@ -468,6 +468,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         } else {
             if (hasParams) {
                 op['requestBody'] = {
+                    ...(hasRequiredParams && { required: true }),
                     content: {
                         [JSON_CT]: { schema: envelopeSchema },
                     },
@@ -529,6 +530,12 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
     }
 
     private generateSharedSchemas(): Record<string, SchemaObject> {
+        // Generate schemas for enums
+        const enumSchemas: Record<string, SchemaObject> = {};
+        for (const [enumName, enumDef] of Object.entries(this.schema.enums ?? {})) {
+            enumSchemas[enumName] = this.buildEnumSchema(enumDef);
+        }
+
         // Generate schemas for typedefs (e.g. `type Address { city String }`)
         const typeDefSchemas: Record<string, SchemaObject> = {};
         for (const [typeName, typeDef] of Object.entries(this.schema.typeDefs ?? {})) {
@@ -542,6 +549,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         }
 
         return {
+            ...enumSchemas,
             ...typeDefSchemas,
             ...modelEntitySchemas,
             _integer: { type: 'integer', minimum: -9007199254740991, maximum: 9007199254740991 },
@@ -637,6 +645,10 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
     /**
      * Builds a JSON Schema object describing a custom typedef
      */
+    private buildEnumSchema(enumDef: EnumDef): SchemaObject {
+        return { type: 'string', enum: Object.values(enumDef.values) };
+    }
+
     private buildTypeDefSchema(typeDef: TypeDefDef): SchemaObject {
         const properties: Record<string, SchemaObject | ReferenceObject> = {};
         const required: string[] = [];

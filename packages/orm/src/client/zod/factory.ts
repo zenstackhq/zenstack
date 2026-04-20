@@ -220,9 +220,11 @@ export class ZodSchemaFactory<
             this.makeAggregateSchema(m);
             this.makeGroupBySchema(m);
         }
-        // Eagerly build args schemas for all procedures.
+        // Eagerly build args schemas for allowed procedures only.
         for (const procName of Object.keys(this.schema.procedures ?? {})) {
-            this.makeProcedureArgsSchema(procName);
+            if (this.isProcedureAllowed(procName)) {
+                this.makeProcedureArgsSchema(procName);
+            }
         }
         return z.toJSONSchema(this.schemaRegistry, { unrepresentable: 'any' });
     }
@@ -2488,6 +2490,29 @@ export class ZodSchemaFactory<
         // If excludedModels is specified, those models are not allowed
         if (excludedModels !== undefined) {
             if (excludedModels.includes(targetModel as any)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private isProcedureAllowed(procName: string): boolean {
+        const slicing = this.options.slicing;
+        if (!slicing) {
+            return true;
+        }
+
+        const { includedProcedures, excludedProcedures } = slicing;
+
+        if (includedProcedures !== undefined) {
+            if (!(includedProcedures as readonly string[]).includes(procName)) {
+                return false;
+            }
+        }
+
+        if (excludedProcedures !== undefined) {
+            if ((excludedProcedures as readonly string[]).includes(procName)) {
                 return false;
             }
         }

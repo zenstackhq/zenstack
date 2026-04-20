@@ -444,6 +444,33 @@ describe('RPC OpenAPI spec generation - response data shapes', () => {
         expect(postSchema.required).toContain('title');
         expect(postSchema.required).toContain('published');
     });
+
+    it('enum schemas are present in components and enum fields reference them', async () => {
+        const enumSchema = `
+enum Role {
+    USER
+    ADMIN
+}
+
+model User {
+    id   Int    @id @default(autoincrement())
+    role Role
+}
+`;
+        const client = await createTestClient(enumSchema);
+        const handler = new RPCApiHandler({ schema: client.$schema });
+        const s = await generateSpec(handler);
+
+        // Enum component must be registered so the $ref resolves
+        expect(s.components?.schemas?.['Role']).toBeDefined();
+        expect(s.components?.schemas?.['Role'].type).toBe('string');
+        expect(s.components?.schemas?.['Role'].enum).toEqual(['USER', 'ADMIN']);
+
+        // The entity schema must reference the enum via $ref
+        const userSchema = s.components?.schemas?.['User'] as any;
+        const roleField = userSchema?.properties?.role;
+        expect(roleField?.['$ref']).toBe('#/components/schemas/Role');
+    });
 });
 
 describe('RPC OpenAPI spec generation - operationIds', () => {
@@ -753,6 +780,7 @@ procedure optionalSearch(query: String?): User[]
 
         const operation = spec?.paths?.['/$procs/createUser']?.post;
         expect(operation?.requestBody).toBeDefined();
+        expect((operation?.requestBody as any)?.required).toBe(true);
         const bodySchema = (operation?.requestBody as any)?.content?.['application/json']?.schema;
         // args is a $ref to the registered ProcArgs component schema
         const argsRef = bodySchema?.properties?.args?.$ref;
@@ -761,6 +789,23 @@ procedure optionalSearch(query: String?): User[]
         const argsSchema = spec.components?.schemas?.[argsSchemaName] as any;
         expect(argsSchema?.properties?.name).toBeDefined();
         expect(argsSchema?.required).toContain('name');
+    });
+
+    it('mutation with only optional params does not set requestBody.required', async () => {
+        const optionalMutationSchema = `
+model User {
+    id Int @id @default(autoincrement())
+    name String
+}
+mutation procedure softDelete(id: Int?): User
+`;
+        const client = await createTestClient(optionalMutationSchema);
+        const handler = new RPCApiHandler({ schema: client.$schema });
+        const spec = await generateSpec(handler);
+
+        const operation = spec?.paths?.['/$procs/softDelete']?.post;
+        expect(operation?.requestBody).toBeDefined();
+        expect((operation?.requestBody as any)?.required).toBeUndefined();
     });
 
     it('optional procedure params are not in required array', async () => {
@@ -798,6 +843,33 @@ procedure optionalSearch(query: String?): User[]
 
         expect(spec.paths?.['/$procs/getUser']).toBeUndefined();
         expect(spec.paths?.['/$procs/createUser']).toBeDefined();
+    });
+
+    it('slicing excludedProcedures removes procedure args from components schemas', async () => {
+        const client = await createTestClient(procSchema);
+        const handler = new RPCApiHandler({
+            schema: client.$schema,
+            queryOptions: { slicing: { excludedProcedures: ['getUser'] as any } },
+        });
+        const spec = await generateSpec(handler);
+
+        const schemaKeys = Object.keys(spec.components?.schemas ?? {});
+        expect(schemaKeys.some((k) => k.startsWith('getUser'))).toBe(false);
+        expect(schemaKeys.some((k) => k.startsWith('createUser'))).toBe(true);
+    });
+
+    it('slicing includedProcedures removes non-listed procedure args from components schemas', async () => {
+        const client = await createTestClient(procSchema);
+        const handler = new RPCApiHandler({
+            schema: client.$schema,
+            queryOptions: { slicing: { includedProcedures: ['createUser'] as any } },
+        });
+        const spec = await generateSpec(handler);
+
+        const schemaKeys = Object.keys(spec.components?.schemas ?? {});
+        expect(schemaKeys.some((k) => k.startsWith('createUser'))).toBe(true);
+        expect(schemaKeys.some((k) => k.startsWith('getUser'))).toBe(false);
+        expect(schemaKeys.some((k) => k.startsWith('optionalSearch'))).toBe(false);
     });
 });
 
