@@ -4225,6 +4225,7 @@ paths:
                             schema:
                                 $ref: "#/components/schemas/_rpcErrorResponse"
             requestBody:
+                required: true
                 content:
                     application/json:
                         schema:
