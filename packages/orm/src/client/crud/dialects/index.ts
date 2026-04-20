@@ -1,5 +1,5 @@
+import type { SchemaDef } from '@zenstackhq/schema';
 import { match } from 'ts-pattern';
-import type { SchemaDef } from '../../../schema';
 import type { ClientOptions } from '../../options';
 import type { BaseCrudDialect } from './base-dialect';
 import { MySqlCrudDialect } from './mysql';

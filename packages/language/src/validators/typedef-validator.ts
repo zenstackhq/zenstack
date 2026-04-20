@@ -1,5 +1,5 @@
 import type { ValidationAcceptor } from 'langium';
-import { isDataModel, type DataField, type TypeDef } from '../generated/ast';
+import { type DataField, type TypeDef } from '../generated/ast';
 import { validateAttributeApplication } from './attribute-application-validator';
 import { validateDuplicatedDeclarations, type AstValidator } from './common';
 
@@ -22,11 +22,6 @@ export default class TypeDefValidator implements AstValidator<TypeDef> {
     }
 
     private validateField(field: DataField, accept: ValidationAcceptor): void {
-        if (isDataModel(field.type.reference?.ref)) {
-            accept('error', 'Type field cannot be a relation', {
-                node: field.type,
-            });
-        }
         field.attributes.forEach((attr) => validateAttributeApplication(attr, accept));
     }
 }

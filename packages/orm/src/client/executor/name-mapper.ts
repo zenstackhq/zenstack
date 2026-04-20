@@ -1,4 +1,5 @@
 import { invariant } from '@zenstackhq/common-helpers';
+import type { EnumDef, EnumField, FieldDef, ModelDef, SchemaDef } from '@zenstackhq/schema';
 import {
     AliasNode,
     BinaryOperationNode,
@@ -27,7 +28,6 @@ import {
     ValueNode,
     ValuesNode,
 } from 'kysely';
-import type { EnumDef, EnumField, FieldDef, ModelDef, SchemaDef } from '../../schema';
 import type { ClientContract } from '../contract';
 import { getCrudDialect } from '../crud/dialects';
 import type { BaseCrudDialect } from '../crud/dialects/base-dialect';
@@ -574,7 +574,6 @@ export class QueryNameMapper extends OperationNodeTransformer {
             }
         });
     }
-
 
     private processSelections(selections: readonly SelectionNode[]) {
         const result: SelectionNode[] = [];

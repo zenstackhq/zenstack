@@ -128,9 +128,13 @@ describe('Mixin Tests', () => {
         );
     });
 
-    it('does not allow relation fields in type', async () => {
-        await loadSchemaWithError(
-            `
+    it('allows relation fields in type', async () => {
+        await loadSchema(`
+        datasource db {
+            provider = 'sqlite'
+            url      = 'file:./dev.db'
+        }
+
         model User {
             id Int @id @default(autoincrement())
         }
@@ -138,8 +142,89 @@ describe('Mixin Tests', () => {
         type T {
             u User
         }
+        `);
+    });
+
+    it('allows multiple models to mixin a type with relation fields', async () => {
+        await loadSchema(`
+        datasource db {
+            provider = 'sqlite'
+            url      = 'file:./dev.db'
+        }
+
+        type WithComments {
+            comments Comment[]
+        }
+
+        model Post with WithComments {
+            id Int @id @default(autoincrement())
+        }
+
+        model Article with WithComments {
+            id Int @id @default(autoincrement())
+        }
+
+        model Comment {
+            id Int @id @default(autoincrement())
+            post     Post?    @relation(fields: [postId], references: [id])
+            postId   Int?
+            article  Article? @relation(fields: [articleId], references: [id])
+            articleId Int?
+        }
+        `);
+    });
+
+    it('rejects type with relation fields when used as JSON field type', async () => {
+        await loadSchemaWithError(
+            `
+        datasource db {
+            provider = 'sqlite'
+            url      = 'file:./dev.db'
+        }
+
+        model User {
+            id Int @id @default(autoincrement())
+        }
+
+        type WithRelation {
+            user User
+        }
+
+        model Post {
+            id       Int          @id @default(autoincrement())
+            metadata WithRelation @json
+        }
         `,
-            'Type field cannot be a relation',
+            'Type used as JSON field type cannot have relation fields',
+        );
+    });
+
+    it('rejects type with transitively-nested relation fields when used as JSON field type', async () => {
+        await loadSchemaWithError(
+            `
+        datasource db {
+            provider = 'sqlite'
+            url      = 'file:./dev.db'
+        }
+
+        model User {
+            id Int @id @default(autoincrement())
+        }
+
+        type Inner {
+            user User
+        }
+
+        type Outer {
+            inner Inner
+        }
+
+        model Post {
+            id       Int   @id @default(autoincrement())
+            metadata Outer @json
+        }
+        `,
+            'Type used as JSON field type cannot have relation fields',
         );
     });
 

@@ -216,6 +216,8 @@ export interface AttributeArg extends langium.AstNode {
     readonly $type: 'AttributeArg';
     name?: RegularID;
     value: Expression;
+    /** Resolved attribute param declaration */
+    $resolvedParam?: AttributeParam;
 }
 
 export const AttributeArg = 'AttributeArg';
@@ -399,6 +401,8 @@ export interface DataModel extends langium.AstNode {
     isView: boolean;
     mixins: Array<langium.Reference<TypeDef>>;
     name: RegularID;
+    /** All fields including those marked with `@ignore` */
+    $allFields?: DataField[];
 }
 
 export const DataModel = 'DataModel';

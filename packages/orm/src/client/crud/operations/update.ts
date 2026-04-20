@@ -1,5 +1,5 @@
+import type { GetModels, SchemaDef } from '@zenstackhq/schema';
 import { match } from 'ts-pattern';
-import type { GetModels, SchemaDef } from '../../../schema';
 import type { WhereInput } from '../../crud-types';
 import { createRejectedByPolicyError, RejectedByPolicyReason } from '../../errors';
 import { getIdValues, requireIdFields } from '../../query-utils';

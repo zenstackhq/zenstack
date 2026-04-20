@@ -2,7 +2,7 @@
     "name": "@zenstackhq/testtools",
     "displayName": "ZenStack Test Tools",
     "description": "ZenStack Test Tools",
-    "version": "3.5.6",
+    "version": "3.6.0",
     "type": "module",
     "author": {
         "name": "ZenStack Team",
@@ -15,8 +15,8 @@
     },
     "license": "MIT",
     "scripts": {
-        "build": "tsc --noEmit && tsup-node",
-        "watch": "tsup-node --watch",
+        "build": "tsc --noEmit && tsdown",
+        "watch": "tsdown --watch",
         "lint": "eslint src --ext ts",
         "pack": "pnpm pack"
     },
@@ -27,8 +27,8 @@
     "exports": {
         ".": {
             "import": {
-                "types": "./dist/index.d.ts",
-                "default": "./dist/index.js"
+                "types": "./dist/index.d.mts",
+                "default": "./dist/index.mjs"
             },
             "require": {
                 "types": "./dist/index.d.cts",
@@ -60,9 +60,10 @@
     "devDependencies": {
         "@types/better-sqlite3": "catalog:",
         "@types/node": "catalog:",
-        "@types/tmp": "catalog:",
         "@types/pg": "^8.11.11",
+        "@types/tmp": "catalog:",
         "@zenstackhq/eslint-config": "workspace:*",
+        "@zenstackhq/tsdown-config": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*",
         "typescript": "catalog:"
     },

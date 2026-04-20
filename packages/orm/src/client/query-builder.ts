@@ -10,7 +10,7 @@ import type {
     ModelFieldIsOptional,
     ScalarFields,
     SchemaDef,
-} from '../schema';
+} from '@zenstackhq/schema';
 
 export type ToKyselySchema<Schema extends SchemaDef> = {
     [Model in GetModels<Schema>]: ToKyselyTable<Schema, Model>;

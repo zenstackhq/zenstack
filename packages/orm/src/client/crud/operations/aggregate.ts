@@ -1,5 +1,5 @@
+import type { SchemaDef } from '@zenstackhq/schema';
 import { match } from 'ts-pattern';
-import type { SchemaDef } from '../../../schema';
 import { getField } from '../../query-utils';
 import { BaseOperationHandler } from './base';
 
