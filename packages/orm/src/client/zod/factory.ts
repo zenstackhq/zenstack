@@ -361,19 +361,11 @@ export class ZodSchemaFactory<
                         ZodUtils.addDecimalValidation(z.string(), attributes, this.extraValidationsEnabled),
                     ]);
                 })
-                .with('DateTime', () =>
-                    this.hasAttribute(attributes, '@db.Date')
-                        ? z.union([z.iso.date(), this.makeDateTimeValueSchema()])
-                        : this.makeDateTimeValueSchema(),
-                )
+                .with('DateTime', () => this.makeDateTimeValueSchema())
                 .with('Bytes', () => z.instanceof(Uint8Array))
                 .with('Json', () => this.makeJsonValueSchema())
                 .otherwise(() => z.unknown());
         }
-    }
-
-    private hasAttribute(attributes: readonly AttributeApplication[] | undefined, name: string) {
-        return attributes?.some((attribute) => attribute.name === name) ?? false;
     }
 
     @cache()
@@ -513,7 +505,6 @@ export class ZodSchemaFactory<
                         !!fieldDef.optional,
                         withAggregations,
                         allowedFilterKinds,
-                        fieldDef.type === 'DateTime' ? fieldDef.attributes : undefined,
                     );
                 }
             }
@@ -801,7 +792,6 @@ export class ZodSchemaFactory<
         optional: boolean,
         withAggregations: boolean,
         allowedFilterKinds: string[] | undefined,
-        attributes?: readonly AttributeApplication[],
     ) {
         return match(type)
             .with('String', () => this.makeStringFilterSchema(optional, withAggregations, allowedFilterKinds))
@@ -809,7 +799,7 @@ export class ZodSchemaFactory<
                 this.makeNumberFilterSchema(type, optional, withAggregations, allowedFilterKinds),
             )
             .with('Boolean', () => this.makeBooleanFilterSchema(optional, withAggregations, allowedFilterKinds))
-            .with('DateTime', () => this.makeDateTimeFilterSchema(optional, withAggregations, allowedFilterKinds, attributes))
+            .with('DateTime', () => this.makeDateTimeFilterSchema(optional, withAggregations, allowedFilterKinds))
             .with('Bytes', () => this.makeBytesFilterSchema(optional, withAggregations, allowedFilterKinds))
             .with('Json', () => this.makeJsonFilterSchema(optional, allowedFilterKinds))
             .with('Unsupported', () => z.never())
@@ -864,7 +854,7 @@ export class ZodSchemaFactory<
 
     @cache()
     private makeDateTimeValueSchema(): ZodType {
-        const schema = z.union([z.iso.datetime(), z.date()]);
+        const schema = z.union([z.iso.datetime(), z.iso.date(), z.date()]);
         this.registerSchema('DateTime', schema);
         return schema;
     }
@@ -874,12 +864,8 @@ export class ZodSchemaFactory<
         optional: boolean,
         withAggregations: boolean,
         allowedFilterKinds: string[] | undefined,
-        attributes?: readonly AttributeApplication[],
     ): ZodType {
-        // For DateTime fields with @db.Date, allow plain date strings in filters
-        const filterValueSchema = attributes && this.hasAttribute(attributes, '@db.Date')
-            ? z.union([z.iso.date(), this.makeDateTimeValueSchema()])
-            : this.makeDateTimeValueSchema();
+        const filterValueSchema = this.makeDateTimeValueSchema();
 
         const schema = this.makeCommonPrimitiveFilterSchema(
             filterValueSchema,

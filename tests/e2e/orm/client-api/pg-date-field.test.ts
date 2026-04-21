@@ -84,7 +84,7 @@ model Event {
         expect(lessThanFound.map((item: { name: string }) => item.name).sort()).toEqual(['Middle', 'Past']);
     });
 
-    it('accepts plain date strings in create and update payloads for a @db.Date field only', async () => {
+    it('accepts plain date strings in create and update payloads for @db.Date and non-@db.Date fields', async () => {
         const createSchema = client.$zod.makeCreateSchema('Event');
         const createResult = createSchema.safeParse({ data: { name: 'Conference', eventDate: '2007-05-23' } });
         expect(
@@ -95,7 +95,11 @@ model Event {
         const invalidCreateResult = createSchema.safeParse({ data: { name: 'Conference', createdAt: '2007-05-23' } });
         expect(invalidCreateResult.success).toBe(false);
 
-        const created = await client.event.create({ data: { name: 'Conference', eventDate: '2007-05-23' } });
+        const created = await client.event.create({
+            data: { name: 'Conference', eventDate: '2007-05-23', createdAt: '2007-05-23' },
+        });
+        expect(created.eventDate).toEqual(new Date('2007-05-23:00:00:00.000Z'));
+        expect(created.createdAt).toEqual(new Date('2007-05-23:00:00:00.000Z'));
 
         const updateSchema = client.$zod.makeUpdateSchema('Event');
         const updateResult = updateSchema.safeParse({ where: { id: created.id }, data: { eventDate: '2008-05-23' } });
@@ -104,21 +108,27 @@ model Event {
             `Expected update payload for @db.Date field to be accepted, got: ${JSON.stringify(updateResult.error)}`,
         ).toBe(true);
 
-        const invalidUpdateResult = updateSchema.safeParse({
+        const nonDbDateUpdateResult = updateSchema.safeParse({
             where: { id: created.id },
             data: { createdAt: '2008-05-23' },
         });
-        expect(invalidUpdateResult.success).toBe(false);
+        expect(nonDbDateUpdateResult.success).toBe(true);
 
-        await client.event.update({ where: { id: created.id }, data: { eventDate: '2008-05-23' } });
+        const r = await client.event.update({
+            where: { id: created.id },
+            data: {
+                // @db.Date
+                eventDate: '2008-05-23',
+                // non @db.Date
+                createdAt: '2009-01-01',
+            },
+        });
+
+        // both updates should result in correct UTC date time
+        expect(r.eventDate).toEqual(new Date('2008-05-23:00:00:00.000Z'));
+        expect(r.createdAt).toEqual(new Date('2009-01-01:00:00:00.000Z'));
 
         const updated = await client.event.findMany({ where: { id: created.id, eventDate: '2008-05-23' } });
         expect(updated).toHaveLength(1);
-    });
-
-    it('plain date string is rejected on a regular DateTime field (no @db.Date)', async () => {
-        const filterSchema = client.$zod.makeFindManySchema('Event');
-        const result = filterSchema.safeParse({ where: { createdAt: '2007-05-23' } });
-        expect(result.success).toBe(false);
     });
 });

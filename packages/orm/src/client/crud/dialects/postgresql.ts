@@ -94,8 +94,8 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
                 .then((pg) => {
                     // timestamp
                     pg.types.setTypeParser(pg.types.builtins.TIMESTAMP, fixTimezone);
+                    // timestamp array
                     pg.types.setTypeParser(1115, (value) => {
-                        // timestamp array
                         if (typeof value !== 'string') {
                             return value;
                         }
@@ -107,6 +107,12 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
                             return value;
                         }
                     });
+                    // date
+                    pg.types.setTypeParser(
+                        pg.types.builtins.DATE,
+                        // append time and UTC offset to force a valid UTC date time
+                        (v) => new Date(`${v}T00:00:00Z`),
+                    );
                 })
                 .catch(() => {
                     // ignore
@@ -267,9 +273,7 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         // decoupled from `@db.*` (which is migration/db-push only): time-only
         // values start with `HH:`, anything date-bearing starts with `YYYY-`.
         const isTimeOnly = /^\d{2}:/.test(value);
-        const anchored = isTimeOnly
-            ? `1970-01-01T${value}`.replace(/([+-]\d{2})$/, '$1:00')
-            : value;
+        const anchored = isTimeOnly ? `1970-01-01T${value}`.replace(/([+-]\d{2})$/, '$1:00') : value;
 
         // PostgreSQL's jsonb_build_object serializes timestamp as ISO 8601 strings,
         // we force interpret them as UTC dates here if the value does not carry timezone
