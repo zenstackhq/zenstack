@@ -9,6 +9,7 @@ type CommonOptions = {
     schema?: string;
     migrations?: string;
     skipSeed?: boolean;
+    randomPrismaSchemaName?: boolean;
 };
 
 type DevOptions = CommonOptions & {
@@ -39,7 +40,10 @@ export async function run(command: string, options: CommonOptions) {
     await requireDataSourceUrl(schemaFile);
 
     const prismaSchemaDir = options.migrations ? path.dirname(options.migrations) : undefined;
-    const prismaSchemaFile = await generateTempPrismaSchema(schemaFile, prismaSchemaDir);
+    const prismaSchemaFile = await generateTempPrismaSchema(schemaFile, {
+        folder: prismaSchemaDir,
+        randomName: options.randomPrismaSchemaName,
+    });
 
     try {
         switch (command) {

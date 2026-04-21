@@ -87,16 +87,19 @@ export function handleSubProcessError(err: unknown) {
     }
 }
 
-export async function generateTempPrismaSchema(zmodelPath: string, folder?: string) {
+export async function generateTempPrismaSchema(
+    zmodelPath: string,
+    opts: { folder?: string; randomName?: boolean } = {},
+) {
+    const { folder: folderOpt, randomName = false } = opts;
     const model = await loadSchemaDocument(zmodelPath);
     if (!model.declarations.some(isDataSource)) {
         throw new CliError('Schema must define a datasource');
     }
     const prismaSchema = await new PrismaSchemaGenerator(model).generate();
-    if (!folder) {
-        folder = path.dirname(zmodelPath);
-    }
-    const prismaSchemaFile = path.resolve(folder, `~schema.${crypto.randomUUID()}.prisma`);
+    const folder = folderOpt ?? path.dirname(zmodelPath);
+    const fileName = randomName ? `~schema.${crypto.randomUUID()}.prisma` : '~schema.prisma';
+    const prismaSchemaFile = path.resolve(folder, fileName);
     fs.writeFileSync(prismaSchemaFile, prismaSchema);
     return prismaSchemaFile;
 }

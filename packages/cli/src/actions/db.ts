@@ -22,6 +22,7 @@ type PushOptions = {
     schema?: string;
     acceptDataLoss?: boolean;
     forceReset?: boolean;
+    randomPrismaSchemaName?: boolean;
 };
 
 export type PullOptions = {
@@ -55,7 +56,9 @@ async function runPush(options: PushOptions) {
     await requireDataSourceUrl(schemaFile);
 
     // generate a temp prisma schema file
-    const prismaSchemaFile = await generateTempPrismaSchema(schemaFile);
+    const prismaSchemaFile = await generateTempPrismaSchema(schemaFile, {
+        randomName: options.randomPrismaSchemaName,
+    });
 
     try {
         // run prisma db push
