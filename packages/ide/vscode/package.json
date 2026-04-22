@@ -1,7 +1,7 @@
 {
     "name": "zenstack-v3",
     "publisher": "zenstack",
-    "version": "3.6.1",
+    "version": "3.6.2",
     "displayName": "ZenStack V3 Language Tools",
     "description": "VSCode extension for ZenStack (v3) ZModel language",
     "private": true,
