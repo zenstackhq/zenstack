@@ -86,20 +86,16 @@ model Event {
 
     it('accepts plain date strings in create and update payloads for @db.Date and non-@db.Date fields', async () => {
         const createSchema = client.$zod.makeCreateSchema('Event');
-        const createResult = createSchema.safeParse({ data: { name: 'Conference', eventDate: '2007-05-23' } });
-        expect(
-            createResult.success,
-            `Expected create payload for @db.Date field to be accepted, got: ${JSON.stringify(createResult.error)}`,
-        ).toBe(true);
-
-        const invalidCreateResult = createSchema.safeParse({ data: { name: 'Conference', createdAt: '2007-05-23' } });
-        expect(invalidCreateResult.success).toBe(false);
+        const createResult = createSchema.safeParse({
+            data: { name: 'Conference', eventDate: '2007-05-23', createdAt: '2007-05-23' },
+        });
+        expect(createResult.success).toBe(true);
 
         const created = await client.event.create({
             data: { name: 'Conference', eventDate: '2007-05-23', createdAt: '2007-05-23' },
         });
-        expect(created.eventDate).toEqual(new Date('2007-05-23:00:00:00.000Z'));
-        expect(created.createdAt).toEqual(new Date('2007-05-23:00:00:00.000Z'));
+        expect(created.eventDate).toEqual(new Date('2007-05-23T00:00:00.000Z'));
+        expect(created.createdAt).toEqual(new Date('2007-05-23T00:00:00.000Z'));
 
         const updateSchema = client.$zod.makeUpdateSchema('Event');
         const updateResult = updateSchema.safeParse({ where: { id: created.id }, data: { eventDate: '2008-05-23' } });
@@ -125,8 +121,8 @@ model Event {
         });
 
         // both updates should result in correct UTC date time
-        expect(r.eventDate).toEqual(new Date('2008-05-23:00:00:00.000Z'));
-        expect(r.createdAt).toEqual(new Date('2009-01-01:00:00:00.000Z'));
+        expect(r.eventDate).toEqual(new Date('2008-05-23T00:00:00.000Z'));
+        expect(r.createdAt).toEqual(new Date('2009-01-01T00:00:00.000Z'));
 
         const updated = await client.event.findMany({ where: { id: created.id, eventDate: '2008-05-23' } });
         expect(updated).toHaveLength(1);
