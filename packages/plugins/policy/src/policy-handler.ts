@@ -205,24 +205,33 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         // filter combining model-level update policy and update where
         const updateFilter = conjunction(this.dialect, [modelLevelFilter, node.where?.where ?? trueNode(this.dialect)]);
 
-        // build a query to count rows that will be rejected by field-level policies
-        // `SELECT COALESCE(SUM((not <fieldsFilter>) as integer), 0) AS $filteredCount WHERE <updateFilter> AND <rowFilter>`
-        const preUpdateCheckQuery = this.eb
+        // check if any rows violate field-level policies: satisfying update filter but not field-level filter:
+        // `SELECT 1 FROM <table> WHERE <updateFilter> AND NOT <fieldLevelFilter>`
+        const violatingRowsQuery = this.eb
             .selectFrom(mutationModel)
-            .select((eb) =>
-                eb.fn
-                    .coalesce(
-                        eb.fn.sum(
-                            this.dialect.castInt(new ExpressionWrapper(logicalNot(this.dialect, fieldLevelFilter))),
-                        ),
-                        eb.lit(0),
-                    )
-                    .as('$filteredCount'),
-            )
-            .where(() => new ExpressionWrapper(updateFilter));
+            .select(this.eb.lit(1).as('_'))
+            .where(
+                () =>
+                    new ExpressionWrapper(
+                        conjunction(this.dialect, [updateFilter, logicalNot(this.dialect, fieldLevelFilter)]),
+                    ),
+            );
 
-        const preUpdateResult = await proceed(preUpdateCheckQuery.toOperationNode());
-        if (preUpdateResult.rows[0].$filteredCount > 0) {
+        const preUpdateResult = await proceed(
+            // `SELECT EXISTS(violatingRowsQuery) AS $condition`
+            {
+                kind: 'SelectQueryNode',
+                selections: [
+                    SelectionNode.create(
+                        AliasNode.create(
+                            this.eb.exists(violatingRowsQuery).toOperationNode(),
+                            IdentifierNode.create('$condition'),
+                        ),
+                    ),
+                ],
+            } satisfies SelectQueryNode,
+        );
+        if (preUpdateResult.rows[0].$condition) {
             throw createRejectedByPolicyError(
                 mutationModel,
                 RejectedByPolicyReason.NO_ACCESS,
@@ -918,12 +927,28 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
 
         const filter = this.buildPolicyFilter(model, undefined, 'create');
 
-        const preCreateCheck = this.eb
+        // check if the provided values satisfy the create policy
+
+        // `SELECT 1 FROM (VALUES (...)) AS t(column1, column2, ...) WHERE <filter>`
+        const preCreateInner = this.eb
             .selectFrom(valuesTable.as(model))
-            .select(this.eb(this.eb.fn.count(this.eb.lit(1)), '>', 0).as('$condition'))
+            .select(this.eb.lit(1).as('_'))
             .where(() => new ExpressionWrapper(filter));
 
-        const result = await proceed(preCreateCheck.toOperationNode());
+        const result = await proceed(
+            // `SELECT EXISTS(preCreateInner) AS $condition`
+            {
+                kind: 'SelectQueryNode',
+                selections: [
+                    SelectionNode.create(
+                        AliasNode.create(
+                            this.eb.exists(preCreateInner).toOperationNode(),
+                            IdentifierNode.create('$condition'),
+                        ),
+                    ),
+                ],
+            } satisfies SelectQueryNode,
+        );
         if (!result.rows[0]?.$condition) {
             throw createRejectedByPolicyError(model, RejectedByPolicyReason.NO_ACCESS);
         }
