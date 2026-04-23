@@ -2,7 +2,7 @@
     "name": "@zenstackhq/testtools",
     "displayName": "ZenStack Test Tools",
     "description": "ZenStack Test Tools",
-    "version": "3.6.1",
+    "version": "3.6.2",
     "type": "module",
     "author": {
         "name": "ZenStack Team",

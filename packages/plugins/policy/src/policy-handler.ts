@@ -587,11 +587,42 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         const combinedFilter = where ? conjunction(this.dialect, [where.where, policyFilter]) : policyFilter;
         const selections = beforeUpdateAccessFields ?? QueryUtils.requireIdFields(this.client.$schema, model);
 
+        // Always qualify each column with its owning table. For delegate sub-models,
+        // fields inherited from the base live in the base table and must be joined in.
+        const baseModelsToJoin = new Set<string>();
+        const selectionNodes = selections.map((f) => {
+            const fieldDef = QueryUtils.getField(this.client.$schema, model, f);
+            const owningTable = fieldDef?.originModel ?? model;
+            if (fieldDef?.originModel) {
+                baseModelsToJoin.add(fieldDef.originModel);
+            }
+            return SelectionNode.create(ReferenceNode.create(ColumnNode.create(f), TableNode.create(owningTable)));
+        });
+
+        const idFields = QueryUtils.requireIdFields(this.client.$schema, model);
+        const joins: JoinNode[] = Array.from(baseModelsToJoin).map((baseModel) =>
+            JoinNode.createWithOn(
+                'LeftJoin',
+                TableNode.create(baseModel),
+                conjunction(
+                    this.dialect,
+                    idFields.map((idField) =>
+                        BinaryOperationNode.create(
+                            ReferenceNode.create(ColumnNode.create(idField), TableNode.create(model)),
+                            OperatorNode.create('='),
+                            ReferenceNode.create(ColumnNode.create(idField), TableNode.create(baseModel)),
+                        ),
+                    ),
+                ),
+            ),
+        );
+
         const query: SelectQueryNode = {
             kind: 'SelectQueryNode',
             from: FromNode.create([TableNode.create(model)]),
+            joins: joins.length > 0 ? joins : undefined,
             where: WhereNode.create(combinedFilter),
-            selections: selections.map((f) => SelectionNode.create(ColumnNode.create(f))),
+            selections: selectionNodes,
         };
         const result = await proceed(query);
         return { fields: beforeUpdateAccessFields, rows: result.rows };
