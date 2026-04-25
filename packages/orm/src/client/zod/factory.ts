@@ -560,6 +560,23 @@ export class ZodSchemaFactory<
         // expression builder
         fields['$expr'] = z.custom((v) => typeof v === 'function', { error: '"$expr" must be a function' }).optional();
 
+        // $is sub-model filter for delegate (polymorphic) base models
+        const modelDef = requireModel(this.schema, model);
+        if (modelDef.isDelegate && modelDef.subModels && modelDef.subModels.length > 0) {
+            const subModelSchema = z.object(
+                Object.fromEntries(
+                    modelDef.subModels.map((subModel) => [
+                        subModel,
+                        z
+                            .lazy(() => this.makeWhereSchema(subModel, false, false, false, options))
+                            .nullish()
+                            .optional(),
+                    ]),
+                ),
+            );
+            fields['$is'] = subModelSchema.optional();
+        }
+
         // logical operators
         fields['AND'] = this.orArray(
             z.lazy(() => this.makeWhereSchema(model, false, withoutRelationFields, false, options)),
