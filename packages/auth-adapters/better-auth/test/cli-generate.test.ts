@@ -7,6 +7,7 @@ import tmp from 'tmp';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const packageRoot = path.join(__dirname, '..');
 
 /**
  * Helper function to generate schema using better-auth CLI
@@ -17,7 +18,7 @@ function generateSchema(configFile: string): string {
     const configPath = path.join(__dirname, configFile);
 
     execSync(`pnpm better-auth generate --config ${configPath} --output ${schemaPath} --yes`, {
-        cwd: __dirname,
+        cwd: packageRoot,
         stdio: 'pipe',
     });
 
