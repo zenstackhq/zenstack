@@ -8,7 +8,6 @@ import {
     type AdapterFactoryCustomizeAdapterCreator,
     type AdapterFactoryOptions,
 } from 'better-auth/adapters';
-import { generateSchema } from './schema-generator';
 
 /**
  * Options for the ZenStack adapter factory.
@@ -209,6 +208,7 @@ export const zenstackAdapter = <Schema extends SchemaDef>(db: ClientContract<Sch
                 options: config,
 
                 createSchema: async ({ file, tables }) => {
+                    const generateSchema = (await import('./schema-generator')).generateSchema;
                     return generateSchema(file, tables, config, options);
                 },
             };
