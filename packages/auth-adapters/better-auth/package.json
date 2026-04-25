@@ -39,6 +39,16 @@
                 "default": "./dist/index.cjs"
             }
         },
+        "./schema-generator": {
+            "import": {
+                "types": "./dist/schema-generator.d.mts",
+                "default": "./dist/schema-generator.mjs"
+            },
+            "require": {
+                "types": "./dist/schema-generator.d.cts",
+                "default": "./dist/schema-generator.cjs"
+            }
+        },
         "./package.json": {
             "import": "./package.json",
             "require": "./package.json"
