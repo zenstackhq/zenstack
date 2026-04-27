@@ -18,8 +18,10 @@ import {
     isDataModel,
     isDataSource,
     isEnum,
+    isInvocationExpr,
     isLiteralExpr,
     isModel,
+    isObjectExpr,
     isReferenceExpr,
     isStringLiteral,
     isTypeDef,
@@ -308,6 +310,19 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
         const dm = getContainingDataModel(attr);
         if (dm?.isView && (attr.decl.$refText === '@@id' || attr.decl.$refText === '@@index')) {
             accept('error', `\`${attr.decl.$refText}\` is not allowed for views`, { node: attr });
+        }
+
+        const whereArg = getAttributeArg(attr, 'where');
+        if (whereArg) {
+            const isFilterObject = isObjectExpr(whereArg);
+            const isRawCall =
+                isInvocationExpr(whereArg) &&
+                whereArg.function.$refText === 'raw' &&
+                whereArg.args.length === 1 &&
+                isStringLiteral(whereArg.args[0]?.value);
+            if (!isFilterObject && !isRawCall) {
+                accept('error', '`where` expects a filter object or raw("SQL")', { node: whereArg });
+            }
         }
 
         const fields = getAttributeArg(attr, 'fields');

@@ -431,6 +431,107 @@ describe('Attribute application validation tests', () => {
         });
     });
 
+    describe('Partial index where argument', () => {
+        const header = `
+            datasource db {
+                provider = 'sqlite'
+                url      = 'file:./dev.db'
+            }
+        `;
+
+        it('accepts a filter object in @@index', async () => {
+            await loadSchema(`${header}
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@index([email], where: { email: { not: null } })
+                }
+            `);
+        });
+
+        it('accepts raw() in @@index', async () => {
+            await loadSchema(`${header}
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@index([email], where: raw("email IS NOT NULL"))
+                }
+            `);
+        });
+
+        it('accepts a filter object in @@unique', async () => {
+            await loadSchema(`${header}
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@unique([email], where: { email: { not: null } })
+                }
+            `);
+        });
+
+        it('accepts raw() in @@unique', async () => {
+            await loadSchema(`${header}
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@unique([email], where: raw("email IS NOT NULL"))
+                }
+            `);
+        });
+
+        it('rejects a plain string literal in @@index', async () => {
+            await loadSchemaWithError(
+                `${header}
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@index([email], where: "email IS NOT NULL")
+                }
+                `,
+                '`where` expects a filter object or raw("SQL")',
+            );
+        });
+
+        it('rejects a plain string literal in @@unique', async () => {
+            await loadSchemaWithError(
+                `${header}
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@unique([email], where: "email IS NOT NULL")
+                }
+                `,
+                '`where` expects a filter object or raw("SQL")',
+            );
+        });
+
+        it('rejects a numeric literal in @@index', async () => {
+            await loadSchemaWithError(
+                `${header}
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@index([email], where: 42)
+                }
+                `,
+                '`where` expects a filter object or raw("SQL")',
+            );
+        });
+
+        it('rejects a bare field reference in @@index', async () => {
+            await loadSchemaWithError(
+                `${header}
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@index([email], where: email)
+                }
+                `,
+                '`where` expects a filter object or raw("SQL")',
+            );
+        });
+    });
+
     it('requires relation and fk to have consistent optionality', async () => {
         await loadSchemaWithError(
             `

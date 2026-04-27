@@ -24,6 +24,7 @@ import {
     isInvocationExpr,
     isLiteralExpr,
     isNullExpr,
+    isObjectExpr,
     isReferenceExpr,
     isStringLiteral,
     isTypeDef,
@@ -165,13 +166,26 @@ export class PrismaSchemaGenerator {
     }
 
     private generateGenerator(prisma: PrismaModel, decl: GeneratorDecl) {
-        prisma.addGenerator(
+        const gen = prisma.addGenerator(
             decl.name,
             decl.fields.map((f) => ({
                 name: f.name,
                 text: this.configExprToText(f.value),
             })),
         );
+
+        if (this.hasPartialIndex()) {
+            const existing = gen.fields.find((f) => f.name === 'previewFeatures');
+            if (existing) {
+                const features: string[] = JSON.parse(existing.text);
+                if (!features.includes('partialIndexes')) {
+                    features.push('partialIndexes');
+                    existing.text = JSON.stringify(features);
+                }
+            } else {
+                gen.fields.push({ name: 'previewFeatures', text: JSON.stringify(['partialIndexes']) });
+            }
+        }
     }
 
     private generateDefaultGenerator(prisma: PrismaModel) {
@@ -188,12 +202,29 @@ export class PrismaSchemaGenerator {
             previewFeatures.push('views');
         }
 
+        if (this.hasPartialIndex()) {
+            previewFeatures.push('partialIndexes');
+        }
+
         if (previewFeatures.length > 0) {
             gen.fields.push({
                 name: 'previewFeatures',
                 text: JSON.stringify(previewFeatures),
             });
         }
+    }
+
+    private hasPartialIndex(): boolean {
+        const partialIndexAttrs = ['@@index', '@@unique'];
+        return this.zmodel.declarations.some(
+            (d) =>
+                isDataModel(d) &&
+                getAllAttributes(d).some(
+                    (attr) =>
+                        partialIndexAttrs.includes(attr.decl.ref?.name ?? '') &&
+                        attr.args.some((arg) => arg.name === 'where'),
+                ),
+        );
     }
 
     private generateModel(prisma: PrismaModel, decl: DataModel) {
@@ -368,6 +399,8 @@ export class PrismaSchemaGenerator {
                     node.args.map((arg) => new PrismaFieldReferenceArg(arg.name, this.exprToText(arg.value))),
                 ),
             );
+        } else if (isObjectExpr(node)) {
+            return new PrismaAttributeArgValue('Raw', this.exprToText(node));
         } else if (isInvocationExpr(node)) {
             // invocation
             return new PrismaAttributeArgValue('FunctionCall', this.makeFunctionCall(node));
