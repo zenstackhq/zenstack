@@ -1,7 +1,7 @@
 import { createPolicyTestClient } from '@zenstackhq/testtools';
 import { describe, expect, it } from 'vitest';
 
-// https://github.com/chrishj59/charityAccounts-frontend/tree/fundMasterData
+// https://github.com/zenstackhq/zenstack/issues/2620
 describe('Regression: create delegate sub-model with policy referencing inherited field', () => {
     const schema = `
 type Auth {
