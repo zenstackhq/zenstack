@@ -912,17 +912,15 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
 
         const tableName = context.alias ?? context.modelOrType;
 
-        // "create" policies evaluate table from "VALUES" node so no join from delegate bases are
-        // created and thus we should directly use the model table name
-        if (context.operation === 'create') {
-            return ReferenceNode.create(ColumnNode.create(column), TableNode.create(tableName));
-        }
-
         const fieldDef = QueryUtils.requireField(this.schema, context.modelOrType, column);
         if (!fieldDef.originModel || fieldDef.originModel === context.modelOrType) {
             return ReferenceNode.create(ColumnNode.create(column), TableNode.create(tableName));
         }
 
+        // For inherited fields in delegate sub-types, use a correlated subquery against the
+        // base table. For create operations the VALUES table contains the sub-type's own
+        // fields and its id FK, so the subquery can look up the base record (already inserted
+        // in the same transaction) to resolve inherited field values correctly.
         return this.buildDelegateBaseFieldSelect(context.modelOrType, tableName, column, fieldDef.originModel);
     }
 
