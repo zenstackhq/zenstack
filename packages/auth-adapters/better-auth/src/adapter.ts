@@ -1,5 +1,5 @@
 import type { BetterAuthOptions } from '@better-auth/core';
-import type { DBAdapter, DBAdapterDebugLogOption, Where } from '@better-auth/core/db/adapter';
+import type { DBAdapter, Where } from '@better-auth/core/db/adapter';
 import { BetterAuthError } from '@better-auth/core/error';
 import type { ClientContract, ModelOperations, UpdateInput } from '@zenstackhq/orm';
 import type { GetModels, SchemaDef } from '@zenstackhq/orm/schema';
@@ -8,31 +8,9 @@ import {
     type AdapterFactoryCustomizeAdapterCreator,
     type AdapterFactoryOptions,
 } from 'better-auth/adapters';
-import { generateSchema } from './schema-generator';
+import { getSupportsArrays, type AdapterConfig } from './config';
 
-/**
- * Options for the ZenStack adapter factory.
- */
-export interface AdapterConfig {
-    /**
-     * Database provider
-     */
-    provider: 'sqlite' | 'postgresql';
-
-    /**
-     * Enable debug logs for the adapter
-     *
-     * @default false
-     */
-    debugLogs?: DBAdapterDebugLogOption | undefined;
-
-    /**
-     * Use plural table names
-     *
-     * @default false
-     */
-    usePlural?: boolean | undefined;
-}
+export type { AdapterConfig } from './config';
 
 /**
  * Create a Better-Auth adapter for ZenStack ORM.
@@ -209,6 +187,7 @@ export const zenstackAdapter = <Schema extends SchemaDef>(db: ClientContract<Sch
                 options: config,
 
                 createSchema: async ({ file, tables }) => {
+                    const generateSchema = (await import('./schema-generator')).generateSchema;
                     return generateSchema(file, tables, config, options);
                 },
             };
@@ -220,6 +199,7 @@ export const zenstackAdapter = <Schema extends SchemaDef>(db: ClientContract<Sch
             adapterName: 'ZenStack Adapter',
             usePlural: config.usePlural ?? false,
             debugLogs: config.debugLogs ?? false,
+            supportsArrays: getSupportsArrays(config),
             transaction: (cb) =>
                 db.$transaction((tx) => {
                     const adapter = createAdapterFactory({

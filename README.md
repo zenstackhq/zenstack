@@ -74,7 +74,7 @@ Alternatively, you can set it up manually:
 
 ```bash
 npm install -D @zenstackhq/cli
-npm install @zenstackhq/orm
+npm install @zenstackhq/schema @zenstackhq/orm
 ```
 
 Then create a `zenstack` folder and a `schema.zmodel` file in it.

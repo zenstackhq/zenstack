@@ -2,7 +2,7 @@
     "name": "@zenstackhq/server",
     "displayName": "ZenStack Automatic CRUD Server",
     "description": "ZenStack automatic CRUD API handlers and server adapters for popular frameworks",
-    "version": "3.5.6",
+    "version": "3.6.4",
     "type": "module",
     "author": {
         "name": "ZenStack Team",
@@ -15,8 +15,8 @@
     },
     "license": "MIT",
     "scripts": {
-        "build": "tsc --noEmit && tsup-node",
-        "watch": "tsup-node --watch",
+        "build": "tsc --noEmit && tsdown",
+        "watch": "tsdown --watch",
         "lint": "eslint src --ext ts",
         "test": "vitest run",
         "update-baseline": "UPDATE_BASELINE=1 vitest run test/openapi",
@@ -41,8 +41,8 @@
         },
         "./api": {
             "import": {
-                "types": "./dist/api.d.ts",
-                "default": "./dist/api.js"
+                "types": "./dist/api.d.mts",
+                "default": "./dist/api.mjs"
             },
             "require": {
                 "types": "./dist/api.d.cts",
@@ -51,8 +51,8 @@
         },
         "./express": {
             "import": {
-                "types": "./dist/express.d.ts",
-                "default": "./dist/express.js"
+                "types": "./dist/express.d.mts",
+                "default": "./dist/express.mjs"
             },
             "require": {
                 "types": "./dist/express.d.cts",
@@ -61,8 +61,8 @@
         },
         "./elysia": {
             "import": {
-                "types": "./dist/elysia.d.ts",
-                "default": "./dist/elysia.js"
+                "types": "./dist/elysia.d.mts",
+                "default": "./dist/elysia.mjs"
             },
             "require": {
                 "types": "./dist/elysia.d.cts",
@@ -71,8 +71,8 @@
         },
         "./fastify": {
             "import": {
-                "types": "./dist/fastify.d.ts",
-                "default": "./dist/fastify.js"
+                "types": "./dist/fastify.d.mts",
+                "default": "./dist/fastify.mjs"
             },
             "require": {
                 "types": "./dist/fastify.d.cts",
@@ -81,8 +81,8 @@
         },
         "./next": {
             "import": {
-                "types": "./dist/next.d.ts",
-                "default": "./dist/next.js"
+                "types": "./dist/next.d.mts",
+                "default": "./dist/next.mjs"
             },
             "require": {
                 "types": "./dist/next.d.cts",
@@ -91,8 +91,8 @@
         },
         "./hono": {
             "import": {
-                "types": "./dist/hono.d.ts",
-                "default": "./dist/hono.js"
+                "types": "./dist/hono.d.mts",
+                "default": "./dist/hono.mjs"
             },
             "require": {
                 "types": "./dist/hono.d.cts",
@@ -101,8 +101,8 @@
         },
         "./nuxt": {
             "import": {
-                "types": "./dist/nuxt.d.ts",
-                "default": "./dist/nuxt.js"
+                "types": "./dist/nuxt.d.mts",
+                "default": "./dist/nuxt.mjs"
             },
             "require": {
                 "types": "./dist/nuxt.d.cts",
@@ -111,8 +111,8 @@
         },
         "./sveltekit": {
             "import": {
-                "types": "./dist/sveltekit.d.ts",
-                "default": "./dist/sveltekit.js"
+                "types": "./dist/sveltekit.d.mts",
+                "default": "./dist/sveltekit.mjs"
             },
             "require": {
                 "types": "./dist/sveltekit.d.cts",
@@ -121,8 +121,8 @@
         },
         "./tanstack-start": {
             "import": {
-                "types": "./dist/tanstack-start.d.ts",
-                "default": "./dist/tanstack-start.js"
+                "types": "./dist/tanstack-start.d.mts",
+                "default": "./dist/tanstack-start.mjs"
             },
             "require": {
                 "types": "./dist/tanstack-start.d.cts",
@@ -149,6 +149,7 @@
         "@types/supertest": "^6.0.3",
         "@zenstackhq/eslint-config": "workspace:*",
         "@zenstackhq/testtools": "workspace:*",
+        "@zenstackhq/tsdown-config": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*",
         "@zenstackhq/vitest-config": "workspace:*",
         "body-parser": "^2.2.0",
@@ -169,6 +170,7 @@
         "express": "^5.0.0",
         "fastify": "^5.0.0",
         "fastify-plugin": "^5.0.0",
+        "h3": "^1.15.0",
         "hono": "^4.6.0",
         "next": "^15.0.0 || ^16.0.0",
         "nuxt": "^4.0.0",
@@ -188,6 +190,9 @@
             "optional": true
         },
         "elysia": {
+            "optional": true
+        },
+        "h3": {
             "optional": true
         },
         "hono": {

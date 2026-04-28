@@ -26,7 +26,7 @@ import type { DBAdapterSchemaCreation } from 'better-auth/adapters';
 import type { BetterAuthDBSchema, DBFieldAttribute, DBFieldType } from 'better-auth/db';
 import fs from 'node:fs';
 import { match } from 'ts-pattern';
-import type { AdapterConfig } from './adapter';
+import { getSupportsArrays, type AdapterConfig } from './config';
 
 export async function generateSchema(
     file: string | undefined,
@@ -95,6 +95,7 @@ async function updateSchema(
 
     let changed = false;
 
+    const supportsArrays = getSupportsArrays(config);
     for (const [name, table] of Object.entries(tables)) {
         const c = addOrUpdateModel(
             name,
@@ -102,6 +103,7 @@ async function updateSchema(
             zmodel,
             tables,
             toManyRelations,
+            supportsArrays,
             !!options.advanced?.database?.useNumberId,
         );
         changed = changed || c;
@@ -251,15 +253,15 @@ function initializeZmodel(config: AdapterConfig) {
     return zmodel;
 }
 
-function getMappedFieldType({ bigint, type }: DBFieldAttribute) {
+function getMappedFieldType({ bigint, type }: DBFieldAttribute, supportsArrays: boolean) {
     return match<DBFieldType, { type: string; array?: boolean }>(type)
         .with('string', () => ({ type: 'String' }))
         .with('number', () => (bigint ? { type: 'BigInt' } : { type: 'Int' }))
         .with('boolean', () => ({ type: 'Boolean' }))
         .with('date', () => ({ type: 'DateTime' }))
         .with('json', () => ({ type: 'Json' }))
-        .with('string[]', () => ({ type: 'String', array: true }))
-        .with('number[]', () => ({ type: 'Int', array: true }))
+        .with('string[]', () => (supportsArrays ? { type: 'String', array: true } : { type: 'Json' }))
+        .with('number[]', () => (supportsArrays ? { type: 'Int', array: true } : { type: 'Json' }))
         .when(
             (v) => Array.isArray(v) && v.every((e) => typeof e === 'string'),
             () => {
@@ -278,6 +280,7 @@ function addOrUpdateModel(
     zmodel: Model,
     tables: BetterAuthDBSchema,
     toManyRelations: Map<string, Set<string>>,
+    supportsArrays: boolean,
     numericId: boolean,
 ): boolean {
     let changed = false;
@@ -305,7 +308,7 @@ function addOrUpdateModel(
 
         if (!field.references) {
             // scalar field
-            const { array, type } = getMappedFieldType(field);
+            const { array, type } = getMappedFieldType(field, supportsArrays);
 
             const df: DataField = {
                 $type: 'DataField',

@@ -1,4 +1,5 @@
 import { invariant, lowerCaseFirst } from '@zenstackhq/common-helpers';
+import type { ProcedureDef, SchemaDef } from '@zenstackhq/schema';
 import type { QueryExecutor } from 'kysely';
 import {
     CompiledQuery,
@@ -11,7 +12,6 @@ import {
     type KyselyProps,
 } from 'kysely';
 import z from 'zod';
-import type { ProcedureDef, SchemaDef } from '../schema';
 import type { AnyKysely } from '../utils/kysely-utils';
 import type { UnwrapTuplePromises } from '../utils/type-utils';
 import { formatError } from '../utils/zod-utils';

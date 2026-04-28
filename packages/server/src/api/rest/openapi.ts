@@ -1,8 +1,10 @@
 import { lowerCaseFirst } from '@zenstackhq/common-helpers';
-import type { AttributeApplication, EnumDef, FieldDef, ModelDef, SchemaDef, TypeDefDef } from '@zenstackhq/orm/schema';
+import type { EnumDef, FieldDef, ModelDef, SchemaDef, TypeDefDef } from '@zenstackhq/orm/schema';
 import type { OpenAPIV3_1 } from 'openapi-types';
 import { PROCEDURE_ROUTE_PREFIXES } from '../common/procedures';
 import {
+    DEFAULT_SPEC_TITLE,
+    DEFAULT_SPEC_VERSION,
     getIncludedModels,
     getMetaDescription,
     isFieldOmitted,
@@ -10,6 +12,7 @@ import {
     isModelIncluded,
     isOperationIncluded,
     isProcedureIncluded,
+    mayDenyAccess,
 } from '../common/spec-utils';
 import type { OpenApiSpecOptions } from '../common/types';
 import type { RestApiHandlerOptions } from '.';
@@ -70,8 +73,8 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         return {
             openapi: '3.1.0',
             info: {
-                title: options?.title ?? 'ZenStack Generated API',
-                version: options?.version ?? '1.0.0',
+                title: options?.title ?? DEFAULT_SPEC_TITLE,
+                version: options?.version ?? DEFAULT_SPEC_VERSION,
                 ...(options?.description && { description: options.description }),
                 ...(options?.summary && { summary: options.summary }),
             },
@@ -229,7 +232,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                     },
                 },
                 '400': ERROR_400,
-                ...(this.mayDenyAccess(modelDef, 'create') && { '403': ERROR_403 }),
+                ...(mayDenyAccess(modelDef, 'create', this.specOptions?.respectAccessPolicies) && { '403': ERROR_403 }),
                 '422': ERROR_422,
             },
         };
@@ -293,7 +296,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                         },
                     },
                     '400': ERROR_400,
-                    ...(this.mayDenyAccess(modelDef, 'update') && { '403': ERROR_403 }),
+                    ...(mayDenyAccess(modelDef, 'update', this.specOptions?.respectAccessPolicies) && { '403': ERROR_403 }),
                     '404': ERROR_404,
                     '422': ERROR_422,
                 },
@@ -308,7 +311,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 parameters: [idParam],
                 responses: {
                     '200': { description: 'Deleted successfully' },
-                    ...(this.mayDenyAccess(modelDef, 'delete') && { '403': ERROR_403 }),
+                    ...(mayDenyAccess(modelDef, 'delete', this.specOptions?.respectAccessPolicies) && { '403': ERROR_403 }),
                     '404': ERROR_404,
                 },
             };
@@ -359,7 +362,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         };
 
         if (this.nestedRoutes && relModelDef) {
-            const mayDeny = this.mayDenyAccess(relModelDef, isCollection ? 'create' : 'update');
+            const mayDeny = mayDenyAccess(relModelDef, isCollection ? 'create' : 'update', this.specOptions?.respectAccessPolicies);
             if (isCollection && isOperationIncluded(fieldDef.type, 'create', this.queryOptions)) {
                 // POST /{model}/{id}/{field} — nested create
                 pathItem['post'] = {
@@ -434,8 +437,8 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
     ): Record<string, any> {
         const childIdParam = { name: 'childId', in: 'path', required: true, schema: { type: 'string' } };
         const idParam = { $ref: '#/components/parameters/id' };
-        const mayDenyUpdate = this.mayDenyAccess(relModelDef, 'update');
-        const mayDenyDelete = this.mayDenyAccess(relModelDef, 'delete');
+        const mayDenyUpdate = mayDenyAccess(relModelDef, 'update', this.specOptions?.respectAccessPolicies);
+        const mayDenyDelete = mayDenyAccess(relModelDef, 'delete', this.specOptions?.respectAccessPolicies);
         const result: Record<string, any> = {};
 
         if (isOperationIncluded(fieldDef.type, 'findUnique', this.queryOptions)) {
@@ -523,7 +526,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             ? { $ref: '#/components/schemas/_toManyRelationshipRequest' }
             : { $ref: '#/components/schemas/_toOneRelationshipRequest' };
 
-        const mayDeny = this.mayDenyAccess(modelDef, 'update');
+        const mayDeny = mayDenyAccess(modelDef, 'update', this.specOptions?.respectAccessPolicies);
 
         const pathItem: Record<string, any> = {
             get: {
@@ -1204,50 +1207,4 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         return modelDef.idFields.map((name) => modelDef.fields[name]).filter((f): f is FieldDef => f !== undefined);
     }
 
-    /**
-     * Checks if an operation on a model may be denied by access policies.
-     * Returns true when `respectAccessPolicies` is enabled and the model's
-     * policies for the given operation are NOT a constant allow (i.e., not
-     * simply `@@allow('...', true)` with no `@@deny` rules).
-     */
-    private mayDenyAccess(modelDef: ModelDef, operation: string): boolean {
-        if (!this.specOptions?.respectAccessPolicies) return false;
-
-        const policyAttrs = (modelDef.attributes ?? []).filter(
-            (attr) => attr.name === '@@allow' || attr.name === '@@deny',
-        );
-
-        // No policy rules at all means default-deny
-        if (policyAttrs.length === 0) return true;
-
-        const getArgByName = (args: AttributeApplication['args'], name: string) =>
-            args?.find((a) => a.name === name)?.value;
-
-        const matchesOperation = (args: AttributeApplication['args']) => {
-            const val = getArgByName(args, 'operation');
-            if (!val || val.kind !== 'literal' || typeof val.value !== 'string') return false;
-            const ops = val.value.split(',').map((s) => s.trim());
-            return ops.includes(operation) || ops.includes('all');
-        };
-
-        const hasEffectiveDeny = policyAttrs.some((attr) => {
-            if (attr.name !== '@@deny' || !matchesOperation(attr.args)) return false;
-            const condition = getArgByName(attr.args, 'condition');
-            // @@deny('op', false) is a no-op — skip it
-            return !(condition?.kind === 'literal' && condition.value === false);
-        });
-        if (hasEffectiveDeny) return true;
-
-        const relevantAllow = policyAttrs.filter(
-            (attr) => attr.name === '@@allow' && matchesOperation(attr.args),
-        );
-
-        // If any allow rule has a constant `true` condition (and no deny), access is unconditional
-        const hasConstantAllow = relevantAllow.some((attr) => {
-            const condition = getArgByName(attr.args, 'condition');
-            return condition?.kind === 'literal' && condition.value === true;
-        });
-
-        return !hasConstantAllow;
-    }
 }

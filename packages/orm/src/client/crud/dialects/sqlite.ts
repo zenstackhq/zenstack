@@ -1,4 +1,5 @@
 import { invariant } from '@zenstackhq/common-helpers';
+import type { BuiltinType, FieldDef, GetModels, SchemaDef } from '@zenstackhq/schema';
 import Decimal from 'decimal.js';
 import {
     expressionBuilder,
@@ -13,7 +14,6 @@ import {
     type SqlBool,
 } from 'kysely';
 import { AnyNullClass, DbNullClass, JsonNullClass } from '../../../common-types';
-import type { BuiltinType, FieldDef, GetModels, SchemaDef } from '../../../schema';
 import { DELEGATE_JOINED_FIELD_PREFIX } from '../../constants';
 import type { FindArgs, SortOrder } from '../../crud-types';
 import { createInternalError, createInvalidInputError, createNotSupportedError } from '../../errors';
@@ -307,7 +307,11 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
                 );
             }
 
-            if (typeof payload === 'object' && (payload as any).include && typeof (payload as any).include === 'object') {
+            if (
+                typeof payload === 'object' &&
+                (payload as any).include &&
+                typeof (payload as any).include === 'object'
+            ) {
                 // include relation fields
                 objArgs.push(
                     ...Object.entries<any>((payload as any).include)

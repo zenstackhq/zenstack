@@ -4,6 +4,7 @@ import { type Model, type Plugin, isDataSource, type LiteralExpr } from '@zensta
 import { type CliPlugin, PrismaSchemaGenerator } from '@zenstackhq/sdk';
 import colors from 'colors';
 import { createJiti } from 'jiti';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -86,16 +87,19 @@ export function handleSubProcessError(err: unknown) {
     }
 }
 
-export async function generateTempPrismaSchema(zmodelPath: string, folder?: string) {
+export async function generateTempPrismaSchema(
+    zmodelPath: string,
+    opts: { folder?: string; randomName?: boolean } = {},
+) {
+    const { folder: folderOpt, randomName = false } = opts;
     const model = await loadSchemaDocument(zmodelPath);
     if (!model.declarations.some(isDataSource)) {
         throw new CliError('Schema must define a datasource');
     }
     const prismaSchema = await new PrismaSchemaGenerator(model).generate();
-    if (!folder) {
-        folder = path.dirname(zmodelPath);
-    }
-    const prismaSchemaFile = path.resolve(folder, '~schema.prisma');
+    const folder = folderOpt ?? path.dirname(zmodelPath);
+    const fileName = randomName ? `~schema.${crypto.randomUUID()}.prisma` : '~schema.prisma';
+    const prismaSchemaFile = path.resolve(folder, fileName);
     fs.writeFileSync(prismaSchemaFile, prismaSchema);
     return prismaSchemaFile;
 }

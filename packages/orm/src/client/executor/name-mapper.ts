@@ -1,4 +1,5 @@
 import { invariant } from '@zenstackhq/common-helpers';
+import type { EnumDef, EnumField, FieldDef, ModelDef, SchemaDef } from '@zenstackhq/schema';
 import {
     AliasNode,
     BinaryOperationNode,
@@ -27,7 +28,6 @@ import {
     ValueNode,
     ValuesNode,
 } from 'kysely';
-import type { EnumDef, EnumField, FieldDef, ModelDef, SchemaDef } from '../../schema';
 import type { ClientContract } from '../contract';
 import { getCrudDialect } from '../crud/dialects';
 import type { BaseCrudDialect } from '../crud/dialects/base-dialect';
@@ -36,6 +36,7 @@ import {
     extractModelName,
     getEnum,
     getField,
+    getManyToManyRelation,
     getModel,
     getModelFields,
     isEnum,
@@ -54,6 +55,8 @@ export class QueryNameMapper extends OperationNodeTransformer {
     private readonly modelToTableMap = new Map<string, string>();
     private readonly fieldToColumnMap = new Map<string, string>();
     private readonly enumTypeMap = new Map<string, string>();
+    // Maps implicit many-to-many join table names to their PostgreSQL schema
+    private readonly joinTableSchemaMap = new Map<string, string>();
     private readonly scopes: Scope[] = [];
     private readonly dialect: BaseCrudDialect<SchemaDef>;
 
@@ -78,6 +81,23 @@ export class QueryNameMapper extends OperationNodeTransformer {
             const mappedName = this.getMappedName(enumDef);
             if (mappedName) {
                 this.enumTypeMap.set(enumName, mappedName);
+            }
+        }
+
+        // Build a map from implicit many-to-many join table names to their PostgreSQL schema.
+        // Join tables live in the schema of the alphabetically-first model in the relation
+        // (matching Prisma's convention for both naming and placement).
+        if (client.$schema.provider.type === 'postgresql') {
+            for (const modelName of Object.keys(client.$schema.models)) {
+                for (const fieldDef of getModelFields(this.schema, modelName, { relations: true })) {
+                    const m2m = getManyToManyRelation(this.schema, modelName, fieldDef.name);
+                    if (m2m && !this.joinTableSchemaMap.has(m2m.joinTable)) {
+                        // Use the schema of whichever model comes first alphabetically —
+                        // that is where Prisma creates the join table.
+                        const owningModel = [modelName, m2m.otherModel].sort()[0]!;
+                        this.joinTableSchemaMap.set(m2m.joinTable, this.getTableSchema(owningModel) ?? 'public');
+                    }
+                }
             }
         }
     }
@@ -548,8 +568,13 @@ export class QueryNameMapper extends OperationNodeTransformer {
         if (this.schema.provider.type !== 'postgresql') {
             return undefined;
         }
+        // Implicit many-to-many join tables (e.g. _AToB) are not represented as models.
+        // Their schema is pre-computed in the constructor from the models they join.
+        if (!this.schema.models[model]) {
+            return this.joinTableSchemaMap.get(model) ?? 'public';
+        }
         let schema = this.schema.provider.defaultSchema ?? 'public';
-        const schemaAttr = this.schema.models[model]?.attributes?.find((attr) => attr.name === '@@schema');
+        const schemaAttr = this.schema.models[model].attributes?.find((attr) => attr.name === '@@schema');
         if (schemaAttr) {
             const mapArg = schemaAttr.args?.find((arg) => arg.name === 'map');
             if (mapArg && mapArg.value.kind === 'literal') {
@@ -574,7 +599,6 @@ export class QueryNameMapper extends OperationNodeTransformer {
             }
         });
     }
-
 
     private processSelections(selections: readonly SelectionNode[]) {
         const result: SelectionNode[] = [];

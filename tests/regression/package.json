@@ -1,6 +1,6 @@
 {
     "name": "regression",
-    "version": "3.5.6",
+    "version": "3.6.4",
     "private": true,
     "type": "module",
     "scripts": {
@@ -13,7 +13,8 @@
     },
     "dependencies": {
         "@zenstackhq/testtools": "workspace:*",
-        "decimal.js": "catalog:"
+        "decimal.js": "catalog:",
+        "zod": "catalog:"
     },
     "devDependencies": {
         "@zenstackhq/cli": "workspace:*",
@@ -22,6 +23,7 @@
         "@zenstackhq/orm": "workspace:*",
         "@zenstackhq/sdk": "workspace:*",
         "@zenstackhq/plugin-policy": "workspace:*",
+        "@zenstackhq/zod": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*",
         "@zenstackhq/vitest-config": "workspace:*",
         "@types/node": "catalog:"

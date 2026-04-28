@@ -1,6 +1,6 @@
 import { invariant } from '@zenstackhq/common-helpers';
+import type { FieldDef, GetModels, SchemaDef } from '@zenstackhq/schema';
 import { type AliasableExpression, type Expression, type ExpressionBuilder, type SelectQueryBuilder } from 'kysely';
-import type { FieldDef, GetModels, SchemaDef } from '../../../schema';
 import { DELEGATE_JOINED_FIELD_PREFIX } from '../../constants';
 import type { FindArgs, NullsOrder, SortOrder } from '../../crud-types';
 import {

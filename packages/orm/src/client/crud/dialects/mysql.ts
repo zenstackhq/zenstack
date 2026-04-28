@@ -1,4 +1,5 @@
 import { invariant } from '@zenstackhq/common-helpers';
+import type { BuiltinType, FieldDef, SchemaDef } from '@zenstackhq/schema';
 import Decimal from 'decimal.js';
 import type { AliasableExpression, TableExpression } from 'kysely';
 import {
@@ -11,7 +12,6 @@ import {
     type SqlBool,
 } from 'kysely';
 import { AnyNullClass, DbNullClass, JsonNullClass } from '../../../common-types';
-import type { BuiltinType, FieldDef, SchemaDef } from '../../../schema';
 import type { NullsOrder, SortOrder } from '../../crud-types';
 import { createInvalidInputError, createNotSupportedError } from '../../errors';
 import type { ClientOptions } from '../../options';
@@ -166,15 +166,20 @@ export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDiale
     }
 
     private transformOutputDate(value: unknown) {
-        if (typeof value === 'string') {
-            // MySQL DateTime columns are returned as strings (non-ISO but parsable as JS Date),
-            // convert to ISO Date by appending 'Z' if not present
-            return new Date(!value.endsWith('Z') ? value + 'Z' : value);
-        } else if (value instanceof Date) {
-            return value;
-        } else {
+        if (typeof value !== 'string') {
             return value;
         }
+
+        // MySQL `TIME` columns return bare time strings ("09:30:00") that `new Date`
+        // can't parse on their own — anchor at the Unix epoch. Detect by shape rather
+        // than the schema attribute so the runtime stays decoupled from `@db.*`
+        // (which is migration/db-push only): TIME starts with `HH:`, DATE/DATETIME
+        // values always start with `YYYY-`.
+        const anchored = /^\d{2}:/.test(value) ? `1970-01-01T${value}` : value;
+
+        // MySQL DateTime columns are returned as strings (non-ISO but parsable as JS Date),
+        // convert to ISO Date by appending 'Z' if not present
+        return new Date(!anchored.endsWith('Z') ? anchored + 'Z' : anchored);
     }
 
     private transformOutputBytes(value: unknown) {

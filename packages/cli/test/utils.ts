@@ -55,7 +55,10 @@ export function getTestDbUrl(provider: 'sqlite' | 'postgresql' | 'mysql', dbName
     }
 }
 
-export function getDefaultPrelude(options?: { provider?: 'sqlite' | 'postgresql' | 'mysql', datasourceFields?: Record<string, string | string[]> }) {
+export function getDefaultPrelude(options?: {
+    provider?: 'sqlite' | 'postgresql' | 'mysql';
+    datasourceFields?: Record<string, string | string[]>;
+}) {
     const provider = (options?.provider || getTestDbProvider()) ?? 'sqlite';
     const dbName = getTestDbName(provider);
     let dbUrl: string;
@@ -78,14 +81,16 @@ export function getDefaultPrelude(options?: { provider?: 'sqlite' | 'postgresql'
         ['provider', `'${provider}'`],
         ['url', `'${dbUrl}'`],
         ...Object.entries(options?.datasourceFields || {}).map(([k, v]) => {
-            const value = Array.isArray(v) ? `[${v.map(item => `'${item}'`).join(', ')}]` : `'${v}'`;
+            const value = Array.isArray(v) ? `[${v.map((item) => `'${item}'`).join(', ')}]` : `'${v}'`;
             return [k, value] as [string, string];
         }),
     ];
 
-    const formattedFields = fields.map(([name, value]) => {
-        return `    ${name} = ${value}`;
-    }).join('\n');
+    const formattedFields = fields
+        .map(([name, value]) => {
+            return `    ${name} = ${value}`;
+        })
+        .join('\n');
 
     const ZMODEL_PRELUDE = `datasource db {\n${formattedFields}\n}`;
     return ZMODEL_PRELUDE;
@@ -93,18 +98,24 @@ export function getDefaultPrelude(options?: { provider?: 'sqlite' | 'postgresql'
 
 export async function createProject(
     zmodel: string,
-    options?: { customPrelude?: boolean; provider?: 'sqlite' | 'postgresql' | 'mysql'; datasourceFields?: Record<string, string | string[]> },
+    options?: {
+        customPrelude?: boolean;
+        provider?: 'sqlite' | 'postgresql' | 'mysql';
+        datasourceFields?: Record<string, string | string[]>;
+    },
 ) {
     const workDir = createTestProject();
     fs.mkdirSync(path.join(workDir, 'zenstack'), { recursive: true });
     const schemaPath = path.join(workDir, 'zenstack/schema.zmodel');
-    const content = options?.customPrelude ? zmodel : `${getDefaultPrelude({ provider: options?.provider, datasourceFields: options?.datasourceFields })}\n\n${zmodel}`;
+    const content = options?.customPrelude
+        ? zmodel
+        : `${getDefaultPrelude({ provider: options?.provider, datasourceFields: options?.datasourceFields })}\n\n${zmodel}`;
     const schema = await formatDocument(content);
     fs.writeFileSync(schemaPath, schema);
     return { workDir, schema };
 }
 
 export function runCli(command: string, cwd: string) {
-    const cli = path.join(__dirname, '../dist/index.js');
+    const cli = path.join(__dirname, '../dist/index.mjs');
     execSync(`node ${cli} ${command}`, { cwd });
 }

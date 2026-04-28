@@ -12,7 +12,7 @@ enum Role {
 plugin policy {
     // due to pnpm layout we can't directly use package name here,
     // don't do this in your code and use "@zenstackhq/plugin-policy" instead
-    provider = '../node_modules/@zenstackhq/plugin-policy/dist/index.js'
+    provider = '../node_modules/@zenstackhq/plugin-policy/dist/index.mjs'
 }
 
 type CommonFields {

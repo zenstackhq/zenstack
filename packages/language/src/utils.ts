@@ -128,14 +128,23 @@ export function mapBuiltinTypeToExpressionType(type: BuiltinType | ExpressionTyp
     }
 }
 
+/**
+ * Determines if the given expression is an invocation of `auth` or a member access on the result of an `auth` invocation (e.g. `auth().role`).
+ */
 export function isAuthOrAuthMemberAccess(expr: Expression): boolean {
     return isAuthInvocation(expr) || (isMemberAccessExpr(expr) && isAuthOrAuthMemberAccess(expr.operand));
 }
 
+/**
+ * Determines if the given expression is a reference to an enum field.
+ */
 export function isEnumFieldReference(node: AstNode): node is ReferenceExpr {
     return isReferenceExpr(node) && isEnumField(node.target.ref);
 }
 
+/**
+ * Determines if the given expression is a reference to a data field.
+ */
 export function isDataFieldReference(node: AstNode): node is ReferenceExpr {
     return isReferenceExpr(node) && isDataField(node.target.ref);
 }
@@ -154,10 +163,16 @@ export function isComputedField(field: DataField) {
     return hasAttribute(field, '@computed');
 }
 
+/**
+ * Determines if the given data model is a delegate model (i.e. marked with `@@delegate` attribute).
+ */
 export function isDelegateModel(node: AstNode) {
     return isDataModel(node) && hasAttribute(node, '@@delegate');
 }
 
+/**
+ * Resolves the given reference and returns the target AST node. Throws an error if the reference is not resolved.
+ */
 export function resolved<T extends AstNode>(ref: Reference<T>): T {
     if (!ref.ref) {
         throw new Error(`Reference not resolved: ${ref.$refText}`);
@@ -165,6 +180,9 @@ export function resolved<T extends AstNode>(ref: Reference<T>): T {
     return ref.ref;
 }
 
+/**
+ * Gets all base models and mixins of a data model or type def, recursively.
+ */
 export function getRecursiveBases(
     decl: DataModel | TypeDef,
     includeDelegate = true,
@@ -276,6 +294,9 @@ export function getUniqueFields(model: DataModel) {
     });
 }
 
+/**
+ * Finds the first ancestor of the given AST node that satisfies the given predicate function. Returns `undefined` if no such ancestor is found.
+ */
 export function findUpAst(node: AstNode, predicate: (node: AstNode) => boolean): AstNode | undefined {
     let curr: AstNode | undefined = node;
     while (curr) {
@@ -287,6 +308,9 @@ export function findUpAst(node: AstNode, predicate: (node: AstNode) => boolean):
     return undefined;
 }
 
+/**
+ * Tries to get the literal value from the given expression. Returns `undefined` if the expression is not a literal or if the literal value cannot be determined.
+ */
 export function getLiteral<T extends string | number | boolean | any = any>(
     expr: Expression | ConfigExpr | undefined,
 ): T | undefined {
@@ -303,6 +327,9 @@ export function getLiteral<T extends string | number | boolean | any = any>(
     }
 }
 
+/**
+ * Tries to get an object literal from the given expression. Returns `undefined` if the expression is not an object literal or if any of the field values cannot be determined.
+ */
 export function getObjectLiteral<T>(expr: Expression | ConfigExpr | undefined): T | undefined {
     if (!expr || !isObjectExpr(expr)) {
         return undefined;
@@ -340,6 +367,9 @@ function getArray(expr: Expression | ConfigExpr | undefined) {
     return isArrayExpr(expr) || isConfigArrayExpr(expr) ? expr.items : undefined;
 }
 
+/**
+ * Gets the value of the argument with the given name from the given attribute. Returns `undefined` if no such argument is found or if the argument value cannot be determined.
+ */
 export function getAttributeArg(
     attr: DataModelAttribute | DataFieldAttribute | InternalAttribute,
     name: string,
@@ -347,6 +377,9 @@ export function getAttributeArg(
     return attr.args.find((arg) => arg.$resolvedParam?.name === name)?.value;
 }
 
+/**
+ * Gets the literal value of the argument with the given name from the given attribute. Returns `undefined` if no such argument is found or if the argument value cannot be determined or is not a literal.
+ */
 export function getAttributeArgLiteral<T extends string | number | boolean>(
     attr: DataModelAttribute | DataFieldAttribute | InternalAttribute,
     name: string,
@@ -359,6 +392,10 @@ export function getAttributeArgLiteral<T extends string | number | boolean>(
     return undefined;
 }
 
+/**
+ * Gets the allowed expression contexts for the given function declaration by looking for `@@expressionContext` attribute.
+ * Returns an empty array if no such attribute is found or if the attribute value cannot be determined.
+ */
 export function getFunctionExpressionContext(funcDecl: FunctionDecl) {
     const funcAllowedContext: ExpressionContext[] = [];
     const funcAttr = funcDecl.attributes.find((attr) => attr.decl.$refText === '@@@expressionContext');
@@ -375,6 +412,9 @@ export function getFunctionExpressionContext(funcDecl: FunctionDecl) {
     return funcAllowedContext;
 }
 
+/**
+ * Gets the data field referenced by the given expression, if any. Returns `undefined` if the expression is not a reference to a data field.
+ */
 export function getFieldReference(expr: Expression): DataField | undefined {
     if (isReferenceExpr(expr) && isDataField(expr.target.ref)) {
         return expr.target.ref;
@@ -390,6 +430,9 @@ export function isCheckInvocation(node: AstNode) {
     return isInvocationExpr(node) && node.function.ref?.name === 'check';
 }
 
+/**
+ * Resolves the transitive imports of the given model and returns the list of imported models. The given model itself is not included in the result.
+ */
 export function resolveTransitiveImports(documents: LangiumDocuments, model: Model) {
     return resolveTransitiveImportsInternal(documents, model);
 }
@@ -421,6 +464,10 @@ function resolveTransitiveImportsInternal(
     return Array.from(models);
 }
 
+/**
+ * Resolves the given import and returns the imported model. Returns `undefined`
+ * if the import cannot be resolved.
+ */
 export function resolveImport(documents: LangiumDocuments, imp: ModelImport) {
     const resolvedUri = resolveImportUri(imp);
     try {
@@ -441,6 +488,10 @@ export function resolveImport(documents: LangiumDocuments, imp: ModelImport) {
     return undefined;
 }
 
+/**
+ * Resolves the given import and returns the URI of the imported model.
+ * Returns `undefined` if the import cannot be resolved.
+ */
 export function resolveImportUri(imp: ModelImport) {
     if (!imp.path) {
         return undefined;
@@ -463,11 +514,18 @@ export function getDataModelAndTypeDefs(model: Model, includeIgnored = false) {
     }
 }
 
+/**
+ * Gets all declarations of the given model and its transitive imports.
+ */
 export function getAllDeclarationsIncludingImports(documents: LangiumDocuments, model: Model) {
     const imports = resolveTransitiveImports(documents, model);
     return model.declarations.concat(...imports.map((imp) => imp.declarations));
 }
 
+/**
+ * Gets the model used for auth context, by looking for a model with `@@auth` attribute or a model named `User`.
+ * Returns `undefined` if no such model is found.
+ */
 export function getAuthDecl(decls: (DataModel | TypeDef)[]) {
     let authModel = decls.find((d) => hasAttribute(d, '@@auth'));
     if (!authModel) {
@@ -481,10 +539,16 @@ export function isBeforeInvocation(node: AstNode) {
     return isInvocationExpr(node) && node.function.ref?.name === 'before';
 }
 
+/**
+ * Determines if the given AST node is a collection predicate.
+ */
 export function isCollectionPredicate(node: AstNode): node is BinaryExpr {
     return isBinaryExpr(node) && ['?', '!', '^'].includes(node.operator);
 }
 
+/**
+ * Gets all data models and type defs from the given documents registry.
+ */
 export function getAllLoadedDataModelsAndTypeDefs(langiumDocuments: LangiumDocuments) {
     return langiumDocuments.all
         .map((doc) => doc.parseResult.value as Model)
@@ -492,10 +556,17 @@ export function getAllLoadedDataModelsAndTypeDefs(langiumDocuments: LangiumDocum
         .toArray();
 }
 
+/**
+ * Gets all data models from the given documents registry and the transitive imports of the given model.
+ */
 export function getAllDataModelsIncludingImports(documents: LangiumDocuments, model: Model) {
     return getAllDeclarationsIncludingImports(documents, model).filter(isDataModel);
 }
 
+/**
+ * Gets all data models and type defs from the given documents registry and the transitive imports
+ * of the given model. If `fromModel` is not provided, returns all loaded data models and type defs.
+ */
 export function getAllLoadedAndReachableDataModelsAndTypeDefs(
     langiumDocuments: LangiumDocuments,
     fromModel?: DataModel,
@@ -519,6 +590,10 @@ export function getAllLoadedAndReachableDataModelsAndTypeDefs(
     return allDataModels;
 }
 
+/**
+ * Gets the containing data model of the given AST node, if any.
+ * Returns `undefined` if the node is not contained in a data model.
+ */
 export function getContainingDataModel(node: AstNode): DataModel | undefined {
     let curr: AstNode | undefined = node.$container;
     while (curr) {
@@ -530,10 +605,16 @@ export function getContainingDataModel(node: AstNode): DataModel | undefined {
     return undefined;
 }
 
+/**
+ * Determines if the given AST node can contain members.
+ */
 export function isMemberContainer(node: unknown): node is DataModel | TypeDef {
     return isDataModel(node) || isTypeDef(node);
 }
 
+/**
+ * Gets all fields of a data model or type def, including inherited fields from base models and mixins.
+ */
 export function getAllFields(
     decl: DataModel | TypeDef,
     includeIgnored = false,
@@ -561,6 +642,10 @@ export function getAllFields(
     return fields;
 }
 
+/**
+ * Gets all attributes of a data model or type def, including inherited attributes
+ * from base models and mixins.
+ */
 export function getAllAttributes(
     decl: DataModel | TypeDef,
     seen: Set<DataModel | TypeDef> = new Set(),
@@ -608,6 +693,9 @@ export function getDocument<T extends AstNode = AstNode>(node: AstNode): Langium
     return result as LangiumDocument<T>;
 }
 
+/**
+ * Gets the list of plugin documents from the given model.
+ */
 export function getPluginDocuments(model: Model, schemaPath: string): string[] {
     // traverse plugins and collect "plugin.zmodel" documents
     const result: string[] = [];

@@ -2,7 +2,7 @@
     "name": "@zenstackhq/tanstack-query",
     "displayName": "ZenStack TanStack Query Integration",
     "description": "TanStack Query Client for consuming ZenStack v3's CRUD service",
-    "version": "3.5.6",
+    "version": "3.6.4",
     "type": "module",
     "author": {
         "name": "ZenStack Team",
@@ -15,7 +15,7 @@
     },
     "license": "MIT",
     "scripts": {
-        "build": "pnpm build:general && pnpm build:svelte && pnpm test:generate && pnpm test:typecheck",
+        "build": "rimraf dist && pnpm build:general && pnpm build:svelte && pnpm test:generate && pnpm test:typecheck",
         "build:general": "tsc -p tsconfig.general.json",
         "build:svelte": "svelte-package -i src/svelte -o dist/svelte -t --tsconfig ./tsconfig.svelte.json",
         "watch:general": "tsc -p tsconfig.general.json -w",
@@ -60,6 +60,7 @@
         "decimal.js": "catalog:"
     },
     "devDependencies": {
+        "@sveltejs/package": "^2.5.7",
         "@tanstack/query-core": "catalog:",
         "@tanstack/react-query": "catalog:",
         "@tanstack/svelte-query": "catalog:",
@@ -77,9 +78,9 @@
         "happy-dom": "^20.8.9",
         "nock": "^14.0.10",
         "react": "catalog:",
+        "rimraf": "^6.1.3",
         "svelte": "catalog:",
-        "vue": "catalog:",
-        "@sveltejs/package": "^2.5.7"
+        "vue": "catalog:"
     },
     "peerDependencies": {
         "@tanstack/react-query": "^5.0.0",

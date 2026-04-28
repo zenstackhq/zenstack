@@ -205,24 +205,33 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         // filter combining model-level update policy and update where
         const updateFilter = conjunction(this.dialect, [modelLevelFilter, node.where?.where ?? trueNode(this.dialect)]);
 
-        // build a query to count rows that will be rejected by field-level policies
-        // `SELECT COALESCE(SUM((not <fieldsFilter>) as integer), 0) AS $filteredCount WHERE <updateFilter> AND <rowFilter>`
-        const preUpdateCheckQuery = this.eb
+        // check if any rows violate field-level policies: satisfying update filter but not field-level filter:
+        // `SELECT 1 FROM <table> WHERE <updateFilter> AND NOT <fieldLevelFilter>`
+        const violatingRowsQuery = this.eb
             .selectFrom(mutationModel)
-            .select((eb) =>
-                eb.fn
-                    .coalesce(
-                        eb.fn.sum(
-                            this.dialect.castInt(new ExpressionWrapper(logicalNot(this.dialect, fieldLevelFilter))),
-                        ),
-                        eb.lit(0),
-                    )
-                    .as('$filteredCount'),
-            )
-            .where(() => new ExpressionWrapper(updateFilter));
+            .select(this.eb.lit(1).as('_'))
+            .where(
+                () =>
+                    new ExpressionWrapper(
+                        conjunction(this.dialect, [updateFilter, logicalNot(this.dialect, fieldLevelFilter)]),
+                    ),
+            );
 
-        const preUpdateResult = await proceed(preUpdateCheckQuery.toOperationNode());
-        if (preUpdateResult.rows[0].$filteredCount > 0) {
+        const preUpdateResult = await proceed(
+            // `SELECT EXISTS(violatingRowsQuery) AS $condition`
+            {
+                kind: 'SelectQueryNode',
+                selections: [
+                    SelectionNode.create(
+                        AliasNode.create(
+                            this.eb.exists(violatingRowsQuery).toOperationNode(),
+                            IdentifierNode.create('$condition'),
+                        ),
+                    ),
+                ],
+            } satisfies SelectQueryNode,
+        );
+        if (preUpdateResult.rows[0].$condition) {
             throw createRejectedByPolicyError(
                 mutationModel,
                 RejectedByPolicyReason.NO_ACCESS,
@@ -587,11 +596,42 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         const combinedFilter = where ? conjunction(this.dialect, [where.where, policyFilter]) : policyFilter;
         const selections = beforeUpdateAccessFields ?? QueryUtils.requireIdFields(this.client.$schema, model);
 
+        // Always qualify each column with its owning table. For delegate sub-models,
+        // fields inherited from the base live in the base table and must be joined in.
+        const baseModelsToJoin = new Set<string>();
+        const selectionNodes = selections.map((f) => {
+            const fieldDef = QueryUtils.getField(this.client.$schema, model, f);
+            const owningTable = fieldDef?.originModel ?? model;
+            if (fieldDef?.originModel) {
+                baseModelsToJoin.add(fieldDef.originModel);
+            }
+            return SelectionNode.create(ReferenceNode.create(ColumnNode.create(f), TableNode.create(owningTable)));
+        });
+
+        const idFields = QueryUtils.requireIdFields(this.client.$schema, model);
+        const joins: JoinNode[] = Array.from(baseModelsToJoin).map((baseModel) =>
+            JoinNode.createWithOn(
+                'LeftJoin',
+                TableNode.create(baseModel),
+                conjunction(
+                    this.dialect,
+                    idFields.map((idField) =>
+                        BinaryOperationNode.create(
+                            ReferenceNode.create(ColumnNode.create(idField), TableNode.create(model)),
+                            OperatorNode.create('='),
+                            ReferenceNode.create(ColumnNode.create(idField), TableNode.create(baseModel)),
+                        ),
+                    ),
+                ),
+            ),
+        );
+
         const query: SelectQueryNode = {
             kind: 'SelectQueryNode',
             from: FromNode.create([TableNode.create(model)]),
+            joins: joins.length > 0 ? joins : undefined,
             where: WhereNode.create(combinedFilter),
-            selections: selections.map((f) => SelectionNode.create(ColumnNode.create(f))),
+            selections: selectionNodes,
         };
         const result = await proceed(query);
         return { fields: beforeUpdateAccessFields, rows: result.rows };
@@ -887,12 +927,28 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
 
         const filter = this.buildPolicyFilter(model, undefined, 'create');
 
-        const preCreateCheck = this.eb
+        // check if the provided values satisfy the create policy
+
+        // `SELECT 1 FROM (VALUES (...)) AS t(column1, column2, ...) WHERE <filter>`
+        const preCreateInner = this.eb
             .selectFrom(valuesTable.as(model))
-            .select(this.eb(this.eb.fn.count(this.eb.lit(1)), '>', 0).as('$condition'))
+            .select(this.eb.lit(1).as('_'))
             .where(() => new ExpressionWrapper(filter));
 
-        const result = await proceed(preCreateCheck.toOperationNode());
+        const result = await proceed(
+            // `SELECT EXISTS(preCreateInner) AS $condition`
+            {
+                kind: 'SelectQueryNode',
+                selections: [
+                    SelectionNode.create(
+                        AliasNode.create(
+                            this.eb.exists(preCreateInner).toOperationNode(),
+                            IdentifierNode.create('$condition'),
+                        ),
+                    ),
+                ],
+            } satisfies SelectQueryNode,
+        );
         if (!result.rows[0]?.$condition) {
             throw createRejectedByPolicyError(model, RejectedByPolicyReason.NO_ACCESS);
         }
