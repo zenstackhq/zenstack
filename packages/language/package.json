@@ -2,7 +2,7 @@
     "name": "@zenstackhq/language",
     "displayName": "ZenStack Language Tooling",
     "description": "ZenStack ZModel language specification",
-    "version": "3.6.3",
+    "version": "3.6.4",
     "type": "module",
     "author": {
         "name": "ZenStack Team",
