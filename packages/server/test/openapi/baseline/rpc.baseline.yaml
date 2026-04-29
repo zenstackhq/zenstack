@@ -4323,6 +4323,10 @@ components:
                           type: string
                       contains:
                           type: string
+                      fuzzy:
+                          type: string
+                      fuzzyContains:
+                          type: string
                       mode:
                           anyOf:
                               - type: string
@@ -4587,6 +4591,10 @@ components:
                       endsWith:
                           type: string
                       contains:
+                          type: string
+                      fuzzy:
+                          type: string
+                      fuzzyContains:
                           type: string
                       mode:
                           anyOf:
@@ -5130,6 +5138,29 @@ components:
                                           const: asc
                                         - type: string
                                           const: desc
+                                _relevance:
+                                    type: object
+                                    properties:
+                                        fields:
+                                            minItems: 1
+                                            type: array
+                                            items:
+                                                type: string
+                                                enum:
+                                                    - content
+                                        search:
+                                            type: string
+                                        sort:
+                                            anyOf:
+                                                - type: string
+                                                  const: asc
+                                                - type: string
+                                                  const: desc
+                                    required:
+                                        - fields
+                                        - search
+                                        - sort
+                                    additionalProperties: false
                                 _count:
                                     anyOf:
                                         - type: string
@@ -5141,6 +5172,30 @@ components:
                             additionalProperties: false
                         setting:
                             $ref: "#/components/schemas/SettingOrderByWithRelationInput"
+                        _relevance:
+                            type: object
+                            properties:
+                                fields:
+                                    minItems: 1
+                                    type: array
+                                    items:
+                                        type: string
+                                        enum:
+                                            - title
+                                            - authorId
+                                search:
+                                    type: string
+                                sort:
+                                    anyOf:
+                                        - type: string
+                                          const: asc
+                                        - type: string
+                                          const: desc
+                            required:
+                                - fields
+                                - search
+                                - sort
+                            additionalProperties: false
                         _count:
                             anyOf:
                                 - type: string
@@ -5202,6 +5257,30 @@ components:
                               - sort
                               - nulls
                           additionalProperties: false
+                _relevance:
+                    type: object
+                    properties:
+                        fields:
+                            minItems: 1
+                            type: array
+                            items:
+                                type: string
+                                enum:
+                                    - myId
+                                    - email
+                        search:
+                            type: string
+                        sort:
+                            anyOf:
+                                - type: string
+                                  const: asc
+                                - type: string
+                                  const: desc
+                    required:
+                        - fields
+                        - search
+                        - sort
+                    additionalProperties: false
             additionalProperties: false
         UserWhereUniqueInputWithoutRelation:
             type: object
@@ -6373,6 +6452,30 @@ components:
                     $ref: "#/components/schemas/UserOrderByWithRelationInput"
                 _max:
                     $ref: "#/components/schemas/UserOrderByWithRelationInput"
+                _relevance:
+                    type: object
+                    properties:
+                        fields:
+                            minItems: 1
+                            type: array
+                            items:
+                                type: string
+                                enum:
+                                    - myId
+                                    - email
+                        search:
+                            type: string
+                        sort:
+                            anyOf:
+                                - type: string
+                                  const: asc
+                                - type: string
+                                  const: desc
+                    required:
+                        - fields
+                        - search
+                        - sort
+                    additionalProperties: false
             additionalProperties: false
         StringFilterAgg:
             anyOf:
@@ -6476,6 +6579,10 @@ components:
                       endsWith:
                           type: string
                       contains:
+                          type: string
+                      fuzzy:
+                          type: string
+                      fuzzyContains:
                           type: string
                       mode:
                           anyOf:
@@ -6828,6 +6935,30 @@ components:
                           const: asc
                         - type: string
                           const: desc
+                _relevance:
+                    type: object
+                    properties:
+                        fields:
+                            minItems: 1
+                            type: array
+                            items:
+                                type: string
+                                enum:
+                                    - gender
+                                    - userId
+                        search:
+                            type: string
+                        sort:
+                            anyOf:
+                                - type: string
+                                  const: asc
+                                - type: string
+                                  const: desc
+                    required:
+                        - fields
+                        - search
+                        - sort
+                    additionalProperties: false
             additionalProperties: false
         ProfileWhereUniqueInputWithoutRelation:
             type: object
@@ -7427,6 +7558,30 @@ components:
                     $ref: "#/components/schemas/ProfileOrderByWithRelationInput"
                 _max:
                     $ref: "#/components/schemas/ProfileOrderByWithRelationInput"
+                _relevance:
+                    type: object
+                    properties:
+                        fields:
+                            minItems: 1
+                            type: array
+                            items:
+                                type: string
+                                enum:
+                                    - gender
+                                    - userId
+                        search:
+                            type: string
+                        sort:
+                            anyOf:
+                                - type: string
+                                  const: asc
+                                - type: string
+                                  const: desc
+                    required:
+                        - fields
+                        - search
+                        - sort
+                    additionalProperties: false
             additionalProperties: false
         IntFilterAgg:
             anyOf:
@@ -8115,6 +8270,29 @@ components:
                                   const: asc
                                 - type: string
                                   const: desc
+                        _relevance:
+                            type: object
+                            properties:
+                                fields:
+                                    minItems: 1
+                                    type: array
+                                    items:
+                                        type: string
+                                        enum:
+                                            - content
+                                search:
+                                    type: string
+                                sort:
+                                    anyOf:
+                                        - type: string
+                                          const: asc
+                                        - type: string
+                                          const: desc
+                            required:
+                                - fields
+                                - search
+                                - sort
+                            additionalProperties: false
                         _count:
                             anyOf:
                                 - type: string
@@ -8126,6 +8304,30 @@ components:
                     additionalProperties: false
                 setting:
                     $ref: "#/components/schemas/SettingOrderByWithRelationInput"
+                _relevance:
+                    type: object
+                    properties:
+                        fields:
+                            minItems: 1
+                            type: array
+                            items:
+                                type: string
+                                enum:
+                                    - title
+                                    - authorId
+                        search:
+                            type: string
+                        sort:
+                            anyOf:
+                                - type: string
+                                  const: asc
+                                - type: string
+                                  const: desc
+                    required:
+                        - fields
+                        - search
+                        - sort
+                    additionalProperties: false
             additionalProperties: false
         PostFindFirstArgs:
             type: object
@@ -9483,6 +9685,30 @@ components:
                     $ref: "#/components/schemas/PostOrderByWithRelationInput"
                 _max:
                     $ref: "#/components/schemas/PostOrderByWithRelationInput"
+                _relevance:
+                    type: object
+                    properties:
+                        fields:
+                            minItems: 1
+                            type: array
+                            items:
+                                type: string
+                                enum:
+                                    - title
+                                    - authorId
+                        search:
+                            type: string
+                        sort:
+                            anyOf:
+                                - type: string
+                                  const: asc
+                                - type: string
+                                  const: desc
+                    required:
+                        - fields
+                        - search
+                        - sort
+                    additionalProperties: false
             additionalProperties: false
         StringFilterOptionalAgg:
             anyOf:
@@ -9590,6 +9816,10 @@ components:
                       endsWith:
                           type: string
                       contains:
+                          type: string
+                      fuzzy:
+                          type: string
+                      fuzzyContains:
                           type: string
                       mode:
                           anyOf:
@@ -9995,6 +10225,29 @@ components:
                           const: asc
                         - type: string
                           const: desc
+                _relevance:
+                    type: object
+                    properties:
+                        fields:
+                            minItems: 1
+                            type: array
+                            items:
+                                type: string
+                                enum:
+                                    - content
+                        search:
+                            type: string
+                        sort:
+                            anyOf:
+                                - type: string
+                                  const: asc
+                                - type: string
+                                  const: desc
+                    required:
+                        - fields
+                        - search
+                        - sort
+                    additionalProperties: false
             additionalProperties: false
         CommentFindFirstArgs:
             type: object
@@ -10582,6 +10835,29 @@ components:
                     $ref: "#/components/schemas/CommentOrderByWithRelationInput"
                 _max:
                     $ref: "#/components/schemas/CommentOrderByWithRelationInput"
+                _relevance:
+                    type: object
+                    properties:
+                        fields:
+                            minItems: 1
+                            type: array
+                            items:
+                                type: string
+                                enum:
+                                    - content
+                        search:
+                            type: string
+                        sort:
+                            anyOf:
+                                - type: string
+                                  const: asc
+                                - type: string
+                                  const: desc
+                    required:
+                        - fields
+                        - search
+                        - sort
+                    additionalProperties: false
             additionalProperties: false
         CommentWhereInputWithoutRelationWithAggregation:
             type: object
