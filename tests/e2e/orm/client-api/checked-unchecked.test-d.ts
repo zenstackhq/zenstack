@@ -1,4 +1,4 @@
-import type { CreateArgs, UpdateArgs } from '@zenstackhq/orm';
+import type { CreateArgs, UpdateArgs, UpdateManyArgs } from '@zenstackhq/orm';
 import { describe, expectTypeOf, it } from 'vitest';
 import { schema } from '../schemas/basic';
 import type {
@@ -71,6 +71,21 @@ describe('Checked vs unchecked input types - typing', () => {
     it('accepts checked update data (relation only)', () => {
         type UpdateData = NonNullable<UpdateArgs<Schema, 'Post'>['data']>;
         void ({ author: { connect: { id: 'id1' } } } satisfies UpdateData);
+    });
+
+    // #endregion
+
+    // #region FK fields in updateMany
+
+    it('accepts FK field in updateMany data', () => {
+        type UpdateManyData = NonNullable<UpdateManyArgs<Schema, 'Post'>['data']>;
+        void ({ authorId: 'id1' } satisfies UpdateManyData);
+    });
+
+    it('rejects relation object in updateMany data', () => {
+        type UpdateManyData = NonNullable<UpdateManyArgs<Schema, 'Post'>['data']>;
+        // @ts-expect-error - updateMany does not support relation objects
+        void ({ author: { connect: { id: 'id1' } } } satisfies UpdateManyData);
     });
 
     // #endregion

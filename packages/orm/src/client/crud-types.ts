@@ -1607,7 +1607,7 @@ type UpdateManyPayload<
     /**
      * The data to update the records with.
      */
-    data: OrArray<UpdateScalarInput<Schema, Model, Without>>;
+    data: OrArray<UpdateScalarInput<Schema, Model, Without> & UpdateFKPayload<Schema, Model, Without>>;
 
     /**
      * The filter to select records to update.
