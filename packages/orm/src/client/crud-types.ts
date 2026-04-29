@@ -1456,10 +1456,14 @@ type CreateRelationPayload<
     }
 >;
 
-type CreateWithFKInput<
+/**
+ * Create input type that uses FK scalar fields (e.g., `authorId`) instead of
+ * relation objects.
+ */
+export type UncheckedCreateInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
-    Options extends QueryOptions<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
 > =
     // scalar fields
     CreateScalarPayload<Schema, Model> &
@@ -1468,10 +1472,14 @@ type CreateWithFKInput<
         // non-owned relations
         CreateWithNonOwnedRelationPayload<Schema, Model, Options>;
 
-type CreateWithRelationInput<
+/**
+ * Create input type that uses relation objects (e.g., `author: { connect: … }`)
+ * instead of FK scalar fields.
+ */
+export type CheckedCreateInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
-    Options extends QueryOptions<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
 > = CreateScalarPayload<Schema, Model> & CreateRelationPayload<Schema, Model, Options>;
 
 type CreateWithNonOwnedRelationPayload<
@@ -1530,8 +1538,8 @@ export type CreateInput<
     Options extends QueryOptions<Schema>,
     Without extends string = never,
 > = XOR<
-    Omit<CreateWithFKInput<Schema, Model, Options>, Without>,
-    Omit<CreateWithRelationInput<Schema, Model, Options>, Without>
+    Omit<UncheckedCreateInput<Schema, Model, Options>, Without>,
+    Omit<CheckedCreateInput<Schema, Model, Options>, Without>
 >;
 
 type NestedCreateInput<
@@ -1636,16 +1644,28 @@ export type UpsertArgs<
 } & SelectIncludeOmit<Schema, Model, true, Options, true, ExtResult> &
     ExtractExtQueryArgs<ExtQueryArgs, 'upsert'>;
 
+// Non-FK, non-relation scalar fields (shared by both update branches).
 type UpdateScalarInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Without extends string = never,
 > = Omit<
     {
-        [Key in NonRelationFields<Schema, Model> as FieldIsDelegateDiscriminator<Schema, Model, Key> extends true
+        [Key in Exclude<
+            NonRelationFields<Schema, Model>,
+            ForeignKeyFields<Schema, Model>
+        > as FieldIsDelegateDiscriminator<Schema, Model, Key> extends true
             ? // discriminator fields cannot be assigned
               never
             : Key]?: ScalarUpdatePayload<Schema, Model, Key>;
+    },
+    Without
+>;
+
+// FK-only update payload (unchecked/FK branch only).
+type UpdateFKPayload<Schema extends SchemaDef, Model extends GetModels<Schema>, Without extends string = never> = Omit<
+    {
+        [Key in ForeignKeyFields<Schema, Model>]?: MapModelFieldType<Schema, Model, Key>;
     },
     Without
 >;
@@ -1715,12 +1735,53 @@ type UpdateRelationInput<
     Without
 >;
 
+// Non-owned relations (e.g., Post.comments where Comment holds the FK) are valid in
+// both the unchecked and checked branches, just as they are in CreateInput.
+type UpdateNonOwnedRelationInput<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+> = {
+    [Key in NonOwnedRelationFields<Schema, Model> as RelationFieldType<Schema, Model, Key> extends GetSlicedModels<
+        Schema,
+        Options
+    >
+        ? Key
+        : never]?: UpdateRelationFieldPayload<Schema, Model, Key, Options>;
+};
+
+/**
+ * Update input type that uses FK scalar fields (e.g., `authorId`) instead of
+ * relation objects.
+ */
+export type UncheckedUpdateInput<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+> = UpdateScalarInput<Schema, Model> &
+    UpdateFKPayload<Schema, Model> &
+    UpdateNonOwnedRelationInput<Schema, Model, Options>;
+
+/**
+ * Update input type that uses relation objects (e.g., `author: { connect: … }`)
+ * instead of FK scalar fields.
+ */
+export type CheckedUpdateInput<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+> = UpdateScalarInput<Schema, Model> & UpdateRelationInput<Schema, Model, Options>;
+
 export type UpdateInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema>,
     Without extends string = never,
-> = UpdateScalarInput<Schema, Model, Without> & UpdateRelationInput<Schema, Model, Options, Without>;
+> = XOR<
+    Omit<UncheckedUpdateInput<Schema, Model, Options>, Without>,
+    Omit<CheckedUpdateInput<Schema, Model, Options>, Without>
+>;
+
 type UpdateRelationFieldPayload<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
