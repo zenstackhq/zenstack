@@ -98,6 +98,13 @@ export function createQuerySchemaFactory(clientOrSchema: any, options?: any) {
  * @see https://github.com/zenstackhq/zenstack/issues/2631
  */
 export function coercedDateTimeSchema(): ZodType {
+    // The schema keeps the original `z.iso.datetime() | z.iso.date() | z.date()`
+    // union so the generated OpenAPI spec still documents the accepted ISO
+    // forms. Preprocess runs first and coerces strings into `Date` objects,
+    // so the union's `z.date()` arm catches everything that successfully
+    // parses — including non-ISO formats like `"2024/01/15"` for Prisma
+    // compatibility (rejected with the standard error if `new Date(...)`
+    // returns Invalid Date).
     return z.preprocess((val) => {
         if (typeof val !== 'string') return val;
         if (/^\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d\d(?::\d\d)?)?$/.test(val)) {
@@ -107,7 +114,7 @@ export function coercedDateTimeSchema(): ZodType {
         }
         const d = new Date(val);
         return isNaN(d.getTime()) ? val : d;
-    }, z.date());
+    }, z.union([z.iso.datetime(), z.iso.date(), z.date()]));
 }
 
 /**
