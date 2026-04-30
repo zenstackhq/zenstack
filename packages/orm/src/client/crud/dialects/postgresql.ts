@@ -17,6 +17,18 @@ import type { ClientOptions } from '../../options';
 import { isEnum, isTypeDef } from '../../query-utils';
 import { LateralJoinDialectBase } from './lateral-join-dialect-base';
 
+/**
+ * Formats a JS `Date` as a Postgres TIME / TIMETZ literal (`HH:MM:SS.fff`,
+ * optionally with `+ZZ:ZZ` for TIMETZ). Reads UTC components so the value
+ * round-trips with ISO-input parsing — callers anchor time-only inputs to
+ * the Unix epoch.
+ */
+function formatTimeOfDay(date: Date, withTimezone: boolean): string {
+    const pad = (n: number, w = 2) => String(n).padStart(w, '0');
+    const time = `${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}.${pad(date.getUTCMilliseconds(), 3)}`;
+    return withTimezone ? `${time}+00:00` : time;
+}
+
 export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDialectBase<Schema> {
     private static typeParserOverrideApplied = false;
 
@@ -154,7 +166,7 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
 
     // #region value transformation
 
-    override transformInput(value: unknown, type: BuiltinType, forArrayField: boolean): unknown {
+    override transformInput(value: unknown, type: BuiltinType, forArrayField: boolean, fieldDef?: FieldDef): unknown {
         if (value === undefined) {
             return value;
         }
@@ -186,16 +198,25 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
                 // scalar `Json` fields need their input stringified
                 return JSON.stringify(value);
             } else {
-                return value.map((v) => this.transformInput(v, type, false));
+                return value.map((v) => this.transformInput(v, type, false, fieldDef));
             }
         } else {
             switch (type) {
-                case 'DateTime':
-                    return value instanceof Date
-                        ? value.toISOString()
-                        : typeof value === 'string'
-                          ? new Date(value).toISOString()
-                          : value;
+                case 'DateTime': {
+                    const date = value instanceof Date ? value : typeof value === 'string' ? new Date(value) : null;
+                    if (date === null || isNaN(date.getTime())) return value;
+                    // Postgres TIME / TIMETZ columns reject ISO datetime input —
+                    // they expect `HH:MM:SS[.fff][+ZZ:ZZ]`. Detect those native
+                    // types via the field's @db.* attribute and format
+                    // accordingly. All other DateTime fields keep the existing
+                    // ISO behaviour (TIMESTAMP / TIMESTAMPTZ / DATE all accept
+                    // it natively).
+                    const dbAttrName = fieldDef?.attributes?.find((a) => a.name.startsWith('@db.'))?.name;
+                    if (dbAttrName === '@db.Time' || dbAttrName === '@db.Timetz') {
+                        return formatTimeOfDay(date, dbAttrName === '@db.Timetz');
+                    }
+                    return date.toISOString();
+                }
                 case 'Decimal':
                     return value !== null ? value.toString() : value;
                 case 'Json':

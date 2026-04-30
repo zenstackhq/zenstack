@@ -87,8 +87,13 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
     /**
      * Transforms input value before sending to database.
+     *
+     * `fieldDef` is optional so existing callers that don't have it stay
+     * source-compatible. Dialects can use it to inspect `@db.*` native-type
+     * attributes (e.g. to format `@db.Time` values as `HH:MM:SS` rather than
+     * full ISO timestamps).
      */
-    transformInput(value: unknown, _type: BuiltinType, _forArrayField: boolean) {
+    transformInput(value: unknown, _type: BuiltinType, _forArrayField: boolean, _fieldDef?: FieldDef) {
         return value;
     }
 
@@ -523,7 +528,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             }
 
             invariant(fieldDef.array, 'Field must be an array type to build array filter');
-            const value = this.transformInput(_value, fieldType, true);
+            const value = this.transformInput(_value, fieldType, true, fieldDef);
 
             let receiver = fieldRef;
             if (isEnum(this.schema, fieldType)) {
