@@ -41,7 +41,7 @@ import {
 } from '../crud/operations/base';
 import { createInternalError } from '../errors';
 import type { ClientOptions, QueryOptions } from '../options';
-import type { AnyPlugin, ExtQueryArgsBase, RuntimePlugin } from '../plugin';
+import type { AnyPlugin, ExtQueryArgsBase } from '../plugin';
 import {
     fieldHasDefaultValue,
     getEnum,
@@ -121,7 +121,7 @@ export class ZodSchemaFactory<
         }
     }
 
-    private get plugins(): RuntimePlugin<Schema, any, any, any>[] {
+    private get plugins(): AnyPlugin[] {
         return this.options.plugins ?? [];
     }
 

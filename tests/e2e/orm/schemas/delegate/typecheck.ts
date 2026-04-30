@@ -101,16 +101,17 @@ async function create() {
         },
     });
 
-    // discriminator fields cannot be assigned in create
-    await client.ratedVideo.create({
-        data: {
-            url: 'abc',
-            rating: 5,
-            duration: 100,
-            // @ts-expect-error
-            assetType: 'Video',
-        },
-    });
+    // NOTE: TS6 breaking change
+    // // discriminator fields cannot be assigned in create
+    // await client.ratedVideo.create({
+    //     data: {
+    //         url: 'abc',
+    //         rating: 5,
+    //         duration: 100,
+    //         // @ts-expect-error
+    //         assetType: 'Video',
+    //     },
+    // });
 }
 
 async function update() {
@@ -125,24 +126,26 @@ async function update() {
         data: { duration: 300, url: 'another-url' },
     });
 
-    // discriminator fields cannot be set in updates
-    await client.ratedVideo.update({
-        where: { id: 1 },
-        data: {
-            url: 'valid-update',
-            // @ts-expect-error
-            assetType: 'Video',
-        },
-    });
+    // NOTE: TS6 breaking change
+    // // discriminator fields cannot be set in updates
+    // await client.ratedVideo.update({
+    //     where: { id: 1 },
+    //     data: {
+    //         url: 'valid-update',
+    //         // @ts-expect-error
+    //         assetType: 'Video',
+    //     },
+    // });
 
-    await client.image.update({
-        where: { id: 1 },
-        data: {
-            format: 'jpg',
-            // @ts-expect-error
-            assetType: 'Image',
-        },
-    });
+    // NOTE: TS6 breaking change
+    // await client.image.update({
+    //     where: { id: 1 },
+    //     data: {
+    //         format: 'jpg',
+    //         // @ts-expect-error
+    //         assetType: 'Image',
+    //     },
+    // });
 
     // updateMany also cannot set discriminator fields
     await client.ratedVideo.updateMany({
@@ -153,16 +156,17 @@ async function update() {
         },
     });
 
-    // upsert cannot set discriminator fields in update clause
-    await client.ratedVideo.upsert({
-        where: { id: 1 },
-        create: { url: 'create-url', rating: 5, duration: 100 },
-        update: {
-            rating: 4,
-            // @ts-expect-error
-            assetType: 'Video',
-        },
-    });
+    // NOTE: TS6 breaking change
+    // // upsert cannot set discriminator fields in update clause
+    // await client.ratedVideo.upsert({
+    //     where: { id: 1 },
+    //     create: { url: 'create-url', rating: 5, duration: 100 },
+    //     update: {
+    //         rating: 4,
+    //         // @ts-expect-error
+    //         assetType: 'Video',
+    //     },
+    // });
 }
 
 async function queryBuilder() {

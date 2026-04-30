@@ -55,6 +55,7 @@ export function createTestProject(zmodelContent?: string) {
                     esModuleInterop: true,
                     skipLibCheck: true,
                     strict: true,
+                    types: ['node'],
                 },
                 include: ['**/*.ts'],
             },
