@@ -85,11 +85,14 @@ export function createQuerySchemaFactory(clientOrSchema: any, options?: any) {
 }
 
 /**
- * Builds a `DateTime` value schema that accepts a `Date` object or an ISO
- * datetime / date / time-only string and coerces it to a `Date`. Time-only
- * strings (e.g. `"09:00:00"` for `@db.Time` fields) are anchored to the Unix
- * epoch. Strings that don't parse fall through and are rejected by `z.date()`
- * with the standard error.
+ * Builds a `DateTime` value schema that accepts a `Date` object or any string
+ * the JS `Date` constructor parses, and coerces it to a `Date`. ISO datetime,
+ * ISO date, and time-only strings (e.g. `"09:00:00"` for `@db.Time` fields,
+ * anchored to the Unix epoch) are the documented happy paths; other formats
+ * accepted by `new Date(...)` also pass through, mirroring Prisma's pre-3.5
+ * behaviour. Strings the engine can't parse fall through and are rejected by
+ * `z.date()` with the standard error. Callers wanting strict ISO-or-Date
+ * validation should set `ClientOptions.strictDateInput: true`.
  *
  * Used when `ClientOptions.strictDateInput` is left at its default (`false`).
  * @see https://github.com/zenstackhq/zenstack/issues/2631
