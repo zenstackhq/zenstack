@@ -23,6 +23,7 @@ import {
     ensureArray,
     flattenCompoundUniqueFilters,
     getDelegateDescendantModels,
+    getDiscriminatorField,
     getManyToManyRelation,
     getModelFields,
     getRelationForeignKeyFieldPairs,
@@ -224,6 +225,11 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             result = this.and(result, _where['$expr'](this.eb));
         }
 
+        // handle $is filter for delegate (polymorphic) base models
+        if ('$is' in _where && _where['$is'] != null && typeof _where['$is'] === 'object') {
+            result = this.and(result, this.buildIsFilter(model, modelAlias, _where['$is'] as Record<string, any>));
+        }
+
         return result;
     }
 
@@ -322,6 +328,59 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                 return this.not(...normalizedFilters);
             })
             .exhaustive();
+    }
+
+    /**
+     * Builds a filter expression for the `$is` operator on a delegate (polymorphic) base model.
+     * Each key in `payload` is a direct sub-model name; the value is an optional `WhereInput` for
+     * that sub-model. Multiple sub-model entries are combined with OR semantics.
+     */
+    private buildIsFilter(model: string, modelAlias: string, payload: Record<string, any>): Expression<SqlBool> {
+        const discriminatorField = getDiscriminatorField(this.schema, model);
+        if (!discriminatorField) {
+            throw createInvalidInputError(
+                `"$is" filter is only supported on delegate models; "${model}" is not a delegate model. ` +
+                    `Only models with a @@delegate attribute support the "$is" filter.`,
+            );
+        }
+
+        const discriminatorFieldDef = requireField(this.schema, model, discriminatorField);
+        const discriminatorTableAlias = discriminatorFieldDef.originModel ?? modelAlias;
+        const discriminatorRef = this.eb.ref(`${discriminatorTableAlias}.${discriminatorField}`);
+
+        const conditions: Expression<SqlBool>[] = [];
+
+        for (const [subModelName, subWhere] of Object.entries(payload)) {
+            // discriminator must equal the sub-model name
+            const discriminatorCheck = this.eb(discriminatorRef, '=', subModelName);
+
+            if (subWhere == null || (typeof subWhere === 'object' && Object.keys(subWhere).length === 0)) {
+                // no sub-model field filter — just check the discriminator
+                conditions.push(discriminatorCheck);
+            } else {
+                // build a correlated EXISTS subquery for sub-model-specific field filters
+                const subAlias = tmpAlias(`${modelAlias}__is__${subModelName}`);
+                const idFields = requireIdFields(this.schema, model);
+
+                // correlate sub-model rows to the outer model rows via primary key
+                const joinConditions = idFields.map((idField) =>
+                    this.eb(this.eb.ref(`${subAlias}.${idField}`), '=', this.eb.ref(`${modelAlias}.${idField}`)),
+                );
+
+                const subWhereFilter = this.buildFilter(subModelName, subAlias, subWhere);
+
+                const existsSubquery = this.eb
+                    .selectFrom(`${subModelName} as ${subAlias}`)
+                    .select(this.eb.lit(1).as('__exists'))
+                    .where(this.and(...joinConditions, subWhereFilter));
+
+                conditions.push(this.and(discriminatorCheck, this.eb.exists(existsSubquery)));
+            }
+        }
+
+        if (conditions.length === 0) return this.true();
+        if (conditions.length === 1) return conditions[0]!;
+        return this.or(...conditions);
     }
 
     private buildRelationFilter(model: string, modelAlias: string, field: string, fieldDef: FieldDef, payload: any) {
