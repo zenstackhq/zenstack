@@ -85,6 +85,39 @@ export function createQuerySchemaFactory(clientOrSchema: any, options?: any) {
 }
 
 /**
+ * Builds a `DateTime` value schema that accepts a `Date` object or any string
+ * the JS `Date` constructor parses, and coerces it to a `Date`. ISO datetime,
+ * ISO date, and time-only strings (e.g. `"09:00:00"` for `@db.Time` fields,
+ * anchored to the Unix epoch) are the documented happy paths; other formats
+ * accepted by `new Date(...)` also pass through, mirroring Prisma's pre-3.5
+ * behaviour. Strings the engine can't parse fall through and are rejected by
+ * `z.date()` with the standard error. Callers wanting strict ISO-or-Date
+ * validation should set `ClientOptions.strictDateInput: true`.
+ *
+ * Used when `ClientOptions.strictDateInput` is left at its default (`false`).
+ * @see https://github.com/zenstackhq/zenstack/issues/2631
+ */
+export function coercedDateTimeSchema(): ZodType {
+    // The schema keeps the original `z.iso.datetime() | z.iso.date() | z.date()`
+    // union so the generated OpenAPI spec still documents the accepted ISO
+    // forms. Preprocess runs first and coerces strings into `Date` objects,
+    // so the union's `z.date()` arm catches everything that successfully
+    // parses — including non-ISO formats like `"2024/01/15"` for Prisma
+    // compatibility (rejected with the standard error if `new Date(...)`
+    // returns Invalid Date).
+    return z.preprocess((val) => {
+        if (typeof val !== 'string') return val;
+        if (/^\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d\d(?::\d\d)?)?$/.test(val)) {
+            const hasTz = val.endsWith('Z') || /[+-]\d\d(?::\d\d)?$/.test(val);
+            const d = new Date(`1970-01-01T${val}${hasTz ? '' : 'Z'}`);
+            return isNaN(d.getTime()) ? val : d;
+        }
+        const d = new Date(val);
+        return isNaN(d.getTime()) ? val : d;
+    }, z.union([z.iso.datetime(), z.iso.date(), z.date()]));
+}
+
+/**
  * Options for creating Zod schemas.
  */
 export type CreateSchemaOptions = {
@@ -854,7 +887,10 @@ export class ZodSchemaFactory<
 
     @cache()
     private makeDateTimeValueSchema(): ZodType {
-        const schema = z.union([z.iso.datetime(), z.iso.date(), z.date()]);
+        // Strict mode: require an actual `Date` instance, matching what the
+        // engine ultimately wants. Default mode: coerce ISO strings (datetime,
+        // date, time-only) to `Date` for Prisma compatibility (#2631).
+        const schema = (this.options as ClientOptions<Schema>)?.strictDateInput ? z.date() : coercedDateTimeSchema();
         this.registerSchema('DateTime', schema);
         return schema;
     }
