@@ -1,3 +1,4 @@
+export { AnyNull, DbNull, JsonNull } from '@zenstackhq/orm/common-types';
 export * from './constants';
 export * from './invalidation';
 export * from './logging';

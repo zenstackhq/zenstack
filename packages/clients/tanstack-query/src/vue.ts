@@ -71,8 +71,9 @@ import type {
     TrimSlicedOperations,
     WithOptimistic,
 } from './common/types.js';
-export type { FetchFn } from '@zenstackhq/client-helpers/fetch';
+export { AnyNull, DbNull, JsonNull } from '@zenstackhq/client-helpers';
 export type { InferExtResult, InferOptions, InferSchema } from '@zenstackhq/client-helpers';
+export type { FetchFn } from '@zenstackhq/client-helpers/fetch';
 export type { SchemaDef } from '@zenstackhq/schema';
 
 export const VueQueryContextKey = 'zenstack-vue-query-context';
@@ -156,7 +157,12 @@ export type ClientHooks<
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     ExtResult extends ExtResultBase<Schema> = {},
 > = {
-    [Model in GetSlicedModels<Schema, Options> as `${Uncapitalize<Model>}`]: ModelQueryHooks<Schema, Model, Options, ExtResult>;
+    [Model in GetSlicedModels<Schema, Options> as `${Uncapitalize<Model>}`]: ModelQueryHooks<
+        Schema,
+        Model,
+        Options,
+        ExtResult
+    >;
 } & ProcedureHooks<Schema, Options>;
 
 type ProcedureHookGroup<Schema extends SchemaDef, Options extends QueryOptions<Schema>> = {
@@ -226,12 +232,16 @@ export type ModelQueryHooks<
     {
         useFindUnique<T extends FindUniqueArgs<Schema, Model, Options, {}, ExtResult>>(
             args: MaybeRefOrGetter<SelectSubset<T, FindUniqueArgs<Schema, Model, Options, {}, ExtResult>>>,
-            options?: MaybeRefOrGetter<ModelQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult> | null>>,
+            options?: MaybeRefOrGetter<
+                ModelQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult> | null>
+            >,
         ): ModelQueryResult<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult> | null>;
 
         useFindFirst<T extends FindFirstArgs<Schema, Model, Options, {}, ExtResult>>(
             args?: MaybeRefOrGetter<SelectSubset<T, FindFirstArgs<Schema, Model, Options, {}, ExtResult>>>,
-            options?: MaybeRefOrGetter<ModelQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult> | null>>,
+            options?: MaybeRefOrGetter<
+                ModelQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult> | null>
+            >,
         ): ModelQueryResult<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult> | null>;
 
         useExists<T extends ExistsArgs<Schema, Model, Options>>(
@@ -241,16 +251,24 @@ export type ModelQueryHooks<
 
         useFindMany<T extends FindManyArgs<Schema, Model, Options, {}, ExtResult>>(
             args?: MaybeRefOrGetter<SelectSubset<T, FindManyArgs<Schema, Model, Options, {}, ExtResult>>>,
-            options?: MaybeRefOrGetter<ModelQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>>,
+            options?: MaybeRefOrGetter<
+                ModelQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>
+            >,
         ): ModelQueryResult<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>;
 
         useInfiniteFindMany<T extends FindManyArgs<Schema, Model, Options, {}, ExtResult>, TPageParam = unknown>(
             args?: MaybeRefOrGetter<SelectSubset<T, FindManyArgs<Schema, Model, Options, {}, ExtResult>>>,
-            options?: MaybeRefOrGetter<ModelInfiniteQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[], TPageParam>>,
-        ): ModelInfiniteQueryResult<InfiniteData<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[], TPageParam>>;
+            options?: MaybeRefOrGetter<
+                ModelInfiniteQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[], TPageParam>
+            >,
+        ): ModelInfiniteQueryResult<
+            InfiniteData<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[], TPageParam>
+        >;
 
         useCreate<T extends CreateArgs<Schema, Model, Options, {}, ExtResult>>(
-            options?: MaybeRefOrGetter<ModelMutationOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>, T>>,
+            options?: MaybeRefOrGetter<
+                ModelMutationOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>, T>
+            >,
         ): ModelMutationModelResult<Schema, Model, T, false, Options, ExtResult>;
 
         useCreateMany<T extends CreateManyArgs<Schema, Model>>(
@@ -258,11 +276,15 @@ export type ModelQueryHooks<
         ): ModelMutationResult<BatchResult, T>;
 
         useCreateManyAndReturn<T extends CreateManyAndReturnArgs<Schema, Model, Options, {}, ExtResult>>(
-            options?: MaybeRefOrGetter<ModelMutationOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[], T>>,
+            options?: MaybeRefOrGetter<
+                ModelMutationOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[], T>
+            >,
         ): ModelMutationModelResult<Schema, Model, T, true, Options, ExtResult>;
 
         useUpdate<T extends UpdateArgs<Schema, Model, Options, {}, ExtResult>>(
-            options?: MaybeRefOrGetter<ModelMutationOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>, T>>,
+            options?: MaybeRefOrGetter<
+                ModelMutationOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>, T>
+            >,
         ): ModelMutationModelResult<Schema, Model, T, false, Options, ExtResult>;
 
         useUpdateMany<T extends UpdateManyArgs<Schema, Model, Options>>(
@@ -270,15 +292,21 @@ export type ModelQueryHooks<
         ): ModelMutationResult<BatchResult, T>;
 
         useUpdateManyAndReturn<T extends UpdateManyAndReturnArgs<Schema, Model, Options, {}, ExtResult>>(
-            options?: MaybeRefOrGetter<ModelMutationOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[], T>>,
+            options?: MaybeRefOrGetter<
+                ModelMutationOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[], T>
+            >,
         ): ModelMutationModelResult<Schema, Model, T, true, Options, ExtResult>;
 
         useUpsert<T extends UpsertArgs<Schema, Model, Options, {}, ExtResult>>(
-            options?: MaybeRefOrGetter<ModelMutationOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>, T>>,
+            options?: MaybeRefOrGetter<
+                ModelMutationOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>, T>
+            >,
         ): ModelMutationModelResult<Schema, Model, T, false, Options, ExtResult>;
 
         useDelete<T extends DeleteArgs<Schema, Model, Options, {}, ExtResult>>(
-            options?: MaybeRefOrGetter<ModelMutationOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>, T>>,
+            options?: MaybeRefOrGetter<
+                ModelMutationOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>, T>
+            >,
         ): ModelMutationModelResult<Schema, Model, T, false, Options, ExtResult>;
 
         useDeleteMany<T extends DeleteManyArgs<Schema, Model, Options>>(
@@ -318,12 +346,16 @@ export type ModelQueryHooks<
  * const client = useClientQueries<DbType>(schema)
  * ```
  */
-export function useClientQueries<
-    SchemaOrClient extends SchemaDef | ClientContract<any, any, any, any, any>,
->(
+export function useClientQueries<SchemaOrClient extends SchemaDef | ClientContract<any, any, any, any, any>>(
     schema: InferSchema<SchemaOrClient>,
     options?: MaybeRefOrGetter<QueryContext>,
-): ClientHooks<InferSchema<SchemaOrClient>, InferOptions<SchemaOrClient, InferSchema<SchemaOrClient>>, InferExtResult<SchemaOrClient> extends ExtResultBase<InferSchema<SchemaOrClient>> ? InferExtResult<SchemaOrClient> : {}> {
+): ClientHooks<
+    InferSchema<SchemaOrClient>,
+    InferOptions<SchemaOrClient, InferSchema<SchemaOrClient>>,
+    InferExtResult<SchemaOrClient> extends ExtResultBase<InferSchema<SchemaOrClient>>
+        ? InferExtResult<SchemaOrClient>
+        : {}
+> {
     const merge = (rootOpt: MaybeRefOrGetter<unknown> | undefined, opt: MaybeRefOrGetter<unknown> | undefined): any => {
         return computed(() => {
             const rootVal = toValue(rootOpt) ?? {};
@@ -332,17 +364,10 @@ export function useClientQueries<
         });
     };
 
-    const result = Object.keys(schema.models).reduce(
-        (acc, model) => {
-            (acc as any)[lowerCaseFirst(model)] = useModelQueries(
-                schema as any,
-                model as any,
-                options,
-            );
-            return acc;
-        },
-        {} as any,
-    );
+    const result = Object.keys(schema.models).reduce((acc, model) => {
+        (acc as any)[lowerCaseFirst(model)] = useModelQueries(schema as any, model as any, options);
+        return acc;
+    }, {} as any);
 
     const procedures = (schema as any).procedures as Record<string, { mutation?: boolean }> | undefined;
     if (procedures) {
@@ -392,7 +417,11 @@ export function useModelQueries<
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema>,
     ExtResult extends ExtResultBase<Schema> = {},
->(schema: Schema, model: Model, rootOptions?: MaybeRefOrGetter<QueryContext>): ModelQueryHooks<Schema, Model, Options, ExtResult> {
+>(
+    schema: Schema,
+    model: Model,
+    rootOptions?: MaybeRefOrGetter<QueryContext>,
+): ModelQueryHooks<Schema, Model, Options, ExtResult> {
     const modelDef = Object.values(schema.models).find((m) => m.name.toLowerCase() === model.toLowerCase());
     if (!modelDef) {
         throw new Error(`Model "${model}" not found in schema`);
@@ -521,7 +550,13 @@ export function useInternalInfiniteQuery<TQueryFnData, TData, TPageParam = unkno
     options: MaybeRefOrGetter<
         | (Omit<
               UnwrapRef<
-                  UseInfiniteQueryOptions<TQueryFnData, DefaultError, InfiniteData<TData, TPageParam>, QueryKey, TPageParam>
+                  UseInfiniteQueryOptions<
+                      TQueryFnData,
+                      DefaultError,
+                      InfiniteData<TData, TPageParam>,
+                      QueryKey,
+                      TPageParam
+                  >
               >,
               'queryKey' | 'initialPageParam'
           > &
