@@ -4324,9 +4324,32 @@ components:
                       contains:
                           type: string
                       fuzzy:
-                          type: string
-                      fuzzyContains:
-                          type: string
+                          type: object
+                          properties:
+                              search:
+                                  type: string
+                                  minLength: 1
+                              mode:
+                                  default: simple
+                                  anyOf:
+                                      - type: string
+                                        const: simple
+                                      - type: string
+                                        const: word
+                                      - type: string
+                                        const: strictWord
+                              threshold:
+                                  type: number
+                                  minimum: 0
+                                  maximum: 1
+                              unaccent:
+                                  default: false
+                                  type: boolean
+                          required:
+                              - search
+                              - mode
+                              - unaccent
+                          additionalProperties: false
                       mode:
                           anyOf:
                               - type: string
@@ -4593,9 +4616,32 @@ components:
                       contains:
                           type: string
                       fuzzy:
-                          type: string
-                      fuzzyContains:
-                          type: string
+                          type: object
+                          properties:
+                              search:
+                                  type: string
+                                  minLength: 1
+                              mode:
+                                  default: simple
+                                  anyOf:
+                                      - type: string
+                                        const: simple
+                                      - type: string
+                                        const: word
+                                      - type: string
+                                        const: strictWord
+                              threshold:
+                                  type: number
+                                  minimum: 0
+                                  maximum: 1
+                              unaccent:
+                                  default: false
+                                  type: boolean
+                          required:
+                              - search
+                              - mode
+                              - unaccent
+                          additionalProperties: false
                       mode:
                           anyOf:
                               - type: string
@@ -5138,7 +5184,7 @@ components:
                                           const: asc
                                         - type: string
                                           const: desc
-                                _relevance:
+                                _fuzzyRelevance:
                                     type: object
                                     properties:
                                         fields:
@@ -5172,7 +5218,7 @@ components:
                             additionalProperties: false
                         setting:
                             $ref: "#/components/schemas/SettingOrderByWithRelationInput"
-                        _relevance:
+                        _fuzzyRelevance:
                             type: object
                             properties:
                                 fields:
@@ -5257,7 +5303,7 @@ components:
                               - sort
                               - nulls
                           additionalProperties: false
-                _relevance:
+                _fuzzyRelevance:
                     type: object
                     properties:
                         fields:
@@ -6452,7 +6498,7 @@ components:
                     $ref: "#/components/schemas/UserOrderByWithRelationInput"
                 _max:
                     $ref: "#/components/schemas/UserOrderByWithRelationInput"
-                _relevance:
+                _fuzzyRelevance:
                     type: object
                     properties:
                         fields:
@@ -6581,9 +6627,32 @@ components:
                       contains:
                           type: string
                       fuzzy:
-                          type: string
-                      fuzzyContains:
-                          type: string
+                          type: object
+                          properties:
+                              search:
+                                  type: string
+                                  minLength: 1
+                              mode:
+                                  default: simple
+                                  anyOf:
+                                      - type: string
+                                        const: simple
+                                      - type: string
+                                        const: word
+                                      - type: string
+                                        const: strictWord
+                              threshold:
+                                  type: number
+                                  minimum: 0
+                                  maximum: 1
+                              unaccent:
+                                  default: false
+                                  type: boolean
+                          required:
+                              - search
+                              - mode
+                              - unaccent
+                          additionalProperties: false
                       mode:
                           anyOf:
                               - type: string
@@ -6935,7 +7004,7 @@ components:
                           const: asc
                         - type: string
                           const: desc
-                _relevance:
+                _fuzzyRelevance:
                     type: object
                     properties:
                         fields:
@@ -7558,7 +7627,7 @@ components:
                     $ref: "#/components/schemas/ProfileOrderByWithRelationInput"
                 _max:
                     $ref: "#/components/schemas/ProfileOrderByWithRelationInput"
-                _relevance:
+                _fuzzyRelevance:
                     type: object
                     properties:
                         fields:
@@ -8270,7 +8339,7 @@ components:
                                   const: asc
                                 - type: string
                                   const: desc
-                        _relevance:
+                        _fuzzyRelevance:
                             type: object
                             properties:
                                 fields:
@@ -8304,7 +8373,7 @@ components:
                     additionalProperties: false
                 setting:
                     $ref: "#/components/schemas/SettingOrderByWithRelationInput"
-                _relevance:
+                _fuzzyRelevance:
                     type: object
                     properties:
                         fields:
@@ -9685,7 +9754,7 @@ components:
                     $ref: "#/components/schemas/PostOrderByWithRelationInput"
                 _max:
                     $ref: "#/components/schemas/PostOrderByWithRelationInput"
-                _relevance:
+                _fuzzyRelevance:
                     type: object
                     properties:
                         fields:
@@ -9818,9 +9887,32 @@ components:
                       contains:
                           type: string
                       fuzzy:
-                          type: string
-                      fuzzyContains:
-                          type: string
+                          type: object
+                          properties:
+                              search:
+                                  type: string
+                                  minLength: 1
+                              mode:
+                                  default: simple
+                                  anyOf:
+                                      - type: string
+                                        const: simple
+                                      - type: string
+                                        const: word
+                                      - type: string
+                                        const: strictWord
+                              threshold:
+                                  type: number
+                                  minimum: 0
+                                  maximum: 1
+                              unaccent:
+                                  default: false
+                                  type: boolean
+                          required:
+                              - search
+                              - mode
+                              - unaccent
+                          additionalProperties: false
                       mode:
                           anyOf:
                               - type: string
@@ -10225,7 +10317,7 @@ components:
                           const: asc
                         - type: string
                           const: desc
-                _relevance:
+                _fuzzyRelevance:
                     type: object
                     properties:
                         fields:
@@ -10835,7 +10927,7 @@ components:
                     $ref: "#/components/schemas/CommentOrderByWithRelationInput"
                 _max:
                     $ref: "#/components/schemas/CommentOrderByWithRelationInput"
-                _relevance:
+                _fuzzyRelevance:
                     type: object
                     properties:
                         fields:

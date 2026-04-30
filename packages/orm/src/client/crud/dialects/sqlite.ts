@@ -26,7 +26,7 @@ import {
     requireModel,
     tmpAlias,
 } from '../../query-utils';
-import { BaseCrudDialect } from './base-dialect';
+import { BaseCrudDialect, type FuzzyFilterOptions } from './base-dialect';
 
 export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect<Schema> {
     override get provider() {
@@ -548,21 +548,17 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
         });
     }
 
-    override buildFuzzyFilter(_fieldRef: Expression<any>, _value: string): Expression<SqlBool> {
+    override buildFuzzyFilter(_fieldRef: Expression<any>, _options: FuzzyFilterOptions): Expression<SqlBool> {
         throw createNotSupportedError('"fuzzy" filter is not supported by the "sqlite" provider');
     }
 
-    override buildFuzzyContainsFilter(_fieldRef: Expression<any>, _value: string): Expression<SqlBool> {
-        throw createNotSupportedError('"fuzzyContains" filter is not supported by the "sqlite" provider');
-    }
-
-    override buildRelevanceOrderBy(
+    override buildFuzzyRelevanceOrderBy(
         _query: SelectQueryBuilder<any, any, any>,
         _fieldRefs: Expression<any>[],
         _search: string,
         _sort: SortOrder,
     ): SelectQueryBuilder<any, any, any> {
-        throw createNotSupportedError('"_relevance" ordering is not supported by the "sqlite" provider');
+        throw createNotSupportedError('"_fuzzyRelevance" ordering is not supported by the "sqlite" provider');
     }
     // #endregion
 }

@@ -70,7 +70,6 @@ export const FILTER_PROPERTY_TO_KIND = {
 
     // Fuzzy search operators
     fuzzy: 'Fuzzy',
-    fuzzyContains: 'Fuzzy',
 
     // List operators
     has: 'List',

@@ -15,6 +15,7 @@ import type { NullsOrder, SortOrder } from '../../crud-types';
 import { createInvalidInputError } from '../../errors';
 import type { ClientOptions } from '../../options';
 import { isEnum, isTypeDef } from '../../query-utils';
+import type { FuzzyFilterOptions } from './base-dialect';
 import { LateralJoinDialectBase } from './lateral-join-dialect-base';
 
 export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDialectBase<Schema> {
@@ -585,15 +586,48 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
 
     // #region search
 
-    override buildFuzzyFilter(fieldRef: Expression<any>, value: string): Expression<SqlBool> {
-        return sql<SqlBool>`unaccent(lower(${fieldRef})) % unaccent(lower(${sql.val(value)}))`;
+    /**
+     * Wraps an expression with `unaccent(lower(...))` or just `lower(...)` depending on
+     * whether the user opted into accent-insensitive matching. The lowering is always
+     * applied so trigram comparisons are case-insensitive on both sides.
+     */
+    private normalizeForTrigram(expr: Expression<any>, applyUnaccent: boolean): Expression<any> {
+        return applyUnaccent ? sql`unaccent(lower(${expr}))` : sql`lower(${expr})`;
     }
 
-    override buildFuzzyContainsFilter(fieldRef: Expression<any>, value: string): Expression<SqlBool> {
-        return sql<SqlBool>`unaccent(lower(${sql.val(value)})) <% unaccent(lower(${fieldRef}))`;
+    override buildFuzzyFilter(fieldRef: Expression<any>, options: FuzzyFilterOptions): Expression<SqlBool> {
+        const fieldExpr = this.normalizeForTrigram(fieldRef, options.unaccent);
+        const valueExpr = this.normalizeForTrigram(sql.val(options.search), options.unaccent);
+
+        if (options.threshold === undefined) {
+            // Operator form: relies on the session-level pg_trgm.*_threshold settings.
+            // 'simple'  -> `%` (similarity()), symmetric.
+            // 'word'    -> `<%` (word_similarity()): search-term <% document.
+            // 'strictWord' -> `<<%` (strict_word_similarity()): search-term <<% document.
+            switch (options.mode) {
+                case 'simple':
+                    return sql<SqlBool>`${fieldExpr} % ${valueExpr}`;
+                case 'word':
+                    return sql<SqlBool>`${valueExpr} <% ${fieldExpr}`;
+                case 'strictWord':
+                    return sql<SqlBool>`${valueExpr} <<% ${fieldExpr}`;
+            }
+        }
+
+        // Function form: explicit `similarity(...) > threshold`. Bypasses session settings,
+        // letting the user pick a per-query threshold.
+        const threshold = sql.val(options.threshold);
+        switch (options.mode) {
+            case 'simple':
+                return sql<SqlBool>`similarity(${fieldExpr}, ${valueExpr}) > ${threshold}`;
+            case 'word':
+                return sql<SqlBool>`word_similarity(${valueExpr}, ${fieldExpr}) > ${threshold}`;
+            case 'strictWord':
+                return sql<SqlBool>`strict_word_similarity(${valueExpr}, ${fieldExpr}) > ${threshold}`;
+        }
     }
 
-    override buildRelevanceOrderBy(
+    override buildFuzzyRelevanceOrderBy(
         query: SelectQueryBuilder<any, any, any>,
         fieldRefs: Expression<any>[],
         search: string,

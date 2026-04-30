@@ -582,17 +582,47 @@ export type StringFilter<
           ('Fuzzy' extends AllowedKinds
               ? {
                     /**
-                     * Performs a fuzzy search on the string field using trigram similarity.
-                     * Uses pg_trgm with unaccent on PostgreSQL. Not supported on MySQL or SQLite.
+                     * Performs a fuzzy search on the string field using PostgreSQL `pg_trgm`.
+                     * Not supported on MySQL or SQLite (throws `NotSupported` at runtime).
+                     *
+                     * Modes:
+                     * - `'simple'` (default): trigram similarity on the whole value (operator `%`,
+                     *   function `similarity()`).
+                     * - `'word'`: word similarity — checks if the search term is approximately
+                     *   contained as a word inside the value (operator `<%`,
+                     *   function `word_similarity()`).
+                     * - `'strictWord'`: stricter variant of `'word'` (operator `<<%`,
+                     *   function `strict_word_similarity()`).
+                     *
+                     * When `threshold` is provided the function form is used
+                     * (`similarity() > threshold`) instead of the operator form, so the
+                     * `pg_trgm.*_threshold` session settings are bypassed.
+                     *
+                     * `unaccent` is opt-in (defaults to `false`) — set it to `true` to make the
+                     * comparison accent-insensitive. Enabling it requires the `unaccent` extension
+                     * to be installed on the database.
                      */
-                    fuzzy?: string;
-
-                    /**
-                     * Performs a fuzzy substring search: checks if the search term is approximately
-                     * contained within the field value. Uses pg_trgm word_similarity on PostgreSQL.
-                     * Not supported on MySQL or SQLite.
-                     */
-                    fuzzyContains?: string;
+                    fuzzy?: {
+                        /**
+                         * Search term to match against (must be a non-empty string).
+                         */
+                        search: string;
+                        /**
+                         * Matching mode. Defaults to `'simple'`.
+                         */
+                        mode?: 'simple' | 'word' | 'strictWord';
+                        /**
+                         * Optional similarity threshold in `[0, 1]`. When provided, the function
+                         * form is used and matches require `similarity > threshold`.
+                         */
+                        threshold?: number;
+                        /**
+                         * Whether to apply `unaccent()` to both sides. Defaults to `false`.
+                         * Set to `true` to enable accent-insensitive matching (requires the
+                         * `unaccent` extension on PostgreSQL).
+                         */
+                        unaccent?: boolean;
+                    };
                 }
               : {}) &
           (WithAggregations extends true
@@ -909,13 +939,16 @@ type StringFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
         : never;
 }[NonRelationFields<Schema, Model>];
 
-export type RelevanceOrderBy<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+export type FuzzyRelevanceOrderBy<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
     /**
      * Sorts by fuzzy search relevance using PostgreSQL `similarity()` from `pg_trgm`.
      * Not supported on MySQL or SQLite (throws `NotSupported` at runtime).
      * Cannot be combined with cursor-based pagination.
+     *
+     * The `_fuzzyRelevance` name is intentionally distinct from `_searchRelevance`
+     * (reserved for future full-text-search relevance) so the two can coexist.
      */
-    _relevance?: {
+    _fuzzyRelevance?: {
         /**
          * String fields to compute relevance against (must be non-empty).
          */
@@ -1281,7 +1314,7 @@ type SortAndTakeArgs<
     /**
      * Order by clauses
      */
-    orderBy?: OrArray<OrderBy<Schema, Model, true, false> & RelevanceOrderBy<Schema, Model>>;
+    orderBy?: OrArray<OrderBy<Schema, Model, true, false> & FuzzyRelevanceOrderBy<Schema, Model>>;
 
     /**
      * Cursor for pagination

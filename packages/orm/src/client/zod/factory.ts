@@ -1026,8 +1026,7 @@ export class ZodSchemaFactory<
             startsWith: z.string().optional(),
             endsWith: z.string().optional(),
             contains: z.string().optional(),
-            fuzzy: z.string().optional(),
-            fuzzyContains: z.string().optional(),
+            fuzzy: this.makeFuzzyFilterSchema().optional(),
             ...(this.providerSupportsCaseSensitivity
                 ? {
                       mode: this.makeStringModeSchema().optional(),
@@ -1053,6 +1052,15 @@ export class ZodSchemaFactory<
 
     private makeStringModeSchema() {
         return z.union([z.literal('default'), z.literal('insensitive')]);
+    }
+
+    private makeFuzzyFilterSchema() {
+        return z.strictObject({
+            search: z.string().min(1),
+            mode: z.union([z.literal('simple'), z.literal('word'), z.literal('strictWord')]).default('simple'),
+            threshold: z.number().min(0).max(1).optional(),
+            unaccent: z.boolean().default(false),
+        });
     }
 
     @cache()
@@ -1301,12 +1309,13 @@ export class ZodSchemaFactory<
             }
         }
 
-        // _relevance ordering for fuzzy search (string fields only)
+        // _fuzzyRelevance ordering for fuzzy search (string fields only).
+        // Distinct from a future `_searchRelevance` for full-text search.
         const stringFieldNames = this.getModelFields(model)
             .filter(([, def]) => !def.relation && def.type === 'String')
             .map(([name]) => name);
         if (stringFieldNames.length > 0) {
-            fields['_relevance'] = z
+            fields['_fuzzyRelevance'] = z
                 .strictObject({
                     fields: z.array(z.enum(stringFieldNames as [string, ...string[]])).min(1),
                     search: z.string(),
