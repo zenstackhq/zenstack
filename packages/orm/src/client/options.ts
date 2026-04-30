@@ -203,6 +203,16 @@ export type ClientOptions<Schema extends SchemaDef> = QueryOptions<Schema> & {
     validateInput?: boolean;
 
     /**
+     * Whether to require `Date` objects (rather than ISO strings) for `DateTime` field inputs. Defaults
+     * to `false`, matching Prisma's longstanding behavior of coercing ISO strings — including bare
+     * time-only strings like `"09:00:00"` for `@db.Time` fields — to `Date`.
+     *
+     * Set to `true` to opt into strict input validation that rejects all string forms.
+     * @see https://github.com/zenstackhq/zenstack/issues/2631
+     */
+    strictDateInput?: boolean;
+
+    /**
      * Whether to use compact alias names (e.g., "$$t1", "$$t2") when transforming ORM queries to SQL.
      * Defaults to `true`.
      *

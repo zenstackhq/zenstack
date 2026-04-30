@@ -85,6 +85,29 @@ export function createQuerySchemaFactory(clientOrSchema: any, options?: any) {
 }
 
 /**
+ * Builds a `DateTime` value schema that accepts a `Date` object or an ISO
+ * datetime / date / time-only string and coerces it to a `Date`. Time-only
+ * strings (e.g. `"09:00:00"` for `@db.Time` fields) are anchored to the Unix
+ * epoch. Strings that don't parse fall through and are rejected by `z.date()`
+ * with the standard error.
+ *
+ * Used when `ClientOptions.strictDateInput` is left at its default (`false`).
+ * @see https://github.com/zenstackhq/zenstack/issues/2631
+ */
+export function coercedDateTimeSchema(): ZodType {
+    return z.preprocess((val) => {
+        if (typeof val !== 'string') return val;
+        if (/^\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d\d(?::\d\d)?)?$/.test(val)) {
+            const hasTz = val.endsWith('Z') || /[+-]\d\d(?::\d\d)?$/.test(val);
+            const d = new Date(`1970-01-01T${val}${hasTz ? '' : 'Z'}`);
+            return isNaN(d.getTime()) ? val : d;
+        }
+        const d = new Date(val);
+        return isNaN(d.getTime()) ? val : d;
+    }, z.date());
+}
+
+/**
  * Options for creating Zod schemas.
  */
 export type CreateSchemaOptions = {
@@ -854,7 +877,9 @@ export class ZodSchemaFactory<
 
     @cache()
     private makeDateTimeValueSchema(): ZodType {
-        const schema = z.union([z.iso.datetime(), z.iso.date(), z.date()]);
+        const schema = (this.options as ClientOptions<Schema>)?.strictDateInput
+            ? z.union([z.iso.datetime(), z.iso.date(), z.date()])
+            : coercedDateTimeSchema();
         this.registerSchema('DateTime', schema);
         return schema;
     }

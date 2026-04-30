@@ -154,6 +154,53 @@ describe('SchemaFactory - makeModelSchema', () => {
                 birthdate: '2024-01-15T10:30:00.000Z',
             });
             expect(result.success).toBe(true);
+            // Coerced to a Date for the engine.
+            expect(result.data?.birthdate).toBeInstanceOf(Date);
+        });
+
+        // Regression: #2631 — earlier versions accepted ISO strings via
+        // Prisma's permissive coercion. The strict zod union introduced in
+        // 3.5+ rejected ISO date and time-only strings, breaking every
+        // `@db.Date` and `@db.Time` caller that had been passing strings.
+        it('accepts DateTime as an ISO date string (#2631)', () => {
+            const userSchema = factory.makeModelSchema('User');
+            const result = userSchema.safeParse({
+                ...validUser,
+                birthdate: '2024-01-15',
+            });
+            expect(result.success).toBe(true);
+            expect(result.data?.birthdate).toBeInstanceOf(Date);
+        });
+
+        it('accepts DateTime as a bare time-only string for @db.Time fields (#2631)', () => {
+            const userSchema = factory.makeModelSchema('User');
+            const result = userSchema.safeParse({
+                ...validUser,
+                birthdate: '09:30:00',
+            });
+            expect(result.success).toBe(true);
+            // Time-only strings are anchored to the Unix epoch.
+            expect(result.data?.birthdate).toBeInstanceOf(Date);
+            expect((result.data?.birthdate as Date).toISOString()).toBe('1970-01-01T09:30:00.000Z');
+        });
+
+        it('accepts DateTime as a time-only string with timezone (#2631)', () => {
+            const userSchema = factory.makeModelSchema('User');
+            const result = userSchema.safeParse({
+                ...validUser,
+                birthdate: '09:30:00+12:00',
+            });
+            expect(result.success).toBe(true);
+            expect(result.data?.birthdate).toBeInstanceOf(Date);
+        });
+
+        it('rejects DateTime as a non-parseable string', () => {
+            const userSchema = factory.makeModelSchema('User');
+            const result = userSchema.safeParse({
+                ...validUser,
+                birthdate: 'not-a-date',
+            });
+            expect(result.success).toBe(false);
         });
 
         it('accepts Bytes as Uint8Array', () => {
