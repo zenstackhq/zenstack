@@ -409,6 +409,8 @@ export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDiale
         _fieldRefs: Expression<any>[],
         _search: string,
         _sort: SortOrder,
+        _mode: FuzzyFilterOptions['mode'],
+        _unaccent: boolean,
     ): SelectQueryBuilder<any, any, any> {
         throw createNotSupportedError('"_fuzzyRelevance" ordering is not supported by the "mysql" provider');
     }

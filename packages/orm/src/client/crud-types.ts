@@ -941,7 +941,7 @@ type StringFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
 
 export type FuzzyRelevanceOrderBy<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
     /**
-     * Sorts by fuzzy search relevance using PostgreSQL `similarity()` from `pg_trgm`.
+     * Sorts by fuzzy search relevance using PostgreSQL `pg_trgm` similarity functions.
      * Not supported on MySQL or SQLite (throws `NotSupported` at runtime).
      * Cannot be combined with cursor-based pagination.
      *
@@ -957,6 +957,14 @@ export type FuzzyRelevanceOrderBy<Schema extends SchemaDef, Model extends GetMod
          * The search term to compute relevance for.
          */
         search: string;
+        /**
+         * Fuzzy matching mode used to compute relevance.
+         */
+        mode?: 'simple' | 'word' | 'strictWord';
+        /**
+         * Whether to remove accents before computing relevance.
+         */
+        unaccent?: boolean;
         /**
          * Sort direction.
          */

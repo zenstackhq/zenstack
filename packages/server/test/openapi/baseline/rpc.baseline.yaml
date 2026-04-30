@@ -5196,6 +5196,18 @@ components:
                                                     - content
                                         search:
                                             type: string
+                                        mode:
+                                            default: simple
+                                            anyOf:
+                                                - type: string
+                                                  const: simple
+                                                - type: string
+                                                  const: word
+                                                - type: string
+                                                  const: strictWord
+                                        unaccent:
+                                            default: false
+                                            type: boolean
                                         sort:
                                             anyOf:
                                                 - type: string
@@ -5205,6 +5217,8 @@ components:
                                     required:
                                         - fields
                                         - search
+                                        - mode
+                                        - unaccent
                                         - sort
                                     additionalProperties: false
                                 _count:
@@ -5231,6 +5245,18 @@ components:
                                             - authorId
                                 search:
                                     type: string
+                                mode:
+                                    default: simple
+                                    anyOf:
+                                        - type: string
+                                          const: simple
+                                        - type: string
+                                          const: word
+                                        - type: string
+                                          const: strictWord
+                                unaccent:
+                                    default: false
+                                    type: boolean
                                 sort:
                                     anyOf:
                                         - type: string
@@ -5240,6 +5266,8 @@ components:
                             required:
                                 - fields
                                 - search
+                                - mode
+                                - unaccent
                                 - sort
                             additionalProperties: false
                         _count:
@@ -5316,6 +5344,18 @@ components:
                                     - email
                         search:
                             type: string
+                        mode:
+                            default: simple
+                            anyOf:
+                                - type: string
+                                  const: simple
+                                - type: string
+                                  const: word
+                                - type: string
+                                  const: strictWord
+                        unaccent:
+                            default: false
+                            type: boolean
                         sort:
                             anyOf:
                                 - type: string
@@ -5325,6 +5365,8 @@ components:
                     required:
                         - fields
                         - search
+                        - mode
+                        - unaccent
                         - sort
                     additionalProperties: false
             additionalProperties: false
@@ -6511,6 +6553,18 @@ components:
                                     - email
                         search:
                             type: string
+                        mode:
+                            default: simple
+                            anyOf:
+                                - type: string
+                                  const: simple
+                                - type: string
+                                  const: word
+                                - type: string
+                                  const: strictWord
+                        unaccent:
+                            default: false
+                            type: boolean
                         sort:
                             anyOf:
                                 - type: string
@@ -6520,6 +6574,8 @@ components:
                     required:
                         - fields
                         - search
+                        - mode
+                        - unaccent
                         - sort
                     additionalProperties: false
             additionalProperties: false
@@ -7017,6 +7073,18 @@ components:
                                     - userId
                         search:
                             type: string
+                        mode:
+                            default: simple
+                            anyOf:
+                                - type: string
+                                  const: simple
+                                - type: string
+                                  const: word
+                                - type: string
+                                  const: strictWord
+                        unaccent:
+                            default: false
+                            type: boolean
                         sort:
                             anyOf:
                                 - type: string
@@ -7026,6 +7094,8 @@ components:
                     required:
                         - fields
                         - search
+                        - mode
+                        - unaccent
                         - sort
                     additionalProperties: false
             additionalProperties: false
@@ -7640,6 +7710,18 @@ components:
                                     - userId
                         search:
                             type: string
+                        mode:
+                            default: simple
+                            anyOf:
+                                - type: string
+                                  const: simple
+                                - type: string
+                                  const: word
+                                - type: string
+                                  const: strictWord
+                        unaccent:
+                            default: false
+                            type: boolean
                         sort:
                             anyOf:
                                 - type: string
@@ -7649,6 +7731,8 @@ components:
                     required:
                         - fields
                         - search
+                        - mode
+                        - unaccent
                         - sort
                     additionalProperties: false
             additionalProperties: false
@@ -8351,6 +8435,18 @@ components:
                                             - content
                                 search:
                                     type: string
+                                mode:
+                                    default: simple
+                                    anyOf:
+                                        - type: string
+                                          const: simple
+                                        - type: string
+                                          const: word
+                                        - type: string
+                                          const: strictWord
+                                unaccent:
+                                    default: false
+                                    type: boolean
                                 sort:
                                     anyOf:
                                         - type: string
@@ -8360,6 +8456,8 @@ components:
                             required:
                                 - fields
                                 - search
+                                - mode
+                                - unaccent
                                 - sort
                             additionalProperties: false
                         _count:
@@ -8386,6 +8484,18 @@ components:
                                     - authorId
                         search:
                             type: string
+                        mode:
+                            default: simple
+                            anyOf:
+                                - type: string
+                                  const: simple
+                                - type: string
+                                  const: word
+                                - type: string
+                                  const: strictWord
+                        unaccent:
+                            default: false
+                            type: boolean
                         sort:
                             anyOf:
                                 - type: string
@@ -8395,6 +8505,8 @@ components:
                     required:
                         - fields
                         - search
+                        - mode
+                        - unaccent
                         - sort
                     additionalProperties: false
             additionalProperties: false
@@ -9767,6 +9879,18 @@ components:
                                     - authorId
                         search:
                             type: string
+                        mode:
+                            default: simple
+                            anyOf:
+                                - type: string
+                                  const: simple
+                                - type: string
+                                  const: word
+                                - type: string
+                                  const: strictWord
+                        unaccent:
+                            default: false
+                            type: boolean
                         sort:
                             anyOf:
                                 - type: string
@@ -9776,6 +9900,8 @@ components:
                     required:
                         - fields
                         - search
+                        - mode
+                        - unaccent
                         - sort
                     additionalProperties: false
             additionalProperties: false
@@ -10329,6 +10455,18 @@ components:
                                     - content
                         search:
                             type: string
+                        mode:
+                            default: simple
+                            anyOf:
+                                - type: string
+                                  const: simple
+                                - type: string
+                                  const: word
+                                - type: string
+                                  const: strictWord
+                        unaccent:
+                            default: false
+                            type: boolean
                         sort:
                             anyOf:
                                 - type: string
@@ -10338,6 +10476,8 @@ components:
                     required:
                         - fields
                         - search
+                        - mode
+                        - unaccent
                         - sort
                     additionalProperties: false
             additionalProperties: false
@@ -10939,6 +11079,18 @@ components:
                                     - content
                         search:
                             type: string
+                        mode:
+                            default: simple
+                            anyOf:
+                                - type: string
+                                  const: simple
+                                - type: string
+                                  const: word
+                                - type: string
+                                  const: strictWord
+                        unaccent:
+                            default: false
+                            type: boolean
                         sort:
                             anyOf:
                                 - type: string
@@ -10948,6 +11100,8 @@ components:
                     required:
                         - fields
                         - search
+                        - mode
+                        - unaccent
                         - sort
                     additionalProperties: false
             additionalProperties: false

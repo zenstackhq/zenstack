@@ -632,16 +632,26 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         fieldRefs: Expression<any>[],
         search: string,
         sort: SortOrder,
+        mode: FuzzyFilterOptions['mode'],
+        unaccent: boolean,
     ): SelectQueryBuilder<any, any, any> {
+        const valueExpr = this.normalizeForTrigram(sql.val(search), unaccent);
+        const buildSimilarity = (fieldRef: Expression<any>) => {
+            const fieldExpr = this.normalizeForTrigram(fieldRef, unaccent);
+            switch (mode) {
+                case 'simple':
+                    return sql`similarity(${fieldExpr}, ${valueExpr})`;
+                case 'word':
+                    return sql`word_similarity(${valueExpr}, ${fieldExpr})`;
+                case 'strictWord':
+                    return sql`strict_word_similarity(${valueExpr}, ${fieldExpr})`;
+            }
+        };
+
         if (fieldRefs.length === 1) {
-            return query.orderBy(
-                sql`similarity(unaccent(lower(${fieldRefs[0]})), unaccent(lower(${sql.val(search)})))`,
-                sort,
-            );
+            return query.orderBy(buildSimilarity(fieldRefs[0]!), sort);
         }
-        const similarities = fieldRefs.map(
-            (ref) => sql`similarity(unaccent(lower(${ref})), unaccent(lower(${sql.val(search)})))`,
-        );
+        const similarities = fieldRefs.map((ref) => buildSimilarity(ref));
         return query.orderBy(sql`GREATEST(${sql.join(similarities)})`, sort);
     }
 

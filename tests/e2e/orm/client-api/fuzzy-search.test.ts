@@ -257,7 +257,7 @@ describe.skipIf(provider !== 'postgresql')('Fuzzy search tests', () => {
                 ],
             },
             orderBy: {
-                _fuzzyRelevance: { fields: ['name'], search: 'creme', sort: 'desc' },
+                _fuzzyRelevance: { fields: ['name'], search: 'creme', sort: 'desc', unaccent: true },
             },
         });
         expect(results.length).toBeGreaterThanOrEqual(2);
@@ -302,7 +302,7 @@ describe.skipIf(provider !== 'postgresql')('Fuzzy search tests', () => {
                 ],
             },
             orderBy: {
-                _fuzzyRelevance: { fields: ['name'], search: 'creme', sort: 'desc' },
+                _fuzzyRelevance: { fields: ['name'], search: 'creme', sort: 'desc', unaccent: true },
             },
         });
 
@@ -314,7 +314,7 @@ describe.skipIf(provider !== 'postgresql')('Fuzzy search tests', () => {
                 ],
             },
             orderBy: {
-                _fuzzyRelevance: { fields: ['name'], search: 'creme', sort: 'desc' },
+                _fuzzyRelevance: { fields: ['name'], search: 'creme', sort: 'desc', unaccent: true },
             },
             skip: 1,
             take: 1,
@@ -799,5 +799,62 @@ describe.skipIf(provider !== 'postgresql')('Fuzzy search tests', () => {
                 },
             }),
         ).rejects.toThrow();
+    });
+
+    // ---------------------------------------------------------------
+    // Q. orderBy _fuzzyRelevance options
+    // ---------------------------------------------------------------
+
+    it('mode "word" ranks an exact embedded word above a prefix-only word', async () => {
+        const prefixOnly = await client.flavor.create({ data: { name: 'Chocolate', description: 'prefix only' } });
+        const embeddedWord = await client.flavor.create({ data: { name: 'Hot choco drink', description: 'word' } });
+
+        const results = await client.flavor.findMany({
+            where: { id: { in: [prefixOnly.id, embeddedWord.id] } },
+            orderBy: [
+                { _fuzzyRelevance: { fields: ['name'], search: 'choco', mode: 'word', sort: 'desc' } },
+                { id: 'asc' },
+            ],
+        });
+
+        expect(results[0]!.id).toBe(embeddedWord.id);
+    });
+
+    it('mode "strictWord" ranks word-boundary matches above non-boundary matches', async () => {
+        const nonBoundary = await client.flavor.create({ data: { name: 'xxchocoxx', description: 'non-boundary' } });
+        const wordBoundary = await client.flavor.create({ data: { name: 'hot choco drink', description: 'boundary' } });
+
+        const strict = await client.flavor.findMany({
+            where: { id: { in: [nonBoundary.id, wordBoundary.id] } },
+            orderBy: [
+                { _fuzzyRelevance: { fields: ['name'], search: 'choco', mode: 'strictWord', sort: 'desc' } },
+                { id: 'asc' },
+            ],
+        });
+
+        expect(strict[0]!.id).toBe(wordBoundary.id);
+    });
+
+    it('unaccent toggles relevance scoring for ascii searches against accented names', async () => {
+        const accented = await client.flavor.create({ data: { name: 'Crème', description: 'accented exact' } });
+        const asciiPrefix = await client.flavor.create({ data: { name: 'Cremezzzz', description: 'ascii prefix' } });
+
+        const withoutUnaccent = await client.flavor.findMany({
+            where: { id: { in: [accented.id, asciiPrefix.id] } },
+            orderBy: [
+                { _fuzzyRelevance: { fields: ['name'], search: 'creme', sort: 'desc', unaccent: false } },
+                { id: 'asc' },
+            ],
+        });
+        const withUnaccent = await client.flavor.findMany({
+            where: { id: { in: [accented.id, asciiPrefix.id] } },
+            orderBy: [
+                { _fuzzyRelevance: { fields: ['name'], search: 'creme', sort: 'desc', unaccent: true } },
+                { id: 'asc' },
+            ],
+        });
+
+        expect(withoutUnaccent[0]!.id).toBe(asciiPrefix.id);
+        expect(withUnaccent[0]!.id).toBe(accented.id);
     });
 });

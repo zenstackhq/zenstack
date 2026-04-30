@@ -1319,6 +1319,8 @@ export class ZodSchemaFactory<
                 .strictObject({
                     fields: z.array(z.enum(stringFieldNames as [string, ...string[]])).min(1),
                     search: z.string(),
+                    mode: z.union([z.literal('simple'), z.literal('word'), z.literal('strictWord')]).default('simple'),
+                    unaccent: z.boolean().default(false),
                     sort,
                 })
                 .optional();

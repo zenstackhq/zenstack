@@ -1114,12 +1114,25 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                         value.sort === 'asc' || value.sort === 'desc',
                         'invalid sort value for "_fuzzyRelevance"',
                     );
+                    invariant(
+                        typeof value.search === 'string' && value.search.length > 0,
+                        '_fuzzyRelevance.search must be a non-empty string',
+                    );
+                    const mode = value.mode ?? 'simple';
+                    invariant(
+                        mode === 'simple' || mode === 'word' || mode === 'strictWord',
+                        '_fuzzyRelevance.mode must be "simple", "word" or "strictWord"',
+                    );
+                    const unaccent = value.unaccent ?? false;
+                    invariant(typeof unaccent === 'boolean', '_fuzzyRelevance.unaccent must be a boolean');
                     const fieldRefs = value.fields.map((f: string) => buildFieldRef(model, f, modelAlias));
                     result = this.buildFuzzyRelevanceOrderBy(
                         result,
                         fieldRefs,
                         value.search,
                         this.negateSort(value.sort, negated),
+                        mode,
+                        unaccent,
                     );
                     continue;
                 }
@@ -1643,6 +1656,8 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         fieldRefs: Expression<any>[],
         search: string,
         sort: SortOrder,
+        mode: FuzzyFilterOptions['mode'],
+        unaccent: boolean,
     ): SelectQueryBuilder<any, any, any>;
 
     /**
