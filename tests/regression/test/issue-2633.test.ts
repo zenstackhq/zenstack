@@ -54,6 +54,10 @@ model TradingHour {
             // The application reads `tw.open` / `tw.close` as Date objects.
             expect(rows[0].open).toBeInstanceOf(Date);
             expect(rows[0].close).toBeInstanceOf(Date);
+            expect(rows[0].open.toISOString()).toBe('1970-01-01T09:00:00.000Z');
+            expect(rows[0].close.toISOString()).toBe('1970-01-01T16:00:00.000Z');
+            expect(rows[1].open.toISOString()).toBe('1970-01-01T10:30:00.000Z');
+            expect(rows[1].close.toISOString()).toBe('1970-01-01T17:30:00.000Z');
         });
     });
 });
