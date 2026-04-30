@@ -19,7 +19,14 @@ import {
     type UseSuspenseQueryOptions,
     type UseSuspenseQueryResult,
 } from '@tanstack/react-query';
-import { createInvalidator, createOptimisticUpdater, DEFAULT_QUERY_ENDPOINT, type InferExtResult, type InferOptions, type InferSchema } from '@zenstackhq/client-helpers';
+import {
+    createInvalidator,
+    createOptimisticUpdater,
+    DEFAULT_QUERY_ENDPOINT,
+    type InferExtResult,
+    type InferOptions,
+    type InferSchema,
+} from '@zenstackhq/client-helpers';
 import { fetcher, makeUrl, marshal } from '@zenstackhq/client-helpers/fetch';
 import { lowerCaseFirst } from '@zenstackhq/common-helpers';
 import type {
@@ -69,8 +76,9 @@ import type {
     TrimSlicedOperations,
     WithOptimistic,
 } from './common/types.js';
-export type { FetchFn } from '@zenstackhq/client-helpers/fetch';
+export { AnyNull, DbNull, JsonNull } from '@zenstackhq/client-helpers';
 export type { InferExtResult, InferOptions, InferSchema } from '@zenstackhq/client-helpers';
+export type { FetchFn } from '@zenstackhq/client-helpers/fetch';
 export type { SchemaDef } from '@zenstackhq/schema';
 
 type ProcedureHookFn<
@@ -147,7 +155,10 @@ export type ModelMutationModelResult<
     Array extends boolean = false,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     ExtResult extends ExtResultBase<Schema> = {},
-> = Omit<ModelMutationResult<SimplifiedResult<Schema, Model, TArgs, Options, false, Array, ExtResult>, TArgs>, 'mutateAsync'> & {
+> = Omit<
+    ModelMutationResult<SimplifiedResult<Schema, Model, TArgs, Options, false, Array, ExtResult>, TArgs>,
+    'mutateAsync'
+> & {
     mutateAsync<T extends TArgs>(
         args: T,
         options?: ModelMutationOptions<SimplifiedResult<Schema, Model, T, Options, false, Array, ExtResult>, T>,
@@ -159,7 +170,12 @@ export type ClientHooks<
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     ExtResult extends ExtResultBase<Schema> = {},
 > = {
-    [Model in GetSlicedModels<Schema, Options> as `${Uncapitalize<Model>}`]: ModelQueryHooks<Schema, Model, Options, ExtResult>;
+    [Model in GetSlicedModels<Schema, Options> as `${Uncapitalize<Model>}`]: ModelQueryHooks<
+        Schema,
+        Model,
+        Options,
+        ExtResult
+    >;
 } & ProcedureHooks<Schema, Options>;
 
 type ProcedureHookGroup<Schema extends SchemaDef, Options extends QueryOptions<Schema>> = {
@@ -265,13 +281,26 @@ export type ModelQueryHooks<
 
         useInfiniteFindMany<T extends FindManyArgs<Schema, Model, Options, {}, ExtResult>, TPageParam = unknown>(
             args?: SelectSubset<T, FindManyArgs<Schema, Model, Options, {}, ExtResult>>,
-            options?: ModelInfiniteQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[], TPageParam>,
-        ): ModelInfiniteQueryResult<InfiniteData<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[], TPageParam>>;
+            options?: ModelInfiniteQueryOptions<
+                SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[],
+                TPageParam
+            >,
+        ): ModelInfiniteQueryResult<
+            InfiniteData<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[], TPageParam>
+        >;
 
-        useSuspenseInfiniteFindMany<T extends FindManyArgs<Schema, Model, Options, {}, ExtResult>, TPageParam = unknown>(
+        useSuspenseInfiniteFindMany<
+            T extends FindManyArgs<Schema, Model, Options, {}, ExtResult>,
+            TPageParam = unknown,
+        >(
             args?: SelectSubset<T, FindManyArgs<Schema, Model, Options, {}, ExtResult>>,
-            options?: ModelSuspenseInfiniteQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[], TPageParam>,
-        ): ModelSuspenseInfiniteQueryResult<InfiniteData<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[], TPageParam>>;
+            options?: ModelSuspenseInfiniteQueryOptions<
+                SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[],
+                TPageParam
+            >,
+        ): ModelSuspenseInfiniteQueryResult<
+            InfiniteData<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[], TPageParam>
+        >;
 
         useCreate<T extends CreateArgs<Schema, Model, Options, {}, ExtResult>>(
             options?: ModelMutationOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>, T>,
@@ -360,23 +389,20 @@ export type ModelQueryHooks<
  * @param schema The schema.
  * @param options Options for all queries originated from this hook.
  */
-export function useClientQueries<
-    SchemaOrClient extends SchemaDef | ClientContract<any, any, any, any, any>,
->(
+export function useClientQueries<SchemaOrClient extends SchemaDef | ClientContract<any, any, any, any, any>>(
     schema: InferSchema<SchemaOrClient>,
     options?: QueryContext,
-): ClientHooks<InferSchema<SchemaOrClient>, InferOptions<SchemaOrClient, InferSchema<SchemaOrClient>>, InferExtResult<SchemaOrClient> extends ExtResultBase<InferSchema<SchemaOrClient>> ? InferExtResult<SchemaOrClient> : {}> {
-    const result = Object.keys(schema.models).reduce(
-        (acc, model) => {
-            (acc as any)[lowerCaseFirst(model)] = useModelQueries(
-                schema as any,
-                model as any,
-                options,
-            );
-            return acc;
-        },
-        {} as any,
-    );
+): ClientHooks<
+    InferSchema<SchemaOrClient>,
+    InferOptions<SchemaOrClient, InferSchema<SchemaOrClient>>,
+    InferExtResult<SchemaOrClient> extends ExtResultBase<InferSchema<SchemaOrClient>>
+        ? InferExtResult<SchemaOrClient>
+        : {}
+> {
+    const result = Object.keys(schema.models).reduce((acc, model) => {
+        (acc as any)[lowerCaseFirst(model)] = useModelQueries(schema as any, model as any, options);
+        return acc;
+    }, {} as any);
 
     const procedures = (schema as any).procedures as Record<string, { mutation?: boolean }> | undefined;
     if (procedures) {
@@ -599,7 +625,13 @@ export function useInternalInfiniteQuery<TQueryFnData, TData, TPageParam = unkno
     args: unknown,
     options:
         | (Omit<
-              UseInfiniteQueryOptions<TQueryFnData, DefaultError, InfiniteData<TData, TPageParam>, QueryKey, TPageParam>,
+              UseInfiniteQueryOptions<
+                  TQueryFnData,
+                  DefaultError,
+                  InfiniteData<TData, TPageParam>,
+                  QueryKey,
+                  TPageParam
+              >,
               'queryKey' | 'initialPageParam'
           > &
               QueryContext)
@@ -627,7 +659,14 @@ export function useInternalSuspenseInfiniteQuery<TQueryFnData, TData, TPageParam
     operation: string,
     args: unknown,
     options: Omit<
-        UseSuspenseInfiniteQueryOptions<TQueryFnData, DefaultError, InfiniteData<TData, TPageParam>, QueryKey, TPageParam> & QueryContext,
+        UseSuspenseInfiniteQueryOptions<
+            TQueryFnData,
+            DefaultError,
+            InfiniteData<TData, TPageParam>,
+            QueryKey,
+            TPageParam
+        > &
+            QueryContext,
         'queryKey' | 'initialPageParam'
     >,
 ) {

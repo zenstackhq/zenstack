@@ -95,6 +95,16 @@
                 "default": "./dist/helpers.cjs"
             }
         },
+        "./common-types": {
+            "import": {
+                "types": "./dist/common-types.d.mts",
+                "default": "./dist/common-types.mjs"
+            },
+            "require": {
+                "types": "./dist/common-types.d.cts",
+                "default": "./dist/common-types.cjs"
+            }
+        },
         "./package.json": {
             "import": "./package.json",
             "require": "./package.json"
