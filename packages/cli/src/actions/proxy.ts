@@ -11,6 +11,7 @@ import { ZenStackClient, type ClientContract } from '@zenstackhq/orm';
 import { MysqlDialect } from '@zenstackhq/orm/dialects/mysql';
 import { PostgresDialect } from '@zenstackhq/orm/dialects/postgres';
 import { SqliteDialect } from '@zenstackhq/orm/dialects/sqlite';
+import type { SchemaDef } from '@zenstackhq/orm/schema';
 import { RPCApiHandler } from '@zenstackhq/server/api';
 import { ZenStackMiddleware } from '@zenstackhq/server/express';
 import type BetterSqlite3 from 'better-sqlite3';
@@ -24,7 +25,6 @@ import type { Pool as PgPoolType } from 'pg';
 import { CliError } from '../cli-error';
 import { getVersion } from '../utils/version-utils';
 import { getOutputPath, getSchemaFile, loadSchemaDocument } from './action-utils';
-import type { SchemaDef } from '@zenstackhq/orm/schema';
 
 type Options = {
     output?: string;
@@ -198,7 +198,7 @@ async function createDialect(provider: string, databaseUrl: string, outputPath: 
     }
 }
 
-export function createProxyApp(client: ClientContract<any, any>, schema: any): express.Application {
+export function createProxyApp(client: ClientContract<SchemaDef>, schema: SchemaDef): express.Application {
     const app = express();
     app.use(cors());
     app.use(express.json({ limit: '5mb' }));
@@ -219,7 +219,7 @@ export function createProxyApp(client: ClientContract<any, any>, schema: any): e
     return app;
 }
 
-function startServer(client: ClientContract<any, any>, schema: any, options: Options) {
+function startServer(client: ClientContract<SchemaDef>, schema: any, options: Options) {
     const app = createProxyApp(client, schema);
 
     const server = app.listen(options.port, () => {

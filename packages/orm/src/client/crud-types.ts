@@ -808,20 +808,22 @@ export type TypedJsonFilter<
     Array extends boolean,
     Optional extends boolean,
     AllowedKinds extends FilterKind,
-> = XOR<JsonFilter<AllowedKinds>, TypedJsonTypedFilter<Schema, TypeDefName, Array, Optional, AllowedKinds>>;
+> =
+    | (JsonFilter<AllowedKinds> & { [Key in GetTypeDefFields<Schema, TypeDefName>]?: never })
+    | (TypedJsonTypedFilter<Schema, TypeDefName, Array, AllowedKinds> & {
+          [Key in keyof JsonFilter<AllowedKinds>]?: never;
+      })
+    | (Optional extends true ? null | JsonNullValues : never);
 
 type TypedJsonTypedFilter<
     Schema extends SchemaDef,
     TypeDefName extends GetTypeDefs<Schema>,
     Array extends boolean,
-    Optional extends boolean,
     AllowedKinds extends FilterKind,
 > = 'Json' extends AllowedKinds
-    ?
-          | (Array extends true
-                ? ArrayTypedJsonFilter<Schema, TypeDefName, AllowedKinds>
-                : NonArrayTypedJsonFilter<Schema, TypeDefName, AllowedKinds>)
-          | (Optional extends true ? null | JsonNullValues : never)
+    ? Array extends true
+        ? ArrayTypedJsonFilter<Schema, TypeDefName, AllowedKinds>
+        : NonArrayTypedJsonFilter<Schema, TypeDefName, AllowedKinds>
     : {};
 
 type ArrayTypedJsonFilter<

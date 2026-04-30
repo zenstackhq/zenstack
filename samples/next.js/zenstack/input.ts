@@ -6,7 +6,7 @@
 /* eslint-disable */
 
 import { type SchemaType as $Schema } from "./schema-lite";
-import type { FindManyArgs as $FindManyArgs, FindUniqueArgs as $FindUniqueArgs, FindFirstArgs as $FindFirstArgs, ExistsArgs as $ExistsArgs, CreateArgs as $CreateArgs, CreateManyArgs as $CreateManyArgs, CreateManyAndReturnArgs as $CreateManyAndReturnArgs, UpdateArgs as $UpdateArgs, UpdateManyArgs as $UpdateManyArgs, UpdateManyAndReturnArgs as $UpdateManyAndReturnArgs, UpsertArgs as $UpsertArgs, DeleteArgs as $DeleteArgs, DeleteManyArgs as $DeleteManyArgs, CountArgs as $CountArgs, AggregateArgs as $AggregateArgs, GroupByArgs as $GroupByArgs, WhereInput as $WhereInput, SelectInput as $SelectInput, IncludeInput as $IncludeInput, OmitInput as $OmitInput, QueryOptions as $QueryOptions } from "@zenstackhq/orm";
+import type { FindManyArgs as $FindManyArgs, FindUniqueArgs as $FindUniqueArgs, FindFirstArgs as $FindFirstArgs, ExistsArgs as $ExistsArgs, CreateArgs as $CreateArgs, CreateManyArgs as $CreateManyArgs, CreateManyAndReturnArgs as $CreateManyAndReturnArgs, UpdateArgs as $UpdateArgs, UpdateManyArgs as $UpdateManyArgs, UpdateManyAndReturnArgs as $UpdateManyAndReturnArgs, UpsertArgs as $UpsertArgs, DeleteArgs as $DeleteArgs, DeleteManyArgs as $DeleteManyArgs, CountArgs as $CountArgs, AggregateArgs as $AggregateArgs, GroupByArgs as $GroupByArgs, WhereInput as $WhereInput, SelectInput as $SelectInput, IncludeInput as $IncludeInput, OmitInput as $OmitInput, UncheckedCreateInput as $UncheckedCreateInput, CheckedCreateInput as $CheckedCreateInput, UncheckedUpdateInput as $UncheckedUpdateInput, CheckedUpdateInput as $CheckedUpdateInput, QueryOptions as $QueryOptions } from "@zenstackhq/orm";
 import type { SimplifiedPlainResult as $Result, SelectIncludeOmit as $SelectIncludeOmit } from "@zenstackhq/orm";
 export type UserFindManyArgs = $FindManyArgs<$Schema, "User">;
 export type UserFindUniqueArgs = $FindUniqueArgs<$Schema, "User">;
@@ -28,6 +28,10 @@ export type UserWhereInput = $WhereInput<$Schema, "User">;
 export type UserSelect = $SelectInput<$Schema, "User">;
 export type UserInclude = $IncludeInput<$Schema, "User">;
 export type UserOmit = $OmitInput<$Schema, "User">;
+export type UserUncheckedCreateInput = $UncheckedCreateInput<$Schema, "User">;
+export type UserCheckedCreateInput = $CheckedCreateInput<$Schema, "User">;
+export type UserUncheckedUpdateInput = $UncheckedUpdateInput<$Schema, "User">;
+export type UserCheckedUpdateInput = $CheckedUpdateInput<$Schema, "User">;
 export type UserGetPayload<Args extends $SelectIncludeOmit<$Schema, "User", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "User", Args, Options>;
 export type PostFindManyArgs = $FindManyArgs<$Schema, "Post">;
 export type PostFindUniqueArgs = $FindUniqueArgs<$Schema, "Post">;
@@ -49,4 +53,8 @@ export type PostWhereInput = $WhereInput<$Schema, "Post">;
 export type PostSelect = $SelectInput<$Schema, "Post">;
 export type PostInclude = $IncludeInput<$Schema, "Post">;
 export type PostOmit = $OmitInput<$Schema, "Post">;
+export type PostUncheckedCreateInput = $UncheckedCreateInput<$Schema, "Post">;
+export type PostCheckedCreateInput = $CheckedCreateInput<$Schema, "Post">;
+export type PostUncheckedUpdateInput = $UncheckedUpdateInput<$Schema, "Post">;
+export type PostCheckedUpdateInput = $CheckedUpdateInput<$Schema, "Post">;
 export type PostGetPayload<Args extends $SelectIncludeOmit<$Schema, "Post", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "Post", Args, Options>;

@@ -205,7 +205,6 @@ describe('Unsupported field exclusion - Zod runtime validation', () => {
         it('rejects Unsupported fields in select', async () => {
             // valid call
             await db.item.findMany({ select: { id: true, name: true } });
-            // @ts-expect-error data (Unsupported) should not be in select
             await expect(db.item.findMany({ select: { data: true } })).toBeRejectedByValidation();
         });
 
@@ -219,14 +218,12 @@ describe('Unsupported field exclusion - Zod runtime validation', () => {
         it('rejects Unsupported fields in orderBy', async () => {
             // valid call
             await db.item.findMany({ orderBy: { name: 'asc' } });
-            // @ts-expect-error data (Unsupported) should not be in orderBy
             await expect(db.item.findMany({ orderBy: { data: 'asc' } })).toBeRejectedByValidation();
         });
 
         it('rejects Unsupported fields in create data', async () => {
             // valid call
             await db.item.create({ data: { name: 'test' } });
-            // @ts-expect-error data (Unsupported) should not be in create data
             await expect(db.item.create({ data: { name: 'test', data: 'val' } })).toBeRejectedByValidation();
         });
 
@@ -234,10 +231,7 @@ describe('Unsupported field exclusion - Zod runtime validation', () => {
             const item = await db.item.create({ data: { name: 'test' } });
             // valid call
             await db.item.update({ where: { id: item.id }, data: { name: 'updated' } });
-            await expect(
-                // @ts-expect-error data (Unsupported) should not be in update data
-                db.item.update({ where: { id: item.id }, data: { data: 'val' } }),
-            ).toBeRejectedByValidation();
+            await expect(db.item.update({ where: { id: item.id }, data: { data: 'val' } })).toBeRejectedByValidation();
         });
 
         it('blocks create on model with required Unsupported field', () => {

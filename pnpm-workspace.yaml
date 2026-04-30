@@ -30,7 +30,7 @@ catalog:
     svelte: 5.53.5
     tmp: ^0.2.4
     ts-pattern: ^5.7.1
-    typescript: ^5.9.3
+    typescript: ^6.0.3
     vue: 3.5.22
     zod: ^4.0.0
     zod-validation-error: ^4.0.1
