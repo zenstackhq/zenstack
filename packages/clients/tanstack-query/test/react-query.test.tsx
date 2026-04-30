@@ -1893,8 +1893,7 @@ describe('React Query Test', () => {
 
             const { result } = renderHook(() => useClientQueries(schema).user.useCreate(), { wrapper });
 
-            const dbNull = { __brand: 'DbNull' } as any;
-            act(() => result.current.mutate({ data: { email: 'test@example.com', name: dbNull } } as any));
+            act(() => result.current.mutate({ data: { email: 'test@example.com', name: DbNull } } as any));
 
             await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -1906,8 +1905,7 @@ describe('React Query Test', () => {
         it('deserializes null sentinels in server response back to branded instances', async () => {
             const { wrapper } = createWrapper();
 
-            const dbNull = { __brand: 'DbNull' } as any;
-            const responseData = { id: '1', email: 'test@example.com', name: dbNull };
+            const responseData = { id: '1', email: 'test@example.com', name: DbNull };
             const { data: serializedData, meta: serializedMeta } = serialize(responseData);
 
             nock(BASE_URL)
