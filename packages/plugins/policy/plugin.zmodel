@@ -15,10 +15,8 @@ attribute @@allow(_ operation: String @@@completionHint(["'create'", "'read'", "
  *
  * @param operation: comma-separated list of "read", "update". Use "all" to denote all operations.
  * @param condition: a boolean expression that controls if the operation should be allowed.
- * @param errorCode: an optional code attached to the error thrown when this policy rejects an operation.
- *   Accepts a string literal or an enum value.
  */
-attribute @allow(_ operation: String @@@completionHint(["'read'", "'update'", "'all'"]), _ condition: Boolean, _ errorCode: Any?)
+attribute @allow(_ operation: String @@@completionHint(["'read'", "'update'", "'all'"]), _ condition: Boolean)
 
 /**
  * Defines an access policy that denies a set of operations when the given condition is true.
@@ -36,10 +34,8 @@ attribute @@deny(_ operation: String @@@completionHint(["'create'", "'read'", "'
  *
  * @param operation: comma-separated list of "read", "update". Use "all" to denote all operations.
  * @param condition: a boolean expression that controls if the operation should be denied.
- * @param errorCode: an optional code attached to the error thrown when this policy rejects an operation.
- *   Accepts a string literal or an enum value.
  */
-attribute @deny(_ operation: String @@@completionHint(["'read'", "'update'", "'all'"]), _ condition: Boolean, _ errorCode: Any?)
+attribute @deny(_ operation: String @@@completionHint(["'read'", "'update'", "'all'"]), _ condition: Boolean)
 
 /**
  * Delegates the access control decision to a relation. Only to-one relations are supported.

@@ -340,9 +340,10 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
 
         const postUpdateResult = await proceed(postUpdateQuery.toOperationNode());
         if (!postUpdateResult.rows[0]?.$condition) {
-            const policyCodes = this.options.fetchPolicyCodes !== false
-                ? await this.findViolatingPostUpdatePolicyCodes(model, idConditions, beforeUpdateInfo, proceed)
-                : undefined;
+            const policyCodes =
+                this.options.fetchPolicyCodes !== false
+                    ? await this.findViolatingPostUpdatePolicyCodes(model, idConditions, beforeUpdateInfo, proceed)
+                    : undefined;
             throw createRejectedByPolicyError(
                 model,
                 RejectedByPolicyReason.NO_ACCESS,
@@ -963,9 +964,10 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
             } satisfies SelectQueryNode,
         );
         if (!result.rows[0]?.$condition) {
-            const policyCodes = this.options.fetchPolicyCodes !== false
-                ? await this.findViolatingCreatePolicyCodes(model, valuesTable, proceed)
-                : undefined;
+            const policyCodes =
+                this.options.fetchPolicyCodes !== false
+                    ? await this.findViolatingCreatePolicyCodes(model, valuesTable, proceed)
+                    : undefined;
             throw createRejectedByPolicyError(model, RejectedByPolicyReason.NO_ACCESS, undefined, policyCodes);
         }
     }
@@ -1075,10 +1077,13 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
 
         const selections = codedPolicies.map((policy, i) => {
             const condition = this.compilePolicyCondition(model, undefined, 'create', policy);
+            // For allow rules, negate: EXISTS(NOT condition) = true when any proposed row violates allow.
+            // For deny rules, keep as-is: EXISTS(condition) = true when deny fires.
+            const existsCondition = policy.kind === 'allow' ? logicalNot(this.dialect, condition) : condition;
             const inner = this.eb
                 .selectFrom(valuesTable.as(model))
                 .select(this.eb.lit(1).as('_'))
-                .where(() => new ExpressionWrapper(condition));
+                .where(() => new ExpressionWrapper(existsCondition));
             return SelectionNode.create(
                 AliasNode.create(this.eb.exists(inner).toOperationNode(), IdentifierNode.create(`$c${i}`)),
             );
@@ -1129,14 +1134,19 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
 
         const selections = codedPolicies.map((policy, i) => {
             const condition = this.compilePolicyCondition(model, undefined, 'post-update', policy);
-            return SelectionNode.create(AliasNode.create(buildInnerExists(condition), IdentifierNode.create(`$c${i}`)));
+            // For allow rules, negate: EXISTS(NOT condition) = true when any updated row violates allow.
+            // For deny rules, keep as-is: EXISTS(condition) = true when deny fires.
+            const existsCondition = policy.kind === 'allow' ? logicalNot(this.dialect, condition) : condition;
+            return SelectionNode.create(
+                AliasNode.create(buildInnerExists(existsCondition), IdentifierNode.create(`$c${i}`)),
+            );
         });
 
         return this.evaluatePolicyDiagnostics(codedPolicies, selections, proceed);
     }
 
     // Single diagnostic query: one EXISTS column per coded policy.
-    // deny fires when EXISTS=true; allow fires when EXISTS=false.
+    // EXISTS=true means a violation: deny condition fired, or allow condition wasn't met (negated in caller).
     private async evaluatePolicyDiagnostics(
         codedPolicies: Policy[],
         selections: SelectionNode[],
@@ -1144,9 +1154,7 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
     ): Promise<string[]> {
         const result = await proceed({ kind: 'SelectQueryNode', selections } satisfies SelectQueryNode);
         const row = result.rows[0] ?? {};
-        return codedPolicies
-            .filter((policy, i) => (policy.kind === 'deny' ? row[`$c${i}`] : !row[`$c${i}`]))
-            .map((p) => p.code!);
+        return codedPolicies.filter((_, i) => row[`$c${i}`]).map((p) => p.code!);
     }
 
     private async processReadBack(node: CrudQueryNode, result: QueryResult<any>, proceed: ProceedKyselyQueryFunction) {

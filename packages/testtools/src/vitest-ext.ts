@@ -102,7 +102,7 @@ expect.extend({
                         return r;
                     }
                 }
-                if (expectedCodes !== undefined) {
+                if (expectedCodes) {
                     const actualCodes = err.policyCodes ?? [];
                     const missing = expectedCodes.filter((c) => !actualCodes.includes(c));
                     const extra = actualCodes.filter((c) => !expectedCodes.includes(c));

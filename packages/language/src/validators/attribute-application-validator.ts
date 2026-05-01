@@ -281,8 +281,6 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
         if (isComputedField(field)) {
             accept('error', `Field-level policies are not allowed for computed fields.`, { node: attr });
         }
-
-        this.validateCustomErrorCode(attr.args[2], accept);
     }
 
     private validateCustomErrorCode(codeArg: AttributeArg | undefined, accept: ValidationAcceptor) {
@@ -301,9 +299,6 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
         if (codeValue.trim().length === 0) {
             accept('error', 'Custom error code cannot be empty', { node: codeArg });
             return;
-        }
-        if (codeValue.length > 200) {
-            accept('error', 'Custom error code must not exceed 200 characters', { node: codeArg });
         }
     }
 
