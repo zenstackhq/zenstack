@@ -3,10 +3,11 @@
  *
  * @param operation: comma-separated list of "create", "read", "update", "post-update", "delete". Use "all" to denote all operations.
  * @param condition: a boolean expression that controls if the operation should be allowed.
- * @param errorCode: an optional string code attached to the error thrown when this policy rejects an operation.
- *   Only surfaced for "create" and "post-update" violations (other operations use filter-based enforcement).
+ * @param errorCode: an optional code attached to the error thrown when this policy rejects an operation.
+ *   Accepts a string literal or an enum value. Only surfaced for "create" and "post-update" violations
+ *   (other operations use filter-based enforcement).
  */
-attribute @@allow(_ operation: String @@@completionHint(["'create'", "'read'", "'update'", "'post-update'","'delete'", "'all'"]), _ condition: Boolean, _ errorCode: String?)
+attribute @@allow(_ operation: String @@@completionHint(["'create'", "'read'", "'update'", "'post-update'","'delete'", "'all'"]), _ condition: Boolean, _ errorCode: Any?)
 
 /**
  * Defines an access policy that allows the annotated field to be read or updated.
@@ -14,28 +15,31 @@ attribute @@allow(_ operation: String @@@completionHint(["'create'", "'read'", "
  *
  * @param operation: comma-separated list of "read", "update". Use "all" to denote all operations.
  * @param condition: a boolean expression that controls if the operation should be allowed.
- * @param errorCode: an optional string code attached to the error thrown when this policy rejects an operation.
+ * @param errorCode: an optional code attached to the error thrown when this policy rejects an operation.
+ *   Accepts a string literal or an enum value.
  */
-attribute @allow(_ operation: String @@@completionHint(["'read'", "'update'", "'all'"]), _ condition: Boolean, _ errorCode: String?)
+attribute @allow(_ operation: String @@@completionHint(["'read'", "'update'", "'all'"]), _ condition: Boolean, _ errorCode: Any?)
 
 /**
  * Defines an access policy that denies a set of operations when the given condition is true.
  *
  * @param operation: comma-separated list of "create", "read", "update", "post-update", "delete". Use "all" to denote all operations.
  * @param condition: a boolean expression that controls if the operation should be denied.
- * @param errorCode: an optional string code attached to the error thrown when this policy rejects an operation.
- *   Only surfaced for "create" and "post-update" violations (other operations use filter-based enforcement).
+ * @param errorCode: an optional code attached to the error thrown when this policy rejects an operation.
+ *   Accepts a string literal or an enum value. Only surfaced for "create" and "post-update" violations
+ *   (other operations use filter-based enforcement).
  */
-attribute @@deny(_ operation: String @@@completionHint(["'create'", "'read'", "'update'", "'post-update'","'delete'", "'all'"]), _ condition: Boolean, _ errorCode: String?)
+attribute @@deny(_ operation: String @@@completionHint(["'create'", "'read'", "'update'", "'post-update'","'delete'", "'all'"]), _ condition: Boolean, _ errorCode: Any?)
 
 /**
  * Defines an access policy that denies the annotated field to be read or updated.
  *
  * @param operation: comma-separated list of "read", "update". Use "all" to denote all operations.
  * @param condition: a boolean expression that controls if the operation should be denied.
- * @param errorCode: an optional string code attached to the error thrown when this policy rejects an operation.
+ * @param errorCode: an optional code attached to the error thrown when this policy rejects an operation.
+ *   Accepts a string literal or an enum value.
  */
-attribute @deny(_ operation: String @@@completionHint(["'read'", "'update'", "'all'"]), _ condition: Boolean, _ errorCode: String?)
+attribute @deny(_ operation: String @@@completionHint(["'read'", "'update'", "'all'"]), _ condition: Boolean, _ errorCode: Any?)
 
 /**
  * Delegates the access control decision to a relation. Only to-one relations are supported.

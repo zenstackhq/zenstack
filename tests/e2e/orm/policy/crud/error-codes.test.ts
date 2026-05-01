@@ -359,4 +359,91 @@ model Order {
             db.order.update({ where: { id: orderShipped.id }, data: { status: 'delivered' } }),
         ).resolves.toMatchObject({ status: 'delivered' });
     });
+
+    // ── enum error codes ──────────────────────────────────────────────────────
+
+    it('surfaces code from enum value on create violation (@@deny)', async () => {
+        const db = await createPolicyTestClient(
+            `
+enum PolicyCode {
+    NEGATIVE_X
+}
+
+model Foo {
+    id Int @id @default(autoincrement())
+    x  Int
+    @@deny('create', x <= 0, NEGATIVE_X)
+    @@allow('create,read', true)
+}
+`,
+        );
+        await expect(db.foo.create({ data: { x: 0 } })).toBeRejectedByPolicy(undefined, ['NEGATIVE_X']);
+        await expect(db.foo.create({ data: { x: 1 } })).resolves.toMatchObject({ x: 1 });
+    });
+
+    it('surfaces code from enum value on create violation (@@allow)', async () => {
+        const db = await createPolicyTestClient(
+            `
+enum PolicyCode {
+    NEED_POSITIVE_X
+}
+
+model Foo {
+    id Int @id @default(autoincrement())
+    x  Int
+    @@allow('create', x > 0, NEED_POSITIVE_X)
+    @@allow('read', true)
+}
+`,
+        );
+        await expect(db.foo.create({ data: { x: 0 } })).toBeRejectedByPolicy(undefined, ['NEED_POSITIVE_X']);
+        await expect(db.foo.create({ data: { x: 1 } })).resolves.toMatchObject({ x: 1 });
+    });
+
+    it('surfaces code from enum value on post-update violation', async () => {
+        const db = await createPolicyTestClient(
+            `
+enum PolicyCode {
+    NEGATIVE_AFTER_UPDATE
+}
+
+model Foo {
+    id Int @id
+    x  Int
+    @@allow('create,read,update', true)
+    @@deny('post-update', x <= 0, NEGATIVE_AFTER_UPDATE)
+}
+`,
+        );
+        await db.foo.create({ data: { id: 1, x: 1 } });
+        await expect(db.foo.update({ where: { id: 1 }, data: { x: -1 } })).toBeRejectedByPolicy(undefined, [
+            'NEGATIVE_AFTER_UPDATE',
+        ]);
+        await expect(db.foo.update({ where: { id: 1 }, data: { x: 2 } })).resolves.toMatchObject({ x: 2 });
+    });
+
+    it('mixes enum and string literal error codes', async () => {
+        const db = await createPolicyTestClient(
+            `
+enum PolicyCode {
+    ALWAYS_DENIED
+}
+
+model Foo {
+    id Int @id @default(autoincrement())
+    x  Int
+    y  Int
+    @@allow('create,read', true)
+    @@deny('create', x <= 0, ALWAYS_DENIED)
+    @@deny('create', y <= 0, 'NEED_POSITIVE_Y')
+}
+`,
+        );
+        await expect(db.foo.create({ data: { x: 0, y: 0 } })).toBeRejectedByPolicy(undefined, [
+            'ALWAYS_DENIED',
+            'NEED_POSITIVE_Y',
+        ]);
+        await expect(db.foo.create({ data: { x: 0, y: 1 } })).toBeRejectedByPolicy(undefined, ['ALWAYS_DENIED']);
+        await expect(db.foo.create({ data: { x: 1, y: 0 } })).toBeRejectedByPolicy(undefined, ['NEED_POSITIVE_Y']);
+    });
 });

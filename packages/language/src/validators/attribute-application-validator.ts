@@ -36,6 +36,7 @@ import {
     isComputedField,
     isDataFieldReference,
     isDelegateModel,
+    isEnumFieldReference,
     isRelationshipField,
     mapBuiltinTypeToExpressionType,
     resolved,
@@ -286,9 +287,15 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
 
     private validateCustomErrorCode(codeArg: AttributeArg | undefined, accept: ValidationAcceptor) {
         if (codeArg === undefined) return;
+
+        if (isEnumFieldReference(codeArg.value)) {
+            // enum field references are always valid as error codes
+            return;
+        }
+
         const codeValue = getStringLiteral(codeArg.value);
         if (codeValue === undefined) {
-            accept('error', 'Custom error code must be a string literal', { node: codeArg });
+            accept('error', 'Custom error code must be a string literal or an enum value', { node: codeArg });
             return;
         }
         if (codeValue.trim().length === 0) {
