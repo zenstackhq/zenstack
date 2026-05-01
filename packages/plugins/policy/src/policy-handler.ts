@@ -176,12 +176,14 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
                 needCheckPreCreate = false;
             } else if (constCondition === false) {
                 const policies = this.getModelPolicies(mutationModel, 'create');
-                const constantDeny = policies.find((p) => p.kind === 'deny' && this.isTrueExpr(p.condition));
+                const constantDenyCodes = policies
+                    .filter((p) => p.kind === 'deny' && this.isTrueExpr(p.condition) && p.code)
+                    .map((p) => p.code!);
                 throw createRejectedByPolicyError(
                     mutationModel,
                     RejectedByPolicyReason.NO_ACCESS,
                     undefined,
-                    constantDeny?.code,
+                    constantDenyCodes,
                 );
             }
         }
@@ -338,7 +340,7 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
 
         const postUpdateResult = await proceed(postUpdateQuery.toOperationNode());
         if (!postUpdateResult.rows[0]?.$condition) {
-            const policyCode = await this.findViolatingPostUpdatePolicyCode(
+            const policyCodes = await this.findViolatingPostUpdatePolicyCodes(
                 model,
                 idConditions,
                 beforeUpdateInfo,
@@ -348,7 +350,7 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
                 model,
                 RejectedByPolicyReason.NO_ACCESS,
                 'some or all updated rows failed to pass post-update policy check',
-                policyCode,
+                policyCodes,
             );
         }
     }
@@ -964,8 +966,8 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
             } satisfies SelectQueryNode,
         );
         if (!result.rows[0]?.$condition) {
-            const policyCode = await this.findViolatingCreatePolicyCode(model, valuesTable, proceed);
-            throw createRejectedByPolicyError(model, RejectedByPolicyReason.NO_ACCESS, undefined, policyCode);
+            const policyCodes = await this.findViolatingCreatePolicyCodes(model, valuesTable, proceed);
+            throw createRejectedByPolicyError(model, RejectedByPolicyReason.NO_ACCESS, undefined, policyCodes);
         }
     }
 
@@ -1062,71 +1064,39 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         return ExpressionUtils.isLiteral(expr) && expr.value === true;
     }
 
-    // Runs per-rule diagnostic queries on the failure path to find the code of the first
-    // matching deny rule (or first failing allow rule) for a create violation.
-    private async findViolatingCreatePolicyCode(
+    private async findViolatingCreatePolicyCodes(
         model: string,
         valuesTable: ReturnType<BaseCrudDialect<Schema>['buildValuesTableSelect']>,
         proceed: ProceedKyselyQueryFunction,
-    ): Promise<string | undefined> {
-        const policies = this.getModelPolicies(model, 'create');
-        if (!policies.some((p) => p.code)) {
-            return undefined;
+    ): Promise<string[]> {
+        const codedPolicies = this.getModelPolicies(model, 'create').filter((p) => p.code);
+        if (codedPolicies.length === 0) {
+            return [];
         }
 
-        const buildExistsQuery = (inner: ReturnType<typeof this.eb.selectFrom>) =>
-            ({
-                kind: 'SelectQueryNode',
-                selections: [
-                    SelectionNode.create(
-                        AliasNode.create(
-                            this.eb.exists(inner).toOperationNode(),
-                            IdentifierNode.create('$condition'),
-                        ),
-                    ),
-                ],
-            }) satisfies SelectQueryNode;
-
-        // Check deny rules first (in declaration order)
-        for (const policy of policies.filter((p) => p.kind === 'deny' && p.code)) {
+        const selections = codedPolicies.map((policy, i) => {
             const condition = this.compilePolicyCondition(model, undefined, 'create', policy);
             const inner = this.eb
                 .selectFrom(valuesTable.as(model))
                 .select(this.eb.lit(1).as('_'))
                 .where(() => new ExpressionWrapper(condition));
-            const result = await proceed(buildExistsQuery(inner));
-            if (result.rows[0]?.$condition) {
-                return policy.code;
-            }
-        }
+            return SelectionNode.create(
+                AliasNode.create(this.eb.exists(inner).toOperationNode(), IdentifierNode.create(`$c${i}`)),
+            );
+        });
 
-        // Check allow rules — return the first one whose condition isn't satisfied
-        for (const policy of policies.filter((p) => p.kind === 'allow' && p.code)) {
-            const condition = this.compilePolicyCondition(model, undefined, 'create', policy);
-            const inner = this.eb
-                .selectFrom(valuesTable.as(model))
-                .select(this.eb.lit(1).as('_'))
-                .where(() => new ExpressionWrapper(condition));
-            const result = await proceed(buildExistsQuery(inner));
-            if (!result.rows[0]?.$condition) {
-                return policy.code;
-            }
-        }
-
-        return undefined;
+        return this.evaluatePolicyDiagnostics(codedPolicies, selections, proceed);
     }
 
-    // Runs per-rule diagnostic queries on the failure path to find the code of the first
-    // matching deny rule (or first failing allow rule) for a post-update violation.
-    private async findViolatingPostUpdatePolicyCode(
+    private async findViolatingPostUpdatePolicyCodes(
         model: string,
         idConditions: OperationNode,
         beforeUpdateInfo: Awaited<ReturnType<typeof this.loadBeforeUpdateEntities>>,
         proceed: ProceedKyselyQueryFunction,
-    ): Promise<string | undefined> {
-        const policies = this.getModelPolicies(model, 'post-update');
-        if (!policies.some((p) => p.code)) {
-            return undefined;
+    ): Promise<string[]> {
+        const codedPolicies = this.getModelPolicies(model, 'post-update').filter((p) => p.code);
+        if (codedPolicies.length === 0) {
+            return [];
         }
 
         const needsBeforeUpdateJoin = !!beforeUpdateInfo?.fields;
@@ -1141,7 +1111,7 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
 
         const eb = expressionBuilder<any, any>();
 
-        const buildDiagnosticQuery = (condition: OperationNode) => {
+        const buildInnerExists = (condition: OperationNode) => {
             const inner = eb
                 .selectFrom(model)
                 .select(eb.lit(1).as('_'))
@@ -1151,42 +1121,33 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
                         () => new ExpressionWrapper(beforeUpdateTable!).as('$before'),
                         (join) => {
                             const idFields = QueryUtils.requireIdFields(this.client.$schema, model);
-                            return idFields.reduce(
-                                (acc, f) => acc.onRef(`${model}.${f}`, '=', `$before.${f}`),
-                                join,
-                            );
+                            return idFields.reduce((acc, f) => acc.onRef(`${model}.${f}`, '=', `$before.${f}`), join);
                         },
                     ),
                 );
-            return ({
-                kind: 'SelectQueryNode',
-                selections: [
-                    SelectionNode.create(
-                        AliasNode.create(eb.exists(inner).toOperationNode(), IdentifierNode.create('$condition')),
-                    ),
-                ],
-            }) satisfies SelectQueryNode;
+            return eb.exists(inner).toOperationNode();
         };
 
-        // Check deny rules first (in declaration order)
-        for (const policy of policies.filter((p) => p.kind === 'deny' && p.code)) {
+        const selections = codedPolicies.map((policy, i) => {
             const condition = this.compilePolicyCondition(model, undefined, 'post-update', policy);
-            const result = await proceed(buildDiagnosticQuery(condition));
-            if (result.rows[0]?.$condition) {
-                return policy.code;
-            }
-        }
+            return SelectionNode.create(AliasNode.create(buildInnerExists(condition), IdentifierNode.create(`$c${i}`)));
+        });
 
-        // Check allow rules — return the first one whose condition isn't satisfied by any updated row
-        for (const policy of policies.filter((p) => p.kind === 'allow' && p.code)) {
-            const condition = this.compilePolicyCondition(model, undefined, 'post-update', policy);
-            const result = await proceed(buildDiagnosticQuery(condition));
-            if (!result.rows[0]?.$condition) {
-                return policy.code;
-            }
-        }
+        return this.evaluatePolicyDiagnostics(codedPolicies, selections, proceed);
+    }
 
-        return undefined;
+    // Single diagnostic query: one EXISTS column per coded policy.
+    // deny fires when EXISTS=true; allow fires when EXISTS=false.
+    private async evaluatePolicyDiagnostics(
+        codedPolicies: Policy[],
+        selections: SelectionNode[],
+        proceed: ProceedKyselyQueryFunction,
+    ): Promise<string[]> {
+        const result = await proceed({ kind: 'SelectQueryNode', selections } satisfies SelectQueryNode);
+        const row = result.rows[0] ?? {};
+        return codedPolicies
+            .filter((policy, i) => (policy.kind === 'deny' ? row[`$c${i}`] : !row[`$c${i}`]))
+            .map((p) => p.code!);
     }
 
     private async processReadBack(node: CrudQueryNode, result: QueryResult<any>, proceed: ProceedKyselyQueryFunction) {
