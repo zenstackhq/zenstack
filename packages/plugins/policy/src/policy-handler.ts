@@ -340,12 +340,9 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
 
         const postUpdateResult = await proceed(postUpdateQuery.toOperationNode());
         if (!postUpdateResult.rows[0]?.$condition) {
-            const policyCodes = await this.findViolatingPostUpdatePolicyCodes(
-                model,
-                idConditions,
-                beforeUpdateInfo,
-                proceed,
-            );
+            const policyCodes = this.options.fetchPolicyCodes !== false
+                ? await this.findViolatingPostUpdatePolicyCodes(model, idConditions, beforeUpdateInfo, proceed)
+                : undefined;
             throw createRejectedByPolicyError(
                 model,
                 RejectedByPolicyReason.NO_ACCESS,
@@ -966,7 +963,9 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
             } satisfies SelectQueryNode,
         );
         if (!result.rows[0]?.$condition) {
-            const policyCodes = await this.findViolatingCreatePolicyCodes(model, valuesTable, proceed);
+            const policyCodes = this.options.fetchPolicyCodes !== false
+                ? await this.findViolatingCreatePolicyCodes(model, valuesTable, proceed)
+                : undefined;
             throw createRejectedByPolicyError(model, RejectedByPolicyReason.NO_ACCESS, undefined, policyCodes);
         }
     }
