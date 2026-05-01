@@ -88,17 +88,26 @@ expect.extend({
         };
     },
 
-    async toBeRejectedByPolicy(received: Promise<unknown>, expectedMessages?: string[]) {
+    async toBeRejectedByPolicy(received: Promise<unknown>, expectedMessages?: string[], expectedCode?: string) {
         if (!isPromise(received)) {
             return { message: () => 'a promise is expected', pass: false };
         }
         try {
             await received;
         } catch (err) {
-            if (expectedMessages && err instanceof ORMError && err.reason === ORMErrorReason.REJECTED_BY_POLICY) {
-                const r = expectErrorMessages(expectedMessages, err.message || '');
-                if (r) {
-                    return r;
+            if (err instanceof ORMError && err.reason === ORMErrorReason.REJECTED_BY_POLICY) {
+                if (expectedMessages) {
+                    const r = expectErrorMessages(expectedMessages, err.message || '');
+                    if (r) {
+                        return r;
+                    }
+                }
+                if (expectedCode !== undefined && err.policyCode !== expectedCode) {
+                    const actualCode = err.policyCode;
+                    return {
+                        message: () => `expected policy code "${expectedCode}", got "${actualCode ?? '(none)'}"`,
+                        pass: false,
+                    };
                 }
             }
             return expectErrorReason(err, ORMErrorReason.REJECTED_BY_POLICY);

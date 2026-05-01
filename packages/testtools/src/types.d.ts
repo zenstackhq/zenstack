@@ -6,7 +6,7 @@ interface CustomMatchers<R = unknown> {
     toResolveNull: () => Promise<R>;
     toResolveWithLength: (length: number) => Promise<R>;
     toBeRejectedNotFound: () => Promise<R>;
-    toBeRejectedByPolicy: (expectedMessages?: string[]) => Promise<R>;
+    toBeRejectedByPolicy: (expectedMessages?: string[], expectedCode?: string) => Promise<R>;
     toBeRejectedByValidation: (expectedMessages?: string[]) => Promise<R>;
 }
 

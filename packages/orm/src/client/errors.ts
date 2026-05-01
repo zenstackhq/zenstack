@@ -93,6 +93,15 @@ export class ORMError extends Error {
     public rejectedByPolicyReason?: RejectedByPolicyReason;
 
     /**
+     * Custom error code attached to the policy rule that triggered this rejection.
+     * Set via the optional third argument of `@@allow` / `@@deny`. Only available when
+     * `reason` is `REJECTED_BY_POLICY` and the matching rule carries a code.
+     * Note: only surfaced for `create` and `post-update` violations; `update`, `delete`,
+     * and `read` use filter-based enforcement and do not throw policy errors.
+     */
+    public policyCode?: string;
+
+    /**
      * The SQL query that was executed. Only available when `reason` is `DB_QUERY_ERROR`.
      */
     public sql?: string;
