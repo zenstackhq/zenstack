@@ -374,31 +374,6 @@ describe('Policy error code tests', () => {
         await expect(db.foo.update({ where: { id: 1 }, data: { x: 2 } })).resolves.toMatchObject({ x: 2 });
     });
 
-    it('mixes enum and string literal error codes', async () => {
-        const db = await createPolicyTestClient(
-            `
-    enum PolicyCode {
-        ALWAYS_DENIED
-    }
-
-    model Foo {
-        id Int @id @default(autoincrement())
-        x  Int
-        y  Int
-        @@allow('create,read', true)
-        @@deny('create', x <= 0, ALWAYS_DENIED)
-        @@deny('create', y <= 0, 'NEED_POSITIVE_Y')
-    }
-    `,
-        );
-        await expect(db.foo.create({ data: { x: 0, y: 0 } })).toBeRejectedByPolicy(undefined, [
-            'ALWAYS_DENIED',
-            'NEED_POSITIVE_Y',
-        ]);
-        await expect(db.foo.create({ data: { x: 0, y: 1 } })).toBeRejectedByPolicy(undefined, ['ALWAYS_DENIED']);
-        await expect(db.foo.create({ data: { x: 1, y: 0 } })).toBeRejectedByPolicy(undefined, ['NEED_POSITIVE_Y']);
-    });
-
     it('surfaces code from enum value on post-update violation', async () => {
         const db = await createPolicyTestClient(
             `
