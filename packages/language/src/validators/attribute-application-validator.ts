@@ -12,6 +12,7 @@ import {
     DataModelAttribute,
     InternalAttribute,
     isArrayExpr,
+    type Plugin,
     isAttribute,
     isConfigArrayExpr,
     isDataField,
@@ -22,6 +23,7 @@ import {
     isLiteralExpr,
     isModel,
     isObjectExpr,
+    isPlugin,
     isReferenceExpr,
     isStringLiteral,
     isTypeDef,
@@ -30,6 +32,7 @@ import {
     getAllAttributes,
     getAttributeArg,
     getContainingDataModel,
+    getLiteral,
     getStringLiteral,
     hasAttribute,
     isAuthOrAuthMemberAccess,
@@ -314,14 +317,29 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
 
         const whereArg = getAttributeArg(attr, 'where');
         if (whereArg) {
-            const isFilterObject = isObjectExpr(whereArg);
-            const isRawCall =
-                isInvocationExpr(whereArg) &&
-                whereArg.function.$refText === 'raw' &&
-                whereArg.args.length === 1 &&
-                isStringLiteral(whereArg.args[0]?.value);
-            if (!isFilterObject && !isRawCall) {
-                accept('error', '`where` expects a filter object or raw("SQL")', { node: whereArg });
+            const zmodel = AstUtils.getContainerOfType(attr, isModel)!;
+            const prismaPlugin = zmodel.declarations.find(
+                (d): d is Plugin => isPlugin(d) && (d as Plugin).fields.some((f) => f.name === 'provider' && getLiteral<string>(f.value) === '@core/prisma'),
+            );
+            const prismaVersionStr = prismaPlugin
+                ? getLiteral<string>(prismaPlugin.fields.find((f) => f.name === 'prismaVersion')?.value)
+                : undefined;
+            if (!prismaVersionSupportsPartialIndexes(prismaVersionStr)) {
+                accept(
+                    'error',
+                    'Partial indexes require Prisma 7.4+. Set `prismaVersion = "7.4"` in your `plugin prisma` block to enable this feature.',
+                    { node: whereArg },
+                );
+            } else {
+                const isFilterObject = isObjectExpr(whereArg);
+                const isRawCall =
+                    isInvocationExpr(whereArg) &&
+                    whereArg.function.$refText === 'raw' &&
+                    whereArg.args.length === 1 &&
+                    isStringLiteral(whereArg.args[0]?.value);
+                if (!isFilterObject && !isRawCall) {
+                    accept('error', '`where` expects a filter object or raw("SQL")', { node: whereArg });
+                }
             }
         }
 
@@ -635,6 +653,14 @@ export function validateAttributeApplication(
     contextDataModel?: DataModel,
 ) {
     new AttributeApplicationValidator().validate(attr, accept, contextDataModel);
+}
+
+function prismaVersionSupportsPartialIndexes(version: string | undefined): boolean {
+    if (!version) return false;
+    const parts = version.split('.').map(Number);
+    const major = parts[0] ?? 0;
+    const minor = parts[1] ?? 0;
+    return major > 7 || (major === 7 && minor >= 4);
 }
 
 function isLiteralJsonString(value: Expression) {

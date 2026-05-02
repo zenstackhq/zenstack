@@ -432,10 +432,17 @@ describe('Attribute application validation tests', () => {
     });
 
     describe('Partial index where argument', () => {
-        const header = `
+        const datasource = `
             datasource db {
                 provider = 'sqlite'
                 url      = 'file:./dev.db'
+            }
+        `;
+        const header = `
+            ${datasource}
+            plugin prisma {
+                provider = '@core/prisma'
+                prismaVersion = "7.4"
             }
         `;
 
@@ -528,6 +535,74 @@ describe('Attribute application validation tests', () => {
                 }
                 `,
                 '`where` expects a filter object or raw("SQL")',
+            );
+        });
+
+        it('rejects partial index without plugin prisma', async () => {
+            await loadSchemaWithError(
+                `
+                ${datasource}
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@index([email], where: { email: { not: null } })
+                }
+                `,
+                'Partial indexes require Prisma 7.4+',
+            );
+        });
+
+        it('rejects partial index with prismaVersion below 7.4', async () => {
+            await loadSchemaWithError(
+                `
+                ${datasource}
+                plugin prisma {
+                    provider = '@core/prisma'
+                    prismaVersion = "7.3"
+                }
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@index([email], where: { email: { not: null } })
+                }
+                `,
+                'Partial indexes require Prisma 7.4+',
+            );
+        });
+
+        it('rejects partial index with prismaVersion 7.1.3', async () => {
+            await loadSchemaWithError(
+                `
+                ${datasource}
+                plugin prisma {
+                    provider = '@core/prisma'
+                    prismaVersion = "7.1.3"
+                }
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@index([email], where: { email: { not: null } })
+                }
+                `,
+                'Partial indexes require Prisma 7.4+',
+            );
+        });
+
+        it('rejects partial index with prismaVersion 6.8.9', async () => {
+            await loadSchemaWithError(
+                `
+                ${datasource}
+                plugin prisma {
+                    provider = '@core/prisma'
+                    prismaVersion = "6.8.9"
+                }
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@index([email], where: { email: { not: null } })
+                }
+                `,
+                'Partial indexes require Prisma 7.4+',
             );
         });
     });
