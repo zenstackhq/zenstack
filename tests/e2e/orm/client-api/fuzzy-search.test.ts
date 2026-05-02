@@ -3,14 +3,19 @@ import type { ClientContract } from '@zenstackhq/orm';
 import { createTestClient, getTestDbProvider } from '@zenstackhq/testtools';
 import { schema } from '../schemas/basic';
 
-type Schema = typeof schema;
+// The basic schema is statically typed as sqlite, but `createTestClient` swaps the
+// provider at runtime based on TEST_DB_PROVIDER. Fuzzy search is postgres-only, so
+// we override the provider type here to enable `fuzzy` / `_fuzzyRelevance` typings.
+type Schema = Omit<typeof schema, 'provider'> & {
+    provider: { type: 'postgresql'; defaultSchema?: string };
+};
 const provider = getTestDbProvider();
 
 describe.skipIf(provider !== 'postgresql')('Fuzzy search tests', () => {
     let client: ClientContract<Schema>;
 
     beforeEach(async () => {
-        client = await createTestClient(schema);
+        client = (await createTestClient(schema)) as unknown as ClientContract<Schema>;
 
         await client.$executeRaw`CREATE EXTENSION IF NOT EXISTS unaccent`;
         await client.$executeRaw`CREATE EXTENSION IF NOT EXISTS pg_trgm`;
