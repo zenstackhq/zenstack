@@ -1026,7 +1026,11 @@ export class ZodSchemaFactory<
             startsWith: z.string().optional(),
             endsWith: z.string().optional(),
             contains: z.string().optional(),
-            fuzzy: this.makeFuzzyFilterSchema().optional(),
+            ...(this.providerSupportsFuzzySearch
+                ? {
+                      fuzzy: this.makeFuzzyFilterSchema().optional(),
+                  }
+                : {}),
             ...(this.providerSupportsCaseSensitivity
                 ? {
                       mode: this.makeStringModeSchema().optional(),
@@ -1309,21 +1313,25 @@ export class ZodSchemaFactory<
             }
         }
 
-        // _fuzzyRelevance ordering for fuzzy search (string fields only).
+        // _fuzzyRelevance ordering for fuzzy search (string fields only, postgres only).
         // Distinct from a future `_searchRelevance` for full-text search.
-        const stringFieldNames = this.getModelFields(model)
-            .filter(([, def]) => !def.relation && def.type === 'String')
-            .map(([name]) => name);
-        if (stringFieldNames.length > 0) {
-            fields['_fuzzyRelevance'] = z
-                .strictObject({
-                    fields: z.array(z.enum(stringFieldNames as [string, ...string[]])).min(1),
-                    search: z.string(),
-                    mode: z.union([z.literal('simple'), z.literal('word'), z.literal('strictWord')]).default('simple'),
-                    unaccent: z.boolean().default(false),
-                    sort,
-                })
-                .optional();
+        if (this.providerSupportsFuzzySearch) {
+            const stringFieldNames = this.getModelFields(model)
+                .filter(([, def]) => !def.relation && def.type === 'String')
+                .map(([name]) => name);
+            if (stringFieldNames.length > 0) {
+                fields['_fuzzyRelevance'] = z
+                    .strictObject({
+                        fields: z.array(z.enum(stringFieldNames as [string, ...string[]])).min(1),
+                        search: z.string(),
+                        mode: z
+                            .union([z.literal('simple'), z.literal('word'), z.literal('strictWord')])
+                            .default('simple'),
+                        unaccent: z.boolean().default(false),
+                        sort,
+                    })
+                    .optional();
+            }
         }
 
         const schema = refineAtMostOneKey(z.strictObject(fields));
@@ -2347,6 +2355,10 @@ export class ZodSchemaFactory<
     }
 
     private get providerSupportsCaseSensitivity() {
+        return this.schema.provider.type === 'postgresql';
+    }
+
+    private get providerSupportsFuzzySearch() {
         return this.schema.provider.type === 'postgresql';
     }
 
