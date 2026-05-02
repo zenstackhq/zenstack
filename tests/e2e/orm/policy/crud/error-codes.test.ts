@@ -10,6 +10,7 @@ describe('Policy error code tests', () => {
     // │ allow rule fails (string code)          │   ✓    │      ✓      │   ✓    │   ✓    │
     // │ constant deny (true condition)          │   ✓    │             │        │        │
     // │ no errorCode on rule                    │   ✓    │             │        │        │
+    // │ code opt-in: NotFound vs RejectedByPol. │        │             │   ✓    │   ✓    │
     // │ multiple deny rules fire                │   ✓    │      ✓      │        │        │
     // │ deny + allow conflict                   │   ✓    │      ✓      │        │        │
     // │ multiple allow rules all fail           │   ✓    │      ✓      │        │        │
@@ -70,6 +71,33 @@ describe('Policy error code tests', () => {
     `,
         );
         await expect(db.foo.create({ data: { x: 0 } })).toBeRejectedByPolicy(undefined, []);
+    });
+
+    // ── opt-in: adding a code changes error type from NotFound to RejectedByPolicy ──
+
+    it('blocked update/delete yields NotFound without code, RejectedByPolicy with code', async () => {
+        const schema = (withCode: boolean) => `
+model Foo {
+    id Int @id
+    x  Int
+    @@allow('create,read', true)
+    @@allow('update', x > 0${withCode ? ", 'NEED_POSITIVE_X'" : ''})
+    @@allow('delete', x > 0${withCode ? ", 'NEED_POSITIVE_X'" : ''})
+}
+`;
+        // Without error code: the ORM sees 0 affected rows and raises NotFound
+        const dbNoCode = await createPolicyTestClient(schema(false));
+        await dbNoCode.foo.create({ data: { id: 1, x: 0 } });
+        await expect(dbNoCode.foo.update({ where: { id: 1 }, data: { x: -1 } })).toBeRejectedNotFound();
+        await expect(dbNoCode.foo.delete({ where: { id: 1 } })).toBeRejectedNotFound();
+
+        // With error code: the plugin detects the policy block and raises RejectedByPolicy
+        const dbWithCode = await createPolicyTestClient(schema(true));
+        await dbWithCode.foo.create({ data: { id: 1, x: 0 } });
+        await expect(dbWithCode.foo.update({ where: { id: 1 }, data: { x: -1 } })).toBeRejectedByPolicy(undefined, [
+            'NEED_POSITIVE_X',
+        ]);
+        await expect(dbWithCode.foo.delete({ where: { id: 1 } })).toBeRejectedByPolicy(undefined, ['NEED_POSITIVE_X']);
     });
 
     // ── post-update: single rule, single code ─────────────────────────────────

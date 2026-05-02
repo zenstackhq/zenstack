@@ -138,12 +138,13 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
 
         // #region Post mutation work
 
-        // post-check: detect policy denial when 0 rows affected (replaces pre-check for update/delete)
-        if (!(result.numAffectedRows ?? 0n)) {
-            if (UpdateQueryNode.is(node)) {
-                await this.postModelLevelCheck(mutationModel, 'update', node.where?.where ?? trueNode(this.dialect), proceed);
-            } else if (DeleteQueryNode.is(node) && !node.using) {
-                await this.postModelLevelCheck(mutationModel, 'delete', node.where?.where ?? trueNode(this.dialect), proceed);
+        // When 0 rows affected, distinguish "row not found" from "row denied by policy"
+        // Use > 0 negation (not === 0) because numAffectedRows is BigInt in some drivers
+        if (!((result.numAffectedRows ?? 0) > 0)) {
+            if (DeleteQueryNode.is(node)) {
+                await this.postMutationZeroRowsCheck(mutationModel, 'delete', node.where?.where, proceed);
+            } else if (UpdateQueryNode.is(node)) {
+                await this.postMutationZeroRowsCheck(mutationModel, 'update', node.where?.where, proceed);
             }
         }
 
@@ -258,62 +259,63 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         }
     }
 
-    // Post-check for model-level update/delete policy enforcement.
-    // Runs only when 0 rows were affected: distinguishes "row not found" from "row denied by policy".
-    // Combines existence check and diagnostic into a single query.
-    private async postModelLevelCheck(
-        mutationModel: string,
+    // Checks if any row matching the original WHERE exists without the policy filter.
+    // Called when numAffectedRows == 0 for UPDATE or DELETE.
+    // If a row exists but was filtered by policy → throws REJECTED_BY_POLICY with codes.
+    // If no row matches → returns silently (ORM layer handles "not found").
+    // Combines existence check and code diagnostics into a single query.
+    private async postMutationZeroRowsCheck(
+        model: string,
         operation: 'update' | 'delete',
-        userWhere: OperationNode,
+        originalWhere: OperationNode | undefined,
         proceed: ProceedKyselyQueryFunction,
     ) {
-        const modelLevelFilter = this.buildPolicyFilter(mutationModel, undefined, operation);
-        if (isTrueNode(modelLevelFilter)) {
-            return;
-        }
+        if (this.isManyToManyJoinTable(model)) return;
+        if (this.tryGetConstantPolicy(model, operation) === true) return;
+        const codedPolicies = this.getModelPolicies(model, operation).filter((p) => p.code);
+        // Skip if no policies carry an error code — nothing to surface.
+        if (codedPolicies.length === 0) return;
 
-        const codedPolicies =
-            this.options.fetchPolicyCodes !== false
-                ? this.getModelPolicies(mutationModel, operation).filter((p) => p.code)
-                : [];
+        const whereCondition = originalWhere ?? trueNode(this.dialect);
 
-        // $exists: does the row exist at all (without policy filter)?
-        const existsInner = this.eb
-            .selectFrom(mutationModel)
+        const rowExistsInner = this.eb
+            .selectFrom(model)
             .select(this.eb.lit(1).as('_'))
-            .where(() => new ExpressionWrapper(userWhere));
+            .where(() => new ExpressionWrapper(whereCondition));
 
-        const selections: SelectionNode[] = [
-            SelectionNode.create(
-                AliasNode.create(this.eb.exists(existsInner).toOperationNode(), IdentifierNode.create('$exists')),
-            ),
-        ];
+        const fetchCodes = this.options.fetchPolicyCodes !== false;
+        const selectedPolicies = fetchCodes ? codedPolicies : [];
 
-        // one EXISTS column per coded policy, folded into the same query
-        for (const [i, policy] of codedPolicies.entries()) {
-            const condition = this.compilePolicyCondition(mutationModel, undefined, operation, policy);
-            const existsCondition = policy.kind === 'allow' ? logicalNot(this.dialect, condition) : condition;
+        const codeSelections = selectedPolicies.map((policy, i) => {
+            const condition = this.compilePolicyCondition(model, undefined, operation, policy);
+            const violationCondition = policy.kind === 'allow' ? logicalNot(this.dialect, condition) : condition;
             const inner = this.eb
-                .selectFrom(mutationModel)
+                .selectFrom(model)
                 .select(this.eb.lit(1).as('_'))
-                .where(() => new ExpressionWrapper(conjunction(this.dialect, [userWhere, existsCondition])));
-            selections.push(
-                SelectionNode.create(
-                    AliasNode.create(this.eb.exists(inner).toOperationNode(), IdentifierNode.create(`$c${i}`)),
-                ),
+                .where(() => new ExpressionWrapper(conjunction(this.dialect, [whereCondition, violationCondition])));
+            return SelectionNode.create(
+                AliasNode.create(this.eb.exists(inner).toOperationNode(), IdentifierNode.create(`$c${i}`)),
             );
-        }
+        });
 
-        const checkResult = await proceed({ kind: 'SelectQueryNode', selections } satisfies SelectQueryNode);
-        const row = checkResult.rows[0] ?? {};
+        const result = await proceed({
+            kind: 'SelectQueryNode',
+            selections: [
+                SelectionNode.create(
+                    AliasNode.create(this.eb.exists(rowExistsInner).toOperationNode(), IdentifierNode.create('$exists')),
+                ),
+                ...codeSelections,
+            ],
+        } satisfies SelectQueryNode);
 
-        if (row.$exists) {
-            const policyCodes =
-                this.options.fetchPolicyCodes !== false
-                    ? codedPolicies.filter((_, i) => row[`$c${i}`]).map((p) => p.code!)
-                    : undefined;
-            throw createRejectedByPolicyError(mutationModel, RejectedByPolicyReason.NO_ACCESS, undefined, policyCodes);
-        }
+        const row = result.rows[0] ?? {};
+        if (!row.$exists) return;
+
+        const policyCodes = fetchCodes
+            ? selectedPolicies.filter((_, i) => row[`$c${i}`]).map((p) => p.code!)
+            : undefined;
+
+        throw createRejectedByPolicyError(model, RejectedByPolicyReason.NO_ACCESS, undefined, policyCodes);
     }
 
     private async postUpdateCheck(
