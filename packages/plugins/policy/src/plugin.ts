@@ -15,6 +15,7 @@ const policyContextStorage = new AsyncLocalStorage<PolicyQueryContext>();
 type PolicyExtQueryArgs = {
     $create: Pick<PolicyPluginOptions, 'fetchPolicyCodes'>;
     $update: Pick<PolicyPluginOptions, 'fetchPolicyCodes'>;
+    $delete: Pick<PolicyPluginOptions, 'fetchPolicyCodes'>;
 };
 
 const fetchPolicyCodesSchema = z.object({ fetchPolicyCodes: z.boolean().optional() });
@@ -43,6 +44,7 @@ export class PolicyPlugin implements RuntimePlugin<SchemaDef, PolicyExtQueryArgs
     readonly queryArgs = {
         $create: fetchPolicyCodesSchema,
         $update: fetchPolicyCodesSchema,
+        $delete: fetchPolicyCodesSchema,
     };
 
     // onQuery and onKyselyQuery are decoupled hook call sites with no shared argument path;

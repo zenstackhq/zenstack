@@ -3,24 +3,24 @@ import { createPolicyTestClient, createTestClient } from '@zenstackhq/testtools'
 import { describe, expect, it } from 'vitest';
 
 describe('Policy error code tests', () => {
-    // ┌─────────────────────────────────────────┬────────┬─────────────┐
-    // │ Scenario                                │ create │ post-update │
-    // ├─────────────────────────────────────────┼────────┼─────────────┤
-    // │ deny rule fires (string code)           │   ✓    │      ✓      │
-    // │ allow rule fails (string code)          │   ✓    │      ✓      │
-    // │ constant deny (true condition)          │   ✓    │             │
-    // │ no errorCode on rule                    │   ✓    │             │
-    // │ multiple deny rules fire                │   ✓    │      ✓      │
-    // │ deny + allow conflict                   │   ✓    │      ✓      │
-    // │ multiple allow rules all fail           │   ✓    │      ✓      │
-    // │ batch: some rows pass, some fail        │        │      ✓      │
-    // │ complex schema (auth(), before())       │   ✓    │      ✓      │
-    // │ enum error codes                        │   ✓    │      ✓      │
-    // │ mixed enum + string codes               │   ✓    │             │
-    // │ fetchPolicyCodes: plugin false          │   ✓    │      ✓      │
-    // │ fetchPolicyCodes: query false           │   ✓    │      ✓      │
-    // │ fetchPolicyCodes: query overrides plugin│   ✓    │      ✓      │
-    // └─────────────────────────────────────────┴────────┴─────────────┘
+    // ┌─────────────────────────────────────────┬────────┬─────────────┬────────┬────────┐
+    // │ Scenario                                │ create │ post-update │ update │ delete │
+    // ├─────────────────────────────────────────┼────────┼─────────────┼────────┼────────┤
+    // │ deny rule fires (string code)           │   ✓    │      ✓      │   ✓    │   ✓    │
+    // │ allow rule fails (string code)          │   ✓    │      ✓      │   ✓    │   ✓    │
+    // │ constant deny (true condition)          │   ✓    │             │        │        │
+    // │ no errorCode on rule                    │   ✓    │             │        │        │
+    // │ multiple deny rules fire                │   ✓    │      ✓      │        │        │
+    // │ deny + allow conflict                   │   ✓    │      ✓      │        │        │
+    // │ multiple allow rules all fail           │   ✓    │      ✓      │        │        │
+    // │ batch: some rows pass, some fail        │        │      ✓      │        │        │
+    // │ complex schema (auth(), before())       │   ✓    │      ✓      │        │        │
+    // │ enum error codes                        │   ✓    │      ✓      │        │        │
+    // │ mixed enum + string codes               │   ✓    │             │        │        │
+    // │ fetchPolicyCodes: plugin false          │   ✓    │      ✓      │   ✓    │   ✓    │
+    // │ fetchPolicyCodes: query false           │   ✓    │      ✓      │   ✓    │   ✓    │
+    // │ fetchPolicyCodes: query overrides plugin│   ✓    │      ✓      │   ✓    │   ✓    │
+    // └─────────────────────────────────────────┴────────┴─────────────┴────────┴────────┘
 
     // ── create: single rule, single code ─────────────────────────────────────
 
@@ -102,6 +102,111 @@ describe('Policy error code tests', () => {
         // row unchanged after failed update
         await expect(db.foo.findUnique({ where: { id: 1 } })).resolves.toMatchObject({ x: 1, y: 1 });
         await expect(db.foo.update({ where: { id: 1 }, data: { x: 2, y: 2 } })).resolves.toMatchObject({ x: 2, y: 2 });
+    });
+
+    // ── update: single rule, single code ─────────────────────────────────────
+
+    it('surfaces code from deny/allow rule on update violation', async () => {
+        const db = await createPolicyTestClient(
+            `
+    model Foo {
+        id Int @id @default(autoincrement())
+        x  Int
+        y  Int
+        @@allow('create,read', true)
+        @@deny('update', x <= 0, 'CANNOT_UPDATE_NEGATIVE_X')
+        @@allow('update', y > 0, 'NEED_POSITIVE_Y_TO_UPDATE')
+    }
+    `,
+        );
+        const neg = await db.foo.create({ data: { x: -1, y: 2 } });
+        const noY = await db.foo.create({ data: { x: 5, y: 0 } });
+        const ok = await db.foo.create({ data: { x: 1, y: 1 } });
+
+        // deny code: current x violates deny rule
+        await expect(db.foo.update({ where: { id: neg.id }, data: { y: 3 } })).toBeRejectedByPolicy(undefined, [
+            'CANNOT_UPDATE_NEGATIVE_X',
+        ]);
+        // allow code: x=5 passes deny rule, but y=0 fails the allow rule
+        await expect(db.foo.update({ where: { id: noY.id }, data: { y: 1 } })).toBeRejectedByPolicy(undefined, [
+            'NEED_POSITIVE_Y_TO_UPDATE',
+        ]);
+        // happy path: x=1 > 0 (deny doesn't fire), y=1 > 0 (allow passes)
+        await expect(db.foo.update({ where: { id: ok.id }, data: { x: 2 } })).resolves.toMatchObject({ x: 2 });
+    });
+
+    it('surfaces update code on pre-update violation and post-update code on post-update violation (same model)', async () => {
+        const db = await createPolicyTestClient(
+            `
+    model Foo {
+        id Int @id @default(autoincrement())
+        x  Int @default(0)
+        y  Int @default(0)
+        @@allow('create,update,read', true)
+        @@deny('update', x < 0, 'CANNOT_UPDATE_NEGATIVE_X')
+        @@deny('post-update', x > 100, 'X_TOO_LARGE_AFTER_UPDATE')
+        @@deny('update', y < 0, 'CANNOT_UPDATE_NEGATIVE_Y')
+        @@deny('post-update', y < 100, 'Y_TOO_SMALL_AFTER_UPDATE')
+    }
+    `,
+        );
+        const denied = await db.foo.create({ data: { x: -1 } });
+        const denied_y = await db.foo.create({ data: { y: -1 } });
+        const ok = await db.foo.create({ data: { x: 10, y: 1000 } });
+
+        // pre-update policy denies: update check fires before the write
+        await expect(db.foo.update({ where: { id: denied.id }, data: { x: 50 } })).toBeRejectedByPolicy(undefined, [
+            'CANNOT_UPDATE_NEGATIVE_X',
+        ]);
+
+        // post-update policy denies: update check passes (x > 0) but result violates post-update
+        await expect(db.foo.update({ where: { id: ok.id }, data: { x: 200 } })).toBeRejectedByPolicy(
+            ['post-update policy check'],
+            ['X_TOO_LARGE_AFTER_UPDATE'],
+        );
+
+        // row unchanged after both failed updates
+        await expect(db.foo.findUnique({ where: { id: denied.id } })).resolves.toMatchObject({ x: -1 });
+        await expect(db.foo.findUnique({ where: { id: ok.id } })).resolves.toMatchObject({ x: 10 });
+
+        // happy path: passes both update and post-update policies
+        await expect(db.foo.update({ where: { id: ok.id }, data: { x: 50 } })).resolves.toMatchObject({ x: 50 });
+
+        // update violation fire before post-update policy denies
+        await expect(db.foo.update({ where: { id: denied_y.id }, data: { y: -1 } })).toBeRejectedByPolicy(undefined, [
+            'CANNOT_UPDATE_NEGATIVE_Y',
+        ]);
+    });
+
+    // ── delete: single rule, single code ─────────────────────────────────────
+
+    it('surfaces code from deny/allow rule on delete violation', async () => {
+        const db = await createPolicyTestClient(
+            `
+    model Foo {
+        id Int @id @default(autoincrement())
+        x  Int
+        y  Int
+        @@allow('create,read,update', true)
+        @@deny('delete', x <= 0, 'CANNOT_DELETE_NEGATIVE_X')
+        @@allow('delete', y > 0, 'NEED_POSITIVE_Y_TO_DELETE')
+    }
+    `,
+        );
+        const neg = await db.foo.create({ data: { x: -1, y: 2 } });
+        const noY = await db.foo.create({ data: { x: 5, y: 0 } });
+        const ok = await db.foo.create({ data: { x: 1, y: 1 } });
+
+        // deny code: x <= 0 triggers deny rule
+        await expect(db.foo.delete({ where: { id: neg.id } })).toBeRejectedByPolicy(undefined, [
+            'CANNOT_DELETE_NEGATIVE_X',
+        ]);
+        // allow code: y is not > 0 so allow rule fails
+        await expect(db.foo.delete({ where: { id: noY.id } })).toBeRejectedByPolicy(undefined, [
+            'NEED_POSITIVE_Y_TO_DELETE',
+        ]);
+        // happy path
+        await expect(db.foo.delete({ where: { id: ok.id } })).resolves.toMatchObject({ x: 1, y: 1 });
     });
 
     // ── multiple codes simultaneously ─────────────────────────────────────────
@@ -374,28 +479,6 @@ describe('Policy error code tests', () => {
         await expect(db.foo.update({ where: { id: 1 }, data: { x: 2 } })).resolves.toMatchObject({ x: 2 });
     });
 
-    it('surfaces code from enum value on post-update violation', async () => {
-        const db = await createPolicyTestClient(
-            `
-    enum PolicyCode {
-        NEGATIVE_AFTER_UPDATE
-    }
-
-    model Foo {
-        id Int @id
-        x  Int
-        @@allow('create,read,update', true)
-        @@deny('post-update', x <= 0, NEGATIVE_AFTER_UPDATE)
-    }
-    `,
-        );
-        await db.foo.create({ data: { id: 1, x: 1 } });
-        await expect(db.foo.update({ where: { id: 1 }, data: { x: -1 } })).toBeRejectedByPolicy(undefined, [
-            'NEGATIVE_AFTER_UPDATE',
-        ]);
-        await expect(db.foo.update({ where: { id: 1 }, data: { x: 2 } })).resolves.toMatchObject({ x: 2 });
-    });
-
     it('mixes enum and string literal error codes', async () => {
         const db = await createPolicyTestClient(
             `
@@ -429,16 +512,28 @@ describe('Policy error code tests', () => {
 model Foo {
     id Int @id @default(autoincrement())
     x  Int
-    @@deny('create', x <= 0, 'NEGATIVE_X')
-    @@allow('create,read,update', true)
+    y  Int
+    @@deny('create', y <= 0, 'NEGATIVE_Y_CREATE')
+    @@allow('create,read', true)
+    @@deny('update', x <= 0, 'NEGATIVE_X_UPDATE')
+    @@allow('update', x > 0)
+    @@deny('delete', x <= 0, 'NEGATIVE_X_DELETE')
+    @@allow('delete', x > 0)
     @@deny('post-update', x <= 0, 'NEGATIVE_AFTER_UPDATE')
+    @@allow('post-update', x > 0)
 }
 `,
             { plugins: [new PolicyPlugin({ fetchPolicyCodes: false })] },
         );
-        // create: error is still thrown but policyCodes is empty
-        await expect(db.foo.create({ data: { x: 0 } })).toBeRejectedByPolicy(undefined, []);
-        const row = await db.foo.create({ data: { x: 1 } });
+        // create: error is still thrown but policyCodes is empty (y=0 triggers deny)
+        await expect(db.foo.create({ data: { x: 1, y: 0 } })).toBeRejectedByPolicy(undefined, []);
+        const row = await db.foo.create({ data: { x: 1, y: 1 } });
+        // negRow: x=-1 (denied for update/delete), but y=1 so create succeeds
+        const negRow = await db.foo.create({ data: { x: -1, y: 1 } });
+        // update: error is still thrown but policyCodes is empty
+        await expect(db.foo.update({ where: { id: negRow.id }, data: { x: 0 } })).toBeRejectedByPolicy(undefined, []);
+        // delete: error is still thrown but policyCodes is empty
+        await expect(db.foo.delete({ where: { id: negRow.id } })).toBeRejectedByPolicy(undefined, []);
         // post-update: error is still thrown but policyCodes is empty
         await expect(db.foo.update({ where: { id: row.id }, data: { x: -1 } })).toBeRejectedByPolicy(undefined, []);
         await expect(db.foo.update({ where: { id: row.id }, data: { x: 2 } })).resolves.toMatchObject({ x: 2 });
@@ -452,17 +547,44 @@ model Foo {
 model Foo {
     id Int @id @default(autoincrement())
     x  Int
-    @@deny('create', x <= 0, 'NEGATIVE_X')
-    @@allow('create,read,update', true)
+    y  Int
+    @@deny('create', y <= 0, 'NEGATIVE_Y_CREATE')
+    @@allow('create,read', true)
+    @@deny('update', x <= 0, 'NEGATIVE_X_UPDATE')
+    @@allow('update', x > 0)
+    @@deny('delete', x <= 0, 'NEGATIVE_X_DELETE')
+    @@allow('delete', x > 0)
     @@deny('post-update', x <= 0, 'NEGATIVE_AFTER_UPDATE')
+    @@allow('post-update', x > 0)
 }
 `,
         );
-        // create: flag suppresses codes
-        await expect(db.foo.create({ data: { x: 0 }, fetchPolicyCodes: false })).toBeRejectedByPolicy(undefined, []);
+        // create: flag suppresses codes (y=0 triggers deny)
+        await expect(db.foo.create({ data: { x: 1, y: 0 }, fetchPolicyCodes: false })).toBeRejectedByPolicy(
+            undefined,
+            [],
+        );
         // create: without flag, codes surface
-        await expect(db.foo.create({ data: { x: 0 } })).toBeRejectedByPolicy(undefined, ['NEGATIVE_X']);
-        const row = await db.foo.create({ data: { x: 1 } });
+        await expect(db.foo.create({ data: { x: 1, y: 0 } })).toBeRejectedByPolicy(undefined, ['NEGATIVE_Y_CREATE']);
+        const row = await db.foo.create({ data: { x: 1, y: 1 } });
+        const negRow = await db.foo.create({ data: { x: -1, y: 1 } });
+        // update: flag suppresses codes
+        await expect(
+            db.foo.update({ where: { id: negRow.id }, data: { x: 0 }, fetchPolicyCodes: false }),
+        ).toBeRejectedByPolicy(undefined, []);
+        // update: without flag, codes surface
+        await expect(db.foo.update({ where: { id: negRow.id }, data: { x: 0 } })).toBeRejectedByPolicy(undefined, [
+            'NEGATIVE_X_UPDATE',
+        ]);
+        // delete: flag suppresses codes
+        await expect(db.foo.delete({ where: { id: negRow.id }, fetchPolicyCodes: false })).toBeRejectedByPolicy(
+            undefined,
+            [],
+        );
+        // delete: without flag, codes surface
+        await expect(db.foo.delete({ where: { id: negRow.id } })).toBeRejectedByPolicy(undefined, [
+            'NEGATIVE_X_DELETE',
+        ]);
         // post-update: flag suppresses codes
         await expect(
             db.foo.update({ where: { id: row.id }, data: { x: -1 }, fetchPolicyCodes: false }),
@@ -479,20 +601,40 @@ model Foo {
 model Foo {
     id Int @id @default(autoincrement())
     x  Int
-    @@deny('create', x <= 0, 'NEGATIVE_X')
-    @@allow('create,read,update', true)
+    y  Int
+    @@deny('create', y <= 0, 'NEGATIVE_Y_CREATE')
+    @@allow('create,read', true)
+    @@deny('update', x <= 0, 'NEGATIVE_X_UPDATE')
+    @@allow('update', x > 0)
+    @@deny('delete', x <= 0, 'NEGATIVE_X_DELETE')
+    @@allow('delete', x > 0)
     @@deny('post-update', x <= 0, 'NEGATIVE_AFTER_UPDATE')
+    @@allow('post-update', x > 0)
 }
 `,
             { plugins: [new PolicyPlugin({ fetchPolicyCodes: false })] },
         );
         // create: query-level true re-enables codes despite plugin false
-        await expect(db.foo.create({ data: { x: 0 }, fetchPolicyCodes: true })).toBeRejectedByPolicy(undefined, [
-            'NEGATIVE_X',
+        await expect(db.foo.create({ data: { x: 1, y: 0 }, fetchPolicyCodes: true })).toBeRejectedByPolicy(undefined, [
+            'NEGATIVE_Y_CREATE',
         ]);
         // create: without override, codes are suppressed
-        await expect(db.foo.create({ data: { x: 0 } })).toBeRejectedByPolicy(undefined, []);
-        const row = await db.foo.create({ data: { x: 1 } });
+        await expect(db.foo.create({ data: { x: 1, y: 0 } })).toBeRejectedByPolicy(undefined, []);
+        const row = await db.foo.create({ data: { x: 1, y: 1 } });
+        const negRow = await db.foo.create({ data: { x: -1, y: 1 } });
+        // update: query-level true re-enables codes despite plugin false
+        await expect(
+            db.foo.update({ where: { id: negRow.id }, data: { x: 0 }, fetchPolicyCodes: true }),
+        ).toBeRejectedByPolicy(undefined, ['NEGATIVE_X_UPDATE']);
+        // update: without override, codes are suppressed
+        await expect(db.foo.update({ where: { id: negRow.id }, data: { x: 0 } })).toBeRejectedByPolicy(undefined, []);
+        // delete: query-level true re-enables codes despite plugin false
+        await expect(db.foo.delete({ where: { id: negRow.id }, fetchPolicyCodes: true })).toBeRejectedByPolicy(
+            undefined,
+            ['NEGATIVE_X_DELETE'],
+        );
+        // delete: without override, codes are suppressed
+        await expect(db.foo.delete({ where: { id: negRow.id } })).toBeRejectedByPolicy(undefined, []);
         // post-update: query-level true re-enables codes despite plugin false
         await expect(
             db.foo.update({ where: { id: row.id }, data: { x: -1 }, fetchPolicyCodes: true }),
