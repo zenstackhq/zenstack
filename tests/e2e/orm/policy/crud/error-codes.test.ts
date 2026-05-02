@@ -669,7 +669,7 @@ model Foo {
         const db = await createPolicyTestClient(
             `
 model Foo {
-    id Int @id @default(autoincrement())
+    id Int @id
     x  Int
     y  Int
     @@deny('create', y <= 0, 'NEGATIVE_Y_CREATE')
@@ -685,34 +685,34 @@ model Foo {
 `,
         );
         // create: flag suppresses codes (y=0 triggers deny)
-        await expect(db.foo.create({ data: { x: 1, y: 0 }, fetchPolicyCodes: false })).toBeRejectedByPolicy(
+        await expect(db.foo.create({ data: { id: 1, x: 1, y: 0 }, fetchPolicyCodes: false })).toBeRejectedByPolicy(
             undefined,
             [],
         );
         // create: without flag, codes surface
-        await expect(db.foo.create({ data: { x: 1, y: 0 } })).toBeRejectedByPolicy(undefined, ['NEGATIVE_Y_CREATE']);
-        const row = await db.foo.create({ data: { x: 1, y: 1 } });
-        const negRow = await db.$unuseAll().foo.create({ data: { x: -1, y: 1 } });
+        await expect(db.foo.create({ data: { id: 2, x: 1, y: 0 } })).toBeRejectedByPolicy(undefined, ['NEGATIVE_Y_CREATE']);
+        await db.foo.create({ data: { id: 3, x: 1, y: 1 } });
+        await db.$unuseAll().foo.create({ data: { id: 4, x: -1, y: 1 } });
         // read: flag skips diagnostic query entirely → null (filter-based, same as no codes)
-        await expect(db.foo.findFirst({ where: { id: negRow.id }, fetchPolicyCodes: false })).resolves.toBeNull();
+        await expect(db.foo.findFirst({ where: { id: 4 }, fetchPolicyCodes: false })).resolves.toBeNull();
         // read: without flag, codes surface
-        await expect(db.foo.findFirst({ where: { id: negRow.id } })).toBeRejectedByPolicy(undefined, ['NEGATIVE_X_READ']);
+        await expect(db.foo.findFirst({ where: { id: 4 } })).toBeRejectedByPolicy(undefined, ['NEGATIVE_X_READ']);
         // update: flag skips diagnostic query entirely → NOT_FOUND (same as no codes defined)
-        await expect(db.foo.update({ where: { id: negRow.id }, data: { x: 0 }, fetchPolicyCodes: false })).toBeRejectedNotFound();
+        await expect(db.foo.update({ where: { id: 4 }, data: { x: 0 }, fetchPolicyCodes: false })).toBeRejectedNotFound();
         // update: without flag, codes surface
-        await expect(db.foo.update({ where: { id: negRow.id }, data: { x: 0 } })).toBeRejectedByPolicy(undefined, [
+        await expect(db.foo.update({ where: { id: 4 }, data: { x: 0 } })).toBeRejectedByPolicy(undefined, [
             'NEGATIVE_X_UPDATE',
         ]);
         // delete: flag skips diagnostic query entirely → NOT_FOUND
-        await expect(db.foo.delete({ where: { id: negRow.id }, fetchPolicyCodes: false })).toBeRejectedNotFound();
+        await expect(db.foo.delete({ where: { id: 4 }, fetchPolicyCodes: false })).toBeRejectedNotFound();
         // delete: without flag, codes surface
-        await expect(db.foo.delete({ where: { id: negRow.id } })).toBeRejectedByPolicy(undefined, ['NEGATIVE_X_DELETE']);
+        await expect(db.foo.delete({ where: { id: 4 } })).toBeRejectedByPolicy(undefined, ['NEGATIVE_X_DELETE']);
         // post-update: flag suppresses codes
         await expect(
-            db.foo.update({ where: { id: row.id }, data: { x: -1 }, fetchPolicyCodes: false }),
+            db.foo.update({ where: { id: 3 }, data: { x: -1 }, fetchPolicyCodes: false }),
         ).toBeRejectedByPolicy(undefined, []);
         // post-update: without flag, codes surface
-        await expect(db.foo.update({ where: { id: row.id }, data: { x: -1 } })).toBeRejectedByPolicy(undefined, [
+        await expect(db.foo.update({ where: { id: 3 }, data: { x: -1 } })).toBeRejectedByPolicy(undefined, [
             'NEGATIVE_AFTER_UPDATE',
         ]);
     });
@@ -761,7 +761,7 @@ model Foo {
         const db = await createTestClient(
             `
 model Foo {
-    id Int @id @default(autoincrement())
+    id Int @id
     x  Int
     y  Int
     @@deny('create', y <= 0, 'NEGATIVE_Y_CREATE')
@@ -778,37 +778,37 @@ model Foo {
             { plugins: [new PolicyPlugin({ fetchPolicyCodes: false })] },
         );
         // create: query-level true re-enables codes despite plugin false
-        await expect(db.foo.create({ data: { x: 1, y: 0 }, fetchPolicyCodes: true })).toBeRejectedByPolicy(undefined, [
+        await expect(db.foo.create({ data: { id: 1, x: 1, y: 0 }, fetchPolicyCodes: true })).toBeRejectedByPolicy(undefined, [
             'NEGATIVE_Y_CREATE',
         ]);
         // create: without override, codes are suppressed
-        await expect(db.foo.create({ data: { x: 1, y: 0 } })).toBeRejectedByPolicy(undefined, []);
-        const row = await db.foo.create({ data: { x: 1, y: 1 } });
-        const negRow = await db.$unuseAll().foo.create({ data: { x: -1, y: 1 } });
+        await expect(db.foo.create({ data: { id: 2, x: 1, y: 0 } })).toBeRejectedByPolicy(undefined, []);
+        await db.foo.create({ data: { id: 3, x: 1, y: 1 } });
+        await db.$unuseAll().foo.create({ data: { id: 4, x: -1, y: 1 } });
         // read: query-level true re-enables codes despite plugin false
-        await expect(db.foo.findFirst({ where: { id: negRow.id }, fetchPolicyCodes: true })).toBeRejectedByPolicy(undefined, [
+        await expect(db.foo.findFirst({ where: { id: 4 }, fetchPolicyCodes: true })).toBeRejectedByPolicy(undefined, [
             'NEGATIVE_X_READ',
         ]);
         // read: without override, codes are suppressed → null (filter-based)
-        await expect(db.foo.findFirst({ where: { id: negRow.id } })).resolves.toBeNull();
+        await expect(db.foo.findFirst({ where: { id: 4 } })).resolves.toBeNull();
         // update: query-level true re-enables codes despite plugin false
-        await expect(db.foo.update({ where: { id: negRow.id }, data: { x: 0 }, fetchPolicyCodes: true })).toBeRejectedByPolicy(
+        await expect(db.foo.update({ where: { id: 4 }, data: { x: 0 }, fetchPolicyCodes: true })).toBeRejectedByPolicy(
             undefined,
             ['NEGATIVE_X_UPDATE'],
         );
         // update: without override, codes are suppressed
-        await expect(db.foo.update({ where: { id: negRow.id }, data: { x: 0 } })).toBeRejectedNotFound();
+        await expect(db.foo.update({ where: { id: 4 }, data: { x: 0 } })).toBeRejectedNotFound();
         // delete: query-level true re-enables codes despite plugin false
-        await expect(db.foo.delete({ where: { id: negRow.id }, fetchPolicyCodes: true })).toBeRejectedByPolicy(undefined, [
+        await expect(db.foo.delete({ where: { id: 4 }, fetchPolicyCodes: true })).toBeRejectedByPolicy(undefined, [
             'NEGATIVE_X_DELETE',
         ]);
         // delete: without override, codes are suppressed
-        await expect(db.foo.delete({ where: { id: negRow.id } })).toBeRejectedNotFound();
+        await expect(db.foo.delete({ where: { id: 4 } })).toBeRejectedNotFound();
         // post-update: query-level true re-enables codes despite plugin false
         await expect(
-            db.foo.update({ where: { id: row.id }, data: { x: -1 }, fetchPolicyCodes: true }),
+            db.foo.update({ where: { id: 3 }, data: { x: -1 }, fetchPolicyCodes: true }),
         ).toBeRejectedByPolicy(undefined, ['NEGATIVE_AFTER_UPDATE']);
         // post-update: without override, codes are suppressed and we get a policy rejection without codes (not NotFound)
-        await expect(db.foo.update({ where: { id: row.id }, data: { x: -1 } })).toBeRejectedByPolicy(undefined, []);
+        await expect(db.foo.update({ where: { id: 3 }, data: { x: -1 } })).toBeRejectedByPolicy(undefined, []);
     });
 });

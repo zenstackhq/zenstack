@@ -288,11 +288,11 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         whereCondition: OperationNode | undefined,
         proceed: ProceedKyselyQueryFunction,
     ) {
+        if (this.isManyToManyJoinTable(model)) return;
         if (this.tryGetConstantPolicy(model, operation) === true) return;
         if (this.options.fetchPolicyCodes === false) return;
         const policiesWithCode = this.getModelPolicies(model, operation).filter((p) => p.code);
         if (policiesWithCode.length === 0) return;
-        if (this.isManyToManyJoinTable(model)) return;
 
         // No WHERE clause means "match all rows" — use a literal TRUE so the existence sub-query is valid SQL.
         const where = whereCondition ?? trueNode(this.dialect);
