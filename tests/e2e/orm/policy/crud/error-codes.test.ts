@@ -3,25 +3,27 @@ import { createPolicyTestClient, createTestClient } from '@zenstackhq/testtools'
 import { describe, expect, it } from 'vitest';
 
 describe('Policy error code tests', () => {
-    // ┌─────────────────────────────────────────┬────────┬─────────────┬────────┬────────┐
-    // │ Scenario                                │ create │ post-update │ update │ delete │
-    // ├─────────────────────────────────────────┼────────┼─────────────┼────────┼────────┤
-    // │ deny rule fires (string code)           │   ✓    │      ✓      │   ✓    │   ✓    │
-    // │ allow rule fails (string code)          │   ✓    │      ✓      │   ✓    │   ✓    │
-    // │ constant deny (true condition)          │   ✓    │             │        │        │
-    // │ no errorCode on rule                    │   ✓    │             │        │        │
-    // │ code opt-in: NotFound vs RejectedByPol. │        │             │   ✓    │   ✓    │
-    // │ multiple deny rules fire                │   ✓    │      ✓      │        │        │
-    // │ deny + allow conflict                   │   ✓    │      ✓      │        │        │
-    // │ multiple allow rules all fail           │   ✓    │      ✓      │        │        │
-    // │ batch: some rows pass, some fail        │        │      ✓      │        │        │
-    // │ complex schema (auth(), before())       │   ✓    │      ✓      │        │        │
-    // │ enum error codes                        │   ✓    │      ✓      │        │        │
-    // │ mixed enum + string codes               │   ✓    │             │        │        │
-    // │ fetchPolicyCodes: plugin false          │   ✓    │      ✓      │   ✓    │   ✓    │
-    // │ fetchPolicyCodes: query false           │   ✓    │      ✓      │   ✓    │   ✓    │
-    // │ fetchPolicyCodes: query overrides plugin│   ✓    │      ✓      │   ✓    │   ✓    │
-    // └─────────────────────────────────────────┴────────┴─────────────┴────────┴────────┘
+    // ┌─────────────────────────────────────────┬────────┬─────────────┬────────┬────────┬────────┐
+    // │ Scenario                                │ create │ post-update │ update │ delete │  read  │
+    // ├─────────────────────────────────────────┼────────┼─────────────┼────────┼────────┼────────┤
+    // │ deny rule fires (string code)           │   ✓    │      ✓      │   ✓    │   ✓    │   ✓    │
+    // │ allow rule fails (string code)          │   ✓    │      ✓      │   ✓    │   ✓    │   ✓    │
+    // │ constant deny (true condition)          │   ✓    │             │        │        │        │
+    // │ no errorCode on rule                    │   ✓    │             │        │        │        │
+    // │ code opt-in: NotFound vs RejectedByPol. │        │             │   ✓    │   ✓    │   ✓    │
+    // │ findMany not affected (filter-based)    │        │             │        │        │   ✓    │
+    // │ findMany({ take:1 }) not affected       │        │             │        │        │   ✓    │
+    // │ multiple deny rules fire                │   ✓    │      ✓      │        │        │        │
+    // │ deny + allow conflict                   │   ✓    │      ✓      │        │        │        │
+    // │ multiple allow rules all fail           │   ✓    │      ✓      │        │        │        │
+    // │ batch: some rows pass, some fail        │        │      ✓      │        │        │        │
+    // │ complex schema (auth(), before())       │   ✓    │      ✓      │        │        │        │
+    // │ enum error codes                        │   ✓    │      ✓      │        │        │        │
+    // │ mixed enum + string codes               │   ✓    │             │        │        │        │
+    // │ fetchPolicyCodes: plugin false          │   ✓    │      ✓      │   ✓    │   ✓    │   ✓    │
+    // │ fetchPolicyCodes: query false           │   ✓    │      ✓      │   ✓    │   ✓    │   ✓    │
+    // │ fetchPolicyCodes: query overrides plugin│   ✓    │      ✓      │   ✓    │   ✓    │   ✓    │
+    // └─────────────────────────────────────────┴────────┴─────────────┴────────┴────────┴────────┘
 
     // ── create: single rule, single code ─────────────────────────────────────
 
@@ -78,7 +80,7 @@ describe('Policy error code tests', () => {
     it('blocked update/delete yields NotFound without code, RejectedByPolicy with code', async () => {
         const schema = (withCode: boolean) => `
 model Foo {
-    id Int @id
+    id Int @id @default(autoincrement())
     x  Int
     @@allow('create,read', true)
     @@allow('update', x > 0${withCode ? ", 'NEED_POSITIVE_X'" : ''})
@@ -87,17 +89,110 @@ model Foo {
 `;
         // Without error code: the ORM sees 0 affected rows and raises NotFound
         const dbNoCode = await createPolicyTestClient(schema(false));
-        await dbNoCode.foo.create({ data: { id: 1, x: 0 } });
-        await expect(dbNoCode.foo.update({ where: { id: 1 }, data: { x: -1 } })).toBeRejectedNotFound();
-        await expect(dbNoCode.foo.delete({ where: { id: 1 } })).toBeRejectedNotFound();
+        const noCodeRow = await dbNoCode.foo.create({ data: { x: 0 } });
+        await expect(dbNoCode.foo.update({ where: { id: noCodeRow.id }, data: { x: -1 } })).toBeRejectedNotFound();
+        await expect(dbNoCode.foo.delete({ where: { id: noCodeRow.id } })).toBeRejectedNotFound();
 
         // With error code: the plugin detects the policy block and raises RejectedByPolicy
         const dbWithCode = await createPolicyTestClient(schema(true));
-        await dbWithCode.foo.create({ data: { id: 1, x: 0 } });
-        await expect(dbWithCode.foo.update({ where: { id: 1 }, data: { x: -1 } })).toBeRejectedByPolicy(undefined, [
+        const withCodeRow = await dbWithCode.foo.create({ data: { x: 0 } });
+        await expect(dbWithCode.foo.update({ where: { id: withCodeRow.id }, data: { x: -1 } })).toBeRejectedByPolicy(undefined, [
             'NEED_POSITIVE_X',
         ]);
-        await expect(dbWithCode.foo.delete({ where: { id: 1 } })).toBeRejectedByPolicy(undefined, ['NEED_POSITIVE_X']);
+        await expect(dbWithCode.foo.delete({ where: { id: withCodeRow.id } })).toBeRejectedByPolicy(undefined, ['NEED_POSITIVE_X']);
+    });
+
+    // ── read: single rule, single code ───────────────────────────────────────
+
+    it('surfaces code from deny/allow rule on findFirst/findUnique violation', async () => {
+        const db = await createPolicyTestClient(
+            `
+    model Foo {
+        id Int @id @default(autoincrement())
+        x  Int
+        y  Int
+        @@allow('create', true)
+        @@deny('read', x <= 0, 'NEGATIVE_X')
+        @@allow('read', y > 0, 'NEED_POSITIVE_Y')
+    }
+    `,
+        );
+        const unprotected = db.$unuseAll();
+        const negX = await unprotected.foo.create({ data: { x: 0, y: 1 } });
+        const negY = await unprotected.foo.create({ data: { x: 1, y: 0 } });
+        const ok = await unprotected.foo.create({ data: { x: 1, y: 1 } });
+
+        // deny code: x <= 0 triggers deny rule
+        await expect(db.foo.findFirst({ where: { id: negX.id } })).toBeRejectedByPolicy(undefined, ['NEGATIVE_X']);
+        await expect(db.foo.findUnique({ where: { id: negX.id } })).toBeRejectedByPolicy(undefined, ['NEGATIVE_X']);
+        // allow code: y is not > 0 so allow rule fails
+        await expect(db.foo.findFirst({ where: { id: negY.id } })).toBeRejectedByPolicy(undefined, ['NEED_POSITIVE_Y']);
+        await expect(db.foo.findUnique({ where: { id: negY.id } })).toBeRejectedByPolicy(undefined, ['NEED_POSITIVE_Y']);
+        // happy path
+        await expect(db.foo.findFirst({ where: { id: ok.id } })).resolves.toMatchObject({ x: 1, y: 1 });
+        await expect(db.foo.findUnique({ where: { id: ok.id } })).resolves.toMatchObject({ x: 1, y: 1 });
+    });
+
+    it('blocked read yields null without code, RejectedByPolicy with code', async () => {
+        const schema = (withCode: boolean) => `
+model Foo {
+    id Int @id @default(autoincrement())
+    x  Int
+    @@allow('create', true)
+    @@allow('read', x > 0${withCode ? ", 'NEED_POSITIVE_X'" : ''})
+}
+`;
+        // Without error code: policy filters the row silently → null (not found)
+        const dbNoCode = await createPolicyTestClient(schema(false));
+        const noCodeRow = await dbNoCode.$unuseAll().foo.create({ data: { x: 0 } });
+        await expect(dbNoCode.foo.findUnique({ where: { id: noCodeRow.id } })).resolves.toBeNull();
+        await expect(dbNoCode.foo.findFirst({ where: { id: noCodeRow.id } })).resolves.toBeNull();
+
+        // With error code: the plugin detects the policy block → RejectedByPolicy
+        const dbWithCode = await createPolicyTestClient(schema(true));
+        const withCodeRow = await dbWithCode.$unuseAll().foo.create({ data: { x: 0 } });
+        await expect(dbWithCode.foo.findUnique({ where: { id: withCodeRow.id } })).toBeRejectedByPolicy(undefined, [
+            'NEED_POSITIVE_X',
+        ]);
+        await expect(dbWithCode.foo.findFirst({ where: { id: withCodeRow.id } })).toBeRejectedByPolicy(undefined, [
+            'NEED_POSITIVE_X',
+        ]);
+    });
+
+    it('findMany is not affected by read policy error codes (filter-based, returns empty array)', async () => {
+        const db = await createPolicyTestClient(
+            `
+    model Foo {
+        id Int @id @default(autoincrement())
+        x  Int
+        @@allow('create', true)
+        @@allow('read', x > 0, 'NEED_POSITIVE_X')
+    }
+    `,
+        );
+        const unprotected = db.$unuseAll();
+        await unprotected.foo.create({ data: { x: 0 } });
+        await unprotected.foo.create({ data: { x: -1 } });
+        // findMany still uses filter-based enforcement: denied rows are silently excluded
+        await expect(db.foo.findMany()).resolves.toEqual([]);
+    });
+
+    it('findMany({ take: 1 }) is not affected by read policy error codes (filter-based, returns empty array)', async () => {
+        const db = await createPolicyTestClient(
+            `
+    model Foo {
+        id Int @id @default(autoincrement())
+        x  Int
+        @@allow('create', true)
+        @@allow('read', x > 0, 'NEED_POSITIVE_X')
+    }
+    `,
+        );
+        const unprotected = db.$unuseAll();
+        await unprotected.foo.create({ data: { x: 0 } });
+        // take:1 generates LIMIT 1 SQL but the ORM operation is still 'findMany'
+        // → filter-based enforcement applies, no diagnostic query, no REJECTED_BY_POLICY
+        await expect(db.foo.findMany({ take: 1 })).resolves.toEqual([]);
     });
 
     // ── post-update: single rule, single code ─────────────────────────────────
@@ -106,7 +201,7 @@ model Foo {
         const db = await createPolicyTestClient(
             `
     model Foo {
-        id Int @id
+        id Int @id @default(autoincrement())
         x  Int
         y  Int
         @@allow('create,read,update', true)
@@ -115,21 +210,21 @@ model Foo {
     }
     `,
         );
-        await db.foo.create({ data: { id: 1, x: 1, y: 1 } });
+        const row = await db.foo.create({ data: { x: 1, y: 1 } });
         // deny code: post-update violations carry a distinct message alongside the code
-        await expect(db.foo.update({ where: { id: 1 }, data: { x: -1 } })).toBeRejectedByPolicy(
+        await expect(db.foo.update({ where: { id: row.id }, data: { x: -1 } })).toBeRejectedByPolicy(
             ['post-update policy check'],
             ['NEGATIVE_AFTER_UPDATE'],
         );
         // row unchanged after failed update
-        await expect(db.foo.findUnique({ where: { id: 1 } })).resolves.toMatchObject({ x: 1, y: 1 });
+        await expect(db.foo.findUnique({ where: { id: row.id } })).resolves.toMatchObject({ x: 1, y: 1 });
         // allow code: y violates allow rule
-        await expect(db.foo.update({ where: { id: 1 }, data: { y: -1 } })).toBeRejectedByPolicy(undefined, [
+        await expect(db.foo.update({ where: { id: row.id }, data: { y: -1 } })).toBeRejectedByPolicy(undefined, [
             'MUST_BE_POSITIVE_AFTER_UPDATE',
         ]);
         // row unchanged after failed update
-        await expect(db.foo.findUnique({ where: { id: 1 } })).resolves.toMatchObject({ x: 1, y: 1 });
-        await expect(db.foo.update({ where: { id: 1 }, data: { x: 2, y: 2 } })).resolves.toMatchObject({ x: 2, y: 2 });
+        await expect(db.foo.findUnique({ where: { id: row.id } })).resolves.toMatchObject({ x: 1, y: 1 });
+        await expect(db.foo.update({ where: { id: row.id }, data: { x: 2, y: 2 } })).resolves.toMatchObject({ x: 2, y: 2 });
     });
 
     // ── update: single rule, single code ─────────────────────────────────────
@@ -493,18 +588,18 @@ model Foo {
     }
 
     model Foo {
-        id Int @id
+        id Int @id @default(autoincrement())
         x  Int
         @@allow('create,read,update', true)
         @@deny('post-update', x <= 0, NEGATIVE_AFTER_UPDATE)
     }
     `,
         );
-        await db.foo.create({ data: { id: 1, x: 1 } });
-        await expect(db.foo.update({ where: { id: 1 }, data: { x: -1 } })).toBeRejectedByPolicy(undefined, [
+        const row = await db.foo.create({ data: { x: 1 } });
+        await expect(db.foo.update({ where: { id: row.id }, data: { x: -1 } })).toBeRejectedByPolicy(undefined, [
             'NEGATIVE_AFTER_UPDATE',
         ]);
-        await expect(db.foo.update({ where: { id: 1 }, data: { x: 2 } })).resolves.toMatchObject({ x: 2 });
+        await expect(db.foo.update({ where: { id: row.id }, data: { x: 2 } })).resolves.toMatchObject({ x: 2 });
     });
 
     it('mixes enum and string literal error codes', async () => {
@@ -543,6 +638,7 @@ model Foo {
     y  Int
     @@deny('create', y <= 0, 'NEGATIVE_Y_CREATE')
     @@allow('create,read', true)
+    @@deny('read', x <= 0, 'NEGATIVE_X_READ')
     @@deny('update', x <= 0, 'NEGATIVE_X_UPDATE')
     @@allow('update', x > 0)
     @@deny('delete', x <= 0, 'NEGATIVE_X_DELETE')
@@ -556,8 +652,9 @@ model Foo {
         // create: pre-create check still fires → REJECTED_BY_POLICY, but no codes (y=0 triggers deny)
         await expect(db.foo.create({ data: { x: 1, y: 0 } })).toBeRejectedByPolicy(undefined, []);
         const row = await db.foo.create({ data: { x: 1, y: 1 } });
-        // negRow: x=-1 (denied for update/delete), but y=1 so create succeeds
-        const negRow = await db.foo.create({ data: { x: -1, y: 1 } });
+        const negRow = await db.$unuseAll().foo.create({ data: { x: -1, y: 1 } });
+        // read: diagnostic query skipped entirely — behaves as if no codes → null (filter-based)
+        await expect(db.foo.findFirst({ where: { id: negRow.id } })).resolves.toBeNull();
         // update/delete: diagnostic query skipped entirely — behaves as if no codes → NOT_FOUND
         await expect(db.foo.update({ where: { id: negRow.id }, data: { x: 0 } })).toBeRejectedNotFound();
         await expect(db.foo.delete({ where: { id: negRow.id } })).toBeRejectedNotFound();
@@ -577,6 +674,7 @@ model Foo {
     y  Int
     @@deny('create', y <= 0, 'NEGATIVE_Y_CREATE')
     @@allow('create,read', true)
+    @@deny('read', x <= 0, 'NEGATIVE_X_READ')
     @@deny('update', x <= 0, 'NEGATIVE_X_UPDATE')
     @@allow('update', x > 0)
     @@deny('delete', x <= 0, 'NEGATIVE_X_DELETE')
@@ -594,11 +692,13 @@ model Foo {
         // create: without flag, codes surface
         await expect(db.foo.create({ data: { x: 1, y: 0 } })).toBeRejectedByPolicy(undefined, ['NEGATIVE_Y_CREATE']);
         const row = await db.foo.create({ data: { x: 1, y: 1 } });
-        const negRow = await db.foo.create({ data: { x: -1, y: 1 } });
+        const negRow = await db.$unuseAll().foo.create({ data: { x: -1, y: 1 } });
+        // read: flag skips diagnostic query entirely → null (filter-based, same as no codes)
+        await expect(db.foo.findFirst({ where: { id: negRow.id }, fetchPolicyCodes: false })).resolves.toBeNull();
+        // read: without flag, codes surface
+        await expect(db.foo.findFirst({ where: { id: negRow.id } })).toBeRejectedByPolicy(undefined, ['NEGATIVE_X_READ']);
         // update: flag skips diagnostic query entirely → NOT_FOUND (same as no codes defined)
-        await expect(
-            db.foo.update({ where: { id: negRow.id }, data: { x: 0 }, fetchPolicyCodes: false }),
-        ).toBeRejectedNotFound();
+        await expect(db.foo.update({ where: { id: negRow.id }, data: { x: 0 }, fetchPolicyCodes: false })).toBeRejectedNotFound();
         // update: without flag, codes surface
         await expect(db.foo.update({ where: { id: negRow.id }, data: { x: 0 } })).toBeRejectedByPolicy(undefined, [
             'NEGATIVE_X_UPDATE',
@@ -606,9 +706,7 @@ model Foo {
         // delete: flag skips diagnostic query entirely → NOT_FOUND
         await expect(db.foo.delete({ where: { id: negRow.id }, fetchPolicyCodes: false })).toBeRejectedNotFound();
         // delete: without flag, codes surface
-        await expect(db.foo.delete({ where: { id: negRow.id } })).toBeRejectedByPolicy(undefined, [
-            'NEGATIVE_X_DELETE',
-        ]);
+        await expect(db.foo.delete({ where: { id: negRow.id } })).toBeRejectedByPolicy(undefined, ['NEGATIVE_X_DELETE']);
         // post-update: flag suppresses codes
         await expect(
             db.foo.update({ where: { id: row.id }, data: { x: -1 }, fetchPolicyCodes: false }),
@@ -668,6 +766,7 @@ model Foo {
     y  Int
     @@deny('create', y <= 0, 'NEGATIVE_Y_CREATE')
     @@allow('create,read', true)
+    @@deny('read', x <= 0, 'NEGATIVE_X_READ')
     @@deny('update', x <= 0, 'NEGATIVE_X_UPDATE')
     @@allow('update', x > 0)
     @@deny('delete', x <= 0, 'NEGATIVE_X_DELETE')
@@ -685,18 +784,24 @@ model Foo {
         // create: without override, codes are suppressed
         await expect(db.foo.create({ data: { x: 1, y: 0 } })).toBeRejectedByPolicy(undefined, []);
         const row = await db.foo.create({ data: { x: 1, y: 1 } });
-        const negRow = await db.foo.create({ data: { x: -1, y: 1 } });
+        const negRow = await db.$unuseAll().foo.create({ data: { x: -1, y: 1 } });
+        // read: query-level true re-enables codes despite plugin false
+        await expect(db.foo.findFirst({ where: { id: negRow.id }, fetchPolicyCodes: true })).toBeRejectedByPolicy(undefined, [
+            'NEGATIVE_X_READ',
+        ]);
+        // read: without override, codes are suppressed → null (filter-based)
+        await expect(db.foo.findFirst({ where: { id: negRow.id } })).resolves.toBeNull();
         // update: query-level true re-enables codes despite plugin false
-        await expect(
-            db.foo.update({ where: { id: negRow.id }, data: { x: 0 }, fetchPolicyCodes: true }),
-        ).toBeRejectedByPolicy(undefined, ['NEGATIVE_X_UPDATE']);
+        await expect(db.foo.update({ where: { id: negRow.id }, data: { x: 0 }, fetchPolicyCodes: true })).toBeRejectedByPolicy(
+            undefined,
+            ['NEGATIVE_X_UPDATE'],
+        );
         // update: without override, codes are suppressed
         await expect(db.foo.update({ where: { id: negRow.id }, data: { x: 0 } })).toBeRejectedNotFound();
         // delete: query-level true re-enables codes despite plugin false
-        await expect(db.foo.delete({ where: { id: negRow.id }, fetchPolicyCodes: true })).toBeRejectedByPolicy(
-            undefined,
-            ['NEGATIVE_X_DELETE'],
-        );
+        await expect(db.foo.delete({ where: { id: negRow.id }, fetchPolicyCodes: true })).toBeRejectedByPolicy(undefined, [
+            'NEGATIVE_X_DELETE',
+        ]);
         // delete: without override, codes are suppressed
         await expect(db.foo.delete({ where: { id: negRow.id } })).toBeRejectedNotFound();
         // post-update: query-level true re-enables codes despite plugin false

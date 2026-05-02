@@ -13,6 +13,7 @@ export {
     CoreReadOperations,
     CoreUpdateOperations,
     CoreWriteOperations,
+    SingleRowReadOperations,
 } from './crud/operations/base';
 export { InputValidator } from './crud/validator';
 export { ORMError, ORMErrorReason, RejectedByPolicyReason } from './errors';

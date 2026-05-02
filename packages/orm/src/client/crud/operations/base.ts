@@ -169,6 +169,16 @@ export const AllReadOperations = [...CoreReadOperations, 'findUniqueOrThrow', 'f
 export type AllReadOperations = (typeof AllReadOperations)[number];
 
 /**
+ * List of single-row read operations — `findUnique`/`findFirst` and their 'orThrow' variants.
+ */
+export const SingleRowReadOperations = ['findUnique', 'findFirst', 'findUniqueOrThrow', 'findFirstOrThrow'] as const;
+
+/**
+ * List of single-row read operations.
+ */
+export type SingleRowReadOperations = (typeof SingleRowReadOperations)[number];
+
+/**
  * List of all write operations - simply an alias of CoreWriteOperations.
  */
 export const AllWriteOperations = CoreWriteOperations;
@@ -312,6 +322,9 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             const r = await kysely.getExecutor().executeQuery(compiled);
             result = r.rows;
         } catch (err) {
+            // Re-throw ORMErrors (e.g. policy violations with custom error codes) as-is
+            // to avoid wrapping them in a generic DBQueryError and losing their type/code.
+            if (err instanceof ORMError) throw err;
             throw createDBQueryError(`Failed to execute query: ${err}`, err, compiled.sql, compiled.parameters);
         }
 

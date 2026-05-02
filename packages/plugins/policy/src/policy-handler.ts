@@ -1,6 +1,6 @@
 import { invariant } from '@zenstackhq/common-helpers';
 import type { BaseCrudDialect, ClientContract, CRUD_EXT, ProceedKyselyQueryFunction } from '@zenstackhq/orm';
-import { getCrudDialect, QueryUtils, RejectedByPolicyReason, SchemaUtils } from '@zenstackhq/orm';
+import { CoreWriteOperations, getCrudDialect, QueryUtils, RejectedByPolicyReason, SchemaUtils, SingleRowReadOperations } from '@zenstackhq/orm';
 import {
     ExpressionUtils,
     type BuiltinType,
@@ -42,6 +42,7 @@ import {
 } from 'kysely';
 import { match } from 'ts-pattern';
 import { ColumnCollector } from './column-collector';
+import { policyContextStorage } from './context';
 import { ExpressionTransformer } from './expression-transformer';
 import type { PolicyPluginOptions } from './options';
 import type { Policy, PolicyOperation } from './types';
@@ -58,6 +59,9 @@ import {
     logicalNot,
     trueNode,
 } from './utils';
+
+const SINGLE_ROW_READ_OPERATIONS = new Set<string>(SingleRowReadOperations);
+const ORM_WRITE_OPERATIONS = new Set<string>(CoreWriteOperations);
 
 export type CrudQueryNode = SelectQueryNode | InsertQueryNode | UpdateQueryNode | DeleteQueryNode;
 
@@ -93,8 +97,13 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         }
 
         if (!this.isMutationQueryNode(node)) {
-            // transform and proceed with read directly
-            return proceed(this.transformNode(node));
+            const selectNode = node as SelectQueryNode;
+            const result = await proceed(this.transformNode(node));
+            // When 0 rows returned on a single-row read, distinguish "not found" from policy denial
+            if (result.rows.length === 0 && SINGLE_ROW_READ_OPERATIONS.has(policyContextStorage.getStore()?.operation ?? '')) {
+                await this.postReadZeroRowsCheck(selectNode, proceed);
+            }
+            return result;
         }
 
         const { mutationModel } = this.getMutationModel(node);
@@ -142,9 +151,9 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         // Use > 0 negation (not === 0) because numAffectedRows is BigInt in some drivers
         if (!((result.numAffectedRows ?? 0) > 0)) {
             if (DeleteQueryNode.is(node)) {
-                await this.postMutationZeroRowsCheck(mutationModel, 'delete', node.where?.where, proceed);
+                await this.postZeroRowsCheck(mutationModel, 'delete', node.where?.where, proceed);
             } else if (UpdateQueryNode.is(node)) {
-                await this.postMutationZeroRowsCheck(mutationModel, 'update', node.where?.where, proceed);
+                await this.postZeroRowsCheck(mutationModel, 'update', node.where?.where, proceed);
             }
         }
 
@@ -259,30 +268,39 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         }
     }
 
-    // Checks if any row matching the original WHERE exists without the policy filter.
-    // Called when numAffectedRows == 0 for UPDATE or DELETE.
+    // Called when a single-row read returns 0 rows. Skips internal reads (read-back after mutation).
+    private async postReadZeroRowsCheck(node: SelectQueryNode, proceed: ProceedKyselyQueryFunction): Promise<void> {
+        if (ORM_WRITE_OPERATIONS.has(policyContextStorage.getStore()?.operation ?? '')) return;
+        if (!node.from || node.from.froms.length !== 1) return;
+        const extractedTable = this.extractTableName(node.from.froms[0]!);
+        if (!extractedTable) return;
+        const { model } = extractedTable;
+        if (!QueryUtils.getModel(this.client.$schema, model)) return;
+        return this.postZeroRowsCheck(model, 'read', node.where?.where, proceed);
+    }
+
+    // Checks if any row matching WHERE exists without the policy filter.
     // If a row exists but was filtered by policy → throws REJECTED_BY_POLICY with codes.
-    // If no row matches → returns silently (ORM layer handles "not found").
-    // Combines existence check and code diagnostics into a single query.
-    private async postMutationZeroRowsCheck(
+    // If no row matches → returns silently.
+    private async postZeroRowsCheck(
         model: string,
-        operation: 'update' | 'delete',
-        originalWhere: OperationNode | undefined,
+        operation: 'read' | 'update' | 'delete',
+        whereCondition: OperationNode | undefined,
         proceed: ProceedKyselyQueryFunction,
     ) {
-        if (this.isManyToManyJoinTable(model)) return;
         if (this.tryGetConstantPolicy(model, operation) === true) return;
         if (this.options.fetchPolicyCodes === false) return;
         const policiesWithCode = this.getModelPolicies(model, operation).filter((p) => p.code);
-        // Skip if no policies carry an error code — nothing to surface.
         if (policiesWithCode.length === 0) return;
+        if (this.isManyToManyJoinTable(model)) return;
 
-        const whereCondition = originalWhere ?? trueNode(this.dialect);
+        // No WHERE clause means "match all rows" — use a literal TRUE so the existence sub-query is valid SQL.
+        const where = whereCondition ?? trueNode(this.dialect);
 
         const rowExistsInner = this.eb
             .selectFrom(model)
             .select(this.eb.lit(1).as('_'))
-            .where(() => new ExpressionWrapper(whereCondition));
+            .where(() => new ExpressionWrapper(where));
 
         const codeSelections = policiesWithCode.map((policy, i) => {
             const condition = this.compilePolicyCondition(model, undefined, operation, policy);
@@ -290,7 +308,7 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
             const inner = this.eb
                 .selectFrom(model)
                 .select(this.eb.lit(1).as('_'))
-                .where(() => new ExpressionWrapper(conjunction(this.dialect, [whereCondition, violationCondition])));
+                .where(() => new ExpressionWrapper(conjunction(this.dialect, [where, violationCondition])));
             return SelectionNode.create(
                 AliasNode.create(this.eb.exists(inner).toOperationNode(), IdentifierNode.create(`$c${i}`)),
             );
@@ -312,10 +330,7 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         const row = result.rows[0] ?? {};
         if (!row.$exists) return;
 
-        const policyCodes = policiesWithCode
-            ? policiesWithCode.filter((_, i) => row[`$c${i}`]).map((p) => p.code!)
-            : undefined;
-
+        const policyCodes = policiesWithCode.filter((_, i) => row[`$c${i}`]).map((p) => p.code!);
         throw createRejectedByPolicyError(model, RejectedByPolicyReason.NO_ACCESS, undefined, policyCodes);
     }
 
