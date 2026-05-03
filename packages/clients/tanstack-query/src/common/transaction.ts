@@ -37,8 +37,11 @@ export function makeTransactionOnSuccess(
     origOnSuccess: ((...args: any[]) => any) | undefined,
 ) {
     return async (...args: any[]) => {
-        const variables = args[1] as TransactionOperation[];
+        const variables = Array.isArray(args[1]) ? (args[1] as TransactionOperation[]) : [];
         for (const op of variables) {
+            if (typeof op?.model !== 'string' || typeof op?.op !== 'string') {
+                continue;
+            }
             const invalidator = createInvalidator(op.model, op.op, schema, invalidateFunc, logging);
             // pass op.args as mutation variables so the invalidator can analyze nested writes
             await invalidator(args[0], op.args, args[2]);
