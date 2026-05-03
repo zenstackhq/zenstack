@@ -100,3 +100,12 @@ export type WithOptimistic<T> = T extends Array<infer U> ? Array<WithOptimisticF
 export type ProcedureReturn<Schema extends SchemaDef, Name extends GetProcedureNames<Schema>> = Awaited<
     ReturnType<ProcedureFunc<Schema, Name>>
 >;
+
+/**
+ * Represents a single operation to execute within a sequential transaction.
+ */
+export type TransactionOperation = {
+    model: string;
+    op: string;
+    args?: unknown;
+};

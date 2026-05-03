@@ -65,16 +65,18 @@ import { getContext, setContext } from 'svelte';
 import { getAllQueries, invalidateQueriesMatchingPredicate } from '../common/client.js';
 import { CUSTOM_PROC_ROUTE_NAME } from '../common/constants.js';
 import { getQueryKey } from '../common/query-key.js';
+import { makeTransactionMutationFn, makeTransactionOnSuccess } from '../common/transaction.js';
 import type {
     ExtraMutationOptions,
     ExtraQueryOptions,
     ProcedureReturn,
     QueryContext,
+    TransactionOperation,
     TrimSlicedOperations,
     WithOptimistic,
 } from '../common/types.js';
-export type { FetchFn } from '@zenstackhq/client-helpers/fetch';
 export type { InferExtResult, InferOptions, InferSchema } from '@zenstackhq/client-helpers';
+export type { FetchFn } from '@zenstackhq/client-helpers/fetch';
 export type { SchemaDef } from '@zenstackhq/schema';
 
 type ProcedureHookFn<
@@ -157,6 +159,12 @@ export type ModelMutationModelResult<
     ): Promise<SimplifiedResult<Schema, Model, T, Options, false, Array, ExtResult>>;
 };
 
+export type TransactionMutationOptions = Omit<
+    CreateMutationOptions<unknown[], DefaultError, TransactionOperation[]>,
+    'mutationFn'
+> &
+    Omit<ExtraMutationOptions, 'optimisticUpdate' | 'optimisticDataProvider'>;
+
 export type ClientHooks<
     Schema extends SchemaDef,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
@@ -168,7 +176,13 @@ export type ClientHooks<
         Options,
         ExtResult
     >;
-} & ProcedureHooks<Schema, Options>;
+} & ProcedureHooks<Schema, Options> & {
+        $transaction: {
+            useSequential(
+                options?: TransactionMutationOptions,
+            ): CreateMutationResult<unknown[], DefaultError, TransactionOperation[]>;
+        };
+    };
 
 type ProcedureHookGroup<Schema extends SchemaDef, Options extends QueryOptions<Schema>> = {
     [Name in GetSlicedProcedures<Schema, Options>]: GetProcedure<Schema, Name> extends { mutation: true }
@@ -373,6 +387,10 @@ export function useClientQueries<SchemaOrClient extends SchemaDef | ClientContra
 
         (result as any).$procs = buildProcedureHooks();
     }
+
+    (result as any).$transaction = {
+        useSequential: (hookOptions?: any) => useInternalTransactionMutation(schema, merge(options, hookOptions)),
+    };
 
     return result;
 }
@@ -687,6 +705,33 @@ export function useInternalMutation<TArgs, R = any>(
 
         return result;
     };
+    return createMutation(finalOptions);
+}
+
+export function useInternalTransactionMutation(schema: SchemaDef, options?: Accessor<TransactionMutationOptions>) {
+    const { endpoint, fetch, logging } = useFetchOptions(options);
+    const queryClient = useQueryClient();
+
+    const mutationFn = makeTransactionMutationFn(endpoint, fetch);
+
+    const finalOptions = () => {
+        const optionsValue = options?.();
+        const result: any = { ...optionsValue, mutationFn };
+
+        if (optionsValue?.invalidateQueries !== false) {
+            result.onSuccess = makeTransactionOnSuccess(
+                schema,
+                (predicate: InvalidationPredicate) =>
+                    // @ts-ignore
+                    invalidateQueriesMatchingPredicate(queryClient, predicate),
+                logging,
+                optionsValue?.onSuccess as any,
+            );
+        }
+
+        return result;
+    };
+
     return createMutation(finalOptions);
 }
 

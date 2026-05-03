@@ -1784,4 +1784,96 @@ describe('React Query Test', () => {
             expect(cacheData[0].email).toBe('foo');
         });
     });
+
+    it('works with sequential transaction and invalidation', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        const users: any[] = [];
+        const posts: any[] = [];
+
+        nock(makeUrl('User', 'findMany'))
+            .get(/.*/)
+            .reply(200, () => ({ data: users }))
+            .persist();
+
+        nock(makeUrl('Post', 'findMany'))
+            .get(/.*/)
+            .reply(200, () => ({ data: posts }))
+            .persist();
+
+        const { result: userResult } = renderHook(() => useClientQueries(schema).user.useFindMany(), { wrapper });
+        const { result: postResult } = renderHook(() => useClientQueries(schema).post.useFindMany(), { wrapper });
+
+        await waitFor(() => {
+            expect(userResult.current.data).toHaveLength(0);
+            expect(postResult.current.data).toHaveLength(0);
+        });
+
+        nock(`${BASE_URL}/api/model/$transaction/sequential`)
+            .post(/.*/)
+            .reply(200, () => {
+                users.push({ id: '1', email: 'foo@bar.com' });
+                posts.push({ id: 'p1', title: 'Hello' });
+                return { data: [users[0], posts[0]] };
+            });
+
+        const { result: txResult } = renderHook(
+            () => useClientQueries(schema).$transaction.useSequential(),
+            { wrapper },
+        );
+
+        act(() =>
+            txResult.current.mutate([
+                { model: 'User', op: 'create', args: { data: { email: 'foo@bar.com' } } },
+                { model: 'Post', op: 'create', args: { data: { title: 'Hello' } } },
+            ]),
+        );
+
+        await waitFor(() => {
+            const cachedUsers = queryClient.getQueryData(getQueryKey('User', 'findMany', undefined));
+            const cachedPosts = queryClient.getQueryData(getQueryKey('Post', 'findMany', undefined));
+            expect(cachedUsers).toHaveLength(1);
+            expect(cachedPosts).toHaveLength(1);
+        });
+    });
+
+    it('works with sequential transaction and no invalidation', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        const users: any[] = [];
+
+        nock(makeUrl('User', 'findMany'))
+            .get(/.*/)
+            .reply(200, () => ({ data: users }))
+            .persist();
+
+        const { result: userResult } = renderHook(() => useClientQueries(schema).user.useFindMany(), { wrapper });
+
+        await waitFor(() => {
+            expect(userResult.current.data).toHaveLength(0);
+        });
+
+        nock(`${BASE_URL}/api/model/$transaction/sequential`)
+            .post(/.*/)
+            .reply(200, () => {
+                users.push({ id: '1', email: 'foo@bar.com' });
+                return { data: [users[0]] };
+            });
+
+        const { result: txResult } = renderHook(
+            () => useClientQueries(schema).$transaction.useSequential({ invalidateQueries: false }),
+            { wrapper },
+        );
+
+        act(() =>
+            txResult.current.mutate([{ model: 'User', op: 'create', args: { data: { email: 'foo@bar.com' } } }]),
+        );
+
+        await waitFor(() => {
+            expect(txResult.current.isSuccess).toBe(true);
+            // cache not refreshed because invalidation was disabled
+            const cachedUsers = queryClient.getQueryData(getQueryKey('User', 'findMany', undefined));
+            expect(cachedUsers).toHaveLength(0);
+        });
+    });
 });
