@@ -135,13 +135,11 @@ type MapFieldTypeToZod<Schema extends SchemaDef, FieldType> = FieldType extends 
         ? z.ZodObject<GetTypeDefFieldsShape<Schema, FieldType>, z.core.$strict>
         : z.ZodUnknown;
 
-type JsonZodType =
-    | z.ZodObject<Record<string, z.ZodType>, z.core.$loose>
-    | z.ZodArray<z.ZodType>
-    | z.ZodString
-    | z.ZodNumber
-    | z.ZodBoolean
-    | z.ZodNull;
+export type JsonValue = string | number | boolean | JsonObject | JsonArray;
+type JsonObject = { [key: string]: JsonValue | null };
+type JsonArray = Array<JsonValue | null>;
+
+type JsonZodType = z.ZodType<JsonValue>;
 
 type EnumZodType<Schema extends SchemaDef, EnumName extends GetEnums<Schema>> = z.ZodEnum<{
     [Key in keyof GetEnum<Schema, EnumName>]: GetEnum<Schema, EnumName>[Key];
