@@ -2,6 +2,11 @@ import type { QueryClient } from '@tanstack/query-core';
 import type { InvalidationPredicate, QueryInfo } from '@zenstackhq/client-helpers';
 import { parseQueryKey } from './query-key.js';
 
+/** Strips a trailing slash from an endpoint URL. */
+export function normalizeEndpoint(endpoint: string) {
+    return endpoint.replace(/\/$/, '');
+}
+
 export function invalidateQueriesMatchingPredicate(queryClient: QueryClient, predicate: InvalidationPredicate) {
     return queryClient.invalidateQueries({
         predicate: ({ queryKey }) => {

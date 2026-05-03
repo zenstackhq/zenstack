@@ -65,7 +65,7 @@ import type {
 } from '@zenstackhq/orm';
 import type { GetModels, SchemaDef } from '@zenstackhq/schema';
 import { createContext, useContext } from 'react';
-import { getAllQueries, invalidateQueriesMatchingPredicate } from './common/client.js';
+import { getAllQueries, invalidateQueriesMatchingPredicate, normalizeEndpoint } from './common/client.js';
 import { CUSTOM_PROC_ROUTE_NAME } from './common/constants.js';
 import { getQueryKey } from './common/query-key.js';
 import { makeTransactionMutationFn, makeTransactionOnSuccess } from './common/transaction.js';
@@ -832,7 +832,7 @@ function useFetchOptions(options: QueryContext | undefined) {
     const { endpoint, fetch, logging } = useHooksContext();
     // options take precedence over context
     return {
-        endpoint: options?.endpoint ?? endpoint,
+        endpoint: normalizeEndpoint(options?.endpoint ?? endpoint),
         fetch: options?.fetch ?? fetch,
         logging: options?.logging ?? logging,
     };

@@ -62,7 +62,7 @@ import type {
 } from '@zenstackhq/orm';
 import type { GetModels, SchemaDef } from '@zenstackhq/schema';
 import { getContext, setContext } from 'svelte';
-import { getAllQueries, invalidateQueriesMatchingPredicate } from '../common/client.js';
+import { getAllQueries, invalidateQueriesMatchingPredicate, normalizeEndpoint } from '../common/client.js';
 import { CUSTOM_PROC_ROUTE_NAME } from '../common/constants.js';
 import { getQueryKey } from '../common/query-key.js';
 import { makeTransactionMutationFn, makeTransactionOnSuccess } from '../common/transaction.js';
@@ -741,7 +741,7 @@ function useFetchOptions(options: Accessor<QueryContext> | undefined) {
     const optionsValue = options?.();
     // options take precedence over context
     return {
-        endpoint: optionsValue?.endpoint ?? endpoint,
+        endpoint: normalizeEndpoint(optionsValue?.endpoint ?? endpoint),
         fetch: optionsValue?.fetch ?? fetch,
         logging: optionsValue?.logging ?? logging,
     };
