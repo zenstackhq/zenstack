@@ -1,3 +1,4 @@
+import { AnyNull, AnyNullClass, DbNull, DbNullClass, JsonNull, JsonNullClass } from '@zenstackhq/orm/common-types';
 import { Decimal } from 'decimal.js';
 import SuperJSON from 'superjson';
 import { match } from 'ts-pattern';
@@ -37,6 +38,33 @@ export function registerCustomSerializers() {
             deserialize: (v) => new Decimal(v),
         },
         'Decimal',
+    );
+
+    SuperJSON.registerCustom<DbNullClass, string>(
+        {
+            isApplicable: (v): v is DbNullClass => v instanceof DbNullClass,
+            serialize: () => 'DbNull',
+            deserialize: () => DbNull,
+        },
+        'DbNull',
+    );
+
+    SuperJSON.registerCustom<JsonNullClass, string>(
+        {
+            isApplicable: (v): v is JsonNullClass => v instanceof JsonNullClass,
+            serialize: () => 'JsonNull',
+            deserialize: () => JsonNull,
+        },
+        'JsonNull',
+    );
+
+    SuperJSON.registerCustom<AnyNullClass, string>(
+        {
+            isApplicable: (v): v is AnyNullClass => v instanceof AnyNullClass,
+            serialize: () => 'AnyNull',
+            deserialize: () => AnyNull,
+        },
+        'AnyNull',
     );
 
     // `Buffer` is not available in edge runtime
