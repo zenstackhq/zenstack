@@ -1,4 +1,12 @@
-import { ClientContract } from '@zenstackhq/orm';
+import {
+    ClientContract,
+    $stepRef,
+    $get,
+    $item,
+    $first,
+    $filter,
+    $map,
+} from '@zenstackhq/orm';
 import { SchemaDef } from '@zenstackhq/orm/schema';
 import { createPolicyTestClient, createTestClient } from '@zenstackhq/testtools';
 import Decimal from 'decimal.js';
@@ -6,6 +14,14 @@ import SuperJSON from 'superjson';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { RPCApiHandler } from '../../src/api';
 import { schema } from '../utils';
+
+type TestPost = {
+    id: string;
+    title: string;
+    authorId: string | null;
+    published: boolean;
+    viewCount: number;
+};
 
 describe('RPC API Handler Tests', () => {
     let client: ClientContract<SchemaDef>;
@@ -1028,6 +1044,613 @@ procedure echoOverview(o: Overview): Overview
             // User should not have been committed
             const count = await rawClient.user.count();
             expect(count).toBe(0);
+        });
+
+        describe('step references', () => {
+            it('passes result from one step to the next by path', async () => {
+                const handleRequest = makeHandler();
+
+                await rawClient.post.deleteMany();
+                await rawClient.user.deleteMany();
+
+                const r = await handleRequest({
+                    method: 'post',
+                    path: '/$transaction/sequential',
+                    requestBody: [
+                        {
+                            model: 'User',
+                            op: 'create',
+                            args: { data: { id: 'stepuser1', email: 'stepuser1@abc.com' } },
+                        },
+                        {
+                            model: 'Post',
+                            op: 'create',
+                            args: {
+                                data: {
+                                    id: 'steppost1',
+                                    title: 'Step Post',
+                                    authorId: $stepRef(1, 'id'),
+                                },
+                            },
+                        },
+                        {
+                            model: 'Post',
+                            op: 'findMany',
+                            args: { where: { authorId: $stepRef(1, 'id') } },
+                        },
+                    ],
+                    client: rawClient,
+                });
+                expect(r.status).toBe(200);
+                expect(Array.isArray(r.data)).toBe(true);
+                expect(r.data).toHaveLength(3);
+                expect(r.data[0]).toMatchObject({ id: 'stepuser1', email: 'stepuser1@abc.com' });
+                expect(r.data[1]).toMatchObject({ id: 'steppost1', title: 'Step Post', authorId: 'stepuser1' });
+                expect(r.data[2]).toHaveLength(1);
+                expect(r.data[2][0]).toMatchObject({ id: 'steppost1' });
+
+                await rawClient.post.deleteMany();
+                await rawClient.user.deleteMany();
+            });
+
+            it('uses entire result of a step when path is omitted', async () => {
+                const handleRequest = makeHandler();
+
+                await rawClient.post.deleteMany();
+                await rawClient.user.deleteMany();
+
+                const r = await handleRequest({
+                    method: 'post',
+                    path: '/$transaction/sequential',
+                    requestBody: [
+                        {
+                            model: 'User',
+                            op: 'create',
+                            args: { data: { id: 'stepuser2', email: 'stepuser2@abc.com' } },
+                        },
+                        {
+                            model: 'Post',
+                            op: 'create',
+                            args: {
+                                data: { id: 'steppost2', title: 'Step Post 2' },
+                            },
+                        },
+                        {
+                            model: 'Post',
+                            op: 'findMany',
+                            args: {
+                                where: {
+                                    OR: [
+                                        { id: $stepRef(2, 'id') },
+                                    ],
+                                },
+                            },
+                        },
+                    ],
+                    client: rawClient,
+                });
+
+                expect(r.status).toBe(200);
+                expect(r.data[2]).toHaveLength(1);
+                expect(r.data[2][0]).toMatchObject({ id: 'steppost2' });
+
+                await rawClient.post.deleteMany();
+                await rawClient.user.deleteMany();
+            });
+
+            it('mixes queries and mutations with step refs', async () => {
+                const handleRequest = makeHandler();
+
+                await rawClient.post.deleteMany();
+                await rawClient.user.deleteMany();
+
+                const r = await handleRequest({
+                    method: 'post',
+                    path: '/$transaction/sequential',
+                    requestBody: [
+                        {
+                            model: 'User',
+                            op: 'create',
+                            args: { data: { id: 'stepuser3', email: 'stepuser3@abc.com' } },
+                        },
+                        {
+                            model: 'Post',
+                            op: 'create',
+                            args: {
+                                data: {
+                                    id: 'steppost3',
+                                    title: 'Step Post 3',
+                                    authorId: $stepRef(1, 'id'),
+                                },
+                            },
+                        },
+                        {
+                            model: 'Post',
+                            op: 'findUnique',
+                            args: { where: { id: $stepRef(2, 'id') } },
+                        },
+                    ],
+                    client: rawClient,
+                });
+
+                expect(r.status).toBe(200);
+                expect(r.data[0]).toMatchObject({ id: 'stepuser3' });
+                expect(r.data[1]).toMatchObject({ id: 'steppost3', authorId: 'stepuser3' });
+                expect(r.data[2]).toMatchObject({ id: 'steppost3', authorId: 'stepuser3' });
+
+                await rawClient.post.deleteMany();
+                await rawClient.user.deleteMany();
+            });
+
+            it('throws an error when referencing a step index that does not exist', async () => {
+                const handleRequest = makeHandler();
+
+                const r = await handleRequest({
+                    method: 'post',
+                    path: '/$transaction/sequential',
+                    requestBody: [
+                        {
+                            model: 'User',
+                            op: 'create',
+                            args: { data: { id: 'stepuser4', email: 'stepuser4@abc.com' } },
+                        },
+                        {
+                            model: 'Post',
+                            op: 'create',
+                            args: {
+                                data: {
+                                    id: 'steppost4',
+                                    title: 'Broken Post',
+                                    authorId: $stepRef(5, 'id'),
+                                },
+                            },
+                        },
+                    ],
+                    client: rawClient,
+                });
+
+                expect(r.status).toBeGreaterThanOrEqual(400);
+                expect(r.error?.message).toMatch(/out of bounds/i);
+
+                // Clean up
+                await rawClient.post.deleteMany();
+                await rawClient.user.deleteMany();
+            });
+
+            it('throws an error when referencing step 0 because steps are 1-based', async () => {
+                const handleRequest = makeHandler();
+
+                const r = await handleRequest({
+                    method: 'post',
+                    path: '/$transaction/sequential',
+                    requestBody: [
+                        {
+                            model: 'User',
+                            op: 'create',
+                            args: { data: { id: 'stepuser0', email: 'stepuser0@abc.com' } },
+                        },
+                        {
+                            model: 'Post',
+                            op: 'create',
+                            args: {
+                                data: {
+                                    id: 'steppost0',
+                                    title: 'Zero Step Post',
+                                    authorId: $stepRef(0, 'id'),
+                                },
+                            },
+                        },
+                    ],
+                    client: rawClient,
+                });
+
+                expect(r.status).toBeGreaterThanOrEqual(400);
+                expect(r.error?.message).toMatch(/1-based/i);
+
+                await rawClient.post.deleteMany();
+                await rawClient.user.deleteMany();
+            });
+
+            it('maintains atomicity when a step ref is invalid', async () => {
+                const handleRequest = makeHandler();
+
+                await rawClient.user.deleteMany();
+
+                const r = await handleRequest({
+                    method: 'post',
+                    path: '/$transaction/sequential',
+                    requestBody: [
+                        {
+                            model: 'User',
+                            op: 'create',
+                            args: { data: { id: 'stepuser5', email: 'stepuser5@abc.com' } },
+                        },
+                        {
+                            model: 'Post',
+                            op: 'create',
+                            args: {
+                                data: {
+                                    id: 'steppost5',
+                                    title: 'Rollback Post',
+                                    authorId: $stepRef(99, 'id'),
+                                },
+                            },
+                        },
+                    ],
+                    client: rawClient,
+                });
+
+                expect(r.status).toBeGreaterThanOrEqual(400);
+
+                // User should NOT have been committed because the transaction rolled back
+                const count = await rawClient.user.count();
+                expect(count).toBe(0);
+            });
+
+            it('resolves step refs in deeply nested args', async () => {
+                const handleRequest = makeHandler();
+
+                await rawClient.post.deleteMany();
+                await rawClient.user.deleteMany();
+
+                const r = await handleRequest({
+                    method: 'post',
+                    path: '/$transaction/sequential',
+                    requestBody: [
+                        {
+                            model: 'User',
+                            op: 'create',
+                            args: { data: { id: 'stepuser6', email: 'stepuser6@abc.com' } },
+                        },
+                        {
+                            model: 'Post',
+                            op: 'create',
+                            args: {
+                                data: {
+                                    id: 'steppost6',
+                                    title: 'Nested Ref Post',
+                                    authorId: $stepRef(1, 'id'),
+                                },
+                            },
+                        },
+                        {
+                            model: 'Post',
+                            op: 'update',
+                            args: {
+                                where: { id: $stepRef(2, 'id') },
+                                data: { title: 'Updated Nested Ref Post' },
+                            },
+                        },
+                    ],
+                    client: rawClient,
+                });
+
+                expect(r.status).toBe(200);
+                expect(r.data[2]).toMatchObject({ id: 'steppost6', title: 'Updated Nested Ref Post' });
+
+                await rawClient.post.deleteMany();
+                await rawClient.user.deleteMany();
+            });
+
+            describe('expressions', () => {
+                it('resolves $zenstackExpr: ref (new syntax, equivalent to old StepRef)', async () => {
+                    const handleRequest = makeHandler();
+
+                    await rawClient.post.deleteMany();
+                    await rawClient.user.deleteMany();
+
+                    const r = await handleRequest({
+                        method: 'post',
+                        path: '/$transaction/sequential',
+                        requestBody: [
+                            {
+                                model: 'User',
+                                op: 'create',
+                                args: { data: { id: 'expruser1', email: 'expruser1@abc.com' } },
+                            },
+                            {
+                                model: 'Post',
+                                op: 'create',
+                                args: {
+                                    data: {
+                                        id: 'exprpost1',
+                                        title: 'Expr Post 1',
+                                        authorId: $stepRef(1, 'id'),
+                                    },
+                                },
+                            },
+                        ],
+                        client: rawClient,
+                    });
+
+                    expect(r.status).toBe(200);
+                    expect(r.data[1]).toMatchObject({ id: 'exprpost1', authorId: 'expruser1' });
+
+                    await rawClient.post.deleteMany();
+                    await rawClient.user.deleteMany();
+                });
+
+                it('calls findMany then uses item to pick a specific result', async () => {
+                    const handleRequest = makeHandler();
+
+                    await rawClient.post.deleteMany();
+                    await rawClient.user.deleteMany();
+
+                    // Create user with 3 posts
+                    await rawClient.user.create({
+                        data: {
+                            id: 'expruser2',
+                            email: 'expruser2@abc.com',
+                            posts: {
+                                create: [
+                                    { id: 'p1', title: 'Alpha' },
+                                    { id: 'p2', title: 'Beta' },
+                                    { id: 'p3', title: 'Gamma' },
+                                ],
+                            },
+                        },
+                    });
+
+                    const r = await handleRequest({
+                        method: 'post',
+                        path: '/$transaction/sequential',
+                        requestBody: [
+                            {
+                                model: 'Post',
+                                op: 'findMany',
+                                args: { where: { authorId: 'expruser2' }, orderBy: { title: 'asc' } },
+                            },
+                            {
+                                model: 'Post',
+                                op: 'update',
+                                args: {
+                                    where: {
+                                        id: $get($item($stepRef(1), 1), 'id'),
+                                    },
+                                    data: { title: 'Beta Updated' },
+                                },
+                            },
+                        ],
+                        client: rawClient,
+                    });
+
+                    expect(r.status).toBe(200);
+                    expect(r.data[1]).toMatchObject({ id: 'p2', title: 'Beta Updated' });
+
+                    await rawClient.post.deleteMany();
+                    await rawClient.user.deleteMany();
+                });
+
+                it('calls findMany then uses first to get the first result', async () => {
+                    const handleRequest = makeHandler();
+
+                    await rawClient.post.deleteMany();
+                    await rawClient.user.deleteMany();
+
+                    await rawClient.user.create({
+                        data: {
+                            id: 'expruser3',
+                            email: 'expruser3@abc.com',
+                            posts: {
+                                create: [
+                                    { id: 'p4', title: 'Delta' },
+                                    { id: 'p5', title: 'Epsilon' },
+                                ],
+                            },
+                        },
+                    });
+
+                    const r = await handleRequest({
+                        method: 'post',
+                        path: '/$transaction/sequential',
+                        requestBody: [
+                            {
+                                model: 'Post',
+                                op: 'findMany',
+                                args: { where: { authorId: 'expruser3' }, orderBy: { title: 'asc' } },
+                            },
+                            {
+                                model: 'Post',
+                                op: 'delete',
+                                args: {
+                                    where: {
+                                        id: $get($first($stepRef(1)), 'id'),
+                                    },
+                                },
+                            },
+                        ],
+                        client: rawClient,
+                    });
+
+                    expect(r.status).toBe(200);
+                    expect(r.data[1]).toMatchObject({ id: 'p4' });
+
+                    // Verify the other post remains
+                    const remaining = ((await rawClient.post.findMany()) as TestPost[]).filter((post) => post.authorId === 'expruser3').length;
+                    expect(remaining).toBe(1);
+
+                    await rawClient.post.deleteMany();
+                    await rawClient.user.deleteMany();
+                });
+
+                it('uses filter expression to find matching elements then extracts a field with map', async () => {
+                    const handleRequest = makeHandler();
+
+                    await rawClient.post.deleteMany();
+                    await rawClient.user.deleteMany();
+
+                    await rawClient.user.create({
+                        data: {
+                            id: 'expruser4',
+                            email: 'expruser4@abc.com',
+                            posts: {
+                                create: [
+                                    { id: 'p6', title: 'Published1', published: true, viewCount: 10 },
+                                    { id: 'p7', title: 'Draft1', published: false, viewCount: 5 },
+                                    { id: 'p8', title: 'Published2', published: true, viewCount: 20 },
+                                ],
+                            },
+                        },
+                    });
+
+                    const r = await handleRequest({
+                        method: 'post',
+                        path: '/$transaction/sequential',
+                        requestBody: [
+                            {
+                                model: 'Post',
+                                op: 'findMany',
+                                args: { where: { authorId: 'expruser4' } },
+                            },
+                            {
+                                model: 'Post',
+                                op: 'updateMany',
+                                args: {
+                                    where: {
+                                        id: {
+                                            in: $map($filter($stepRef<TestPost[]>(1), 'published', 'eq', true), 'id'),
+                                        },
+                                    },
+                                    data: { viewCount: 999 },
+                                },
+                            },
+                        ],
+                        client: rawClient,
+                    });
+
+                    expect(r.status).toBe(200);
+
+                    // Verify only published posts were updated
+                    const userPosts = ((await rawClient.post.findMany()) as TestPost[]).filter((post) => post.authorId === 'expruser4');
+                    expect(userPosts.filter((post) => post.viewCount === 999)).toHaveLength(2);
+
+                    expect(userPosts.find((post) => post.id === 'p7')).toMatchObject({ viewCount: 5 });
+
+                    await rawClient.post.deleteMany();
+                    await rawClient.user.deleteMany();
+                });
+
+                it('chains filter with get to reference a specific field from a filtered array item', async () => {
+                    const handleRequest = makeHandler();
+
+                    await rawClient.post.deleteMany();
+                    await rawClient.user.deleteMany();
+
+                    await rawClient.user.create({
+                        data: {
+                            id: 'expruser5',
+                            email: 'expruser5@abc.com',
+                            posts: {
+                                create: [
+                                    { id: 'p9', title: 'Target', published: true },
+                                ],
+                            },
+                        },
+                    });
+
+                    const r = await handleRequest({
+                        method: 'post',
+                        path: '/$transaction/sequential',
+                        requestBody: [
+                            {
+                                model: 'Post',
+                                op: 'findMany',
+                                args: { where: { authorId: 'expruser5' } },
+                            },
+                            {
+                                model: 'Post',
+                                op: 'update',
+                                args: {
+                                    where: {
+                                        id: $get($first($filter($stepRef<TestPost[]>(1), 'title', 'eq', 'Target')), 'id'),
+                                    },
+                                    data: { title: 'Target Updated' },
+                                },
+                            },
+                        ],
+                        client: rawClient,
+                    });
+
+                    expect(r.status).toBe(200);
+                    expect(r.data[1]).toMatchObject({ title: 'Target Updated' });
+
+                    await rawClient.post.deleteMany();
+                    await rawClient.user.deleteMany();
+                });
+
+                it('errors when using item on a non-array result', async () => {
+                    const handleRequest = makeHandler();
+
+                    await rawClient.post.deleteMany();
+                    await rawClient.user.deleteMany();
+
+                    const r = await handleRequest({
+                        method: 'post',
+                        path: '/$transaction/sequential',
+                        requestBody: [
+                            {
+                                model: 'User',
+                                op: 'create',
+                                args: { data: { id: 'expruser6', email: 'expruser6@abc.com' } },
+                            },
+                            {
+                                model: 'Post',
+                                op: 'create',
+                                args: {
+                                    data: {
+                                        id: 'exprpost6',
+                                        title: 'Bad Ref',
+                                        authorId: $get($item($stepRef(1), 0), 'id'),
+                                    },
+                                },
+                            },
+                        ],
+                        client: rawClient,
+                    });
+
+                    expect(r.status).toBeGreaterThanOrEqual(400);
+                    expect(r.error?.message).toMatch(/not an array/i);
+
+                    await rawClient.post.deleteMany();
+                    await rawClient.user.deleteMany();
+                });
+
+                it('errors when filter targets an unknown operator', async () => {
+                    const handleRequest = makeHandler();
+
+                    const r = await handleRequest({
+                        method: 'post',
+                        path: '/$transaction/sequential',
+                        requestBody: [
+                            {
+                                model: 'User',
+                                op: 'findMany',
+                                args: {},
+                            },
+                            {
+                                model: 'User',
+                                op: 'findFirst',
+                                args: {
+                                    where: {
+                                        id: {
+                                            $zenstackExpr: 'get',
+                                            ref: {
+                                                $zenstackExpr: 'filter',
+                                                ref: $stepRef(1),
+                                                where: { field: 'email', op: 'regex', value: '.*' },
+                                            },
+                                            path: 'id',
+                                        },
+                                    },
+                                },
+                            },
+                        ],
+                        client: rawClient,
+                    });
+
+                    expect(r.status).toBeGreaterThanOrEqual(400);
+                });
+            });
         });
     });
 

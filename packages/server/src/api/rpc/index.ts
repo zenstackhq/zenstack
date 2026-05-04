@@ -1,5 +1,11 @@
 import { lowerCaseFirst, safeJSONStringify } from '@zenstackhq/common-helpers';
-import { CoreCrudOperations, ORMError, ORMErrorReason, type ClientContract } from '@zenstackhq/orm';
+import {
+    CoreCrudOperations,
+    ORMError,
+    ORMErrorReason,
+    resolveStepRefs,
+    type ClientContract,
+} from '@zenstackhq/orm';
 import type { SchemaDef } from '@zenstackhq/orm/schema';
 import SuperJSON from 'superjson';
 import { match } from 'ts-pattern';
@@ -261,13 +267,27 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
         }
 
         try {
-            const promises = processedOps.map(({ model, op, args }) => {
-                return (client as any)[model][op](args);
+            log(
+                this.options.log,
+                'debug',
+                () => `handling "$transaction" request with ${processedOps.length} operations`,
+            );
+
+            const clientResult = await client.$transaction(async (tx) => {
+                const results: unknown[] = [];
+                for (const opDef of processedOps) {
+                    const resolvedArgs = resolveStepRefs(opDef.args, results);
+                    log(
+                        this.options.log,
+                        'debug',
+                        () =>
+                            `executing transaction step ${results.length + 1}: ${opDef.model}.${opDef.op} with resolved args: ${safeJSONStringify(resolvedArgs)}`,
+                    );
+                    const result = await (tx as any)[opDef.model][opDef.op](resolvedArgs);
+                    results.push(result);
+                }
+                return results;
             });
-
-            log(this.options.log, 'debug', () => `handling "$transaction" request with ${promises.length} operations`);
-
-            const clientResult = await client.$transaction(promises as any);
 
             const { json, meta } = SuperJSON.serialize(clientResult);
             const responseBody: any = { data: json };

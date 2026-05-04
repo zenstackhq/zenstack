@@ -1,15 +1,20 @@
 <script setup lang="ts">
+import { $filter, $get, $map, $stepRef } from '@zenstackhq/orm';
 import { useClientQueries, type FetchFn } from '@zenstackhq/tanstack-query/vue';
 import { LoremIpsum } from 'lorem-ipsum';
 import { ref } from 'vue';
-import type { Post } from '../../zenstack/models';
+import type { Post, User } from '../../zenstack/models';
 import { schema } from '../../zenstack/schema-lite';
 
 const lorem = new LoremIpsum({ wordsPerSentence: { max: 6, min: 4 } });
 
+type TransactionBatchResult = [User, Post, Post, Post[], unknown, Post[]];
+
 const showPublishedOnly = ref(false);
 const enableFetch = ref(true);
 const optimistic = ref(false);
+const transactionMessage = ref('');
+const transactionSucceeded = ref(false);
 
 const fetch: FetchFn = async (url, init) => {
     // simulate a delay for showing optimistic update effect
@@ -32,6 +37,21 @@ const { data: posts } = clientQueries.post.useFindMany(
 const createPost = clientQueries.post.useCreate(() => ({ optimisticUpdate: optimistic.value }));
 const deletePost = clientQueries.post.useDelete(() => ({ optimisticUpdate: optimistic.value }));
 const updatePost = clientQueries.post.useUpdate(() => ({ optimisticUpdate: optimistic.value }));
+const { mutate, isPending: isCreatingTransaction } = clientQueries.$transaction.useSequential({
+    onSuccess(data) {
+        const [user, draftPost, publicPost, postsBeforePublish, , publishedPosts] = data as TransactionBatchResult;
+        const publishedDraftCount = postsBeforePublish.filter((post) => !post.published).length;
+        transactionSucceeded.value = true;
+        transactionMessage.value =
+            `Created ${user.email}, then published ${publishedDraftCount} draft ` +
+            `using ids mapped from step 4. Final public posts: ${publishedPosts.length} ` +
+            `(${draftPost.title}, ${publicPost.title}).`;
+    },
+    onError(error) {
+        transactionSucceeded.value = false;
+        transactionMessage.value = error.message;
+    },
+});
 
 const onCreatePost = () => {
     if (!users.value) {
@@ -65,6 +85,79 @@ const onTogglePublishPost = (post: Post) => {
         data: { published: !post.published },
     });
 };
+
+const onCreateTransactionPost = () => {
+    transactionMessage.value = '';
+    transactionSucceeded.value = false;
+
+    const suffix = `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const draftTitle = `Draft ${lorem.generateWords()}`;
+    const publicTitle = `Public ${lorem.generateWords()}`;
+    const email = `transaction-${suffix}@example.com`;
+
+    mutate([
+        {
+            model: 'User',
+            op: 'create',
+            args: {
+                data: {
+                    email,
+                    name: 'Transaction User',
+                },
+            },
+        },
+        {
+            model: 'Post',
+            op: 'create',
+            args: {
+                data: {
+                    title: draftTitle,
+                    published: false,
+                    authorId: $get($stepRef<User>(1), 'id'),
+                },
+            },
+        },
+        {
+            model: 'Post',
+            op: 'create',
+            args: {
+                data: {
+                    title: publicTitle,
+                    published: true,
+                    authorId: $get($stepRef<User>(1), 'id'),
+                },
+            },
+        },
+        {
+            model: 'Post',
+            op: 'findMany',
+            args: {
+                where: { authorId: $get($stepRef<User>(1), 'id') },
+                orderBy: { createdAt: 'asc' },
+            },
+        },
+        {
+            model: 'Post',
+            op: 'updateMany',
+            args: {
+                where: {
+                    id: {
+                        in: $map($filter($stepRef<Post[]>(4), 'published', 'eq', false), 'id'),
+                    },
+                },
+                data: { published: true },
+            },
+        },
+        {
+            model: 'Post',
+            op: 'findMany',
+            args: {
+                where: { authorId: $get($stepRef<User>(1), 'id'), published: true },
+                orderBy: { createdAt: 'asc' },
+            },
+        },
+    ]);
+};
 </script>
 
 <template>
@@ -91,12 +184,30 @@ const onTogglePublishPost = (post: Post) => {
             </NuxtLink>
         </div>
 
-        <button
-            @click="onCreatePost"
-            class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 cursor-pointer"
+        <div class="flex flex-col gap-2 sm:flex-row">
+            <button
+                @click="onCreatePost"
+                class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 cursor-pointer"
+            >
+                New Post
+            </button>
+
+            <button
+                :disabled="isCreatingTransaction"
+                @click="onCreateTransactionPost"
+                class="rounded-md bg-orange-600 px-4 py-2 text-white hover:bg-orange-700 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+            >
+                {{ isCreatingTransaction ? 'Running transaction...' : 'Batch User + Posts Transaction' }}
+            </button>
+        </div>
+
+        <p
+            v-if="transactionMessage"
+            class="text-sm"
+            :class="transactionSucceeded ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
         >
-            New Post
-        </button>
+            {{ transactionMessage }}
+        </p>
 
         <div>
             <div>Current users</div>
