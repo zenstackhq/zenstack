@@ -2,6 +2,7 @@ import type { Logger } from '@zenstackhq/client-helpers';
 import { createInvalidator, type InvalidateFunc } from '@zenstackhq/client-helpers';
 import type { FetchFn } from '@zenstackhq/client-helpers/fetch';
 import { fetcher, marshal } from '@zenstackhq/client-helpers/fetch';
+import { CoreReadOperations } from '@zenstackhq/orm';
 import type { SchemaDef } from '@zenstackhq/schema';
 import { TRANSACTION_ROUTE_PREFIX } from './constants.js';
 import type { TransactionOperation } from './types.js';
@@ -9,10 +10,7 @@ import type { TransactionOperation } from './types.js';
 /**
  * Builds the mutation function for a sequential transaction request.
  */
-export function makeTransactionMutationFn<Schema extends SchemaDef>(
-    endpoint: string,
-    fetch: FetchFn | undefined,
-) {
+export function makeTransactionMutationFn<Schema extends SchemaDef>(endpoint: string, fetch: FetchFn | undefined) {
     return (operations: TransactionOperation<Schema>[]) => {
         const reqUrl = `${endpoint}/${TRANSACTION_ROUTE_PREFIX}/sequential`;
         const fetchInit = {
@@ -43,6 +41,10 @@ export function makeTransactionOnSuccess(
         const variables = Array.isArray(args[1]) ? args[1] : [];
         for (const op of variables) {
             if (typeof op?.model !== 'string' || typeof op?.op !== 'string') {
+                continue;
+            }
+            // read-only ops don't mutate state, so they don't trigger invalidation
+            if (CoreReadOperations.includes(op.op)) {
                 continue;
             }
             const invalidator = createInvalidator(op.model, op.op, schema, invalidateFunc, logging);

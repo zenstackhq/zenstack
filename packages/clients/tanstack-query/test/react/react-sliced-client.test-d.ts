@@ -1,8 +1,8 @@
 import { ZenStackClient } from '@zenstackhq/orm';
 import { describe, expectTypeOf, it } from 'vitest';
-import { useClientQueries } from '../src/react';
-import { schema } from './schemas/basic/schema-lite';
-import { schema as procSchema } from './schemas/procedures/schema-lite';
+import { useClientQueries } from '../../src/react';
+import { schema } from '../schemas/basic/schema-lite';
+import { schema as procSchema } from '../schemas/procedures/schema-lite';
 
 describe('React client sliced client test', () => {
     const _db = new ZenStackClient(schema, {

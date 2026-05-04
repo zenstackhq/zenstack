@@ -1,7 +1,7 @@
 import { describe, it } from 'vitest';
-import { useClientQueries } from '../src/react';
-import { schema } from './schemas/basic/schema-lite';
-import { schema as proceduresSchema } from './schemas/procedures/schema-lite';
+import { useClientQueries } from '../../src/react';
+import { schema } from '../schemas/basic/schema-lite';
+import { schema as proceduresSchema } from '../schemas/procedures/schema-lite';
 
 describe('React client typing test', () => {
     it('types model queries correctly', () => {

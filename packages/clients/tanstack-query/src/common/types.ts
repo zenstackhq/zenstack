@@ -156,10 +156,8 @@ type AllowedTransactionOps<Schema extends SchemaDef, Model extends GetModels<Sch
  */
 export type TransactionOperation<Schema extends SchemaDef> = {
     [Model in GetModels<Schema>]: {
-        [Op in AllowedTransactionOps<Schema, Model>]: {
-            model: Model;
-            op: Op;
-            args?: CrudArgsMap<Schema, Model>[Op];
-        };
+        [Op in AllowedTransactionOps<Schema, Model>]: {} extends CrudArgsMap<Schema, Model>[Op]
+            ? { model: Model; op: Op; args?: CrudArgsMap<Schema, Model>[Op] }
+            : { model: Model; op: Op; args: CrudArgsMap<Schema, Model>[Op] };
     }[AllowedTransactionOps<Schema, Model>];
 }[GetModels<Schema>];
