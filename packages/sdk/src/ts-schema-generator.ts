@@ -626,6 +626,10 @@ export class TsSchemaGenerator {
             objectFields.push(ts.factory.createPropertyAssignment('omit', ts.factory.createTrue()));
         }
 
+        if (hasAttribute(field, '@fuzzy')) {
+            objectFields.push(ts.factory.createPropertyAssignment('fuzzy', ts.factory.createTrue()));
+        }
+
         // originModel
         if (
             contextModel &&

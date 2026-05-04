@@ -378,7 +378,8 @@ type FieldFilter<
               : // primitive
                 AddFuzzyFilterIfSupported<
                     Schema,
-                    GetModelFieldType<Schema, Model, Field>,
+                    Model,
+                    Field,
                     AllowedKinds,
                     PrimitiveFilter<
                         GetModelFieldType<Schema, Model, Field>,
@@ -392,30 +393,36 @@ type FieldFilter<
  * Conditionally augments a primitive filter with the `fuzzy` operator when:
  * 1. The field's type is `String`, AND
  * 2. The `Fuzzy` filter kind is allowed for this field, AND
- * 3. The schema's provider supports fuzzy search (postgres only).
+ * 3. The schema's provider supports fuzzy search (postgres only), AND
+ * 4. The field is annotated with `@fuzzy` in the ZModel schema.
  *
  * Returns `Base` unchanged when any condition fails — never `Base & {}`,
  * since intersecting with `{}` would strip `null`/`undefined` from `Base`.
  */
 type AddFuzzyFilterIfSupported<
     Schema extends SchemaDef,
-    FieldType extends string,
+    Model extends GetModels<Schema>,
+    Field extends GetModelFields<Schema, Model>,
     AllowedKinds extends FilterKind,
     Base,
-> = FieldType extends 'String'
-    ? 'Fuzzy' extends AllowedKinds
-        ? ProviderSupportsFuzzy<Schema> extends true
-            ? Base & {
-                  /**
-                   * Performs a fuzzy search on the string field. Only available when
-                   * the schema's provider is `postgresql` (uses `pg_trgm`).
-                   * See {@link FuzzyFilterPayload} for the full options reference.
-                   */
-                  fuzzy?: FuzzyFilterPayload;
-              }
+> =
+    GetModelFieldType<Schema, Model, Field> extends 'String'
+        ? 'Fuzzy' extends AllowedKinds
+            ? ProviderSupportsFuzzy<Schema> extends true
+                ? GetModelField<Schema, Model, Field>['fuzzy'] extends true
+                    ? Base & {
+                          /**
+                           * Performs a fuzzy search on the string field. Only available when
+                           * the schema's provider is `postgresql` (requires `pg_trgm` extension)
+                           * and the field is annotated with `@fuzzy` in the ZModel schema.
+                           * See {@link FuzzyFilterPayload} for the full options reference.
+                           */
+                          fuzzy?: FuzzyFilterPayload;
+                      }
+                    : Base
+                : Base
             : Base
-        : Base
-    : Base;
+        : Base;
 
 type EnumFilter<
     Schema extends SchemaDef,
@@ -930,6 +937,14 @@ type StringFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
 }[NonRelationFields<Schema, Model>];
 
 /**
+ * String fields that have been annotated with `@fuzzy` and are therefore eligible
+ * for `_fuzzyRelevance` ordering.
+ */
+type FuzzyFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+    [Key in StringFields<Schema, Model>]: GetModelField<Schema, Model, Key>['fuzzy'] extends true ? Key : never;
+}[StringFields<Schema, Model>];
+
+/**
  * Payload for the `fuzzy` string filter operator. Performs a fuzzy search using
  * PostgreSQL `pg_trgm` (only available when the schema's provider is `postgresql`).
  * Not supported on MySQL or SQLite (throws `NotSupported` at runtime).
@@ -984,12 +999,12 @@ export type FuzzyRelevanceOrderBy<Schema extends SchemaDef, Model extends GetMod
      */
     _fuzzyRelevance?: {
         /**
-         * String fields to compute relevance against (must be non-empty).
+         * String fields annotated with `@fuzzy` to compute relevance against (must be non-empty).
          *
          * When multiple fields are provided, the row's relevance score is the
          * greatest per-field similarity, i.e. `GREATEST(similarity(field1, search), similarity(field2, search), ...)`.
          */
-        fields: [StringFields<Schema, Model>, ...StringFields<Schema, Model>[]];
+        fields: [FuzzyFields<Schema, Model>, ...FuzzyFields<Schema, Model>[]];
         /**
          * The search term to compute relevance for.
          */

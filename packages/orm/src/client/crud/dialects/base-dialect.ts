@@ -600,7 +600,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         }
 
         return match(fieldDef.type as BuiltinType)
-            .with('String', () => this.buildStringFilter(fieldRef, payload))
+            .with('String', () => this.buildStringFilter(fieldRef, payload, fieldDef))
             .with(P.union('Int', 'Float', 'Decimal', 'BigInt'), (type) =>
                 this.buildNumberFilter(fieldRef, type, payload),
             )
@@ -915,7 +915,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         return { conditions, consumedKeys };
     }
 
-    private buildStringFilter(fieldRef: Expression<any>, payload: StringFilter<true, boolean>) {
+    private buildStringFilter(fieldRef: Expression<any>, payload: StringFilter<true, boolean>, fieldDef?: FieldDef) {
         let mode: 'default' | 'insensitive' | undefined;
         if (payload && typeof payload === 'object' && 'mode' in payload) {
             mode = payload.mode;
@@ -926,7 +926,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             payload,
             mode === 'insensitive' ? this.eb.fn('lower', [fieldRef]) : fieldRef,
             (value) => this.prepStringCasing(this.eb, value, mode),
-            (value) => this.buildStringFilter(fieldRef, value as StringFilter<true, boolean>),
+            (value) => this.buildStringFilter(fieldRef, value as StringFilter<true, boolean>, fieldDef),
         );
 
         if (payload && typeof payload === 'object') {
@@ -940,6 +940,10 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                 }
 
                 if (key === 'fuzzy') {
+                    invariant(
+                        fieldDef?.fuzzy === true,
+                        `field "${fieldDef?.name ?? '<unknown>'}" is not fuzzy-searchable; add the \`@fuzzy\` attribute to use the \`fuzzy\` filter`,
+                    );
                     conditions.push(this.buildFuzzyFilter(fieldRef, this.normalizeFuzzyOptions(value)));
                     continue;
                 }
@@ -1125,6 +1129,13 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                     );
                     const unaccent = value.unaccent ?? false;
                     invariant(typeof unaccent === 'boolean', '_fuzzyRelevance.unaccent must be a boolean');
+                    for (const fieldName of value.fields as string[]) {
+                        const fieldDef = requireField(this.schema, model, fieldName);
+                        invariant(
+                            fieldDef.fuzzy === true,
+                            `field "${fieldName}" is not fuzzy-searchable; add the \`@fuzzy\` attribute to use it in \`_fuzzyRelevance\``,
+                        );
+                    }
                     const fieldRefs = value.fields.map((f: string) => buildFieldRef(model, f, modelAlias));
                     result = this.buildFuzzyRelevanceOrderBy(
                         result,

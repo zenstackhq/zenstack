@@ -1,14 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { ClientContract } from '@zenstackhq/orm';
 import { createTestClient, getTestDbProvider } from '@zenstackhq/testtools';
-import { schema } from '../schemas/basic';
+import { schema } from '../schemas/fuzzy-search';
 
-// The basic schema is statically typed as sqlite, but `createTestClient` swaps the
-// provider at runtime based on TEST_DB_PROVIDER. Fuzzy search is postgres-only, so
-// we override the provider type here to enable `fuzzy` / `_fuzzyRelevance` typings.
-type Schema = Omit<typeof schema, 'provider'> & {
-    provider: { type: 'postgresql'; defaultSchema?: string };
-};
+type Schema = typeof schema;
 const provider = getTestDbProvider();
 
 describe.skipIf(provider !== 'postgresql')('Fuzzy search tests', () => {
@@ -213,10 +208,7 @@ describe.skipIf(provider !== 'postgresql')('Fuzzy search tests', () => {
     it('OR with two fuzzy terms', async () => {
         const results = await client.flavor.findMany({
             where: {
-                OR: [
-                    { name: { fuzzy: { search: 'apple' } } },
-                    { name: { fuzzy: { search: 'banana' } } },
-                ],
+                OR: [{ name: { fuzzy: { search: 'apple' } } }, { name: { fuzzy: { search: 'banana' } } }],
             },
         });
         const names = results.map((r) => r.name);
@@ -277,10 +269,7 @@ describe.skipIf(provider !== 'postgresql')('Fuzzy search tests', () => {
     it('orders by relevance across multiple fields', async () => {
         const results = await client.flavor.findMany({
             where: {
-                OR: [
-                    { name: { fuzzy: { search: 'chocolate' } } },
-                    { description: { fuzzy: { search: 'chocolate' } } },
-                ],
+                OR: [{ name: { fuzzy: { search: 'chocolate' } } }, { description: { fuzzy: { search: 'chocolate' } } }],
             },
             orderBy: {
                 _fuzzyRelevance: {
@@ -678,17 +667,11 @@ describe.skipIf(provider !== 'postgresql')('Fuzzy search tests', () => {
 
         const asc = await client.flavor.findMany({
             where: { name: { equals: 'Mango' } },
-            orderBy: [
-                { _fuzzyRelevance: { fields: ['name'], search: 'Mango', sort: 'desc' } },
-                { id: 'asc' },
-            ],
+            orderBy: [{ _fuzzyRelevance: { fields: ['name'], search: 'Mango', sort: 'desc' } }, { id: 'asc' }],
         });
         const desc = await client.flavor.findMany({
             where: { name: { equals: 'Mango' } },
-            orderBy: [
-                { _fuzzyRelevance: { fields: ['name'], search: 'Mango', sort: 'desc' } },
-                { id: 'desc' },
-            ],
+            orderBy: [{ _fuzzyRelevance: { fields: ['name'], search: 'Mango', sort: 'desc' } }, { id: 'desc' }],
         });
 
         expect(asc.map((r) => r.id)).toEqual([...ids].sort((a, b) => a - b));
@@ -707,18 +690,12 @@ describe.skipIf(provider !== 'postgresql')('Fuzzy search tests', () => {
 
         const page1 = await client.flavor.findMany({
             where: { name: { equals: 'Mango' } },
-            orderBy: [
-                { _fuzzyRelevance: { fields: ['name'], search: 'Mango', sort: 'desc' } },
-                { id: 'asc' },
-            ],
+            orderBy: [{ _fuzzyRelevance: { fields: ['name'], search: 'Mango', sort: 'desc' } }, { id: 'asc' }],
             take: 2,
         });
         const page2 = await client.flavor.findMany({
             where: { name: { equals: 'Mango' } },
-            orderBy: [
-                { _fuzzyRelevance: { fields: ['name'], search: 'Mango', sort: 'desc' } },
-                { id: 'asc' },
-            ],
+            orderBy: [{ _fuzzyRelevance: { fields: ['name'], search: 'Mango', sort: 'desc' } }, { id: 'asc' }],
             skip: 2,
             take: 2,
         });
@@ -838,6 +815,27 @@ describe.skipIf(provider !== 'postgresql')('Fuzzy search tests', () => {
         });
 
         expect(strict[0]!.id).toBe(wordBoundary.id);
+    });
+
+    // ---------------------------------------------------------------
+    // R. @fuzzy attribute gating
+    // ---------------------------------------------------------------
+
+    it('rejects fuzzy filter on a field without @fuzzy', async () => {
+        await expect(
+            client.flavor.findMany({
+                // 'notes' has no @fuzzy attribute on the model
+                where: { notes: { fuzzy: { search: 'anything' } } } as any,
+            }),
+        ).rejects.toThrow(/not fuzzy-searchable/);
+    });
+
+    it('rejects _fuzzyRelevance ordering against a field without @fuzzy', async () => {
+        await expect(
+            client.flavor.findMany({
+                orderBy: { _fuzzyRelevance: { fields: ['notes'], search: 'anything', sort: 'desc' } } as any,
+            }),
+        ).rejects.toThrow(/not fuzzy-searchable/);
     });
 
     it('unaccent toggles relevance scoring for ascii searches against accented names', async () => {
