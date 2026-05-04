@@ -166,6 +166,14 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         result = this.buildOrderBy(result, model, modelAlias, effectiveOrderBy, negateOrderBy, take);
 
         if (args.cursor) {
+            if (
+                effectiveOrderBy &&
+                enumerate(effectiveOrderBy).some((ob: any) => typeof ob === 'object' && '_fuzzyRelevance' in ob)
+            ) {
+                throw createNotSupportedError(
+                    'cursor pagination cannot be combined with "_fuzzyRelevance" ordering',
+                );
+            }
             result = this.buildCursorFilter(
                 model,
                 result,
@@ -924,11 +932,15 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         if (payload && typeof payload === 'object') {
             for (const [key, value] of Object.entries(payload)) {
                 if (key === 'mode' || consumedKeys.includes(key)) {
-                    // already consumed
                     continue;
                 }
 
                 if (value === undefined) {
+                    continue;
+                }
+
+                if (key === 'fuzzy') {
+                    conditions.push(this.buildFuzzyFilter(fieldRef, this.normalizeFuzzyOptions(value)));
                     continue;
                 }
 
@@ -1085,6 +1097,43 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         enumerate(orderBy).forEach((orderBy, index) => {
             for (const [field, value] of Object.entries<any>(orderBy)) {
                 if (!value) {
+                    continue;
+                }
+
+                // _fuzzyRelevance ordering
+                if (field === '_fuzzyRelevance') {
+                    invariant(
+                        typeof value === 'object' && 'fields' in value && 'search' in value && 'sort' in value,
+                        'invalid orderBy value for "_fuzzyRelevance"',
+                    );
+                    invariant(
+                        Array.isArray(value.fields) && value.fields.length > 0,
+                        '_fuzzyRelevance.fields must be a non-empty array',
+                    );
+                    invariant(
+                        value.sort === 'asc' || value.sort === 'desc',
+                        'invalid sort value for "_fuzzyRelevance"',
+                    );
+                    invariant(
+                        typeof value.search === 'string' && value.search.length > 0,
+                        '_fuzzyRelevance.search must be a non-empty string',
+                    );
+                    const mode = value.mode ?? 'simple';
+                    invariant(
+                        mode === 'simple' || mode === 'word' || mode === 'strictWord',
+                        '_fuzzyRelevance.mode must be "simple", "word" or "strictWord"',
+                    );
+                    const unaccent = value.unaccent ?? false;
+                    invariant(typeof unaccent === 'boolean', '_fuzzyRelevance.unaccent must be a boolean');
+                    const fieldRefs = value.fields.map((f: string) => buildFieldRef(model, f, modelAlias));
+                    result = this.buildFuzzyRelevanceOrderBy(
+                        result,
+                        fieldRefs,
+                        value.search,
+                        this.negateSort(value.sort, negated),
+                        mode,
+                        unaccent,
+                    );
                     continue;
                 }
 
@@ -1592,5 +1641,70 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         nulls: 'first' | 'last',
     ): SelectQueryBuilder<any, any, any>;
 
+    /**
+     * Builds a fuzzy search filter for a string field using PostgreSQL `pg_trgm`.
+     * The selected SQL form (operator vs. function, with/without `unaccent`) depends
+     * on the resolved options.
+     */
+    abstract buildFuzzyFilter(fieldRef: Expression<any>, options: FuzzyFilterOptions): Expression<SqlBool>;
+
+    /**
+     * Builds an ORDER BY clause that sorts by fuzzy relevance to a search term.
+     */
+    abstract buildFuzzyRelevanceOrderBy(
+        query: SelectQueryBuilder<any, any, any>,
+        fieldRefs: Expression<any>[],
+        search: string,
+        sort: SortOrder,
+        mode: FuzzyFilterOptions['mode'],
+        unaccent: boolean,
+    ): SelectQueryBuilder<any, any, any>;
+
+    /**
+     * Validate the user-provided fuzzy filter payload and apply defaults so dialects
+     * always receive a fully-resolved {@link FuzzyFilterOptions} value.
+     */
+    protected normalizeFuzzyOptions(value: unknown): FuzzyFilterOptions {
+        invariant(
+            value !== null && typeof value === 'object' && !Array.isArray(value),
+            'fuzzy filter must be an object with at least a "search" field',
+        );
+        const raw = value as Record<string, unknown>;
+        invariant(typeof raw['search'] === 'string' && raw['search'].length > 0, 'fuzzy.search must be a non-empty string');
+        const mode = raw['mode'] ?? 'simple';
+        invariant(
+            mode === 'simple' || mode === 'word' || mode === 'strictWord',
+            'fuzzy.mode must be "simple", "word" or "strictWord"',
+        );
+        const threshold = raw['threshold'];
+        if (threshold !== undefined) {
+            invariant(
+                typeof threshold === 'number' && threshold >= 0 && threshold <= 1,
+                'fuzzy.threshold must be a number between 0 and 1',
+            );
+        }
+        const unaccent = raw['unaccent'] ?? false;
+        invariant(typeof unaccent === 'boolean', 'fuzzy.unaccent must be a boolean');
+        return {
+            search: raw['search'],
+            mode: mode as FuzzyFilterOptions['mode'],
+            threshold: threshold as number | undefined,
+            unaccent,
+        };
+    }
+
     // #endregion
 }
+
+/**
+ * Resolved options for a fuzzy filter passed to a dialect. `mode` and `unaccent`
+ * are always populated (defaults: `mode='simple'`, `unaccent=false`, applied by
+ * `normalizeFuzzyOptions`); `threshold` is optional and switches the SQL from
+ * operator form (`%`, `<%`, `<<%`) to function form (`similarity() > threshold`).
+ */
+export type FuzzyFilterOptions = {
+    search: string;
+    mode: 'simple' | 'word' | 'strictWord';
+    threshold?: number;
+    unaccent: boolean;
+};

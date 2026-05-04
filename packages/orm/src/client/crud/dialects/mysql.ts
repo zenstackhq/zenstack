@@ -16,6 +16,7 @@ import type { NullsOrder, SortOrder } from '../../crud-types';
 import { createInvalidInputError, createNotSupportedError } from '../../errors';
 import type { ClientOptions } from '../../options';
 import { isTypeDef } from '../../query-utils';
+import type { FuzzyFilterOptions } from './base-dialect';
 import { LateralJoinDialectBase } from './lateral-join-dialect-base';
 
 export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDialectBase<Schema> {
@@ -393,6 +394,25 @@ export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDiale
             result = result.orderBy(field, sort);
         }
         return result;
+    }
+
+    // #endregion
+
+    // #region fuzzy search
+
+    override buildFuzzyFilter(_fieldRef: Expression<any>, _options: FuzzyFilterOptions): Expression<SqlBool> {
+        throw createNotSupportedError('"fuzzy" filter is not supported by the "mysql" provider');
+    }
+
+    override buildFuzzyRelevanceOrderBy(
+        _query: SelectQueryBuilder<any, any, any>,
+        _fieldRefs: Expression<any>[],
+        _search: string,
+        _sort: SortOrder,
+        _mode: FuzzyFilterOptions['mode'],
+        _unaccent: boolean,
+    ): SelectQueryBuilder<any, any, any> {
+        throw createNotSupportedError('"_fuzzyRelevance" ordering is not supported by the "mysql" provider');
     }
 
     // #endregion

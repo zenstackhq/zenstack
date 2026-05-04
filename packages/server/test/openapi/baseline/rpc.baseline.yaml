@@ -4323,6 +4323,33 @@ components:
                           type: string
                       contains:
                           type: string
+                      fuzzy:
+                          type: object
+                          properties:
+                              search:
+                                  type: string
+                                  minLength: 1
+                              mode:
+                                  default: simple
+                                  anyOf:
+                                      - type: string
+                                        const: simple
+                                      - type: string
+                                        const: word
+                                      - type: string
+                                        const: strictWord
+                              threshold:
+                                  type: number
+                                  minimum: 0
+                                  maximum: 1
+                              unaccent:
+                                  default: false
+                                  type: boolean
+                          required:
+                              - search
+                              - mode
+                              - unaccent
+                          additionalProperties: false
                       mode:
                           anyOf:
                               - type: string
@@ -4588,6 +4615,33 @@ components:
                           type: string
                       contains:
                           type: string
+                      fuzzy:
+                          type: object
+                          properties:
+                              search:
+                                  type: string
+                                  minLength: 1
+                              mode:
+                                  default: simple
+                                  anyOf:
+                                      - type: string
+                                        const: simple
+                                      - type: string
+                                        const: word
+                                      - type: string
+                                        const: strictWord
+                              threshold:
+                                  type: number
+                                  minimum: 0
+                                  maximum: 1
+                              unaccent:
+                                  default: false
+                                  type: boolean
+                          required:
+                              - search
+                              - mode
+                              - unaccent
+                          additionalProperties: false
                       mode:
                           anyOf:
                               - type: string
@@ -5130,6 +5184,43 @@ components:
                                           const: asc
                                         - type: string
                                           const: desc
+                                _fuzzyRelevance:
+                                    type: object
+                                    properties:
+                                        fields:
+                                            minItems: 1
+                                            type: array
+                                            items:
+                                                type: string
+                                                enum:
+                                                    - content
+                                        search:
+                                            type: string
+                                        mode:
+                                            default: simple
+                                            anyOf:
+                                                - type: string
+                                                  const: simple
+                                                - type: string
+                                                  const: word
+                                                - type: string
+                                                  const: strictWord
+                                        unaccent:
+                                            default: false
+                                            type: boolean
+                                        sort:
+                                            anyOf:
+                                                - type: string
+                                                  const: asc
+                                                - type: string
+                                                  const: desc
+                                    required:
+                                        - fields
+                                        - search
+                                        - mode
+                                        - unaccent
+                                        - sort
+                                    additionalProperties: false
                                 _count:
                                     anyOf:
                                         - type: string
@@ -5141,6 +5232,44 @@ components:
                             additionalProperties: false
                         setting:
                             $ref: "#/components/schemas/SettingOrderByWithRelationInput"
+                        _fuzzyRelevance:
+                            type: object
+                            properties:
+                                fields:
+                                    minItems: 1
+                                    type: array
+                                    items:
+                                        type: string
+                                        enum:
+                                            - title
+                                            - authorId
+                                search:
+                                    type: string
+                                mode:
+                                    default: simple
+                                    anyOf:
+                                        - type: string
+                                          const: simple
+                                        - type: string
+                                          const: word
+                                        - type: string
+                                          const: strictWord
+                                unaccent:
+                                    default: false
+                                    type: boolean
+                                sort:
+                                    anyOf:
+                                        - type: string
+                                          const: asc
+                                        - type: string
+                                          const: desc
+                            required:
+                                - fields
+                                - search
+                                - mode
+                                - unaccent
+                                - sort
+                            additionalProperties: false
                         _count:
                             anyOf:
                                 - type: string
@@ -5202,6 +5331,44 @@ components:
                               - sort
                               - nulls
                           additionalProperties: false
+                _fuzzyRelevance:
+                    type: object
+                    properties:
+                        fields:
+                            minItems: 1
+                            type: array
+                            items:
+                                type: string
+                                enum:
+                                    - myId
+                                    - email
+                        search:
+                            type: string
+                        mode:
+                            default: simple
+                            anyOf:
+                                - type: string
+                                  const: simple
+                                - type: string
+                                  const: word
+                                - type: string
+                                  const: strictWord
+                        unaccent:
+                            default: false
+                            type: boolean
+                        sort:
+                            anyOf:
+                                - type: string
+                                  const: asc
+                                - type: string
+                                  const: desc
+                    required:
+                        - fields
+                        - search
+                        - mode
+                        - unaccent
+                        - sort
+                    additionalProperties: false
             additionalProperties: false
         UserWhereUniqueInputWithoutRelation:
             type: object
@@ -6373,6 +6540,44 @@ components:
                     $ref: "#/components/schemas/UserOrderByWithRelationInput"
                 _max:
                     $ref: "#/components/schemas/UserOrderByWithRelationInput"
+                _fuzzyRelevance:
+                    type: object
+                    properties:
+                        fields:
+                            minItems: 1
+                            type: array
+                            items:
+                                type: string
+                                enum:
+                                    - myId
+                                    - email
+                        search:
+                            type: string
+                        mode:
+                            default: simple
+                            anyOf:
+                                - type: string
+                                  const: simple
+                                - type: string
+                                  const: word
+                                - type: string
+                                  const: strictWord
+                        unaccent:
+                            default: false
+                            type: boolean
+                        sort:
+                            anyOf:
+                                - type: string
+                                  const: asc
+                                - type: string
+                                  const: desc
+                    required:
+                        - fields
+                        - search
+                        - mode
+                        - unaccent
+                        - sort
+                    additionalProperties: false
             additionalProperties: false
         StringFilterAgg:
             anyOf:
@@ -6477,6 +6682,33 @@ components:
                           type: string
                       contains:
                           type: string
+                      fuzzy:
+                          type: object
+                          properties:
+                              search:
+                                  type: string
+                                  minLength: 1
+                              mode:
+                                  default: simple
+                                  anyOf:
+                                      - type: string
+                                        const: simple
+                                      - type: string
+                                        const: word
+                                      - type: string
+                                        const: strictWord
+                              threshold:
+                                  type: number
+                                  minimum: 0
+                                  maximum: 1
+                              unaccent:
+                                  default: false
+                                  type: boolean
+                          required:
+                              - search
+                              - mode
+                              - unaccent
+                          additionalProperties: false
                       mode:
                           anyOf:
                               - type: string
@@ -6828,6 +7060,44 @@ components:
                           const: asc
                         - type: string
                           const: desc
+                _fuzzyRelevance:
+                    type: object
+                    properties:
+                        fields:
+                            minItems: 1
+                            type: array
+                            items:
+                                type: string
+                                enum:
+                                    - gender
+                                    - userId
+                        search:
+                            type: string
+                        mode:
+                            default: simple
+                            anyOf:
+                                - type: string
+                                  const: simple
+                                - type: string
+                                  const: word
+                                - type: string
+                                  const: strictWord
+                        unaccent:
+                            default: false
+                            type: boolean
+                        sort:
+                            anyOf:
+                                - type: string
+                                  const: asc
+                                - type: string
+                                  const: desc
+                    required:
+                        - fields
+                        - search
+                        - mode
+                        - unaccent
+                        - sort
+                    additionalProperties: false
             additionalProperties: false
         ProfileWhereUniqueInputWithoutRelation:
             type: object
@@ -7427,6 +7697,44 @@ components:
                     $ref: "#/components/schemas/ProfileOrderByWithRelationInput"
                 _max:
                     $ref: "#/components/schemas/ProfileOrderByWithRelationInput"
+                _fuzzyRelevance:
+                    type: object
+                    properties:
+                        fields:
+                            minItems: 1
+                            type: array
+                            items:
+                                type: string
+                                enum:
+                                    - gender
+                                    - userId
+                        search:
+                            type: string
+                        mode:
+                            default: simple
+                            anyOf:
+                                - type: string
+                                  const: simple
+                                - type: string
+                                  const: word
+                                - type: string
+                                  const: strictWord
+                        unaccent:
+                            default: false
+                            type: boolean
+                        sort:
+                            anyOf:
+                                - type: string
+                                  const: asc
+                                - type: string
+                                  const: desc
+                    required:
+                        - fields
+                        - search
+                        - mode
+                        - unaccent
+                        - sort
+                    additionalProperties: false
             additionalProperties: false
         IntFilterAgg:
             anyOf:
@@ -8115,6 +8423,43 @@ components:
                                   const: asc
                                 - type: string
                                   const: desc
+                        _fuzzyRelevance:
+                            type: object
+                            properties:
+                                fields:
+                                    minItems: 1
+                                    type: array
+                                    items:
+                                        type: string
+                                        enum:
+                                            - content
+                                search:
+                                    type: string
+                                mode:
+                                    default: simple
+                                    anyOf:
+                                        - type: string
+                                          const: simple
+                                        - type: string
+                                          const: word
+                                        - type: string
+                                          const: strictWord
+                                unaccent:
+                                    default: false
+                                    type: boolean
+                                sort:
+                                    anyOf:
+                                        - type: string
+                                          const: asc
+                                        - type: string
+                                          const: desc
+                            required:
+                                - fields
+                                - search
+                                - mode
+                                - unaccent
+                                - sort
+                            additionalProperties: false
                         _count:
                             anyOf:
                                 - type: string
@@ -8126,6 +8471,44 @@ components:
                     additionalProperties: false
                 setting:
                     $ref: "#/components/schemas/SettingOrderByWithRelationInput"
+                _fuzzyRelevance:
+                    type: object
+                    properties:
+                        fields:
+                            minItems: 1
+                            type: array
+                            items:
+                                type: string
+                                enum:
+                                    - title
+                                    - authorId
+                        search:
+                            type: string
+                        mode:
+                            default: simple
+                            anyOf:
+                                - type: string
+                                  const: simple
+                                - type: string
+                                  const: word
+                                - type: string
+                                  const: strictWord
+                        unaccent:
+                            default: false
+                            type: boolean
+                        sort:
+                            anyOf:
+                                - type: string
+                                  const: asc
+                                - type: string
+                                  const: desc
+                    required:
+                        - fields
+                        - search
+                        - mode
+                        - unaccent
+                        - sort
+                    additionalProperties: false
             additionalProperties: false
         PostFindFirstArgs:
             type: object
@@ -9483,6 +9866,44 @@ components:
                     $ref: "#/components/schemas/PostOrderByWithRelationInput"
                 _max:
                     $ref: "#/components/schemas/PostOrderByWithRelationInput"
+                _fuzzyRelevance:
+                    type: object
+                    properties:
+                        fields:
+                            minItems: 1
+                            type: array
+                            items:
+                                type: string
+                                enum:
+                                    - title
+                                    - authorId
+                        search:
+                            type: string
+                        mode:
+                            default: simple
+                            anyOf:
+                                - type: string
+                                  const: simple
+                                - type: string
+                                  const: word
+                                - type: string
+                                  const: strictWord
+                        unaccent:
+                            default: false
+                            type: boolean
+                        sort:
+                            anyOf:
+                                - type: string
+                                  const: asc
+                                - type: string
+                                  const: desc
+                    required:
+                        - fields
+                        - search
+                        - mode
+                        - unaccent
+                        - sort
+                    additionalProperties: false
             additionalProperties: false
         StringFilterOptionalAgg:
             anyOf:
@@ -9591,6 +10012,33 @@ components:
                           type: string
                       contains:
                           type: string
+                      fuzzy:
+                          type: object
+                          properties:
+                              search:
+                                  type: string
+                                  minLength: 1
+                              mode:
+                                  default: simple
+                                  anyOf:
+                                      - type: string
+                                        const: simple
+                                      - type: string
+                                        const: word
+                                      - type: string
+                                        const: strictWord
+                              threshold:
+                                  type: number
+                                  minimum: 0
+                                  maximum: 1
+                              unaccent:
+                                  default: false
+                                  type: boolean
+                          required:
+                              - search
+                              - mode
+                              - unaccent
+                          additionalProperties: false
                       mode:
                           anyOf:
                               - type: string
@@ -9995,6 +10443,43 @@ components:
                           const: asc
                         - type: string
                           const: desc
+                _fuzzyRelevance:
+                    type: object
+                    properties:
+                        fields:
+                            minItems: 1
+                            type: array
+                            items:
+                                type: string
+                                enum:
+                                    - content
+                        search:
+                            type: string
+                        mode:
+                            default: simple
+                            anyOf:
+                                - type: string
+                                  const: simple
+                                - type: string
+                                  const: word
+                                - type: string
+                                  const: strictWord
+                        unaccent:
+                            default: false
+                            type: boolean
+                        sort:
+                            anyOf:
+                                - type: string
+                                  const: asc
+                                - type: string
+                                  const: desc
+                    required:
+                        - fields
+                        - search
+                        - mode
+                        - unaccent
+                        - sort
+                    additionalProperties: false
             additionalProperties: false
         CommentFindFirstArgs:
             type: object
@@ -10582,6 +11067,43 @@ components:
                     $ref: "#/components/schemas/CommentOrderByWithRelationInput"
                 _max:
                     $ref: "#/components/schemas/CommentOrderByWithRelationInput"
+                _fuzzyRelevance:
+                    type: object
+                    properties:
+                        fields:
+                            minItems: 1
+                            type: array
+                            items:
+                                type: string
+                                enum:
+                                    - content
+                        search:
+                            type: string
+                        mode:
+                            default: simple
+                            anyOf:
+                                - type: string
+                                  const: simple
+                                - type: string
+                                  const: word
+                                - type: string
+                                  const: strictWord
+                        unaccent:
+                            default: false
+                            type: boolean
+                        sort:
+                            anyOf:
+                                - type: string
+                                  const: asc
+                                - type: string
+                                  const: desc
+                    required:
+                        - fields
+                        - search
+                        - mode
+                        - unaccent
+                        - sort
+                    additionalProperties: false
             additionalProperties: false
         CommentWhereInputWithoutRelationWithAggregation:
             type: object

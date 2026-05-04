@@ -1026,6 +1026,11 @@ export class ZodSchemaFactory<
             startsWith: z.string().optional(),
             endsWith: z.string().optional(),
             contains: z.string().optional(),
+            ...(this.providerSupportsFuzzySearch
+                ? {
+                      fuzzy: this.makeFuzzyFilterSchema().optional(),
+                  }
+                : {}),
             ...(this.providerSupportsCaseSensitivity
                 ? {
                       mode: this.makeStringModeSchema().optional(),
@@ -1051,6 +1056,15 @@ export class ZodSchemaFactory<
 
     private makeStringModeSchema() {
         return z.union([z.literal('default'), z.literal('insensitive')]);
+    }
+
+    private makeFuzzyFilterSchema() {
+        return z.strictObject({
+            search: z.string().min(1),
+            mode: z.union([z.literal('simple'), z.literal('word'), z.literal('strictWord')]).default('simple'),
+            threshold: z.number().min(0).max(1).optional(),
+            unaccent: z.boolean().default(false),
+        });
     }
 
     @cache()
@@ -1296,6 +1310,27 @@ export class ZodSchemaFactory<
             const aggregationFields = ['_count', '_avg', '_sum', '_min', '_max'];
             for (const agg of aggregationFields) {
                 fields[agg] = z.lazy(() => this.makeOrderBySchema(model, true, false, options).optional());
+            }
+        }
+
+        // _fuzzyRelevance ordering for fuzzy search (string fields only, postgres only).
+        // Distinct from a future `_searchRelevance` for full-text search.
+        if (this.providerSupportsFuzzySearch) {
+            const stringFieldNames = this.getModelFields(model)
+                .filter(([, def]) => !def.relation && def.type === 'String')
+                .map(([name]) => name);
+            if (stringFieldNames.length > 0) {
+                fields['_fuzzyRelevance'] = z
+                    .strictObject({
+                        fields: z.array(z.enum(stringFieldNames as [string, ...string[]])).min(1),
+                        search: z.string(),
+                        mode: z
+                            .union([z.literal('simple'), z.literal('word'), z.literal('strictWord')])
+                            .default('simple'),
+                        unaccent: z.boolean().default(false),
+                        sort,
+                    })
+                    .optional();
             }
         }
 
@@ -2320,6 +2355,10 @@ export class ZodSchemaFactory<
     }
 
     private get providerSupportsCaseSensitivity() {
+        return this.schema.provider.type === 'postgresql';
+    }
+
+    private get providerSupportsFuzzySearch() {
         return this.schema.provider.type === 'postgresql';
     }
 

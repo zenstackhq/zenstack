@@ -376,12 +376,46 @@ type FieldFilter<
                     AllowedKinds
                 >
               : // primitive
-                PrimitiveFilter<
+                AddFuzzyFilterIfSupported<
+                    Schema,
                     GetModelFieldType<Schema, Model, Field>,
-                    ModelFieldIsOptional<Schema, Model, Field>,
-                    WithAggregations,
-                    AllowedKinds
+                    AllowedKinds,
+                    PrimitiveFilter<
+                        GetModelFieldType<Schema, Model, Field>,
+                        ModelFieldIsOptional<Schema, Model, Field>,
+                        WithAggregations,
+                        AllowedKinds
+                    >
                 >;
+
+/**
+ * Conditionally augments a primitive filter with the `fuzzy` operator when:
+ * 1. The field's type is `String`, AND
+ * 2. The `Fuzzy` filter kind is allowed for this field, AND
+ * 3. The schema's provider supports fuzzy search (postgres only).
+ *
+ * Returns `Base` unchanged when any condition fails — never `Base & {}`,
+ * since intersecting with `{}` would strip `null`/`undefined` from `Base`.
+ */
+type AddFuzzyFilterIfSupported<
+    Schema extends SchemaDef,
+    FieldType extends string,
+    AllowedKinds extends FilterKind,
+    Base,
+> = FieldType extends 'String'
+    ? 'Fuzzy' extends AllowedKinds
+        ? ProviderSupportsFuzzy<Schema> extends true
+            ? Base & {
+                  /**
+                   * Performs a fuzzy search on the string field. Only available when
+                   * the schema's provider is `postgresql` (uses `pg_trgm`).
+                   * See {@link FuzzyFilterPayload} for the full options reference.
+                   */
+                  fuzzy?: FuzzyFilterPayload;
+              }
+            : Base
+        : Base
+    : Base;
 
 type EnumFilter<
     Schema extends SchemaDef,
@@ -889,6 +923,92 @@ type TypedJsonFieldsFilter<
 export type SortOrder = 'asc' | 'desc';
 export type NullsOrder = 'first' | 'last';
 
+type StringFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+    [Key in NonRelationFields<Schema, Model>]: MapModelFieldType<Schema, Model, Key> extends string | null
+        ? Key
+        : never;
+}[NonRelationFields<Schema, Model>];
+
+/**
+ * Payload for the `fuzzy` string filter operator. Performs a fuzzy search using
+ * PostgreSQL `pg_trgm` (only available when the schema's provider is `postgresql`).
+ * Not supported on MySQL or SQLite (throws `NotSupported` at runtime).
+ *
+ * Modes:
+ * - `'simple'` (default): trigram similarity on the whole value (operator `%`,
+ *   function `similarity()`).
+ * - `'word'`: word similarity — checks if the search term is approximately
+ *   contained as a word inside the value (operator `<%`,
+ *   function `word_similarity()`).
+ * - `'strictWord'`: stricter variant of `'word'` (operator `<<%`,
+ *   function `strict_word_similarity()`).
+ *
+ * When `threshold` is provided the function form is used
+ * (`similarity() > threshold`) instead of the operator form, so the
+ * `pg_trgm.*_threshold` session settings are bypassed.
+ *
+ * `unaccent` is opt-in (defaults to `false`) — set it to `true` to make the
+ * comparison accent-insensitive. Enabling it requires the `unaccent` extension
+ * to be installed on the database.
+ */
+export type FuzzyFilterPayload = {
+    /**
+     * Search term to match against (must be a non-empty string).
+     */
+    search: string;
+    /**
+     * Matching mode. Defaults to `'simple'`.
+     */
+    mode?: 'simple' | 'word' | 'strictWord';
+    /**
+     * Optional similarity threshold in `[0, 1]`. When provided, the function
+     * form is used and matches require `similarity > threshold`.
+     */
+    threshold?: number;
+    /**
+     * Whether to apply `unaccent()` to both sides. Defaults to `false`.
+     * Set to `true` to enable accent-insensitive matching (requires the
+     * `unaccent` extension on PostgreSQL).
+     */
+    unaccent?: boolean;
+};
+
+export type FuzzyRelevanceOrderBy<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+    /**
+     * Sorts by fuzzy search relevance using PostgreSQL `pg_trgm` similarity functions.
+     * Not supported on MySQL or SQLite (throws `NotSupported` at runtime).
+     * Cannot be combined with cursor-based pagination.
+     *
+     * The `_fuzzyRelevance` name is intentionally distinct from `_searchRelevance`
+     * (reserved for future full-text-search relevance) so the two can coexist.
+     */
+    _fuzzyRelevance?: {
+        /**
+         * String fields to compute relevance against (must be non-empty).
+         *
+         * When multiple fields are provided, the row's relevance score is the
+         * greatest per-field similarity, i.e. `GREATEST(similarity(field1, search), similarity(field2, search), ...)`.
+         */
+        fields: [StringFields<Schema, Model>, ...StringFields<Schema, Model>[]];
+        /**
+         * The search term to compute relevance for.
+         */
+        search: string;
+        /**
+         * Fuzzy matching mode used to compute relevance.
+         */
+        mode?: 'simple' | 'word' | 'strictWord';
+        /**
+         * Whether to remove accents before computing relevance.
+         */
+        unaccent?: boolean;
+        /**
+         * Sort direction.
+         */
+        sort: SortOrder;
+    };
+};
+
 export type OrderBy<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
@@ -1239,7 +1359,10 @@ type SortAndTakeArgs<
     /**
      * Order by clauses
      */
-    orderBy?: OrArray<OrderBy<Schema, Model, true, false>>;
+    orderBy?: OrArray<
+        OrderBy<Schema, Model, true, false> &
+            (ProviderSupportsFuzzy<Schema> extends true ? FuzzyRelevanceOrderBy<Schema, Model> : {})
+    >;
 
     /**
      * Cursor for pagination
@@ -2527,6 +2650,8 @@ type MapType<Schema extends SchemaDef, T extends string> = T extends keyof TypeM
 type ProviderSupportsDistinct<Schema extends SchemaDef> = Schema['provider']['type'] extends 'postgresql'
     ? true
     : false;
+
+type ProviderSupportsFuzzy<Schema extends SchemaDef> = Schema['provider']['type'] extends 'postgresql' ? true : false;
 
 /**
  * Extracts extended query args for a specific operation.

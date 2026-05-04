@@ -12,6 +12,7 @@ export type Post = $ModelResult<$Schema, "Post">;
 export type Comment = $ModelResult<$Schema, "Comment">;
 export type Profile = $ModelResult<$Schema, "Profile">;
 export type Plain = $ModelResult<$Schema, "Plain">;
+export type Flavor = $ModelResult<$Schema, "Flavor">;
 export type CommonFields = $TypeDefResult<$Schema, "CommonFields">;
 export const Role = $schema.enums.Role.values;
 export type Role = (typeof Role)[keyof typeof Role];

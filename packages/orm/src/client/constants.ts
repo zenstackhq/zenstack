@@ -68,6 +68,9 @@ export const FILTER_PROPERTY_TO_KIND = {
     array_starts_with: 'Json',
     array_ends_with: 'Json',
 
+    // Fuzzy search operators
+    fuzzy: 'Fuzzy',
+
     // List operators
     has: 'List',
     hasEvery: 'List',

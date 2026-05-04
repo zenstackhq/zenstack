@@ -15,6 +15,7 @@ import type { NullsOrder, SortOrder } from '../../crud-types';
 import { createInvalidInputError } from '../../errors';
 import type { ClientOptions } from '../../options';
 import { isEnum, isTypeDef } from '../../query-utils';
+import type { FuzzyFilterOptions } from './base-dialect';
 import { LateralJoinDialectBase } from './lateral-join-dialect-base';
 
 export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDialectBase<Schema> {
@@ -579,6 +580,79 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
             ob = nulls === 'first' ? ob.nullsFirst() : ob.nullsLast();
             return ob;
         });
+    }
+
+    // #endregion
+
+    // #region search
+
+    /**
+     * Wraps an expression with `unaccent(lower(...))` or just `lower(...)` depending on
+     * whether the user opted into accent-insensitive matching. The lowering is always
+     * applied so trigram comparisons are case-insensitive on both sides.
+     */
+    private normalizeForTrigram(expr: Expression<any>, applyUnaccent: boolean): Expression<any> {
+        return applyUnaccent ? sql`unaccent(lower(${expr}))` : sql`lower(${expr})`;
+    }
+
+    override buildFuzzyFilter(fieldRef: Expression<any>, options: FuzzyFilterOptions): Expression<SqlBool> {
+        const fieldExpr = this.normalizeForTrigram(fieldRef, options.unaccent);
+        const valueExpr = this.normalizeForTrigram(sql.val(options.search), options.unaccent);
+
+        if (options.threshold === undefined) {
+            // Operator form: relies on the session-level pg_trgm.*_threshold settings.
+            // 'simple'  -> `%` (similarity()), symmetric.
+            // 'word'    -> `<%` (word_similarity()): search-term <% document.
+            // 'strictWord' -> `<<%` (strict_word_similarity()): search-term <<% document.
+            switch (options.mode) {
+                case 'simple':
+                    return sql<SqlBool>`${fieldExpr} % ${valueExpr}`;
+                case 'word':
+                    return sql<SqlBool>`${valueExpr} <% ${fieldExpr}`;
+                case 'strictWord':
+                    return sql<SqlBool>`${valueExpr} <<% ${fieldExpr}`;
+            }
+        }
+
+        // Function form: explicit `similarity(...) > threshold`. Bypasses session settings,
+        // letting the user pick a per-query threshold.
+        const threshold = sql.val(options.threshold);
+        switch (options.mode) {
+            case 'simple':
+                return sql<SqlBool>`similarity(${fieldExpr}, ${valueExpr}) > ${threshold}`;
+            case 'word':
+                return sql<SqlBool>`word_similarity(${valueExpr}, ${fieldExpr}) > ${threshold}`;
+            case 'strictWord':
+                return sql<SqlBool>`strict_word_similarity(${valueExpr}, ${fieldExpr}) > ${threshold}`;
+        }
+    }
+
+    override buildFuzzyRelevanceOrderBy(
+        query: SelectQueryBuilder<any, any, any>,
+        fieldRefs: Expression<any>[],
+        search: string,
+        sort: SortOrder,
+        mode: FuzzyFilterOptions['mode'],
+        unaccent: boolean,
+    ): SelectQueryBuilder<any, any, any> {
+        const valueExpr = this.normalizeForTrigram(sql.val(search), unaccent);
+        const buildSimilarity = (fieldRef: Expression<any>) => {
+            const fieldExpr = this.normalizeForTrigram(fieldRef, unaccent);
+            switch (mode) {
+                case 'simple':
+                    return sql`similarity(${fieldExpr}, ${valueExpr})`;
+                case 'word':
+                    return sql`word_similarity(${valueExpr}, ${fieldExpr})`;
+                case 'strictWord':
+                    return sql`strict_word_similarity(${valueExpr}, ${fieldExpr})`;
+            }
+        };
+
+        if (fieldRefs.length === 1) {
+            return query.orderBy(buildSimilarity(fieldRefs[0]!), sort);
+        }
+        const similarities = fieldRefs.map((ref) => buildSimilarity(ref));
+        return query.orderBy(sql`GREATEST(${sql.join(similarities)})`, sort);
     }
 
     // #endregion
