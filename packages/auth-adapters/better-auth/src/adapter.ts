@@ -1,5 +1,4 @@
-import type { BetterAuthOptions } from '@better-auth/core';
-import type { DBAdapter, Where } from '@better-auth/core/db/adapter';
+import type { BetterAuthOptions, Where } from 'better-auth';
 import { BetterAuthError } from '@better-auth/core/error';
 import type { ClientContract, ModelOperations, UpdateInput } from '@zenstackhq/orm';
 import type { GetModels, SchemaDef } from '@zenstackhq/orm/schema';
@@ -213,7 +212,7 @@ export const zenstackAdapter = <Schema extends SchemaDef>(db: ClientContract<Sch
     };
 
     const adapter = createAdapterFactory(adapterOptions);
-    return (options: BetterAuthOptions): DBAdapter<BetterAuthOptions> => {
+    return (options: BetterAuthOptions) => {
         lazyOptions = options;
         return adapter(options);
     };
