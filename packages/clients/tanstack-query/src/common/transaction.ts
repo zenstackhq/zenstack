@@ -9,8 +9,11 @@ import type { TransactionOperation } from './types.js';
 /**
  * Builds the mutation function for a sequential transaction request.
  */
-export function makeTransactionMutationFn(endpoint: string, fetch: FetchFn | undefined) {
-    return (operations: TransactionOperation[]) => {
+export function makeTransactionMutationFn<Schema extends SchemaDef>(
+    endpoint: string,
+    fetch: FetchFn | undefined,
+) {
+    return (operations: TransactionOperation<Schema>[]) => {
         const reqUrl = `${endpoint}/${TRANSACTION_ROUTE_PREFIX}/sequential`;
         const fetchInit = {
             method: 'POST',
@@ -37,7 +40,7 @@ export function makeTransactionOnSuccess(
     origOnSuccess: ((...args: any[]) => any) | undefined,
 ) {
     return async (...args: any[]) => {
-        const variables = Array.isArray(args[1]) ? (args[1] as TransactionOperation[]) : [];
+        const variables = Array.isArray(args[1]) ? args[1] : [];
         for (const op of variables) {
             if (typeof op?.model !== 'string' || typeof op?.op !== 'string') {
                 continue;

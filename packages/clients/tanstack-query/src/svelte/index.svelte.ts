@@ -160,8 +160,8 @@ export type ModelMutationModelResult<
     ): Promise<SimplifiedResult<Schema, Model, T, Options, false, Array, ExtResult>>;
 };
 
-export type TransactionMutationOptions = Omit<
-    CreateMutationOptions<unknown[], DefaultError, TransactionOperation[]>,
+export type TransactionMutationOptions<Schema extends SchemaDef> = Omit<
+    CreateMutationOptions<unknown[], DefaultError, TransactionOperation<Schema>[]>,
     'mutationFn'
 > &
     Omit<ExtraMutationOptions, 'optimisticUpdate' | 'optimisticDataProvider'>;
@@ -180,8 +180,8 @@ export type ClientHooks<
 } & ProcedureHooks<Schema, Options> & {
         $transaction: {
             useSequential(
-                options?: TransactionMutationOptions,
-            ): CreateMutationResult<unknown[], DefaultError, TransactionOperation[]>;
+                options?: TransactionMutationOptions<Schema>,
+            ): CreateMutationResult<unknown[], DefaultError, TransactionOperation<Schema>[]>;
         };
     };
 
@@ -709,11 +709,14 @@ export function useInternalMutation<TArgs, R = any>(
     return createMutation(finalOptions);
 }
 
-export function useInternalTransactionMutation(schema: SchemaDef, options?: Accessor<TransactionMutationOptions>) {
+export function useInternalTransactionMutation<Schema extends SchemaDef>(
+    schema: Schema,
+    options?: Accessor<TransactionMutationOptions<Schema>>,
+) {
     const { endpoint, fetch, logging } = useFetchOptions(options);
     const queryClient = useQueryClient();
 
-    const mutationFn = makeTransactionMutationFn(endpoint, fetch);
+    const mutationFn = makeTransactionMutationFn<Schema>(endpoint, fetch);
 
     const finalOptions = () => {
         const optionsValue = options?.();

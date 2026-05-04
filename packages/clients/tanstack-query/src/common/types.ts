@@ -1,12 +1,28 @@
 import type { Logger, OptimisticDataProvider } from '@zenstackhq/client-helpers';
 import type { FetchFn } from '@zenstackhq/client-helpers/fetch';
 import type {
+    AggregateArgs,
+    CountArgs,
+    CreateArgs,
+    CreateManyAndReturnArgs,
+    CreateManyArgs,
+    DeleteArgs,
+    DeleteManyArgs,
+    ExistsArgs,
+    FindFirstArgs,
+    FindManyArgs,
+    FindUniqueArgs,
     GetProcedureNames,
     GetSlicedOperations,
+    GroupByArgs,
     ModelAllowsCreate,
     OperationsRequiringCreate,
     ProcedureFunc,
     QueryOptions,
+    UpdateArgs,
+    UpdateManyAndReturnArgs,
+    UpdateManyArgs,
+    UpsertArgs,
 } from '@zenstackhq/orm';
 import type { GetModels, SchemaDef } from '@zenstackhq/schema';
 
@@ -102,10 +118,48 @@ export type ProcedureReturn<Schema extends SchemaDef, Name extends GetProcedureN
 >;
 
 /**
- * Represents a single operation to execute within a sequential transaction.
+ * Maps each core CRUD operation to its argument type for a given model.
  */
-export type TransactionOperation = {
-    model: string;
-    op: string;
-    args?: unknown;
+type CrudArgsMap<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+    findMany: FindManyArgs<Schema, Model>;
+    findUnique: FindUniqueArgs<Schema, Model>;
+    findFirst: FindFirstArgs<Schema, Model>;
+    create: CreateArgs<Schema, Model>;
+    createMany: CreateManyArgs<Schema, Model>;
+    createManyAndReturn: CreateManyAndReturnArgs<Schema, Model>;
+    update: UpdateArgs<Schema, Model>;
+    updateMany: UpdateManyArgs<Schema, Model>;
+    updateManyAndReturn: UpdateManyAndReturnArgs<Schema, Model>;
+    upsert: UpsertArgs<Schema, Model>;
+    delete: DeleteArgs<Schema, Model>;
+    deleteMany: DeleteManyArgs<Schema, Model>;
+    count: CountArgs<Schema, Model>;
+    aggregate: AggregateArgs<Schema, Model>;
+    groupBy: GroupByArgs<Schema, Model>;
+    exists: ExistsArgs<Schema, Model>;
 };
+
+/**
+ * Operations available for a given model, omitting create-style operations
+ * for models that don't allow them (e.g. delegate models).
+ */
+type AllowedTransactionOps<Schema extends SchemaDef, Model extends GetModels<Schema>> =
+    ModelAllowsCreate<Schema, Model> extends true
+        ? keyof CrudArgsMap<Schema, Model>
+        : Exclude<keyof CrudArgsMap<Schema, Model>, OperationsRequiringCreate>;
+
+/**
+ * Represents a single operation to execute within a sequential transaction.
+ *
+ * The `model`, `op`, and `args` fields are correlated: `op` is constrained to
+ * the CRUD operations available on `model`, and `args` is typed accordingly.
+ */
+export type TransactionOperation<Schema extends SchemaDef> = {
+    [Model in GetModels<Schema>]: {
+        [Op in AllowedTransactionOps<Schema, Model>]: {
+            model: Model;
+            op: Op;
+            args?: CrudArgsMap<Schema, Model>[Op];
+        };
+    }[AllowedTransactionOps<Schema, Model>];
+}[GetModels<Schema>];

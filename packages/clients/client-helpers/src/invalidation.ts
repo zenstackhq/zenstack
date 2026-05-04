@@ -30,10 +30,11 @@ export function createInvalidator(
     invalidator: InvalidateFunc,
     logging: Logger | undefined,
 ) {
+    const normalizedModel = normalizeModelName(model, schema);
     return async (...args: unknown[]) => {
         const [_, variables] = args;
         const predicate = await getInvalidationPredicate(
-            model,
+            normalizedModel,
             operation as ORMWriteActionType,
             variables,
             schema,
@@ -86,4 +87,10 @@ async function getInvalidationPredicate(
 function findNestedRead(visitingModel: string, targetModels: string[], schema: SchemaDef, args: any) {
     const modelsRead = getReadModels(visitingModel, schema, args);
     return targetModels.some((m) => modelsRead.includes(m));
+}
+
+// resolves a model name to its canonical form as defined in the schema (case-insensitive match)
+function normalizeModelName(model: string, schema: SchemaDef) {
+    const target = model.toLowerCase();
+    return Object.keys(schema.models).find((k) => k.toLowerCase() === target) ?? model;
 }

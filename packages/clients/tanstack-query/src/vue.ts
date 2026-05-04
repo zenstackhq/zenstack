@@ -154,8 +154,8 @@ export type ModelMutationModelResult<
     ): Promise<SimplifiedResult<Schema, Model, T, Options, false, Array, ExtResult>>;
 };
 
-export type TransactionMutationOptions = MaybeRefOrGetter<
-    Omit<UnwrapRef<UseMutationOptions<unknown[], DefaultError, TransactionOperation[]>>, 'mutationFn'> &
+export type TransactionMutationOptions<Schema extends SchemaDef> = MaybeRefOrGetter<
+    Omit<UnwrapRef<UseMutationOptions<unknown[], DefaultError, TransactionOperation<Schema>[]>>, 'mutationFn'> &
         Omit<ExtraMutationOptions, 'optimisticUpdate' | 'optimisticDataProvider'>
 >;
 
@@ -173,8 +173,8 @@ export type ClientHooks<
 } & ProcedureHooks<Schema, Options> & {
         $transaction: {
             useSequential(
-                options?: TransactionMutationOptions,
-            ): UseMutationReturnType<unknown[], DefaultError, TransactionOperation[], unknown>;
+                options?: TransactionMutationOptions<Schema>,
+            ): UseMutationReturnType<unknown[], DefaultError, TransactionOperation<Schema>[], unknown>;
         };
     };
 
@@ -726,17 +726,14 @@ export function useInternalMutation<TArgs, R = any>(
     return useMutation(finalOptions);
 }
 
-export function useInternalTransactionMutation(
-    schema: SchemaDef,
-    options?: MaybeRefOrGetter<
-        Omit<UnwrapRef<UseMutationOptions<unknown[], DefaultError, TransactionOperation[]>>, 'mutationFn'> &
-            Omit<ExtraMutationOptions, 'optimisticUpdate' | 'optimisticDataProvider'>
-    >,
+export function useInternalTransactionMutation<Schema extends SchemaDef>(
+    schema: Schema,
+    options?: TransactionMutationOptions<Schema>,
 ) {
     const queryClient = useQueryClient();
     const { endpoint, fetch, logging } = useFetchOptions(options);
 
-    const mutationFn = makeTransactionMutationFn(endpoint, fetch);
+    const mutationFn = makeTransactionMutationFn<Schema>(endpoint, fetch);
 
     const finalOptions = computed(() => {
         const optionsValue = toValue(options);
