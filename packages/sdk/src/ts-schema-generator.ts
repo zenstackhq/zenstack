@@ -27,9 +27,11 @@ import {
     isReferenceExpr,
     isThisExpr,
     isTypeDef,
+    isObjectExpr,
     isUnaryExpr,
     LiteralExpr,
     MemberAccessExpr,
+    ObjectExpr,
     Procedure,
     ReferenceExpr,
     TypeDef,
@@ -1278,6 +1280,7 @@ export class TsSchemaGenerator {
             .when(isInvocationExpr, (expr) => this.createCallExpression(expr))
             .when(isReferenceExpr, (expr) => this.createRefExpression(expr))
             .when(isArrayExpr, (expr) => this.createArrayExpression(expr))
+            .when(isObjectExpr, (expr) => this.createObjectExpression(expr))
             .when(isUnaryExpr, (expr) => this.createUnaryExpression(expr))
             .when(isBinaryExpr, (expr) => this.createBinaryExpression(expr))
             .when(isMemberAccessExpr, (expr) => this.createMemberExpression(expr))
@@ -1286,6 +1289,17 @@ export class TsSchemaGenerator {
             .otherwise(() => {
                 throw new Error(`Unsupported attribute arg value: ${value.$type}`);
             });
+    }
+
+    private createObjectExpression(expr: ObjectExpr): ts.Expression {
+        return ts.factory.createObjectLiteralExpression(
+            expr.fields.map((field) =>
+                ts.factory.createPropertyAssignment(
+                    typeof field.name === 'string' ? field.name : (field.name as string),
+                    this.createExpression(field.value),
+                ),
+            ),
+        );
     }
 
     private createThisExpression() {

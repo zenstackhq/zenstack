@@ -431,6 +431,182 @@ describe('Attribute application validation tests', () => {
         });
     });
 
+    describe('Partial index where argument', () => {
+        const datasource = `
+            datasource db {
+                provider = 'sqlite'
+                url      = 'file:./dev.db'
+            }
+        `;
+        const header = `
+            ${datasource}
+            plugin prisma {
+                provider = '@core/prisma'
+                prismaVersion = "7.4"
+            }
+        `;
+
+        it('accepts a filter object in @@index', async () => {
+            await loadSchema(`${header}
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@index([email], where: { email: { not: null } })
+                }
+            `);
+        });
+
+        it('accepts raw() in @@index', async () => {
+            await loadSchema(`${header}
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@index([email], where: raw("email IS NOT NULL"))
+                }
+            `);
+        });
+
+        it('accepts a filter object in @@unique', async () => {
+            await loadSchema(`${header}
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@unique([email], where: { email: { not: null } })
+                }
+            `);
+        });
+
+        it('accepts raw() in @@unique', async () => {
+            await loadSchema(`${header}
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@unique([email], where: raw("email IS NOT NULL"))
+                }
+            `);
+        });
+
+        it('rejects a plain string literal in @@index', async () => {
+            await loadSchemaWithError(
+                `${header}
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@index([email], where: "email IS NOT NULL")
+                }
+                `,
+                '`where` expects a filter object or raw("SQL")',
+            );
+        });
+
+        it('rejects a plain string literal in @@unique', async () => {
+            await loadSchemaWithError(
+                `${header}
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@unique([email], where: "email IS NOT NULL")
+                }
+                `,
+                '`where` expects a filter object or raw("SQL")',
+            );
+        });
+
+        it('rejects a numeric literal in @@index', async () => {
+            await loadSchemaWithError(
+                `${header}
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@index([email], where: 42)
+                }
+                `,
+                '`where` expects a filter object or raw("SQL")',
+            );
+        });
+
+        it('rejects a bare field reference in @@index', async () => {
+            await loadSchemaWithError(
+                `${header}
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@index([email], where: email)
+                }
+                `,
+                '`where` expects a filter object or raw("SQL")',
+            );
+        });
+
+        it('rejects partial index without plugin prisma', async () => {
+            await loadSchemaWithError(
+                `
+                ${datasource}
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@index([email], where: { email: { not: null } })
+                }
+                `,
+                'Partial indexes require Prisma 7.4+',
+            );
+        });
+
+        it('rejects partial index with prismaVersion below 7.4', async () => {
+            await loadSchemaWithError(
+                `
+                ${datasource}
+                plugin prisma {
+                    provider = '@core/prisma'
+                    prismaVersion = "7.3"
+                }
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@index([email], where: { email: { not: null } })
+                }
+                `,
+                'Partial indexes require Prisma 7.4+',
+            );
+        });
+
+        it('rejects partial index with prismaVersion 7.1.3', async () => {
+            await loadSchemaWithError(
+                `
+                ${datasource}
+                plugin prisma {
+                    provider = '@core/prisma'
+                    prismaVersion = "7.1.3"
+                }
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@index([email], where: { email: { not: null } })
+                }
+                `,
+                'Partial indexes require Prisma 7.4+',
+            );
+        });
+
+        it('rejects partial index with prismaVersion 6.8.9', async () => {
+            await loadSchemaWithError(
+                `
+                ${datasource}
+                plugin prisma {
+                    provider = '@core/prisma'
+                    prismaVersion = "6.8.9"
+                }
+                model Foo {
+                    id    Int     @id @default(autoincrement())
+                    email String?
+                    @@index([email], where: { email: { not: null } })
+                }
+                `,
+                'Partial indexes require Prisma 7.4+',
+            );
+        });
+    });
+
     it('requires relation and fk to have consistent optionality', async () => {
         await loadSchemaWithError(
             `

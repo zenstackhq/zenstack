@@ -258,7 +258,7 @@ export class AttributeArg {
 
 export class AttributeArgValue {
     constructor(
-        public type: 'String' | 'FieldReference' | 'Number' | 'Boolean' | 'Array' | 'FunctionCall',
+        public type: 'String' | 'FieldReference' | 'Number' | 'Boolean' | 'Array' | 'FunctionCall' | 'Raw',
         public value: string | number | boolean | FieldReference | FunctionCall | AttributeArgValue[],
     ) {
         switch (type) {
@@ -281,6 +281,9 @@ export class AttributeArgValue {
                 break;
             case 'FunctionCall':
                 if (!(value instanceof FunctionCall)) throw new Error('Value must be FunctionCall');
+                break;
+            case 'Raw':
+                if (typeof value !== 'string') throw new Error('Value must be string');
                 break;
         }
     }
@@ -310,6 +313,8 @@ export class AttributeArgValue {
                 return this.value ? 'true' : 'false';
             case 'Array':
                 return '[' + (this.value as AttributeArgValue[]).map((v) => v.toString()).join(', ') + ']';
+            case 'Raw':
+                return this.value as string;
             default:
                 throw new Error(`Unknown attribute value type ${this.type}`);
         }

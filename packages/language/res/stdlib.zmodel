@@ -66,6 +66,9 @@ enum ExpressionContext {
 
     // used in @@index
     Index
+
+    // used in @@unique
+    Unique
 }
 
 /**
@@ -249,8 +252,9 @@ attribute @@id(_ fields: FieldReference[], name: String?, map: String?, length: 
  * @param length: Allows you to specify a maximum length for the subpart of the value to be indexed.
  * @param sort: Allows you to specify in what order the entries of the constraint are stored in the database. The available options are Asc and Desc.
  * @param clustered: Boolean	Defines whether the constraint is clustered or non-clustered. Defaults to false.
+ * @param where: Filters rows included in the partial unique constraint; accepts a Prisma filter object or raw("SQL").
  */
-attribute @@unique(_ fields: FieldReference[], name: String?, map: String?, length: Int?, sort: SortOrder?, clustered: Boolean?) @@@prisma
+attribute @@unique(_ fields: FieldReference[], name: String?, map: String?, length: Int?, sort: SortOrder?, clustered: Boolean?, where: Any?) @@@prisma
 
 /**
  * Index types
@@ -352,8 +356,9 @@ enum SortOrder {
  * @params sort: Allows you to specify in what order the entries of the index or constraint are stored in the database. The available options are asc and desc.
  * @params clustered: Defines whether the index is clustered or non-clustered. Defaults to false.
  * @params type: Allows you to specify an index access method. Defaults to BTree.
+ * @params where: Filters rows included in the partial index; accepts a Prisma filter object or raw("SQL").
  */
-attribute @@index(_ fields: FieldReference[], name: String?, map: String?, length: Int?, sort: SortOrder?, clustered: Boolean?, type: IndexType?) @@@prisma
+attribute @@index(_ fields: FieldReference[], name: String?, map: String?, length: Int?, sort: SortOrder?, clustered: Boolean?, type: IndexType?, where: Any?) @@@prisma
 
 /**
  * Defines meta information about the relation.
@@ -631,7 +636,7 @@ attribute @@delegate(_ discriminator: FieldReference)
  * Used for specifying operator classes for GIN index.
  */
 function raw(value: String): Any {
-} @@@expressionContext([Index])
+} @@@expressionContext([Index, Unique])
 
 /**
  * Marks a field to be strong-typed JSON.
