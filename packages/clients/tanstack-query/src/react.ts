@@ -65,14 +65,16 @@ import type {
 } from '@zenstackhq/orm';
 import type { GetModels, SchemaDef } from '@zenstackhq/schema';
 import { createContext, useContext } from 'react';
-import { getAllQueries, invalidateQueriesMatchingPredicate } from './common/client.js';
+import { getAllQueries, invalidateQueriesMatchingPredicate, normalizeEndpoint } from './common/client.js';
 import { CUSTOM_PROC_ROUTE_NAME } from './common/constants.js';
 import { getQueryKey } from './common/query-key.js';
+import { makeTransactionMutationFn, makeTransactionOnSuccess } from './common/transaction.js';
 import type {
     ExtraMutationOptions,
     ExtraQueryOptions,
     ProcedureReturn,
     QueryContext,
+    TransactionOperation,
     TrimSlicedOperations,
     WithOptimistic,
 } from './common/types.js';
@@ -165,6 +167,12 @@ export type ModelMutationModelResult<
     ): Promise<SimplifiedResult<Schema, Model, T, Options, false, Array, ExtResult>>;
 };
 
+export type TransactionMutationOptions<Schema extends SchemaDef> = Omit<
+    UseMutationOptions<unknown[], DefaultError, TransactionOperation<Schema>[]>,
+    'mutationFn'
+> &
+    Omit<ExtraMutationOptions, 'optimisticUpdate' | 'optimisticDataProvider'>;
+
 export type ClientHooks<
     Schema extends SchemaDef,
     Options extends QueryOptions<Schema> = QueryOptions<Schema>,
@@ -176,7 +184,13 @@ export type ClientHooks<
         Options,
         ExtResult
     >;
-} & ProcedureHooks<Schema, Options>;
+} & ProcedureHooks<Schema, Options> & {
+        $transaction: {
+            useSequential(
+                options?: TransactionMutationOptions<Schema>,
+            ): UseMutationResult<unknown[], DefaultError, TransactionOperation<Schema>[]>;
+        };
+    };
 
 type ProcedureHookGroup<Schema extends SchemaDef, Options extends QueryOptions<Schema>> = {
     [Name in GetSlicedProcedures<Schema, Options>]: GetProcedure<Schema, Name> extends { mutation: true }
@@ -447,6 +461,10 @@ export function useClientQueries<SchemaOrClient extends SchemaDef | ClientContra
 
         (result as any).$procs = buildProcedureHooks();
     }
+
+    (result as any).$transaction = {
+        useSequential: (hookOptions?: any) => useInternalTransactionMutation(schema, { ...options, ...hookOptions }),
+    };
 
     return result;
 }
@@ -789,11 +807,35 @@ export function useInternalMutation<TArgs, R = any>(
     return useMutation(finalOptions);
 }
 
+export function useInternalTransactionMutation<Schema extends SchemaDef>(
+    schema: Schema,
+    options?: TransactionMutationOptions<Schema>,
+) {
+    const { endpoint, fetch, logging } = useFetchOptions(options);
+    const queryClient = useQueryClient();
+
+    const mutationFn = makeTransactionMutationFn<Schema>(endpoint, fetch);
+
+    const finalOptions = { ...options, mutationFn };
+
+    if (options?.invalidateQueries !== false) {
+        const origOnSuccess = finalOptions.onSuccess;
+        finalOptions.onSuccess = makeTransactionOnSuccess(
+            schema,
+            (predicate) => invalidateQueriesMatchingPredicate(queryClient, predicate),
+            logging,
+            origOnSuccess as any,
+        );
+    }
+
+    return useMutation(finalOptions);
+}
+
 function useFetchOptions(options: QueryContext | undefined) {
     const { endpoint, fetch, logging } = useHooksContext();
     // options take precedence over context
     return {
-        endpoint: options?.endpoint ?? endpoint,
+        endpoint: normalizeEndpoint(options?.endpoint ?? endpoint),
         fetch: options?.fetch ?? fetch,
         logging: options?.logging ?? logging,
     };

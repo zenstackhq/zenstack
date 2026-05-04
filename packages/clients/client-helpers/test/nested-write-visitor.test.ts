@@ -1097,25 +1097,6 @@ describe('NestedWriteVisitor tests', () => {
                 }),
             ).resolves.not.toThrow();
         });
-
-        it('throws error for unhandled action type', async () => {
-            const schema = createSchema({
-                User: {
-                    name: 'User',
-                    fields: {
-                        id: createField('id', 'String'),
-                    },
-                    uniqueFields: {},
-                    idFields: ['id'],
-                },
-            });
-
-            const visitor = new NestedWriteVisitor(schema, {});
-
-            await expect(visitor.visit('User', 'invalidAction' as any, { data: {} })).rejects.toThrow(
-                'unhandled action type',
-            );
-        });
     });
 
     describe('complex real-world scenarios', () => {

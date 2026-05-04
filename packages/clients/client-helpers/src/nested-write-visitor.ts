@@ -297,10 +297,6 @@ export class NestedWriteVisitor {
                     }
                 }
                 break;
-
-            default: {
-                throw new Error(`unhandled action type ${action}`);
-            }
         }
     }
 

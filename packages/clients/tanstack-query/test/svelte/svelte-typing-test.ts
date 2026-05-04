@@ -1,6 +1,6 @@
-import { useClientQueries } from '../src/svelte/index.svelte';
-import { schema } from './schemas/basic/schema-lite';
-import { schema as proceduresSchema } from './schemas/procedures/schema-lite';
+import { useClientQueries } from '../../src/svelte/index.svelte';
+import { schema } from '../schemas/basic/schema-lite';
+import { schema as proceduresSchema } from '../schemas/procedures/schema-lite';
 
 const client = useClientQueries(schema);
 const proceduresClient = useClientQueries(proceduresSchema);
