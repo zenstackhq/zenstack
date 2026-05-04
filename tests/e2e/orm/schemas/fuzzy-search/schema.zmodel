@@ -1,0 +1,11 @@
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Flavor {
+    id          Int     @id @default(autoincrement())
+    name        String? @fuzzy
+    description String  @fuzzy
+    notes       String? // not fuzzy-searchable
+}

@@ -11,6 +11,7 @@ import {
     isConfigArrayExpr,
     isDataField,
     isDataModel,
+    isDataSource,
     isEnumField,
     isExpression,
     isInvocationExpr,
@@ -168,6 +169,22 @@ export function isComputedField(field: DataField) {
  */
 export function isDelegateModel(node: AstNode) {
     return isDataModel(node) && hasAttribute(node, '@@delegate');
+}
+
+/**
+ * Returns the datasource provider literal (e.g. `'postgresql'`) declared in the schema, or undefined
+ * if no datasource is found or its provider is not a literal.
+ */
+export function getDataSourceProvider(model: Model) {
+    const dataSource = model.declarations.find(isDataSource);
+    if (!dataSource) {
+        return undefined;
+    }
+    const providerField = dataSource.fields.find((f) => f.name === 'provider');
+    if (!providerField) {
+        return undefined;
+    }
+    return getLiteral<string>(providerField.value);
 }
 
 /**

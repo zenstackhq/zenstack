@@ -394,11 +394,18 @@ attribute @ignore() @@@prisma
 attribute @@ignore() @@@prisma
 
 /**
- * Indicates that the field should be omitted by default when read with an ORM client. The omission can be 
+ * Indicates that the field should be omitted by default when read with an ORM client. The omission can be
  * overridden in options passed to create `ZenStackClient`, or at query time by explicitly passing in an
  * `omit` clause. The attribute is only effective for ORM query APIs, not for query-builder APIs.
  */
 attribute @omit()
+
+/**
+ * Marks a `String` field as fuzzy-searchable. Fields with this attribute can be used with the
+ * `fuzzy` filter operator and the `_fuzzyRelevance` orderBy. Fuzzy search is currently
+ * supported only on the `postgresql` provider (requires `pg_trgm` extension).
+ */
+attribute @fuzzy() @@@targetField([StringField])
 
 /**
  * Automatically stores the time when a record was last updated.
