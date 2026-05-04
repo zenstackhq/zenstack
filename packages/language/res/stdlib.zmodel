@@ -405,7 +405,7 @@ attribute @omit()
  * `fuzzy` filter operator and the `_fuzzyRelevance` orderBy. Fuzzy search is currently
  * supported only on the `postgresql` provider (requires `pg_trgm` extension).
  */
-attribute @fuzzy() @@@targetField([StringField])
+attribute @fuzzy() @@@targetField([StringField]) @@@once
 
 /**
  * Automatically stores the time when a record was last updated.

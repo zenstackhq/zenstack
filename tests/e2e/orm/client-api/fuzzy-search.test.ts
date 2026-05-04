@@ -818,7 +818,7 @@ describe.skipIf(provider !== 'postgresql')('Fuzzy search tests', () => {
     });
 
     // ---------------------------------------------------------------
-    // E. @fuzzy attribute gating
+    // R. @fuzzy attribute gating
     // ---------------------------------------------------------------
 
     it('rejects fuzzy filter on a field without @fuzzy', async () => {
