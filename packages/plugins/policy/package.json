@@ -48,13 +48,15 @@
     "dependencies": {
         "@zenstackhq/common-helpers": "workspace:*",
         "@zenstackhq/orm": "workspace:*",
-        "ts-pattern": "catalog:"
+        "ts-pattern": "catalog:",
+        "zod": "catalog:"
     },
     "peerDependencies": {
         "kysely": "catalog:"
     },
     "devDependencies": {
         "@types/better-sqlite3": "catalog:",
+        "@types/node": "catalog:",
         "@types/pg": "^8.0.0",
         "@zenstackhq/eslint-config": "workspace:*",
         "@zenstackhq/tsdown-config": "workspace:*",

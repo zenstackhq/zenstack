@@ -681,10 +681,16 @@ importers:
       ts-pattern:
         specifier: 'catalog:'
         version: 5.7.1
+      zod:
+        specifier: 'catalog:'
+        version: 4.1.12
     devDependencies:
       '@types/better-sqlite3':
         specifier: 'catalog:'
         version: 7.6.13
+      '@types/node':
+        specifier: 'catalog:'
+        version: 20.19.24
       '@types/pg':
         specifier: ^8.0.0
         version: 8.11.11

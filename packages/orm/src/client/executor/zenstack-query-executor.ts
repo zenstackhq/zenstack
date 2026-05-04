@@ -38,6 +38,7 @@ import type { BaseCrudDialect } from '../crud/dialects/base-dialect';
 import { createDBQueryError, createInternalError, ORMError } from '../errors';
 import type { AfterEntityMutationCallback, OnKyselyQueryCallback } from '../plugin';
 import { requireIdFields, stripAlias } from '../query-utils';
+import { internalQueryContextStorage } from './internal-context';
 import { QueryNameMapper } from './name-mapper';
 import { TempAliasTransformer } from './temp-alias-transformer';
 import type { ZenStackDriver } from './zenstack-driver';
@@ -196,6 +197,13 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
         queryId: QueryId,
     ) {
         let proceed = (q: RootOperationNode) => this.proceedQuery(connection, q, parameters, queryId);
+
+        // Internal pre-load queries (e.g. entity-ID fetch before an UPDATE on dialects without
+        // RETURNING) must not be filtered by access-policy plugins, otherwise a row denied by
+        // read-policy would surface as "Record not found" instead of the correct policy error.
+        if (internalQueryContextStorage.getStore()?.bypassOnKyselyHooks) {
+            return proceed(queryNode);
+        }
 
         const hooks: OnKyselyQueryCallback<SchemaDef>[] = [];
         // tsc perf

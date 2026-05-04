@@ -51,6 +51,7 @@ import {
 } from '../../query-utils';
 import { getCrudDialect } from '../dialects';
 import type { BaseCrudDialect } from '../dialects/base-dialect';
+import { internalQueryContextStorage } from '../../executor/internal-context';
 import { InputValidator } from '../validator';
 
 /**
@@ -167,6 +168,16 @@ export const AllReadOperations = [...CoreReadOperations, 'findUniqueOrThrow', 'f
  * List of all read operations, including 'orThrow' variants.
  */
 export type AllReadOperations = (typeof AllReadOperations)[number];
+
+/**
+ * List of single-row read operations — `findUnique`/`findFirst` and their 'orThrow' variants.
+ */
+export const SingleRowReadOperations = ['findUnique', 'findFirst', 'findUniqueOrThrow', 'findFirstOrThrow'] as const;
+
+/**
+ * List of single-row read operations.
+ */
+export type SingleRowReadOperations = (typeof SingleRowReadOperations)[number];
 
 /**
  * List of all write operations - simply an alias of CoreWriteOperations.
@@ -312,6 +323,9 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             const r = await kysely.getExecutor().executeQuery(compiled);
             result = r.rows;
         } catch (err) {
+            // Re-throw ORMErrors (e.g. policy violations with custom error codes) as-is
+            // to avoid wrapping them in a generic DBQueryError and losing their type/code.
+            if (err instanceof ORMError) throw err;
             throw createDBQueryError(`Failed to execute query: ${err}`, err, compiled.sql, compiled.parameters);
         }
 
@@ -1198,18 +1212,24 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             return loadThisEntity();
         }
 
-        if (
+        if (modelDef.baseModel) {
             // when updating a model with delegate base, base fields may be referenced in the filter,
-            // so we read the id out if the filter and and use it as the update filter instead
-            modelDef.baseModel ||
-            // for dialects that don't support RETURNING, we need to read the id fields
-            // to identify the updated entity for toplevel updates
-            (!this.dialect.supportsReturning && !fromRelation)
-        ) {
-            // update the filter to db-loaded id fields
+            // so we read the id out of the filter and use it as the update filter instead
             combinedWhere = await loadThisEntity();
             if (!combinedWhere) {
-                // not found
+                return null;
+            }
+        } else if (!this.dialect.supportsReturning && !fromRelation) {
+            // For dialects without RETURNING (e.g. MySQL) we must pre-load the entity's id fields
+            // so we can re-read the row after the UPDATE. This pre-load is internal bookkeeping —
+            // not a user-visible read — so it must bypass onKyselyQuery plugin hooks. Without the
+            // bypass, a read-policy denial would surface as "Record not found" here before the
+            // UPDATE runs, preventing the policy plugin from emitting the correct error code.
+            combinedWhere = await internalQueryContextStorage.run(
+                { bypassOnKyselyHooks: true },
+                () => loadThisEntity(),
+            );
+            if (!combinedWhere) {
                 return null;
             }
         }

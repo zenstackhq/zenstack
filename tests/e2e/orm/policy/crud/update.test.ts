@@ -1208,6 +1208,27 @@ model Foo {
             await expect(db.foo.findUnique({ where: { id: 1 } })).resolves.toMatchObject({ x: 1 });
         });
 
+        it('does not throw for nonexistent row', async () => {
+            const db = await createPolicyTestClient(
+                `
+model Foo {
+    id Int @id
+    x  Int
+    @@allow('create', true)
+    @@allow('update', x > 1)
+    @@allow('read', true)
+}
+`,
+            );
+
+            await db.foo.createMany({ data: [{ id: 1, x: 2 }] });
+
+            // nonexistent row — row does not exist at all, so postModelLevelCheck must NOT throw
+            await expect(
+                db.$qb.updateTable('Foo').set({ x: 5 }).where('id', '=', 999).executeTakeFirst(),
+            ).resolves.toMatchObject({ numUpdatedRows: 0n });
+        });
+
         it('works with insert on conflict do update', async () => {
             const db = await createPolicyTestClient(
                 `
