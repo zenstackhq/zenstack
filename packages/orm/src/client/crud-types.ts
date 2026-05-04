@@ -376,7 +376,7 @@ type FieldFilter<
                     AllowedKinds
                 >
               : // primitive
-                AddFuzzyIfPostgres<
+                AddFuzzyFilterIfSupported<
                     Schema,
                     GetModelFieldType<Schema, Model, Field>,
                     AllowedKinds,
@@ -397,7 +397,7 @@ type FieldFilter<
  * Returns `Base` unchanged when any condition fails — never `Base & {}`,
  * since intersecting with `{}` would strip `null`/`undefined` from `Base`.
  */
-type AddFuzzyIfPostgres<
+type AddFuzzyFilterIfSupported<
     Schema extends SchemaDef,
     FieldType extends string,
     AllowedKinds extends FilterKind,
@@ -607,13 +607,13 @@ export type StringFilter<
                      */
                     endsWith?: string;
 
-                     /**
-                      * Specifies the string comparison mode. Not effective for "sqlite" provider
-                      */
-                     mode?: 'default' | 'insensitive';
-                 }
-               : {}) &
-           (WithAggregations extends true
+                    /**
+                     * Specifies the string comparison mode. Not effective for "sqlite" provider
+                     */
+                    mode?: 'default' | 'insensitive';
+                }
+              : {}) &
+          (WithAggregations extends true
               ? {
                     /**
                      * Filters against the count of records.
@@ -2588,9 +2588,7 @@ type ProviderSupportsDistinct<Schema extends SchemaDef> = Schema['provider']['ty
     ? true
     : false;
 
-type ProviderSupportsFuzzy<Schema extends SchemaDef> = Schema['provider']['type'] extends 'postgresql'
-    ? true
-    : false;
+type ProviderSupportsFuzzy<Schema extends SchemaDef> = Schema['provider']['type'] extends 'postgresql' ? true : false;
 
 /**
  * Extracts extended query args for a specific operation.
