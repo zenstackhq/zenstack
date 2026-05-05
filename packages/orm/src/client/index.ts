@@ -32,6 +32,7 @@ export {
     $first,
     $filter,
     $map,
+    TransactionInputError,
 } from './transaction';
 export type {
     StepRef,

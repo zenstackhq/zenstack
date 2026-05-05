@@ -30,7 +30,7 @@ type StepRefShape = {
     /**
      * Dot-separated path to extract from the step's result.
      * Supports array bracket notation: `items[0].id`
-    */
+     */
     path?: string;
 };
 
@@ -183,13 +183,26 @@ export function $map(ref: StepExpr, extract: string): StepMapExpr<unknown> {
     return { [EXPR_SYMBOL]: 'map', ref, extract };
 }
 
+// ---- Error type for user-facing resolution failures ----
+
+/**
+ * Error thrown when a step expression cannot be resolved due to user input.
+ * Distinguished from internal errors so callers can return 4xx instead of 5xx.
+ */
+export class TransactionInputError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'TransactionInputError';
+    }
+}
+
 // ---- Detection helpers ----
 
 export function isStepRef(value: unknown): value is StepRef {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
     const v = value as Record<string, unknown>;
     return (
-        STEP_REF_SYMBOL in v &&
+        Object.prototype.hasOwnProperty.call(v, STEP_REF_SYMBOL) &&
         v[STEP_REF_SYMBOL] === true
     );
 }
@@ -197,7 +210,7 @@ export function isStepRef(value: unknown): value is StepRef {
 export function isStepExpr(value: unknown): value is StepExpr {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
     const v = value as Record<string, unknown>;
-    return typeof v[EXPR_SYMBOL] === 'string' && EXPR_SYMBOL in v;
+    return typeof v[EXPR_SYMBOL] === 'string' && Object.prototype.hasOwnProperty.call(v, EXPR_SYMBOL);
 }
 
 /** True if value is EITHER a StepRef or a StepExpr. */
@@ -207,17 +220,32 @@ export function isAnyRef(value: unknown): value is StepRef | StepExpr {
 
 // ---- Path resolution ----
 
+const FORBIDDEN_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
+
 type PathSegment = string | number;
 
 function parsePath(path: string): PathSegment[] {
+    if (typeof path !== 'string' || path.length === 0) {
+        throw new TransactionInputError('Path must be a non-empty string.');
+    }
     const segments: PathSegment[] = [];
     const parts = path.split('.');
     for (const part of parts) {
+        if (part.length === 0) {
+            throw new TransactionInputError(`Path contains an empty segment in "${path}".`);
+        }
         const bracketMatch = part.match(/^(\w+)\[(\d+)\]$/);
         if (bracketMatch) {
-            segments.push(bracketMatch[1]!);
+            const segmentName = bracketMatch[1]!;
+            if (FORBIDDEN_KEYS.has(segmentName)) {
+                throw new TransactionInputError(`Path segment "${segmentName}" is not allowed.`);
+            }
+            segments.push(segmentName);
             segments.push(parseInt(bracketMatch[2]!, 10));
         } else {
+            if (FORBIDDEN_KEYS.has(part)) {
+                throw new TransactionInputError(`Path segment "${part}" is not allowed.`);
+            }
             segments.push(part);
         }
     }
@@ -228,19 +256,24 @@ function resolvePath(obj: unknown, segments: PathSegment[]): unknown {
     let current = obj;
     for (const segment of segments) {
         if (current == null || typeof current !== 'object') {
-            throw new Error(
+            throw new TransactionInputError(
                 `Cannot resolve path segment "${segment}": value is ${current === null ? 'null' : typeof current}`,
             );
         }
+        if (typeof segment === 'string' && FORBIDDEN_KEYS.has(segment)) {
+            throw new TransactionInputError(`Path segment "${segment}" is not allowed.`);
+        }
         if (Array.isArray(current) && typeof segment === 'number') {
-            if (segment < 0 || segment >= current.length) {
-                throw new Error(`Array index ${segment} is out of bounds. Array has ${current.length} elements.`);
+            if (segment < 0 || !Number.isSafeInteger(segment) || segment >= current.length) {
+                throw new TransactionInputError(
+                    `Array index ${segment} is out of bounds. Array has ${current.length} elements.`,
+                );
             }
             current = current[segment];
-        } else if (typeof segment === 'string' && segment in current) {
+        } else if (typeof segment === 'string' && Object.prototype.hasOwnProperty.call(current, segment)) {
             current = (current as Record<string, unknown>)[segment];
         } else {
-            throw new Error(
+            throw new TransactionInputError(
                 `Cannot resolve path segment "${segment}" on ${Array.isArray(current) ? 'array' : typeof current}`,
             );
         }
@@ -250,30 +283,85 @@ function resolvePath(obj: unknown, segments: PathSegment[]): unknown {
 
 // ---- Expression resolution ----
 
+const VALID_EXPR_KINDS = new Set(['ref', 'get', 'item', 'first', 'filter', 'map']);
+
+function validateInteger(value: unknown, label: string): asserts value is number {
+    if (typeof value !== 'number' || !Number.isSafeInteger(value)) {
+        throw new TransactionInputError(
+            `"${label}" must be a safe integer, got ${value === null ? 'null' : typeof value}${typeof value === 'number' ? ` (${value})` : ''}`,
+        );
+    }
+}
+
+function validateExprRef(expr: StepExpr) {
+    const kind = (expr as Record<string, unknown>)[EXPR_SYMBOL];
+    if (typeof kind !== 'string' || !VALID_EXPR_KINDS.has(kind)) {
+        throw new TransactionInputError(
+            `Unknown expression type: "${String(kind)}". Supported types: ref, get, item, first, filter, map`,
+        );
+    }
+    // type-specific field validation
+    const e = expr as Record<string, unknown>;
+    if (kind === 'ref' || kind === 'get' || kind === 'item' || kind === 'first' || kind === 'filter' || kind === 'map') {
+        if (!Object.prototype.hasOwnProperty.call(e, 'ref') && kind !== 'ref') {
+            throw new TransactionInputError(`Expression of kind "${kind}" must have a "ref" field.`);
+        }
+    }
+}
+
 /**
  * Resolves a StepRef or StepExpr against accumulated step results.
  * Handles both the old `$zenstackStepRef` format and the new `$zenstackExpr` format.
+ * Supports cycle detection via an optional WeakSet.
  */
-export function resolveExpr(expr: StepExpr | StepRef, results: unknown[]): unknown {
+export function resolveExpr(
+    expr: StepExpr | StepRef,
+    results: unknown[],
+    _visited?: WeakSet<object>,
+): unknown {
+    // Cycle detection for client-side local expressions
+    const visited = _visited ?? new WeakSet<object>();
+    if (typeof expr === 'object' && expr !== null) {
+        if (visited.has(expr as object)) {
+            throw new TransactionInputError('Circular reference detected in step expression.');
+        }
+        visited.add(expr as object);
+    }
+
     // Handle old-style StepRef
     if (isStepRef(expr)) {
         const { step, path } = expr;
+        validateInteger(step, 'step');
         const resultIndex = getResultIndex(step, results);
         let value = results[resultIndex];
         if (path) {
+            if (typeof path !== 'string') {
+                throw new TransactionInputError('"path" must be a string.');
+            }
             value = resolvePath(value, parsePath(path));
         }
         return value;
     }
 
+    // Accept plain objects with EXPR_SYMBOL
+    if (!isStepExpr(expr)) {
+        throw new TransactionInputError('Expression must be an object with a valid expression marker.');
+    }
+
+    validateExprRef(expr);
+
     // Handle new-style StepExpr
-    const kind = expr[EXPR_SYMBOL];
+    const kind = (expr as Record<string, unknown>)[EXPR_SYMBOL] as string;
     switch (kind) {
         case 'ref': {
             const { step, path } = expr as Extract<StepExpr, { [EXPR_SYMBOL]: 'ref' }>;
+            validateInteger(step, 'step');
             const resultIndex = getResultIndex(step, results);
             let value = results[resultIndex];
             if (path) {
+                if (typeof path !== 'string') {
+                    throw new TransactionInputError('"path" must be a string.');
+                }
                 value = resolvePath(value, parsePath(path));
             }
             return value;
@@ -281,62 +369,74 @@ export function resolveExpr(expr: StepExpr | StepRef, results: unknown[]): unkno
 
         case 'get': {
             const { ref, path } = expr as Extract<StepExpr, { [EXPR_SYMBOL]: 'get' }>;
-            const resolved = resolveExpr(ref, results);
+            const resolved = resolveExpr(ref, results, visited);
             return resolvePath(resolved, parsePath(path));
         }
 
         case 'item': {
             const { ref, index } = expr as Extract<StepExpr, { [EXPR_SYMBOL]: 'item' }>;
-            const resolved = resolveExpr(ref, results);
+            validateInteger(index, 'index');
+            const resolved = resolveExpr(ref, results, visited);
             ensureArray(resolved, 'item', index);
             const arr = resolved as unknown[];
             if (index < 0 || index >= arr.length) {
-                throw new Error(`Array index ${index} is out of bounds. Array has ${arr.length} elements.`);
+                throw new TransactionInputError(`Array index ${index} is out of bounds. Array has ${arr.length} elements.`);
             }
             return arr[index];
         }
 
         case 'first': {
             const { ref } = expr as Extract<StepExpr, { [EXPR_SYMBOL]: 'first' }>;
-            const resolved = resolveExpr(ref, results);
+            const resolved = resolveExpr(ref, results, visited);
             ensureArray(resolved, 'first');
             const arr = resolved as unknown[];
             if (arr.length === 0) {
-                throw new Error('Cannot get first element of an empty array.');
+                throw new TransactionInputError('Cannot get first element of an empty array.');
             }
             return arr[0];
         }
 
         case 'filter': {
             const { ref, where } = expr as Extract<StepExpr, { [EXPR_SYMBOL]: 'filter' }>;
-            const resolved = resolveExpr(ref, results);
+            const resolved = resolveExpr(ref, results, visited);
             ensureArray(resolved, 'filter');
             const arr = resolved as Record<string, unknown>[];
-            const resolvedValue = isAnyRef(where.value) ? resolveExpr(where.value, results) : where.value;
+            const resolvedValue = isAnyRef(where.value) ? resolveExpr(where.value, results, visited) : where.value;
             return arr.filter((item) => matchCondition(item, where.field, where.op, resolvedValue));
         }
 
         case 'map': {
             const { ref, extract } = expr as Extract<StepExpr, { [EXPR_SYMBOL]: 'map' }>;
-            const resolved = resolveExpr(ref, results);
+            const resolved = resolveExpr(ref, results, visited);
             ensureArray(resolved, 'map');
             const arr = resolved as Record<string, unknown>[];
             return arr.map((item) => {
-                if (!(extract in item)) {
-                    throw new Error(`Field "${extract}" not found in array element. Available fields: ${Object.keys(item).join(', ')}`);
+                if (typeof item !== 'object' || item === null || Array.isArray(item)) {
+                    throw new TransactionInputError(
+                        `Cannot extract field "${extract}": array element is ${item === null ? 'null' : Array.isArray(item) ? 'an array' : `a ${typeof item}`}`,
+                    );
+                }
+                if (!Object.prototype.hasOwnProperty.call(item, extract)) {
+                    throw new TransactionInputError(
+                        `Field "${extract}" not found in array element. Available fields: ${Object.keys(item).join(', ')}`,
+                    );
                 }
                 return item[extract];
             });
         }
 
-        default:
-            throw new Error(`Unknown expression type: "${kind}". Supported types: ref, get, item, first, filter, map`);
+        default: {
+            const kindVal = (expr as Record<string, unknown>)[EXPR_SYMBOL];
+            throw new TransactionInputError(
+                `Unknown expression type: "${String(kindVal)}". Supported types: ref, get, item, first, filter, map`,
+            );
+        }
     }
 }
 
 function getResultIndex(step: number, results: unknown[]) {
     if (step < 1 || step > results.length) {
-        throw new Error(
+        throw new TransactionInputError(
             `Step reference to number ${step} is out of bounds. ` +
                 `Step references are 1-based, and there are ${results.length} result(s) available from previous steps ` +
                 `(steps 1..${results.length}).`,
@@ -348,7 +448,7 @@ function getResultIndex(step: number, results: unknown[]) {
 function ensureArray(value: unknown, op: string, index?: number): asserts value is unknown[] {
     if (!Array.isArray(value)) {
         const hint = index !== undefined ? ` at index ${index}` : '';
-        throw new Error(
+        throw new TransactionInputError(
             `Cannot apply "${op}"${hint}: the resolved value is not an array (got ${getValueTypeName(value)}). ` +
                 `Use a "ref" or "get" expression that points to an array result (e.g., from findMany).`,
         );
@@ -362,29 +462,110 @@ function getValueTypeName(value: unknown) {
     return value.constructor?.name || typeof value;
 }
 
+function isDate(value: unknown): value is Date {
+    return value instanceof Date && typeof value.getTime === 'function' && !isNaN(value.getTime());
+}
+
+function isDecimal(value: unknown): value is { isDecimal: true; equals(other: unknown): boolean } {
+    if (!value || typeof value !== 'object') return false;
+    const v = value as Record<string, unknown>;
+    return v['isDecimal'] === true && typeof v['equals'] === 'function';
+}
+
+function isBigInt(value: unknown): value is bigint {
+    return typeof value === 'bigint';
+}
+
+function isBuffer(value: unknown): value is Uint8Array {
+    return value instanceof Uint8Array;
+}
+
 function matchCondition(item: Record<string, unknown>, field: string, op: string, value: unknown): boolean {
+    if (typeof field !== 'string' || field.length === 0) {
+        throw new TransactionInputError('Filter field must be a non-empty string.');
+    }
+    if (!Object.prototype.hasOwnProperty.call(item, field)) {
+        // field missing from item — only 'neq' and 'notIn' can match
+        if (op === 'neq') return true;
+        if (op === 'notIn' && Array.isArray(value)) return !value.includes(undefined);
+        // treat as no match
+        return false;
+    }
     const actual = item[field];
     switch (op) {
         case 'eq':
+            if (isDate(actual) && isDate(value)) return actual.getTime() === value.getTime();
+            if (isDecimal(actual) && isDecimal(value)) return actual.equals(value);
+            if (isBigInt(actual) && isBigInt(value)) return actual === value;
+            if (isBuffer(actual) && isBuffer(value)) {
+                if (actual.length !== value.length) return false;
+                for (let i = 0; i < actual.length; i++) if (actual[i] !== value[i]) return false;
+                return true;
+            }
             return actual === value;
+
         case 'neq':
+            if (isDate(actual) && isDate(value)) return actual.getTime() !== value.getTime();
+            if (isDecimal(actual) && isDecimal(value)) return !actual.equals(value);
+            if (isBigInt(actual) && isBigInt(value)) return actual !== value;
+            if (isBuffer(actual) && isBuffer(value)) {
+                if (actual.length !== value.length) return true;
+                for (let i = 0; i < actual.length; i++) if (actual[i] !== value[i]) return true;
+                return false;
+            }
             return actual !== value;
+
         case 'gt':
-            return typeof actual === 'number' && typeof value === 'number' && actual > value;
+            if (typeof actual === 'number' && typeof value === 'number') return actual > value;
+            if (isDate(actual) && isDate(value)) return actual.getTime() > value.getTime();
+            if (isBigInt(actual) && isBigInt(value)) return actual > value;
+            return false;
+
         case 'gte':
-            return typeof actual === 'number' && typeof value === 'number' && actual >= value;
+            if (typeof actual === 'number' && typeof value === 'number') return actual >= value;
+            if (isDate(actual) && isDate(value)) return actual.getTime() >= value.getTime();
+            if (isBigInt(actual) && isBigInt(value)) return actual >= value;
+            return false;
+
         case 'lt':
-            return typeof actual === 'number' && typeof value === 'number' && actual < value;
+            if (typeof actual === 'number' && typeof value === 'number') return actual < value;
+            if (isDate(actual) && isDate(value)) return actual.getTime() < value.getTime();
+            if (isBigInt(actual) && isBigInt(value)) return actual < value;
+            return false;
+
         case 'lte':
-            return typeof actual === 'number' && typeof value === 'number' && actual <= value;
-        case 'in':
-            return Array.isArray(value) && value.includes(actual);
-        case 'notIn':
-            return Array.isArray(value) && !value.includes(actual);
+            if (typeof actual === 'number' && typeof value === 'number') return actual <= value;
+            if (isDate(actual) && isDate(value)) return actual.getTime() <= value.getTime();
+            if (isBigInt(actual) && isBigInt(value)) return actual <= value;
+            return false;
+
+        case 'in': {
+            if (!Array.isArray(value)) {
+                throw new TransactionInputError('"in" filter value must be an array.');
+            }
+            if (isDate(actual)) return value.some((v) => isDate(v) && v.getTime() === actual.getTime());
+            if (isBigInt(actual)) return value.some((v) => isBigInt(v) && v === actual);
+            return value.includes(actual);
+        }
+
+        case 'notIn': {
+            if (!Array.isArray(value)) {
+                throw new TransactionInputError('"notIn" filter value must be an array.');
+            }
+            if (isDate(actual)) return !value.some((v) => isDate(v) && v.getTime() === actual.getTime());
+            if (isBigInt(actual)) return !value.some((v) => isBigInt(v) && v === actual);
+            return !value.includes(actual);
+        }
+
         case 'contains':
-            return typeof actual === 'string' && typeof value === 'string' && actual.includes(value);
+            if (typeof actual === 'string' && typeof value === 'string') return actual.includes(value);
+            if (Array.isArray(actual)) return actual.includes(value);
+            return false;
+
         default:
-            throw new Error(`Unknown filter operator: "${op}". Supported: eq, neq, gt, gte, lt, lte, in, notIn, contains`);
+            throw new TransactionInputError(
+                `Unknown filter operator: "${op}". Supported: eq, neq, gt, gte, lt, lte, in, notIn, contains`,
+            );
     }
 }
 
@@ -410,6 +591,10 @@ export function resolveStepRefs(args: unknown, results: unknown[]): unknown {
     if (args && typeof args === 'object' && Object.getPrototypeOf(args) === Object.prototype) {
         const result: Record<string, unknown> = {};
         for (const [key, value] of Object.entries(args)) {
+            // Block prototype pollution keys
+            if (FORBIDDEN_KEYS.has(key)) {
+                continue;
+            }
             result[key] = resolveStepRefs(value, results);
         }
         return result;

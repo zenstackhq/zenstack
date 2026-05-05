@@ -3,6 +3,7 @@ import {
     CoreCrudOperations,
     ORMError,
     ORMErrorReason,
+    TransactionInputError,
     resolveStepRefs,
     type ClientContract,
 } from '@zenstackhq/orm';
@@ -304,6 +305,9 @@ export class RPCApiHandler<Schema extends SchemaDef = SchemaDef> implements ApiH
             return response;
         } catch (err) {
             log(this.options.log, 'error', `error occurred when handling "$transaction" request`, err);
+            if (err instanceof TransactionInputError) {
+                return this.makeBadInputErrorResponse(err.message);
+            }
             if (err instanceof ORMError) {
                 return this.makeORMErrorResponse(err);
             }
