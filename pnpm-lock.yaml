@@ -361,6 +361,9 @@ importers:
       '@zenstackhq/common-helpers':
         specifier: workspace:*
         version: link:../../common-helpers
+      '@zenstackhq/orm':
+        specifier: workspace:*
+        version: link:../../orm
       '@zenstackhq/schema':
         specifier: workspace:*
         version: link:../../schema
@@ -401,9 +404,6 @@ importers:
       '@zenstackhq/language':
         specifier: workspace:*
         version: link:../../language
-      '@zenstackhq/orm':
-        specifier: workspace:*
-        version: link:../../orm
       '@zenstackhq/sdk':
         specifier: workspace:*
         version: link:../../sdk
