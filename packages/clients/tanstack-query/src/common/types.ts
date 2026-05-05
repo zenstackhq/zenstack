@@ -1,28 +1,17 @@
 import type { Logger, OptimisticDataProvider } from '@zenstackhq/client-helpers';
 import type { FetchFn } from '@zenstackhq/client-helpers/fetch';
 import type {
-    AggregateArgs,
-    CountArgs,
-    CreateArgs,
-    CreateManyAndReturnArgs,
-    CreateManyArgs,
-    DeleteArgs,
-    DeleteManyArgs,
-    ExistsArgs,
-    FindFirstArgs,
-    FindManyArgs,
-    FindUniqueArgs,
+    CoreCrudOperations,
+    CrudArgsMap,
+    CrudReturnMap,
+    ExtQueryArgsBase,
+    ExtResultBase,
     GetProcedureNames,
     GetSlicedOperations,
-    GroupByArgs,
     ModelAllowsCreate,
     OperationsRequiringCreate,
     ProcedureFunc,
     QueryOptions,
-    UpdateArgs,
-    UpdateManyAndReturnArgs,
-    UpdateManyArgs,
-    UpsertArgs,
 } from '@zenstackhq/orm';
 import type { GetModels, SchemaDef } from '@zenstackhq/schema';
 
@@ -118,46 +107,58 @@ export type ProcedureReturn<Schema extends SchemaDef, Name extends GetProcedureN
 >;
 
 /**
- * Maps each core CRUD operation to its argument type for a given model.
+ * Operations available in a sequential transaction.
  */
-type CrudArgsMap<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
-    findMany: FindManyArgs<Schema, Model>;
-    findUnique: FindUniqueArgs<Schema, Model>;
-    findFirst: FindFirstArgs<Schema, Model>;
-    create: CreateArgs<Schema, Model>;
-    createMany: CreateManyArgs<Schema, Model>;
-    createManyAndReturn: CreateManyAndReturnArgs<Schema, Model>;
-    update: UpdateArgs<Schema, Model>;
-    updateMany: UpdateManyArgs<Schema, Model>;
-    updateManyAndReturn: UpdateManyAndReturnArgs<Schema, Model>;
-    upsert: UpsertArgs<Schema, Model>;
-    delete: DeleteArgs<Schema, Model>;
-    deleteMany: DeleteManyArgs<Schema, Model>;
-    count: CountArgs<Schema, Model>;
-    aggregate: AggregateArgs<Schema, Model>;
-    groupBy: GroupByArgs<Schema, Model>;
-    exists: ExistsArgs<Schema, Model>;
-};
-
-/**
- * Operations available for a given model, omitting create-style operations
- * for models that don't allow them (e.g. delegate models).
- */
-type AllowedTransactionOps<Schema extends SchemaDef, Model extends GetModels<Schema>> =
+type AllowedTransactionOps<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+> =
     ModelAllowsCreate<Schema, Model> extends true
-        ? keyof CrudArgsMap<Schema, Model>
-        : Exclude<keyof CrudArgsMap<Schema, Model>, OperationsRequiringCreate>;
+        ? GetSlicedOperations<Schema, Model, Options> & CoreCrudOperations
+        : Exclude<GetSlicedOperations<Schema, Model, Options> & CoreCrudOperations, OperationsRequiringCreate>;
 
 /**
  * Represents a single operation to execute within a sequential transaction.
  *
  * The `model`, `op`, and `args` fields are correlated: `op` is constrained to
- * the CRUD operations available on `model`, and `args` is typed accordingly.
+ * the CRUD operations available on `model` (respecting `Options['slicing']`), and
+ * `args` is typed accordingly.
  */
-export type TransactionOperation<Schema extends SchemaDef> = {
+export type TransactionOperation<
+    Schema extends SchemaDef,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+    ExtResult extends ExtResultBase<Schema> = {},
+> = {
     [Model in GetModels<Schema>]: {
-        [Op in AllowedTransactionOps<Schema, Model>]: {} extends CrudArgsMap<Schema, Model>[Op]
-            ? { model: Model; op: Op; args?: CrudArgsMap<Schema, Model>[Op] }
-            : { model: Model; op: Op; args: CrudArgsMap<Schema, Model>[Op] };
-    }[AllowedTransactionOps<Schema, Model>];
+        [Op in AllowedTransactionOps<Schema, Model, Options>]: {} extends CrudArgsMap<
+            Schema,
+            Model,
+            Options,
+            ExtQueryArgs,
+            ExtResult
+        >[Op]
+            ? { model: Model; op: Op; args?: CrudArgsMap<Schema, Model, Options, ExtQueryArgs, ExtResult>[Op] }
+            : { model: Model; op: Op; args: CrudArgsMap<Schema, Model, Options, ExtQueryArgs, ExtResult>[Op] };
+    }[AllowedTransactionOps<Schema, Model, Options>];
 }[GetModels<Schema>];
+
+/**
+ * Maps each operation in a transaction tuple to its precise result type, preserving
+ * per-position typing.
+ */
+export type TransactionResults<
+    Schema extends SchemaDef,
+    Ops extends readonly TransactionOperation<Schema, any, any, any>[],
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtResult extends ExtResultBase<Schema> = {},
+> = {
+    [K in keyof Ops]: Ops[K] extends { model: infer M; op: infer O; args?: infer A }
+        ? M extends GetModels<Schema>
+            ? O extends keyof CrudReturnMap<Schema, M, A, Options, ExtResult>
+                ? CrudReturnMap<Schema, M, A, Options, ExtResult>[O]
+                : never
+            : never
+        : never;
+};

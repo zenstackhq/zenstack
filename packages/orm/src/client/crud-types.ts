@@ -1,5 +1,3 @@
-import type { ExpressionBuilder, OperandExpression, SqlBool } from 'kysely';
-import type { DbNull, JsonNull, JsonNullValues, JsonValue } from '../common-types';
 import type {
     BuiltinType,
     FieldDef,
@@ -35,6 +33,8 @@ import type {
     TypeDefFieldIsOptional,
     UpdatedAtInfo,
 } from '@zenstackhq/schema';
+import type { ExpressionBuilder, OperandExpression, SqlBool } from 'kysely';
+import type { DbNull, JsonNull, JsonNullValues, JsonValue } from '../common-types';
 import type {
     AtLeast,
     MapBaseType,
@@ -53,6 +53,7 @@ import type {
 } from '../utils/type-utils';
 import type { ClientContract } from './contract';
 import type {
+    AllCrudOperations,
     CoreCreateOperations,
     CoreCrudOperations,
     CoreDeleteOperations,
@@ -2356,6 +2357,94 @@ export type GroupByResult<
               }
             : {})
 >;
+
+// #endregion
+
+// #region Op maps
+
+/**
+ * Maps each CRUD operation name to its argument type for a given model.
+ */
+export type CrudArgsMap<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+    ExtResult extends ExtResultBase<Schema> = {},
+> = {
+    findMany: FindManyArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>;
+    findUnique: FindUniqueArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>;
+    findUniqueOrThrow: FindUniqueArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>;
+    findFirst: FindFirstArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>;
+    findFirstOrThrow: FindFirstArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>;
+    create: CreateArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>;
+    createMany: CreateManyArgs<Schema, Model, Options, ExtQueryArgs>;
+    createManyAndReturn: CreateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>;
+    update: UpdateArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>;
+    updateMany: UpdateManyArgs<Schema, Model, Options, ExtQueryArgs>;
+    updateManyAndReturn: UpdateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>;
+    upsert: UpsertArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>;
+    delete: DeleteArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>;
+    deleteMany: DeleteManyArgs<Schema, Model, Options, ExtQueryArgs>;
+    count: CountArgs<Schema, Model, Options, ExtQueryArgs>;
+    aggregate: AggregateArgs<Schema, Model, Options, ExtQueryArgs>;
+    groupBy: GroupByArgs<Schema, Model, Options, ExtQueryArgs>;
+    exists: ExistsArgs<Schema, Model, Options, ExtQueryArgs>;
+};
+
+/**
+ * Maps a CRUD operation name to its argument type for a given model.
+ */
+export type CrudArgsType<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Op extends AllCrudOperations,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+    ExtResult extends ExtResultBase<Schema> = {},
+> = CrudArgsMap<Schema, Model, Options, ExtQueryArgs, ExtResult>[Op];
+
+/**
+ * Maps each CRUD operation name to its return type for a given model + args.
+ */
+export type CrudReturnMap<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Args,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtResult extends ExtResultBase<Schema> = {},
+> = {
+    findMany: SimplifiedPlainResult<Schema, Model, Args, Options, ExtResult>[];
+    findUnique: SimplifiedPlainResult<Schema, Model, Args, Options, ExtResult> | null;
+    findUniqueOrThrow: SimplifiedPlainResult<Schema, Model, Args, Options, ExtResult>;
+    findFirst: SimplifiedPlainResult<Schema, Model, Args, Options, ExtResult> | null;
+    findFirstOrThrow: SimplifiedPlainResult<Schema, Model, Args, Options, ExtResult>;
+    create: SimplifiedPlainResult<Schema, Model, Args, Options, ExtResult>;
+    createMany: BatchResult;
+    createManyAndReturn: SimplifiedPlainResult<Schema, Model, Args, Options, ExtResult>[];
+    update: SimplifiedPlainResult<Schema, Model, Args, Options, ExtResult>;
+    updateMany: BatchResult;
+    updateManyAndReturn: SimplifiedPlainResult<Schema, Model, Args, Options, ExtResult>[];
+    upsert: SimplifiedPlainResult<Schema, Model, Args, Options, ExtResult>;
+    delete: SimplifiedPlainResult<Schema, Model, Args, Options, ExtResult>;
+    deleteMany: BatchResult;
+    count: CountResult<Schema, Model, Args>;
+    aggregate: AggregateResult<Schema, Model, Args>;
+    groupBy: Args extends { by: unknown } ? GroupByResult<Schema, Model, Args> : never;
+    exists: boolean;
+};
+
+/**
+ * Maps a CRUD operation name to its return type for a given model + args.
+ */
+export type CrudReturnType<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Op extends AllCrudOperations,
+    Args,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtResult extends ExtResultBase<Schema> = {},
+> = CrudReturnMap<Schema, Model, Args, Options, ExtResult>[Op];
 
 // #endregion
 

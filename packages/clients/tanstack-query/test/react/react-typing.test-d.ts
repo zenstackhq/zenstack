@@ -1,3 +1,4 @@
+import type { ClientContract, ClientOptions } from '@zenstackhq/orm';
 import { describe, it } from 'vitest';
 import { useClientQueries } from '../../src/react';
 import { schema } from '../schemas/basic/schema-lite';
@@ -128,6 +129,74 @@ describe('React client typing test', () => {
         client.bar.useCreate();
     });
 
+    it('reflects ExtQueryArgs and ExtResult inferred from a ClientContract type', () => {
+        type DbType = ClientContract<
+            typeof schema,
+            ClientOptions<typeof schema>,
+            // ExtQueryArgs: $read adds a `cache` filter to all read ops; $create adds a `bust` flag
+            {
+                $read: { cache?: { ttl?: number } };
+                $create: { cache?: { bust?: boolean } };
+            },
+            // ExtClientMembers (unused here)
+            {},
+            // ExtResult: User gains a computed `displayName` field
+            {
+                user: {
+                    displayName: {
+                        needs: { email: true };
+                        compute: (data: { email: string }) => string;
+                    };
+                };
+            }
+        >;
+
+        const client = useClientQueries<DbType>(schema);
+
+        // ExtQueryArgs $read flows into read ops
+        check(client.user.useFindMany({ cache: { ttl: 1000 } }).data?.[0]?.email);
+        check(client.user.useFindUnique({ where: { id: '1' }, cache: { ttl: 1000 } }).data?.email);
+        check(client.user.useCount({ cache: { ttl: 1000 } }).data);
+
+        // @ts-expect-error: $read's cache shape doesn't accept `bust`
+        client.user.useFindMany({ cache: { bust: true } });
+
+        // ExtQueryArgs $create flows into useCreate
+        client.user.useCreate().mutate({ data: { email: 'a@b.com' }, cache: { bust: true } });
+
+        // @ts-expect-error: $create's cache shape doesn't accept `ttl`
+        client.user.useCreate().mutate({ data: { email: 'a@b.com' }, cache: { ttl: 1000 } });
+
+        // ExtResult: `displayName` is added to User read results
+        const findUniqueData = client.user.useFindUnique({ where: { id: '1' } }).data;
+        check<string | undefined>(findUniqueData?.displayName);
+
+        const findManyData = client.user.useFindMany().data;
+        check<string | undefined>(findManyData?.[0]?.displayName);
+
+        // ExtResult: `displayName` is also present on mutation return
+        client.user
+            .useCreate()
+            .mutateAsync({ data: { email: 'a@b.com' } })
+            .then((d) => check<string>(d.displayName));
+
+        // Transaction: ExtQueryArgs flows through to operation args
+        const tx = client.$transaction.useSequential();
+        void async function () {
+            const r = await tx.mutateAsync([
+                { model: 'User', op: 'findMany', args: { cache: { ttl: 500 } } },
+                { model: 'User', op: 'create', args: { data: { email: 'a@b.com' }, cache: { bust: true } } },
+            ] as const);
+
+            // ExtResult flows through to per-op transaction return
+            check<string | undefined>(r[0][0]?.displayName);
+            check<string>(r[1].displayName);
+        };
+
+        // @ts-expect-error: transaction args must respect ExtQueryArgs shape ($create has no ttl)
+        tx.mutateAsync([{ model: 'User', op: 'create', args: { data: { email: 'a' }, cache: { ttl: 1 } } }] as const);
+    });
+
     it('types procedure queries correctly', () => {
         const proceduresClient = useClientQueries(proceduresSchema);
 
@@ -158,6 +227,6 @@ describe('React client typing test', () => {
     });
 });
 
-function check(_value: unknown) {
-    // noop
+function check<T = unknown>(_value: T): T {
+    return _value;
 }
