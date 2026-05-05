@@ -109,16 +109,21 @@ export type ProcedureReturn<Schema extends SchemaDef, Name extends GetProcedureN
 /**
  * Operations available in a sequential transaction.
  */
-type AllowedTransactionOps<Schema extends SchemaDef, Model extends GetModels<Schema>> =
+type AllowedTransactionOps<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+> =
     ModelAllowsCreate<Schema, Model> extends true
-        ? keyof CrudArgsMap<Schema, Model> & CoreCrudOperations
-        : Exclude<keyof CrudArgsMap<Schema, Model> & CoreCrudOperations, OperationsRequiringCreate>;
+        ? GetSlicedOperations<Schema, Model, Options> & CoreCrudOperations
+        : Exclude<GetSlicedOperations<Schema, Model, Options> & CoreCrudOperations, OperationsRequiringCreate>;
 
 /**
  * Represents a single operation to execute within a sequential transaction.
  *
  * The `model`, `op`, and `args` fields are correlated: `op` is constrained to
- * the CRUD operations available on `model`, and `args` is typed accordingly.
+ * the CRUD operations available on `model` (respecting `Options['slicing']`), and
+ * `args` is typed accordingly.
  */
 export type TransactionOperation<
     Schema extends SchemaDef,
@@ -127,7 +132,7 @@ export type TransactionOperation<
     ExtResult extends ExtResultBase<Schema> = {},
 > = {
     [Model in GetModels<Schema>]: {
-        [Op in AllowedTransactionOps<Schema, Model>]: {} extends CrudArgsMap<
+        [Op in AllowedTransactionOps<Schema, Model, Options>]: {} extends CrudArgsMap<
             Schema,
             Model,
             Options,
@@ -136,7 +141,7 @@ export type TransactionOperation<
         >[Op]
             ? { model: Model; op: Op; args?: CrudArgsMap<Schema, Model, Options, ExtQueryArgs, ExtResult>[Op] }
             : { model: Model; op: Op; args: CrudArgsMap<Schema, Model, Options, ExtQueryArgs, ExtResult>[Op] };
-    }[AllowedTransactionOps<Schema, Model>];
+    }[AllowedTransactionOps<Schema, Model, Options>];
 }[GetModels<Schema>];
 
 /**

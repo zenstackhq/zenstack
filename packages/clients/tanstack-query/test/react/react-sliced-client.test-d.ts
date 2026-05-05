@@ -73,6 +73,41 @@ describe('React client sliced client test', () => {
         client.user.useFindMany({ where: { name: { contains: 'test' } } });
     });
 
+    it('respects slicing in sequential transaction op union', () => {
+        const _slicedTx = new ZenStackClient(schema, {
+            dialect: {} as any,
+            slicing: {
+                models: {
+                    user: {
+                        // user can only do reads — no writes in transactions
+                        includedOperations: ['findUnique', 'findMany', 'count'],
+                    },
+                },
+            },
+        });
+        const client = useClientQueries<typeof _slicedTx>(schema);
+        const tx = client.$transaction.useSequential();
+
+        void async function () {
+            // included read ops are allowed
+            await tx.mutateAsync([
+                { model: 'User', op: 'findMany' },
+                { model: 'User', op: 'findUnique', args: { where: { id: '1' } } },
+                { model: 'User', op: 'count' },
+            ] as const);
+
+            await tx.mutateAsync([
+                // @ts-expect-error 'create' was sliced away by `includedOperations`
+                { model: 'User', op: 'create', args: { data: { email: 'a@b.com' } } },
+            ] as const);
+
+            await tx.mutateAsync([
+                // @ts-expect-error 'delete' was sliced away by `includedOperations`
+                { model: 'User', op: 'delete', args: { where: { id: '1' } } },
+            ] as const);
+        };
+    });
+
     it('works with sliced procedures', () => {
         const _slicedProcs = new ZenStackClient(procSchema, {
             dialect: {} as any,
