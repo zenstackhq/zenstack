@@ -1,6 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { ClientContract } from '@zenstackhq/orm';
 import { createTestClient, getTestDbProvider } from '@zenstackhq/testtools';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { schema } from '../schemas/fuzzy-search';
 
 type Schema = typeof schema;
@@ -827,7 +827,7 @@ describe.skipIf(provider !== 'postgresql')('Fuzzy search tests', () => {
                 // 'notes' has no @fuzzy attribute on the model
                 where: { notes: { fuzzy: { search: 'anything' } } } as any,
             }),
-        ).rejects.toThrow(/not fuzzy-searchable/);
+        ).rejects.toThrow('Unrecognized key');
     });
 
     it('rejects _fuzzyRelevance ordering against a field without @fuzzy', async () => {
@@ -835,7 +835,7 @@ describe.skipIf(provider !== 'postgresql')('Fuzzy search tests', () => {
             client.flavor.findMany({
                 orderBy: { _fuzzyRelevance: { fields: ['notes'], search: 'anything', sort: 'desc' } } as any,
             }),
-        ).rejects.toThrow(/not fuzzy-searchable/);
+        ).rejects.toThrow('expected one of "name"|"description"');
     });
 
     it('unaccent toggles relevance scoring for ascii searches against accented names', async () => {
