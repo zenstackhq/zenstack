@@ -19,6 +19,7 @@ import type {
     OperationsRequiringCreate,
     ProcedureFunc,
     QueryOptions,
+    StepExpr,
     UpdateArgs,
     UpdateManyAndReturnArgs,
     UpdateManyArgs,
@@ -139,6 +140,17 @@ type CrudArgsMap<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
     exists: ExistsArgs<Schema, Model>;
 };
 
+type TransactionArgValue<T> =
+    | T
+    | StepExpr<T>
+    | (T extends readonly (infer U)[]
+          ? TransactionArgValue<U>[]
+          : T extends object
+            ? { [K in keyof T]: TransactionArgValue<T[K]> }
+            : never);
+
+type TransactionArgs<T> = T extends object ? { [K in keyof T]: TransactionArgValue<T[K]> } : TransactionArgValue<T>;
+
 /**
  * Operations available for a given model, omitting create-style operations
  * for models that don't allow them (e.g. delegate models).
@@ -153,11 +165,13 @@ type AllowedTransactionOps<Schema extends SchemaDef, Model extends GetModels<Sch
  *
  * The `model`, `op`, and `args` fields are correlated: `op` is constrained to
  * the CRUD operations available on `model`, and `args` is typed accordingly.
+ * Transaction step expressions are allowed anywhere inside `args`, so later
+ * operations can reference values produced by earlier operations.
  */
 export type TransactionOperation<Schema extends SchemaDef> = {
     [Model in GetModels<Schema>]: {
         [Op in AllowedTransactionOps<Schema, Model>]: {} extends CrudArgsMap<Schema, Model>[Op]
-            ? { model: Model; op: Op; args?: CrudArgsMap<Schema, Model>[Op] }
-            : { model: Model; op: Op; args: CrudArgsMap<Schema, Model>[Op] };
+            ? { model: Model; op: Op; args?: TransactionArgs<CrudArgsMap<Schema, Model>[Op]> }
+            : { model: Model; op: Op; args: TransactionArgs<CrudArgsMap<Schema, Model>[Op]> };
     }[AllowedTransactionOps<Schema, Model>];
 }[GetModels<Schema>];

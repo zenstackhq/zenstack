@@ -1,7 +1,8 @@
 'use client';
 
-import { Post } from '@/zenstack/models';
+import { Post, User } from '@/zenstack/models';
 import { schema } from '@/zenstack/schema-lite';
+import { $filter, $get, $map, $stepRef } from '@zenstackhq/orm';
 import { FetchFn, useClientQueries } from '@zenstackhq/tanstack-query/react';
 import { LoremIpsum } from 'lorem-ipsum';
 import Link from 'next/link';
@@ -9,10 +10,14 @@ import { useState } from 'react';
 
 const lorem = new LoremIpsum({ wordsPerSentence: { max: 6, min: 4 } });
 
+type TransactionBatchResult = [User, Post, Post, Post[], unknown, Post[]];
+
 export default function Home() {
     const [showPublishedOnly, setShowPublishedOnly] = useState(false);
     const [enableFetch, setEnableFetch] = useState(true);
     const [optimistic, setOptimistic] = useState(false);
+    const [transactionMessage, setTransactionMessage] = useState('');
+    const [transactionSucceeded, setTransactionSucceeded] = useState(false);
 
     const fetch: FetchFn = async (url, init) => {
         // simulate a delay for showing optimistic update effect
@@ -35,6 +40,22 @@ export default function Home() {
     const createPost = clientQueries.post.useCreate({ optimisticUpdate: optimistic });
     const deletePost = clientQueries.post.useDelete({ optimisticUpdate: optimistic });
     const updatePost = clientQueries.post.useUpdate({ optimisticUpdate: optimistic });
+    const { mutate: runTransaction, isPending: isCreatingTransaction } = clientQueries.$transaction.useSequential({
+        onSuccess(data) {
+            const [user, draftPost, publicPost, postsBeforePublish, , publishedPosts] = data as TransactionBatchResult;
+            const publishedDraftCount = postsBeforePublish.filter((post) => !post.published).length;
+            setTransactionSucceeded(true);
+            setTransactionMessage(
+                `Created ${user.email}, then published ${publishedDraftCount} draft ` +
+                    `using ids mapped from step 4. Final public posts: ${publishedPosts.length} ` +
+                    `(${draftPost.title}, ${publicPost.title}).`,
+            );
+        },
+        onError(error) {
+            setTransactionSucceeded(false);
+            setTransactionMessage(error.message);
+        },
+    });
 
     const onCreatePost = () => {
         if (!users) {
@@ -69,6 +90,79 @@ export default function Home() {
         });
     };
 
+    const onCreateTransactionPost = () => {
+        setTransactionMessage('');
+        setTransactionSucceeded(false);
+
+        const suffix = `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        const draftTitle = `Draft ${lorem.generateWords()}`;
+        const publicTitle = `Public ${lorem.generateWords()}`;
+        const email = `transaction-${suffix}@example.com`;
+
+        runTransaction([
+            {
+                model: 'User',
+                op: 'create',
+                args: {
+                    data: {
+                        email,
+                        name: 'Transaction User',
+                    },
+                },
+            },
+            {
+                model: 'Post',
+                op: 'create',
+                args: {
+                    data: {
+                        title: draftTitle,
+                        published: false,
+                        authorId: $get($stepRef<User>(1), 'id'),
+                    },
+                },
+            },
+            {
+                model: 'Post',
+                op: 'create',
+                args: {
+                    data: {
+                        title: publicTitle,
+                        published: true,
+                        authorId: $get($stepRef<User>(1), 'id'),
+                    },
+                },
+            },
+            {
+                model: 'Post',
+                op: 'findMany',
+                args: {
+                    where: { authorId: $get($stepRef<User>(1), 'id') },
+                    orderBy: { createdAt: 'asc' },
+                },
+            },
+            {
+                model: 'Post',
+                op: 'updateMany',
+                args: {
+                    where: {
+                        id: {
+                            in: $map($filter($stepRef<Post[]>(4), 'published', 'eq', false), 'id'),
+                        },
+                    },
+                    data: { published: true },
+                },
+            },
+            {
+                model: 'Post',
+                op: 'findMany',
+                args: {
+                    where: { authorId: $get($stepRef<User>(1), 'id'), published: true },
+                    orderBy: { createdAt: 'asc' },
+                },
+            },
+        ]);
+    };
+
     if (isUsersFetched && (!users || users.length === 0)) {
         return <div className="p-4">No users found. Please run &quot;pnpm db:init&quot; to seed the database.</div>;
     }
@@ -94,12 +188,28 @@ export default function Home() {
                 </Link>
             </div>
 
-            <button
-                onClick={onCreatePost}
-                className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 cursor-pointer"
-            >
-                New Post
-            </button>
+            <div className="flex flex-col gap-2 sm:flex-row">
+                <button
+                    onClick={onCreatePost}
+                    className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 cursor-pointer"
+                >
+                    New Post
+                </button>
+
+                <button
+                    onClick={onCreateTransactionPost}
+                    disabled={isCreatingTransaction}
+                    className="rounded-md bg-orange-600 px-4 py-2 text-white hover:bg-orange-700 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                    {isCreatingTransaction ? 'Running transaction...' : 'Batch User + Posts Transaction'}
+                </button>
+            </div>
+
+            {transactionMessage && (
+                <p className={`text-sm ${transactionSucceeded ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {transactionMessage}
+                </p>
+            )}
 
             <div>
                 <div>Current users</div>

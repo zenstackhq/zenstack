@@ -8,6 +8,7 @@ A simple blog application built with Nuxt, ZenStack ORM, and TanStack Query Vue 
 - User management
 - Published/draft post filtering
 - Optimistic updates
+- Sequential transaction example using `$stepRef`/`$get`/`$filter`/`$map`
 - TanStack Query Vue integration with ZenStack
 
 ## Getting Started
