@@ -69,9 +69,3 @@ model Plain {
     id    Int @id @default(autoincrement())
     value Int
 }
-
-model Flavor {
-    id          Int     @id @default(autoincrement())
-    name        String?
-    description String
-}

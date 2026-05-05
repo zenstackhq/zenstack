@@ -76,6 +76,7 @@ export type FieldDef = {
     attributes?: readonly AttributeApplication[];
     default?: FieldDefault;
     omit?: boolean;
+    fuzzy?: boolean;
     relation?: RelationInfo;
     foreignKeyFor?: readonly string[];
     computed?: boolean;

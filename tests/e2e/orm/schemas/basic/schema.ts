@@ -271,31 +271,6 @@ export class SchemaType implements SchemaDef {
             uniqueFields: {
                 id: { type: "Int" }
             }
-        },
-        Flavor: {
-            name: "Flavor",
-            fields: {
-                id: {
-                    name: "id",
-                    type: "Int",
-                    id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
-                },
-                name: {
-                    name: "name",
-                    type: "String",
-                    optional: true
-                },
-                description: {
-                    name: "description",
-                    type: "String"
-                }
-            },
-            idFields: ["id"],
-            uniqueFields: {
-                id: { type: "Int" }
-            }
         }
     } as const;
     typeDefs = {

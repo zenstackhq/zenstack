@@ -505,6 +505,7 @@ export class ZodSchemaFactory<
                         !!fieldDef.optional,
                         withAggregations,
                         allowedFilterKinds,
+                        !!fieldDef.fuzzy,
                     );
                 }
             }
@@ -792,9 +793,12 @@ export class ZodSchemaFactory<
         optional: boolean,
         withAggregations: boolean,
         allowedFilterKinds: string[] | undefined,
+        withFuzzy = false,
     ) {
         return match(type)
-            .with('String', () => this.makeStringFilterSchema(optional, withAggregations, allowedFilterKinds))
+            .with('String', () =>
+                this.makeStringFilterSchema(optional, withAggregations, allowedFilterKinds, withFuzzy),
+            )
             .with(P.union('Int', 'Float', 'Decimal', 'BigInt'), (type) =>
                 this.makeNumberFilterSchema(type, optional, withAggregations, allowedFilterKinds),
             )
@@ -1012,11 +1016,12 @@ export class ZodSchemaFactory<
         optional: boolean,
         withAggregations: boolean,
         allowedFilterKinds: string[] | undefined,
+        withFuzzy = false,
     ): ZodType {
         const baseComponents = this.makeCommonPrimitiveFilterComponents(
             z.string(),
             optional,
-            () => z.lazy(() => this.makeStringFilterSchema(optional, withAggregations, allowedFilterKinds)),
+            () => z.lazy(() => this.makeStringFilterSchema(optional, withAggregations, allowedFilterKinds, withFuzzy)),
             undefined,
             withAggregations ? ['_count', '_min', '_max'] : undefined,
             allowedFilterKinds,
@@ -1026,7 +1031,7 @@ export class ZodSchemaFactory<
             startsWith: z.string().optional(),
             endsWith: z.string().optional(),
             contains: z.string().optional(),
-            ...(this.providerSupportsFuzzySearch
+            ...(withFuzzy && this.providerSupportsFuzzySearch
                 ? {
                       fuzzy: this.makeFuzzyFilterSchema().optional(),
                   }
@@ -1047,8 +1052,9 @@ export class ZodSchemaFactory<
         };
 
         const schema = this.createUnionFilterSchema(z.string(), optional, allComponents, allowedFilterKinds);
+        const fuzzySuffix = withFuzzy ? 'Fuzzy' : '';
         this.registerSchema(
-            `StringFilter${this.filterSchemaSuffix({ optional, allowedFilterKinds, withAggregations })}`,
+            `StringFilter${this.filterSchemaSuffix({ optional, allowedFilterKinds, withAggregations })}${fuzzySuffix}`,
             schema,
         );
         return schema;
@@ -1313,16 +1319,16 @@ export class ZodSchemaFactory<
             }
         }
 
-        // _fuzzyRelevance ordering for fuzzy search (string fields only, postgres only).
-        // Distinct from a future `_searchRelevance` for full-text search.
+        // _fuzzyRelevance ordering for fuzzy search — only fields annotated with `@fuzzy`
+        // (postgres only). Distinct from a future `_searchRelevance` for full-text search.
         if (this.providerSupportsFuzzySearch) {
-            const stringFieldNames = this.getModelFields(model)
-                .filter(([, def]) => !def.relation && def.type === 'String')
+            const fuzzyFieldNames = this.getModelFields(model)
+                .filter(([, def]) => !def.relation && def.type === 'String' && def.fuzzy === true)
                 .map(([name]) => name);
-            if (stringFieldNames.length > 0) {
+            if (fuzzyFieldNames.length > 0) {
                 fields['_fuzzyRelevance'] = z
                     .strictObject({
-                        fields: z.array(z.enum(stringFieldNames as [string, ...string[]])).min(1),
+                        fields: z.array(z.enum(fuzzyFieldNames as [string, ...string[]])).min(1),
                         search: z.string(),
                         mode: z
                             .union([z.literal('simple'), z.literal('word'), z.literal('strictWord')])
