@@ -40,7 +40,7 @@ export type TypeMap = {
     Decimal: Decimal;
     DateTime: Date;
     Bytes: Uint8Array;
-    Json: JsonValue;
+    Json: JsonValue | null;
     Null: null;
     Object: Record<string, unknown>;
     Any: unknown;
