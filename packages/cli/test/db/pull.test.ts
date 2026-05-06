@@ -152,6 +152,83 @@ model Tag {
             expect(restoredSchema).toEqual(schema);
         });
 
+        it('should restore opposite relation fields when multiple models have FKs to the same target', async () => {
+            const { workDir, schema } = await createProject(
+                `model Comment {
+    id               Int    @id @default(autoincrement())
+    text             String
+    commentCreatedBy User?  @relation('Comment_createdByToUser', fields: [createdBy], references: [id])
+    createdBy        Int?
+    commentUpdatedBy User?  @relation('Comment_updatedByToUser', fields: [updatedBy], references: [id])
+    updatedBy        Int?
+}
+
+model Post {
+    id            Int    @id @default(autoincrement())
+    title         String
+    postCreatedBy User?  @relation('Post_createdByToUser', fields: [createdBy], references: [id])
+    createdBy     Int?
+    postUpdatedBy User?  @relation('Post_updatedByToUser', fields: [updatedBy], references: [id])
+    updatedBy     Int?
+}
+
+model User {
+    id               Int       @id @default(autoincrement())
+    email            String    @unique
+    commentCreatedBy Comment[] @relation('Comment_createdByToUser')
+    commentUpdatedBy Comment[] @relation('Comment_updatedByToUser')
+    postCreatedBy    Post[]    @relation('Post_createdByToUser')
+    postUpdatedBy    Post[]    @relation('Post_updatedByToUser')
+}`,
+            );
+            runCli('db push', workDir);
+
+            const schemaFile = path.join(workDir, 'zenstack/schema.zmodel');
+
+            fs.writeFileSync(schemaFile, getDefaultPrelude());
+            runCli('db pull --indent 4', workDir);
+
+            const restoredSchema = getSchema(workDir);
+            expect(restoredSchema).toEqual(schema);
+        });
+
+        it('should preserve opposite relation fields when multiple models have FKs to the same target', async () => {
+            const { workDir, schema } = await createProject(
+                `model Comment {
+    id               Int    @id @default(autoincrement())
+    text             String
+    commentCreatedBy User?  @relation('Comment_createdByToUser', fields: [createdBy], references: [id])
+    createdBy        Int?
+    commentUpdatedBy User?  @relation('Comment_updatedByToUser', fields: [updatedBy], references: [id])
+    updatedBy        Int?
+}
+
+model Post {
+    id            Int    @id @default(autoincrement())
+    title         String
+    postCreatedBy User?  @relation('Post_createdByToUser', fields: [createdBy], references: [id])
+    createdBy     Int?
+    postUpdatedBy User?  @relation('Post_updatedByToUser', fields: [updatedBy], references: [id])
+    updatedBy     Int?
+}
+
+model User {
+    id               Int       @id @default(autoincrement())
+    email            String    @unique
+    commentCreatedBy Comment[] @relation('Comment_createdByToUser')
+    commentUpdatedBy Comment[] @relation('Comment_updatedByToUser')
+    postCreatedBy    Post[]    @relation('Post_createdByToUser')
+    postUpdatedBy    Post[]    @relation('Post_updatedByToUser')
+}`,
+            );
+            runCli('db push', workDir);
+
+            runCli('db pull --indent 4', workDir);
+
+            const restoredSchema = getSchema(workDir);
+            expect(restoredSchema).toEqual(schema);
+        });
+
         it('should restore one-to-one relation when FK is the single-column primary key', async () => {
             const { workDir, schema } = await createProject(
                 `model Profile {

@@ -123,6 +123,20 @@ export function getRelationFkName(decl: DataField): string | undefined {
 }
 
 /**
+ * Gets the relation name from the @relation attribute's first positional argument.
+ * e.g., @relation('myRelation', fields: [...], references: [...]) -> "myRelation"
+ * e.g., @relation(fields: [...], references: [...]) -> undefined
+ * e.g., @relation('backRef') -> "backRef"
+ */
+export function getRelationName(decl: DataField): string | undefined {
+    const relationAttr = decl?.attributes?.find((a) => a.decl?.ref?.name === '@relation');
+    if (!relationAttr) return undefined;
+    const firstPositionalArg = relationAttr.args.find((a) => !a.name);
+    if (!firstPositionalArg || firstPositionalArg.value?.$type !== 'StringLiteral') return undefined;
+    return (firstPositionalArg.value as StringLiteral).value;
+}
+
+/**
  * Gets the FK field names from the @relation attribute's `fields` argument.
  * Returns a sorted, comma-separated string of field names for comparison.
  * e.g., @relation(fields: [userId], references: [id]) -> "userId"

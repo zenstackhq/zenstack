@@ -14,7 +14,7 @@ import {
 } from './action-utils';
 import { consolidateEnums, syncEnums, syncRelation, syncTable, type Relation } from './pull';
 import { providers as pullProviders } from './pull/provider';
-import { getDatasource, getDbName, getRelationFieldsKey, getRelationFkName, isDatabaseManagedAttribute } from './pull/utils';
+import { getDatasource, getDbName, getRelationFieldsKey, getRelationFkName, getRelationName, isDatabaseManagedAttribute } from './pull/utils';
 import type { DataSourceProviderType } from '@zenstackhq/schema';
 import { CliError } from '../cli-error';
 
@@ -283,15 +283,8 @@ async function runPull(options: PullOptions) {
                 }
 
                 newDataModel.fields.forEach((f) => {
-                    // Prioritized matching: exact db name > relation fields key > relation FK name > type reference
+                    // Prioritized matching: exact db name > relation fields key > relation FK name > relation name > type reference
                     let originalFields = originalDataModel.fields.filter((d) => getDbName(d) === getDbName(f));
-
-                    // If this is a back-reference relation field (has @relation but no `fields` arg), silently skip
-                    const isRelationField =
-                        f.$type === 'DataField' && !!(f as any).attributes?.some((a: any) => a?.decl?.ref?.name === '@relation');
-                    if (originalFields.length === 0 && isRelationField && !getRelationFieldsKey(f as any)) {
-                        return;
-                    }
 
                     if (originalFields.length === 0) {
                         // Try matching by relation fields key (the `fields` attribute in @relation)
@@ -315,10 +308,20 @@ async function runPull(options: PullOptions) {
                     }
 
                     if (originalFields.length === 0) {
+                        // Try matching by relation name (the first positional arg in @relation)
+                        // This is essential for back-reference fields that only have a relation name
+                        const newRelName = getRelationName(f as any);
+                        if (newRelName) {
+                            originalFields = originalDataModel.fields.filter(
+                                (d) => d.$type === 'DataField' && getRelationName(d as any) === newRelName,
+                            );
+                        }
+                    }
+
+                    if (originalFields.length === 0) {
                         // Try matching by type reference
                         // We need this because for relations that don't have @relation, we can only check if the original exists by the field type.
                         // Yes, in this case it can potentially result in multiple original fields, but we only want to ensure that at least one relation exists.
-                        // In the future, we might implement some logic to detect how many of these types of relations we need and add/remove fields based on this.
                         originalFields = originalDataModel.fields.filter(
                             (d) =>
                                 f.$type === 'DataField' &&
@@ -499,7 +502,7 @@ async function runPull(options: PullOptions) {
                 });
                 originalDataModel.fields
                     .filter((f) => {
-                        // Prioritized matching: exact db name > relation fields key > relation FK name > type reference
+                        // Prioritized matching: exact db name > relation fields key > relation FK name > relation name > type reference
                         const matchByDbName = newDataModel.fields.find((d) => getDbName(d) === getDbName(f));
                         if (matchByDbName) return false;
 
@@ -519,6 +522,15 @@ async function runPull(options: PullOptions) {
                                 !!getRelationFkName(f as any),
                         );
                         if (matchByFkName) return false;
+
+                        // Try matching by relation name (for named back-reference fields)
+                        const originalRelName = getRelationName(f as any);
+                        if (originalRelName) {
+                            const matchByRelName = newDataModel.fields.find(
+                                (d) => d.$type === 'DataField' && getRelationName(d as any) === originalRelName,
+                            );
+                            if (matchByRelName) return false;
+                        }
 
                         const matchByTypeRef = newDataModel.fields.find(
                             (d) =>
