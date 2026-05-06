@@ -86,6 +86,7 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
         private readonly connectionProvider: ConnectionProvider,
         plugins: KyselyPlugin[] = [],
         private suppressMutationHooks: boolean = false,
+        private readonly queryContext: Map<string, unknown> = new Map(),
     ) {
         super(compiler, adapter, connectionProvider, plugins);
 
@@ -214,6 +215,7 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
                     schema: this.client.$schema,
                     query,
                     proceed: _p,
+                    queryContext: this.queryContext,
                 });
                 return hookResult;
             };
@@ -673,6 +675,16 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
         }
     }
 
+    /**
+     * Execute a compiled query on `connection`, bypassing all `onKyselyQuery` plugin interceptors.
+     */
+    async executeQueryDirect(
+        compiledQuery: CompiledQuery,
+        connection: DatabaseConnection,
+    ): Promise<QueryResult<unknown>> {
+        return this.internalExecuteQuery(compiledQuery.query, connection, compiledQuery.queryId);
+    }
+
     private async internalExecuteQuery(
         query: RootOperationNode,
         connection: DatabaseConnection,
@@ -770,6 +782,7 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
             this.connectionProvider,
             [...this.plugins, plugin],
             this.suppressMutationHooks,
+            this.queryContext,
         );
     }
 
@@ -782,6 +795,7 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
             this.connectionProvider,
             [...this.plugins, ...plugins],
             this.suppressMutationHooks,
+            this.queryContext,
         );
     }
 
@@ -794,6 +808,7 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
             this.connectionProvider,
             [plugin, ...this.plugins],
             this.suppressMutationHooks,
+            this.queryContext,
         );
     }
 
@@ -806,6 +821,7 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
             this.connectionProvider,
             [],
             this.suppressMutationHooks,
+            this.queryContext,
         );
     }
 
@@ -818,8 +834,30 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
             connectionProvider,
             this.plugins as KyselyPlugin[],
             this.suppressMutationHooks,
+            this.queryContext,
         );
         // replace client with a new one associated with the new executor
+        newExecutor.client = this.client.withExecutor(newExecutor);
+        return newExecutor;
+    }
+
+    /**
+     * Create a new executor carrying the given per-operation query context.
+     * Called once per top-level ORM operation so that onQuery plugins can write
+     * values (e.g. `operation`, `fetchPolicyCodes`) that onKyselyQuery plugins read —
+     * without AsyncLocalStorage.
+     */
+    withQueryContext(queryContext: Map<string, unknown>): ZenStackQueryExecutor {
+        const newExecutor = new ZenStackQueryExecutor(
+            this.client,
+            this.driver,
+            this.compiler,
+            this.adapter,
+            this.connectionProvider,
+            this.plugins as KyselyPlugin[],
+            this.suppressMutationHooks,
+            queryContext,
+        );
         newExecutor.client = this.client.withExecutor(newExecutor);
         return newExecutor;
     }

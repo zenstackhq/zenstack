@@ -1,6 +1,12 @@
 import { invariant } from '@zenstackhq/common-helpers';
 import type { BaseCrudDialect, ClientContract, CRUD_EXT, ProceedKyselyQueryFunction } from '@zenstackhq/orm';
-import { getCrudDialect, QueryUtils, RejectedByPolicyReason, SchemaUtils } from '@zenstackhq/orm';
+import {
+    getCrudDialect,
+    QueryUtils,
+    RejectedByPolicyReason,
+    SchemaUtils,
+    SingleRowOrThrowOperations,
+} from '@zenstackhq/orm';
 import {
     ExpressionUtils,
     type BuiltinType,
@@ -59,6 +65,8 @@ import {
     trueNode,
 } from './utils';
 
+const SINGLE_ROW_OR_THROW_OPERATIONS = new Set<string>(SingleRowOrThrowOperations);
+
 export type CrudQueryNode = SelectQueryNode | InsertQueryNode | UpdateQueryNode | DeleteQueryNode;
 
 export type MutationQueryNode = InsertQueryNode | UpdateQueryNode | DeleteQueryNode;
@@ -72,6 +80,7 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
     constructor(
         private readonly client: ClientContract<Schema>,
         private readonly options: PolicyPluginOptions = {},
+        private readonly queryContext: Map<string, unknown> = new Map(),
     ) {
         super();
         this.dialect = getCrudDialect(this.client.$schema, this.client.$options);
@@ -93,8 +102,18 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         }
 
         if (!this.isMutationQueryNode(node)) {
-            // transform and proceed with read directly
-            return proceed(this.transformNode(node));
+            const selectNode = node as SelectQueryNode;
+            const result = await proceed(this.transformNode(node));
+            // When 0 rows returned on a throwing single-row read (findFirstOrThrow/findUniqueOrThrow), distinguish "not found" from policy denial
+            if (
+                result.rows.length === 0 &&
+                SINGLE_ROW_OR_THROW_OPERATIONS.has(
+                    (this.queryContext.get('policy:operation') as string | undefined) ?? '',
+                )
+            ) {
+                await this.postReadZeroRowsCheck(selectNode, proceed);
+            }
+            return result;
         }
 
         const { mutationModel } = this.getMutationModel(node);
@@ -138,6 +157,16 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
 
         // #region Post mutation work
 
+        // When 0 rows affected, distinguish "row not found" from "row denied by policy"
+        // Use > 0 negation (not === 0) because numAffectedRows is BigInt in some drivers
+        if (!((result.numAffectedRows ?? 0) > 0)) {
+            if (DeleteQueryNode.is(node)) {
+                await this.postZeroRowsCheck(mutationModel, 'delete', node.where?.where, proceed);
+            } else if (UpdateQueryNode.is(node)) {
+                await this.postZeroRowsCheck(mutationModel, 'update', node.where?.where, proceed);
+            }
+        }
+
         if ((result.numAffectedRows ?? 0) > 0 && needsPostUpdateCheck) {
             await this.postUpdateCheck(mutationModel, beforeUpdateInfo, result, proceed);
         }
@@ -175,7 +204,16 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
             if (constCondition === true) {
                 needCheckPreCreate = false;
             } else if (constCondition === false) {
-                throw createRejectedByPolicyError(mutationModel, RejectedByPolicyReason.NO_ACCESS);
+                const policies = this.getModelPolicies(mutationModel, 'create');
+                const constantDenyCodes = policies
+                    .filter((p) => p.kind === 'deny' && this.isTrueExpr(p.condition) && p.code)
+                    .map((p) => p.code!);
+                throw createRejectedByPolicyError(
+                    mutationModel,
+                    RejectedByPolicyReason.NO_ACCESS,
+                    undefined,
+                    constantDenyCodes,
+                );
             }
         }
 
@@ -238,6 +276,70 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
                 'some rows cannot be updated due to field policies',
             );
         }
+    }
+
+    private async postReadZeroRowsCheck(node: SelectQueryNode, proceed: ProceedKyselyQueryFunction): Promise<void> {
+        if (!node.from || node.from.froms.length !== 1) return;
+        const extractedTable = this.extractTableName(node.from.froms[0]!);
+        if (!extractedTable) return;
+        const { model } = extractedTable;
+        if (!QueryUtils.getModel(this.client.$schema, model)) return;
+        return this.postZeroRowsCheck(model, 'read', node.where?.where, proceed);
+    }
+
+    // Checks if any row matching WHERE exists without the policy filter.
+    // If a row exists but was filtered by policy → throws REJECTED_BY_POLICY with codes.
+    // If no row matches → returns silently.
+    private async postZeroRowsCheck(
+        model: string,
+        operation: 'read' | 'update' | 'delete',
+        whereCondition: OperationNode | undefined,
+        proceed: ProceedKyselyQueryFunction,
+    ) {
+        if (this.isManyToManyJoinTable(model)) return;
+        if (this.tryGetConstantPolicy(model, operation) === true) return;
+        if (this.options.fetchPolicyCodes === false) return;
+        const policiesWithCode = this.getModelPolicies(model, operation).filter((p) => p.code);
+        if (policiesWithCode.length === 0) return;
+
+        // No WHERE clause means "match all rows" — use a literal TRUE so the existence sub-query is valid SQL.
+        const where = whereCondition ?? trueNode(this.dialect);
+
+        const rowExistsInner = this.eb
+            .selectFrom(model)
+            .select(this.eb.lit(1).as('_'))
+            .where(() => new ExpressionWrapper(where));
+
+        const codeSelections = policiesWithCode.map((policy, i) => {
+            const condition = this.compilePolicyCondition(model, undefined, operation, policy);
+            const violationCondition = policy.kind === 'allow' ? logicalNot(this.dialect, condition) : condition;
+            const inner = this.eb
+                .selectFrom(model)
+                .select(this.eb.lit(1).as('_'))
+                .where(() => new ExpressionWrapper(conjunction(this.dialect, [where, violationCondition])));
+            return SelectionNode.create(
+                AliasNode.create(this.eb.exists(inner).toOperationNode(), IdentifierNode.create(`$c${i}`)),
+            );
+        });
+
+        const result = await proceed({
+            kind: 'SelectQueryNode',
+            selections: [
+                SelectionNode.create(
+                    AliasNode.create(
+                        this.eb.exists(rowExistsInner).toOperationNode(),
+                        IdentifierNode.create('$exists'),
+                    ),
+                ),
+                ...codeSelections,
+            ],
+        } satisfies SelectQueryNode);
+
+        const row = result.rows[0] ?? {};
+        if (!row.$exists) return;
+
+        const policyCodes = policiesWithCode.filter((_, i) => row[`$c${i}`]).map((p) => p.code!);
+        throw createRejectedByPolicyError(model, RejectedByPolicyReason.NO_ACCESS, undefined, policyCodes);
     }
 
     private async postUpdateCheck(
@@ -331,10 +433,15 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
 
         const postUpdateResult = await proceed(postUpdateQuery.toOperationNode());
         if (!postUpdateResult.rows[0]?.$condition) {
+            const policyCodes =
+                this.options.fetchPolicyCodes !== false
+                    ? await this.findViolatingPostUpdatePolicyCodes(model, idConditions, beforeUpdateInfo, proceed)
+                    : undefined;
             throw createRejectedByPolicyError(
                 model,
                 RejectedByPolicyReason.NO_ACCESS,
                 'some or all updated rows failed to pass post-update policy check',
+                policyCodes,
             );
         }
     }
@@ -950,7 +1057,11 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
             } satisfies SelectQueryNode,
         );
         if (!result.rows[0]?.$condition) {
-            throw createRejectedByPolicyError(model, RejectedByPolicyReason.NO_ACCESS);
+            const policyCodes =
+                this.options.fetchPolicyCodes !== false
+                    ? await this.findViolatingCreatePolicyCodes(model, valuesTable, proceed)
+                    : undefined;
+            throw createRejectedByPolicyError(model, RejectedByPolicyReason.NO_ACCESS, undefined, policyCodes);
         }
     }
 
@@ -1045,6 +1156,98 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
 
     private isTrueExpr(expr: Expression) {
         return ExpressionUtils.isLiteral(expr) && expr.value === true;
+    }
+
+    private async findViolatingCreatePolicyCodes(
+        model: string,
+        valuesTable: ReturnType<BaseCrudDialect<Schema>['buildValuesTableSelect']>,
+        proceed: ProceedKyselyQueryFunction,
+    ): Promise<string[]> {
+        const policiesWithCode = this.getModelPolicies(model, 'create').filter((p) => p.code);
+        if (policiesWithCode.length === 0) {
+            return [];
+        }
+
+        const selections = policiesWithCode.map((policy, i) => {
+            const condition = this.compilePolicyCondition(model, undefined, 'create', policy);
+            // For allow rules, negate: EXISTS(NOT condition) = true when any proposed row violates allow.
+            // For deny rules, keep as-is: EXISTS(condition) = true when deny fires.
+            const existsCondition = policy.kind === 'allow' ? logicalNot(this.dialect, condition) : condition;
+            const inner = this.eb
+                .selectFrom(valuesTable.as(model))
+                .select(this.eb.lit(1).as('_'))
+                .where(() => new ExpressionWrapper(existsCondition));
+            return SelectionNode.create(
+                AliasNode.create(this.eb.exists(inner).toOperationNode(), IdentifierNode.create(`$c${i}`)),
+            );
+        });
+
+        return this.evaluatePolicyDiagnostics(policiesWithCode, selections, proceed);
+    }
+
+    private async findViolatingPostUpdatePolicyCodes(
+        model: string,
+        idConditions: OperationNode,
+        beforeUpdateInfo: Awaited<ReturnType<typeof this.loadBeforeUpdateEntities>>,
+        proceed: ProceedKyselyQueryFunction,
+    ): Promise<string[]> {
+        const policiesWithCode = this.getModelPolicies(model, 'post-update').filter((p) => p.code);
+        if (policiesWithCode.length === 0) {
+            return [];
+        }
+
+        const needsBeforeUpdateJoin = !!beforeUpdateInfo?.fields;
+        let beforeUpdateTable: SelectQueryNode | undefined;
+        if (needsBeforeUpdateJoin) {
+            const fieldDefs = beforeUpdateInfo!.fields!.map((name) =>
+                QueryUtils.requireField(this.client.$schema, model, name),
+            );
+            const rows = beforeUpdateInfo!.rows.map((r) => beforeUpdateInfo!.fields!.map((f) => r[f]));
+            beforeUpdateTable = this.dialect.buildValuesTableSelect(fieldDefs, rows).toOperationNode();
+        }
+
+        const eb = expressionBuilder<any, any>();
+
+        const buildInnerExists = (condition: OperationNode) => {
+            const inner = eb
+                .selectFrom(model)
+                .select(eb.lit(1).as('_'))
+                .where(() => new ExpressionWrapper(conjunction(this.dialect, [idConditions, condition])))
+                .$if(needsBeforeUpdateJoin, (qb) =>
+                    qb.leftJoin(
+                        () => new ExpressionWrapper(beforeUpdateTable!).as('$before'),
+                        (join) => {
+                            const idFields = QueryUtils.requireIdFields(this.client.$schema, model);
+                            return idFields.reduce((acc, f) => acc.onRef(`${model}.${f}`, '=', `$before.${f}`), join);
+                        },
+                    ),
+                );
+            return eb.exists(inner).toOperationNode();
+        };
+
+        const selections = policiesWithCode.map((policy, i) => {
+            const condition = this.compilePolicyCondition(model, undefined, 'post-update', policy);
+            // For allow rules, negate: EXISTS(NOT condition) = true when any updated row violates allow.
+            // For deny rules, keep as-is: EXISTS(condition) = true when deny fires.
+            const existsCondition = policy.kind === 'allow' ? logicalNot(this.dialect, condition) : condition;
+            return SelectionNode.create(
+                AliasNode.create(buildInnerExists(existsCondition), IdentifierNode.create(`$c${i}`)),
+            );
+        });
+
+        return this.evaluatePolicyDiagnostics(policiesWithCode, selections, proceed);
+    }
+
+    // Single diagnostic query: one EXISTS column per coded policy.
+    // EXISTS=true means a violation: deny condition fired, or allow condition wasn't met (negated in caller).
+    private async evaluatePolicyDiagnostics(
+        policiesWithCode: Policy[],
+        selections: SelectionNode[],
+        proceed: ProceedKyselyQueryFunction,
+    ): Promise<string[]> {
+        const result = await proceed({ kind: 'SelectQueryNode', selections } satisfies SelectQueryNode);
+        const row = result.rows[0] ?? {};
+        return policiesWithCode.filter((_, i) => row[`$c${i}`]).map((p) => p.code!);
     }
 
     private async processReadBack(node: CrudQueryNode, result: QueryResult<any>, proceed: ProceedKyselyQueryFunction) {
@@ -1240,14 +1443,18 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
             result.push(
                 ...modelDef.attributes
                     .filter((attr) => attr.name === '@@allow' || attr.name === '@@deny')
-                    .map(
-                        (attr) =>
-                            ({
-                                kind: attr.name === '@@allow' ? 'allow' : 'deny',
-                                operations: extractOperations(attr.args![0]!.value),
-                                condition: attr.args![1]!.value,
-                            }) as const,
-                    )
+                    .map((attr) => {
+                        const codeExpr = attr.args?.[2]?.value;
+                        return {
+                            kind: attr.name === '@@allow' ? 'allow' : 'deny',
+                            operations: extractOperations(attr.args![0]!.value),
+                            condition: attr.args![1]!.value,
+                            code:
+                                ExpressionUtils.isLiteral(codeExpr) && typeof codeExpr.value === 'string'
+                                    ? codeExpr.value
+                                    : undefined,
+                        } as const;
+                    })
                     .filter(
                         (policy) =>
                             (operation !== 'post-update' && policy.operations.includes('all')) ||
@@ -1275,14 +1482,18 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
             result.push(
                 ...fieldDef.attributes
                     .filter((attr) => attr.name === '@allow' || attr.name === '@deny')
-                    .map(
-                        (attr) =>
-                            ({
-                                kind: attr.name === '@allow' ? 'allow' : 'deny',
-                                operations: extractOperations(attr.args![0]!.value),
-                                condition: attr.args![1]!.value,
-                            }) as const,
-                    )
+                    .map((attr) => {
+                        const codeExpr = attr.args?.[2]?.value;
+                        return {
+                            kind: attr.name === '@allow' ? 'allow' : 'deny',
+                            operations: extractOperations(attr.args![0]!.value),
+                            condition: attr.args![1]!.value,
+                            code:
+                                ExpressionUtils.isLiteral(codeExpr) && typeof codeExpr.value === 'string'
+                                    ? codeExpr.value
+                                    : undefined,
+                        } as const;
+                    })
                     .filter((policy) => policy.operations.includes('all') || policy.operations.includes(operation)),
             );
         }

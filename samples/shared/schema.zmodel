@@ -3,6 +3,10 @@ datasource db {
     url = 'file:./dev.db'
 }
 
+plugin policy {
+    provider = '@zenstackhq/plugin-policy'
+}
+
 /// User model
 model User {
     id        String   @id @default(cuid())

@@ -18,6 +18,7 @@ export type Policy = {
     kind: PolicyKind;
     operations: readonly PolicyOperation[];
     condition: Expression;
+    code?: string;
 };
 
 /**

@@ -280,6 +280,13 @@ type OnQueryHookContext<Schema extends SchemaDef> = {
      * The ZenStack client that is performing the operation.
      */
     client: ClientContract<Schema>;
+
+    /**
+     * Per-operation mutable context shared between onQuery and onKyselyQuery hooks.
+     * Plugins may write values here in onQuery and read them in onKyselyQuery, avoiding
+     * the need for AsyncLocalStorage to bridge these two decoupled call sites.
+     */
+    queryContext: Map<string, unknown>;
 };
 
 // #endregion
@@ -390,6 +397,7 @@ export type OnKyselyQueryArgs<Schema extends SchemaDef> = {
     client: ClientContract<Schema>;
     query: RootOperationNode;
     proceed: ProceedKyselyQueryFunction;
+    queryContext: Map<string, unknown>;
 };
 
 export type ProceedKyselyQueryFunction = (query: RootOperationNode) => Promise<QueryResult<any>>;

@@ -181,10 +181,12 @@ export function createRejectedByPolicyError(
     model: string | undefined,
     reason: RejectedByPolicyReason,
     message?: string,
+    policyCodes?: string[],
 ) {
     const err = new ORMError(ORMErrorReason.REJECTED_BY_POLICY, message ?? 'operation is rejected by access policies');
     err.rejectedByPolicyReason = reason;
     err.model = model;
+    err.policyCodes = policyCodes?.length ? policyCodes : undefined;
     return err;
 }
 

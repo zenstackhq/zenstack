@@ -127,10 +127,10 @@ export class ClientImpl {
             });
         }
 
-        if (baseClient?.isTransaction && !executor) {
-            // if we're creating a derived client from a transaction client and not replacing
-            // the executor, reuse the current kysely instance to retain the transaction context
-            this.kysely = baseClient.$qb;
+        if (baseClient?.isTransaction) {
+            // preserve transaction context in derived clients: reuse the kysely instance when
+            // no new executor is provided, or create a Transaction (not plain Kysely) when one is
+            this.kysely = executor ? new Transaction(this.kyselyProps) : baseClient.$qb;
         } else {
             this.kysely = new Kysely(this.kyselyProps);
         }
@@ -619,6 +619,10 @@ function createModelCrudHandler(
         throwIfNoResult = false,
     ) => {
         return createZenStackPromise(async (txClient?: ClientContract<any>) => {
+            // Per-operation context shared between onQuery and onKyselyQuery hooks.
+            // onQuery plugins write here; the context executor passes it to onKyselyQuery.
+            const queryContext = new Map<string, unknown>();
+
             let proceed = async (_args: unknown) => {
                 // prepare args for ext result: strip ext result field names from select/omit,
                 // inject needs fields into select (recursively handles nested relations)
@@ -627,7 +631,32 @@ function createModelCrudHandler(
                     ? prepareArgsForExtResult(_args, model, schema, plugins)
                     : _args;
 
-                const _handler = txClient ? handler.withClient(txClient) : handler;
+                // Bind queryContext to the executor so onKyselyQuery hooks can read it.
+                // Uses txClient's executor (which holds the tx connection) when in a transaction.
+                const baseClient = txClient ?? client;
+                const rawExecutor = (baseClient.$qb as any).getExecutor();
+
+                let contextExecutor: ZenStackQueryExecutor;
+                if (rawExecutor instanceof ZenStackQueryExecutor) {
+                    contextExecutor = rawExecutor.withQueryContext(queryContext);
+                } else {
+                    // Kysely wraps the real executor in NotCommittedOrRolledBackAssertingExecutor
+                    // inside sequential transactions — delegate connection to rawExecutor so
+                    // queries run within the transaction.
+                    const rootZenExecutor = (client as unknown as ClientImpl).kyselyProps
+                        .executor as ZenStackQueryExecutor;
+                    contextExecutor = rootZenExecutor
+                        .withConnectionProvider({
+                            provideConnection: (consumer) => rawExecutor.provideConnection(consumer),
+                        })
+                        .withQueryContext(queryContext);
+                }
+
+                const contextClient = (baseClient as unknown as ClientImpl).withExecutor(
+                    contextExecutor,
+                ) as unknown as ClientContract<any>;
+
+                const _handler = handler.withClient(contextClient);
                 const r = await _handler.handle(operation, processedArgs);
                 if (!r && throwIfNoResult) {
                     throw createNotFoundError(model);
@@ -660,6 +689,7 @@ function createModelCrudHandler(
                             operation: nominalOperation,
                             // reflect the latest override if provided
                             args: _args,
+                            queryContext,
                             // ensure inner overrides are propagated to the previous proceed
                             proceed: (nextArgs: unknown) => _proceed(nextArgs),
                         };

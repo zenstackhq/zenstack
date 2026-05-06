@@ -170,9 +170,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                 effectiveOrderBy &&
                 enumerate(effectiveOrderBy).some((ob: any) => typeof ob === 'object' && '_fuzzyRelevance' in ob)
             ) {
-                throw createNotSupportedError(
-                    'cursor pagination cannot be combined with "_fuzzyRelevance" ordering',
-                );
+                throw createNotSupportedError('cursor pagination cannot be combined with "_fuzzyRelevance" ordering');
             }
             result = this.buildCursorFilter(
                 model,
@@ -1681,7 +1679,10 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             'fuzzy filter must be an object with at least a "search" field',
         );
         const raw = value as Record<string, unknown>;
-        invariant(typeof raw['search'] === 'string' && raw['search'].length > 0, 'fuzzy.search must be a non-empty string');
+        invariant(
+            typeof raw['search'] === 'string' && raw['search'].length > 0,
+            'fuzzy.search must be a non-empty string',
+        );
         const mode = raw['mode'] ?? 'simple';
         invariant(
             mode === 'simple' || mode === 'word' || mode === 'strictWord',

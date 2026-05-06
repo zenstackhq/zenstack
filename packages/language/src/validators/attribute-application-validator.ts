@@ -37,6 +37,7 @@ import {
     isComputedField,
     isDataFieldReference,
     isDelegateModel,
+    isEnumFieldReference,
     isRelationshipField,
     mapBuiltinTypeToExpressionType,
     resolved,
@@ -188,6 +189,8 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
                 accept('error', `"before()" is only allowed in "post-update" policy rules`, { node: beforeCall });
             }
         }
+
+        this.validateCustomErrorCode(attr.args[2], accept);
     }
 
     private rejectNonOwnedRelationInExpression(expr: Expression, accept: ValidationAcceptor) {
@@ -278,6 +281,25 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
 
         if (isComputedField(field)) {
             accept('error', `Field-level policies are not allowed for computed fields.`, { node: attr });
+        }
+    }
+
+    private validateCustomErrorCode(codeArg: AttributeArg | undefined, accept: ValidationAcceptor) {
+        if (codeArg === undefined) return;
+
+        if (isEnumFieldReference(codeArg.value)) {
+            // enum field references are always valid as error codes
+            return;
+        }
+
+        const codeValue = getStringLiteral(codeArg.value);
+        if (codeValue === undefined) {
+            accept('error', 'Custom error code must be a string literal or an enum value', { node: codeArg });
+            return;
+        }
+        if (codeValue.trim().length === 0) {
+            accept('error', 'Custom error code cannot be empty', { node: codeArg });
+            return;
         }
     }
 

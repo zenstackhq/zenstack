@@ -11,8 +11,9 @@
     },
     "dependencies": {
         "@tanstack/react-query": "catalog:",
-        "@zenstackhq/schema": "workspace:*",
         "@zenstackhq/orm": "workspace:*",
+        "@zenstackhq/plugin-policy": "workspace:*",
+        "@zenstackhq/schema": "workspace:*",
         "@zenstackhq/server": "workspace:*",
         "@zenstackhq/tanstack-query": "workspace:*",
         "better-sqlite3": "catalog:",
