@@ -135,9 +135,9 @@ type MapFieldTypeToZod<Schema extends SchemaDef, FieldType> = FieldType extends 
         ? z.ZodObject<GetTypeDefFieldsShape<Schema, FieldType>, z.core.$strict>
         : z.ZodUnknown;
 
-export type JsonValue = string | number | boolean | JsonObject | JsonArray;
-type JsonObject = { [key: string]: JsonValue | null };
-type JsonArray = Array<JsonValue | null>;
+export type JsonValue = string | number | boolean | JsonObject | JsonArray | null;
+type JsonObject = { [key: string]: JsonValue };
+type JsonArray = Array<JsonValue>;
 
 type JsonZodType = z.ZodType<JsonValue>;
 
