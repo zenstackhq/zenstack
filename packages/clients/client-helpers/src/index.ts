@@ -7,4 +7,5 @@ export * from './nested-read-visitor';
 export * from './nested-write-visitor';
 export * from './optimistic';
 export * from './query-analysis';
+export * from './transaction';
 export * from './types';
