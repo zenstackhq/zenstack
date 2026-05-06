@@ -15,7 +15,7 @@
     },
     "license": "MIT",
     "scripts": {
-        "build": "tsc --noEmit && tsdown && pnpm test:generate",
+        "build": "tsc --noEmit && tsdown",
         "watch": "tsdown --watch",
         "lint": "eslint src --ext ts",
         "pack": "pnpm pack",

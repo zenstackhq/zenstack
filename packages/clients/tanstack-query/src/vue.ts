@@ -16,7 +16,6 @@ import {
 import {
     createInvalidator,
     createOptimisticUpdater,
-    DEFAULT_QUERY_ENDPOINT,
     type InferExtQueryArgs,
     type InferExtResult,
     type InferOptions,
@@ -63,7 +62,7 @@ import type {
 import type { GetModels, SchemaDef } from '@zenstackhq/schema';
 import { computed, inject, provide, toValue, unref, type MaybeRefOrGetter, type Ref, type UnwrapRef } from 'vue';
 import { getAllQueries, invalidateQueriesMatchingPredicate, normalizeEndpoint } from './common/client.js';
-import { CUSTOM_PROC_ROUTE_NAME } from './common/constants.js';
+import { CUSTOM_PROC_ROUTE_NAME, DEFAULT_QUERY_ENDPOINT } from './common/constants.js';
 import { getQueryKey } from './common/query-key.js';
 import { makeTransactionMutationFn, makeTransactionOnSuccess } from './common/transaction.js';
 import type {
