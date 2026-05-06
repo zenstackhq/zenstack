@@ -15,7 +15,7 @@
     },
     "license": "MIT",
     "scripts": {
-        "build": "rimraf dist && pnpm build:general && pnpm build:svelte && pnpm test:typecheck",
+        "build": "rimraf dist && pnpm build:general && pnpm build:svelte && pnpm test:generate && pnpm test:typecheck",
         "build:general": "tsc -p tsconfig.general.json",
         "build:svelte": "svelte-package -i src/svelte -o dist/svelte -t --tsconfig ./tsconfig.svelte.json",
         "watch:general": "tsc -p tsconfig.general.json -w",
