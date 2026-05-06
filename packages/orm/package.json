@@ -18,7 +18,8 @@
         "build": "tsc --noEmit && tsdown",
         "watch": "tsdown --watch",
         "lint": "eslint src --ext ts",
-        "pack": "pnpm pack"
+        "pack": "pnpm pack",
+        "test:generate": "tsx ../../scripts/test-generate.ts . --generate-models"
     },
     "keywords": [],
     "files": [

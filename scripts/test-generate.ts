@@ -22,7 +22,7 @@ async function generate(schemaPath: string, options: string[]) {
     const cliPath = path.join(_dirname, '../packages/cli/dist/index.mjs');
     const RUNTIME = process.env.RUNTIME ?? 'node';
     execSync(
-        `${RUNTIME} ${cliPath} generate --schema ${schemaPath} ${options.join(' ')} --generate-models=false --generate-input=false --no-version-check --no-tips`,
+        `${RUNTIME} ${cliPath} generate --schema ${schemaPath} --generate-models=false ${options.join(' ')} --generate-input=false --no-version-check --no-tips`,
         {
             cwd: path.dirname(schemaPath),
         },
