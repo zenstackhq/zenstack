@@ -1,0 +1,11 @@
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Article {
+    id    Int     @id @default(autoincrement())
+    title String  @fullText
+    body  String  @fullText
+    notes String? // not full-text-searchable
+}

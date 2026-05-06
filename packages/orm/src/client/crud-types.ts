@@ -377,28 +377,41 @@ type FieldFilter<
                     AllowedKinds
                 >
               : // primitive
-                AddFuzzyFilterIfSupported<
-                    Schema,
-                    Model,
-                    Field,
-                    AllowedKinds,
-                    PrimitiveFilter<
-                        GetModelFieldType<Schema, Model, Field>,
-                        ModelFieldIsOptional<Schema, Model, Field>,
-                        WithAggregations,
-                        AllowedKinds
-                    >
-                >;
+                GetModelFieldType<Schema, Model, Field> extends 'String'
+                ? // string — additionally consider fuzzy / full-text augmentations
+                  AddFullTextFilterIfSupported<
+                      Schema,
+                      Model,
+                      Field,
+                      AllowedKinds,
+                      AddFuzzyFilterIfSupported<
+                          Schema,
+                          Model,
+                          Field,
+                          AllowedKinds,
+                          PrimitiveFilter<
+                              GetModelFieldType<Schema, Model, Field>,
+                              ModelFieldIsOptional<Schema, Model, Field>,
+                              WithAggregations,
+                              AllowedKinds
+                          >
+                      >
+                  >
+                : PrimitiveFilter<
+                      GetModelFieldType<Schema, Model, Field>,
+                      ModelFieldIsOptional<Schema, Model, Field>,
+                      WithAggregations,
+                      AllowedKinds
+                  >;
 
 /**
- * Conditionally augments a primitive filter with the `fuzzy` operator when:
- * 1. The field's type is `String`, AND
- * 2. The `Fuzzy` filter kind is allowed for this field, AND
- * 3. The schema's provider supports fuzzy search (postgres only), AND
- * 4. The field is annotated with `@fuzzy` in the ZModel schema.
+ * Conditionally augments a string-field filter with the `fuzzy` operator when:
+ * 1. The `Fuzzy` filter kind is allowed for this field, AND
+ * 2. The schema's provider supports fuzzy search (postgres only), AND
+ * 3. The field is annotated with `@fuzzy` in the ZModel schema.
  *
- * Returns `Base` unchanged when any condition fails — never `Base & {}`,
- * since intersecting with `{}` would strip `null`/`undefined` from `Base`.
+ * Caller is responsible for only invoking this on String-typed fields
+ * (the gate lives in `FieldFilter`).
  */
 type AddFuzzyFilterIfSupported<
     Schema extends SchemaDef,
@@ -406,24 +419,52 @@ type AddFuzzyFilterIfSupported<
     Field extends GetModelFields<Schema, Model>,
     AllowedKinds extends FilterKind,
     Base,
-> =
-    GetModelFieldType<Schema, Model, Field> extends 'String'
-        ? 'Fuzzy' extends AllowedKinds
-            ? ProviderSupportsFuzzy<Schema> extends true
-                ? GetModelField<Schema, Model, Field>['fuzzy'] extends true
-                    ? Base & {
-                          /**
-                           * Performs a fuzzy search on the string field. Only available when
-                           * the schema's provider is `postgresql` (requires `pg_trgm` extension)
-                           * and the field is annotated with `@fuzzy` in the ZModel schema.
-                           * See {@link FuzzyFilterPayload} for the full options reference.
-                           */
-                          fuzzy?: FuzzyFilterPayload;
-                      }
-                    : Base
-                : Base
+> = 'Fuzzy' extends AllowedKinds
+    ? ProviderSupportsFuzzy<Schema> extends true
+        ? GetModelField<Schema, Model, Field>['fuzzy'] extends true
+            ? Base & {
+                  /**
+                   * Performs a fuzzy search on the string field. Only available when
+                   * the schema's provider is `postgresql` (requires `pg_trgm` extension)
+                   * and the field is annotated with `@fuzzy` in the ZModel schema.
+                   * See {@link FuzzyFilterPayload} for the full options reference.
+                   */
+                  fuzzy?: FuzzyFilterPayload;
+              }
             : Base
-        : Base;
+        : Base
+    : Base;
+
+/**
+ * Conditionally augments a string-field filter with the `fts` operator when:
+ * 1. The `FullText` filter kind is allowed for this field, AND
+ * 2. The schema's provider supports full-text search (postgres only), AND
+ * 3. The field is annotated with `@fullText` in the ZModel schema.
+ *
+ * Caller is responsible for only invoking this on String-typed fields
+ * (the gate lives in `FieldFilter`).
+ */
+type AddFullTextFilterIfSupported<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Field extends GetModelFields<Schema, Model>,
+    AllowedKinds extends FilterKind,
+    Base,
+> = 'FullText' extends AllowedKinds
+    ? ProviderSupportsFullText<Schema> extends true
+        ? GetModelField<Schema, Model, Field>['fullText'] extends true
+            ? Base & {
+                  /**
+                   * Performs a full-text search on the string field. Only available when
+                   * the schema's provider is `postgresql` and the field is annotated with
+                   * `@fullText` in the ZModel schema.
+                   * See {@link FullTextFilterPayload} for the full options reference.
+                   */
+                  fts?: FullTextFilterPayload;
+              }
+            : Base
+        : Base
+    : Base;
 
 type EnumFilter<
     Schema extends SchemaDef,
@@ -994,9 +1035,6 @@ export type FuzzyRelevanceOrderBy<Schema extends SchemaDef, Model extends GetMod
      * Sorts by fuzzy search relevance using PostgreSQL `pg_trgm` similarity functions.
      * Not supported on MySQL or SQLite (throws `NotSupported` at runtime).
      * Cannot be combined with cursor-based pagination.
-     *
-     * The `_fuzzyRelevance` name is intentionally distinct from `_searchRelevance`
-     * (reserved for future full-text-search relevance) so the two can coexist.
      */
     _fuzzyRelevance?: {
         /**
@@ -1018,6 +1056,66 @@ export type FuzzyRelevanceOrderBy<Schema extends SchemaDef, Model extends GetMod
          * Whether to remove accents before computing relevance.
          */
         unaccent?: boolean;
+        /**
+         * Sort direction.
+         */
+        sort: SortOrder;
+    };
+};
+
+/**
+ * String fields that have been annotated with `@fullText` and are therefore eligible
+ * for `_ftsRelevance` ordering.
+ */
+type FullTextFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+    [Key in StringFields<Schema, Model>]: GetModelField<Schema, Model, Key>['fullText'] extends true ? Key : never;
+}[StringFields<Schema, Model>];
+
+/**
+ * Payload for the `fts` string filter operator. Performs full-text search using
+ * PostgreSQL `to_tsvector` / `to_tsquery` (postgresql provider only).
+ *
+ * Query syntax follows `to_tsquery`: callers write raw `&` (AND), `|` (OR),
+ * `!` (NOT), `<->` (FOLLOWED BY). Malformed queries throw at SQL execution time.
+ */
+export type FullTextFilterPayload = {
+    /**
+     * Search query in `to_tsquery` syntax (must be a non-empty string).
+     */
+    search: string;
+    /**
+     * Postgres text-search configuration (e.g. `'english'`, `'simple'`). When
+     * omitted, the database's `default_text_search_config` setting is used —
+     * the SQL is emitted as `to_tsvector(field) @@ to_tsquery(query)` without
+     * an explicit regconfig argument.
+     */
+    config?: string;
+};
+
+export type FtsRelevanceOrderBy<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+    /**
+     * Sorts by full-text-search relevance using PostgreSQL `ts_rank`.
+     */
+    _ftsRelevance?: {
+        /**
+         * String fields annotated with `@fullText` to compute relevance against (must be non-empty).
+         *
+         * When multiple fields are provided, the fields are concatenated with a
+         * space separator and a single `ts_rank` is computed over the combined
+         * document — i.e. `ts_rank(to_tsvector(concat_ws(' ', f1, f2, ...)), q)`.
+         * This means an AND query (e.g. `'cat & dog'`) matches rows where the
+         * terms appear across different fields, not just within the same field.
+         */
+        fields: [FullTextFields<Schema, Model>, ...FullTextFields<Schema, Model>[]];
+        /**
+         * The search term to compute relevance for (in `to_tsquery` syntax).
+         */
+        search: string;
+        /**
+         * Postgres text-search configuration. When omitted, the database's
+         * `default_text_search_config` setting is used.
+         */
+        config?: string;
         /**
          * Sort direction.
          */
@@ -1377,7 +1475,8 @@ type SortAndTakeArgs<
      */
     orderBy?: OrArray<
         OrderBy<Schema, Model, true, false> &
-            (ProviderSupportsFuzzy<Schema> extends true ? FuzzyRelevanceOrderBy<Schema, Model> : {})
+            (ProviderSupportsFuzzy<Schema> extends true ? FuzzyRelevanceOrderBy<Schema, Model> : {}) &
+            (ProviderSupportsFullText<Schema> extends true ? FtsRelevanceOrderBy<Schema, Model> : {})
     >;
 
     /**
@@ -2756,6 +2855,10 @@ type ProviderSupportsDistinct<Schema extends SchemaDef> = Schema['provider']['ty
     : false;
 
 type ProviderSupportsFuzzy<Schema extends SchemaDef> = Schema['provider']['type'] extends 'postgresql' ? true : false;
+
+type ProviderSupportsFullText<Schema extends SchemaDef> = Schema['provider']['type'] extends 'postgresql'
+    ? true
+    : false;
 
 /**
  * Extracts extended query args for a specific operation.

@@ -416,4 +416,22 @@ export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDiale
     }
 
     // #endregion
+
+    // #region full-text search
+
+    override buildFullTextFilter(_fieldRef: Expression<any>, _payload: unknown): Expression<SqlBool> {
+        throw createNotSupportedError('"fts" filter is not supported by the "mysql" provider');
+    }
+
+    override buildFtsRelevanceOrderBy(
+        _query: SelectQueryBuilder<any, any, any>,
+        _fieldRefs: Expression<any>[],
+        _search: string,
+        _config: string | undefined,
+        _sort: SortOrder,
+    ): SelectQueryBuilder<any, any, any> {
+        throw createNotSupportedError('"_ftsRelevance" ordering is not supported by the "mysql" provider');
+    }
+
+    // #endregion
 }
