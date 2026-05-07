@@ -4,8 +4,9 @@ datasource db {
 }
 
 model Article {
-    id    Int     @id @default(autoincrement())
-    title String  @fullText
-    body  String  @fullText
-    notes String? // not full-text-searchable
+    id       Int     @id @default(autoincrement())
+    title    String  @fullText
+    body     String  @fullText
+    subtitle String? @fullText
+    notes    String? // not full-text-searchable
 }

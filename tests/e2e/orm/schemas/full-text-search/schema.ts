@@ -33,6 +33,13 @@ export class SchemaType implements SchemaDef {
                     fullText: true,
                     attributes: [{ name: "@fullText" }] as readonly AttributeApplication[]
                 },
+                subtitle: {
+                    name: "subtitle",
+                    type: "String",
+                    optional: true,
+                    fullText: true,
+                    attributes: [{ name: "@fullText" }] as readonly AttributeApplication[]
+                },
                 notes: {
                     name: "notes",
                     type: "String",

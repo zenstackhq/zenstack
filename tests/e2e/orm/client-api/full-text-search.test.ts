@@ -190,6 +190,28 @@ describe.skipIf(provider !== 'postgresql')('Full-text search tests', () => {
         expect(results[0]!.title).toBe('A cat and a dog');
     });
 
+    it('single-field _ftsRelevance on a nullable @fullText field tolerates NULL rows', async () => {
+        // `subtitle` is `String? @fullText`. A row whose subtitle is NULL must
+        // not break the orderBy expression — `to_tsvector(NULL)` returns NULL
+        // and `ts_rank(NULL, ...)` returns NULL, which would otherwise place
+        // those rows at the front under ASC. The single-field path coalesces
+        // NULL → '' so `ts_rank` returns 0.0 instead, matching how the
+        // multi-field `concat_ws` path already handles NULL inputs.
+        const created = await Promise.all([
+            client.article.create({ data: { title: 't1', body: 'b1', subtitle: 'cat' } }),
+            client.article.create({ data: { title: 't2', body: 'b2', subtitle: null } }),
+        ]);
+        const ids = created.map((r) => r.id);
+        const results = await client.article.findMany({
+            where: { id: { in: ids } },
+            orderBy: [
+                { _ftsRelevance: { fields: ['subtitle'], search: 'cat', sort: 'desc' } },
+                { id: 'asc' },
+            ],
+        });
+        expect(results.map((r) => r.subtitle)).toEqual(['cat', null]);
+    });
+
     it('orderBy with config option', async () => {
         const results = await client.article.findMany({
             where: { body: { fts: { search: 'run', config: 'english' } } },
@@ -338,14 +360,16 @@ describe.skipIf(provider !== 'postgresql')('Full-text search tests', () => {
     it('rejects _ftsRelevance on a non-@fullText field', async () => {
         // `_ftsRelevance.fields` is typed as an enum of `@fullText` field names
         // only — `notes` is rejected with a precise enum-mismatch error that
-        // also confirms the enum lists exactly `title` and `body`.
+        // also confirms the enum lists exactly the three `@fullText` fields.
         await expect(
             client.article.findMany({
                 orderBy: {
                     _ftsRelevance: { fields: ['notes' as any], search: 'foo', sort: 'desc' },
                 } as any,
             }),
-        ).rejects.toThrow(/expected one of "title"\|"body"\s*at\s*"orderBy\._ftsRelevance\.fields/i);
+        ).rejects.toThrow(
+            /expected one of "title"\|"body"\|"subtitle"\s*at\s*"orderBy\._ftsRelevance\.fields/i,
+        );
     });
 
     // ---------------------------------------------------------------

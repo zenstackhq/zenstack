@@ -707,11 +707,15 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         const q = sql.val(search);
 
         // Document expression: a single field, or `concat_ws` of all fields when
-        // multi-field. `concat_ws` skips NULL arguments natively. Multi-field uses
-        // a single ts_rank over the combined document (matches Prisma; ensures
-        // AND queries match terms spread across fields).
+        // multi-field. The single-field path coalesces NULL → '' so `ts_rank`
+        // returns 0.0 (not NULL) for NULL-valued rows, matching the null-skipping
+        // behavior `concat_ws` already provides on the multi-field path.
+        // Multi-field uses a single ts_rank over the combined document (matches
+        // Prisma; ensures AND queries match terms spread across fields).
         const document =
-            fieldRefs.length === 1 ? fieldRefs[0]! : sql`concat_ws(' ', ${sql.join(fieldRefs)})`;
+            fieldRefs.length === 1
+                ? sql`coalesce(${fieldRefs[0]!}, '')`
+                : sql`concat_ws(' ', ${sql.join(fieldRefs)})`;
 
         if (config === undefined) {
             // No regconfig — Postgres uses default_text_search_config.
