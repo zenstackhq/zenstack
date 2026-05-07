@@ -506,6 +506,7 @@ export class ZodSchemaFactory<
                         withAggregations,
                         allowedFilterKinds,
                         !!fieldDef.fuzzy,
+                        !!fieldDef.fullText,
                     );
                 }
             }
@@ -794,10 +795,11 @@ export class ZodSchemaFactory<
         withAggregations: boolean,
         allowedFilterKinds: string[] | undefined,
         withFuzzy = false,
+        withFullText = false,
     ) {
         return match(type)
             .with('String', () =>
-                this.makeStringFilterSchema(optional, withAggregations, allowedFilterKinds, withFuzzy),
+                this.makeStringFilterSchema(optional, withAggregations, allowedFilterKinds, withFuzzy, withFullText),
             )
             .with(P.union('Int', 'Float', 'Decimal', 'BigInt'), (type) =>
                 this.makeNumberFilterSchema(type, optional, withAggregations, allowedFilterKinds),
@@ -1017,11 +1019,21 @@ export class ZodSchemaFactory<
         withAggregations: boolean,
         allowedFilterKinds: string[] | undefined,
         withFuzzy = false,
+        withFullText = false,
     ): ZodType {
         const baseComponents = this.makeCommonPrimitiveFilterComponents(
             z.string(),
             optional,
-            () => z.lazy(() => this.makeStringFilterSchema(optional, withAggregations, allowedFilterKinds, withFuzzy)),
+            () =>
+                z.lazy(() =>
+                    this.makeStringFilterSchema(
+                        optional,
+                        withAggregations,
+                        allowedFilterKinds,
+                        withFuzzy,
+                        withFullText,
+                    ),
+                ),
             undefined,
             withAggregations ? ['_count', '_min', '_max'] : undefined,
             allowedFilterKinds,
@@ -1034,6 +1046,11 @@ export class ZodSchemaFactory<
             ...(withFuzzy && this.providerSupportsFuzzySearch
                 ? {
                       fuzzy: this.makeFuzzyFilterSchema().optional(),
+                  }
+                : {}),
+            ...(withFullText && this.providerSupportsFullTextSearch
+                ? {
+                      fts: this.makeFullTextFilterSchema().optional(),
                   }
                 : {}),
             ...(this.providerSupportsCaseSensitivity
@@ -1052,9 +1069,9 @@ export class ZodSchemaFactory<
         };
 
         const schema = this.createUnionFilterSchema(z.string(), optional, allComponents, allowedFilterKinds);
-        const fuzzySuffix = withFuzzy ? 'Fuzzy' : '';
+        const featureSuffix = `${withFuzzy ? 'Fuzzy' : ''}${withFullText ? 'FullText' : ''}`;
         this.registerSchema(
-            `StringFilter${this.filterSchemaSuffix({ optional, allowedFilterKinds, withAggregations })}${fuzzySuffix}`,
+            `StringFilter${this.filterSchemaSuffix({ optional, allowedFilterKinds, withAggregations })}${featureSuffix}`,
             schema,
         );
         return schema;
@@ -1070,6 +1087,13 @@ export class ZodSchemaFactory<
             mode: z.union([z.literal('simple'), z.literal('word'), z.literal('strictWord')]).default('simple'),
             threshold: z.number().min(0).max(1).optional(),
             unaccent: z.boolean().default(false),
+        });
+    }
+
+    private makeFullTextFilterSchema() {
+        return z.strictObject({
+            search: z.string().min(1),
+            config: z.string().min(1).optional(),
         });
     }
 
@@ -1319,8 +1343,7 @@ export class ZodSchemaFactory<
             }
         }
 
-        // _fuzzyRelevance ordering for fuzzy search — only fields annotated with `@fuzzy`
-        // (postgres only). Distinct from a future `_searchRelevance` for full-text search.
+        // _fuzzyRelevance ordering for fuzzy search — only fields annotated with `@fuzzy` (postgres only).
         if (this.providerSupportsFuzzySearch) {
             const fuzzyFieldNames = this.getModelFields(model)
                 .filter(([, def]) => !def.relation && def.type === 'String' && def.fuzzy === true)
@@ -1334,6 +1357,23 @@ export class ZodSchemaFactory<
                             .union([z.literal('simple'), z.literal('word'), z.literal('strictWord')])
                             .default('simple'),
                         unaccent: z.boolean().default(false),
+                        sort,
+                    })
+                    .optional();
+            }
+        }
+
+        // _ftsRelevance ordering for full-text search — only fields annotated with `@fullText` (postgres only).
+        if (this.providerSupportsFullTextSearch) {
+            const fullTextFieldNames = this.getModelFields(model)
+                .filter(([, def]) => !def.relation && def.type === 'String' && def.fullText === true)
+                .map(([name]) => name);
+            if (fullTextFieldNames.length > 0) {
+                fields['_ftsRelevance'] = z
+                    .strictObject({
+                        fields: z.array(z.enum(fullTextFieldNames as [string, ...string[]])).min(1),
+                        search: z.string().min(1),
+                        config: z.string().min(1).optional(),
                         sort,
                     })
                     .optional();
@@ -2361,6 +2401,10 @@ export class ZodSchemaFactory<
     }
 
     private get providerSupportsCaseSensitivity() {
+        return this.schema.provider.type === 'postgresql';
+    }
+
+    private get providerSupportsFullTextSearch() {
         return this.schema.provider.type === 'postgresql';
     }
 

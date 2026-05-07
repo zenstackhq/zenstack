@@ -363,6 +363,18 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
         }
     }
 
+    @check('@fullText')
+    private _checkFullText(attr: AttributeApplication, accept: ValidationAcceptor) {
+        const zmodel = AstUtils.getContainerOfType(attr, isModel);
+        if (!zmodel) {
+            return;
+        }
+        const provider = getDataSourceProvider(zmodel);
+        if (provider && provider !== 'postgresql') {
+            accept('error', `\`@fullText\` is only supported for the \`postgresql\` provider`, { node: attr });
+        }
+    }
+
     @check('@@schema')
     private _checkSchema(attr: AttributeApplication, accept: ValidationAcceptor) {
         const schemaName = getStringLiteral(attr.args[0]?.value);

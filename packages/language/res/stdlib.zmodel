@@ -408,6 +408,13 @@ attribute @omit()
 attribute @fuzzy() @@@targetField([StringField]) @@@once
 
 /**
+ * Marks a `String` field as full-text-searchable. Fields with this attribute can be used with the
+ * `fts` filter operator and the `_ftsRelevance` orderBy. Full-text search is currently
+ * supported only on the `postgresql` provider (uses `to_tsvector` / `to_tsquery` / `ts_rank`).
+ */
+attribute @fullText() @@@targetField([StringField]) @@@once
+
+/**
  * Automatically stores the time when a record was last updated.
  *
  * @param ignore: A list of field names that are not considered when the ORM client is determining whether any

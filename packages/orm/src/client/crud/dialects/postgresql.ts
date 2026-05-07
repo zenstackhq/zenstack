@@ -655,5 +655,89 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         return query.orderBy(sql`GREATEST(${sql.join(similarities)})`, sort);
     }
 
+    override buildFullTextFilter(fieldRef: Expression<any>, payload: unknown): Expression<SqlBool> {
+        // When `config` is provided we bind it via sql.val + an inline ::regconfig
+        // cast (parameterized, no string concatenation). When omitted we emit the
+        // single-arg forms `to_tsvector(field)` / `to_tsquery(query)` so Postgres
+        // falls back to the database-level `default_text_search_config`.
+        // `to_tsquery` throws at execution on syntax error; we don't pre-validate.
+        const options = this.normalizeFullTextOptions(payload);
+        const query = sql.val(options.search);
+        if (options.config === undefined) {
+            return sql<SqlBool>`to_tsvector(${fieldRef}) @@ to_tsquery(${query})`;
+        }
+        const cfg = sql.val(options.config);
+        return sql<SqlBool>`to_tsvector(${cfg}::regconfig, ${fieldRef}) @@ to_tsquery(${cfg}::regconfig, ${query})`;
+    }
+
+    /**
+     * Validate the user-provided `fts` filter payload. When `config` is omitted
+     * it stays `undefined` so {@link buildFullTextFilter} can emit the no-regconfig
+     * SQL form and let Postgres fall back to `default_text_search_config`.
+     */
+    private normalizeFullTextOptions(value: unknown): FullTextFilterOptions {
+        invariant(
+            value !== null && typeof value === 'object' && !Array.isArray(value),
+            'fts filter must be an object with at least a "search" field',
+        );
+        const raw = value as Record<string, unknown>;
+        invariant(
+            typeof raw['search'] === 'string' && (raw['search'] as string).length > 0,
+            'fts.search must be a non-empty string',
+        );
+        if (raw['config'] !== undefined) {
+            invariant(
+                typeof raw['config'] === 'string' && (raw['config'] as string).length > 0,
+                'fts.config must be a non-empty string',
+            );
+        }
+        return {
+            search: raw['search'] as string,
+            config: raw['config'] as string | undefined,
+        };
+    }
+
+    override buildFtsRelevanceOrderBy(
+        query: SelectQueryBuilder<any, any, any>,
+        fieldRefs: Expression<any>[],
+        search: string,
+        config: string | undefined,
+        sort: SortOrder,
+    ): SelectQueryBuilder<any, any, any> {
+        const q = sql.val(search);
+
+        // Document expression: a single field, or `concat_ws` of all fields when
+        // multi-field. The single-field path coalesces NULL → '' so `ts_rank`
+        // returns 0.0 (not NULL) for NULL-valued rows, matching the null-skipping
+        // behavior `concat_ws` already provides on the multi-field path.
+        // Multi-field uses a single ts_rank over the combined document (matches
+        // Prisma; ensures AND queries match terms spread across fields).
+        const document =
+            fieldRefs.length === 1
+                ? sql`coalesce(${fieldRefs[0]!}, '')`
+                : sql`concat_ws(' ', ${sql.join(fieldRefs)})`;
+
+        if (config === undefined) {
+            // No regconfig — Postgres uses default_text_search_config.
+            return query.orderBy(sql`ts_rank(to_tsvector(${document}), to_tsquery(${q}))`, sort);
+        }
+        const cfg = sql.val(config);
+        return query.orderBy(
+            sql`ts_rank(to_tsvector(${cfg}::regconfig, ${document}), to_tsquery(${cfg}::regconfig, ${q}))`,
+            sort,
+        );
+    }
+
     // #endregion
 }
+
+/**
+ * Resolved options for the `fts` full-text filter (Postgres-only). `config` is
+ * left `undefined` when the user didn't supply one — `buildFullTextFilter` then
+ * emits `to_tsvector(field)` / `to_tsquery(query)` without a regconfig argument
+ * so Postgres falls back to the database-level `default_text_search_config`.
+ */
+type FullTextFilterOptions = {
+    search: string;
+    config: string | undefined;
+};

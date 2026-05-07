@@ -630,6 +630,10 @@ export class TsSchemaGenerator {
             objectFields.push(ts.factory.createPropertyAssignment('fuzzy', ts.factory.createTrue()));
         }
 
+        if (hasAttribute(field, '@fullText')) {
+            objectFields.push(ts.factory.createPropertyAssignment('fullText', ts.factory.createTrue()));
+        }
+
         // originModel
         if (
             contextModel &&
