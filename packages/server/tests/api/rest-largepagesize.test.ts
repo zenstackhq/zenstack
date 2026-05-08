@@ -38,7 +38,7 @@ describe('REST server tests - pagination over 100', () => {
                 _handler({ ...args, zodSchemas, modelMeta, url: new URL(`http://localhost/${args.path}`) });
         });
 
-        it('returns only 15 items when limit set to 5', async () => {
+        it('returns only 15 items when limit set to 15', async () => {
             // Create users first
             for (const i of Array(150).keys()) {
                 await prisma.user.create({

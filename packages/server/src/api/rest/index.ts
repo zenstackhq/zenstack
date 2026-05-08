@@ -1672,8 +1672,8 @@ class RequestHandler extends APIHandlerBase {
             if (isNaN(limit) || limit <= 0) {
                 limit = pageSizeOption;
             }
-            if (this.options.pageSize) {
-                limit = Math.min(this.options.pageSize, limit);
+            if (this.options.pageSize !== undefined) {
+                limit = Math.min(pageSizeOption, limit);
             }
         }
 
