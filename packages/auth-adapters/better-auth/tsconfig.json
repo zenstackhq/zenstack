@@ -3,7 +3,10 @@
     "compilerOptions": {
         "rootDir": ".",
         "noPropertyAccessFromIndexSignature": false,
-        "types": ["node"]
+        "types": ["node"],
+        "paths": {
+            "@zenstackhq/better-auth/schema-generator": ["./src/schema-generator.ts"]
+        }
     },
     "include": ["src/**/*"]
 }
