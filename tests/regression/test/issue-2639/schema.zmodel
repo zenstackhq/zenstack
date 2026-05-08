@@ -1,0 +1,15 @@
+datasource db {
+    provider = 'postgresql'
+    url      = env("DATABASE_URL")
+}
+
+type BasicFields {
+    id        String   @id @default(uuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    metaData  Json     @default("{}")
+}
+
+model Test with BasicFields {
+    name String
+}
