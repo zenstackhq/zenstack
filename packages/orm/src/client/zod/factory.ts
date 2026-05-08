@@ -384,7 +384,11 @@ export class ZodSchemaFactory<
         const schema = z.looseObject(
             Object.fromEntries(
                 Object.entries(typeDef.fields).map(([field, def]) => {
-                    let fieldSchema = this.makeScalarSchema(def.type);
+                    // Wrap nested typedef references in z.lazy() so cyclic or self-referencing
+                    // typedefs don't recurse infinitely while building schemas.
+                    let fieldSchema: ZodType = isTypeDef(this.schema, def.type)
+                        ? z.lazy(() => this.makeTypeDefSchema(def.type))
+                        : this.makeScalarSchema(def.type);
                     if (def.array) {
                         fieldSchema = fieldSchema.array();
                     }
