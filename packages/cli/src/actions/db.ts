@@ -1,5 +1,5 @@
 import { formatDocument, ZModelCodeGenerator } from '@zenstackhq/language';
-import { DataModel, Enum, type Model } from '@zenstackhq/language/ast';
+import { DataModel, Enum, type DataField, type Model } from '@zenstackhq/language/ast';
 import colors from 'colors';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -34,6 +34,25 @@ export type PullOptions = {
     quote: 'single' | 'double';
     indent: number;
 };
+
+function hasRelationFieldsArg(field: DataField) {
+    const relationAttr = field.attributes.find((a) => a.decl.ref?.name === '@relation');
+    return !!relationAttr?.args.some((a) => a.name === 'fields');
+}
+
+function getReferencedModelName(field: DataField) {
+    return field.type.reference?.ref ? getDbName(field.type.reference.ref) : undefined;
+}
+
+function matchesRelationNameFallback(field: DataField, relationName: string, candidate: DataField) {
+    const referencedModelName = getReferencedModelName(field);
+    return (
+        !!referencedModelName &&
+        getRelationName(candidate) === relationName &&
+        hasRelationFieldsArg(candidate) === hasRelationFieldsArg(field) &&
+        getReferencedModelName(candidate) === referencedModelName
+    );
+}
 
 /**
  * CLI action for db related commands
@@ -313,7 +332,10 @@ async function runPull(options: PullOptions) {
                         const newRelName = getRelationName(f as any);
                         if (newRelName) {
                             originalFields = originalDataModel.fields.filter(
-                                (d) => d.$type === 'DataField' && getRelationName(d as any) === newRelName,
+                                (d) =>
+                                    d.$type === 'DataField' &&
+                                    f.$type === 'DataField' &&
+                                    matchesRelationNameFallback(f, newRelName, d),
                             );
                         }
                     }
@@ -527,7 +549,10 @@ async function runPull(options: PullOptions) {
                         const originalRelName = getRelationName(f as any);
                         if (originalRelName) {
                             const matchByRelName = newDataModel.fields.find(
-                                (d) => d.$type === 'DataField' && getRelationName(d as any) === originalRelName,
+                                (d) =>
+                                    d.$type === 'DataField' &&
+                                    f.$type === 'DataField' &&
+                                    matchesRelationNameFallback(f, originalRelName, d),
                             );
                             if (matchByRelName) return false;
                         }
