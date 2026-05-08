@@ -91,10 +91,8 @@ export function createQuerySchemaFactory(clientOrSchema: any, options?: any) {
  * anchored to the Unix epoch) are the documented happy paths; other formats
  * accepted by `new Date(...)` also pass through, mirroring Prisma's pre-3.5
  * behaviour. Strings the engine can't parse fall through and are rejected by
- * `z.date()` with the standard error. Callers wanting strict ISO-or-Date
- * validation should set `ClientOptions.strictDateInput: true`.
+ * `z.date()` with the standard error.
  *
- * Used when `ClientOptions.strictDateInput` is left at its default (`false`).
  * @see https://github.com/zenstackhq/zenstack/issues/2631
  */
 export function coercedDateTimeSchema(): ZodType {
@@ -887,10 +885,7 @@ export class ZodSchemaFactory<
 
     @cache()
     private makeDateTimeValueSchema(): ZodType {
-        // Strict mode: require an actual `Date` instance, matching what the
-        // engine ultimately wants. Default mode: coerce ISO strings (datetime,
-        // date, time-only) to `Date` for Prisma compatibility (#2631).
-        const schema = (this.options as ClientOptions<Schema>)?.strictDateInput ? z.date() : coercedDateTimeSchema();
+        const schema = coercedDateTimeSchema();
         this.registerSchema('DateTime', schema);
         return schema;
     }
