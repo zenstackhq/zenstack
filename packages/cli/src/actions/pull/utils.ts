@@ -14,7 +14,7 @@ import {
     type StringLiteral,
 } from '@zenstackhq/language/ast';
 import type { AstFactory, ExpressionBuilder } from '@zenstackhq/language/factory';
-import { getLiteralArray, getStringLiteral } from '@zenstackhq/language/utils';
+import { getAttributeArgLiteral, getLiteralArray, getStringLiteral } from '@zenstackhq/language/utils';
 import type { DataSourceProviderType } from '@zenstackhq/schema';
 import type { Reference } from 'langium';
 import { CliError } from '../../cli-error';
@@ -123,17 +123,16 @@ export function getRelationFkName(decl: DataField): string | undefined {
 }
 
 /**
- * Gets the relation name from the @relation attribute's first positional argument.
+ * Gets the relation name from the @relation attribute's `name` argument.
  * e.g., @relation('myRelation', fields: [...], references: [...]) -> "myRelation"
+ * e.g., @relation(name: 'myRelation', fields: [...], references: [...]) -> "myRelation"
  * e.g., @relation(fields: [...], references: [...]) -> undefined
  * e.g., @relation('backRef') -> "backRef"
  */
 export function getRelationName(decl: DataField): string | undefined {
     const relationAttr = decl?.attributes?.find((a) => a.decl?.ref?.name === '@relation');
     if (!relationAttr) return undefined;
-    const firstPositionalArg = relationAttr.args.find((a) => !a.name);
-    if (!firstPositionalArg || firstPositionalArg.value?.$type !== 'StringLiteral') return undefined;
-    return (firstPositionalArg.value as StringLiteral).value;
+    return getAttributeArgLiteral(relationAttr, 'name');
 }
 
 /**

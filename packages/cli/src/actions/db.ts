@@ -1,5 +1,5 @@
 import { formatDocument, ZModelCodeGenerator } from '@zenstackhq/language';
-import { DataModel, Enum, type DataField, type Model } from '@zenstackhq/language/ast';
+import { DataModel, Enum, isDataField, type DataField, type Model } from '@zenstackhq/language/ast';
 import colors from 'colors';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -308,33 +308,33 @@ async function runPull(options: PullOptions) {
                     if (originalFields.length === 0) {
                         // Try matching by relation fields key (the `fields` attribute in @relation)
                         // This matches relation fields by their FK field references
-                        const newFieldsKey = getRelationFieldsKey(f as any);
+                        const newFieldsKey = isDataField(f) ? getRelationFieldsKey(f) : undefined;
                         if (newFieldsKey) {
                             originalFields = originalDataModel.fields.filter(
-                                (d) => getRelationFieldsKey(d as any) === newFieldsKey,
+                                (d) => isDataField(d) && getRelationFieldsKey(d) === newFieldsKey,
                             );
                         }
                     }
 
                     if (originalFields.length === 0) {
                         // Try matching by relation FK name (the `map` attribute in @relation)
-                        originalFields = originalDataModel.fields.filter(
-                            (d) =>
-                                getRelationFkName(d as any) === getRelationFkName(f as any) &&
-                                !!getRelationFkName(d as any) &&
-                                !!getRelationFkName(f as any),
-                        );
+                        const newFkName = isDataField(f) ? getRelationFkName(f) : undefined;
+                        if (newFkName) {
+                            originalFields = originalDataModel.fields.filter(
+                                (d) => isDataField(d) && getRelationFkName(d) === newFkName,
+                            );
+                        }
                     }
 
                     if (originalFields.length === 0) {
-                        // Try matching by relation name (the first positional arg in @relation)
+                        // Try matching by relation name (the `name` arg in @relation)
                         // This is essential for back-reference fields that only have a relation name
-                        const newRelName = getRelationName(f as any);
+                        const newRelName = isDataField(f) ? getRelationName(f) : undefined;
                         if (newRelName) {
                             originalFields = originalDataModel.fields.filter(
                                 (d) =>
-                                    d.$type === 'DataField' &&
-                                    f.$type === 'DataField' &&
+                                    isDataField(d) &&
+                                    isDataField(f) &&
                                     matchesRelationNameFallback(f, newRelName, d),
                             );
                         }
@@ -346,8 +346,8 @@ async function runPull(options: PullOptions) {
                         // Yes, in this case it can potentially result in multiple original fields, but we only want to ensure that at least one relation exists.
                         originalFields = originalDataModel.fields.filter(
                             (d) =>
-                                f.$type === 'DataField' &&
-                                d.$type === 'DataField' &&
+                                isDataField(f) &&
+                                isDataField(d) &&
                                 f.type.reference?.ref &&
                                 d.type.reference?.ref &&
                                 getDbName(f.type.reference.ref) === getDbName(d.type.reference.ref),
@@ -357,7 +357,7 @@ async function runPull(options: PullOptions) {
                     if (originalFields.length > 1) {
                         // If this is a back-reference relation field (no `fields` attribute),
                         // silently skip when there are multiple potential matches
-                        const isBackReferenceField = !getRelationFieldsKey(f as any);
+                        const isBackReferenceField = isDataField(f) && !getRelationFieldsKey(f);
                         if (!isBackReferenceField) {
                             console.warn(
                                 colors.yellow(
@@ -529,29 +529,29 @@ async function runPull(options: PullOptions) {
                         if (matchByDbName) return false;
 
                         // Try matching by relation fields key (the `fields` attribute in @relation)
-                        const originalFieldsKey = getRelationFieldsKey(f as any);
+                        const originalFieldsKey = isDataField(f) ? getRelationFieldsKey(f) : undefined;
                         if (originalFieldsKey) {
                             const matchByFieldsKey = newDataModel.fields.find(
-                                (d) => getRelationFieldsKey(d as any) === originalFieldsKey,
+                                (d) => isDataField(d) && getRelationFieldsKey(d) === originalFieldsKey,
                             );
                             if (matchByFieldsKey) return false;
                         }
 
-                        const matchByFkName = newDataModel.fields.find(
-                            (d) =>
-                                getRelationFkName(d as any) === getRelationFkName(f as any) &&
-                                !!getRelationFkName(d as any) &&
-                                !!getRelationFkName(f as any),
-                        );
-                        if (matchByFkName) return false;
+                        const originalFkName = isDataField(f) ? getRelationFkName(f) : undefined;
+                        if (originalFkName) {
+                            const matchByFkName = newDataModel.fields.find(
+                                (d) => isDataField(d) && getRelationFkName(d) === originalFkName,
+                            );
+                            if (matchByFkName) return false;
+                        }
 
                         // Try matching by relation name (for named back-reference fields)
-                        const originalRelName = getRelationName(f as any);
+                        const originalRelName = isDataField(f) ? getRelationName(f) : undefined;
                         if (originalRelName) {
                             const matchByRelName = newDataModel.fields.find(
                                 (d) =>
-                                    d.$type === 'DataField' &&
-                                    f.$type === 'DataField' &&
+                                    isDataField(d) &&
+                                    isDataField(f) &&
                                     matchesRelationNameFallback(f, originalRelName, d),
                             );
                             if (matchByRelName) return false;
@@ -559,8 +559,8 @@ async function runPull(options: PullOptions) {
 
                         const matchByTypeRef = newDataModel.fields.find(
                             (d) =>
-                                f.$type === 'DataField' &&
-                                d.$type === 'DataField' &&
+                                isDataField(f) &&
+                                isDataField(d) &&
                                 f.type.reference?.ref &&
                                 d.type.reference?.ref &&
                                 getDbName(f.type.reference.ref) === getDbName(d.type.reference.ref),
