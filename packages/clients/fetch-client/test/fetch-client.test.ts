@@ -18,6 +18,7 @@ function makeSerializedResponseText(data: unknown) {
 
 describe('createClient', () => {
     let mockFetch: ReturnType<typeof vi.fn>;
+    const originalFetch = globalThis.fetch;
 
     beforeEach(() => {
         mockFetch = vi.fn();
@@ -25,6 +26,7 @@ describe('createClient', () => {
     });
 
     afterEach(() => {
+        globalThis.fetch = originalFetch;
         vi.resetAllMocks();
     });
 
