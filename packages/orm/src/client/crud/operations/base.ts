@@ -221,7 +221,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
 
     // TODO: this is not clean, needs a better solution
     protected get hasPolicyEnabled() {
-        return this.options.plugins?.some((plugin) => plugin.constructor.name === 'PolicyPlugin');
+        return this.options.plugins?.some((plugin) => plugin.id === 'policy') ?? false;
     }
 
     protected requireModel(model: string) {
