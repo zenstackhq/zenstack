@@ -147,6 +147,13 @@ describe('Client find tests ', () => {
             }),
         ).resolves.toMatchObject({ email: 'u2@test.com' });
 
+        // object sort without nulls
+        await expect(
+            client.user.findFirst({
+                orderBy: { name: { sort: 'desc' } },
+            }),
+        ).resolves.toMatchObject({ email: 'u2@test.com' });
+
         // by to-many relation
         await expect(
             client.user.findFirst({

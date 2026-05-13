@@ -1237,14 +1237,13 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         if (value === 'asc' || value === 'desc') {
             return query.orderBy(fieldRef, this.negateSort(value, negated));
         }
-        if (
-            typeof value === 'object' &&
-            'nulls' in value &&
-            'sort' in value &&
-            (value.sort === 'asc' || value.sort === 'desc') &&
-            (value.nulls === 'first' || value.nulls === 'last')
-        ) {
-            return this.buildOrderByField(query, fieldRef, this.negateSort(value.sort, negated), value.nulls);
+        if (typeof value === 'object' && 'sort' in value && (value.sort === 'asc' || value.sort === 'desc')) {
+            const sort = this.negateSort(value.sort, negated);
+            if (value.nulls === 'first' || value.nulls === 'last') {
+                return this.buildOrderByField(query, fieldRef, sort, value.nulls);
+            } else {
+                return query.orderBy(fieldRef, sort);
+            }
         }
         return query;
     }
@@ -1870,4 +1869,3 @@ export type FuzzyFilterOptions = {
     threshold?: number;
     unaccent: boolean;
 };
-
