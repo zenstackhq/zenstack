@@ -17,8 +17,8 @@ import { createZModelServices, type ZModelServices } from './module';
 import {
     getAllFields,
     getDataModelAndTypeDefs,
+    getDataSourceProvider,
     getDocument,
-    getLiteral,
     hasAttribute,
     resolveImport,
     resolveTransitiveImports,
@@ -262,14 +262,3 @@ export async function formatDocument(content: string) {
     return TextDocument.applyEdits(document.textDocument, edits);
 }
 
-function getDataSourceProvider(model: Model) {
-    const dataSource = model.declarations.find(isDataSource);
-    if (!dataSource) {
-        return undefined;
-    }
-    const provider = dataSource?.fields.find((f) => f.name === 'provider');
-    if (!provider) {
-        return undefined;
-    }
-    return getLiteral<string>(provider.value);
-}

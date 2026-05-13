@@ -11,32 +11,13 @@ import type { AnyKysely } from '../utils/kysely-utils';
 import type { Simplify, UnwrapTuplePromises } from '../utils/type-utils';
 import type { TRANSACTION_UNSUPPORTED_METHODS } from './constants';
 import type {
-    AggregateArgs,
-    AggregateResult,
-    BatchResult,
-    CountArgs,
-    CountResult,
-    CreateArgs,
-    CreateManyAndReturnArgs,
-    CreateManyArgs,
+    CrudArgsType,
+    CrudReturnType,
     DefaultModelResult,
-    DeleteArgs,
-    DeleteManyArgs,
-    ExistsArgs,
-    FindFirstArgs,
-    FindManyArgs,
-    FindUniqueArgs,
-    GroupByArgs,
-    GroupByResult,
     ProcedureFunc,
     SelectSubset,
-    SimplifiedPlainResult,
     Subset,
     TypeDefResult,
-    UpdateArgs,
-    UpdateManyAndReturnArgs,
-    UpdateManyArgs,
-    UpsertArgs,
 } from './crud-types';
 import type { Diagnostics } from './diagnostics';
 import type { ClientOptions, QueryOptions } from './options';
@@ -66,6 +47,21 @@ export enum TransactionIsolationLevel {
 }
 
 /**
+ * Symbol used as a type-only key on `ClientContract` to brand the `ExtQueryArgs`
+ * generic slot. Hidden from member-access autocomplete since symbol keys are
+ * not surfaced. Consumed by `InferExtQueryArgs` to recover the slot.
+ * @internal
+ */
+export const ExtQueryArgsMarker: unique symbol = Symbol('zenstack.client.extQueryArgs');
+
+/**
+ * Symbol used as a type-only key on `ClientContract` to brand the `ExtResult`
+ * generic slot. Consumed by `InferExtResult` to recover the slot.
+ * @internal
+ */
+export const ExtResultMarker: unique symbol = Symbol('zenstack.client.extResult');
+
+/**
  * ZenStack client interface.
  */
 export type ClientContract<
@@ -85,6 +81,12 @@ export type ClientContract<
      */
     readonly $options: Options;
 
+    /** @internal type-only brand carrying the `ExtQueryArgs` slot for inference. */
+    readonly [ExtQueryArgsMarker]?: ExtQueryArgs;
+
+    /** @internal type-only brand carrying the `ExtResult` slot for inference. */
+    readonly [ExtResultMarker]?: ExtResult;
+
     /**
      * Executes a prepared raw query and returns the number of affected rows.
      * @example
@@ -92,7 +94,7 @@ export type ClientContract<
      * const result = await db.$executeRaw`UPDATE User SET cool = ${true} WHERE email = ${'user@email.com'};`
      * ```
      */
-    $executeRaw(query: TemplateStringsArray, ...values: any[]): ZenStackPromise<Schema, number>;
+    $executeRaw(query: TemplateStringsArray, ...values: any[]): ZenStackPromise<number>;
 
     /**
      * Executes a raw query and returns the number of affected rows.
@@ -102,7 +104,7 @@ export type ClientContract<
      * const result = await db.$executeRawUnsafe('UPDATE User SET cool = $1 WHERE email = $2 ;', true, 'user@email.com')
      * ```
      */
-    $executeRawUnsafe(query: string, ...values: any[]): ZenStackPromise<Schema, number>;
+    $executeRawUnsafe(query: string, ...values: any[]): ZenStackPromise<number>;
 
     /**
      * Performs a prepared raw query and returns the `SELECT` data.
@@ -111,7 +113,7 @@ export type ClientContract<
      * const result = await db.$queryRaw`SELECT * FROM User WHERE id = ${1} OR email = ${'user@email.com'};`
      * ```
      */
-    $queryRaw<T = unknown>(query: TemplateStringsArray, ...values: any[]): ZenStackPromise<Schema, T>;
+    $queryRaw<T = unknown>(query: TemplateStringsArray, ...values: any[]): ZenStackPromise<T>;
 
     /**
      * Performs a raw query and returns the `SELECT` data.
@@ -121,7 +123,7 @@ export type ClientContract<
      * const result = await db.$queryRawUnsafe('SELECT * FROM User WHERE id = $1 OR email = $2;', 1, 'user@email.com')
      * ```
      */
-    $queryRawUnsafe<T = unknown>(query: string, ...values: any[]): ZenStackPromise<Schema, T>;
+    $queryRawUnsafe<T = unknown>(query: string, ...values: any[]): ZenStackPromise<T>;
 
     /**
      * The current user identity. If the client is not bound to any user context, returns `undefined`.
@@ -203,7 +205,7 @@ export type ClientContract<
      *   db.post.create({ data: { title: 'Hello World', authorId: 1 } }),
      * ]);
      */
-    $transaction<P extends ZenStackPromise<Schema, any>[]>(
+    $transaction<P extends ZenStackPromise<any>[]>(
         arg: [...P],
         options?: { isolationLevel?: TransactionIsolationLevel },
     ): Promise<UnwrapTuplePromises<P>>;
@@ -379,9 +381,14 @@ export type AllModelOperations<
                * });
                * ```
                */
-              createManyAndReturn<T extends CreateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>(
-                  args?: SelectSubset<T, CreateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>,
-              ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>;
+              createManyAndReturn<
+                  T extends CrudArgsType<Schema, Model, 'createManyAndReturn', Options, ExtQueryArgs, ExtResult>,
+              >(
+                  args?: SelectSubset<
+                      T,
+                      CrudArgsType<Schema, Model, 'createManyAndReturn', Options, ExtQueryArgs, ExtResult>
+                  >,
+              ): ZenStackPromise<CrudReturnType<Schema, Model, 'createManyAndReturn', T, Options, ExtResult>>;
 
               /**
                * Updates multiple entities and returns them.
@@ -405,9 +412,11 @@ export type AllModelOperations<
                * });
                * ```
                */
-              updateManyAndReturn<T extends UpdateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>(
-                  args: Subset<T, UpdateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>,
-              ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>;
+              updateManyAndReturn<
+                  T extends CrudArgsType<Schema, Model, 'updateManyAndReturn', Options, ExtQueryArgs, ExtResult>,
+              >(
+                  args: Subset<T, CrudArgsType<Schema, Model, 'updateManyAndReturn', Options, ExtQueryArgs, ExtResult>>,
+              ): ZenStackPromise<CrudReturnType<Schema, Model, 'updateManyAndReturn', T, Options, ExtResult>>;
           });
 
 type CommonModelOperations<
@@ -498,9 +507,9 @@ type CommonModelOperations<
      * }); // result: `{ _count: { posts: number } }`
      * ```
      */
-    findMany<T extends FindManyArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>(
-        args?: SelectSubset<T, FindManyArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>,
-    ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>;
+    findMany<T extends CrudArgsType<Schema, Model, 'findMany', Options, ExtQueryArgs, ExtResult>>(
+        args?: SelectSubset<T, CrudArgsType<Schema, Model, 'findMany', Options, ExtQueryArgs, ExtResult>>,
+    ): ZenStackPromise<CrudReturnType<Schema, Model, 'findMany', T, Options, ExtResult>>;
 
     /**
      * Returns a uniquely identified entity.
@@ -508,9 +517,9 @@ type CommonModelOperations<
      * @returns a single entity or null if not found
      * @see {@link findMany}
      */
-    findUnique<T extends FindUniqueArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>(
-        args: SelectSubset<T, FindUniqueArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>,
-    ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options, ExtResult> | null>;
+    findUnique<T extends CrudArgsType<Schema, Model, 'findUnique', Options, ExtQueryArgs, ExtResult>>(
+        args: SelectSubset<T, CrudArgsType<Schema, Model, 'findUnique', Options, ExtQueryArgs, ExtResult>>,
+    ): ZenStackPromise<CrudReturnType<Schema, Model, 'findUnique', T, Options, ExtResult>>;
 
     /**
      * Returns a uniquely identified entity or throws `NotFoundError` if not found.
@@ -518,9 +527,9 @@ type CommonModelOperations<
      * @returns a single entity
      * @see {@link findMany}
      */
-    findUniqueOrThrow<T extends FindUniqueArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>(
-        args: SelectSubset<T, FindUniqueArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>,
-    ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>>;
+    findUniqueOrThrow<T extends CrudArgsType<Schema, Model, 'findUniqueOrThrow', Options, ExtQueryArgs, ExtResult>>(
+        args: SelectSubset<T, CrudArgsType<Schema, Model, 'findUniqueOrThrow', Options, ExtQueryArgs, ExtResult>>,
+    ): ZenStackPromise<CrudReturnType<Schema, Model, 'findUniqueOrThrow', T, Options, ExtResult>>;
 
     /**
      * Returns the first entity.
@@ -528,9 +537,9 @@ type CommonModelOperations<
      * @returns a single entity or null if not found
      * @see {@link findMany}
      */
-    findFirst<T extends FindFirstArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>(
-        args?: SelectSubset<T, FindFirstArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>,
-    ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options, ExtResult> | null>;
+    findFirst<T extends CrudArgsType<Schema, Model, 'findFirst', Options, ExtQueryArgs, ExtResult>>(
+        args?: SelectSubset<T, CrudArgsType<Schema, Model, 'findFirst', Options, ExtQueryArgs, ExtResult>>,
+    ): ZenStackPromise<CrudReturnType<Schema, Model, 'findFirst', T, Options, ExtResult>>;
 
     /**
      * Returns the first entity or throws `NotFoundError` if not found.
@@ -538,9 +547,9 @@ type CommonModelOperations<
      * @returns a single entity
      * @see {@link findMany}
      */
-    findFirstOrThrow<T extends FindFirstArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>(
-        args?: SelectSubset<T, FindFirstArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>,
-    ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>>;
+    findFirstOrThrow<T extends CrudArgsType<Schema, Model, 'findFirstOrThrow', Options, ExtQueryArgs, ExtResult>>(
+        args?: SelectSubset<T, CrudArgsType<Schema, Model, 'findFirstOrThrow', Options, ExtQueryArgs, ExtResult>>,
+    ): ZenStackPromise<CrudReturnType<Schema, Model, 'findFirstOrThrow', T, Options, ExtResult>>;
 
     /**
      * Creates a new entity.
@@ -594,9 +603,9 @@ type CommonModelOperations<
      * });
      * ```
      */
-    create<T extends CreateArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>(
-        args: SelectSubset<T, CreateArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>,
-    ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>>;
+    create<T extends CrudArgsType<Schema, Model, 'create', Options, ExtQueryArgs, ExtResult>>(
+        args: SelectSubset<T, CrudArgsType<Schema, Model, 'create', Options, ExtQueryArgs, ExtResult>>,
+    ): ZenStackPromise<CrudReturnType<Schema, Model, 'create', T, Options, ExtResult>>;
 
     /**
      * Creates multiple entities. Only scalar fields are allowed.
@@ -623,9 +632,9 @@ type CommonModelOperations<
      * });
      * ```
      */
-    createMany<T extends CreateManyArgs<Schema, Model, Options, ExtQueryArgs>>(
-        args?: SelectSubset<T, CreateManyArgs<Schema, Model, Options, ExtQueryArgs>>,
-    ): ZenStackPromise<Schema, BatchResult>;
+    createMany<T extends CrudArgsType<Schema, Model, 'createMany', Options, ExtQueryArgs, ExtResult>>(
+        args?: SelectSubset<T, CrudArgsType<Schema, Model, 'createMany', Options, ExtQueryArgs, ExtResult>>,
+    ): ZenStackPromise<CrudReturnType<Schema, Model, 'createMany', T, Options, ExtResult>>;
 
     /**
      * Updates a uniquely identified entity.
@@ -744,9 +753,9 @@ type CommonModelOperations<
      * });
      * ```
      */
-    update<T extends UpdateArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>(
-        args: SelectSubset<T, UpdateArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>,
-    ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>>;
+    update<T extends CrudArgsType<Schema, Model, 'update', Options, ExtQueryArgs, ExtResult>>(
+        args: SelectSubset<T, CrudArgsType<Schema, Model, 'update', Options, ExtQueryArgs, ExtResult>>,
+    ): ZenStackPromise<CrudReturnType<Schema, Model, 'update', T, Options, ExtResult>>;
 
     /**
      * Updates multiple entities.
@@ -768,9 +777,9 @@ type CommonModelOperations<
      *     limit: 10
      * });
      */
-    updateMany<T extends UpdateManyArgs<Schema, Model, Options, ExtQueryArgs>>(
-        args: Subset<T, UpdateManyArgs<Schema, Model, Options, ExtQueryArgs>>,
-    ): ZenStackPromise<Schema, BatchResult>;
+    updateMany<T extends CrudArgsType<Schema, Model, 'updateMany', Options, ExtQueryArgs, ExtResult>>(
+        args: Subset<T, CrudArgsType<Schema, Model, 'updateMany', Options, ExtQueryArgs, ExtResult>>,
+    ): ZenStackPromise<CrudReturnType<Schema, Model, 'updateMany', T, Options, ExtResult>>;
 
     /**
      * Creates or updates an entity.
@@ -792,9 +801,9 @@ type CommonModelOperations<
      * });
      * ```
      */
-    upsert<T extends UpsertArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>(
-        args: SelectSubset<T, UpsertArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>,
-    ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>>;
+    upsert<T extends CrudArgsType<Schema, Model, 'upsert', Options, ExtQueryArgs, ExtResult>>(
+        args: SelectSubset<T, CrudArgsType<Schema, Model, 'upsert', Options, ExtQueryArgs, ExtResult>>,
+    ): ZenStackPromise<CrudReturnType<Schema, Model, 'upsert', T, Options, ExtResult>>;
 
     /**
      * Deletes a uniquely identifiable entity.
@@ -815,9 +824,9 @@ type CommonModelOperations<
      * }); // result: `{ id: string; email: string }`
      * ```
      */
-    delete<T extends DeleteArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>(
-        args: SelectSubset<T, DeleteArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>,
-    ): ZenStackPromise<Schema, SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>>;
+    delete<T extends CrudArgsType<Schema, Model, 'delete', Options, ExtQueryArgs, ExtResult>>(
+        args: SelectSubset<T, CrudArgsType<Schema, Model, 'delete', Options, ExtQueryArgs, ExtResult>>,
+    ): ZenStackPromise<CrudReturnType<Schema, Model, 'delete', T, Options, ExtResult>>;
 
     /**
      * Deletes multiple entities.
@@ -838,9 +847,9 @@ type CommonModelOperations<
      * });
      * ```
      */
-    deleteMany<T extends DeleteManyArgs<Schema, Model, Options, ExtQueryArgs>>(
-        args?: Subset<T, DeleteManyArgs<Schema, Model, Options, ExtQueryArgs>>,
-    ): ZenStackPromise<Schema, BatchResult>;
+    deleteMany<T extends CrudArgsType<Schema, Model, 'deleteMany', Options, ExtQueryArgs, ExtResult>>(
+        args?: Subset<T, CrudArgsType<Schema, Model, 'deleteMany', Options, ExtQueryArgs, ExtResult>>,
+    ): ZenStackPromise<CrudReturnType<Schema, Model, 'deleteMany', T, Options, ExtResult>>;
 
     /**
      * Counts rows or field values.
@@ -860,9 +869,9 @@ type CommonModelOperations<
      *     select: { _all: true, email: true }
      * }); // result: `{ _all: number, email: number }`
      */
-    count<T extends CountArgs<Schema, Model, Options, ExtQueryArgs>>(
-        args?: Subset<T, CountArgs<Schema, Model, Options, ExtQueryArgs>>,
-    ): ZenStackPromise<Schema, Simplify<CountResult<Schema, Model, T>>>;
+    count<T extends CrudArgsType<Schema, Model, 'count', Options, ExtQueryArgs, ExtResult>>(
+        args?: Subset<T, CrudArgsType<Schema, Model, 'count', Options, ExtQueryArgs, ExtResult>>,
+    ): ZenStackPromise<Simplify<CrudReturnType<Schema, Model, 'count', T, Options, ExtResult>>>;
 
     /**
      * Aggregates rows.
@@ -881,9 +890,9 @@ type CommonModelOperations<
      *     _max: { age: true }
      * }); // result: `{ _count: number, _avg: { age: number }, ... }`
      */
-    aggregate<T extends AggregateArgs<Schema, Model, Options, ExtQueryArgs>>(
-        args: Subset<T, AggregateArgs<Schema, Model, Options, ExtQueryArgs>>,
-    ): ZenStackPromise<Schema, Simplify<AggregateResult<Schema, Model, T>>>;
+    aggregate<T extends CrudArgsType<Schema, Model, 'aggregate', Options, ExtQueryArgs, ExtResult>>(
+        args: Subset<T, CrudArgsType<Schema, Model, 'aggregate', Options, ExtQueryArgs, ExtResult>>,
+    ): ZenStackPromise<Simplify<CrudReturnType<Schema, Model, 'aggregate', T, Options, ExtResult>>>;
 
     /**
      * Groups rows by columns.
@@ -918,9 +927,9 @@ type CommonModelOperations<
      *     having: { country: 'US', age: { _avg: { gte: 18 } } }
      * });
      */
-    groupBy<T extends GroupByArgs<Schema, Model, Options, ExtQueryArgs>>(
-        args: Subset<T, GroupByArgs<Schema, Model, Options, ExtQueryArgs>>,
-    ): ZenStackPromise<Schema, Simplify<GroupByResult<Schema, Model, T>>>;
+    groupBy<T extends CrudArgsType<Schema, Model, 'groupBy', Options, ExtQueryArgs, ExtResult>>(
+        args: Subset<T, CrudArgsType<Schema, Model, 'groupBy', Options, ExtQueryArgs, ExtResult>>,
+    ): ZenStackPromise<Simplify<CrudReturnType<Schema, Model, 'groupBy', T, Options, ExtResult>>>;
 
     /**
      * Checks if an entity exists.
@@ -939,9 +948,9 @@ type CommonModelOperations<
      *     where: { posts: { some: { published: true } } },
      * }); // result: `boolean`
      */
-    exists<T extends ExistsArgs<Schema, Model, Options, ExtQueryArgs>>(
-        args?: Subset<T, ExistsArgs<Schema, Model, Options, ExtQueryArgs>>,
-    ): ZenStackPromise<Schema, boolean>;
+    exists<T extends CrudArgsType<Schema, Model, 'exists', Options, ExtQueryArgs, ExtResult>>(
+        args?: Subset<T, CrudArgsType<Schema, Model, 'exists', Options, ExtQueryArgs, ExtResult>>,
+    ): ZenStackPromise<CrudReturnType<Schema, Model, 'exists', T, Options, ExtResult>>;
 };
 
 export type OperationsRequiringCreate = 'create' | 'createMany' | 'createManyAndReturn' | 'upsert';

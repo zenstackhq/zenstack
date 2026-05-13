@@ -1073,9 +1073,10 @@ describe('Json filter tests', () => {
             db.user.findFirst({
                 where: {
                     profile: {
-                        // @ts-expect-error
                         name: 'Alice',
+                        // @ts-expect-error
                         path: '$.name',
+                        // @ts-expect-error
                         equals: 'Alice',
                     },
                 },

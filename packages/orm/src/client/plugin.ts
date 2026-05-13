@@ -144,7 +144,7 @@ export interface RuntimePlugin<
     result?: ExtResult;
 }
 
-export type AnyPlugin = RuntimePlugin<any, any, any, any>;
+export type AnyPlugin = RuntimePlugin<SchemaDef, any, any, any>;
 
 /**
  * Defines a ZenStack runtime plugin based on type of the given schema.

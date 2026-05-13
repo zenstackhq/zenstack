@@ -5,7 +5,7 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, ExpressionUtils } from "@zenstackhq/schema";
+import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
     provider = {
         type: "sqlite"
@@ -18,14 +18,14 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "String",
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }],
-                    default: ExpressionUtils.call("cuid")
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 email: {
                     name: "email",
                     type: "String",
                     unique: true,
-                    attributes: [{ name: "@unique" }]
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 name: {
                     name: "name",
@@ -40,7 +40,7 @@ export class SchemaType implements SchemaDef {
                     name: "address",
                     type: "Address",
                     optional: true,
-                    attributes: [{ name: "@json" }]
+                    attributes: [{ name: "@json" }] as readonly AttributeApplication[]
                 },
                 posts: {
                     name: "posts",
@@ -62,8 +62,8 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "String",
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }],
-                    default: ExpressionUtils.call("cuid")
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 title: {
                     name: "title",
@@ -73,7 +73,7 @@ export class SchemaType implements SchemaDef {
                     name: "owner",
                     type: "User",
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("ownerId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }],
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("ownerId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
                     relation: { opposite: "posts", fields: ["ownerId"], references: ["id"] }
                 },
                 ownerId: {
@@ -82,7 +82,7 @@ export class SchemaType implements SchemaDef {
                     optional: true,
                     foreignKeyFor: [
                         "owner"
-                    ]
+                    ] as readonly string[]
                 }
             },
             idFields: ["id"],

@@ -453,9 +453,7 @@ export class TsSchemaGenerator {
             ...(dm.isView ? [ts.factory.createPropertyAssignment('isView', ts.factory.createTrue())] : []),
         ];
 
-        const computedFields = allFields.filter(
-            (f) => hasAttribute(f, '@computed') && !getDelegateOriginModel(f, dm),
-        );
+        const computedFields = allFields.filter((f) => hasAttribute(f, '@computed') && !getDelegateOriginModel(f, dm));
 
         if (computedFields.length > 0) {
             fields.push(
@@ -628,6 +626,14 @@ export class TsSchemaGenerator {
             objectFields.push(ts.factory.createPropertyAssignment('omit', ts.factory.createTrue()));
         }
 
+        if (hasAttribute(field, '@fuzzy')) {
+            objectFields.push(ts.factory.createPropertyAssignment('fuzzy', ts.factory.createTrue()));
+        }
+
+        if (hasAttribute(field, '@fullText')) {
+            objectFields.push(ts.factory.createPropertyAssignment('fullText', ts.factory.createTrue()));
+        }
+
         // originModel
         if (
             contextModel &&
@@ -674,9 +680,7 @@ export class TsSchemaGenerator {
                             ? [
                                   ts.factory.createArrayLiteralExpression(
                                       defaultValue.args.map((arg) =>
-                                          this.createExpressionUtilsCall('literal', [
-                                              this.createLiteralNode(arg),
-                                          ]),
+                                          this.createExpressionUtilsCall('literal', [this.createLiteralNode(arg)]),
                                       ),
                                   ),
                               ]
@@ -1620,6 +1624,10 @@ export class TsSchemaGenerator {
             'SelectInput',
             'IncludeInput',
             'OmitInput',
+            'UncheckedCreateInput',
+            'CheckedCreateInput',
+            'UncheckedUpdateInput',
+            'CheckedUpdateInput',
         ];
 
         const inputTypeNameFixes = {

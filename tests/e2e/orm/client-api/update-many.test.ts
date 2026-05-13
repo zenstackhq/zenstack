@@ -79,6 +79,25 @@ describe('Client updateMany tests', () => {
         ).resolves.toMatchObject({ count: 0 });
     });
 
+    it('accepts FK fields in updateMany data', async () => {
+        const user1 = await client.user.create({ data: { email: 'u1@test.com' } });
+        const user2 = await client.user.create({ data: { email: 'u2@test.com' } });
+
+        await client.post.create({ data: { title: 'Post1', authorId: user1.id } });
+        await client.post.create({ data: { title: 'Post2', authorId: user1.id } });
+
+        // reassign all of user1's posts to user2 via FK field
+        await expect(
+            client.post.updateMany({
+                where: { authorId: user1.id },
+                data: { authorId: user2.id },
+            }),
+        ).resolves.toMatchObject({ count: 2 });
+
+        await expect(client.post.findMany({ where: { authorId: user2.id } })).toResolveWithLength(2);
+        await expect(client.post.findMany({ where: { authorId: user1.id } })).toResolveWithLength(0);
+    });
+
     it('works with updateManyAndReturn', async () => {
         if (client.$schema.provider.type === ('mysql' as any)) {
             // skip for mysql as it does not support returning

@@ -1,0 +1,51 @@
+{
+    "name": "@zenstackhq/fetch-client",
+    "displayName": "ZenStack Fetch Client",
+    "description": "Simple fetch-based client for consuming ZenStack's RPC-style CRUD API",
+    "version": "3.7.0",
+    "type": "module",
+    "author": {
+        "name": "ZenStack Team",
+        "email": "contact@zenstack.dev"
+    },
+    "homepage": "https://zenstack.dev",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/zenstackhq/zenstack"
+    },
+    "license": "MIT",
+    "scripts": {
+        "build": "tsc --noEmit && tsdown && pnpm test:generate && pnpm test:typecheck",
+        "watch": "tsdown --watch",
+        "lint": "eslint src --ext ts",
+        "test": "vitest run",
+        "test:generate": "tsx ../../../scripts/test-generate.ts test --lite-only",
+        "test:typecheck": "tsc --noEmit --project tsconfig.test.json",
+        "pack": "pnpm pack"
+    },
+    "files": [
+        "dist"
+    ],
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.mts",
+            "default": "./dist/index.mjs"
+        }
+    },
+    "dependencies": {
+        "@zenstackhq/client-helpers": "workspace:*",
+        "@zenstackhq/common-helpers": "workspace:*",
+        "@zenstackhq/orm": "workspace:*",
+        "@zenstackhq/schema": "workspace:*"
+    },
+    "devDependencies": {
+        "@types/node": "catalog:",
+        "@zenstackhq/cli": "workspace:*",
+        "@zenstackhq/eslint-config": "workspace:*",
+        "@zenstackhq/tsdown-config": "workspace:*",
+        "@zenstackhq/typescript-config": "workspace:*",
+        "@zenstackhq/vitest-config": "workspace:*",
+        "decimal.js": "catalog:"
+    },
+    "funding": "https://github.com/sponsors/zenstackhq"
+}

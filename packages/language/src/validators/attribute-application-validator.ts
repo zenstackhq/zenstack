@@ -28,6 +28,7 @@ import {
     getAllAttributes,
     getAttributeArg,
     getContainingDataModel,
+    getDataSourceProvider,
     getStringLiteral,
     hasAttribute,
     isAuthOrAuthMemberAccess,
@@ -347,6 +348,30 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
             accept('error', `Expected an array of field references`, {
                 node: fields,
             });
+        }
+    }
+
+    @check('@fuzzy')
+    private _checkFuzzy(attr: AttributeApplication, accept: ValidationAcceptor) {
+        const zmodel = AstUtils.getContainerOfType(attr, isModel);
+        if (!zmodel) {
+            return;
+        }
+        const provider = getDataSourceProvider(zmodel);
+        if (provider && provider !== 'postgresql') {
+            accept('error', `\`@fuzzy\` is only supported for the \`postgresql\` provider`, { node: attr });
+        }
+    }
+
+    @check('@fullText')
+    private _checkFullText(attr: AttributeApplication, accept: ValidationAcceptor) {
+        const zmodel = AstUtils.getContainerOfType(attr, isModel);
+        if (!zmodel) {
+            return;
+        }
+        const provider = getDataSourceProvider(zmodel);
+        if (provider && provider !== 'postgresql') {
+            accept('error', `\`@fullText\` is only supported for the \`postgresql\` provider`, { node: attr });
         }
     }
 

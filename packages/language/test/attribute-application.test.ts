@@ -431,6 +431,74 @@ describe('Attribute application validation tests', () => {
         });
     });
 
+    describe('Field-level @fuzzy attribute', () => {
+        it('accepts @fuzzy on a String field with postgres provider', async () => {
+            await loadSchema(`
+                datasource db {
+                    provider = 'postgresql'
+                    url      = 'postgresql://localhost/test'
+                }
+
+                model Flavor {
+                    id          Int     @id @default(autoincrement())
+                    name        String  @fuzzy
+                    description String? @fuzzy
+                }
+            `);
+        });
+
+        it('rejects @fuzzy with sqlite provider', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Flavor {
+                    id   Int    @id @default(autoincrement())
+                    name String @fuzzy
+                }
+                `,
+                /`@fuzzy` is only supported for the `postgresql` provider/,
+            );
+        });
+
+        it('rejects @fuzzy with mysql provider', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'mysql'
+                    url      = 'mysql://localhost/test'
+                }
+
+                model Flavor {
+                    id   Int    @id @default(autoincrement())
+                    name String @fuzzy
+                }
+                `,
+                /`@fuzzy` is only supported for the `postgresql` provider/,
+            );
+        });
+
+        it('rejects @fuzzy on a non-String field', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'postgresql'
+                    url      = 'postgresql://localhost/test'
+                }
+
+                model Flavor {
+                    id    Int @id @default(autoincrement())
+                    count Int @fuzzy
+                }
+                `,
+                /attribute "@fuzzy" cannot be used on this type of field/,
+            );
+        });
+    });
+
     it('requires relation and fk to have consistent optionality', async () => {
         await loadSchemaWithError(
             `

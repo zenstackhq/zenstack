@@ -1,0 +1,614 @@
+// ZenStack v3 torture test schema — 30+ models with complex relations
+
+datasource db {
+    provider = "sqlite"
+    url      = "file:./dev.db"
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum UserRole {
+    SUPER_ADMIN
+    ADMIN
+    MANAGER
+    MEMBER
+    GUEST
+}
+
+enum ProjectStatus {
+    DRAFT
+    ACTIVE
+    ARCHIVED
+    DELETED
+}
+
+enum TaskStatus {
+    BACKLOG
+    TODO
+    IN_PROGRESS
+    IN_REVIEW
+    DONE
+    CANCELLED
+}
+
+enum TaskPriority {
+    CRITICAL
+    HIGH
+    MEDIUM
+    LOW
+}
+
+enum CommentKind {
+    TEXT
+    CODE_SNIPPET
+    ATTACHMENT
+}
+
+enum NotificationType {
+    MENTION
+    ASSIGNMENT
+    STATUS_CHANGE
+    COMMENT
+    REVIEW_REQUEST
+    APPROVAL_NEEDED
+}
+
+enum ReviewDecision {
+    PENDING
+    APPROVED
+    REJECTED
+    CHANGES_REQUESTED
+}
+
+enum InvoiceStatus {
+    DRAFT
+    SENT
+    PAID
+    OVERDUE
+    CANCELLED
+}
+
+enum PaymentMethod {
+    CREDIT_CARD
+    BANK_TRANSFER
+    PAYPAL
+    CRYPTO
+}
+
+// ─── Core identity & org models ──────────────────────────────────────────────
+
+model Organization {
+    id          Int      @id @default(autoincrement())
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+    name        String
+    slug        String   @unique
+    logoUrl     String?
+    website     String?
+
+    teams       Team[]
+    members     OrganizationMember[]
+    projects    Project[]
+    billingInfo BillingInfo?
+    auditLogs   AuditLog[]
+    activityLog ActivityLogEntry[]
+    integrations Integration[]
+    customFields CustomFieldDefinition[]
+}
+
+model BillingInfo {
+    id             Int          @id @default(autoincrement())
+    createdAt      DateTime     @default(now())
+    updatedAt      DateTime     @updatedAt
+    planName       String
+    billingEmail   String
+    paymentMethod  PaymentMethod
+    stripeCustomerId String?
+
+    organization   Organization @relation(fields: [organizationId], references: [id])
+    organizationId Int          @unique
+    invoices       Invoice[]
+}
+
+model Invoice {
+    id           Int           @id @default(autoincrement())
+    createdAt    DateTime      @default(now())
+    updatedAt    DateTime      @updatedAt
+    number       String        @unique
+    amountCents  Int
+    currency     String        @default("USD")
+    status       InvoiceStatus @default(DRAFT)
+    dueDate      DateTime
+    paidAt       DateTime?
+
+    billingInfo  BillingInfo   @relation(fields: [billingInfoId], references: [id])
+    billingInfoId Int
+    lineItems    InvoiceLineItem[]
+}
+
+model InvoiceLineItem {
+    id          Int     @id @default(autoincrement())
+    description String
+    quantity    Int     @default(1)
+    unitCents   Int
+
+    invoice     Invoice @relation(fields: [invoiceId], references: [id])
+    invoiceId   Int
+}
+
+model User {
+    id          Int      @id @default(autoincrement())
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+    email       String   @unique
+    username    String   @unique
+    displayName String
+    avatarUrl   String?
+    timezone    String   @default("UTC")
+    locale      String   @default("en")
+
+    orgMemberships OrganizationMember[]
+    teamMemberships TeamMember[]
+    ownedProjects   Project[]   @relation("ProjectOwner")
+    assignedTasks   Task[]      @relation("TaskAssignee")
+    reportedTasks   Task[]      @relation("TaskReporter")
+    comments        Comment[]
+    notifications   Notification[]
+    reviews         Review[]
+    auditLogs       AuditLog[]
+    userPreferences UserPreferences?
+    activityLog     ActivityLogEntry[]
+    timeEntries     TimeEntry[]
+    apiTokens       ApiToken[]
+}
+
+model UserPreferences {
+    id               Int     @id @default(autoincrement())
+    emailNotifications Boolean @default(true)
+    slackNotifications Boolean @default(false)
+    theme            String  @default("light")
+    defaultProjectId Int?
+
+    user   User @relation(fields: [userId], references: [id])
+    userId Int  @unique
+}
+
+model ApiToken {
+    id          Int      @id @default(autoincrement())
+    createdAt   DateTime @default(now())
+    lastUsedAt  DateTime?
+    name        String
+    tokenHash   String   @unique
+    expiresAt   DateTime?
+
+    user   User @relation(fields: [userId], references: [id])
+    userId Int
+}
+
+model OrganizationMember {
+    id         Int      @id @default(autoincrement())
+    joinedAt   DateTime @default(now())
+    role       UserRole @default(MEMBER)
+
+    organization   Organization @relation(fields: [organizationId], references: [id])
+    organizationId Int
+    user           User         @relation(fields: [userId], references: [id])
+    userId         Int
+
+    @@unique([organizationId, userId])
+}
+
+// ─── Teams ───────────────────────────────────────────────────────────────────
+
+model Team {
+    id          Int      @id @default(autoincrement())
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+    name        String
+    description String?
+    color       String?
+
+    organization   Organization @relation(fields: [organizationId], references: [id])
+    organizationId Int
+    members        TeamMember[]
+    projects       ProjectTeamAssignment[]
+}
+
+model TeamMember {
+    id       Int      @id @default(autoincrement())
+    joinedAt DateTime @default(now())
+    role     UserRole @default(MEMBER)
+
+    team   Team @relation(fields: [teamId], references: [id])
+    teamId Int
+    user   User @relation(fields: [userId], references: [id])
+    userId Int
+
+    @@unique([teamId, userId])
+}
+
+// ─── Projects ────────────────────────────────────────────────────────────────
+
+model Project {
+    id          Int           @id @default(autoincrement())
+    createdAt   DateTime      @default(now())
+    updatedAt   DateTime      @updatedAt
+    name        String
+    slug        String
+    description String?
+    status      ProjectStatus @default(ACTIVE)
+    startDate   DateTime?
+    endDate     DateTime?
+    budget      Int?
+
+    organization   Organization @relation(fields: [organizationId], references: [id])
+    organizationId Int
+    owner          User         @relation("ProjectOwner", fields: [ownerId], references: [id])
+    ownerId        Int
+    teamAssignments ProjectTeamAssignment[]
+    milestones      Milestone[]
+    tasks           Task[]
+    labels          Label[]
+    sprints         Sprint[]
+    documents       Document[]
+    customFieldValues CustomFieldValue[]
+    integrationLinks  IntegrationLink[]
+
+    @@unique([organizationId, slug])
+}
+
+model ProjectTeamAssignment {
+    id         Int      @id @default(autoincrement())
+    assignedAt DateTime @default(now())
+
+    project   Project @relation(fields: [projectId], references: [id])
+    projectId Int
+    team      Team    @relation(fields: [teamId], references: [id])
+    teamId    Int
+
+    @@unique([projectId, teamId])
+}
+
+model Milestone {
+    id          Int       @id @default(autoincrement())
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+    name        String
+    description String?
+    dueDate     DateTime?
+    completedAt DateTime?
+
+    project   Project @relation(fields: [projectId], references: [id])
+    projectId Int
+    tasks     Task[]
+}
+
+model Sprint {
+    id        Int       @id @default(autoincrement())
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+    name      String
+    goal      String?
+    startDate DateTime
+    endDate   DateTime
+    closedAt  DateTime?
+
+    project   Project @relation(fields: [projectId], references: [id])
+    projectId Int
+    tasks     Task[]
+}
+
+// ─── Tasks ───────────────────────────────────────────────────────────────────
+
+model Task {
+    id          Int          @id @default(autoincrement())
+    createdAt   DateTime     @default(now())
+    updatedAt   DateTime     @updatedAt
+    title       String
+    description String?
+    status      TaskStatus   @default(BACKLOG)
+    priority    TaskPriority @default(MEDIUM)
+    storyPoints Int?
+    dueDate     DateTime?
+    completedAt DateTime?
+    position    Int          @default(0)
+
+    project     Project   @relation(fields: [projectId], references: [id])
+    projectId   Int
+    assignee    User?     @relation("TaskAssignee", fields: [assigneeId], references: [id])
+    assigneeId  Int?
+    reporter    User      @relation("TaskReporter", fields: [reporterId], references: [id])
+    reporterId  Int
+    milestone   Milestone? @relation(fields: [milestoneId], references: [id])
+    milestoneId Int?
+    sprint      Sprint?    @relation(fields: [sprintId], references: [id])
+    sprintId    Int?
+    parent      Task?      @relation("TaskSubtasks", fields: [parentId], references: [id])
+    parentId    Int?
+    subtasks    Task[]     @relation("TaskSubtasks")
+    labels      TaskLabel[]
+    comments    Comment[]
+    attachments Attachment[]
+    reviews     Review[]
+    timeEntries TimeEntry[]
+    customFieldValues CustomFieldValue[]
+    activityLog       ActivityLogEntry[]
+}
+
+model Label {
+    id        Int    @id @default(autoincrement())
+    name      String
+    color     String @default("#888888")
+    description String?
+
+    project   Project @relation(fields: [projectId], references: [id])
+    projectId Int
+    tasks     TaskLabel[]
+
+    @@unique([projectId, name])
+}
+
+model TaskLabel {
+    id        Int      @id @default(autoincrement())
+    appliedAt DateTime @default(now())
+
+    task    Task  @relation(fields: [taskId], references: [id])
+    taskId  Int
+    label   Label @relation(fields: [labelId], references: [id])
+    labelId Int
+
+    @@unique([taskId, labelId])
+}
+
+// ─── Comments & Reviews ──────────────────────────────────────────────────────
+
+model Comment {
+    id        Int         @id @default(autoincrement())
+    createdAt DateTime    @default(now())
+    updatedAt DateTime    @updatedAt
+    body      String
+    kind      CommentKind
+    edited    Boolean     @default(false)
+    resolved  Boolean     @default(false)
+
+    task      Task     @relation(fields: [taskId], references: [id])
+    taskId    Int
+    author    User     @relation(fields: [authorId], references: [id])
+    authorId  Int
+    parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id])
+    parentId  Int?
+    replies   Comment[] @relation("CommentReplies")
+    reactions CommentReaction[]
+
+    @@delegate(kind)
+}
+
+model TextComment extends Comment {
+    // plain-text comment — no extra fields beyond base
+}
+
+model CodeSnippetComment extends Comment {
+    language String @default("plaintext")
+}
+
+// AttachmentComment stores file metadata inline rather than via a separate Attachment join
+model AttachmentComment extends Comment {
+    attachFilename   String
+    attachMimeType   String
+    attachSizeBytes  Int
+    attachStorageKey String
+}
+
+model CommentReaction {
+    id        Int      @id @default(autoincrement())
+    createdAt DateTime @default(now())
+    emoji     String
+
+    comment   Comment @relation(fields: [commentId], references: [id])
+    commentId Int
+}
+
+model Review {
+    id        Int            @id @default(autoincrement())
+    createdAt DateTime       @default(now())
+    updatedAt DateTime       @updatedAt
+    decision  ReviewDecision @default(PENDING)
+    summary   String?
+
+    task      Task @relation(fields: [taskId], references: [id])
+    taskId    Int
+    reviewer  User @relation(fields: [reviewerId], references: [id])
+    reviewerId Int
+    comments  ReviewComment[]
+}
+
+model ReviewComment {
+    id       Int    @id @default(autoincrement())
+    body     String
+    lineRef  String?
+
+    review   Review @relation(fields: [reviewId], references: [id])
+    reviewId Int
+}
+
+// ─── Files & Documents ───────────────────────────────────────────────────────
+
+model Attachment {
+    id         Int      @id @default(autoincrement())
+    createdAt  DateTime @default(now())
+    filename   String
+    mimeType   String
+    sizeBytes  Int
+    storageKey String
+
+    task   Task? @relation(fields: [taskId], references: [id])
+    taskId Int?
+}
+
+model Document {
+    id        Int      @id @default(autoincrement())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    title     String
+    content   String?
+    published Boolean  @default(false)
+
+    project   Project @relation(fields: [projectId], references: [id])
+    projectId Int
+    sections  DocumentSection[]
+}
+
+model DocumentSection {
+    id       Int    @id @default(autoincrement())
+    order    Int
+    heading  String
+    content  String?
+
+    document   Document @relation(fields: [documentId], references: [id])
+    documentId Int
+}
+
+// ─── Time tracking ───────────────────────────────────────────────────────────
+
+model TimeEntry {
+    id          Int      @id @default(autoincrement())
+    createdAt   DateTime @default(now())
+    startedAt   DateTime
+    stoppedAt   DateTime?
+    durationMin Int?
+    note        String?
+
+    task   Task @relation(fields: [taskId], references: [id])
+    taskId Int
+    user   User @relation(fields: [userId], references: [id])
+    userId Int
+}
+
+// ─── Notifications & Activity ────────────────────────────────────────────────
+
+model Notification {
+    id        Int              @id @default(autoincrement())
+    createdAt DateTime         @default(now())
+    readAt    DateTime?
+    kind      NotificationType
+
+    user   User @relation(fields: [userId], references: [id])
+    userId Int
+
+    @@delegate(kind)
+}
+
+model MentionNotification extends Notification {
+    mentionedByUserId Int
+    taskId            Int
+}
+
+model AssignmentNotification extends Notification {
+    taskId           Int
+    assignedByUserId Int
+}
+
+model StatusChangeNotification extends Notification {
+    taskId     Int
+    fromStatus String
+    toStatus   String
+}
+
+model CommentNotification extends Notification {
+    commentId Int
+}
+
+model ReviewRequestNotification extends Notification {
+    reviewId          Int
+    requestedByUserId Int
+}
+
+model ApprovalNotification extends Notification {
+    targetType String
+    targetId   Int
+}
+
+model ActivityLogEntry {
+    id        Int      @id @default(autoincrement())
+    createdAt DateTime @default(now())
+    action    String
+    meta      String?  // JSON blob
+
+    organization   Organization? @relation(fields: [organizationId], references: [id])
+    organizationId Int?
+    user           User          @relation(fields: [userId], references: [id])
+    userId         Int
+    task           Task?         @relation(fields: [taskId], references: [id])
+    taskId         Int?
+}
+
+model AuditLog {
+    id         Int      @id @default(autoincrement())
+    createdAt  DateTime @default(now())
+    entityType String
+    entityId   Int
+    action     String
+    diff       String?  // JSON blob
+
+    organization   Organization @relation(fields: [organizationId], references: [id])
+    organizationId Int
+    actor          User         @relation(fields: [actorId], references: [id])
+    actorId        Int
+}
+
+// ─── Custom fields ───────────────────────────────────────────────────────────
+
+model CustomFieldDefinition {
+    id           Int    @id @default(autoincrement())
+    name         String
+    fieldType    String // "text"|"number"|"date"|"select"
+    required     Boolean @default(false)
+    defaultValue String?
+
+    organization   Organization @relation(fields: [organizationId], references: [id])
+    organizationId Int
+    values         CustomFieldValue[]
+}
+
+model CustomFieldValue {
+    id    Int    @id @default(autoincrement())
+    value String
+
+    field     CustomFieldDefinition @relation(fields: [fieldId], references: [id])
+    fieldId   Int
+    project   Project?              @relation(fields: [projectId], references: [id])
+    projectId Int?
+    task      Task?                 @relation(fields: [taskId], references: [id])
+    taskId    Int?
+}
+
+// ─── Integrations ────────────────────────────────────────────────────────────
+
+model Integration {
+    id          Int      @id @default(autoincrement())
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+    provider    String   // "github"|"slack"|"jira"
+    accessToken String?
+    config      String?  // JSON blob
+
+    organization   Organization @relation(fields: [organizationId], references: [id])
+    organizationId Int
+    links          IntegrationLink[]
+
+    @@unique([organizationId, provider])
+}
+
+model IntegrationLink {
+    id         Int      @id @default(autoincrement())
+    createdAt  DateTime @default(now())
+    externalId String
+    url        String?
+
+    integration   Integration @relation(fields: [integrationId], references: [id])
+    integrationId Int
+    project       Project     @relation(fields: [projectId], references: [id])
+    projectId     Int
+
+    @@unique([integrationId, externalId])
+}

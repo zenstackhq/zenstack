@@ -186,7 +186,9 @@ export const zenstackAdapter = <Schema extends SchemaDef>(db: ClientContract<Sch
                 options: config,
 
                 createSchema: async ({ file, tables }) => {
-                    const generateSchema = (await import('./schema-generator')).generateSchema;
+                    // Self-import via package subpath (not a relative './schema-generator') so the
+                    // bundler treats it as external and keeps it lazy in the CJS output — see tsdown.config.ts.
+                    const generateSchema = (await import('@zenstackhq/better-auth/schema-generator')).generateSchema;
                     return generateSchema(file, tables, config, options);
                 },
             };
