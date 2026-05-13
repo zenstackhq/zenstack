@@ -1,3 +1,4 @@
+export { AnyNull, DbNull, JsonNull } from '@zenstackhq/orm/common-types';
 export * from './constants';
 export * from './invalidation';
 export * from './logging';
@@ -6,4 +7,5 @@ export * from './nested-read-visitor';
 export * from './nested-write-visitor';
 export * from './optimistic';
 export * from './query-analysis';
+export * from './transaction';
 export * from './types';

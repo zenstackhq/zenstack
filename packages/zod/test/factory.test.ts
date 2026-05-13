@@ -3,6 +3,7 @@ import { describe, expect, expectTypeOf, it } from 'vitest';
 import { createSchemaFactory } from '../src/index';
 import { schema } from './schema/schema';
 import z from 'zod';
+import type { JsonValue } from '../src/index';
 
 const factory = createSchemaFactory(schema);
 
@@ -69,9 +70,7 @@ describe('SchemaFactory - makeModelSchema', () => {
 
             // optional Json
             expectTypeOf<User>().toHaveProperty('metadata');
-            expectTypeOf<User['metadata']>().toEqualTypeOf<
-                string | number | boolean | null | Record<string, unknown> | unknown[] | undefined
-            >();
+            expectTypeOf<User['metadata']>().toEqualTypeOf<JsonValue | null | undefined>();
 
             // required enum
             expectTypeOf<User['status']>().toEqualTypeOf<'ACTIVE' | 'INACTIVE' | 'PENDING'>();
@@ -194,6 +193,7 @@ describe('SchemaFactory - makeModelSchema', () => {
             expect(userSchema.safeParse({ ...validUser, metadata: { key: 'value' } }).success).toBe(true);
             expect(userSchema.safeParse({ ...validUser, metadata: [1, 2, 3] }).success).toBe(true);
             expect(userSchema.safeParse({ ...validUser, metadata: 42 }).success).toBe(true);
+            expect(userSchema.safeParse({ ...validUser, metadata: null }).success).toBe(true);
         });
 
         it('rejects invalid Json values', () => {

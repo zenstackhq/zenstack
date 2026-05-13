@@ -1,0 +1,7 @@
+datasource db {
+    provider = 'sqlite'
+}
+
+model Item {
+    id String @id @default(cuid())
+}

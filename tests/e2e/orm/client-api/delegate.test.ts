@@ -101,7 +101,6 @@ describe('Delegate model tests ', () => {
                         duration: 100,
                         url: 'abc',
                         rating: 5,
-                        // @ts-expect-error
                         videoType: 'RatedVideo',
                     },
                 }),

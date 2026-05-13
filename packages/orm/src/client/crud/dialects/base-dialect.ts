@@ -87,8 +87,13 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
     /**
      * Transforms input value before sending to database.
+     *
+     * `fieldDef` is optional so existing callers that don't have it stay
+     * source-compatible. Dialects can use it to inspect `@db.*` native-type
+     * attributes (e.g. to format `@db.Time` values as `HH:MM:SS` rather than
+     * full ISO timestamps).
      */
-    transformInput(value: unknown, _type: BuiltinType, _forArrayField: boolean) {
+    transformInput(value: unknown, _type: BuiltinType, _forArrayField: boolean, _fieldDef?: FieldDef) {
         return value;
     }
 
@@ -166,6 +171,22 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         result = this.buildOrderBy(result, model, modelAlias, effectiveOrderBy, negateOrderBy, take);
 
         if (args.cursor) {
+            if (effectiveOrderBy) {
+                const offendingKey = enumerate(effectiveOrderBy)
+                    .map((ob: any) => {
+                        if (typeof ob !== 'object' || ob === null) return undefined;
+                        if ('_fuzzyRelevance' in ob) return '_fuzzyRelevance';
+                        if ('_ftsRelevance' in ob) return '_ftsRelevance';
+                        return undefined;
+                    })
+                    .find((k) => k !== undefined);
+                if (offendingKey) {
+                    // TODO: revisit this limitation
+                    throw createNotSupportedError(
+                        `cursor pagination cannot be combined with "${offendingKey}" ordering`,
+                    );
+                }
+            }
             result = this.buildCursorFilter(
                 model,
                 result,
@@ -523,7 +544,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             }
 
             invariant(fieldDef.array, 'Field must be an array type to build array filter');
-            const value = this.transformInput(_value, fieldType, true);
+            const value = this.transformInput(_value, fieldType, true, fieldDef);
 
             let receiver = fieldRef;
             if (isEnum(this.schema, fieldType)) {
@@ -592,7 +613,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         }
 
         return match(fieldDef.type as BuiltinType)
-            .with('String', () => this.buildStringFilter(fieldRef, payload))
+            .with('String', () => this.buildStringFilter(fieldRef, payload, fieldDef))
             .with(P.union('Int', 'Float', 'Decimal', 'BigInt'), (type) =>
                 this.buildNumberFilter(fieldRef, type, payload),
             )
@@ -907,7 +928,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         return { conditions, consumedKeys };
     }
 
-    private buildStringFilter(fieldRef: Expression<any>, payload: StringFilter<true, boolean>) {
+    private buildStringFilter(fieldRef: Expression<any>, payload: StringFilter<true, boolean>, fieldDef?: FieldDef) {
         let mode: 'default' | 'insensitive' | undefined;
         if (payload && typeof payload === 'object' && 'mode' in payload) {
             mode = payload.mode;
@@ -918,17 +939,34 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             payload,
             mode === 'insensitive' ? this.eb.fn('lower', [fieldRef]) : fieldRef,
             (value) => this.prepStringCasing(this.eb, value, mode),
-            (value) => this.buildStringFilter(fieldRef, value as StringFilter<true, boolean>),
+            (value) => this.buildStringFilter(fieldRef, value as StringFilter<true, boolean>, fieldDef),
         );
 
         if (payload && typeof payload === 'object') {
             for (const [key, value] of Object.entries(payload)) {
                 if (key === 'mode' || consumedKeys.includes(key)) {
-                    // already consumed
                     continue;
                 }
 
                 if (value === undefined) {
+                    continue;
+                }
+
+                if (key === 'fuzzy') {
+                    invariant(
+                        fieldDef?.fuzzy === true,
+                        `field "${fieldDef?.name ?? '<unknown>'}" is not fuzzy-searchable; add the \`@fuzzy\` attribute to use the \`fuzzy\` filter`,
+                    );
+                    conditions.push(this.buildFuzzyFilter(fieldRef, this.normalizeFuzzyOptions(value)));
+                    continue;
+                }
+
+                if (key === 'fts') {
+                    invariant(
+                        fieldDef?.fullText === true,
+                        `field "${fieldDef?.name ?? '<unknown>'}" is not full-text-searchable; add the \`@fullText\` attribute to use the \`fts\` filter`,
+                    );
+                    conditions.push(this.buildFullTextFilter(fieldRef, value));
                     continue;
                 }
 
@@ -1088,87 +1126,238 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                     continue;
                 }
 
+                // _fuzzyRelevance ordering
+                if (field === '_fuzzyRelevance') {
+                    result = this.applyFuzzyRelevanceOrderBy(result, model, modelAlias, value, negated, buildFieldRef);
+                    continue;
+                }
+
+                // _ftsRelevance ordering
+                if (field === '_ftsRelevance') {
+                    result = this.applyFtsRelevanceOrderBy(result, model, modelAlias, value, negated, buildFieldRef);
+                    continue;
+                }
+
                 // aggregations
                 if (['_count', '_avg', '_sum', '_min', '_max'].includes(field)) {
-                    invariant(typeof value === 'object', `invalid orderBy value for field "${field}"`);
-                    for (const [k, v] of Object.entries<SortOrder>(value)) {
-                        invariant(v === 'asc' || v === 'desc', `invalid orderBy value for field "${field}"`);
-                        result = result.orderBy(
-                            (eb) => aggregate(eb, buildFieldRef(model, k, modelAlias), field as AggregateOperators),
-                            this.negateSort(v, negated),
-                        );
-                    }
+                    result = this.applyAggregationOrderBy(
+                        result,
+                        model,
+                        modelAlias,
+                        field as AggregateOperators,
+                        value,
+                        negated,
+                        buildFieldRef,
+                    );
                     continue;
                 }
 
                 const fieldDef = requireField(this.schema, model, field);
 
                 if (!fieldDef.relation) {
-                    const fieldRef = buildFieldRef(model, field, modelAlias);
-                    if (value === 'asc' || value === 'desc') {
-                        result = result.orderBy(fieldRef, this.negateSort(value, negated));
-                    } else if (
-                        typeof value === 'object' &&
-                        'nulls' in value &&
-                        'sort' in value &&
-                        (value.sort === 'asc' || value.sort === 'desc') &&
-                        (value.nulls === 'first' || value.nulls === 'last')
-                    ) {
-                        result = this.buildOrderByField(
-                            result,
-                            fieldRef,
-                            this.negateSort(value.sort, negated),
-                            value.nulls,
-                        );
-                    }
+                    result = this.applyScalarOrderBy(result, model, modelAlias, field, value, negated, buildFieldRef);
                 } else {
-                    // order by relation
-                    const relationModel = fieldDef.type;
-
-                    if (fieldDef.array) {
-                        // order by to-many relation
-                        if (typeof value !== 'object') {
-                            throw createInvalidInputError(`invalid orderBy value for field "${field}"`);
-                        }
-                        if ('_count' in value) {
-                            invariant(
-                                value._count === 'asc' || value._count === 'desc',
-                                'invalid orderBy value for field "_count"',
-                            );
-                            const sort = this.negateSort(value._count, negated);
-                            result = result.orderBy((eb) => {
-                                const subQueryAlias = tmpAlias(`${modelAlias}$ob$${field}$ct`);
-                                let subQuery = this.buildSelectModel(relationModel, subQueryAlias);
-                                const joinPairs = buildJoinPairs(this.schema, model, modelAlias, field, subQueryAlias);
-                                subQuery = subQuery.where(() =>
-                                    this.and(
-                                        ...joinPairs.map(([left, right]) =>
-                                            eb(this.eb.ref(left), '=', this.eb.ref(right)),
-                                        ),
-                                    ),
-                                );
-                                subQuery = subQuery.select(() => eb.fn.count(eb.lit(1)).as('_count'));
-                                return subQuery;
-                            }, sort);
-                        }
-                    } else {
-                        // order by to-one relation
-                        const joinAlias = tmpAlias(`${modelAlias}$ob$${index}`);
-                        result = result.leftJoin(`${relationModel} as ${joinAlias}`, (join) => {
-                            const joinPairs = buildJoinPairs(this.schema, model, modelAlias, field, joinAlias);
-                            return join.on((eb) =>
-                                this.and(
-                                    ...joinPairs.map(([left, right]) => eb(this.eb.ref(left), '=', this.eb.ref(right))),
-                                ),
-                            );
-                        });
-                        result = this.buildOrderBy(result, relationModel, joinAlias, value, negated, take);
-                    }
+                    result = this.applyRelationOrderBy(
+                        result,
+                        model,
+                        modelAlias,
+                        field,
+                        fieldDef,
+                        value,
+                        negated,
+                        take,
+                        index,
+                    );
                 }
             }
         });
 
         return result;
+    }
+
+    private applyRelationOrderBy(
+        query: SelectQueryBuilder<any, any, any>,
+        model: string,
+        modelAlias: string,
+        field: string,
+        fieldDef: FieldDef,
+        value: any,
+        negated: boolean,
+        take: number | undefined,
+        index: number,
+    ): SelectQueryBuilder<any, any, any> {
+        const relationModel = fieldDef.type;
+
+        if (fieldDef.array) {
+            // order by to-many relation
+            if (typeof value !== 'object') {
+                throw createInvalidInputError(`invalid orderBy value for field "${field}"`);
+            }
+            if ('_count' in value) {
+                invariant(
+                    value._count === 'asc' || value._count === 'desc',
+                    'invalid orderBy value for field "_count"',
+                );
+                const sort = this.negateSort(value._count, negated);
+                return query.orderBy((eb) => {
+                    const subQueryAlias = tmpAlias(`${modelAlias}$ob$${field}$ct`);
+                    let subQuery = this.buildSelectModel(relationModel, subQueryAlias);
+                    const joinPairs = buildJoinPairs(this.schema, model, modelAlias, field, subQueryAlias);
+                    subQuery = subQuery.where(() =>
+                        this.and(...joinPairs.map(([left, right]) => eb(this.eb.ref(left), '=', this.eb.ref(right)))),
+                    );
+                    subQuery = subQuery.select(() => eb.fn.count(eb.lit(1)).as('_count'));
+                    return subQuery;
+                }, sort);
+            }
+            return query;
+        }
+
+        // order by to-one relation
+        const joinAlias = tmpAlias(`${modelAlias}$ob$${index}`);
+        const joined = query.leftJoin(`${relationModel} as ${joinAlias}`, (join) => {
+            const joinPairs = buildJoinPairs(this.schema, model, modelAlias, field, joinAlias);
+            return join.on((eb) =>
+                this.and(...joinPairs.map(([left, right]) => eb(this.eb.ref(left), '=', this.eb.ref(right)))),
+            );
+        });
+        return this.buildOrderBy(joined, relationModel, joinAlias, value, negated, take);
+    }
+
+    private applyScalarOrderBy(
+        query: SelectQueryBuilder<any, any, any>,
+        model: string,
+        modelAlias: string,
+        field: string,
+        value: any,
+        negated: boolean,
+        buildFieldRef: (model: string, field: string, modelAlias: string) => Expression<any>,
+    ): SelectQueryBuilder<any, any, any> {
+        const fieldRef = buildFieldRef(model, field, modelAlias);
+        if (value === 'asc' || value === 'desc') {
+            return query.orderBy(fieldRef, this.negateSort(value, negated));
+        }
+        if (typeof value === 'object' && 'sort' in value && (value.sort === 'asc' || value.sort === 'desc')) {
+            const sort = this.negateSort(value.sort, negated);
+            if (value.nulls === 'first' || value.nulls === 'last') {
+                return this.buildOrderByField(query, fieldRef, sort, value.nulls);
+            } else {
+                return query.orderBy(fieldRef, sort);
+            }
+        }
+        return query;
+    }
+
+    private applyAggregationOrderBy(
+        query: SelectQueryBuilder<any, any, any>,
+        model: string,
+        modelAlias: string,
+        field: AggregateOperators,
+        value: any,
+        negated: boolean,
+        buildFieldRef: (model: string, field: string, modelAlias: string) => Expression<any>,
+    ): SelectQueryBuilder<any, any, any> {
+        invariant(typeof value === 'object', `invalid orderBy value for field "${field}"`);
+        let result = query;
+        for (const [k, v] of Object.entries<SortOrder>(value)) {
+            invariant(v === 'asc' || v === 'desc', `invalid orderBy value for field "${field}"`);
+            result = result.orderBy(
+                (eb) => aggregate(eb, buildFieldRef(model, k, modelAlias), field),
+                this.negateSort(v, negated),
+            );
+        }
+        return result;
+    }
+
+    private applyFuzzyRelevanceOrderBy(
+        query: SelectQueryBuilder<any, any, any>,
+        model: string,
+        modelAlias: string,
+        value: any,
+        negated: boolean,
+        buildFieldRef: (model: string, field: string, modelAlias: string) => Expression<any>,
+    ): SelectQueryBuilder<any, any, any> {
+        invariant(
+            typeof value === 'object' && 'fields' in value && 'search' in value && 'sort' in value,
+            'invalid orderBy value for "_fuzzyRelevance"',
+        );
+        invariant(
+            Array.isArray(value.fields) && value.fields.length > 0,
+            '_fuzzyRelevance.fields must be a non-empty array',
+        );
+        invariant(value.sort === 'asc' || value.sort === 'desc', 'invalid sort value for "_fuzzyRelevance"');
+        invariant(
+            typeof value.search === 'string' && value.search.length > 0,
+            '_fuzzyRelevance.search must be a non-empty string',
+        );
+        const mode = value.mode ?? 'simple';
+        invariant(
+            mode === 'simple' || mode === 'word' || mode === 'strictWord',
+            '_fuzzyRelevance.mode must be "simple", "word" or "strictWord"',
+        );
+        const unaccent = value.unaccent ?? false;
+        invariant(typeof unaccent === 'boolean', '_fuzzyRelevance.unaccent must be a boolean');
+        for (const fieldName of value.fields as string[]) {
+            const fieldDef = requireField(this.schema, model, fieldName);
+            invariant(
+                fieldDef.fuzzy === true,
+                `field "${fieldName}" is not fuzzy-searchable; add the \`@fuzzy\` attribute to use it in \`_fuzzyRelevance\``,
+            );
+        }
+        const fieldRefs = (value.fields as string[]).map((f) => buildFieldRef(model, f, modelAlias));
+        return this.buildFuzzyRelevanceOrderBy(
+            query,
+            fieldRefs,
+            value.search,
+            this.negateSort(value.sort, negated),
+            mode,
+            unaccent,
+        );
+    }
+
+    private applyFtsRelevanceOrderBy(
+        query: SelectQueryBuilder<any, any, any>,
+        model: string,
+        modelAlias: string,
+        value: any,
+        negated: boolean,
+        buildFieldRef: (model: string, field: string, modelAlias: string) => Expression<any>,
+    ): SelectQueryBuilder<any, any, any> {
+        invariant(
+            typeof value === 'object' && 'fields' in value && 'search' in value && 'sort' in value,
+            'invalid orderBy value for "_ftsRelevance"',
+        );
+        invariant(
+            Array.isArray(value.fields) && value.fields.length > 0,
+            '_ftsRelevance.fields must be a non-empty array',
+        );
+        invariant(value.sort === 'asc' || value.sort === 'desc', 'invalid sort value for "_ftsRelevance"');
+        invariant(
+            typeof value.search === 'string' && value.search.length > 0,
+            '_ftsRelevance.search must be a non-empty string',
+        );
+        if (value.config !== undefined) {
+            invariant(
+                typeof value.config === 'string' && value.config.length > 0,
+                '_ftsRelevance.config must be a non-empty string',
+            );
+        }
+        const config = value.config as string | undefined;
+        for (const fieldName of value.fields as string[]) {
+            const fieldDef = requireField(this.schema, model, fieldName);
+            invariant(
+                fieldDef.fullText === true,
+                `field "${fieldName}" is not full-text-searchable; add the \`@fullText\` attribute to use it in \`_ftsRelevance\``,
+            );
+        }
+        const fieldRefs = (value.fields as string[]).map((f) => buildFieldRef(model, f, modelAlias));
+        return this.buildFtsRelevanceOrderBy(
+            query,
+            fieldRefs,
+            value.search,
+            config,
+            this.negateSort(value.sort, negated),
+        );
     }
 
     buildSelectAllFields(
@@ -1592,5 +1781,91 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         nulls: 'first' | 'last',
     ): SelectQueryBuilder<any, any, any>;
 
+    /**
+     * Builds a fuzzy search filter for a string field using PostgreSQL `pg_trgm`.
+     * The selected SQL form (operator vs. function, with/without `unaccent`) depends
+     * on the resolved options.
+     */
+    abstract buildFuzzyFilter(fieldRef: Expression<any>, options: FuzzyFilterOptions): Expression<SqlBool>;
+
+    /**
+     * Builds an ORDER BY clause that sorts by fuzzy relevance to a search term.
+     */
+    abstract buildFuzzyRelevanceOrderBy(
+        query: SelectQueryBuilder<any, any, any>,
+        fieldRefs: Expression<any>[],
+        search: string,
+        sort: SortOrder,
+        mode: FuzzyFilterOptions['mode'],
+        unaccent: boolean,
+    ): SelectQueryBuilder<any, any, any>;
+
+    /**
+     * Validate the user-provided fuzzy filter payload and apply defaults so dialects
+     * always receive a fully-resolved {@link FuzzyFilterOptions} value.
+     */
+    protected normalizeFuzzyOptions(value: unknown): FuzzyFilterOptions {
+        invariant(
+            value !== null && typeof value === 'object' && !Array.isArray(value),
+            'fuzzy filter must be an object with at least a "search" field',
+        );
+        const raw = value as Record<string, unknown>;
+        invariant(
+            typeof raw['search'] === 'string' && raw['search'].length > 0,
+            'fuzzy.search must be a non-empty string',
+        );
+        const mode = raw['mode'] ?? 'simple';
+        invariant(
+            mode === 'simple' || mode === 'word' || mode === 'strictWord',
+            'fuzzy.mode must be "simple", "word" or "strictWord"',
+        );
+        const threshold = raw['threshold'];
+        if (threshold !== undefined) {
+            invariant(
+                typeof threshold === 'number' && threshold >= 0 && threshold <= 1,
+                'fuzzy.threshold must be a number between 0 and 1',
+            );
+        }
+        const unaccent = raw['unaccent'] ?? false;
+        invariant(typeof unaccent === 'boolean', 'fuzzy.unaccent must be a boolean');
+        return {
+            search: raw['search'],
+            mode: mode as FuzzyFilterOptions['mode'],
+            threshold: threshold as number | undefined,
+            unaccent,
+        };
+    }
+
+    /**
+     * Builds a full-text-search filter for a string field. Receives the raw
+     * user-supplied filter payload — dialects validate/normalize it themselves
+     * (the shape is provider-specific; only Postgres supports this filter).
+     */
+    abstract buildFullTextFilter(fieldRef: Expression<any>, payload: unknown): Expression<SqlBool>;
+
+    /**
+     * Builds an ORDER BY clause that sorts by full-text-search relevance to a search term.
+     */
+    abstract buildFtsRelevanceOrderBy(
+        query: SelectQueryBuilder<any, any, any>,
+        fieldRefs: Expression<any>[],
+        search: string,
+        config: string | undefined,
+        sort: SortOrder,
+    ): SelectQueryBuilder<any, any, any>;
+
     // #endregion
 }
+
+/**
+ * Resolved options for a fuzzy filter passed to a dialect. `mode` and `unaccent`
+ * are always populated (defaults: `mode='simple'`, `unaccent=false`, applied by
+ * `normalizeFuzzyOptions`); `threshold` is optional and switches the SQL from
+ * operator form (`%`, `<%`, `<<%`) to function form (`similarity() > threshold`).
+ */
+export type FuzzyFilterOptions = {
+    search: string;
+    mode: 'simple' | 'word' | 'strictWord';
+    threshold?: number;
+    unaccent: boolean;
+};

@@ -1,8 +1,8 @@
 import { ZenStackClient } from '@zenstackhq/orm';
 import { describe, expectTypeOf, it } from 'vitest';
-import { useClientQueries } from '../src/react';
-import { schema } from './schemas/basic/schema-lite';
-import { schema as procSchema } from './schemas/procedures/schema-lite';
+import { useClientQueries } from '../../src/react';
+import { schema } from '../schemas/basic/schema-lite';
+import { schema as procSchema } from '../schemas/procedures/schema-lite';
 
 describe('React client sliced client test', () => {
     const _db = new ZenStackClient(schema, {
@@ -71,6 +71,41 @@ describe('React client sliced client test', () => {
         // 'Like' filter kind should not be available
         // @ts-expect-error - 'contains' is not allowed when only 'Equality' filter kind is included
         client.user.useFindMany({ where: { name: { contains: 'test' } } });
+    });
+
+    it('respects slicing in sequential transaction op union', () => {
+        const _slicedTx = new ZenStackClient(schema, {
+            dialect: {} as any,
+            slicing: {
+                models: {
+                    user: {
+                        // user can only do reads — no writes in transactions
+                        includedOperations: ['findUnique', 'findMany', 'count'],
+                    },
+                },
+            },
+        });
+        const client = useClientQueries<typeof _slicedTx>(schema);
+        const tx = client.$transaction.useSequential();
+
+        void async function () {
+            // included read ops are allowed
+            await tx.mutateAsync([
+                { model: 'User', op: 'findMany' },
+                { model: 'User', op: 'findUnique', args: { where: { id: '1' } } },
+                { model: 'User', op: 'count' },
+            ] as const);
+
+            await tx.mutateAsync([
+                // @ts-expect-error 'create' was sliced away by `includedOperations`
+                { model: 'User', op: 'create', args: { data: { email: 'a@b.com' } } },
+            ] as const);
+
+            await tx.mutateAsync([
+                // @ts-expect-error 'delete' was sliced away by `includedOperations`
+                { model: 'User', op: 'delete', args: { where: { id: '1' } } },
+            ] as const);
+        };
     });
 
     it('works with sliced procedures', () => {

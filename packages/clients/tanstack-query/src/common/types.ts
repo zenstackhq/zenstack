@@ -10,6 +10,8 @@ import type {
 } from '@zenstackhq/orm';
 import type { GetModels, SchemaDef } from '@zenstackhq/schema';
 
+export type { TransactionOperation, TransactionResults } from '@zenstackhq/client-helpers';
+
 /**
  * Context type for configuring the hooks.
  */

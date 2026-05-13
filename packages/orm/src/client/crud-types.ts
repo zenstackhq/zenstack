@@ -1,5 +1,3 @@
-import type { ExpressionBuilder, OperandExpression, SqlBool } from 'kysely';
-import type { DbNull, JsonNull, JsonNullValues, JsonValue } from '../common-types';
 import type {
     BuiltinType,
     FieldDef,
@@ -35,6 +33,8 @@ import type {
     TypeDefFieldIsOptional,
     UpdatedAtInfo,
 } from '@zenstackhq/schema';
+import type { ExpressionBuilder, OperandExpression, SqlBool } from 'kysely';
+import type { DbNull, JsonNull, JsonNullValues, JsonValue } from '../common-types';
 import type {
     AtLeast,
     MapBaseType,
@@ -53,6 +53,7 @@ import type {
 } from '../utils/type-utils';
 import type { ClientContract } from './contract';
 import type {
+    AllCrudOperations,
     CoreCreateOperations,
     CoreCrudOperations,
     CoreDeleteOperations,
@@ -376,12 +377,94 @@ type FieldFilter<
                     AllowedKinds
                 >
               : // primitive
-                PrimitiveFilter<
-                    GetModelFieldType<Schema, Model, Field>,
-                    ModelFieldIsOptional<Schema, Model, Field>,
-                    WithAggregations,
-                    AllowedKinds
-                >;
+                GetModelFieldType<Schema, Model, Field> extends 'String'
+                ? // string — additionally consider fuzzy / full-text augmentations
+                  AddFullTextFilterIfSupported<
+                      Schema,
+                      Model,
+                      Field,
+                      AllowedKinds,
+                      AddFuzzyFilterIfSupported<
+                          Schema,
+                          Model,
+                          Field,
+                          AllowedKinds,
+                          PrimitiveFilter<
+                              GetModelFieldType<Schema, Model, Field>,
+                              ModelFieldIsOptional<Schema, Model, Field>,
+                              WithAggregations,
+                              AllowedKinds
+                          >
+                      >
+                  >
+                : PrimitiveFilter<
+                      GetModelFieldType<Schema, Model, Field>,
+                      ModelFieldIsOptional<Schema, Model, Field>,
+                      WithAggregations,
+                      AllowedKinds
+                  >;
+
+/**
+ * Conditionally augments a string-field filter with the `fuzzy` operator when:
+ * 1. The `Fuzzy` filter kind is allowed for this field, AND
+ * 2. The schema's provider supports fuzzy search (postgres only), AND
+ * 3. The field is annotated with `@fuzzy` in the ZModel schema.
+ *
+ * Caller is responsible for only invoking this on String-typed fields
+ * (the gate lives in `FieldFilter`).
+ */
+type AddFuzzyFilterIfSupported<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Field extends GetModelFields<Schema, Model>,
+    AllowedKinds extends FilterKind,
+    Base,
+> = 'Fuzzy' extends AllowedKinds
+    ? ProviderSupportsFuzzy<Schema> extends true
+        ? GetModelField<Schema, Model, Field>['fuzzy'] extends true
+            ? Base & {
+                  /**
+                   * Performs a fuzzy search on the string field. Only available when
+                   * the schema's provider is `postgresql` (requires `pg_trgm` extension)
+                   * and the field is annotated with `@fuzzy` in the ZModel schema.
+                   * See {@link FuzzyFilterPayload} for the full options reference.
+                   */
+                  fuzzy?: FuzzyFilterPayload;
+              }
+            : Base
+        : Base
+    : Base;
+
+/**
+ * Conditionally augments a string-field filter with the `fts` operator when:
+ * 1. The `FullText` filter kind is allowed for this field, AND
+ * 2. The schema's provider supports full-text search (postgres only), AND
+ * 3. The field is annotated with `@fullText` in the ZModel schema.
+ *
+ * Caller is responsible for only invoking this on String-typed fields
+ * (the gate lives in `FieldFilter`).
+ */
+type AddFullTextFilterIfSupported<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Field extends GetModelFields<Schema, Model>,
+    AllowedKinds extends FilterKind,
+    Base,
+> = 'FullText' extends AllowedKinds
+    ? ProviderSupportsFullText<Schema> extends true
+        ? GetModelField<Schema, Model, Field>['fullText'] extends true
+            ? Base & {
+                  /**
+                   * Performs a full-text search on the string field. Only available when
+                   * the schema's provider is `postgresql` and the field is annotated with
+                   * `@fullText` in the ZModel schema.
+                   * See {@link FullTextFilterPayload} for the full options reference.
+                   */
+                  fts?: FullTextFilterPayload;
+              }
+            : Base
+        : Base
+    : Base;
 
 type EnumFilter<
     Schema extends SchemaDef,
@@ -808,20 +891,22 @@ export type TypedJsonFilter<
     Array extends boolean,
     Optional extends boolean,
     AllowedKinds extends FilterKind,
-> = XOR<JsonFilter<AllowedKinds>, TypedJsonTypedFilter<Schema, TypeDefName, Array, Optional, AllowedKinds>>;
+> =
+    | (JsonFilter<AllowedKinds> & { [Key in GetTypeDefFields<Schema, TypeDefName>]?: never })
+    | (TypedJsonTypedFilter<Schema, TypeDefName, Array, AllowedKinds> & {
+          [Key in keyof JsonFilter<AllowedKinds>]?: never;
+      })
+    | (Optional extends true ? null | JsonNullValues : never);
 
 type TypedJsonTypedFilter<
     Schema extends SchemaDef,
     TypeDefName extends GetTypeDefs<Schema>,
     Array extends boolean,
-    Optional extends boolean,
     AllowedKinds extends FilterKind,
 > = 'Json' extends AllowedKinds
-    ?
-          | (Array extends true
-                ? ArrayTypedJsonFilter<Schema, TypeDefName, AllowedKinds>
-                : NonArrayTypedJsonFilter<Schema, TypeDefName, AllowedKinds>)
-          | (Optional extends true ? null | JsonNullValues : never)
+    ? Array extends true
+        ? ArrayTypedJsonFilter<Schema, TypeDefName, AllowedKinds>
+        : NonArrayTypedJsonFilter<Schema, TypeDefName, AllowedKinds>
     : {};
 
 type ArrayTypedJsonFilter<
@@ -886,6 +971,157 @@ type TypedJsonFieldsFilter<
 
 export type SortOrder = 'asc' | 'desc';
 export type NullsOrder = 'first' | 'last';
+
+type StringFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+    [Key in NonRelationFields<Schema, Model>]: MapModelFieldType<Schema, Model, Key> extends string | null
+        ? Key
+        : never;
+}[NonRelationFields<Schema, Model>];
+
+/**
+ * String fields that have been annotated with `@fuzzy` and are therefore eligible
+ * for `_fuzzyRelevance` ordering.
+ */
+type FuzzyFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+    [Key in StringFields<Schema, Model>]: GetModelField<Schema, Model, Key>['fuzzy'] extends true ? Key : never;
+}[StringFields<Schema, Model>];
+
+/**
+ * Payload for the `fuzzy` string filter operator. Performs a fuzzy search using
+ * PostgreSQL `pg_trgm` (only available when the schema's provider is `postgresql`).
+ * Not supported on MySQL or SQLite (throws `NotSupported` at runtime).
+ *
+ * Modes:
+ * - `'simple'` (default): trigram similarity on the whole value (operator `%`,
+ *   function `similarity()`).
+ * - `'word'`: word similarity — checks if the search term is approximately
+ *   contained as a word inside the value (operator `<%`,
+ *   function `word_similarity()`).
+ * - `'strictWord'`: stricter variant of `'word'` (operator `<<%`,
+ *   function `strict_word_similarity()`).
+ *
+ * When `threshold` is provided the function form is used
+ * (`similarity() > threshold`) instead of the operator form, so the
+ * `pg_trgm.*_threshold` session settings are bypassed.
+ *
+ * `unaccent` is opt-in (defaults to `false`) — set it to `true` to make the
+ * comparison accent-insensitive. Enabling it requires the `unaccent` extension
+ * to be installed on the database.
+ */
+export type FuzzyFilterPayload = {
+    /**
+     * Search term to match against (must be a non-empty string).
+     */
+    search: string;
+    /**
+     * Matching mode. Defaults to `'simple'`.
+     */
+    mode?: 'simple' | 'word' | 'strictWord';
+    /**
+     * Optional similarity threshold in `[0, 1]`. When provided, the function
+     * form is used and matches require `similarity > threshold`.
+     */
+    threshold?: number;
+    /**
+     * Whether to apply `unaccent()` to both sides. Defaults to `false`.
+     * Set to `true` to enable accent-insensitive matching (requires the
+     * `unaccent` extension on PostgreSQL).
+     */
+    unaccent?: boolean;
+};
+
+export type FuzzyRelevanceOrderBy<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+    /**
+     * Sorts by fuzzy search relevance using PostgreSQL `pg_trgm` similarity functions.
+     * Not supported on MySQL or SQLite (throws `NotSupported` at runtime).
+     * Cannot be combined with cursor-based pagination.
+     */
+    _fuzzyRelevance?: {
+        /**
+         * String fields annotated with `@fuzzy` to compute relevance against (must be non-empty).
+         *
+         * When multiple fields are provided, the row's relevance score is the
+         * greatest per-field similarity, i.e. `GREATEST(similarity(field1, search), similarity(field2, search), ...)`.
+         */
+        fields: [FuzzyFields<Schema, Model>, ...FuzzyFields<Schema, Model>[]];
+        /**
+         * The search term to compute relevance for.
+         */
+        search: string;
+        /**
+         * Fuzzy matching mode used to compute relevance.
+         */
+        mode?: 'simple' | 'word' | 'strictWord';
+        /**
+         * Whether to remove accents before computing relevance.
+         */
+        unaccent?: boolean;
+        /**
+         * Sort direction.
+         */
+        sort: SortOrder;
+    };
+};
+
+/**
+ * String fields that have been annotated with `@fullText` and are therefore eligible
+ * for `_ftsRelevance` ordering.
+ */
+type FullTextFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+    [Key in StringFields<Schema, Model>]: GetModelField<Schema, Model, Key>['fullText'] extends true ? Key : never;
+}[StringFields<Schema, Model>];
+
+/**
+ * Payload for the `fts` string filter operator. Performs full-text search using
+ * PostgreSQL `to_tsvector` / `to_tsquery` (postgresql provider only).
+ *
+ * Query syntax follows `to_tsquery`: callers write raw `&` (AND), `|` (OR),
+ * `!` (NOT), `<->` (FOLLOWED BY). Malformed queries throw at SQL execution time.
+ */
+export type FullTextFilterPayload = {
+    /**
+     * Search query in `to_tsquery` syntax (must be a non-empty string).
+     */
+    search: string;
+    /**
+     * Postgres text-search configuration (e.g. `'english'`, `'simple'`). When
+     * omitted, the database's `default_text_search_config` setting is used —
+     * the SQL is emitted as `to_tsvector(field) @@ to_tsquery(query)` without
+     * an explicit regconfig argument.
+     */
+    config?: string;
+};
+
+export type FtsRelevanceOrderBy<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+    /**
+     * Sorts by full-text-search relevance using PostgreSQL `ts_rank`.
+     */
+    _ftsRelevance?: {
+        /**
+         * String fields annotated with `@fullText` to compute relevance against (must be non-empty).
+         *
+         * When multiple fields are provided, the fields are concatenated with a
+         * space separator and a single `ts_rank` is computed over the combined
+         * document — i.e. `ts_rank(to_tsvector(concat_ws(' ', f1, f2, ...)), q)`.
+         * This means an AND query (e.g. `'cat & dog'`) matches rows where the
+         * terms appear across different fields, not just within the same field.
+         */
+        fields: [FullTextFields<Schema, Model>, ...FullTextFields<Schema, Model>[]];
+        /**
+         * The search term to compute relevance for (in `to_tsquery` syntax).
+         */
+        search: string;
+        /**
+         * Postgres text-search configuration. When omitted, the database's
+         * `default_text_search_config` setting is used.
+         */
+        config?: string;
+        /**
+         * Sort direction.
+         */
+        sort: SortOrder;
+    };
+};
 
 export type OrderBy<
     Schema extends SchemaDef,
@@ -1237,7 +1473,11 @@ type SortAndTakeArgs<
     /**
      * Order by clauses
      */
-    orderBy?: OrArray<OrderBy<Schema, Model, true, false>>;
+    orderBy?: OrArray<
+        OrderBy<Schema, Model, true, false> &
+            (ProviderSupportsFuzzy<Schema> extends true ? FuzzyRelevanceOrderBy<Schema, Model> : {}) &
+            (ProviderSupportsFullText<Schema> extends true ? FtsRelevanceOrderBy<Schema, Model> : {})
+    >;
 
     /**
      * Cursor for pagination
@@ -1456,10 +1696,14 @@ type CreateRelationPayload<
     }
 >;
 
-type CreateWithFKInput<
+/**
+ * Create input type that uses FK scalar fields (e.g., `authorId`) instead of
+ * relation objects.
+ */
+export type UncheckedCreateInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
-    Options extends QueryOptions<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
 > =
     // scalar fields
     CreateScalarPayload<Schema, Model> &
@@ -1468,10 +1712,14 @@ type CreateWithFKInput<
         // non-owned relations
         CreateWithNonOwnedRelationPayload<Schema, Model, Options>;
 
-type CreateWithRelationInput<
+/**
+ * Create input type that uses relation objects (e.g., `author: { connect: … }`)
+ * instead of FK scalar fields.
+ */
+export type CheckedCreateInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
-    Options extends QueryOptions<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
 > = CreateScalarPayload<Schema, Model> & CreateRelationPayload<Schema, Model, Options>;
 
 type CreateWithNonOwnedRelationPayload<
@@ -1530,8 +1778,8 @@ export type CreateInput<
     Options extends QueryOptions<Schema>,
     Without extends string = never,
 > = XOR<
-    Omit<CreateWithFKInput<Schema, Model, Options>, Without>,
-    Omit<CreateWithRelationInput<Schema, Model, Options>, Without>
+    Omit<UncheckedCreateInput<Schema, Model, Options>, Without>,
+    Omit<CheckedCreateInput<Schema, Model, Options>, Without>
 >;
 
 type NestedCreateInput<
@@ -1599,7 +1847,7 @@ type UpdateManyPayload<
     /**
      * The data to update the records with.
      */
-    data: OrArray<UpdateScalarInput<Schema, Model, Without>>;
+    data: OrArray<UpdateScalarInput<Schema, Model, Without> & UpdateFKPayload<Schema, Model, Without>>;
 
     /**
      * The filter to select records to update.
@@ -1636,16 +1884,28 @@ export type UpsertArgs<
 } & SelectIncludeOmit<Schema, Model, true, Options, true, ExtResult> &
     ExtractExtQueryArgs<ExtQueryArgs, 'upsert'>;
 
+// Non-FK, non-relation scalar fields (shared by both update branches).
 type UpdateScalarInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Without extends string = never,
 > = Omit<
     {
-        [Key in NonRelationFields<Schema, Model> as FieldIsDelegateDiscriminator<Schema, Model, Key> extends true
+        [Key in Exclude<
+            NonRelationFields<Schema, Model>,
+            ForeignKeyFields<Schema, Model>
+        > as FieldIsDelegateDiscriminator<Schema, Model, Key> extends true
             ? // discriminator fields cannot be assigned
               never
             : Key]?: ScalarUpdatePayload<Schema, Model, Key>;
+    },
+    Without
+>;
+
+// FK-only update payload (unchecked/FK branch only).
+type UpdateFKPayload<Schema extends SchemaDef, Model extends GetModels<Schema>, Without extends string = never> = Omit<
+    {
+        [Key in ForeignKeyFields<Schema, Model>]?: MapModelFieldType<Schema, Model, Key>;
     },
     Without
 >;
@@ -1715,12 +1975,53 @@ type UpdateRelationInput<
     Without
 >;
 
+// Non-owned relations (e.g., Post.comments where Comment holds the FK) are valid in
+// both the unchecked and checked branches, just as they are in CreateInput.
+type UpdateNonOwnedRelationInput<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+> = {
+    [Key in NonOwnedRelationFields<Schema, Model> as RelationFieldType<Schema, Model, Key> extends GetSlicedModels<
+        Schema,
+        Options
+    >
+        ? Key
+        : never]?: UpdateRelationFieldPayload<Schema, Model, Key, Options>;
+};
+
+/**
+ * Update input type that uses FK scalar fields (e.g., `authorId`) instead of
+ * relation objects.
+ */
+export type UncheckedUpdateInput<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+> = UpdateScalarInput<Schema, Model> &
+    UpdateFKPayload<Schema, Model> &
+    UpdateNonOwnedRelationInput<Schema, Model, Options>;
+
+/**
+ * Update input type that uses relation objects (e.g., `author: { connect: … }`)
+ * instead of FK scalar fields.
+ */
+export type CheckedUpdateInput<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+> = UpdateScalarInput<Schema, Model> & UpdateRelationInput<Schema, Model, Options>;
+
 export type UpdateInput<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema>,
     Without extends string = never,
-> = UpdateScalarInput<Schema, Model, Without> & UpdateRelationInput<Schema, Model, Options, Without>;
+> = XOR<
+    Omit<UncheckedUpdateInput<Schema, Model, Options>, Without>,
+    Omit<CheckedUpdateInput<Schema, Model, Options>, Without>
+>;
+
 type UpdateRelationFieldPayload<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
@@ -2173,6 +2474,94 @@ export type GroupByResult<
 
 // #endregion
 
+// #region Op maps
+
+/**
+ * Maps each CRUD operation name to its argument type for a given model.
+ */
+export type CrudArgsMap<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+    ExtResult extends ExtResultBase<Schema> = {},
+> = {
+    findMany: FindManyArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>;
+    findUnique: FindUniqueArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>;
+    findUniqueOrThrow: FindUniqueArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>;
+    findFirst: FindFirstArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>;
+    findFirstOrThrow: FindFirstArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>;
+    create: CreateArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>;
+    createMany: CreateManyArgs<Schema, Model, Options, ExtQueryArgs>;
+    createManyAndReturn: CreateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>;
+    update: UpdateArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>;
+    updateMany: UpdateManyArgs<Schema, Model, Options, ExtQueryArgs>;
+    updateManyAndReturn: UpdateManyAndReturnArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>;
+    upsert: UpsertArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>;
+    delete: DeleteArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>;
+    deleteMany: DeleteManyArgs<Schema, Model, Options, ExtQueryArgs>;
+    count: CountArgs<Schema, Model, Options, ExtQueryArgs>;
+    aggregate: AggregateArgs<Schema, Model, Options, ExtQueryArgs>;
+    groupBy: GroupByArgs<Schema, Model, Options, ExtQueryArgs>;
+    exists: ExistsArgs<Schema, Model, Options, ExtQueryArgs>;
+};
+
+/**
+ * Maps a CRUD operation name to its argument type for a given model.
+ */
+export type CrudArgsType<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Op extends AllCrudOperations,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtQueryArgs extends ExtQueryArgsBase = {},
+    ExtResult extends ExtResultBase<Schema> = {},
+> = CrudArgsMap<Schema, Model, Options, ExtQueryArgs, ExtResult>[Op];
+
+/**
+ * Maps each CRUD operation name to its return type for a given model + args.
+ */
+export type CrudReturnMap<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Args,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtResult extends ExtResultBase<Schema> = {},
+> = {
+    findMany: SimplifiedPlainResult<Schema, Model, Args, Options, ExtResult>[];
+    findUnique: SimplifiedPlainResult<Schema, Model, Args, Options, ExtResult> | null;
+    findUniqueOrThrow: SimplifiedPlainResult<Schema, Model, Args, Options, ExtResult>;
+    findFirst: SimplifiedPlainResult<Schema, Model, Args, Options, ExtResult> | null;
+    findFirstOrThrow: SimplifiedPlainResult<Schema, Model, Args, Options, ExtResult>;
+    create: SimplifiedPlainResult<Schema, Model, Args, Options, ExtResult>;
+    createMany: BatchResult;
+    createManyAndReturn: SimplifiedPlainResult<Schema, Model, Args, Options, ExtResult>[];
+    update: SimplifiedPlainResult<Schema, Model, Args, Options, ExtResult>;
+    updateMany: BatchResult;
+    updateManyAndReturn: SimplifiedPlainResult<Schema, Model, Args, Options, ExtResult>[];
+    upsert: SimplifiedPlainResult<Schema, Model, Args, Options, ExtResult>;
+    delete: SimplifiedPlainResult<Schema, Model, Args, Options, ExtResult>;
+    deleteMany: BatchResult;
+    count: CountResult<Schema, Model, Args>;
+    aggregate: AggregateResult<Schema, Model, Args>;
+    groupBy: Args extends { by: unknown } ? GroupByResult<Schema, Model, Args> : never;
+    exists: boolean;
+};
+
+/**
+ * Maps a CRUD operation name to its return type for a given model + args.
+ */
+export type CrudReturnType<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Op extends AllCrudOperations,
+    Args,
+    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    ExtResult extends ExtResultBase<Schema> = {},
+> = CrudReturnMap<Schema, Model, Args, Options, ExtResult>[Op];
+
+// #endregion
+
 // #region Relation manipulation
 
 type ConnectInput<
@@ -2462,6 +2851,12 @@ type MapType<Schema extends SchemaDef, T extends string> = T extends keyof TypeM
           : unknown;
 
 type ProviderSupportsDistinct<Schema extends SchemaDef> = Schema['provider']['type'] extends 'postgresql'
+    ? true
+    : false;
+
+type ProviderSupportsFuzzy<Schema extends SchemaDef> = Schema['provider']['type'] extends 'postgresql' ? true : false;
+
+type ProviderSupportsFullText<Schema extends SchemaDef> = Schema['provider']['type'] extends 'postgresql'
     ? true
     : false;
 

@@ -1,10 +1,10 @@
 import { ZenStackClient } from '@zenstackhq/orm';
 import { describe, expectTypeOf, it } from 'vitest';
-import { useClientQueries } from '../src/vue';
-import { schema } from './schemas/basic/schema-lite';
-import { schema as procSchema } from './schemas/procedures/schema-lite';
+import { useClientQueries } from '../../src/svelte/index.svelte';
+import { schema } from '../schemas/basic/schema-lite';
+import { schema as procSchema } from '../schemas/procedures/schema-lite';
 
-describe('Vue client sliced client test', () => {
+describe('Svelte client sliced client test', () => {
     const _db = new ZenStackClient(schema, {
         dialect: {} as any,
         slicing: {
@@ -64,13 +64,13 @@ describe('Vue client sliced client test', () => {
         const client = useClientQueries<typeof _slicedFilters>(schema);
 
         // Equality filter should be allowed
-        client.user.useFindMany({
+        client.user.useFindMany(() => ({
             where: { name: { equals: 'test' } },
-        });
+        }));
 
         // 'Like' filter kind should not be available
         // @ts-expect-error - 'contains' is not allowed when only 'Equality' filter kind is included
-        client.user.useFindMany({ where: { name: { contains: 'test' } } });
+        client.user.useFindMany(() => ({ where: { name: { contains: 'test' } } }));
     });
 
     it('works with sliced procedures', () => {

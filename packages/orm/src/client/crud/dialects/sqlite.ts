@@ -26,7 +26,7 @@ import {
     requireModel,
     tmpAlias,
 } from '../../query-utils';
-import { BaseCrudDialect } from './base-dialect';
+import { BaseCrudDialect, type FuzzyFilterOptions } from './base-dialect';
 
 export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect<Schema> {
     override get provider() {
@@ -546,6 +546,35 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
             ob = nulls === 'first' ? ob.nullsFirst() : ob.nullsLast();
             return ob;
         });
+    }
+
+    override buildFuzzyFilter(_fieldRef: Expression<any>, _options: FuzzyFilterOptions): Expression<SqlBool> {
+        throw createNotSupportedError('"fuzzy" filter is not supported by the "sqlite" provider');
+    }
+
+    override buildFuzzyRelevanceOrderBy(
+        _query: SelectQueryBuilder<any, any, any>,
+        _fieldRefs: Expression<any>[],
+        _search: string,
+        _sort: SortOrder,
+        _mode: FuzzyFilterOptions['mode'],
+        _unaccent: boolean,
+    ): SelectQueryBuilder<any, any, any> {
+        throw createNotSupportedError('"_fuzzyRelevance" ordering is not supported by the "sqlite" provider');
+    }
+
+    override buildFullTextFilter(_fieldRef: Expression<any>, _payload: unknown): Expression<SqlBool> {
+        throw createNotSupportedError('"fts" filter is not supported by the "sqlite" provider');
+    }
+
+    override buildFtsRelevanceOrderBy(
+        _query: SelectQueryBuilder<any, any, any>,
+        _fieldRefs: Expression<any>[],
+        _search: string,
+        _config: string | undefined,
+        _sort: SortOrder,
+    ): SelectQueryBuilder<any, any, any> {
+        throw createNotSupportedError('"_ftsRelevance" ordering is not supported by the "sqlite" provider');
     }
     // #endregion
 }

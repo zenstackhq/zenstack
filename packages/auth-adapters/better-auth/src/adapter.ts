@@ -1,5 +1,4 @@
-import type { BetterAuthOptions } from '@better-auth/core';
-import type { DBAdapter, Where } from '@better-auth/core/db/adapter';
+import type { BetterAuthOptions, Where } from 'better-auth';
 import { BetterAuthError } from '@better-auth/core/error';
 import type { ClientContract, ModelOperations, UpdateInput } from '@zenstackhq/orm';
 import type { GetModels, SchemaDef } from '@zenstackhq/orm/schema';
@@ -187,7 +186,9 @@ export const zenstackAdapter = <Schema extends SchemaDef>(db: ClientContract<Sch
                 options: config,
 
                 createSchema: async ({ file, tables }) => {
-                    const generateSchema = (await import('./schema-generator')).generateSchema;
+                    // Self-import via package subpath (not a relative './schema-generator') so the
+                    // bundler treats it as external and keeps it lazy in the CJS output — see tsdown.config.ts.
+                    const generateSchema = (await import('@zenstackhq/better-auth/schema-generator')).generateSchema;
                     return generateSchema(file, tables, config, options);
                 },
             };
@@ -213,7 +214,7 @@ export const zenstackAdapter = <Schema extends SchemaDef>(db: ClientContract<Sch
     };
 
     const adapter = createAdapterFactory(adapterOptions);
-    return (options: BetterAuthOptions): DBAdapter<BetterAuthOptions> => {
+    return (options: BetterAuthOptions) => {
         lazyOptions = options;
         return adapter(options);
     };

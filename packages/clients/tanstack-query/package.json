@@ -2,7 +2,7 @@
     "name": "@zenstackhq/tanstack-query",
     "displayName": "ZenStack TanStack Query Integration",
     "description": "TanStack Query Client for consuming ZenStack v3's CRUD service",
-    "version": "3.6.4",
+    "version": "3.7.0",
     "type": "module",
     "author": {
         "name": "ZenStack Team",
@@ -57,6 +57,7 @@
         "@zenstackhq/client-helpers": "workspace:*",
         "@zenstackhq/common-helpers": "workspace:*",
         "@zenstackhq/schema": "workspace:*",
+        "@zenstackhq/orm": "workspace:*",
         "decimal.js": "catalog:"
     },
     "devDependencies": {
@@ -71,7 +72,6 @@
         "@zenstackhq/cli": "workspace:*",
         "@zenstackhq/eslint-config": "workspace:*",
         "@zenstackhq/language": "workspace:*",
-        "@zenstackhq/orm": "workspace:*",
         "@zenstackhq/sdk": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*",
         "@zenstackhq/vitest-config": "workspace:*",

@@ -2,10 +2,12 @@ import {
     AddColumnNode,
     AddConstraintNode,
     AddIndexNode,
+    AddValueNode,
     AggregateFunctionNode,
     AliasNode,
     AlterColumnNode,
     AlterTableNode,
+    AlterTypeNode,
     AndNode,
     BinaryOperationNode,
     CaseNode,
@@ -77,6 +79,7 @@ import {
     RefreshMaterializedViewNode,
     RenameColumnNode,
     RenameConstraintNode,
+    RenameValueNode,
     ReturningNode,
     SchemableIdentifierNode,
     SelectAllNode,
@@ -405,6 +408,15 @@ export class DefaultOperationNodeVisitor extends OperationNodeVisitor {
         this.defaultVisit(node);
     }
     protected override visitCollate(node: CollateNode): void {
+        this.defaultVisit(node);
+    }
+    protected override visitAlterType(node: AlterTypeNode): void {
+        this.defaultVisit(node);
+    }
+    protected override visitAddValue(node: AddValueNode): void {
+        this.defaultVisit(node);
+    }
+    protected override visitRenameValue(node: RenameValueNode): void {
         this.defaultVisit(node);
     }
 }

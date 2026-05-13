@@ -285,9 +285,9 @@ describe('Client update tests', () => {
             });
 
             // fk and owned-relation are mutually exclusive
-            // TODO: @ts-expect-error
             client.post.update({
                 where: { id: '1' },
+                // @ts-expect-error - XOR prevents mixing FK and relation object
                 data: {
                     authorId: user.id,
                     title: 'title',
