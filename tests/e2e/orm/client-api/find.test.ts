@@ -147,6 +147,13 @@ describe('Client find tests ', () => {
             }),
         ).resolves.toMatchObject({ email: 'u2@test.com' });
 
+        // object sort without nulls (null ordering is provider-defined)
+        await expect(
+            client.user.findFirst({
+                orderBy: { name: { sort: 'desc' } },
+            }),
+        ).resolves.toBeDefined();
+
         // by to-many relation
         await expect(
             client.user.findFirst({

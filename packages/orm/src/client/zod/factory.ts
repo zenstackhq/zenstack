@@ -1360,7 +1360,7 @@ export class ZodSchemaFactory<
                             sort,
                             z.strictObject({
                                 sort,
-                                nulls: z.union([z.literal('first'), z.literal('last')]),
+                                nulls: z.union([z.literal('first'), z.literal('last')]).optional(),
                             }),
                         ])
                         .optional();
