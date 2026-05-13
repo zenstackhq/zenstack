@@ -6,7 +6,8 @@ import { TEST_PG_URL } from '@zenstackhq/testtools';
 import { Database } from 'bun:sqlite';
 import { afterEach, describe, expect, it } from 'bun:test';
 import type { Dialect } from 'kysely';
-import { BunSqliteDialect } from 'kysely-bun-sqlite';
+// use explicit .js import to avoid bun test loading cjs version of the module
+import { BunSqliteDialect } from 'kysely-bun-sqlite/dist/index.js';
 import { Client, Pool } from 'pg';
 import { schema } from './schemas/schema';
 

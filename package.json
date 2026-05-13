@@ -63,7 +63,8 @@
         "overrides": {
             "cookie@<0.7.0": ">=0.7.0",
             "lodash-es@>=4.0.0 <=4.17.22": ">=4.17.23",
-            "lodash@>=4.0.0 <=4.17.22": ">=4.17.23"
+            "lodash@>=4.0.0 <=4.17.22": ">=4.17.23",
+            "@better-auth/core": "1.4.19"
         }
     },
     "funding": "https://github.com/sponsors/zenstackhq"
