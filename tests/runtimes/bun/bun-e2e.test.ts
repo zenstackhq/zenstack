@@ -6,12 +6,13 @@ import { TEST_PG_URL } from '@zenstackhq/testtools';
 import { Database } from 'bun:sqlite';
 import { afterEach, describe, expect, it } from 'bun:test';
 import type { Dialect } from 'kysely';
-import { BunSqliteDialect } from 'kysely-bun-sqlite';
+// use explicit .js import to avoid bun test loading cjs version of the module
+import { BunSqliteDialect } from 'kysely-bun-sqlite/dist/index.js';
 import { Client, Pool } from 'pg';
 import { schema } from './schemas/schema';
 
 describe('Bun e2e tests', () => {
-    const provider = (process.env['TEST_DB_PROVIDER'] ?? 'sqlite') as 'sqlite' | 'postgresql';
+    const provider = (process.env['TEST_DB_PROVIDER'] ?? 'sqlite') as 'sqlite' | 'postgresql' | 'mysql';
 
     let _db: any;
 
@@ -87,7 +88,7 @@ describe('Bun e2e tests', () => {
     });
 });
 
-async function createClient(provider: 'sqlite' | 'postgresql', dbName: string) {
+async function createClient(provider: 'sqlite' | 'postgresql' | 'mysql', dbName: string) {
     const _schema = clone(schema);
     let dialect: Dialect;
     if (provider === 'sqlite') {
