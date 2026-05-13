@@ -5068,7 +5068,6 @@ components:
                                                 const: last
                                   required:
                                       - sort
-                                      - nulls
                                   additionalProperties: false
                         published:
                             anyOf:
@@ -5099,7 +5098,6 @@ components:
                                                 const: last
                                   required:
                                       - sort
-                                      - nulls
                                   additionalProperties: false
                         viewCount:
                             anyOf:
@@ -5175,7 +5173,6 @@ components:
                                         const: last
                           required:
                               - sort
-                              - nulls
                           additionalProperties: false
                 someJson:
                     anyOf:
@@ -5200,7 +5197,6 @@ components:
                                         const: last
                           required:
                               - sort
-                              - nulls
                           additionalProperties: false
             additionalProperties: false
         UserWhereUniqueInputWithoutRelation:
@@ -6336,7 +6332,6 @@ components:
                                         const: last
                           required:
                               - sort
-                              - nulls
                           additionalProperties: false
                 someJson:
                     anyOf:
@@ -6361,7 +6356,6 @@ components:
                                         const: last
                           required:
                               - sort
-                              - nulls
                           additionalProperties: false
                 _count:
                     $ref: "#/components/schemas/UserOrderByWithRelationInput"
@@ -8053,7 +8047,6 @@ components:
                                         const: last
                           required:
                               - sort
-                              - nulls
                           additionalProperties: false
                 published:
                     anyOf:
@@ -8084,7 +8077,6 @@ components:
                                         const: last
                           required:
                               - sort
-                              - nulls
                           additionalProperties: false
                 viewCount:
                     anyOf:
@@ -9434,7 +9426,6 @@ components:
                                         const: last
                           required:
                               - sort
-                              - nulls
                           additionalProperties: false
                 published:
                     anyOf:
@@ -9465,7 +9456,6 @@ components:
                                         const: last
                           required:
                               - sort
-                              - nulls
                           additionalProperties: false
                 viewCount:
                     anyOf:
