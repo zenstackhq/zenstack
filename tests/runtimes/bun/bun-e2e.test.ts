@@ -12,7 +12,7 @@ import { Client, Pool } from 'pg';
 import { schema } from './schemas/schema';
 
 describe('Bun e2e tests', () => {
-    const provider = (process.env['TEST_DB_PROVIDER'] ?? 'sqlite') as 'sqlite' | 'postgresql' | 'mysql';
+    const provider = (process.env['TEST_DB_PROVIDER'] ?? 'sqlite') as 'sqlite' | 'postgresql';
 
     let _db: any;
 
@@ -88,7 +88,7 @@ describe('Bun e2e tests', () => {
     });
 });
 
-async function createClient(provider: 'sqlite' | 'postgresql' | 'mysql', dbName: string) {
+async function createClient(provider: 'sqlite' | 'postgresql', dbName: string) {
     const _schema = clone(schema);
     let dialect: Dialect;
     if (provider === 'sqlite') {
