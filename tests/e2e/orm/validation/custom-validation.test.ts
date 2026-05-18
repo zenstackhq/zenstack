@@ -113,6 +113,7 @@ describe('Custom validation tests', () => {
                     str3: 'ab@c.com',
                     str4: 'http://a.b.c',
                     str5: new Date().toISOString(),
+                    str6: '+15555555555',
                     int1: 2,
                     list1: [1, 2, 4, 5],
                     list2: [],
