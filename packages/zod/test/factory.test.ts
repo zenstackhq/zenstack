@@ -590,6 +590,7 @@ describe('SchemaFactory - makeTypeSchema', () => {
             const validUser = {
                 id: 'u1',
                 email: 'a@b.com',
+                phone: '+15555555555',
                 username: 'alice',
                 website: null,
                 code: 'USR01',
