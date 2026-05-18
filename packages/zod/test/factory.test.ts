@@ -263,7 +263,7 @@ describe('SchemaFactory - makeModelSchema', () => {
 
         it('rejects invalid phone number for @phone field', () => {
             const userSchema = factory.makeModelSchema('User');
-            const result = userSchema.safeParse({ ...validUser, website: 'not-a-phone' });
+            const result = userSchema.safeParse({ ...validUser, phone: 'not-a-phone' });
             expect(result.success).toBe(false);
         });
 
