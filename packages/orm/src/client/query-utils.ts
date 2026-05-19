@@ -234,6 +234,61 @@ export function isTypeDef(schema: SchemaDef, type: string) {
     return !!schema.typeDefs?.[type];
 }
 
+/**
+ * Prefix added to PK/FK columns in field-policy subqueries so join conditions
+ * can reference the raw (never-nulled) value even when the field itself is
+ * covered by a @deny rule that wraps it in CASE WHEN … THEN NULL.
+ */
+export const JOIN_KEY_RAW_PREFIX = '__zs_raw_';
+
+/**
+ * Returns true when the field has at least one @deny or @allow attribute that applies to
+ * read operations AND whose condition is not a compile-time constant that collapses the
+ * filter to trivially true (i.e. @allow('read', true) or @deny('read', false)).
+ *
+ * Only in those cases does createSelectAllFieldsWithPolicies emit a CASE WHEN … THEN NULL
+ * expression together with a __zs_raw_* alias that joinKeyRef can reference.
+ *
+ * Known limitation: this is a static schema analysis and cannot detect auth-context-dependent
+ * conditions that happen to collapse to trueNode at runtime (e.g. @allow('read', auth() == null)
+ * for a null-auth caller). In that scenario this function returns true, but the policy handler
+ * emits no CASE WHEN and no raw alias, so the join would reference a non-existent column. In
+ * practice, applying a conditional read policy to a PK/FK that is only meaningful for null auth
+ * is an extremely unusual pattern and is not currently supported.
+ */
+export function fieldHasConditionalReadPolicy(schema: SchemaDef, model: string, field: string): boolean {
+    const fieldDef = getField(schema, model, field);
+    return (
+        fieldDef?.attributes?.some((attr) => {
+            if (attr.name !== '@deny' && attr.name !== '@allow') return false;
+            const opArg = attr.args?.[0]?.value;
+            if (!ExpressionUtils.isLiteral(opArg) || typeof opArg.value !== 'string') return false;
+            const ops = opArg.value.split(',').map((v) => v.trim());
+            if (!ops.includes('all') && !ops.includes('read')) return false;
+            // Constant conditions that make buildFieldPolicyFilter return trueNode produce no
+            // CASE WHEN and therefore no raw alias – skip them.
+            const condArg = attr.args?.[1]?.value;
+            if (ExpressionUtils.isLiteral(condArg)) {
+                if (attr.name === '@allow' && condArg.value === true) return false;
+                if (attr.name === '@deny' && condArg.value === false) return false;
+            }
+            return true;
+        }) ?? false
+    );
+}
+
+/**
+ * Returns the column reference to use on the given side of a join condition.
+ * When the field has a non-trivial read policy the policy handler emits a raw alias
+ * (JOIN_KEY_RAW_PREFIX + fieldName) alongside the CASE WHEN expression so the join
+ * is not broken by the nulled value.
+ */
+export function joinKeyRef(schema: SchemaDef, model: string, tableAlias: string, field: string): string {
+    return fieldHasConditionalReadPolicy(schema, model, field)
+        ? `${tableAlias}.${JOIN_KEY_RAW_PREFIX}${field}`
+        : `${tableAlias}.${field}`;
+}
+
 export function buildJoinPairs(
     schema: SchemaDef,
     model: string,
@@ -242,14 +297,25 @@ export function buildJoinPairs(
     relationModelAlias: string,
 ): [string, string][] {
     const { keyPairs, ownedByModel } = getRelationForeignKeyFieldPairs(schema, model, relationField);
+    const relationModel = requireField(schema, model, relationField).type;
 
     return keyPairs.map(({ fk, pk }) => {
         if (ownedByModel) {
-            // the parent model owns the fk
-            return [`${relationModelAlias}.${pk}`, `${modelAlias}.${fk}`];
+            // BelongsTo: model owns the FK, relation has the PK.
+            // Use raw alias only for the PK side. The FK side stays as a plain ref so that
+            // denying the FK intentionally hides the relation (the join evaluates to NULL).
+            return [
+                joinKeyRef(schema, relationModel, relationModelAlias, pk),
+                `${modelAlias}.${fk}`,
+            ];
         } else {
-            // the relation side owns the fk
-            return [`${relationModelAlias}.${fk}`, `${modelAlias}.${pk}`];
+            // HasMany: relation owns the FK, model has the PK.
+            // Use raw alias on both sides: the child's FK may be denied (to hide which parent it
+            // belongs to) but the parent must still be able to fetch its children.
+            return [
+                joinKeyRef(schema, relationModel, relationModelAlias, fk),
+                joinKeyRef(schema, model, modelAlias, pk),
+            ];
         }
     });
 }

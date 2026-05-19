@@ -9,6 +9,7 @@ import {
     getDelegateDescendantModels,
     getManyToManyRelation,
     isRelationField,
+    joinKeyRef,
     requireField,
     requireIdFields,
     requireModel,
@@ -139,14 +140,17 @@ export abstract class LateralJoinDialectBase<Schema extends SchemaDef> extends B
             const relationIds = requireIdFields(this.schema, relationModel);
             invariant(parentIds.length === 1, 'many-to-many relation must have exactly one id field');
             invariant(relationIds.length === 1, 'many-to-many relation must have exactly one id field');
+            // Use raw-alias refs so field access policies wrapping PK/FK in CASE WHEN NULL do not break the join.
+            const relationIdRef = joinKeyRef(this.schema, relationModel, relationModelAlias, relationIds[0]!);
+            const parentIdRef = joinKeyRef(this.schema, model, parentAlias, parentIds[0]!);
             query = query.where((eb) =>
                 eb(
-                    eb.ref(`${relationModelAlias}.${relationIds[0]}`),
+                    eb.ref(relationIdRef),
                     'in',
                     eb
                         .selectFrom(m2m.joinTable)
                         .select(`${m2m.joinTable}.${m2m.otherFkName}`)
-                        .whereRef(`${parentAlias}.${parentIds[0]}`, '=', `${m2m.joinTable}.${m2m.parentFkName}`),
+                        .whereRef(parentIdRef, '=', `${m2m.joinTable}.${m2m.parentFkName}`),
                 ),
             );
         } else {

@@ -697,6 +697,19 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
             );
             hasPolicies = hasPolicies || fieldHasPolicies;
             selections.push(selection);
+
+            // When a PK or FK field is wrapped in CASE WHEN … THEN NULL by a field access policy,
+            // also expose the raw value under a stable alias so join conditions are not broken.
+            // Used for PK (HasMany parent) and FK (HasMany child). BelongsTo parent FK is kept as
+            // a plain ref intentionally: denying that FK is designed to hide the relation entirely.
+            if (fieldHasPolicies && (fieldDef.id || fieldDef.foreignKeyFor)) {
+                const rawAlias = `${QueryUtils.JOIN_KEY_RAW_PREFIX}${fieldDef.name}`;
+                selections.push(
+                    SelectionNode.create(
+                        AliasNode.create(ColumnNode.create(fieldDef.name), IdentifierNode.create(rawAlias)),
+                    ),
+                );
+            }
         }
 
         if (!hasPolicies) {

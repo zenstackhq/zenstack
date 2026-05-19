@@ -21,6 +21,7 @@ import {
     getDelegateDescendantModels,
     getManyToManyRelation,
     getRelationForeignKeyFieldPairs,
+    joinKeyRef,
     requireField,
     requireIdFields,
     requireModel,
@@ -359,32 +360,39 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
             const relationIds = requireIdFields(this.schema, relationModel);
             invariant(parentIds.length === 1, 'many-to-many relation must have exactly one id field');
             invariant(relationIds.length === 1, 'many-to-many relation must have exactly one id field');
+            // Use raw-alias refs so field access policies wrapping PK/FK in CASE WHEN NULL do not break the join.
+            const relationIdRef = joinKeyRef(this.schema, relationModel, relationModelAlias, relationIds[0]!);
+            const parentIdRef = joinKeyRef(this.schema, model, parentAlias, parentIds[0]!);
             selectModelQuery = selectModelQuery.where((eb) =>
                 eb(
-                    eb.ref(`${relationModelAlias}.${relationIds[0]}`),
+                    eb.ref(relationIdRef),
                     'in',
                     eb
                         .selectFrom(m2m.joinTable)
                         .select(`${m2m.joinTable}.${m2m.otherFkName}`)
-                        .whereRef(`${parentAlias}.${parentIds[0]}`, '=', `${m2m.joinTable}.${m2m.parentFkName}`),
+                        .whereRef(parentIdRef, '=', `${m2m.joinTable}.${m2m.parentFkName}`),
                 ),
             );
         } else {
             const { keyPairs, ownedByModel } = getRelationForeignKeyFieldPairs(this.schema, model, relationField);
             keyPairs.forEach(({ fk, pk }) => {
                 if (ownedByModel) {
-                    // the parent model owns the fk
+                    // BelongsTo: model owns the FK, relation has the PK.
+                    // Use raw alias only for the PK side. The FK side stays as a plain ref so that
+                    // denying the FK intentionally hides the relation (the join evaluates to NULL).
                     selectModelQuery = selectModelQuery.whereRef(
-                        `${relationModelAlias}.${pk}`,
+                        joinKeyRef(this.schema, relationModel, relationModelAlias, pk),
                         '=',
                         `${parentAlias}.${fk}`,
                     );
                 } else {
-                    // the relation side owns the fk
+                    // HasMany: relation owns the FK, model has the PK.
+                    // Use raw alias on both sides: the child's FK may be denied (to hide which parent
+                    // it belongs to) but the parent must still be able to fetch its children.
                     selectModelQuery = selectModelQuery.whereRef(
-                        `${relationModelAlias}.${fk}`,
+                        joinKeyRef(this.schema, relationModel, relationModelAlias, fk),
                         '=',
-                        `${parentAlias}.${pk}`,
+                        joinKeyRef(this.schema, model, parentAlias, pk),
                     );
                 }
             });
