@@ -10,6 +10,7 @@ import type {
     GetEnum,
     GetEnums,
     GetModel,
+    GetModelDelegateMapValue,
     GetModelDiscriminator,
     GetModelField,
     GetModelFields,
@@ -148,7 +149,7 @@ type FlatModelResult<
 // Builds a discriminated union from a delegate model's direct sub-models. Recursion depth
 // is tracked via a tuple (each level appends a `0` element); the hard stop at length 10
 // ensures the type terminates even for the generic SchemaDef case.
-// Each union branch fixes the parent discriminator field to the sub-model name.
+// Each union branch fixes the parent discriminator field to the sub-model's delegate map value.
 // When a sub-model is itself a delegate, we recurse into its own sub-models so all
 // concrete leaf types appear in the union, each picking up the accumulated
 // discriminator overrides from both levels.
@@ -161,7 +162,9 @@ type DelegateUnionResult<
     Depth extends readonly 0[] = [],
 > = Depth['length'] extends 10 // hard stop so generic SchemaDef never infinite-loops
     ? SubModel extends string
-        ? FlatModelResult<Schema, SubModel, Omit, Options> & { [K in GetModelDiscriminator<Schema, Model>]: SubModel }
+        ? FlatModelResult<Schema, SubModel, Omit, Options> & {
+              [K in GetModelDiscriminator<Schema, Model>]: GetModelDelegateMapValue<Schema, SubModel>;
+          }
         : never
     : SubModel extends string // typescript union distribution
       ? IsDelegateModel<Schema, SubModel> extends true
@@ -169,10 +172,12 @@ type DelegateUnionResult<
             // concrete leaf types appear in the union, each picking up the accumulated
             // discriminator overrides from both levels
             DelegateUnionResult<Schema, SubModel, Options, GetSubModels<Schema, SubModel>, Omit, [...Depth, 0]> & {
-                [K in GetModelDiscriminator<Schema, Model>]: SubModel;
+                [K in GetModelDiscriminator<Schema, Model>]: GetModelDelegateMapValue<Schema, SubModel>;
             }
           : // leaf model — produce a flat scalar result and fix the discriminator
-            FlatModelResult<Schema, SubModel, Omit, Options> & { [K in GetModelDiscriminator<Schema, Model>]: SubModel }
+            FlatModelResult<Schema, SubModel, Omit, Options> & {
+                [K in GetModelDiscriminator<Schema, Model>]: GetModelDelegateMapValue<Schema, SubModel>;
+            }
       : never;
 
 type ModelSelectResult<

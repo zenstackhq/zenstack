@@ -55,8 +55,8 @@ describe('Delegate model tests ', () => {
                 duration: 100,
                 url: 'abc',
                 rating: 5,
-                assetType: 'Video',
-                videoType: 'RatedVideo',
+                assetType: 'ASSET_KIND_VIDEO',
+                videoType: 'VIDEO_KIND_RATED',
             });
 
             // create entity with relation
@@ -91,7 +91,7 @@ describe('Delegate model tests ', () => {
                 id: expect.any(Number),
                 format: 'png',
                 galleryId: expect.any(Number),
-                assetType: 'Image',
+                assetType: 'ASSET_KIND_IMAGE',
             });
 
             // discriminator field cannot be set on create
@@ -101,7 +101,7 @@ describe('Delegate model tests ', () => {
                         duration: 100,
                         url: 'abc',
                         rating: 5,
-                        videoType: 'RatedVideo',
+                        videoType: 'VIDEO_KIND_RATED',
                     },
                 }),
             ).toBeRejectedByValidation(['videoType']);
@@ -223,8 +223,8 @@ describe('Delegate model tests ', () => {
             createdAt: expect.any(Date),
             duration: 100,
             rating: 5,
-            assetType: 'Video',
-            videoType: 'RatedVideo',
+            assetType: 'ASSET_KIND_VIDEO',
+            videoType: 'VIDEO_KIND_RATED',
         };
 
         // include all base fields
@@ -309,7 +309,7 @@ describe('Delegate model tests ', () => {
                 },
             }),
         ).resolves.toMatchObject({
-            assets: [{ id: v.id, assetType: 'Video' }],
+            assets: [{ id: v.id, assetType: 'ASSET_KIND_VIDEO' }],
             ratedVideos: [{ url: 'abc', rating: 5 }],
         });
     });
@@ -653,7 +653,7 @@ describe('Delegate model tests ', () => {
                 client.ratedVideo.update({
                     where: { id: 2 },
                     // @ts-expect-error
-                    data: { videoType: 'MyVideo' },
+                    data: { videoType: 'VIDEO_KIND_RATED' },
                 }),
             ).toBeRejectedByValidation(['videoType']);
         });

@@ -164,4 +164,121 @@ describe('Delegate Tests', () => {
         `,
         );
     });
+
+    it('supports delegate map values', async () => {
+        await loadSchema(
+            `
+        datasource db {
+            provider = 'sqlite'
+            url      = 'file:./dev.db'
+        }
+
+        enum AssetType {
+            ASSET_KIND_VIDEO
+            ASSET_KIND_IMAGE
+        }
+
+        model Asset {
+            id   Int       @id @default(autoincrement())
+            type AssetType
+            @@delegate(type)
+        }
+
+        model Video extends Asset {
+            url String
+            @@delegateMap(ASSET_KIND_VIDEO)
+        }
+
+        model Image extends Asset {
+            format String
+            @@delegateMap(ASSET_KIND_IMAGE)
+        }
+        `,
+        );
+    });
+
+    it('allows partial delegate map values', async () => {
+        await loadSchema(
+            `
+        datasource db {
+            provider = 'sqlite'
+            url      = 'file:./dev.db'
+        }
+
+        model Asset {
+            id   Int    @id @default(autoincrement())
+            type String
+            @@delegate(type)
+        }
+
+        model Video extends Asset {
+            url String
+            @@delegateMap("video")
+        }
+
+        model Image extends Asset {
+            format String
+        }
+        `,
+        );
+    });
+
+    it('rejects duplicate delegate map values', async () => {
+        await loadSchemaWithError(
+            `
+        datasource db {
+            provider = 'sqlite'
+            url      = 'file:./dev.db'
+        }
+
+        model Asset {
+            id   Int    @id @default(autoincrement())
+            type String
+            @@delegate(type)
+        }
+
+        model Video extends Asset {
+            url String
+            @@delegateMap("Image")
+        }
+
+        model Image extends Asset {
+            format String
+        }
+        `,
+            'Duplicate @@delegateMap value',
+        );
+    });
+
+    it('rejects enum value from a different discriminator enum', async () => {
+        await loadSchemaWithError(
+            `
+        datasource db {
+            provider = 'sqlite'
+            url      = 'file:./dev.db'
+        }
+
+        enum AssetType {
+            ASSET_KIND_VIDEO
+            ASSET_KIND_IMAGE
+        }
+
+        enum VideoType {
+            VIDEO_KIND_TRAILER
+        }
+
+        model Asset {
+            id   Int       @id @default(autoincrement())
+            type AssetType
+            @@delegate(type)
+        }
+
+        model Video extends Asset {
+            url String
+            @@delegateMap(VIDEO_KIND_TRAILER)
+        }
+        `,
+            'enum value must come from the discriminator enum type',
+        );
+    });
 });

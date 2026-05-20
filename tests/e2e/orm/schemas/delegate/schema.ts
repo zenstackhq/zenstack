@@ -140,7 +140,7 @@ export class SchemaType implements SchemaDef {
                 },
                 assetType: {
                     name: "assetType",
-                    type: "String",
+                    type: "AssetKind",
                     isDiscriminator: true
                 }
             },
@@ -213,7 +213,7 @@ export class SchemaType implements SchemaDef {
                 },
                 assetType: {
                     name: "assetType",
-                    type: "String",
+                    type: "AssetKind",
                     originModel: "Asset",
                     isDiscriminator: true
                 },
@@ -229,12 +229,13 @@ export class SchemaType implements SchemaDef {
                 },
                 videoType: {
                     name: "videoType",
-                    type: "String",
+                    type: "VideoKind",
                     isDiscriminator: true
                 }
             },
             attributes: [
-                { name: "@@delegate", args: [{ name: "discriminator", value: ExpressionUtils.field("videoType") }] }
+                { name: "@@delegate", args: [{ name: "discriminator", value: ExpressionUtils.field("videoType") }] },
+                { name: "@@delegateMap", args: [{ name: "value", value: ExpressionUtils.literal("ASSET_KIND_VIDEO") }] }
             ] as readonly AttributeApplication[],
             idFields: ["id"],
             uniqueFields: {
@@ -242,6 +243,7 @@ export class SchemaType implements SchemaDef {
                 url: { type: "String" }
             },
             isDelegate: true,
+            delegateMap: "ASSET_KIND_VIDEO",
             subModels: ["RatedVideo"]
         },
         RatedVideo: {
@@ -302,7 +304,7 @@ export class SchemaType implements SchemaDef {
                 },
                 assetType: {
                     name: "assetType",
-                    type: "String",
+                    type: "AssetKind",
                     originModel: "Asset",
                     isDiscriminator: true
                 },
@@ -320,7 +322,7 @@ export class SchemaType implements SchemaDef {
                 },
                 videoType: {
                     name: "videoType",
-                    type: "String",
+                    type: "VideoKind",
                     originModel: "Video",
                     isDiscriminator: true
                 },
@@ -344,11 +346,16 @@ export class SchemaType implements SchemaDef {
                     ] as readonly string[]
                 }
             },
+            attributes: [
+                { name: "@@delegateMap", args: [{ name: "value", value: ExpressionUtils.literal("ASSET_KIND_VIDEO") }] },
+                { name: "@@delegateMap", args: [{ name: "value", value: ExpressionUtils.literal("VIDEO_KIND_RATED") }] }
+            ] as readonly AttributeApplication[],
             idFields: ["id"],
             uniqueFields: {
                 id: { type: "Int" },
                 url: { type: "String" }
-            }
+            },
+            delegateMap: "VIDEO_KIND_RATED"
         },
         Image: {
             name: "Image",
@@ -408,7 +415,7 @@ export class SchemaType implements SchemaDef {
                 },
                 assetType: {
                     name: "assetType",
-                    type: "String",
+                    type: "AssetKind",
                     originModel: "Asset",
                     isDiscriminator: true
                 },
@@ -432,10 +439,14 @@ export class SchemaType implements SchemaDef {
                     ] as readonly string[]
                 }
             },
+            attributes: [
+                { name: "@@delegateMap", args: [{ name: "value", value: ExpressionUtils.literal("ASSET_KIND_IMAGE") }] }
+            ] as readonly AttributeApplication[],
             idFields: ["id"],
             uniqueFields: {
                 id: { type: "Int" }
-            }
+            },
+            delegateMap: "ASSET_KIND_IMAGE"
         },
         Gallery: {
             name: "Gallery",
@@ -457,6 +468,21 @@ export class SchemaType implements SchemaDef {
             idFields: ["id"],
             uniqueFields: {
                 id: { type: "Int" }
+            }
+        }
+    } as const;
+    enums = {
+        AssetKind: {
+            name: "AssetKind",
+            values: {
+                ASSET_KIND_VIDEO: "ASSET_KIND_VIDEO",
+                ASSET_KIND_IMAGE: "ASSET_KIND_IMAGE"
+            }
+        },
+        VideoKind: {
+            name: "VideoKind",
+            values: {
+                VIDEO_KIND_RATED: "VIDEO_KIND_RATED"
             }
         }
     } as const;
