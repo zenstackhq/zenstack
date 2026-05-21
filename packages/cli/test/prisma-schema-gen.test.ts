@@ -31,6 +31,7 @@ model User {
         expect(prismaSchemaText.includes('cuid(1)')).toBe(true);
         expect(prismaSchemaText.includes('cuid(2)')).toBe(true);
 
+        expect(prismaSchemaText.includes('uuid()')).toBe(true);
         expect(prismaSchemaText.includes('uuid(4)')).toBe(true);
         expect(prismaSchemaText.includes('uuid(7)')).toBe(true);
 
