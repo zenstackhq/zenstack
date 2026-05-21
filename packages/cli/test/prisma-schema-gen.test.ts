@@ -29,15 +29,20 @@ model User {
 
         expect(prismaSchemaText.includes('cuid()')).toBe(true);
         expect(prismaSchemaText.includes('cuid(1)')).toBe(true);
-        expect(prismaSchemaText.includes('cuid(2)')).toBe(true);
+        expect(prismaSchemaText.includes('cuid1_%s')).toBe(false);
+        expect(prismaSchemaText.includes('cuid2_%s')).toBe(false);
 
         expect(prismaSchemaText.includes('uuid()')).toBe(true);
         expect(prismaSchemaText.includes('uuid(4)')).toBe(true);
         expect(prismaSchemaText.includes('uuid(7)')).toBe(true);
+        expect(prismaSchemaText.includes('uuid4_%s')).toBe(false);
+        expect(prismaSchemaText.includes('uuid7_%s')).toBe(false);
 
         expect(prismaSchemaText.match(/ulid\(\)/g)).toHaveLength(2);
+        expect(prismaSchemaText.includes('ulid_%s')).toBe(false);
 
         expect(prismaSchemaText.includes('nanoid()')).toBe(true);
         expect(prismaSchemaText.includes('nanoid(12)')).toBe(true);
+        expect(prismaSchemaText.includes('nanoid12_%s')).toBe(false);
     });
 });
