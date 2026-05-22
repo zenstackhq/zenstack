@@ -498,7 +498,14 @@ export default class DataModelValidator implements AstValidator<DataModel> {
     }
 
     private validateDelegateMap(dm: DataModel, accept: ValidationAcceptor) {
-        const delegateMapAttr = dm.attributes.find((attr) => attr.decl.$refText === '@@delegateMap');
+        const delegateMapAttrs = dm.attributes.filter((attr) => attr.decl.$refText === '@@delegateMap');
+        if (delegateMapAttrs.length > 1) {
+            accept('error', 'Model can include at most one @@delegateMap attribute', {
+                node: delegateMapAttrs[1]!,
+            });
+        }
+
+        const delegateMapAttr = delegateMapAttrs[0];
         if (delegateMapAttr) {
             if (!dm.baseModel) {
                 accept('error', '`@@delegateMap` can only be used on models that extend a delegate base model', {

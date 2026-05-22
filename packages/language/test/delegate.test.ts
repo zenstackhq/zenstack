@@ -197,6 +197,35 @@ describe('Delegate Tests', () => {
         );
     });
 
+    it('supports delegate maps on multi-level delegate inheritance', async () => {
+        await loadSchema(
+            `
+        datasource db {
+            provider = 'sqlite'
+            url      = 'file:./dev.db'
+        }
+
+        model Asset {
+            id   Int    @id @default(autoincrement())
+            type String
+            @@delegate(type)
+        }
+
+        model Media extends Asset {
+            title String
+            mediaType String
+            @@delegate(mediaType)
+            @@delegateMap("media_type")
+        }
+
+        model Video extends Media {
+            url String
+            @@delegateMap("video_type")
+        }
+        `,
+        );
+    });
+
     it('allows partial delegate map values', async () => {
         await loadSchema(
             `
@@ -247,6 +276,30 @@ describe('Delegate Tests', () => {
         }
         `,
             'Duplicate @@delegateMap value',
+        );
+    });
+
+    it('rejects multiple delegate map attributes on one model', async () => {
+        await loadSchemaWithError(
+            `
+        datasource db {
+            provider = 'sqlite'
+            url      = 'file:./dev.db'
+        }
+
+        model Asset {
+            id   Int    @id @default(autoincrement())
+            type String
+            @@delegate(type)
+        }
+
+        model Video extends Asset {
+            url String
+            @@delegateMap("video")
+            @@delegateMap("clip")
+        }
+        `,
+            'at most one @@delegateMap',
         );
     });
 
