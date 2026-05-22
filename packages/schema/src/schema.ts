@@ -35,6 +35,7 @@ export type ModelDef = {
     isDelegate?: boolean;
     subModels?: readonly string[];
     isView?: boolean;
+    delegateMap?: string;
 };
 
 export type AttributeApplication = {
@@ -177,6 +178,11 @@ export type GetModelDiscriminator<Schema extends SchemaDef, Model extends GetMod
             : Key
         : never]: true;
 };
+
+export type GetModelDelegateMapValue<Schema extends SchemaDef, Model extends GetModels<Schema>> =
+    Exclude<GetModel<Schema, Model>['delegateMap'], undefined> extends never
+        ? Model
+        : Exclude<GetModel<Schema, Model>['delegateMap'], undefined>;
 
 export type GetModelFieldType<
     Schema extends SchemaDef,

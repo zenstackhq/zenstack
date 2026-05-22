@@ -36,6 +36,7 @@ import {
     ensureArray,
     extractIdFields,
     flattenCompoundUniqueFilters,
+    getDelegateDiscriminatorValue,
     getDiscriminatorField,
     getField,
     getIdValues,
@@ -600,7 +601,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
 
         const discriminatorField = getDiscriminatorField(this.schema, model);
         invariant(discriminatorField, `Base model "${model}" must have a discriminator field`);
-        thisCreateFields[discriminatorField] = forModel;
+        thisCreateFields[discriminatorField] = getDelegateDiscriminatorValue(this.schema, forModel);
 
         // create base model entity
         const baseEntity: any = await this.create(
@@ -1013,7 +1014,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                     remainingFields[field] = value;
                 }
             });
-            thisCreateFields[discriminatorField] = forModel;
+            thisCreateFields[discriminatorField] = getDelegateDiscriminatorValue(this.schema, forModel);
             thisCreateRows.push(thisCreateFields);
             remainingFieldRows.push(remainingFields);
         }

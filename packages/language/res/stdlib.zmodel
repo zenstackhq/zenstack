@@ -642,6 +642,13 @@ attribute @@prisma.passthrough(_ text: String)
 attribute @@delegate(_ discriminator: FieldReference)
 
 /**
+ * Maps a delegate sub-model to a specific discriminator value. If not set the sub-model name is used as the discriminator value by default.
+ *
+ * @param value: A string literal or enum member used as the discriminator.
+ */
+attribute @@delegateMap(_ value: Any)
+
+/**
  * Used for specifying operator classes for GIN index.
  */
 function raw(value: String): Any {
