@@ -281,4 +281,60 @@ describe('Delegate Tests', () => {
             'enum value must come from the discriminator enum type',
         );
     });
+
+    it('rejects enum value when discriminator is String', async () => {
+        await loadSchemaWithError(
+            `
+        datasource db {
+            provider = 'sqlite'
+            url      = 'file:./dev.db'
+        }
+
+        enum AssetType {
+            ASSET_KIND_VIDEO
+            ASSET_KIND_IMAGE
+        }
+
+        model Asset {
+            id   Int    @id @default(autoincrement())
+            type String
+            @@delegate(type)
+        }
+
+        model Video extends Asset {
+            url String
+            @@delegateMap(ASSET_KIND_VIDEO)
+        }
+        `,
+            'enum value cannot be used when the discriminator field is String',
+        );
+    });
+
+    it('rejects string value when discriminator is enum', async () => {
+        await loadSchemaWithError(
+            `
+        datasource db {
+            provider = 'sqlite'
+            url      = 'file:./dev.db'
+        }
+
+        enum AssetType {
+            ASSET_KIND_VIDEO
+            ASSET_KIND_IMAGE
+        }
+
+        model Asset {
+            id   Int       @id @default(autoincrement())
+            type AssetType
+            @@delegate(type)
+        }
+
+        model Video extends Asset {
+            url String
+            @@delegateMap("video")
+        }
+        `,
+            'string value must match a String discriminator field',
+        );
+    });
 });

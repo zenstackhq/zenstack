@@ -383,7 +383,7 @@ export function getDiscriminatorField(schema: SchemaDef, model: string) {
 
 export function getDelegateDiscriminatorValue(schema: SchemaDef, model: string) {
     const modelDef = requireModel(schema, model);
-    return modelDef.delegateMap ?? model;
+    return modelDef.delegateMap ?? modelDef.name;
 }
 
 export function getDelegateDescendantModels(

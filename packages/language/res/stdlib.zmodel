@@ -646,7 +646,7 @@ attribute @@delegate(_ discriminator: FieldReference)
  *
  * @param value: A string literal or enum member used as the discriminator.
  */
-attribute @@delegateMap(_ value: Any)
+attribute @@delegateMap(_ value: Any) @@@once
 
 /**
  * Used for specifying operator classes for GIN index.
