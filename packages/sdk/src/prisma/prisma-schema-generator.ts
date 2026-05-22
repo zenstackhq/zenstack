@@ -67,6 +67,7 @@ const IDENTIFIER_NAME_MAX_LENGTH = 50 - DELEGATE_AUX_RELATION_PREFIX.length;
 
 // Datasource fields that only exist in ZModel but not in Prisma schema
 const NON_PRISMA_DATASOURCE_FIELDS = ['defaultSchema'];
+const ID_FUNCTIONS = ['uuid', 'ulid', 'cuid', 'nanoid'];
 
 /**
  * Generates Prisma schema file
@@ -383,7 +384,11 @@ export class PrismaSchemaGenerator {
     makeFunctionCall(node: InvocationExpr): PrismaFunctionCall {
         return new PrismaFunctionCall(
             node.function.ref!.name,
-            node.args.map((arg) => {
+
+            // strip format args from id functions
+            node.args.filter((_, i) => (
+                !(ID_FUNCTIONS.includes(node.function.ref!.name) && (node.function.ref!.name === 'ulid' && i === 0 || i === 1))
+            )).map((arg) => {
                 const val = match(arg.value)
                     .when(isStringLiteral, (v) => `"${v.value}"`)
                     .when(isLiteralExpr, (v) => v.value.toString())
