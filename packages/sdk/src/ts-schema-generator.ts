@@ -438,6 +438,14 @@ export class TsSchemaGenerator {
                 ? [ts.factory.createPropertyAssignment('isDelegate', ts.factory.createTrue())]
                 : []),
 
+            ...(() => {
+                const delegateMapValue = this.getDelegateMapValue(dm);
+                if (delegateMapValue === undefined) {
+                    return [];
+                }
+                return [ts.factory.createPropertyAssignment('delegateMap', this.createLiteralNode(delegateMapValue))];
+            })(),
+
             // subModels
             ...(subModels.length > 0
                 ? [
@@ -462,6 +470,25 @@ export class TsSchemaGenerator {
         }
 
         return ts.factory.createObjectLiteralExpression(fields, true);
+    }
+
+    private getDelegateMapValue(dm: DataModel): string | undefined {
+        const delegateMapAttr = getAttribute(dm, '@@delegateMap');
+        if (!delegateMapAttr) {
+            return undefined;
+        }
+        const valueExpr = delegateMapAttr.args[0]?.value;
+        if (!valueExpr) {
+            return undefined;
+        }
+        if (isLiteralExpr(valueExpr)) {
+            const literal = this.getLiteral(valueExpr);
+            return typeof literal === 'string' ? literal : undefined;
+        }
+        if (isReferenceExpr(valueExpr) && isEnumField(valueExpr.target.ref)) {
+            return valueExpr.target.ref.name;
+        }
+        return undefined;
     }
 
     private getSubModels(dm: DataModel) {

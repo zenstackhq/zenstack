@@ -18,6 +18,15 @@ model Comment {
     assetId Int?
 }
 
+enum AssetKind {
+    ASSET_KIND_VIDEO
+    ASSET_KIND_IMAGE
+}
+
+enum VideoKind {
+    VIDEO_KIND_RATED
+}
+
 model Asset {
     id        Int       @id @default(autoincrement())
     createdAt DateTime  @default(now())
@@ -26,7 +35,7 @@ model Asset {
     owner     User?     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
     ownerId   Int?
     comments  Comment[]
-    assetType String
+    assetType AssetKind
 
     @@index([ownerId])
 
@@ -36,21 +45,26 @@ model Asset {
 model Video extends Asset {
     duration  Int
     url       String @unique
-    videoType String
+    videoType VideoKind
 
     @@delegate(videoType)
+    @@delegateMap(ASSET_KIND_VIDEO)
 }
 
 model RatedVideo extends Video {
     rating Int
     user   User? @relation(name: 'direct', fields: [userId], references: [id], onDelete: Cascade)
     userId Int?
+
+    @@delegateMap(VIDEO_KIND_RATED)
 }
 
 model Image extends Asset {
     format    String
     gallery   Gallery? @relation(fields: [galleryId], references: [id], onDelete: Cascade)
     galleryId Int?
+
+    @@delegateMap(ASSET_KIND_IMAGE)
 }
 
 model Gallery {

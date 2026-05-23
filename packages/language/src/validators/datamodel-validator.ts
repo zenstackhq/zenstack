@@ -5,21 +5,27 @@ import {
     ArrayExpr,
     DataField,
     DataModel,
+    DataModelAttribute,
     ReferenceExpr,
     TypeDef,
+    isDataField,
     isDataModel,
     isEnum,
+    isReferenceExpr,
     isStringLiteral,
     isTypeDef,
 } from '../generated/ast';
 import {
     getAllAttributes,
     getAllFields,
+    getAttribute,
+    getAttributeArg,
     getModelIdFields,
     getModelUniqueFields,
     getUniqueFields,
     hasAttribute,
     isDelegateModel,
+    isEnumFieldReference,
 } from '../utils';
 import { validateAttributeApplication } from './attribute-application-validator';
 import { validateDuplicatedDeclarations, type AstValidator } from './common';
@@ -36,6 +42,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             this.validateMixins(dm, accept);
         }
         this.validateInherits(dm, accept);
+        this.validateDelegateMap(dm, accept);
     }
 
     private validateFields(dm: DataModel, accept: ValidationAcceptor) {
@@ -488,6 +495,112 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             seen.push(current);
             todo.push(...current.mixins.map((mixin) => mixin.ref!));
         }
+    }
+
+    private validateDelegateMap(dm: DataModel, accept: ValidationAcceptor) {
+        const delegateMapAttrs = dm.attributes.filter((attr) => attr.decl.$refText === '@@delegateMap');
+        if (delegateMapAttrs.length > 1) {
+            accept('error', 'Model can include at most one @@delegateMap attribute', {
+                node: delegateMapAttrs[1]!,
+            });
+        }
+
+        const delegateMapAttr = delegateMapAttrs[0];
+        if (delegateMapAttr) {
+            if (!dm.baseModel) {
+                accept('error', '`@@delegateMap` can only be used on models that extend a delegate base model', {
+                    node: delegateMapAttr,
+                });
+            } else if (dm.baseModel.ref) {
+                this.validateDelegateMapValue(dm.baseModel.ref, delegateMapAttr, accept);
+            }
+        }
+
+        if (!hasAttribute(dm, '@@delegate')) {
+            return;
+        }
+
+        const subModels = dm.$container.declarations.filter(isDataModel).filter((model) => model.baseModel?.ref === dm);
+
+        if (subModels.length === 0) {
+            return;
+        }
+
+        const seen = new Map<string, DataModel>();
+        subModels.forEach((model) => {
+            const value = this.getDelegateMapRawValue(model) ?? model.name;
+            const existing = seen.get(value);
+            if (existing) {
+                accept(
+                    'error',
+                    `Duplicate @@delegateMap value "${value}" on models "${existing.name}" and "${model.name}"`,
+                    { node: model },
+                );
+            } else {
+                seen.set(value, model);
+            }
+        });
+    }
+
+    private getDelegateMapRawValue(dm: DataModel): string | undefined {
+        const delegateMapAttr = dm.attributes.find((attr) => attr.decl.$refText === '@@delegateMap');
+        const valueExpr = delegateMapAttr?.args[0]?.value;
+        if (!valueExpr) {
+            return undefined;
+        }
+        if (isStringLiteral(valueExpr)) {
+            return valueExpr.value;
+        }
+        if (isEnumFieldReference(valueExpr)) {
+            return valueExpr.target.ref?.name;
+        }
+        return undefined;
+    }
+
+    private validateDelegateMapValue(baseModel: DataModel, attr: DataModelAttribute, accept: ValidationAcceptor) {
+        const delegateMapValueExpr = attr.args[0]?.value;
+        if (!delegateMapValueExpr) {
+            accept('error', '`@@delegateMap` expects a value', { node: attr });
+            return;
+        }
+
+        const delegateAttr = getAttribute(baseModel, '@@delegate');
+        const discriminatorArg = delegateAttr && getAttributeArg(delegateAttr, 'discriminator');
+        const discriminatorRef = discriminatorArg && isReferenceExpr(discriminatorArg) ? discriminatorArg.target.ref : undefined;
+
+        if (!discriminatorRef || !isDataField(discriminatorRef)) {
+            return;
+        }
+
+        const discriminatorType = discriminatorRef.type;
+        const discriminatorEnum = discriminatorType.reference?.ref;
+
+        if (isEnumFieldReference(delegateMapValueExpr)) {
+            if (!isEnum(discriminatorEnum)) {
+                accept('error', '`@@delegateMap` enum value cannot be used when the discriminator field is String', {
+                    node: delegateMapValueExpr,
+                });
+                return;
+            }
+
+            if (delegateMapValueExpr.target.ref?.$container !== discriminatorEnum) {
+                accept('error', '`@@delegateMap` enum value must come from the discriminator enum type', {
+                    node: delegateMapValueExpr,
+                });
+            }
+            return;
+        }
+
+        if (isStringLiteral(delegateMapValueExpr)) {
+            if (discriminatorType.type !== 'String') {
+                accept('error', '`@@delegateMap` string value must match a String discriminator field', {
+                    node: delegateMapValueExpr,
+                });
+            }
+            return;
+        }
+
+        accept('error', '`@@delegateMap` expects a string literal or enum value', { node: delegateMapValueExpr });
     }
 }
 
