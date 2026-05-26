@@ -208,6 +208,12 @@ describe('SchemaFactory - makeModelSchema', () => {
             expect(userSchema.safeParse({ ...validUser, metadata: { key: BigInt(1) } }).success).toBe(false);
             expect(userSchema.safeParse({ ...validUser, metadata: [BigInt(1)] }).success).toBe(false);
         });
+
+        it('infers correct input types for DateTime fields', () => {
+            const _userSchema = factory.makeModelSchema('User');
+            type UserInput = z.input<typeof _userSchema>;
+            expectTypeOf<UserInput['birthdate']>().toEqualTypeOf<Date | null | undefined>();
+        });
     });
 
     describe('string validation attributes', () => {
