@@ -108,7 +108,7 @@ type FieldTypeZodMap = {
     Float: z.ZodNumber;
     Decimal: z.ZodType<Decimal>;
     Boolean: z.ZodBoolean;
-    DateTime: z.ZodType<Date>;
+    DateTime: z.ZodDate;
     Bytes: z.ZodType<Uint8Array>;
     Json: JsonZodType;
 };
