@@ -66,7 +66,7 @@ describe('SchemaFactory - makeModelSchema', () => {
             expectTypeOf<User['birthdate']>().toEqualTypeOf<Date | null | undefined>();
 
             // optional Bytes
-            expectTypeOf<User['avatar']>().toEqualTypeOf<Uint8Array<ArrayBuffer> | null | undefined>();
+            expectTypeOf<User['avatar']>().toEqualTypeOf<Uint8Array | null | undefined>();
 
             // optional Json
             expectTypeOf<User>().toHaveProperty('metadata');
@@ -214,7 +214,7 @@ describe('SchemaFactory - makeModelSchema', () => {
             type UserInput = z.input<typeof _userSchema>;
             expectTypeOf<UserInput['birthdate']>().toEqualTypeOf<Date | null | undefined>();
             expectTypeOf<UserInput['balance']>().toEqualTypeOf<Decimal>();
-            expectTypeOf<UserInput['avatar']>().toEqualTypeOf<Uint8Array<ArrayBuffer> | null | undefined>();
+            expectTypeOf<UserInput['avatar']>().toEqualTypeOf<Uint8Array | null | undefined>();
         });
     });
 
