@@ -12,6 +12,7 @@ import { MysqlDialect } from '@zenstackhq/orm/dialects/mysql';
 import { PostgresDialect } from '@zenstackhq/orm/dialects/postgres';
 import { SqliteDialect } from '@zenstackhq/orm/dialects/sqlite';
 import type { SchemaDef } from '@zenstackhq/orm/schema';
+import { PolicyPlugin } from '@zenstackhq/plugin-policy';
 import { RPCApiHandler } from '@zenstackhq/server/api';
 import { ZenStackMiddleware } from '@zenstackhq/server/express';
 import type BetterSqlite3 from 'better-sqlite3';
@@ -113,20 +114,11 @@ export async function run(options: Options) {
         throw new CliError(`Failed to connect to the database: ${err instanceof Error ? err.message : String(err)}`);
     }
 
-    // If a publicAPIKey is provided, try to create an authDb with the policy plugin
+    // If a publicAPIKey is provided, create an authDb with the policy plugin
     let authDb: ClientContract<SchemaDef> | undefined;
     if (options.publicAPIKey) {
-        try {
-            const { PolicyPlugin } = await import('@zenstackhq/plugin-policy');
-            authDb = db.$use(new PolicyPlugin()) as ClientContract<SchemaDef>;
-            console.log(colors.gray('Access policy plugin enabled for authorization.'));
-        } catch {
-            console.log(
-                colors.yellow(
-                    'Warning: @zenstackhq/plugin-policy is not installed. Authorization (per-user access control) will be disabled.',
-                ),
-            );
-        }
+        authDb = db.$use(new PolicyPlugin()) as ClientContract<SchemaDef>;
+        console.log(colors.gray('Access policy plugin enabled for authorization.'));
     }
 
     startServer(db, schemaModule.schema, options, authDb);
