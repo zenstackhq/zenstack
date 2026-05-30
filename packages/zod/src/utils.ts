@@ -12,9 +12,6 @@ import Decimal from 'decimal.js';
 import { z } from 'zod';
 import { SchemaFactoryError } from './error';
 
-export const decimalSchema = z.custom<Decimal>((val) => Decimal.isDecimal(val));
-export const bytesSchema = z.instanceof(Uint8Array) as z.ZodCustom<Uint8Array<ArrayBufferLike>, Uint8Array<ArrayBufferLike>>;
-
 function getArgValue<T extends string | number | boolean>(expr: Expression | undefined): T | undefined {
     if (!expr || !ExpressionUtils.isLiteral(expr)) {
         return undefined;

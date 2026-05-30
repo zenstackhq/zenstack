@@ -18,7 +18,7 @@ import type {
     TypeDefFieldIsOptional,
 } from '@zenstackhq/schema';
 import type z from 'zod';
-import type { decimalSchema, bytesSchema } from './utils';
+import type Decimal from 'decimal.js';
 
 /**
  * Scalar-only shape returned by the no-options `makeModelSchema` overload.
@@ -106,10 +106,10 @@ type FieldTypeZodMap = {
     Int: z.ZodNumber;
     BigInt: z.ZodBigInt;
     Float: z.ZodNumber;
-    Decimal: typeof decimalSchema;
+    Decimal: z.ZodType<Decimal, Decimal>;
     Boolean: z.ZodBoolean;
     DateTime: z.ZodDate;
-    Bytes: typeof bytesSchema;
+    Bytes: z.ZodType<Uint8Array, Uint8Array>;
     Json: JsonZodType;
 };
 
