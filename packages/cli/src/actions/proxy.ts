@@ -20,6 +20,7 @@ import cors from 'cors';
 import express from 'express';
 import { createJiti } from 'jiti';
 import type { createPool as MysqlCreatePool } from 'mysql2';
+import { verify } from 'node:crypto';
 import path from 'node:path';
 import type { Pool as PgPoolType } from 'pg';
 import { CliError } from '../cli-error';
@@ -32,7 +33,15 @@ type Options = {
     port?: number;
     logLevel?: string[];
     databaseUrl?: string;
+    publicAPIKey?: string;
+    signatureToleranceSecs?: number;
 };
+
+/**
+ * Represents the identity claim embedded in the Authorization header.
+ * The bearer token is a plain base64-encoded JSON string.
+ */
+type UserClaim = { type: 'superUser' } | { type: 'user'; data: Record<string, unknown> };
 
 export async function run(options: Options) {
     const allowedLogLevels = ['error', 'query'] as const;
@@ -104,7 +113,23 @@ export async function run(options: Options) {
         throw new CliError(`Failed to connect to the database: ${err instanceof Error ? err.message : String(err)}`);
     }
 
-    startServer(db, schemaModule.schema, options);
+    // If a publicAPIKey is provided, try to create an authDb with the policy plugin
+    let authDb: ClientContract<SchemaDef> | undefined;
+    if (options.publicAPIKey) {
+        try {
+            const { PolicyPlugin } = await import('@zenstackhq/plugin-policy');
+            authDb = db.$use(new PolicyPlugin()) as ClientContract<SchemaDef>;
+            console.log(colors.gray('Access policy plugin enabled for authorization.'));
+        } catch {
+            console.log(
+                colors.yellow(
+                    'Warning: @zenstackhq/plugin-policy is not installed. Authorization (per-user access control) will be disabled.',
+                ),
+            );
+        }
+    }
+
+    startServer(db, schemaModule.schema, options, authDb);
 }
 
 function evaluateUrl(schemaUrl: ConfigExpr) {
@@ -198,17 +223,40 @@ async function createDialect(provider: string, databaseUrl: string, outputPath: 
     }
 }
 
-export function createProxyApp(client: ClientContract<SchemaDef>, schema: SchemaDef): express.Application {
+export function createProxyApp(
+    client: ClientContract<SchemaDef>,
+    schema: SchemaDef,
+    options?: {
+        publicAPIKey?: string;
+        authDb?: ClientContract<SchemaDef>;
+        /** Seconds within which a signed request is considered valid. Defaults to 60. */
+        signatureToleranceSecs?: number;
+    },
+): express.Application {
     const app = express();
     app.use(cors());
-    app.use(express.json({ limit: '5mb' }));
+    app.use(
+        express.json({
+            limit: '5mb',
+            verify: (req, _res, buf) => {
+                // Capture the raw body string for use in signature verification.
+                (req as express.Request & { rawBody?: string }).rawBody = buf.toString('utf8');
+            },
+        }),
+    );
     app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+
+    if (options?.publicAPIKey) {
+        // Apply signature-verification middleware to all authenticated endpoints.
+        const toleranceSecs = options.signatureToleranceSecs ?? 60;
+        app.use(['/api/model', '/api/schema'], createSignatureMiddleware(options.publicAPIKey, toleranceSecs));
+    }
 
     app.use(
         '/api/model',
         ZenStackMiddleware({
             apiHandler: new RPCApiHandler({ schema }),
-            getClient: () => client,
+            getClient: (req) => resolveClient(client, options?.authDb, req),
         }),
     );
 
@@ -219,8 +267,121 @@ export function createProxyApp(client: ClientContract<SchemaDef>, schema: Schema
     return app;
 }
 
-function startServer(client: ClientContract<SchemaDef>, schema: any, options: Options) {
-    const app = createProxyApp(client, schema);
+/**
+ * Creates an Express middleware that verifies the ed25519 signature on every request.
+ *
+ * The signature header format is: `t=<unix-timestamp>,v1=<base64url-signature>`
+ *
+ * The signed message is constructed as:
+ *   - GET requests:  `<raw-query-string><timestamp>[<authorizationToken>]`
+ *   - Other methods: `<raw-body><timestamp>[<authorizationToken>]`
+ *
+ * `authorizationToken` is the bearer token value from the `Authorization` header (if present).
+ */
+function createSignatureMiddleware(publicKey: string, toleranceSeconds: number) {
+    return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+        const signatureHeader = req.headers['x-zenstack-signature'];
+        if (!signatureHeader || typeof signatureHeader !== 'string') {
+            return res.status(401).json({ message: 'Missing x-zenstack-signature header' });
+        }
+
+        const parts = signatureHeader.split(',');
+        const timestampPart = parts.find((p) => p.startsWith('t='));
+        const sigPart = parts.find((p) => p.startsWith('v1='));
+        if (!timestampPart || !sigPart) {
+            return res.status(401).json({ message: 'Invalid x-zenstack-signature format' });
+        }
+        const timestamp = timestampPart.substring(2);
+        const sig = sigPart.substring(3);
+
+        // Replay-attack prevention: reject requests whose timestamp deviates
+        // from server time by more than the configured tolerance.
+        const requestTime = parseInt(timestamp, 10);
+        const now = Math.floor(Date.now() / 1000);
+        if (isNaN(requestTime) || Math.abs(now - requestTime) > toleranceSeconds) {
+            return res.status(401).json({ message: 'Request timestamp is expired or invalid' });
+        }
+
+        // Payload: raw query string for GET/DELETE, raw body for other methods.
+        let payload: string;
+        if (req.method === 'GET' || req.method === 'DELETE') {
+            const qMark = req.originalUrl.indexOf('?');
+            payload = qMark >= 0 ? req.originalUrl.substring(qMark + 1) : '';
+        } else {
+            payload = (req as express.Request & { rawBody?: string }).rawBody ?? '';
+        }
+
+        // authorizationToken is the bearer token value (if present).
+        const authHeader = req.headers['authorization'];
+        const authorizationToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : undefined;
+
+        const message = authorizationToken ? `${payload}${timestamp}${authorizationToken}` : `${payload}${timestamp}`;
+
+        try {
+            const isValid = verify(null, Buffer.from(message, 'utf8'), publicKey, Buffer.from(sig, 'base64url'));
+            if (!isValid) {
+                return res.status(401).json({ message: 'Invalid signature' });
+            }
+        } catch {
+            return res.status(401).json({ message: 'Invalid signature' });
+        }
+
+        return next();
+    };
+}
+
+/**
+ * Resolves the appropriate client for a request based on the Authorization header.
+ *
+ * - No publicAPIKey configured (authDb is undefined): always return the base client.
+ * - SuperUser claim: return the base client (full access, no policy enforcement).
+ * - Regular user claim: return authDb with the user identity set via $setAuth.
+ * - No / invalid token: return the base client.
+ */
+function resolveClient(
+    client: ClientContract<SchemaDef>,
+    authDb: ClientContract<SchemaDef> | undefined,
+    req: express.Request,
+): ClientContract<SchemaDef> {
+    if (!authDb) {
+        return client;
+    }
+
+    const authHeader = req.headers['authorization'];
+    if (!authHeader?.startsWith('Bearer ')) {
+        return client;
+    }
+
+    const token = authHeader.substring(7);
+    let claim: UserClaim;
+    try {
+        claim = JSON.parse(Buffer.from(token, 'base64').toString('utf8')) as UserClaim;
+    } catch {
+        return client;
+    }
+
+    if (claim.type === 'superUser') {
+        return client;
+    }
+
+    if (claim.type === 'user') {
+        return authDb.$setAuth(claim.data) as ClientContract<SchemaDef>;
+    }
+
+    return client;
+}
+
+function startServer(
+    client: ClientContract<SchemaDef>,
+    schema: any,
+    options: Options,
+    authDb?: ClientContract<SchemaDef>,
+) {
+    const app = createProxyApp(client, schema, {
+        publicAPIKey: options.publicAPIKey,
+        authDb,
+        signatureToleranceSecs: options.signatureToleranceSecs,
+    });
 
     const server = app.listen(options.port, () => {
         console.log(`ZenStack proxy server is running on port: ${options.port}`);

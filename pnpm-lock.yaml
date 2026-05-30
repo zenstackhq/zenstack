@@ -304,6 +304,9 @@ importers:
       '@zenstackhq/eslint-config':
         specifier: workspace:*
         version: link:../config/eslint-config
+      '@zenstackhq/plugin-policy':
+        specifier: workspace:*
+        version: link:../plugins/policy
       '@zenstackhq/testtools':
         specifier: workspace:*
         version: link:../testtools

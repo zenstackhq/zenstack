@@ -72,6 +72,7 @@
         "@types/semver": "^7.7.0",
         "@types/tmp": "catalog:",
         "@zenstackhq/eslint-config": "workspace:*",
+        "@zenstackhq/plugin-policy": "workspace:*",
         "@zenstackhq/testtools": "workspace:*",
         "@zenstackhq/tsdown-config": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*",

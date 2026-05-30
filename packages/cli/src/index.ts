@@ -263,6 +263,18 @@ Arguments following -- are passed to the seed script. E.g.: "zen db seed -- --us
         .addOption(new Option('-o, --output <path>', 'output directory for `zen generate` command'))
         .addOption(new Option('-d, --databaseUrl <url>', 'database connection URL'))
         .addOption(new Option('-l, --logLevel <level...>', 'Query log levels (e.g., query, error)'))
+        .addOption(
+            new Option(
+                '--publicAPIKey <key>',
+                'PEM-encoded ed25519 public key used to verify request signatures. When provided, all requests to /api/model and /api/schema must include a valid x-zenstack-signature header.',
+            ),
+        )
+        .addOption(
+            new Option(
+                '--signatureToleranceSecs <seconds>',
+                'Maximum age (in seconds) of a signed request before it is rejected as a replay. Defaults to 60.',
+            ).argParser((v) => parseInt(v, 10)),
+        )
         .addOption(noVersionCheckOption)
         .action(proxyAction);
 
