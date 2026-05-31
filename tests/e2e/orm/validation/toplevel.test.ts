@@ -15,6 +15,7 @@ describe('Toplevel field validation tests', () => {
             str5 String? @trim @lower
             str6 String? @upper
             str7 String? @phone
+            str8 String? @date
         }
         `,
         );
@@ -90,6 +91,12 @@ describe('Toplevel field validation tests', () => {
 
             // satisfies @phone
             await expect(_t({ str7: '+15555555555' })).toResolveTruthy();
+
+            // violates @date
+            await expect(_t({ str8: 'not-a-date' })).toBeRejectedByValidation(['Invalid ISO']);
+
+            // satisfies @date
+            await expect(_t({ str8: '2000-01-01' })).toResolveTruthy();
         }
     });
 

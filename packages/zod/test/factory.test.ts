@@ -282,6 +282,18 @@ describe('SchemaFactory - makeModelSchema', () => {
             expect(result.success).toBe(true);
         });
 
+        it('rejects invalid date for @date field', () => {
+            const userSchema = factory.makeModelSchema('User');
+            const result = userSchema.safeParse({ ...validUser, birthdate: 'not-a-date' });
+            expect(result.success).toBe(false);
+        });
+
+        it('accepts valid date for @date field', () => {
+            const userSchema = factory.makeModelSchema('User');
+            const result = userSchema.safeParse({ ...validUser, birthdate: '2000-01-01' });
+            expect(result.success).toBe(true);
+        });
+
         it('rejects code that does not start with "USR" for @startsWith', () => {
             const userSchema = factory.makeModelSchema('User');
             const result = userSchema.safeParse({ ...validUser, code: 'ABC001' });
