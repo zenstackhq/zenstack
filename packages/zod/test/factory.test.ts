@@ -21,6 +21,7 @@ const validUser = {
     balance: 10.0,
     active: true,
     birthdate: null,
+    createdAt: null,
     avatar: null,
     metadata: null,
     status: 'ACTIVE',
@@ -65,7 +66,7 @@ describe('SchemaFactory - makeModelSchema', () => {
             expectTypeOf<User['active']>().toEqualTypeOf<boolean>();
 
             // DateTime
-            expectTypeOf<User['birthdate']>().toEqualTypeOf<Date | null | undefined>();
+            expectTypeOf<User['createdAt']>().toEqualTypeOf<Date | null | undefined>();
 
             // optional Bytes
             expectTypeOf<User['avatar']>().toEqualTypeOf<Uint8Array | null | undefined>();
@@ -144,7 +145,7 @@ describe('SchemaFactory - makeModelSchema', () => {
 
         it('accepts DateTime as a Date object', () => {
             const userSchema = factory.makeModelSchema('User');
-            const result = userSchema.safeParse({ ...validUser, birthdate: new Date() });
+            const result = userSchema.safeParse({ ...validUser, createdAt: new Date() });
             expect(result.success).toBe(true);
         });
 
@@ -152,7 +153,7 @@ describe('SchemaFactory - makeModelSchema', () => {
             const userSchema = factory.makeModelSchema('User');
             const result = userSchema.safeParse({
                 ...validUser,
-                birthdate: '2024-01-15T10:30:00.000Z',
+                createdAt: '2024-01-15T10:30:00.000Z',
             });
             expect(result.success).toBe(true);
         });
@@ -214,7 +215,7 @@ describe('SchemaFactory - makeModelSchema', () => {
         it('infers correct input types for fields', () => {
             const _userSchema = factory.makeModelSchema('User');
             type UserInput = z.input<typeof _userSchema>;
-            expectTypeOf<UserInput['birthdate']>().toEqualTypeOf<Date | null | undefined>();
+            expectTypeOf<UserInput['createdAt']>().toEqualTypeOf<Date | null | undefined>();
             expectTypeOf<UserInput['balance']>().toEqualTypeOf<Decimal>();
             expectTypeOf<UserInput['avatar']>().toEqualTypeOf<Uint8Array | null | undefined>();
         });
@@ -608,6 +609,7 @@ describe('SchemaFactory - makeTypeSchema', () => {
                 balance: 1,
                 active: true,
                 birthdate: null,
+                createdAt: null,
                 avatar: null,
                 metadata: null,
                 status: 'ACTIVE',
