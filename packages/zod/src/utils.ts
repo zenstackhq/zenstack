@@ -12,6 +12,16 @@ import Decimal from 'decimal.js';
 import { z } from 'zod';
 import { SchemaFactoryError } from './error';
 
+// z.string()[mapped]
+const stringFuncZodMap = {
+    isEmail: 'email',
+    isUrl: 'url',
+    isPhone: 'e164',
+    isDate: 'date',
+    isTime: 'time',
+    isDateTime: 'datetime',
+} as const;
+
 function getArgValue<T extends string | number | boolean>(expr: Expression | undefined): T | undefined {
     if (!expr || !ExpressionUtils.isLiteral(expr)) {
         return undefined;
@@ -75,11 +85,16 @@ export function addStringValidation(
             case '@phone':
                 result = result.e164();
                 break;
-            case '@datetime':
-                result = result.datetime();
-                break;
             case '@date':
                 result = result.date();
+                break;
+            case '@time': {
+                const precision = getArgValue<number>(attr.args?.[0]?.value);
+                result = result.time({ precision });
+                break;
+            }
+            case '@datetime':
+                result = result.datetime();
                 break;
             case '@url':
                 result = result.url();
@@ -540,21 +555,14 @@ function evalCall(data: any, expr: CallExpression) {
         case 'isEmail':
         case 'isUrl':
         case 'isPhone':
-        case 'isDateTime':
-        case 'isDate': {
+        case 'isDate':
+        case 'isTime':
+        case 'isDateTime': {
             if (fieldArg === undefined || fieldArg === null || fieldArg === ABSENT) {
                 return false;
             }
             invariant(typeof fieldArg === 'string', `"${f}" first argument must be a string`);
-            const fn = f === 'isEmail'
-                ? ('email' as const)
-                : f === 'isUrl'
-                    ? ('url' as const)
-                    : f === 'isPhone'
-                        ? ('e164' as const)
-                        : f === 'isDateTime'
-                            ? ('datetime' as const)
-                            : ('date' as const);
+            const fn = stringFuncZodMap[f];
             return z.string()[fn]().safeParse(fieldArg).success;
         }
         // list functions
