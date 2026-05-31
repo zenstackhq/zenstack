@@ -12,6 +12,7 @@ describe('Custom validation tests', () => {
             str3 String?
             str4 String?
             str5 String?
+            str6 String?
             int1 Int?
             list1 Int[]
             list2 Int[]
@@ -31,6 +32,8 @@ describe('Custom validation tests', () => {
             @@validate(str4 == null || isUrl(str4), 'invalid str4')
 
             @@validate(str5 == null || isDateTime(str5), 'invalid str5')
+
+            @@validate(str6 == null || isPhone(str6), 'invalid str6')
 
             @@validate(list1 == null || (has(list1, 1) && hasSome(list1, [2, 3]) && hasEvery(list1, [4, 5])), 'invalid list1')
 
@@ -77,6 +80,9 @@ describe('Custom validation tests', () => {
             // violates datetime
             await expect(_t({ str5: 'not-an-datetime' })).toBeRejectedByValidation(['invalid str5']);
 
+            // violates phone
+            await expect(_t({ str6: 'not-a-phone' })).toBeRejectedByValidation(['invalid str6']);
+
             // violates has
             await expect(_t({ list1: [2, 3, 4, 5] })).toBeRejectedByValidation(['invalid list1']);
 
@@ -107,6 +113,7 @@ describe('Custom validation tests', () => {
                     str3: 'ab@c.com',
                     str4: 'http://a.b.c',
                     str5: new Date().toISOString(),
+                    str6: '+15555555555',
                     int1: 2,
                     list1: [1, 2, 4, 5],
                     list2: [],

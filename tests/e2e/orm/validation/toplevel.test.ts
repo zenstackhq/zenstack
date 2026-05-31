@@ -14,6 +14,7 @@ describe('Toplevel field validation tests', () => {
             str4 String? @url
             str5 String? @trim @lower
             str6 String? @upper
+            str7 String? @phone
         }
         `,
         );
@@ -83,6 +84,12 @@ describe('Toplevel field validation tests', () => {
             } else {
                 await expect(_t({ str6: 'aBc' })).resolves.toMatchObject({ count: 1 });
             }
+
+            // violates @phone
+            await expect(_t({ str7: 'not-a-phone' })).toBeRejectedByValidation(['Invalid E.164']);
+
+            // satisfies @phone
+            await expect(_t({ str7: '+15555555555' })).toResolveTruthy();
         }
     });
 

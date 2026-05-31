@@ -621,6 +621,7 @@ enum Status {
                 `model User {
     id       Int     @id @default(autoincrement())
     email    String  @unique @email
+    phone    String  @phone
     name     String  @length(min: 2, max: 100)
     website  String? @url
     code     String? @regex('^[A-Z]+$')

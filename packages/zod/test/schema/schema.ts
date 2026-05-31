@@ -26,6 +26,11 @@ export class SchemaType implements SchemaDef {
                     type: "String",
                     attributes: [{ name: "@email" }, { name: "@meta", args: [{ name: "name", value: ExpressionUtils.literal("description") }, { name: "value", value: ExpressionUtils.literal("The user's email address") }] }] as readonly AttributeApplication[]
                 },
+                phone: {
+                    name: "phone",
+                    type: "String",
+                    attributes: [{ name: "@phone" }] as readonly AttributeApplication[]
+                },
                 username: {
                     name: "username",
                     type: "String",

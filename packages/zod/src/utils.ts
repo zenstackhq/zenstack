@@ -72,6 +72,9 @@ export function addStringValidation(
             case '@email':
                 result = result.email();
                 break;
+            case '@phone':
+                result = result.e164();
+                break;
             case '@datetime':
                 result = result.datetime();
                 break;
@@ -533,12 +536,19 @@ function evalCall(data: any, expr: CallExpression) {
         }
         case 'isEmail':
         case 'isUrl':
+        case 'isPhone':
         case 'isDateTime': {
             if (fieldArg === undefined || fieldArg === null || fieldArg === ABSENT) {
                 return false;
             }
             invariant(typeof fieldArg === 'string', `"${f}" first argument must be a string`);
-            const fn = f === 'isEmail' ? ('email' as const) : f === 'isUrl' ? ('url' as const) : ('datetime' as const);
+            const fn = f === 'isEmail'
+                ? ('email' as const)
+                : f === 'isUrl'
+                    ? ('url' as const)
+                    : f === 'isPhone'
+                        ? ('e164' as const)
+                        : ('datetime' as const);
             return z.string()[fn]().safeParse(fieldArg).success;
         }
         // list functions

@@ -11,6 +11,7 @@ const factory = createSchemaFactory(schema);
 const validUser = {
     id: 'user123',
     email: 'test@example.com',
+    phone: '+15555555555',
     username: 'johndoe',
     website: null,
     code: 'USR001',
@@ -44,6 +45,7 @@ describe('SchemaFactory - makeModelSchema', () => {
             // required string fields
             expectTypeOf<User['id']>().toEqualTypeOf<string>();
             expectTypeOf<User['email']>().toEqualTypeOf<string>();
+            expectTypeOf<User['phone']>().toEqualTypeOf<string>();
             expectTypeOf<User['username']>().toEqualTypeOf<string>();
             expectTypeOf<User['code']>().toEqualTypeOf<string>();
             // optional string field (nullable + optional)
@@ -208,6 +210,14 @@ describe('SchemaFactory - makeModelSchema', () => {
             expect(userSchema.safeParse({ ...validUser, metadata: { key: BigInt(1) } }).success).toBe(false);
             expect(userSchema.safeParse({ ...validUser, metadata: [BigInt(1)] }).success).toBe(false);
         });
+
+        it('infers correct input types for fields', () => {
+            const _userSchema = factory.makeModelSchema('User');
+            type UserInput = z.input<typeof _userSchema>;
+            expectTypeOf<UserInput['birthdate']>().toEqualTypeOf<Date | null | undefined>();
+            expectTypeOf<UserInput['balance']>().toEqualTypeOf<Decimal>();
+            expectTypeOf<UserInput['avatar']>().toEqualTypeOf<Uint8Array | null | undefined>();
+        });
     });
 
     describe('string validation attributes', () => {
@@ -256,6 +266,18 @@ describe('SchemaFactory - makeModelSchema', () => {
         it('accepts null for optional @url field', () => {
             const userSchema = factory.makeModelSchema('User');
             const result = userSchema.safeParse({ ...validUser, website: null });
+            expect(result.success).toBe(true);
+        });
+
+        it('rejects invalid phone number for @phone field', () => {
+            const userSchema = factory.makeModelSchema('User');
+            const result = userSchema.safeParse({ ...validUser, phone: 'not-a-phone' });
+            expect(result.success).toBe(false);
+        });
+
+        it('accepts valid phone number for @phone field', () => {
+            const userSchema = factory.makeModelSchema('User');
+            const result = userSchema.safeParse({ ...validUser, phone: '+15555555555' });
             expect(result.success).toBe(true);
         });
 
@@ -576,6 +598,7 @@ describe('SchemaFactory - makeTypeSchema', () => {
             const validUser = {
                 id: 'u1',
                 email: 'a@b.com',
+                phone: '+15555555555',
                 username: 'alice',
                 website: null,
                 code: 'USR01',
@@ -934,7 +957,9 @@ describe('SchemaFactory - makeModelSchema with options', () => {
             expectTypeOf<Result>().toHaveProperty('id');
             expectTypeOf<Result['id']>().toEqualTypeOf<string>();
             expectTypeOf<Result>().toHaveProperty('email');
+            expectTypeOf<Result>().toHaveProperty('phone');
             expectTypeOf<Result['email']>().toEqualTypeOf<string>();
+            expectTypeOf<Result['phone']>().toEqualTypeOf<string>();
         });
 
         it('omit: {} (empty) keeps all scalar fields', () => {
@@ -954,6 +979,7 @@ describe('SchemaFactory - makeModelSchema with options', () => {
             expectTypeOf<Result>().not.toHaveProperty('username');
             expectTypeOf<Result>().not.toHaveProperty('avatar');
             expectTypeOf<Result>().toHaveProperty('email');
+            expectTypeOf<Result>().toHaveProperty('phone');
         });
     });
 
@@ -985,6 +1011,7 @@ describe('SchemaFactory - makeModelSchema with options', () => {
             type Result = z.infer<typeof _schema>;
             expectTypeOf<Result['id']>().toEqualTypeOf<string>();
             expectTypeOf<Result['email']>().toEqualTypeOf<string>();
+            expectTypeOf<Result['phone']>().toEqualTypeOf<string>();
             expectTypeOf<Result['username']>().toEqualTypeOf<string>();
         });
 
@@ -1039,6 +1066,7 @@ describe('SchemaFactory - makeModelSchema with options', () => {
             type Result = z.infer<typeof _schema>;
             expectTypeOf<Result>().not.toHaveProperty('username');
             expectTypeOf<Result>().toHaveProperty('email');
+            expectTypeOf<Result>().toHaveProperty('phone');
             expectTypeOf<Result>().toHaveProperty('posts');
         });
     });
@@ -1069,6 +1097,7 @@ describe('SchemaFactory - makeModelSchema with options', () => {
             expectTypeOf<Result['email']>().toEqualTypeOf<string>();
             expectTypeOf<Result>().not.toHaveProperty('username');
             expectTypeOf<Result>().not.toHaveProperty('posts');
+            expectTypeOf<Result>().not.toHaveProperty('phone');
         });
 
         it('select with a relation field (true) includes the relation', () => {
@@ -1084,6 +1113,7 @@ describe('SchemaFactory - makeModelSchema with options', () => {
             expectTypeOf<Result>().toHaveProperty('id');
             expectTypeOf<Result>().toHaveProperty('posts');
             expectTypeOf<Result>().not.toHaveProperty('email');
+            expectTypeOf<Result>().not.toHaveProperty('phone');
         });
 
         it('select with nested options on a relation', () => {
@@ -1214,6 +1244,7 @@ describe('SchemaFactory - makeModelSchema with options', () => {
                 type Result = z.infer<typeof _schema>;
                 expectTypeOf<Result['id']>().toEqualTypeOf<string | undefined>();
                 expectTypeOf<Result['email']>().toEqualTypeOf<string | undefined>();
+                expectTypeOf<Result['phone']>().toEqualTypeOf<string | undefined>();
                 expectTypeOf<Result['username']>().toEqualTypeOf<string | undefined>();
                 expectTypeOf<Result['active']>().toEqualTypeOf<boolean | undefined>();
                 expectTypeOf<Result['age']>().toEqualTypeOf<number | undefined>();
@@ -1342,6 +1373,7 @@ describe('SchemaFactory - makeModelSchema with options', () => {
                 const _schema = factory.makeModelSchema('User', { optionality: 'all' });
                 type Result = z.infer<typeof _schema>;
                 expectTypeOf<Result['email']>().toEqualTypeOf<string | undefined>();
+                expectTypeOf<Result['phone']>().toEqualTypeOf<string | undefined>();
                 expectTypeOf<Result['username']>().toEqualTypeOf<string | undefined>();
                 expectTypeOf<Result['age']>().toEqualTypeOf<number | undefined>();
                 // already-optional nullable field
@@ -1356,6 +1388,7 @@ describe('SchemaFactory - makeModelSchema with options', () => {
                 type Result = z.infer<typeof _schema>;
                 expectTypeOf<Result>().not.toHaveProperty('username');
                 expectTypeOf<Result['email']>().toEqualTypeOf<string | undefined>();
+                expectTypeOf<Result['phone']>().toEqualTypeOf<string | undefined>();
             });
 
             it('infers selected fields as optional when optionality is all', () => {

@@ -23,6 +23,7 @@ type Address {
 model User {
     id        String    @id @default(cuid())
     email     String    @email @meta("description", "The user's email address")
+    phone     String    @phone
     username  String    @length(3, 50)
     website   String?   @url
     code      String    @startsWith("USR")

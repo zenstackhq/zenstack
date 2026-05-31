@@ -552,6 +552,11 @@ attribute @datetime(_ message: String?) @@@targetField([StringField]) @@@validat
 attribute @url(_ message: String?) @@@targetField([StringField]) @@@validation
 
 /**
+ * Validates a string field value is a valid E.164 phone number.
+ */
+attribute @phone(_ message: String?) @@@targetField([StringField]) @@@validation
+
+/**
  * Trims whitespaces from the start and end of the string.
  */
 attribute @trim() @@@targetField([StringField]) @@@validation
@@ -620,6 +625,12 @@ function isDateTime(field: String): Boolean {
  * Validates a string field value is a valid url.
  */
 function isUrl(field: String): Boolean {
+} @@@expressionContext([ValidationRule])
+
+/**
+ * Validates a string field value is a valid E.164 phone number.
+ */
+function isPhone(field: String): Boolean {
 } @@@expressionContext([ValidationRule])
 
 //////////////////////////////////////////////
