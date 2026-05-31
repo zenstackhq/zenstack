@@ -205,6 +205,12 @@ attribute @@@completionHint(_ values: String[])
 attribute @@@once()
 
 /**
+ * Indicates that a field-level attribute can only be applied to a single field within a model
+ * (including fields inherited from base models and mixins).
+ */
+attribute @@@onceInModel()
+
+/**
  * Defines a single-field ID on the model.
  *
  * @param map: The name of the underlying primary key constraint in the database.

@@ -1,0 +1,68 @@
+{
+    "name": "@zenstackhq/plugin-soft-delete",
+    "displayName": "ZenStack Soft Delete Plugin",
+    "description": "ZenStack plugin that implements soft-delete by intercepting Kysely queries",
+    "version": "3.7.2",
+    "type": "module",
+    "author": {
+        "name": "ZenStack Team",
+        "email": "contact@zenstack.dev"
+    },
+    "homepage": "https://zenstack.dev",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/zenstackhq/zenstack"
+    },
+    "license": "MIT",
+    "scripts": {
+        "build": "tsc --noEmit && tsdown",
+        "watch": "tsdown --watch",
+        "lint": "eslint src --ext ts",
+        "test": "vitest run",
+        "pack": "pnpm pack"
+    },
+    "keywords": [],
+    "files": [
+        "dist",
+        "plugin.zmodel"
+    ],
+    "exports": {
+        ".": {
+            "import": {
+                "types": "./dist/index.d.mts",
+                "default": "./dist/index.mjs"
+            },
+            "require": {
+                "types": "./dist/index.d.cts",
+                "default": "./dist/index.cjs"
+            }
+        },
+        "./plugin.zmodel": {
+            "import": "./plugin.zmodel",
+            "require": "./plugin.zmodel"
+        },
+        "./package.json": {
+            "import": "./package.json",
+            "require": "./package.json"
+        }
+    },
+    "dependencies": {
+        "@zenstackhq/common-helpers": "workspace:*",
+        "@zenstackhq/orm": "workspace:*",
+        "ts-pattern": "catalog:"
+    },
+    "peerDependencies": {
+        "kysely": "catalog:"
+    },
+    "devDependencies": {
+        "@types/better-sqlite3": "catalog:",
+        "@types/node": "catalog:",
+        "@zenstackhq/eslint-config": "workspace:*",
+        "@zenstackhq/testtools": "workspace:*",
+        "@zenstackhq/tsdown-config": "workspace:*",
+        "@zenstackhq/typescript-config": "workspace:*",
+        "@zenstackhq/vitest-config": "workspace:*",
+        "better-sqlite3": "catalog:"
+    },
+    "funding": "https://github.com/sponsors/zenstackhq"
+}

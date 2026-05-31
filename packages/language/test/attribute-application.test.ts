@@ -499,6 +499,67 @@ describe('Attribute application validation tests', () => {
         });
     });
 
+    describe('Field-level @@@onceInModel attribute', () => {
+        it('accepts a single field carrying the attribute', async () => {
+            await loadSchema(`
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                attribute @softDelete() @@@targetField([DateTimeField]) @@@onceInModel
+
+                model Foo {
+                    id        Int       @id @default(autoincrement())
+                    deletedAt DateTime? @softDelete
+                }
+            `);
+        });
+
+        it('rejects two fields in the same model carrying the attribute', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                attribute @softDelete() @@@targetField([DateTimeField]) @@@onceInModel
+
+                model Foo {
+                    id        Int       @id @default(autoincrement())
+                    deletedAt DateTime? @softDelete
+                    removedAt DateTime? @softDelete
+                }
+                `,
+                /Attribute "@softDelete" can only be applied to one field per model/,
+            );
+        });
+
+        it('rejects when the attribute is inherited from a mixin and also declared locally', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                attribute @softDelete() @@@targetField([DateTimeField]) @@@onceInModel
+
+                type Base {
+                    deletedAt DateTime? @softDelete
+                }
+
+                model Foo with Base {
+                    id        Int       @id @default(autoincrement())
+                    removedAt DateTime? @softDelete
+                }
+                `,
+                /Attribute "@softDelete" can only be applied to one field per model/,
+            );
+        });
+    });
+
     it('requires relation and fk to have consistent optionality', async () => {
         await loadSchemaWithError(
             `
