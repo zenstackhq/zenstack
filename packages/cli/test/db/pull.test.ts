@@ -623,6 +623,7 @@ enum Status {
     email     String  @unique @email
     phone     String  @phone
     birthdate String  @date
+    localTime String  @time
     name      String  @length(min: 2, max: 100)
     website   String? @url
     code      String? @regex('^[A-Z]+$')

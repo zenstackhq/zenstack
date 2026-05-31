@@ -21,6 +21,7 @@ const validUser = {
     balance: 10.0,
     active: true,
     birthdate: null,
+    localTime: null,
     createdAt: null,
     avatar: null,
     metadata: null,
@@ -52,6 +53,7 @@ describe('SchemaFactory - makeModelSchema', () => {
             // optional string field (nullable + optional)
             expectTypeOf<User['website']>().toEqualTypeOf<string | null | undefined>();
             expectTypeOf<User['birthdate']>().toEqualTypeOf<string | null | undefined>();
+            expectTypeOf<User['localTime']>().toEqualTypeOf<string | null | undefined>();
 
             // number fields (Int and Float both map to ZodNumber)
             expectTypeOf<User['age']>().toEqualTypeOf<number>();
@@ -298,6 +300,24 @@ describe('SchemaFactory - makeModelSchema', () => {
         it('accepts null for optional @date field', () => {
             const userSchema = factory.makeModelSchema('User');
             const result = userSchema.safeParse({ ...validUser, birthdate: null });
+            expect(result.success).toBe(true);
+        });
+
+        it('rejects invalid time for @time field', () => {
+            const userSchema = factory.makeModelSchema('User');
+            const result = userSchema.safeParse({ ...validUser, localTime: 'not-a-time' });
+            expect(result.success).toBe(false);
+        });
+
+        it('accepts valid time for @time field', () => {
+            const userSchema = factory.makeModelSchema('User');
+            const result = userSchema.safeParse({ ...validUser, localTime: '03:15:00' });
+            expect(result.success).toBe(true);
+        });
+
+        it('accepts null for optional @time field', () => {
+            const userSchema = factory.makeModelSchema('User');
+            const result = userSchema.safeParse({ ...validUser, localTime: null });
             expect(result.success).toBe(true);
         });
 
@@ -628,6 +648,7 @@ describe('SchemaFactory - makeTypeSchema', () => {
                 balance: 1,
                 active: true,
                 birthdate: null,
+                localTime: null,
                 createdAt: null,
                 avatar: null,
                 metadata: null,
@@ -1400,6 +1421,7 @@ describe('SchemaFactory - makeModelSchema with options', () => {
                 // already-optional nullable field
                 expectTypeOf<Result['website']>().toEqualTypeOf<string | null | undefined>();
                 expectTypeOf<Result['birthdate']>().toEqualTypeOf<string | null | undefined>();
+                expectTypeOf<Result['localTime']>().toEqualTypeOf<string | null | undefined>();
             });
 
             it('infers omitted field absent even with optionality all', () => {
