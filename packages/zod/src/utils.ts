@@ -78,6 +78,9 @@ export function addStringValidation(
             case '@datetime':
                 result = result.datetime();
                 break;
+            case '@date':
+                result = result.date();
+                break;
             case '@url':
                 result = result.url();
                 break;
@@ -537,7 +540,8 @@ function evalCall(data: any, expr: CallExpression) {
         case 'isEmail':
         case 'isUrl':
         case 'isPhone':
-        case 'isDateTime': {
+        case 'isDateTime':
+        case 'isDate': {
             if (fieldArg === undefined || fieldArg === null || fieldArg === ABSENT) {
                 return false;
             }
@@ -548,7 +552,9 @@ function evalCall(data: any, expr: CallExpression) {
                     ? ('url' as const)
                     : f === 'isPhone'
                         ? ('e164' as const)
-                        : ('datetime' as const);
+                        : f === 'isDateTime'
+                            ? ('datetime' as const)
+                            : ('date' as const);
             return z.string()[fn]().safeParse(fieldArg).success;
         }
         // list functions
