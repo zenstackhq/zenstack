@@ -58,7 +58,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **ORM**: Depends on Kysely, Zod, and various utility libraries
 - **CLI**: Depends on language package, Commander.js, and Prisma (for migrations)
 - **Language**: Uses Langium for grammar parsing and AST generation
-- **Database Support**: SQLite (better-sqlite3) and PostgreSQL (pg) only
+- **Database Support**: SQLite (better-sqlite3), PostgreSQL (pg), and MySQL
 
 ### Testing Strategy
 

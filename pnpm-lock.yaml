@@ -739,6 +739,46 @@ importers:
         specifier: workspace:*
         version: link:../../config/vitest-config
 
+  packages/plugins/soft-delete:
+    dependencies:
+      '@zenstackhq/common-helpers':
+        specifier: workspace:*
+        version: link:../../common-helpers
+      '@zenstackhq/orm':
+        specifier: workspace:*
+        version: link:../../orm
+      kysely:
+        specifier: 'catalog:'
+        version: 0.29.0
+      ts-pattern:
+        specifier: 'catalog:'
+        version: 5.7.1
+    devDependencies:
+      '@types/better-sqlite3':
+        specifier: 'catalog:'
+        version: 7.6.13
+      '@types/node':
+        specifier: 'catalog:'
+        version: 20.19.24
+      '@zenstackhq/eslint-config':
+        specifier: workspace:*
+        version: link:../../config/eslint-config
+      '@zenstackhq/testtools':
+        specifier: workspace:*
+        version: link:../../testtools
+      '@zenstackhq/tsdown-config':
+        specifier: workspace:*
+        version: link:../../config/tsdown-config
+      '@zenstackhq/typescript-config':
+        specifier: workspace:*
+        version: link:../../config/typescript-config
+      '@zenstackhq/vitest-config':
+        specifier: workspace:*
+        version: link:../../config/vitest-config
+      better-sqlite3:
+        specifier: 'catalog:'
+        version: 12.5.0
+
   packages/schema:
     dependencies:
       decimal.js:
@@ -11892,7 +11932,7 @@ snapshots:
 
   '@types/better-sqlite3@7.6.13':
     dependencies:
-      '@types/node': 20.19.24
+      '@types/node': 25.5.2
 
   '@types/body-parser@1.19.6':
     dependencies:
@@ -11913,7 +11953,7 @@ snapshots:
 
   '@types/cors@2.8.19':
     dependencies:
-      '@types/node': 20.19.24
+      '@types/node': 25.5.2
 
   '@types/deep-eql@4.0.2': {}
 
@@ -11968,7 +12008,7 @@ snapshots:
 
   '@types/pg@8.16.0':
     dependencies:
-      '@types/node': 20.19.24
+      '@types/node': 25.5.2
       pg-protocol: 1.10.3
       pg-types: 2.2.0
 
