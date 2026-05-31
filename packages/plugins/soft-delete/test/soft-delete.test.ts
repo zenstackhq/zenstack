@@ -99,7 +99,9 @@ describe('soft-delete plugin', () => {
             data: { email: 'nested@test.com', posts: { create: [{ title: 'a' }, { title: 'b' }] } },
             include: { posts: true },
         });
-        const [postA, postB] = user.posts;
+        // pick by title — `include` has no orderBy, so array position isn't guaranteed
+        const postA = user.posts.find((p: any) => p.title === 'a');
+        const postB = user.posts.find((p: any) => p.title === 'b');
 
         // nested delete of a soft-delete child runs as a soft delete
         const updated = await db.user.update({
