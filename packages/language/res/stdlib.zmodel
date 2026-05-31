@@ -479,7 +479,7 @@ attribute @db.Double() @@@targetField([FloatField]) @@@prisma
 
 attribute @db.Timestamp(_ x: Int?) @@@targetField([DateTimeField]) @@@prisma
 attribute @db.Timestamptz(_ x: Int?) @@@targetField([DateTimeField]) @@@prisma
-attribute @db.Date() @@@targetField([DateTimeField, StringField]) @@@prisma
+attribute @db.Date() @@@targetField([DateTimeField]) @@@prisma
 attribute @db.Time(_ x: Int?) @@@targetField([DateTimeField]) @@@prisma
 attribute @db.Timetz(_ x: Int?) @@@targetField([DateTimeField]) @@@prisma
 attribute @db.DateTime(_ x: Int?) @@@targetField([DateTimeField]) @@@prisma
