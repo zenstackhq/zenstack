@@ -51,6 +51,7 @@ describe('SchemaFactory - makeModelSchema', () => {
             expectTypeOf<User['code']>().toEqualTypeOf<string>();
             // optional string field (nullable + optional)
             expectTypeOf<User['website']>().toEqualTypeOf<string | null | undefined>();
+            expectTypeOf<User['birthdate']>().toEqualTypeOf<string | null | undefined>();
 
             // number fields (Int and Float both map to ZodNumber)
             expectTypeOf<User['age']>().toEqualTypeOf<number>();
@@ -291,6 +292,12 @@ describe('SchemaFactory - makeModelSchema', () => {
         it('accepts valid date for @date field', () => {
             const userSchema = factory.makeModelSchema('User');
             const result = userSchema.safeParse({ ...validUser, birthdate: '2000-01-01' });
+            expect(result.success).toBe(true);
+        });
+
+        it('accepts null for optional @date field', () => {
+            const userSchema = factory.makeModelSchema('User');
+            const result = userSchema.safeParse({ ...validUser, birthdate: null });
             expect(result.success).toBe(true);
         });
 
@@ -1392,6 +1399,7 @@ describe('SchemaFactory - makeModelSchema with options', () => {
                 expectTypeOf<Result['age']>().toEqualTypeOf<number | undefined>();
                 // already-optional nullable field
                 expectTypeOf<Result['website']>().toEqualTypeOf<string | null | undefined>();
+                expectTypeOf<Result['birthdate']>().toEqualTypeOf<string | null | undefined>();
             });
 
             it('infers omitted field absent even with optionality all', () => {
