@@ -73,6 +73,12 @@ export class SchemaType implements SchemaDef {
                 },
                 birthdate: {
                     name: "birthdate",
+                    type: "String",
+                    optional: true,
+                    attributes: [{ name: "@date" }] as readonly AttributeApplication[]
+                },
+                createdAt: {
+                    name: "createdAt",
                     type: "DateTime",
                     optional: true
                 },
