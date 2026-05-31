@@ -17,8 +17,8 @@ import type {
     TypeDefFieldIsArray,
     TypeDefFieldIsOptional,
 } from '@zenstackhq/schema';
-import type z from 'zod';
 import type Decimal from 'decimal.js';
+import type z from 'zod';
 
 /**
  * Scalar-only shape returned by the no-options `makeModelSchema` overload.
