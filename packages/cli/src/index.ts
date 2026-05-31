@@ -266,7 +266,7 @@ Arguments following -- are passed to the seed script. E.g.: "zen db seed -- --us
         .addOption(
             new Option(
                 '--publicAPIKey <key>',
-                'PEM-encoded ed25519 public key used to verify request signatures. When provided, all requests to /api/model and /api/schema must include a valid x-zenstack-signature header.',
+                'public key used to verify request signatures. Can also be set via the ZENSTACK_PUBLIC_KEY environment variable. ',
             ),
         )
         .addOption(

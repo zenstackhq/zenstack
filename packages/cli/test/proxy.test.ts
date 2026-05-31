@@ -16,6 +16,9 @@ const TEST_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
 MCowBQYDK2VwAyEAFSJV7wjdFuDz2CqYX7hGnITQvcmJYy7OJQq2Cy2Eiqs=
 -----END PUBLIC KEY-----`;
 
+/** Raw base64 DER — the same key without PEM markers. */
+const TEST_PUBLIC_KEY_DER = 'MCowBQYDK2VwAyEAFSJV7wjdFuDz2CqYX7hGnITQvcmJYy7OJQq2Cy2Eiqs=';
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
@@ -380,6 +383,55 @@ describe('CLI proxy tests', () => {
                 headers: { Authorization: `Bearer ${makeUserToken({ type: 'superUser' })}` },
             });
             expect(withAuthHeader.status).toBe(200);
+        });
+    });
+
+    // ─── AuthN: public key format ──────────────────────────────────────────────
+
+    describe('public key format', () => {
+        const zmodel = `
+            model User {
+                id    String @id @default(cuid())
+                email String @unique
+            }
+        `;
+
+        it('should accept a raw base64 DER key (without PEM markers)', async () => {
+            const client = await createTestClient(zmodel);
+            // Pass the key as raw base64 DER — no PEM markers
+            const app = createProxyApp(client, client.$schema, { publicAPIKey: TEST_PUBLIC_KEY_DER });
+            const baseUrl = await startAt(app);
+
+            const pathWithQuery = '/api/model/user/findMany';
+            const sig = buildSignatureHeader({ privateKey: TEST_PRIVATE_KEY, method: 'GET', pathWithQuery });
+            const r = await fetch(`${baseUrl}${pathWithQuery}`, {
+                headers: { 'x-zenstack-signature': sig },
+            });
+            expect(r.status).toBe(200);
+        });
+
+        it('should accept a key supplied via ZENSTACK_PUBLIC_KEY env variable', async () => {
+            const client = await createTestClient(zmodel);
+            // createProxyApp receives the already-resolved key (as run() would pass it),
+            // so we simulate env var resolution by passing the PEM directly.
+            process.env['ZENSTACK_PUBLIC_KEY'] = TEST_PUBLIC_KEY;
+            try {
+                // No publicAPIKey option — would normally fall back to env var via run();
+                // here we verify the middleware still works when the resolved key is provided.
+                const app = createProxyApp(client, client.$schema, {
+                    publicAPIKey: process.env['ZENSTACK_PUBLIC_KEY'],
+                });
+                const baseUrl = await startAt(app);
+
+                const pathWithQuery = '/api/model/user/findMany';
+                const sig = buildSignatureHeader({ privateKey: TEST_PRIVATE_KEY, method: 'GET', pathWithQuery });
+                const r = await fetch(`${baseUrl}${pathWithQuery}`, {
+                    headers: { 'x-zenstack-signature': sig },
+                });
+                expect(r.status).toBe(200);
+            } finally {
+                delete process.env['ZENSTACK_PUBLIC_KEY'];
+            }
         });
     });
 

@@ -44,7 +44,32 @@ type Options = {
  */
 type UserClaim = { type: 'superUser' } | { type: 'user'; data: Record<string, unknown> };
 
+/**
+ * Accepts a public key in either PEM format or as a raw base64 / base64url DER string
+ * (without the `-----BEGIN PUBLIC KEY-----` markers) and always returns a PEM string.
+ */
+function normalizePublicKey(key: string): string {
+    key = key.trim();
+    if (key.startsWith('-----BEGIN PUBLIC KEY-----')) {
+        return key;
+    }
+    // Convert base64url → standard base64, then wrap in PEM markers.
+    const b64 = key.replace(/-/g, '+').replace(/_/g, '/');
+    return `-----BEGIN PUBLIC KEY-----\n${b64}\n-----END PUBLIC KEY-----`;
+}
+
 export async function run(options: Options) {
+    // Resolve public key: CLI arg takes precedence, then ZENSTACK_PUBLIC_KEY env var.
+    options = { ...options, publicAPIKey: options.publicAPIKey ?? process.env['ZENSTACK_PUBLIC_KEY'] };
+    if (!options.publicAPIKey) {
+        console.warn(
+            colors.yellow(
+                'Warning: This proxy has no authentication. Do not expose it to the public network.\n' +
+                    'To secure it, get an API key from ZenStack Studio and set it via the ZENSTACK_PUBLIC_KEY environment variable.',
+            ),
+        );
+    }
+
     const allowedLogLevels = ['error', 'query'] as const;
     const log = options.logLevel?.filter((level): level is (typeof allowedLogLevels)[number] =>
         allowedLogLevels.includes(level as any),
@@ -241,7 +266,8 @@ export function createProxyApp(
     if (options?.publicAPIKey) {
         // Apply signature-verification middleware to all authenticated endpoints.
         const toleranceSecs = options.signatureToleranceSecs ?? 60;
-        app.use(['/api/model', '/api/schema'], createSignatureMiddleware(options.publicAPIKey, toleranceSecs));
+        const normalizedKey = normalizePublicKey(options.publicAPIKey);
+        app.use(['/api/model', '/api/schema'], createSignatureMiddleware(normalizedKey, toleranceSecs));
     }
 
     app.use(
@@ -271,6 +297,23 @@ export function createProxyApp(
  * `authorizationToken` is the bearer token value from the `Authorization` header (if present).
  */
 function createSignatureMiddleware(publicKey: string, toleranceSeconds: number) {
+    // Throttle invalid-signature warnings to at most once per 60 seconds.
+    let lastInvalidSigWarnAt = 0;
+    const WARN_THROTTLE_SECS = 60;
+
+    function warnInvalidSignature() {
+        const now = Math.floor(Date.now() / 1000);
+        if (now - lastInvalidSigWarnAt >= WARN_THROTTLE_SECS) {
+            lastInvalidSigWarnAt = now;
+            console.warn(
+                colors.yellow(
+                    'Warning: Received a request with an invalid signature. ' +
+                        'Please double-check whether you have the correct public API key configured.',
+                ),
+            );
+        }
+    }
+
     return (req: express.Request, res: express.Response, next: express.NextFunction) => {
         const signatureHeader = req.headers['x-zenstack-signature'];
         if (!signatureHeader || typeof signatureHeader !== 'string') {
@@ -312,9 +355,11 @@ function createSignatureMiddleware(publicKey: string, toleranceSeconds: number) 
         try {
             const isValid = verify(null, Buffer.from(message, 'utf8'), publicKey, Buffer.from(sig, 'base64url'));
             if (!isValid) {
+                warnInvalidSignature();
                 return res.status(401).json({ message: 'Invalid signature' });
             }
         } catch {
+            warnInvalidSignature();
             return res.status(401).json({ message: 'Invalid signature' });
         }
 
