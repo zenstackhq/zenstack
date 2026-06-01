@@ -640,7 +640,7 @@ function isDate(field: String): Boolean {
 /**
  * Validates a string field value is a valid ISO time.
  */
-function isTime(field: String): Boolean {
+function isTime(field: String, precision: Int?): Boolean {
 } @@@expressionContext([ValidationRule])
 
 /**

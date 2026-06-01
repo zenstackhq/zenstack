@@ -562,6 +562,11 @@ function evalCall(data: any, expr: CallExpression) {
                 return false;
             }
             invariant(typeof fieldArg === 'string', `"${f}" first argument must be a string`);
+            if (f === 'isTime') {
+                const precision = getArgValue<number>(expr.args?.[1]);
+                invariant((precision === null || undefined) || typeof precision === 'number', `"isTime" optional second argument must be a number`);
+                return z.iso.time({ precision }).safeParse(fieldArg).success;
+            }
             const fn = stringFuncZodMap[f];
             return z.string()[fn]().safeParse(fieldArg).success;
         }
