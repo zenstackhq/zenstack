@@ -564,7 +564,7 @@ function evalCall(data: any, expr: CallExpression) {
             invariant(typeof fieldArg === 'string', `"${f}" first argument must be a string`);
             if (f === 'isTime') {
                 const precision = getArgValue<number>(expr.args?.[1]);
-                invariant((precision === null || undefined) || typeof precision === 'number', `"isTime" optional second argument must be a number`);
+                invariant((precision === null || precision == undefined) || typeof precision === 'number', `"isTime" optional second argument must be a number`);
                 return z.iso.time({ precision }).safeParse(fieldArg).success;
             }
             const fn = stringFuncZodMap[f];
