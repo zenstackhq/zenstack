@@ -265,8 +265,8 @@ Arguments following -- are passed to the seed script. E.g.: "zen db seed -- --us
         .addOption(new Option('-l, --logLevel <level...>', 'Query log levels (e.g., query, error)'))
         .addOption(
             new Option(
-                '--publicAPIKey <key>',
-                'public key used to verify request signatures. Can also be set via the ZENSTACK_PUBLIC_KEY environment variable. ',
+                '--studioAuthKey <key>',
+                'Authentication key from ZenStack Studio. When set, the proxy will only accept requests signed by your Studio project.\nCan also be set via the ZENSTACK_STUDIO_AUTH_KEY environment variable. ',
             ),
         )
         .addOption(

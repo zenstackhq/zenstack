@@ -34,7 +34,7 @@ type Options = {
     port?: number;
     logLevel?: string[];
     databaseUrl?: string;
-    publicAPIKey?: string;
+    studioAuthKey?: string;
     signatureToleranceSecs?: number;
 };
 
@@ -59,13 +59,13 @@ function normalizePublicKey(key: string): string {
 }
 
 export async function run(options: Options) {
-    // Resolve public key: CLI arg takes precedence, then ZENSTACK_PUBLIC_KEY env var.
-    options = { ...options, publicAPIKey: options.publicAPIKey ?? process.env['ZENSTACK_PUBLIC_KEY'] };
-    if (!options.publicAPIKey) {
+    // Resolve public key: CLI arg takes precedence, then ZENSTACK_STUDIO_AUTH_KEY env var.
+    options = { ...options, studioAuthKey: options.studioAuthKey ?? process.env['ZENSTACK_STUDIO_AUTH_KEY'] };
+    if (!options.studioAuthKey) {
         console.warn(
             colors.yellow(
                 'Warning: This proxy has no authentication. Do not expose it to the public network.\n' +
-                    'To secure it, get an API key from ZenStack Studio and set it via the ZENSTACK_PUBLIC_KEY environment variable.',
+                    'To secure it, get an API key from ZenStack Studio and set it via the ZENSTACK_STUDIO_AUTH_KEY environment variable.',
             ),
         );
     }
@@ -139,9 +139,9 @@ export async function run(options: Options) {
         throw new CliError(`Failed to connect to the database: ${err instanceof Error ? err.message : String(err)}`);
     }
 
-    // If a publicAPIKey is provided, create an authDb with the policy plugin
+    // If a studioAuthKey is provided, create an authDb with the policy plugin
     let authDb: ClientContract<SchemaDef> | undefined;
-    if (options.publicAPIKey) {
+    if (options.studioAuthKey) {
         authDb = db.$use(new PolicyPlugin()) as ClientContract<SchemaDef>;
         console.log(colors.gray('Access policy plugin enabled for authorization.'));
     }
@@ -244,7 +244,7 @@ export function createProxyApp(
     client: ClientContract<SchemaDef>,
     schema: SchemaDef,
     options?: {
-        publicAPIKey?: string;
+        studioAuthKey?: string;
         authDb?: ClientContract<SchemaDef>;
         /** Seconds within which a signed request is considered valid. Defaults to 60. */
         signatureToleranceSecs?: number;
@@ -263,10 +263,10 @@ export function createProxyApp(
     );
     app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
-    if (options?.publicAPIKey) {
+    if (options?.studioAuthKey) {
         // Apply signature-verification middleware to all authenticated endpoints.
         const toleranceSecs = options.signatureToleranceSecs ?? 60;
-        const normalizedKey = normalizePublicKey(options.publicAPIKey);
+        const normalizedKey = normalizePublicKey(options.studioAuthKey);
         app.use(['/api/model', '/api/schema'], createSignatureMiddleware(normalizedKey, toleranceSecs));
     }
 
@@ -370,7 +370,7 @@ function createSignatureMiddleware(publicKey: string, toleranceSeconds: number) 
 /**
  * Resolves the appropriate client for a request based on the Authorization header.
  *
- * - No publicAPIKey configured (authDb is undefined): always return the base client.
+ * - No studioAuthKey configured (authDb is undefined): always return the base client.
  * - SuperUser claim: return the base client (full access, no policy enforcement).
  * - Regular user claim: return authDb with the user identity set via $setAuth.
  * - No / invalid token: return the base client.
@@ -415,7 +415,7 @@ function startServer(
     authDb?: ClientContract<SchemaDef>,
 ) {
     const app = createProxyApp(client, schema, {
-        publicAPIKey: options.publicAPIKey,
+        studioAuthKey: options.studioAuthKey,
         authDb,
         signatureToleranceSecs: options.signatureToleranceSecs,
     });
