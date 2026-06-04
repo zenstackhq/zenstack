@@ -1,8 +1,7 @@
-import { init, type Mixpanel } from 'mixpanel';
+import { type Mixpanel } from 'mixpanel';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import * as os from 'os';
-import { TELEMETRY_TRACKING_TOKEN } from './constants';
 import { isInCi } from './utils/is-ci';
 import { isInContainer } from './utils/is-container';
 import isDocker from './utils/is-docker';
@@ -44,11 +43,14 @@ export class Telemetry {
     private readonly isCi = isInCi;
 
     constructor() {
-        if (process.env['DO_NOT_TRACK'] !== '1' && TELEMETRY_TRACKING_TOKEN) {
-            this.mixpanel = init(TELEMETRY_TRACKING_TOKEN, {
-                geolocate: true,
-            });
-        }
+        // if (process.env['DO_NOT_TRACK'] !== '1' && TELEMETRY_TRACKING_TOKEN) {
+        //     this.mixpanel = init(TELEMETRY_TRACKING_TOKEN, {
+        //         geolocate: true,
+        //     });
+        // }
+
+        // Telemetry is currently muted
+        return;
     }
 
     get isTracking() {
