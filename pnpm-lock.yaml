@@ -213,6 +213,9 @@ importers:
       '@zenstackhq/orm':
         specifier: workspace:*
         version: link:../orm
+      '@zenstackhq/plugin-policy':
+        specifier: workspace:*
+        version: link:../plugins/policy
       '@zenstackhq/schema':
         specifier: workspace:*
         version: link:../schema
@@ -304,9 +307,6 @@ importers:
       '@zenstackhq/eslint-config':
         specifier: workspace:*
         version: link:../config/eslint-config
-      '@zenstackhq/plugin-policy':
-        specifier: workspace:*
-        version: link:../plugins/policy
       '@zenstackhq/testtools':
         specifier: workspace:*
         version: link:../testtools
