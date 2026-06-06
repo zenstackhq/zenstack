@@ -273,7 +273,15 @@ Arguments following -- are passed to the seed script. E.g.: "zen db seed -- --us
             new Option(
                 '--signatureToleranceSecs <seconds>',
                 'Maximum age (in seconds) of a signed request before it is rejected as a replay. Defaults to 60.',
-            ).argParser((v) => parseInt(v, 10)),
+            )
+                .default(60)
+                .argParser((v) => {
+                    const parsed = parseInt(v, 10);
+                    if (isNaN(parsed) || parsed < 0) {
+                        throw new CliError(`--signatureToleranceSecs must be a positive integer, got: ${v}`);
+                    }
+                    return parsed;
+                }),
         )
         .addOption(noVersionCheckOption)
         .action(proxyAction);

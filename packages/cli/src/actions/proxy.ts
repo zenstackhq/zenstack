@@ -27,22 +27,39 @@ import type { Pool as PgPoolType } from 'pg';
 import { CliError } from '../cli-error';
 import { getVersion } from '../utils/version-utils';
 import { getOutputPath, getSchemaFile, loadSchemaDocument } from './action-utils';
+import { z } from 'zod';
 
 type Options = {
     output?: string;
     schema?: string;
-    port?: number;
+    port: number;
     logLevel?: string[];
     databaseUrl?: string;
     studioAuthKey?: string;
-    signatureToleranceSecs?: number;
+    signatureToleranceSecs: number;
 };
 
+export const ProxyAuthError = {
+    MISSING_SIGNATURE_HEADER: 'Missing x-zenstack-signature header',
+    INVALID_TIMESTAMP: 'Request timestamp is expired or invalid',
+    INVALID_SIGNATURE_FORMAT: 'Invalid x-zenstack-signature format',
+} as const;
+
+type ProxyAuthErrorCode = keyof typeof ProxyAuthError;
+
+function rejectAuth(res: express.Response, code: ProxyAuthErrorCode) {
+    return res.status(401).json({ code, message: ProxyAuthError[code] });
+}
 /**
  * Represents the identity claim embedded in the Authorization header.
  * The bearer token is a plain base64-encoded JSON string.
  */
-type UserClaim = { type: 'superUser' } | { type: 'user'; data: Record<string, unknown> };
+const UserClaimSchema = z.discriminatedUnion('type', [
+    z.object({ type: z.literal('superUser') }),
+    z.object({ type: z.literal('user'), data: z.record(z.string(), z.unknown()) }),
+]);
+
+type UserClaim = z.infer<typeof UserClaimSchema>;
 
 /**
  * Accepts a public key in either PEM format or as a raw base64 / base64url DER string
@@ -243,11 +260,11 @@ async function createDialect(provider: string, databaseUrl: string, outputPath: 
 export function createProxyApp(
     client: ClientContract<SchemaDef>,
     schema: SchemaDef,
-    options?: {
-        studioAuthKey?: string;
-        authDb?: ClientContract<SchemaDef>;
+    auth?: {
+        studioAuthKey: string;
+        authDb: ClientContract<SchemaDef>;
         /** Seconds within which a signed request is considered valid. Defaults to 60. */
-        signatureToleranceSecs?: number;
+        signatureToleranceSecs: number;
     },
 ): express.Application {
     const app = express();
@@ -263,10 +280,10 @@ export function createProxyApp(
     );
     app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
-    if (options?.studioAuthKey) {
+    if (auth?.studioAuthKey) {
         // Apply signature-verification middleware to all authenticated endpoints.
-        const toleranceSecs = options.signatureToleranceSecs ?? 60;
-        const normalizedKey = normalizePublicKey(options.studioAuthKey);
+        const toleranceSecs = auth.signatureToleranceSecs;
+        const normalizedKey = normalizePublicKey(auth.studioAuthKey);
         app.use(['/api/model', '/api/schema'], createSignatureMiddleware(normalizedKey, toleranceSecs));
     }
 
@@ -274,7 +291,7 @@ export function createProxyApp(
         '/api/model',
         ZenStackMiddleware({
             apiHandler: new RPCApiHandler({ schema }),
-            getClient: (req) => resolveClient(client, options?.authDb, req),
+            getClient: (req) => resolveClient(client, auth?.authDb, req),
         }),
     );
 
@@ -317,14 +334,14 @@ function createSignatureMiddleware(publicKey: string, toleranceSeconds: number) 
     return (req: express.Request, res: express.Response, next: express.NextFunction) => {
         const signatureHeader = req.headers['x-zenstack-signature'];
         if (!signatureHeader || typeof signatureHeader !== 'string') {
-            return res.status(401).json({ message: 'Missing x-zenstack-signature header' });
+            return rejectAuth(res, 'MISSING_SIGNATURE_HEADER');
         }
 
         const parts = signatureHeader.split(',');
         const timestampPart = parts.find((p) => p.startsWith('t='));
         const sigPart = parts.find((p) => p.startsWith('v1='));
         if (!timestampPart || !sigPart) {
-            return res.status(401).json({ message: 'Invalid x-zenstack-signature format' });
+            return rejectAuth(res, 'INVALID_SIGNATURE_FORMAT');
         }
         const timestamp = timestampPart.substring(2);
         const sig = sigPart.substring(3);
@@ -334,7 +351,7 @@ function createSignatureMiddleware(publicKey: string, toleranceSeconds: number) 
         const requestTime = parseInt(timestamp, 10);
         const now = Math.floor(Date.now() / 1000);
         if (isNaN(requestTime) || Math.abs(now - requestTime) > toleranceSeconds) {
-            return res.status(401).json({ message: 'Request timestamp is expired or invalid' });
+            return rejectAuth(res, 'INVALID_TIMESTAMP');
         }
 
         // Payload: raw query string for GET/DELETE, raw body for other methods.
@@ -356,11 +373,11 @@ function createSignatureMiddleware(publicKey: string, toleranceSeconds: number) 
             const isValid = verify(null, Buffer.from(message, 'utf8'), publicKey, Buffer.from(sig, 'base64url'));
             if (!isValid) {
                 warnInvalidSignature();
-                return res.status(401).json({ message: 'Invalid signature' });
+                return rejectAuth(res, 'INVALID_SIGNATURE_FORMAT');
             }
         } catch {
             warnInvalidSignature();
-            return res.status(401).json({ message: 'Invalid signature' });
+            return rejectAuth(res, 'INVALID_SIGNATURE_FORMAT');
         }
 
         return next();
@@ -386,26 +403,26 @@ function resolveClient(
 
     const authHeader = req.headers['authorization'];
     if (!authHeader?.startsWith('Bearer ')) {
-        return client;
+        return authDb;
     }
 
     const token = authHeader.substring(7);
     let claim: UserClaim;
     try {
-        claim = JSON.parse(Buffer.from(token, 'base64').toString('utf8')) as UserClaim;
-    } catch {
-        return client;
+        claim = UserClaimSchema.parse(JSON.parse(Buffer.from(token, 'base64').toString('utf8')));
+    } catch (err) {
+        console.error(
+            colors.red(`Failed to parse user claim from token: ${err instanceof Error ? err.message : String(err)}`),
+        );
+        return authDb;
     }
 
     if (claim.type === 'superUser') {
+        // SuperUser has full access without policy enforcement, so we return the base client directly.
         return client;
-    }
-
-    if (claim.type === 'user') {
+    } else {
         return authDb.$setAuth(claim.data) as ClientContract<SchemaDef>;
     }
-
-    return client;
 }
 
 function startServer(
@@ -414,11 +431,17 @@ function startServer(
     options: Options,
     authDb?: ClientContract<SchemaDef>,
 ) {
-    const app = createProxyApp(client, schema, {
-        studioAuthKey: options.studioAuthKey,
-        authDb,
-        signatureToleranceSecs: options.signatureToleranceSecs,
-    });
+    const app = createProxyApp(
+        client,
+        schema,
+        options.studioAuthKey
+            ? {
+                  studioAuthKey: options.studioAuthKey,
+                  authDb: authDb!,
+                  signatureToleranceSecs: options.signatureToleranceSecs,
+              }
+            : undefined,
+    );
 
     const server = app.listen(options.port, () => {
         console.log(`ZenStack proxy server is running on port: ${options.port}`);

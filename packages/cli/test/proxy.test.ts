@@ -61,6 +61,19 @@ function makeUserToken(claim: { type: 'superUser' } | { type: 'user'; data: Reco
     return Buffer.from(JSON.stringify(claim)).toString('base64');
 }
 
+async function createPolicyApp(zmodel: string) {
+    const client = await createTestClient(zmodel);
+    const authDb = client.$use(new PolicyPlugin());
+    return {
+        client,
+        app: createProxyApp(client, client.$schema, {
+            studioAuthKey: TEST_PUBLIC_KEY,
+            authDb,
+            signatureToleranceSecs: 60,
+        }),
+    };
+}
+
 // ─── Test suite ───────────────────────────────────────────────────────────────
 
 describe('CLI proxy tests', () => {
@@ -230,19 +243,19 @@ describe('CLI proxy tests', () => {
 
     // ─── AuthN: signature verification ─────────────────────────────────────────
 
-    describe('signature verification (studioAuthKey configured)', () => {
+    describe('signature verification (studioAuthKey configured)', async () => {
         const zmodel = `
             model User {
                 id    String @id @default(cuid())
                 email String @unique
+
+                @@allow('all', true)
             }
         `;
 
         it('should reject requests missing the signature header with 401', async () => {
-            const client = await createTestClient(zmodel);
-            const app = createProxyApp(client, client.$schema, { studioAuthKey: TEST_PUBLIC_KEY });
+            const { app } = await createPolicyApp(zmodel);
             const baseUrl = await startAt(app);
-
             const r = await fetch(`${baseUrl}/api/model/user/findMany`);
             expect(r.status).toBe(401);
 
@@ -251,10 +264,8 @@ describe('CLI proxy tests', () => {
         });
 
         it('should reject requests with an invalid signature with 401', async () => {
-            const client = await createTestClient(zmodel);
-            const app = createProxyApp(client, client.$schema, { studioAuthKey: TEST_PUBLIC_KEY });
+            const { app } = await createPolicyApp(zmodel);
             const baseUrl = await startAt(app);
-
             const r = await fetch(`${baseUrl}/api/model/user/findMany`, {
                 headers: { 'x-zenstack-signature': 't=1234567890,v1=invalidsignature' },
             });
@@ -262,10 +273,8 @@ describe('CLI proxy tests', () => {
         });
 
         it('should allow GET requests with a valid signature', async () => {
-            const client = await createTestClient(zmodel);
-            const app = createProxyApp(client, client.$schema, { studioAuthKey: TEST_PUBLIC_KEY });
+            const { app } = await createPolicyApp(zmodel);
             const baseUrl = await startAt(app);
-
             const path = '/api/model/user/findMany';
             const sig = buildSignatureHeader({ privateKey: TEST_PRIVATE_KEY, method: 'GET', pathWithQuery: path });
 
@@ -278,10 +287,8 @@ describe('CLI proxy tests', () => {
         });
 
         it('should allow GET request with query params and a valid signature', async () => {
-            const client = await createTestClient(zmodel);
-            const app = createProxyApp(client, client.$schema, { studioAuthKey: TEST_PUBLIC_KEY });
+            const { client, app } = await createPolicyApp(zmodel);
             const baseUrl = await startAt(app);
-
             // Pre-seed a record directly via client
             await client.user.create({ data: { id: 'u1', email: 'alice@example.com' } });
 
@@ -302,10 +309,8 @@ describe('CLI proxy tests', () => {
         });
 
         it('should allow POST (create) requests with a valid signature', async () => {
-            const client = await createTestClient(zmodel);
-            const app = createProxyApp(client, client.$schema, { studioAuthKey: TEST_PUBLIC_KEY });
+            const { app } = await createPolicyApp(zmodel);
             const baseUrl = await startAt(app);
-
             const reqBody = { data: { email: 'bob@example.com' } };
             const pathWithQuery = '/api/model/user/create';
             const sig = buildSignatureHeader({
@@ -326,13 +331,10 @@ describe('CLI proxy tests', () => {
         });
 
         it('should allow PUT (update) requests with a valid signature', async () => {
-            const client = await createTestClient(zmodel);
-            const app = createProxyApp(client, client.$schema, { studioAuthKey: TEST_PUBLIC_KEY });
+            const { app, client } = await createPolicyApp(zmodel);
             const baseUrl = await startAt(app);
-
             // Seed a record
             await client.user.create({ data: { id: 'u1', email: 'old@example.com' } });
-
             const reqBody = { where: { id: 'u1' }, data: { email: 'new@example.com' } };
             const pathWithQuery = '/api/model/user/update';
             const sig = buildSignatureHeader({
@@ -353,10 +355,8 @@ describe('CLI proxy tests', () => {
         });
 
         it('should allow signed schema endpoint', async () => {
-            const client = await createTestClient(zmodel);
-            const app = createProxyApp(client, client.$schema, { studioAuthKey: TEST_PUBLIC_KEY });
+            const { app } = await createPolicyApp(zmodel);
             const baseUrl = await startAt(app);
-
             const pathWithQuery = '/api/schema';
             const sig = buildSignatureHeader({ privateKey: TEST_PRIVATE_KEY, method: 'GET', pathWithQuery });
 
@@ -369,8 +369,8 @@ describe('CLI proxy tests', () => {
         });
 
         it('should not require signatures when studioAuthKey is not configured', async () => {
-            const client = await createTestClient(zmodel);
             // No studioAuthKey — backwards-compatible mode
+            const client = await createTestClient(zmodel);
             const app = createProxyApp(client, client.$schema);
             const baseUrl = await startAt(app);
 
@@ -398,8 +398,13 @@ describe('CLI proxy tests', () => {
 
         it('should accept a raw base64 DER key (without PEM markers)', async () => {
             const client = await createTestClient(zmodel);
+            const authDb = client.$use(new PolicyPlugin());
             // Pass the key as raw base64 DER — no PEM markers
-            const app = createProxyApp(client, client.$schema, { studioAuthKey: TEST_PUBLIC_KEY_DER });
+            const app = createProxyApp(client, client.$schema, {
+                studioAuthKey: TEST_PUBLIC_KEY_DER,
+                authDb,
+                signatureToleranceSecs: 60,
+            });
             const baseUrl = await startAt(app);
 
             const pathWithQuery = '/api/model/user/findMany';
@@ -418,8 +423,11 @@ describe('CLI proxy tests', () => {
             try {
                 // No studioAuthKey option — would normally fall back to env var via run();
                 // here we verify the middleware still works when the resolved key is provided.
+                const authDb = client.$use(new PolicyPlugin());
                 const app = createProxyApp(client, client.$schema, {
                     studioAuthKey: process.env['ZENSTACK_STUDIO_AUTH_KEY'],
+                    authDb,
+                    signatureToleranceSecs: 60,
                 });
                 const baseUrl = await startAt(app);
 
@@ -447,7 +455,12 @@ describe('CLI proxy tests', () => {
 
         it('should reject a request whose timestamp is older than the tolerance window', async () => {
             const client = await createTestClient(zmodel);
-            const app = createProxyApp(client, client.$schema, { studioAuthKey: TEST_PUBLIC_KEY });
+            const authDb = client.$use(new PolicyPlugin());
+            const app = createProxyApp(client, client.$schema, {
+                studioAuthKey: TEST_PUBLIC_KEY,
+                authDb,
+                signatureToleranceSecs: 60,
+            });
             const baseUrl = await startAt(app);
 
             // Timestamp 120 seconds ago — exceeds default 60-second tolerance
@@ -470,7 +483,12 @@ describe('CLI proxy tests', () => {
 
         it('should reject a request whose timestamp is too far in the future', async () => {
             const client = await createTestClient(zmodel);
-            const app = createProxyApp(client, client.$schema, { studioAuthKey: TEST_PUBLIC_KEY });
+            const authDb = client.$use(new PolicyPlugin());
+            const app = createProxyApp(client, client.$schema, {
+                studioAuthKey: TEST_PUBLIC_KEY,
+                authDb,
+                signatureToleranceSecs: 60,
+            });
             const baseUrl = await startAt(app);
 
             // Timestamp 120 seconds in the future — exceeds default 60-second tolerance
@@ -494,8 +512,10 @@ describe('CLI proxy tests', () => {
         it('should accept a request within a custom tolerance window', async () => {
             const client = await createTestClient(zmodel);
             // Custom tolerance of 300 seconds
+            const authDb = client.$use(new PolicyPlugin());
             const app = createProxyApp(client, client.$schema, {
                 studioAuthKey: TEST_PUBLIC_KEY,
+                authDb,
                 signatureToleranceSecs: 300,
             });
             const baseUrl = await startAt(app);
@@ -518,9 +538,11 @@ describe('CLI proxy tests', () => {
 
         it('should reject a request that falls outside a custom tolerance window', async () => {
             const client = await createTestClient(zmodel);
+            const authDb = client.$use(new PolicyPlugin());
             // Very tight tolerance of 5 seconds
             const app = createProxyApp(client, client.$schema, {
                 studioAuthKey: TEST_PUBLIC_KEY,
+                authDb,
                 signatureToleranceSecs: 5,
             });
             const baseUrl = await startAt(app);
@@ -554,7 +576,12 @@ describe('CLI proxy tests', () => {
 
         it('should reject a valid signature if it was produced without the Authorization token', async () => {
             const client = await createTestClient(zmodel);
-            const app = createProxyApp(client, client.$schema, { studioAuthKey: TEST_PUBLIC_KEY });
+            const authDb = client.$use(new PolicyPlugin());
+            const app = createProxyApp(client, client.$schema, {
+                studioAuthKey: TEST_PUBLIC_KEY,
+                authDb,
+                signatureToleranceSecs: 60,
+            });
             const baseUrl = await startAt(app);
 
             // Sign without including the auth token
@@ -580,7 +607,12 @@ describe('CLI proxy tests', () => {
 
         it('should accept a request where the signature covers the Authorization token', async () => {
             const client = await createTestClient(zmodel);
-            const app = createProxyApp(client, client.$schema, { studioAuthKey: TEST_PUBLIC_KEY });
+            const authDb = client.$use(new PolicyPlugin());
+            const app = createProxyApp(client, client.$schema, {
+                studioAuthKey: TEST_PUBLIC_KEY,
+                authDb,
+                signatureToleranceSecs: 60,
+            });
             const baseUrl = await startAt(app);
 
             const authToken = makeUserToken({ type: 'superUser' });
@@ -615,13 +647,6 @@ describe('CLI proxy tests', () => {
             }
         `;
 
-        async function createPolicyApp(extraZmodel?: string) {
-            const fullZmodel = extraZmodel ? `${zmodel}\n${extraZmodel}` : zmodel;
-            const client = await createTestClient(fullZmodel);
-            const authDb = client.$use(new PolicyPlugin());
-            return { client, app: createProxyApp(client, client.$schema, { studioAuthKey: TEST_PUBLIC_KEY, authDb }) };
-        }
-
         async function signedFetch(baseUrl: string, path: string, init: RequestInit = {}): Promise<Response> {
             const method = (init.method ?? 'GET').toUpperCase();
             const body = init.body ? JSON.parse(init.body as string) : undefined;
@@ -644,8 +669,20 @@ describe('CLI proxy tests', () => {
             });
         }
 
+        it('anonymous request should not bypass access policy', async () => {
+            const { client, app } = await createPolicyApp(zmodel);
+            const baseUrl = await startAt(app);
+            await client.user.create({ data: { id: 'u1', email: 'user1@example.com' } });
+            await client.user.create({ data: { id: 'u2', email: 'user2@example.com' } });
+            const pathWithQuery = '/api/model/user/findMany';
+            const r = await signedFetch(baseUrl, pathWithQuery);
+            expect(r.status).toBe(200);
+            const body = await r.json();
+            expect(body.data).toHaveLength(0);
+        });
+
         it('superUser can access all records', async () => {
-            const { client, app } = await createPolicyApp();
+            const { client, app } = await createPolicyApp(zmodel);
             const baseUrl = await startAt(app);
 
             // Seed two users directly via base client (bypasses policy)
@@ -664,7 +701,7 @@ describe('CLI proxy tests', () => {
         });
 
         it('regular user can only access their own record', async () => {
-            const { client, app } = await createPolicyApp();
+            const { client, app } = await createPolicyApp(zmodel);
             const baseUrl = await startAt(app);
 
             // Seed two users
@@ -685,7 +722,7 @@ describe('CLI proxy tests', () => {
         });
 
         it("regular user cannot update another user's record", async () => {
-            const { client, app } = await createPolicyApp();
+            const { client, app } = await createPolicyApp(zmodel);
             const baseUrl = await startAt(app);
 
             await client.user.create({ data: { id: 'u1', email: 'user1@example.com' } });
@@ -706,7 +743,7 @@ describe('CLI proxy tests', () => {
         });
 
         it('superUser can create records on behalf of others', async () => {
-            const { client: _client, app } = await createPolicyApp();
+            const { client: _client, app } = await createPolicyApp(zmodel);
             const baseUrl = await startAt(app);
 
             const reqBody = { data: { id: 'u1', email: 'user1@example.com' } };
@@ -723,7 +760,7 @@ describe('CLI proxy tests', () => {
         });
 
         it('sequential transaction respects user-scoped policy', async () => {
-            const fullZmodel = `
+            const fullZModel = `
                 model User {
                     id    String @id @default(cuid())
                     email String @unique
@@ -740,9 +777,7 @@ describe('CLI proxy tests', () => {
                     @@allow('all', auth() != null && auth().id == authorId)
                 }
             `;
-            const client = await createTestClient(fullZmodel);
-            const authDb = client.$use(new PolicyPlugin());
-            const app = createProxyApp(client, client.$schema, { studioAuthKey: TEST_PUBLIC_KEY, authDb });
+            const { client, app } = await createPolicyApp(fullZModel);
             const baseUrl = await startAt(app);
 
             // Seed users
