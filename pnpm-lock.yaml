@@ -19,6 +19,9 @@ catalogs:
       specifier: ^4.0.0
       version: 4.0.1
 
+overrides:
+  underscore: '>=1.13.8'
+
 importers:
 
   .:
@@ -150,8 +153,8 @@ importers:
         specifier: ^4.3.0
         version: 4.3.0
       yaml:
-        specifier: ^2.2.2
-        version: 2.4.5
+        specifier: ^2.9.0
+        version: 2.9.0
       zod:
         specifier: 'catalog:'
         version: 4.1.5
@@ -178,8 +181,8 @@ importers:
         specifier: ^8.0.0
         version: 8.0.0
       tmp:
-        specifier: ^0.2.1
-        version: 0.2.3
+        specifier: ^0.2.7
+        version: 0.2.7
       zenstack:
         specifier: workspace:*
         version: link:../../schema/dist
@@ -323,8 +326,8 @@ importers:
         specifier: ^2.0.3
         version: 2.2.5(react@18.2.0)
       tmp:
-        specifier: ^0.2.3
-        version: 0.2.3
+        specifier: ^0.2.7
+        version: 0.2.7
       typescript:
         specifier: ^5.0.0
         version: 5.9.2
@@ -376,8 +379,8 @@ importers:
         specifier: 14.2.4
         version: 14.2.4(@babel/core@7.24.7)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.2.0))(react@18.2.0)
       tmp:
-        specifier: ^0.2.3
-        version: 0.2.3
+        specifier: ^0.2.7
+        version: 0.2.7
     publishDirectory: dist
 
   packages/runtime:
@@ -416,8 +419,8 @@ importers:
         specifier: ^2.4.1
         version: 2.6.3
       uuid:
-        specifier: ^9.0.0
-        version: 9.0.1
+        specifier: ^11.1.1
+        version: 11.1.1
       zod-validation-error:
         specifier: 'catalog:'
         version: 4.0.1(zod@3.25.76)
@@ -437,9 +440,6 @@ importers:
       '@types/semver':
         specifier: ^7.3.13
         version: 7.5.8
-      '@types/uuid':
-        specifier: ^8.3.4
-        version: 8.3.4
       zod:
         specifier: ^3.25.0
         version: 3.25.76
@@ -502,8 +502,8 @@ importers:
         specifier: ^4.3.0
         version: 4.3.0
       uuid:
-        specifier: ^9.0.0
-        version: 9.0.1
+        specifier: ^11.1.1
+        version: 11.1.1
       vscode-jsonrpc:
         specifier: ^8.0.2
         version: 8.2.1
@@ -544,9 +544,6 @@ importers:
       '@types/tmp':
         specifier: ^0.2.3
         version: 0.2.6
-      '@types/uuid':
-        specifier: ^8.3.4
-        version: 8.3.4
       '@types/vscode':
         specifier: ^1.99.3
         version: 1.103.0
@@ -569,8 +566,8 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0
       tmp:
-        specifier: ^0.2.1
-        version: 0.2.3
+        specifier: ^0.2.7
+        version: 0.2.7
       tsc-alias:
         specifier: ^1.7.0
         version: 1.8.10
@@ -718,8 +715,8 @@ importers:
         specifier: ^8.11.1
         version: 8.12.0
       tmp:
-        specifier: ^0.2.1
-        version: 0.2.3
+        specifier: ^0.2.7
+        version: 0.2.7
       vscode-uri:
         specifier: ^3.0.6
         version: 3.0.8
@@ -771,9 +768,6 @@ importers:
       '@types/tmp':
         specifier: ^0.2.3
         version: 0.2.6
-      '@types/uuid':
-        specifier: ^8.3.4
-        version: 8.3.4
       '@zenstackhq/runtime':
         specifier: workspace:*
         version: link:../../packages/runtime/dist
@@ -793,11 +787,11 @@ importers:
         specifier: 14.2.4
         version: 14.2.4(@babel/core@7.24.7)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.2.0))(react@18.2.0)
       tmp:
-        specifier: ^0.2.1
-        version: 0.2.3
+        specifier: ^0.2.7
+        version: 0.2.7
       uuid:
-        specifier: ^10.0.0
-        version: 10.0.0
+        specifier: ^11.1.1
+        version: 11.1.1
       zenstack:
         specifier: 'workspace: *'
         version: link:../../packages/schema/dist
@@ -3277,9 +3271,6 @@ packages:
   '@types/tough-cookie@4.0.5':
     resolution: {integrity: sha512-/Ad8+nIOV7Rl++6f1BdKxFSMgmoqEoYbHRpPcx3JEfv8VRsQe9Z4mCXeJBzxs7mbHY/XOZZuXlRNfhpVPbs6ZA==}
 
-  '@types/uuid@8.3.4':
-    resolution: {integrity: sha512-c/I8ZRb51j+pYGAu5CrFMRxqZ2ke4y2grEBO5AUjgSkSk+qT2Ea+OdWElz/OiMf5MNpn2b17kuVBwZLQJXzihw==}
-
   '@types/vscode@1.103.0':
     resolution: {integrity: sha512-o4hanZAQdNfsKecexq9L3eHICd0AAvdbLk6hA60UzGXbGH/q8b/9xv2RgR7vV3ZcHuyKVq7b37IGd/+gM4Tu+Q==}
 
@@ -5160,21 +5151,23 @@ packages:
   glob@10.4.2:
     resolution: {integrity: sha512-GwMlUF6PkPo3Gk21UxkCohOv0PLcIXVtKyLlpEI28R/cO/4eNOdmLk3CMW1wROV/WR/EsZOWAfBbBOqYvs88/w==}
     engines: {node: '>=16 || 14 >=14.18'}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
     hasBin: true
 
   glob@11.0.3:
     resolution: {integrity: sha512-2Nim7dha1KVkaiF4q6Dj+ngPPMdfvLJEOpZk/jKiUAkqKebpGAWQXAq9z1xu9HKu5lWfqw/FASuccEjyznjPaA==}
     engines: {node: 20 || >=22}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
     hasBin: true
 
   glob@7.2.3:
     resolution: {integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==}
-    deprecated: Glob versions prior to v9 are no longer supported
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   glob@8.1.0:
     resolution: {integrity: sha512-r8hpEjiQEYlF2QU0df3dS+nxxSIreXQS1qRhMJM0Q5NDdR386C7jb7Hwwod8Fgiuex+k0GFjgft18yvxm5XoCQ==}
     engines: {node: '>=12'}
-    deprecated: Glob versions prior to v9 are no longer supported
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   global-directory@4.0.1:
     resolution: {integrity: sha512-wHTUcDUoZ1H5/0iVqEudYW4/kAlN5cZ3j/bXn0Dpbizl9iaUVeWSHqiOjsgk6OW2bkLclbBjzewBz6weQ1zA2Q==}
@@ -7092,6 +7085,7 @@ packages:
   prebuild-install@7.1.2:
     resolution: {integrity: sha512-UnNke3IQb6sgarcZIDU3gbMeTp/9SSU1DAIkil7PrqG1vZlBtY5msYccSKSHDqa3hNg436IXK+SNImReuA1wEQ==}
     engines: {node: '>=10'}
+    deprecated: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
     hasBin: true
 
   prelude-ls@1.2.1:
@@ -7902,6 +7896,7 @@ packages:
   tar@6.2.1:
     resolution: {integrity: sha512-DZ4yORTwrbTj/7MZYq2w+/ZFdI6OZ/f9SFHR+71gIVUZhOQPHzVCLpvRnPgyaMpfWxxk/4ONva3GQSyNIKRv6A==}
     engines: {node: '>=10'}
+    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   terminal-link@2.1.1:
     resolution: {integrity: sha512-un0FmiRUQNr5PJqy9kP7c40F5BOfpGlYTrxonDChEZB7pzZxRNp/bt+ymiy9/npwXya9KH99nJ/GXFIiUkYGFQ==}
@@ -7962,8 +7957,8 @@ packages:
   title-case@3.0.3:
     resolution: {integrity: sha512-e1zGYRvbffpcHIrnuqT0Dh+gEJtDaxDSoG4JAIpq4oDFyooziLBIiYQv0GBT4FUAnUop5uZ1hiIAj7oAF6sOCA==}
 
-  tmp@0.2.3:
-    resolution: {integrity: sha512-nZD7m9iCPC5g0pYmcaxogYKggSfLsdxl8of3Q/oIbqCqLLIO9IAF0GWjX1z9NZRHPiXv8Wex4yDCaZsgEw0Y8w==}
+  tmp@0.2.7:
+    resolution: {integrity: sha512-e0votIpp4Uo2AJYSzVHV6xCcawuiez3DzqDAbrTc3YxBkplN6e+dM13ZeIcZnDg/QpSuU2zfZ3rzwY8ukEnaXw==}
     engines: {node: '>=14.14'}
 
   tmpl@1.0.5:
@@ -8198,8 +8193,8 @@ packages:
   unctx@2.3.1:
     resolution: {integrity: sha512-PhKke8ZYauiqh3FEMVNm7ljvzQiph0Mt3GBRve03IJm7ukfaON2OBK795tLwhbyfzknuRRkW0+Ze+CQUmzOZ+A==}
 
-  underscore@1.13.6:
-    resolution: {integrity: sha512-+A5Sja4HP1M08MaXya7p5LvjuM7K6q/2EaC0+iovj/wOcMsTzMvDFbasi/oSapiwOlt252IqsKqPjCl7huKS0A==}
+  underscore@1.13.8:
+    resolution: {integrity: sha512-DXtD3ZtEQzc7M8m4cXotyHR+FAS18C64asBYY5vqZexfYryNNnDc02W4hKg3rdQuqOYas1jkseX0+nZXjTXnvQ==}
 
   undici-types@5.26.5:
     resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
@@ -8251,6 +8246,7 @@ packages:
 
   unplugin-vue-router@0.7.0:
     resolution: {integrity: sha512-ddRreGq0t5vlSB7OMy4e4cfU1w2AwBQCwmvW3oP/0IHQiokzbx4hd3TpwBu3eIAFVuhX2cwNQwp1U32UybTVCw==}
+    deprecated: 'Merged into vuejs/router. Migrate: https://router.vuejs.org/guide/migration/v4-to-v5.html'
     peerDependencies:
       vue-router: ^4.1.0
     peerDependenciesMeta:
@@ -8360,16 +8356,18 @@ packages:
     resolution: {integrity: sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA==}
     engines: {node: '>= 0.4.0'}
 
-  uuid@10.0.0:
-    resolution: {integrity: sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ==}
+  uuid@11.1.1:
+    resolution: {integrity: sha512-vIYxrBCC/N/K+Js3qSN88go7kIfNPssr/hHCesKCQNAjmgvYS2oqr69kIufEG+O4+PfezOH4EbIeHCfFov8ZgQ==}
     hasBin: true
 
   uuid@8.3.2:
     resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
   uuid@9.0.1:
     resolution: {integrity: sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==}
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
   v8-compile-cache-lib@3.0.1:
@@ -8803,9 +8801,9 @@ packages:
     resolution: {integrity: sha512-r3vXyErRCYJ7wg28yvBY5VSoAF8ZvlcW9/BwUzEtUsjvX/DKs24dIkuwjtuprwJJHsbyUbLApepYTR1BN4uHrg==}
     engines: {node: '>= 6'}
 
-  yaml@2.4.5:
-    resolution: {integrity: sha512-aBx2bnqDzVOyNKfsysjA2ms5ZlnjSAW2eG3/L5G/CSujfjLJTJsEw1bGw8kCf04KodQWk1pxlGnZ56CRxiawmg==}
-    engines: {node: '>= 14'}
+  yaml@2.9.0:
+    resolution: {integrity: sha512-2AvhNX3mb8zd6Zy7INTtSpl1F15HW6Wnqj0srWlkKLcpYl/gMIMJiyuGq2KeI2YFxUPjdlB+3Lc10seMLtL4cA==}
+    engines: {node: '>= 14.6'}
     hasBin: true
 
   yargs-parser@20.2.9:
@@ -11623,8 +11621,6 @@ snapshots:
 
   '@types/tough-cookie@4.0.5': {}
 
-  '@types/uuid@8.3.4': {}
-
   '@types/vscode@1.103.0': {}
 
   '@types/yargs-parser@21.0.3': {}
@@ -11863,7 +11859,7 @@ snapshots:
       read: 1.0.7
       secretlint: 9.3.4
       semver: 7.6.2
-      tmp: 0.2.3
+      tmp: 0.2.7
       typed-rest-client: 1.8.11
       url-join: 4.0.1
       xml2js: 0.5.0
@@ -15097,7 +15093,7 @@ snapshots:
 
   logic-solver@2.0.1:
     dependencies:
-      underscore: 1.13.6
+      underscore: 1.13.8
 
   long@5.2.3: {}
 
@@ -16079,7 +16075,7 @@ snapshots:
   postcss-load-config@4.0.2(postcss@8.4.38)(ts-node@10.9.2(@types/node@20.14.9)(typescript@5.8.3)):
     dependencies:
       lilconfig: 3.1.2
-      yaml: 2.4.5
+      yaml: 2.9.0
     optionalDependencies:
       postcss: 8.4.38
       ts-node: 10.9.2(@types/node@20.14.9)(typescript@5.8.3)
@@ -17203,7 +17199,7 @@ snapshots:
     dependencies:
       tslib: 2.6.3
 
-  tmp@0.2.3: {}
+  tmp@0.2.7: {}
 
   tmpl@1.0.5: {}
 
@@ -17379,7 +17375,7 @@ snapshots:
     dependencies:
       qs: 6.12.1
       tunnel: 0.0.6
-      underscore: 1.13.6
+      underscore: 1.13.8
 
   typedarray@0.0.6: {}
 
@@ -17414,7 +17410,7 @@ snapshots:
       magic-string: 0.30.10
       unplugin: 1.10.1
 
-  underscore@1.13.6: {}
+  underscore@1.13.8: {}
 
   undici-types@5.26.5: {}
 
@@ -17491,7 +17487,7 @@ snapshots:
       pathe: 1.1.2
       scule: 1.3.0
       unplugin: 1.10.1
-      yaml: 2.4.5
+      yaml: 2.9.0
     optionalDependencies:
       vue-router: 4.4.0(vue@3.4.31(typescript@5.9.2))
     transitivePeerDependencies:
@@ -17585,7 +17581,7 @@ snapshots:
 
   utils-merge@1.0.1: {}
 
-  uuid@10.0.0: {}
+  uuid@11.1.1: {}
 
   uuid@8.3.2: {}
 
@@ -17997,7 +17993,7 @@ snapshots:
 
   yaml@1.10.2: {}
 
-  yaml@2.4.5: {}
+  yaml@2.9.0: {}
 
   yargs-parser@20.2.9: {}
 

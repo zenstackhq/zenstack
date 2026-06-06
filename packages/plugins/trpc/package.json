@@ -42,6 +42,6 @@
         "@types/tmp": "^0.2.3",
         "@zenstackhq/testtools": "workspace:*",
         "next": "14.2.4",
-        "tmp": "^0.2.3"
+        "tmp": "^0.2.7"
     }
 }

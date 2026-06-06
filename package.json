@@ -37,5 +37,10 @@
         "tsup": "^8.0.1",
         "tsx": "^4.7.1",
         "typescript": "catalog:"
+    },
+    "pnpm": {
+        "overrides": {
+            "underscore": ">=1.13.8"
+        }
     }
 }
