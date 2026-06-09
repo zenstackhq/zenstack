@@ -1,8 +1,8 @@
 import { createPolicyTestClient } from '@zenstackhq/testtools';
 import { describe, expect, it } from 'vitest';
 
-describe('Postgres dialect tests', () => {
-    it('isEmpty function', async () => {
+describe('isEmpty function in policies using Postgres', () => {
+    it('does not throw an error', async () => {
         const schema = `
 model User {
     id        Int      @id @default(autoincrement())
