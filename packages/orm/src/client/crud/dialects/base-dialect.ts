@@ -549,7 +549,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             let receiver = fieldRef;
             if (isEnum(this.schema, fieldType)) {
                 // cast enum array to `text[]` for type compatibility
-                receiver = this.eb.cast(fieldRef, sql`${sql.id(fieldType)}[]`);
+                receiver = this.eb.cast(fieldRef, sql.raw('text[]'));
             }
 
             const buildArray = (value: unknown) => {

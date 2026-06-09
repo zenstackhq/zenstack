@@ -414,11 +414,11 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
 
     override buildArrayValue(values: Expression<unknown>[], elemType: string): AliasableExpression<unknown> {
         const arr = sql`ARRAY[${sql.join(values, sql.raw(','))}]`;
-        // if (isEnum(this.schema, elemType)) {
-        //     return this.eb.cast(arr, sql`${sql.id(elemType)}[]`);
-        // }
+        if (isEnum(this.schema, elemType)) {
+            return this.eb.cast(arr, sql`${sql.id(elemType)}[]`);
+        }
         const mappedType = this.getSqlType(elemType);
-        return this.eb.cast(arr, sql`${sql.id(mappedType)}[]`);
+        return this.eb.cast(arr, sql`${sql.raw(mappedType)}[]`);
     }
 
     override buildArrayContains(
@@ -430,7 +430,7 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         const arrayExpr = sql`ARRAY[${value}]`;
         if (elemType) {
             const mappedType = this.getSqlType(elemType);
-            const typedArray = this.eb.cast(arrayExpr, sql`${sql.id(mappedType)}[]`);
+            const typedArray = this.eb.cast(arrayExpr, sql`${sql.raw(mappedType)}[]`);
             return this.eb(field, '@>', typedArray);
         } else {
             return this.eb(field, '@>', arrayExpr);
@@ -504,7 +504,7 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         }
         if (isEnum(this.schema, zmodelType)) {
             // reduce enum to text for type compatibility
-            return zmodelType;
+            return 'text';
         } else {
             return this.zmodelToSqlTypeMap[zmodelType] ?? 'text';
         }
@@ -543,10 +543,10 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
             (leftResolved.hasDbOverride || rightResolved.hasDbOverride)
         ) {
             if (leftResolved.hasDbOverride) {
-                left = this.eb.cast(left, sql.id(this.getSqlType(leftFieldDef!.type)));
+                left = this.eb.cast(left, sql.raw(this.getSqlType(leftFieldDef!.type)));
             }
             if (rightResolved.hasDbOverride) {
-                right = this.eb.cast(right, sql.id(this.getSqlType(rightFieldDef!.type)));
+                right = this.eb.cast(right, sql.raw(this.getSqlType(rightFieldDef!.type)));
             }
         }
         return super.buildComparison(left, leftFieldDef, op, right, rightFieldDef);
@@ -587,7 +587,7 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
             .select(
                 fields.map((f, i) => {
                     const mappedType = this.getSqlType(f.type, f.attributes);
-                    const castType = f.array ? sql`${sql.id(mappedType)}[]` : sql.id(mappedType);
+                    const castType = f.array ? sql`${sql.raw(mappedType)}[]` : sql.raw(mappedType);
                     return this.eb.cast(sql.ref(`$values.column${i + 1}`), castType).as(f.name);
                 }),
             );
