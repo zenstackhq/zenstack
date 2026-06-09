@@ -104,7 +104,10 @@ export async function run(options: Options) {
         throw new CliError(`Failed to connect to the database: ${err instanceof Error ? err.message : String(err)}`);
     }
 
-    startServer(db, schemaModule.schema, options);
+    // `db` carries a precise options literal (omit, log, etc.); `startServer` only needs a
+    // schema-agnostic `ClientContract<SchemaDef>`. Those differ in their (invariant) `Options`
+    // type argument, so widen explicitly - the proxy doesn't rely on option-specific typing.
+    startServer(db as unknown as ClientContract<SchemaDef>, schemaModule.schema, options);
 }
 
 function evaluateUrl(schemaUrl: ConfigExpr) {

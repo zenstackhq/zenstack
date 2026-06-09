@@ -1324,9 +1324,9 @@ export type SelectSubset<T, U> = {
       : {});
 
 type ToManyRelationFilter<
-    Schema extends SchemaDef,
-    Model extends GetModels<Schema>,
-    Field extends RelationFields<Schema, Model>,
+    in out Schema extends SchemaDef,
+    in out Model extends GetModels<Schema>,
+    in out Field extends RelationFields<Schema, Model>,
     Options extends QueryOptions<Schema>,
 > = {
     every?: WhereInput<Schema, RelationFieldType<Schema, Model, Field>, Options>;
@@ -1461,8 +1461,8 @@ type FilterArgs<Schema extends SchemaDef, Model extends GetModels<Schema>, Optio
 };
 
 type SortAndTakeArgs<
-    Schema extends SchemaDef,
-    Model extends GetModels<Schema>,
+    in out Schema extends SchemaDef,
+    in out Model extends GetModels<Schema>,
     Options extends QueryOptions<Schema>,
 > = {
     /**
@@ -1844,9 +1844,9 @@ export type UpdateManyAndReturnArgs<
     ExtractExtQueryArgs<ExtQueryArgs, 'updateManyAndReturn'>;
 
 type UpdateManyPayload<
-    Schema extends SchemaDef,
-    Model extends GetModels<Schema>,
-    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    in out Schema extends SchemaDef,
+    in out Model extends GetModels<Schema>,
+    out Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     Without extends string = never,
 > = {
     /**
@@ -2106,9 +2106,9 @@ type ToManyRelationUpdateInput<
 >;
 
 type ToOneRelationUpdateInput<
-    Schema extends SchemaDef,
-    Model extends GetModels<Schema>,
-    Field extends RelationFields<Schema, Model>,
+    in out Schema extends SchemaDef,
+    in out Model extends GetModels<Schema>,
+    in out Field extends RelationFields<Schema, Model>,
     Options extends QueryOptions<Schema>,
 > = Omit<
     {
@@ -2356,9 +2356,9 @@ type AggCommonOutput<Input> = Input extends true
 // #region GroupBy
 
 type GroupByHaving<
-    Schema extends SchemaDef,
-    Model extends GetModels<Schema>,
-    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    in out Schema extends SchemaDef,
+    in out Model extends GetModels<Schema>,
+    out Options extends QueryOptions<Schema> = QueryOptions<Schema>,
 > = Omit<WhereInput<Schema, Model, Options, true, true>, '$expr'>;
 
 export type GroupByArgs<

@@ -34,7 +34,7 @@
     "svelte": "catalog:",
     "svelte-check": "^4.3.4",
     "tailwindcss": "^4.1.17",
-    "tsx": "^4.19.2",
+    "tsx": "catalog:",
     "typescript": "^5.9.3",
     "vite": "^7.2.6"
   },

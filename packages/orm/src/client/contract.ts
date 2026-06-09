@@ -20,7 +20,7 @@ import type {
     TypeDefResult,
 } from './crud-types';
 import type { Diagnostics } from './diagnostics';
-import type { ClientOptions, QueryOptions } from './options';
+import type { ClientOptions, QueryOptions, QueryRelevantOptions } from './options';
 import type {
     ExtClientMembersBase,
     ExtQueryArgsBase,
@@ -63,6 +63,10 @@ export const ExtResultMarker: unique symbol = Symbol('zenstack.client.extResult'
 
 /**
  * ZenStack client interface.
+ *
+ * Note: this alias resolves to an intersection, so it cannot carry variance annotations itself
+ * (TS2637). It doesn't need them - measuring its variance recurses into {@link ModelOperations},
+ * whose annotations short-circuit the expensive cascade. See {@link CommonModelOperations}.
  */
 export type ClientContract<
     Schema extends SchemaDef,
@@ -270,10 +274,13 @@ export type ClientContract<
      */
     get $diagnostics(): Promise<Diagnostics>;
 } & {
-    [Key in GetSlicedModels<Schema, Options> as Uncapitalize<Key>]: ModelOperations<
+    // Project `Options` to its query-relevant subset before fanning out across every model. This
+    // strips the heavy `computedFields`/`procedures` function types (never read by these types) so
+    // the 30+ `ModelOperations` instantiations stay cheap. See {@link QueryRelevantOptions}.
+    [Key in GetSlicedModels<Schema, QueryRelevantOptions<Schema, Options>> as Uncapitalize<Key>]: ModelOperations<
         Schema,
         Key,
-        Options,
+        QueryRelevantOptions<Schema, Options>,
         ExtQueryArgs,
         ExtResult
     >;
@@ -342,7 +349,7 @@ type SliceOperations<
     T extends Record<string, unknown>,
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
-    Options extends ClientOptions<Schema>,
+    Options extends QueryOptions<Schema>,
 > = Omit<
     {
         // keep only operations included by slicing options
@@ -419,12 +426,21 @@ export type AllModelOperations<
               ): ZenStackPromise<CrudReturnType<Schema, Model, 'updateManyAndReturn', T, Options, ExtResult>>;
           });
 
+// Explicit variance annotations bypass TypeScript's structural variance *measurement* for this
+// large, deeply-recursive generic. Measurement here comes back "unreliable" (the type recurses
+// across related models) and is pure wasted work - it dominated type-check time. The annotations
+// below match the measured variance and let the checker skip that probing entirely.
 type CommonModelOperations<
-    Schema extends SchemaDef,
-    Model extends GetModels<Schema>,
-    Options extends QueryOptions<Schema>,
-    ExtQueryArgs extends ExtQueryArgsBase,
-    ExtResult extends ExtResultBase<Schema> = {},
+    in out Schema extends SchemaDef,
+    in out Model extends GetModels<Schema>,
+    // `Options` is invariant (it is read for `omit`/`slicing` in both arg and result positions).
+    // Annotating it keeps the variance-measurement skip. Note: a client built with an explicit
+    // `omit`/`slicing` literal is then no longer assignable to the bare `ClientContract<Schema>`
+    // (default options) - schema-agnostic call sites that take `ClientContract<SchemaDef>` should
+    // accept the client via a cast. This is a rare pattern and worth the type-check speedup.
+    in out Options extends QueryOptions<Schema>,
+    in out ExtQueryArgs extends ExtQueryArgsBase,
+    out ExtResult extends ExtResultBase<Schema> = {},
 > = {
     /**
      * Returns a list of entities.
@@ -955,12 +971,15 @@ type CommonModelOperations<
 
 export type OperationsRequiringCreate = 'create' | 'createMany' | 'createManyAndReturn' | 'upsert';
 
+// See the note on `CommonModelOperations` - explicit variance annotations skip the expensive,
+// "unreliable" variance measurement of this recursive type.
 export type ModelOperations<
-    Schema extends SchemaDef,
-    Model extends GetModels<Schema>,
-    Options extends ClientOptions<Schema> = ClientOptions<Schema>,
-    ExtQueryArgs extends ExtQueryArgsBase = {},
-    ExtResult extends ExtResultBase<Schema> = {},
+    in out Schema extends SchemaDef,
+    in out Model extends GetModels<Schema>,
+    // `Options` is invariant - see the note on {@link CommonModelOperations}.
+    in out Options extends QueryOptions<Schema> = ClientOptions<Schema>,
+    in out ExtQueryArgs extends ExtQueryArgsBase = {},
+    out ExtResult extends ExtResultBase<Schema> = {},
 > = SliceOperations<AllModelOperations<Schema, Model, Options, ExtQueryArgs, ExtResult>, Schema, Model, Options>;
 
 //#endregion

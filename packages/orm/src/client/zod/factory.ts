@@ -129,7 +129,7 @@ export type CreateSchemaOptions = {
  * Factory class responsible for creating and caching Zod schemas for ORM input validation.
  */
 export class ZodSchemaFactory<
-    Schema extends SchemaDef,
+    in out Schema extends SchemaDef,
     Options extends ClientOptions<Schema> = ClientOptions<Schema>,
     ExtQueryArgs extends ExtQueryArgsBase = {},
 > {
