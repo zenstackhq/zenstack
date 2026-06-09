@@ -1453,7 +1453,7 @@ type OppositeRelationAndFK<
 
 //#region Find args
 
-type FilterArgs<Schema extends SchemaDef, Model extends GetModels<Schema>, Options extends QueryOptions<Schema>> = {
+type FilterArgs<in out Schema extends SchemaDef, in out Model extends GetModels<Schema>, in out Options extends QueryOptions<Schema>> = {
     /**
      * Filter conditions
      */
@@ -1463,7 +1463,7 @@ type FilterArgs<Schema extends SchemaDef, Model extends GetModels<Schema>, Optio
 type SortAndTakeArgs<
     in out Schema extends SchemaDef,
     in out Model extends GetModels<Schema>,
-    Options extends QueryOptions<Schema>,
+    in out Options extends QueryOptions<Schema>,
 > = {
     /**
      * Number of records to skip
@@ -2105,11 +2105,15 @@ type ToManyRelationUpdateInput<
         : 'create' | 'createMany' | 'connectOrCreate' | 'upsert'
 >;
 
+// Variance-annotated to skip TypeScript's (unreliable, expensive) variance measurement of this
+// recursive arg type. Annotating the parent also short-circuits measurement of its conditional
+// children (`DisconnectInput`/`NestedDeleteInput`), which can't be annotated directly. `Options`
+// is invariant - see the note on `ClientContract`'s `CommonModelOperations`.
 type ToOneRelationUpdateInput<
     in out Schema extends SchemaDef,
     in out Model extends GetModels<Schema>,
     in out Field extends RelationFields<Schema, Model>,
-    Options extends QueryOptions<Schema>,
+    in out Options extends QueryOptions<Schema>,
 > = Omit<
     {
         /**

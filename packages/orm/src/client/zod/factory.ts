@@ -130,7 +130,7 @@ export type CreateSchemaOptions = {
  */
 export class ZodSchemaFactory<
     in out Schema extends SchemaDef,
-    Options extends ClientOptions<Schema> = ClientOptions<Schema>,
+    in out Options extends ClientOptions<Schema> = ClientOptions<Schema>,
     ExtQueryArgs extends ExtQueryArgsBase = {},
 > {
     private readonly schemaCache = new Map<string, ZodType>();
