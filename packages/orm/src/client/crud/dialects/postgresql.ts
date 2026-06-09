@@ -414,9 +414,6 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
 
     override buildArrayValue(values: Expression<unknown>[], elemType: string): AliasableExpression<unknown> {
         const arr = sql`ARRAY[${sql.join(values, sql.raw(','))}]`;
-        if (isEnum(this.schema, elemType)) {
-            return this.eb.cast(arr, sql`${sql.id(elemType)}[]`);
-        }
         const mappedType = this.getSqlType(elemType);
         return this.eb.cast(arr, sql`${sql.raw(mappedType)}[]`);
     }
