@@ -12,12 +12,12 @@ A command-line client for a **team collaboration / project-tracking** platform
 
 ## Stack
 
-| Concern        | Choice |
-| -------------- | ------ |
-| ORM / schema   | ZenStack v3 (`@zenstackhq/orm`, ZModel schema) |
-| Database       | SQLite (via `better-sqlite3`) — zero external services |
-| Auth           | Better-Auth + `@zenstackhq/better-auth` adapter |
-| CLI            | `commander`, run with `tsx` |
+| Concern      | Choice                                                 |
+| ------------ | ------------------------------------------------------ |
+| ORM / schema | ZenStack v3 (`@zenstackhq/orm`, ZModel schema)         |
+| Database     | SQLite (via `better-sqlite3`) — zero external services |
+| Auth         | Better-Auth + `@zenstackhq/better-auth` adapter        |
+| CLI          | `commander`, run with `tsx`                            |
 
 ## Quick start
 
@@ -91,8 +91,7 @@ export const auth = betterAuth({
 
 The `User`, `Session`, `Account` and `Verification` models in `schema.zmodel` are Better-Auth's
 core schema. Only the configuration is provided — no routes or sign-in UI are mounted — but
-`auth.api.signUpEmail(...)` is fully functional (see `pnpm cli signup`). To regenerate the auth
-models into the schema from the auth config, run `pnpm auth:generate`.
+`auth.api.signUpEmail(...)` is fully functional (see `pnpm cli signup`).
 
 ## Notes on SQLite
 
