@@ -261,7 +261,7 @@ export type ClientContract<
     /**
      * Factory for creating zod schemas to validate query args.
      */
-    get $zod(): ZodSchemaFactory<Schema, Options, ExtQueryArgs>;
+    get $zod(): ZodSchemaFactory<Schema, QueryRelevantOptions<Schema, Options>, ExtQueryArgs>;
 
     /**
      * Pushes the schema to the database. For testing purposes only.
