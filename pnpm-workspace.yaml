@@ -34,3 +34,4 @@ catalog:
     vue: 3.5.22
     zod: ^4.0.0
     zod-validation-error: ^4.0.1
+    tsx: ^4.22.0

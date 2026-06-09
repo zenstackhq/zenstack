@@ -1324,9 +1324,9 @@ export type SelectSubset<T, U> = {
       : {});
 
 type ToManyRelationFilter<
-    Schema extends SchemaDef,
-    Model extends GetModels<Schema>,
-    Field extends RelationFields<Schema, Model>,
+    in out Schema extends SchemaDef,
+    in out Model extends GetModels<Schema>,
+    in out Field extends RelationFields<Schema, Model>,
     Options extends QueryOptions<Schema>,
 > = {
     every?: WhereInput<Schema, RelationFieldType<Schema, Model, Field>, Options>;
@@ -1453,7 +1453,7 @@ type OppositeRelationAndFK<
 
 //#region Find args
 
-type FilterArgs<Schema extends SchemaDef, Model extends GetModels<Schema>, Options extends QueryOptions<Schema>> = {
+type FilterArgs<in out Schema extends SchemaDef, in out Model extends GetModels<Schema>, in out Options extends QueryOptions<Schema>> = {
     /**
      * Filter conditions
      */
@@ -1461,9 +1461,9 @@ type FilterArgs<Schema extends SchemaDef, Model extends GetModels<Schema>, Optio
 };
 
 type SortAndTakeArgs<
-    Schema extends SchemaDef,
-    Model extends GetModels<Schema>,
-    Options extends QueryOptions<Schema>,
+    in out Schema extends SchemaDef,
+    in out Model extends GetModels<Schema>,
+    in out Options extends QueryOptions<Schema>,
 > = {
     /**
      * Number of records to skip
@@ -1844,9 +1844,9 @@ export type UpdateManyAndReturnArgs<
     ExtractExtQueryArgs<ExtQueryArgs, 'updateManyAndReturn'>;
 
 type UpdateManyPayload<
-    Schema extends SchemaDef,
-    Model extends GetModels<Schema>,
-    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    in out Schema extends SchemaDef,
+    in out Model extends GetModels<Schema>,
+    out Options extends QueryOptions<Schema> = QueryOptions<Schema>,
     Without extends string = never,
 > = {
     /**
@@ -2105,11 +2105,15 @@ type ToManyRelationUpdateInput<
         : 'create' | 'createMany' | 'connectOrCreate' | 'upsert'
 >;
 
+// Variance-annotated to skip TypeScript's (unreliable, expensive) variance measurement of this
+// recursive arg type. Annotating the parent also short-circuits measurement of its conditional
+// children (`DisconnectInput`/`NestedDeleteInput`), which can't be annotated directly. `Options`
+// is invariant - see the note on `ClientContract`'s `CommonModelOperations`.
 type ToOneRelationUpdateInput<
-    Schema extends SchemaDef,
-    Model extends GetModels<Schema>,
-    Field extends RelationFields<Schema, Model>,
-    Options extends QueryOptions<Schema>,
+    in out Schema extends SchemaDef,
+    in out Model extends GetModels<Schema>,
+    in out Field extends RelationFields<Schema, Model>,
+    in out Options extends QueryOptions<Schema>,
 > = Omit<
     {
         /**
@@ -2356,9 +2360,9 @@ type AggCommonOutput<Input> = Input extends true
 // #region GroupBy
 
 type GroupByHaving<
-    Schema extends SchemaDef,
-    Model extends GetModels<Schema>,
-    Options extends QueryOptions<Schema> = QueryOptions<Schema>,
+    in out Schema extends SchemaDef,
+    in out Model extends GetModels<Schema>,
+    out Options extends QueryOptions<Schema> = QueryOptions<Schema>,
 > = Omit<WhereInput<Schema, Model, Options, true, true>, '$expr'>;
 
 export type GroupByArgs<

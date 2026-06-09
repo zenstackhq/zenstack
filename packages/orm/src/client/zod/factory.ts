@@ -129,8 +129,11 @@ export type CreateSchemaOptions = {
  * Factory class responsible for creating and caching Zod schemas for ORM input validation.
  */
 export class ZodSchemaFactory<
-    Schema extends SchemaDef,
-    Options extends ClientOptions<Schema> = ClientOptions<Schema>,
+    in out Schema extends SchemaDef,
+    // Bounded by `QueryOptions` (not `ClientOptions`): only `omit`/`slicing` shape the schema types.
+    // The `$zod` accessor passes the client's *projected* (query-relevant) options, so the heavy
+    // options literal never reaches the (invariant) arg types this factory produces.
+    in out Options extends QueryOptions<Schema> = ClientOptions<Schema>,
     ExtQueryArgs extends ExtQueryArgsBase = {},
 > {
     private readonly schemaCache = new Map<string, ZodType>();
@@ -140,7 +143,10 @@ export class ZodSchemaFactory<
     private readonly options: Options;
     private readonly extraValidationsEnabled = true;
 
-    constructor(client: ClientContract<Schema, Options, ExtQueryArgs, any>);
+    // The client's `Options` type arg is intentionally erased here (`any`) - the factory only needs
+    // the schema and the runtime options object; its own `Options` type param is supplied (projected)
+    // by the caller (`$zod`).
+    constructor(client: ClientContract<Schema, any, ExtQueryArgs, any>);
     constructor(schema: Schema, options?: Options);
     constructor(clientOrSchema: any, options?: Options) {
         if ('$schema' in clientOrSchema) {
@@ -153,7 +159,9 @@ export class ZodSchemaFactory<
     }
 
     private get plugins(): AnyPlugin[] {
-        return this.options.plugins ?? [];
+        // `plugins` is a runtime-only field absent from the query-relevant `Options` type;
+        // read it weakly (the concrete options object always carries it at runtime).
+        return (this.options as { plugins?: AnyPlugin[] }).plugins ?? [];
     }
 
     /**
