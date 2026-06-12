@@ -69,7 +69,8 @@ describe('CLI proxy tests', () => {
         // create the client with skipValidationForComputedFields.
         const client = await createTestClient(zmodel, {
             skipValidationForComputedFields: true,
-            omit: { User: { postCount: true } },
+            // a string schema can't be statically typed, so the omit config is untyped here
+            omit: { User: { postCount: true } } as any,
         });
 
         const app = createProxyApp(client, client.$schema);
