@@ -1153,7 +1153,13 @@ export class ZodSchemaFactory<
                     fields[field] = this.makeRelationSelectIncludeSchema(model, field, options).optional();
                 }
             } else {
-                fields[field] = z.boolean().optional();
+                if (this.options.allowQueryTimeOmitOverride === false && this.isFieldOmittedByConfig(model, field)) {
+                    // when query-time omit override is disallowed, an omitted field cannot be
+                    // un-omitted by explicitly selecting it, so only allow `false`
+                    fields[field] = z.literal(false).optional();
+                } else {
+                    fields[field] = z.boolean().optional();
+                }
             }
         }
 
@@ -1259,6 +1265,24 @@ export class ZodSchemaFactory<
         const result = z.union([z.boolean(), objSchema]);
         this.registerSchema(`${model}${upperCaseFirst(field)}RelationInput`, result);
         return result;
+    }
+
+    /**
+     * Determines whether a field is configured to be omitted at the schema or client-options level
+     * (query-level omit is excluded as it's mutually exclusive with `select`).
+     */
+    private isFieldOmittedByConfig(model: string, field: string): boolean {
+        // options-level omit
+        const omitConfig =
+            (this.options.omit as Record<string, any> | undefined)?.[lowerCaseFirst(model)] ??
+            (this.options.omit as Record<string, any> | undefined)?.[model];
+        if (omitConfig && typeof omitConfig[field] === 'boolean') {
+            return omitConfig[field];
+        }
+
+        // schema-level omit
+        const fieldDef = requireField(this.schema, model, field);
+        return !!fieldDef.omit;
     }
 
     @cache()
