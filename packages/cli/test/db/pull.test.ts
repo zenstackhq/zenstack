@@ -619,16 +619,18 @@ enum Status {
         it('should preserve field-level validation attributes after db pull', async () => {
             const { workDir, schema } = await createProject(
                 `model User {
-    id       Int     @id @default(autoincrement())
-    email    String  @unique @email
-    phone    String  @phone
-    name     String  @length(min: 2, max: 100)
-    website  String? @url
-    code     String? @regex('^[A-Z]+$')
-    age      Int     @gt(0)
-    score    Float   @gte(0.0)
-    rating   Decimal @lt(10)
-    rank     BigInt  @lte(999)
+    id        Int     @id @default(autoincrement())
+    email     String  @unique @email
+    phone     String  @phone
+    birthdate String  @date
+    localTime String  @time
+    name      String  @length(min: 2, max: 100)
+    website   String? @url
+    code      String? @regex('^[A-Z]+$')
+    age       Int     @gt(0)
+    score     Float   @gte(0.0)
+    rating    Decimal @lt(10)
+    rank      BigInt  @lte(999)
 }`,
             );
             runCli('db push', workDir);

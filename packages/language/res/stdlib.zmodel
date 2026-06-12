@@ -553,6 +553,16 @@ attribute @email(_ message: String?) @@@targetField([StringField]) @@@validation
 attribute @datetime(_ message: String?) @@@targetField([StringField]) @@@validation
 
 /**
+ * Validates a string field value is a valid ISO date.
+ */
+attribute @date(_ message: String?) @@@targetField([StringField]) @@@validation
+
+/**
+ * Validates a string field value is a valid ISO time.
+ */
+attribute @time(_ precision: Int?, _ message: String?) @@@targetField([StringField]) @@@validation
+
+/**
  * Validates a string field value is a valid url.
  */
 attribute @url(_ message: String?) @@@targetField([StringField]) @@@validation
@@ -625,6 +635,18 @@ function isEmail(field: String): Boolean {
  * Validates a string field value is a valid ISO datetime.
  */
 function isDateTime(field: String): Boolean {
+} @@@expressionContext([ValidationRule])
+
+/**
+ * Validates a string field value is a valid ISO date.
+ */
+function isDate(field: String): Boolean {
+} @@@expressionContext([ValidationRule])
+
+/**
+ * Validates a string field value is a valid ISO time.
+ */
+function isTime(field: String, precision: Int?): Boolean {
 } @@@expressionContext([ValidationRule])
 
 /**
