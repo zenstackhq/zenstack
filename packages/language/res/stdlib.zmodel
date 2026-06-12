@@ -224,7 +224,7 @@ attribute @id(map: String?, length: Int?, sort: SortOrder?, clustered: Boolean?)
  * Defines a default value for a field.
  * @param value: An expression (e.g. 5, true, now(), auth()).
  */
-attribute @default(_ value: ContextType, map: String?) @@@prisma
+attribute @default(_ value: ContextType, map: String?) @@@prisma @@@once
 
 /**
  * Defines a unique constraint for this field.
