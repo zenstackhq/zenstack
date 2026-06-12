@@ -1406,7 +1406,7 @@ describe('DB pull - SQL specific features', () => {
             return;
         }
 
-        const { workDir, schema } = await createProject(
+        const { workDir } = await createProject(
             `model User {
     id     Int        @id @default(autoincrement())
     email  String     @unique
