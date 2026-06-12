@@ -57,10 +57,10 @@ export interface ZModelCodeOptions {
 const generationHandlers = new Map<string, PropertyDescriptor>();
 
 // generation handler decorator
-function gen(name: string) {
+function gen(type: { $type: string }) {
     return function (_target: unknown, _propertyKey: string, descriptor: PropertyDescriptor) {
-        if (!generationHandlers.get(name)) {
-            generationHandlers.set(name, descriptor);
+        if (!generationHandlers.get(type.$type)) {
+            generationHandlers.set(type.$type, descriptor);
         }
         return descriptor;
     };
@@ -407,7 +407,7 @@ ${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}${
         const currentPriority = BinaryExprOperatorPriority[operator];
 
         if (
-            ast.left.$type === BinaryExpr &&
+            ast.left.$type === BinaryExpr.$type &&
             BinaryExprOperatorPriority[(ast.left as BinaryExpr)['operator']] < currentPriority
         ) {
             result.left = true;
@@ -418,7 +418,7 @@ ${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}${
          **/
         if (
             !isCollectionPredicate &&
-            ast.right.$type === BinaryExpr &&
+            ast.right.$type === BinaryExpr.$type &&
             BinaryExprOperatorPriority[(ast.right as BinaryExpr)['operator']] <= currentPriority
         ) {
             result.right = true;

@@ -90,19 +90,19 @@ export class PrismaSchemaGenerator {
 
         for (const decl of this.zmodel.declarations) {
             switch (decl.$type) {
-                case DataSource:
+                case DataSource.$type:
                     this.generateDataSource(prisma, decl as DataSource);
                     break;
 
-                case Enum:
+                case Enum.$type:
                     this.generateEnum(prisma, decl as Enum);
                     break;
 
-                case DataModel:
+                case DataModel.$type:
                     this.generateModel(prisma, decl as DataModel);
                     break;
 
-                case GeneratorDecl:
+                case GeneratorDecl.$type:
                     this.generateGenerator(prisma, decl as GeneratorDecl);
                     break;
             }
@@ -351,9 +351,9 @@ export class PrismaSchemaGenerator {
     private makeAttributeArgValue(node: Expression): PrismaAttributeArgValue {
         if (isLiteralExpr(node)) {
             const argType = match(node.$type)
-                .with(StringLiteral, () => 'String' as const)
-                .with(NumberLiteral, () => 'Number' as const)
-                .with(BooleanLiteral, () => 'Boolean' as const)
+                .with(StringLiteral.$type, () => 'String' as const)
+                .with(NumberLiteral.$type, () => 'Number' as const)
+                .with(BooleanLiteral.$type, () => 'Boolean' as const)
                 .exhaustive();
             return new PrismaAttributeArgValue(argType, node.value);
         } else if (isArrayExpr(node)) {

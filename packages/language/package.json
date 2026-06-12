@@ -81,6 +81,7 @@
         "vscode-languageserver": "^9.0.1"
     },
     "devDependencies": {
+        "@types/node": "catalog:",
         "@types/pluralize": "^0.0.33",
         "@types/tmp": "catalog:",
         "@zenstackhq/eslint-config": "workspace:*",

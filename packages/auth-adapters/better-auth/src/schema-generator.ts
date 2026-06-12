@@ -132,7 +132,7 @@ function addDefaultNow(df: DataField) {
     } as any;
     const nowExpr: InvocationExpr = {
         $type: 'InvocationExpr',
-        function: { $refText: 'now' },
+        function: { $refText: 'now', ref: undefined },
         args: [],
         $container: nowArg,
     };
@@ -221,6 +221,7 @@ function initializeZmodel(config: AdapterConfig) {
         $type: 'InvocationExpr',
         function: {
             $refText: 'env',
+            ref: undefined,
         },
         args: [],
         $container: urlField,
@@ -391,6 +392,7 @@ function addOrUpdateModel(
                 $type: 'DataFieldType',
                 reference: {
                     $refText: upperCaseFirst(referencedCustomModelName),
+                    ref: undefined,
                 },
                 array: (field.type as string).endsWith('[]'),
                 optional: !field.required,
@@ -408,6 +410,7 @@ function addOrUpdateModel(
                 $type: 'DataFieldAttribute',
                 decl: {
                     $refText: '@relation',
+                    ref: undefined,
                 },
                 args: [],
                 $container: relationField,
@@ -430,6 +433,7 @@ function addOrUpdateModel(
                 $container: fieldsExpr,
                 target: {
                     $refText: fieldName,
+                    ref: undefined,
                 },
             };
             fieldsExpr.items.push(fkRefExpr);
@@ -452,6 +456,7 @@ function addOrUpdateModel(
                 $container: referencesExpr,
                 target: {
                     $refText: field.references.field,
+                    ref: undefined,
                 },
             };
             referencesExpr.items.push(pkRefExpr);
@@ -465,7 +470,7 @@ function addOrUpdateModel(
             } as any;
             const onDeleteValueExpr: ReferenceExpr = {
                 $type: 'ReferenceExpr',
-                target: { $refText: action },
+                target: { $refText: action, ref: undefined },
                 args: [],
                 $container: onDeleteArg,
             };
@@ -495,6 +500,7 @@ function addOrUpdateModel(
                     $type: 'DataFieldType',
                     reference: {
                         $refText: relatedModel,
+                        ref: undefined,
                     },
                     array: true,
                     optional: false,
@@ -512,7 +518,7 @@ function addOrUpdateModel(
 function addModelAttribute(dataModel: DataModel, name: string, args: Omit<AttributeArg, '$container'>[] = []) {
     const attr: DataModelAttribute = {
         $type: 'DataModelAttribute',
-        decl: { $refText: name },
+        decl: { $refText: name, ref: undefined },
         $container: dataModel,
         args: [],
     };
@@ -527,7 +533,7 @@ function addModelAttribute(dataModel: DataModel, name: string, args: Omit<Attrib
 function addFieldAttribute(dataField: DataField, name: string, args: Omit<AttributeArg, '$container'>[] = []) {
     const attr: DataFieldAttribute = {
         $type: 'DataFieldAttribute',
-        decl: { $refText: name },
+        decl: { $refText: name, ref: undefined },
         $container: dataField,
         args: [],
     };

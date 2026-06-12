@@ -251,7 +251,7 @@ function validationAfterImportMerge(model: Model) {
 export async function formatDocument(content: string) {
     const services = createZModelServices().ZModelLanguage;
     const langiumDocuments = services.shared.workspace.LangiumDocuments;
-    const document = langiumDocuments.createDocument(URI.parse('memory://schema.zmodel'), content);
+    const document = langiumDocuments.createDocument(URI.parse('memory:///schema.zmodel'), content);
     const formatter = services.lsp.Formatter as ZModelFormatter;
     const identifier = { uri: document.uri.toString() };
     const options = formatter.getFormatOptions() ?? {

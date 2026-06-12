@@ -18,7 +18,7 @@ export class DataFieldAttributeFactory extends AstFactory<DataFieldAttribute> {
     args: AttributeArgFactory[] = [];
     decl?: Reference<Attribute>;
     constructor() {
-        super({ type: DataFieldAttribute, node: { args: [] } });
+        super({ type: DataFieldAttribute.$type, node: { args: [] } });
     }
     setDecl(decl: Attribute) {
         if (!decl) {
@@ -50,7 +50,7 @@ export class DataModelAttributeFactory extends AstFactory<DataModelAttribute> {
     args: AttributeArgFactory[] = [];
     decl?: Reference<Attribute>;
     constructor() {
-        super({ type: DataModelAttribute, node: { args: [] } });
+        super({ type: DataModelAttribute.$type, node: { args: [] } });
     }
     setDecl(decl: Attribute) {
         if (!decl) {
@@ -83,7 +83,7 @@ export class AttributeArgFactory extends AstFactory<AttributeArg> {
     value?: AstFactory<Expression>;
 
     constructor() {
-        super({ type: AttributeArg });
+        super({ type: AttributeArg.$type });
     }
 
     setName(name: RegularID) {
@@ -108,7 +108,7 @@ export class InternalAttributeFactory extends AstFactory<InternalAttribute> {
     args: AttributeArgFactory[] = [];
 
     constructor() {
-        super({ type: InternalAttribute, node: { args: [] } });
+        super({ type: InternalAttribute.$type, node: { args: [] } });
     }
 
     setDecl(decl: Attribute) {
@@ -144,7 +144,7 @@ export class AttributeParamFactory extends AstFactory<AttributeParam> {
 
     constructor() {
         super({
-            type: AttributeParam,
+            type: AttributeParam.$type,
             node: {
                 comments: [],
                 attributes: [],
@@ -199,7 +199,7 @@ export class AttributeParamTypeFactory extends AstFactory<AttributeParamType> {
     reference?: Reference<TypeDeclaration>;
     type?: AttributeParamType['type'];
     constructor() {
-        super({ type: AttributeParamType });
+        super({ type: AttributeParamType.$type });
     }
     setArray(array: boolean) {
         this.array = array;
@@ -244,7 +244,7 @@ export class AttributeFactory extends AstFactory<Attribute> {
     params: AttributeParamFactory[] = [];
 
     constructor() {
-        super({ type: Attribute, node: { comments: [], attributes: [], params: [] } });
+        super({ type: Attribute.$type, node: { comments: [], attributes: [], params: [] } });
     }
 
     setName(name: string) {
