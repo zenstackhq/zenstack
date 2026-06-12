@@ -9,6 +9,7 @@ import {
     DEFAULT_SPEC_VERSION,
     getIncludedModels,
     getMetaDescription,
+    isModelIncluded,
     isOperationIncluded,
     isProcedureIncluded,
     mayDenyAccess,
@@ -685,6 +686,10 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             if (fieldDef.omit) continue;
 
             if (fieldDef.relation) {
+                // Skip relations pointing to a model that's sliced away — otherwise we'd emit
+                // a dangling `$ref` to a schema that's not in the spec.
+                if (!isModelIncluded(fieldDef.type, this.queryOptions)) continue;
+
                 // Relation fields appear only with `include` — mark as optional.
                 // To-one optional relations are nullable (the ORM returns null when not found).
                 const refSchema: ReferenceObject = { $ref: `#/components/schemas/${fieldDef.type}` };

@@ -596,6 +596,26 @@ describe('RPC OpenAPI spec generation - queryOptions slicing', () => {
         expect(spec.components?.schemas?.['User']).toBeDefined();
     });
 
+    it('drops relation fields pointing to excluded models from entity schemas', async () => {
+        const client = await createTestClient(schema);
+        const handler = new RPCApiHandler({
+            schema: client.$schema,
+            queryOptions: { slicing: { excludedModels: ['Post'] as any } },
+        });
+        // `generateSpec` also validates the document, so a dangling `$ref` to the
+        // excluded `Post` schema would fail here.
+        const spec = await generateSpec(handler);
+
+        // referencing models keep their other fields but lose relations to the excluded model
+        const userProps = (spec.components?.schemas?.['User'] as any)?.properties;
+        expect(userProps?.['email']).toBeDefined();
+        expect(userProps?.['posts']).toBeUndefined();
+
+        const commentProps = (spec.components?.schemas?.['Comment'] as any)?.properties;
+        expect(commentProps?.['content']).toBeDefined();
+        expect(commentProps?.['post']).toBeUndefined();
+    });
+
     it('includedModels removes excluded model entity schemas from components', async () => {
         const client = await createTestClient(schema);
         const handler = new RPCApiHandler({
