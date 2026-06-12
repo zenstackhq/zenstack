@@ -878,6 +878,30 @@ mutation procedure softDelete(id: Int?): User
         expect(schemaKeys.some((k) => k.startsWith('createUser'))).toBe(true);
     });
 
+    it('procedure returning an excluded model does not emit a dangling ref', async () => {
+        const client = await createTestClient(procSchema);
+        const handler = new RPCApiHandler({
+            schema: client.$schema,
+            queryOptions: { slicing: { excludedModels: ['User'] as any } },
+        });
+        // `getUser`/`createUser`/`optionalSearch` all return `User`, which is excluded.
+        // `generateSpec` validates, so a dangling `$ref` to the absent `User` schema would fail.
+        const spec = await generateSpec(handler);
+
+        expect(spec.components?.schemas?.['User']).toBeUndefined();
+
+        // the procedures themselves are still exposed, but their result shape is generic
+        const dataSchema = (spec.paths?.['/$procs/getUser']?.get as any)?.responses?.['200']?.content?.[
+            'application/json'
+        ]?.schema?.properties?.data;
+        expect(dataSchema).toEqual({});
+
+        const listDataSchema = (spec.paths?.['/$procs/optionalSearch']?.get as any)?.responses?.['200']?.content?.[
+            'application/json'
+        ]?.schema?.properties?.data;
+        expect(listDataSchema).toEqual({ type: 'array', items: {} });
+    });
+
     it('slicing includedProcedures removes non-listed procedure args from components schemas', async () => {
         const client = await createTestClient(procSchema);
         const handler = new RPCApiHandler({

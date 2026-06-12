@@ -486,6 +486,10 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
 
         if (this.isBuiltinType(returnType)) {
             base = this.builtinTypeToJsonSchema(returnType as BuiltinType);
+        } else if (this.schema.models?.[returnType] && !isModelIncluded(returnType, this.queryOptions)) {
+            // Return type is a model that's sliced away — its entity schema isn't emitted,
+            // so reference it with a generic schema instead of a dangling `$ref`.
+            base = {};
         } else if (
             this.schema.enums?.[returnType] ||
             this.schema.models?.[returnType] ||
