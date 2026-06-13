@@ -79,7 +79,7 @@ export class UnaryExprFactory extends AstFactory<UnaryExpr> {
     operand?: AstFactory<Expression>;
 
     constructor() {
-        super({ type: UnaryExpr, node: { operator: '!' } });
+        super({ type: UnaryExpr.$type, node: { operator: '!' } });
     }
 
     setOperand(builder: (a: ExpressionBuilder) => AstFactory<Expression>) {
@@ -96,7 +96,7 @@ export class ReferenceExprFactory extends AstFactory<ReferenceExpr> {
     args: ReferenceArgFactory[] = [];
 
     constructor() {
-        super({ type: ReferenceExpr, node: { args: [] } });
+        super({ type: ReferenceExpr.$type, node: { args: [] } });
     }
 
     setTarget(target: ReferenceTarget) {
@@ -128,7 +128,7 @@ export class ReferenceArgFactory extends AstFactory<ReferenceArg> {
     value?: AstFactory<Expression>;
 
     constructor() {
-        super({ type: ReferenceArg });
+        super({ type: ReferenceArg.$type });
     }
 
     setName(name: string) {
@@ -153,7 +153,7 @@ export class MemberAccessExprFactory extends AstFactory<MemberAccessExpr> {
     operand?: AstFactory<Expression>;
 
     constructor() {
-        super({ type: MemberAccessExpr });
+        super({ type: MemberAccessExpr.$type });
     }
 
     setMember(target: Reference<MemberAccessTarget>) {
@@ -177,7 +177,7 @@ export class ObjectExprFactory extends AstFactory<ObjectExpr> {
     fields: FieldInitializerFactory[] = [];
 
     constructor() {
-        super({ type: ObjectExpr, node: { fields: [] } });
+        super({ type: ObjectExpr.$type, node: { fields: [] } });
     }
 
     addField(builder: (b: FieldInitializerFactory) => FieldInitializerFactory) {
@@ -194,7 +194,7 @@ export class FieldInitializerFactory extends AstFactory<FieldInitializer> {
     value?: AstFactory<Expression>;
 
     constructor() {
-        super({ type: FieldInitializer });
+        super({ type: FieldInitializer.$type });
     }
 
     setName(name: RegularID) {
@@ -219,7 +219,7 @@ export class InvocationExprFactory extends AstFactory<InvocationExpr> {
     function?: Reference<FunctionDecl>;
 
     constructor() {
-        super({ type: InvocationExpr, node: { args: [] } });
+        super({ type: InvocationExpr.$type, node: { args: [] } });
     }
 
     addArg(builder: (arg: ArgumentFactory) => ArgumentFactory) {
@@ -246,7 +246,7 @@ export class ArgumentFactory extends AstFactory<Argument> {
     value?: AstFactory<Expression>;
 
     constructor() {
-        super({ type: Argument });
+        super({ type: Argument.$type });
     }
 
     setValue(builder: (a: ExpressionBuilder) => AstFactory<Expression>) {
@@ -262,7 +262,7 @@ export class ArrayExprFactory extends AstFactory<ArrayExpr> {
     items: AstFactory<Expression>[] = [];
 
     constructor() {
-        super({ type: ArrayExpr, node: { items: [] } });
+        super({ type: ArrayExpr.$type, node: { items: [] } });
     }
 
     addItem(builder: (a: ExpressionBuilder) => AstFactory<Expression>) {
@@ -281,7 +281,7 @@ export class BinaryExprFactory extends AstFactory<BinaryExpr> {
     // TODO: add support for CollectionPredicateBinding
 
     constructor() {
-        super({ type: BinaryExpr });
+        super({ type: BinaryExpr.$type });
     }
 
     setOperator(operator: BinaryExpr['operator']) {

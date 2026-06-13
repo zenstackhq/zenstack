@@ -4,6 +4,7 @@ import {
     DefaultScopeComputation,
     DefaultScopeProvider,
     EMPTY_SCOPE,
+    MultiMap,
     StreamScope,
     UriUtils,
     interruptAndCheck,
@@ -11,7 +12,6 @@ import {
     type AstNodeDescription,
     type LangiumCoreServices,
     type LangiumDocument,
-    type PrecomputedScopes,
     type ReferenceInfo,
     type Scope,
 } from 'langium';
@@ -52,11 +52,11 @@ export class ZModelScopeComputation extends DefaultScopeComputation {
         super(services);
     }
 
-    override async computeExports(
+    override async collectExportedSymbols(
         document: LangiumDocument<AstNode>,
         cancelToken?: Cancellation.CancellationToken | undefined,
     ): Promise<AstNodeDescription[]> {
-        const result = await super.computeExports(document, cancelToken);
+        const result = await super.collectExportedSymbols(document, cancelToken);
 
         // add enum fields so they can be globally resolved across modules
         for (const node of AstUtils.streamAllContents(document.parseResult.value)) {
@@ -76,14 +76,18 @@ export class ZModelScopeComputation extends DefaultScopeComputation {
         return result;
     }
 
-    override processNode(node: AstNode, document: LangiumDocument<AstNode>, scopes: PrecomputedScopes) {
-        super.processNode(node, document, scopes);
+    protected override addLocalSymbol(
+        node: AstNode,
+        document: LangiumDocument<AstNode>,
+        symbols: MultiMap<AstNode, AstNodeDescription>,
+    ) {
+        super.addLocalSymbol(node, document, symbols);
         if (isDataModel(node) || isTypeDef(node)) {
             // add base fields to the scope recursively
             const bases = getRecursiveBases(node, true, this.services.shared.workspace.LangiumDocuments);
             for (const base of bases) {
                 for (const field of base.fields) {
-                    scopes.add(node, this.descriptions.createDescription(field, this.nameProvider.getName(field)));
+                    symbols.add(node, this.descriptions.createDescription(field, this.nameProvider.getName(field)));
                 }
             }
         }

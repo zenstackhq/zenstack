@@ -267,7 +267,7 @@ async function runPull(options: PullOptions) {
                 });
         // Add/update models and their fields
         newModel.declarations
-            .filter((d) => [DataModel, Enum].includes(d.$type))
+            .filter((d) => d.$type === DataModel.$type || d.$type === Enum.$type)
             .forEach((_declaration) => {
                 const newDataModel = _declaration as DataModel | Enum;
                 const declarations = services.shared.workspace.IndexManager.allElements(newDataModel.$type, docsSet).toArray();

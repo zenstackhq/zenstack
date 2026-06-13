@@ -101,7 +101,7 @@ export class ZModelLinker extends DefaultLinker {
             // already linked
             return;
         }
-        if (this.resolveFromScopeProviders(refInfo.reference, document, extraScopes)) {
+        if (this.resolveFromScopeProviders(defaultRef, document, extraScopes)) {
             // resolved from additional scope provider
             return;
         }
@@ -135,57 +135,57 @@ export class ZModelLinker extends DefaultLinker {
 
     private resolve(node: AstNode, document: LangiumDocument, extraScopes: ScopeProvider[] = []) {
         switch (node.$type) {
-            case StringLiteral:
-            case NumberLiteral:
-            case BooleanLiteral:
+            case StringLiteral.$type:
+            case NumberLiteral.$type:
+            case BooleanLiteral.$type:
                 this.resolveLiteral(node as LiteralExpr);
                 break;
 
-            case InvocationExpr:
+            case InvocationExpr.$type:
                 this.resolveInvocation(node as InvocationExpr, document, extraScopes);
                 break;
 
-            case ArrayExpr:
+            case ArrayExpr.$type:
                 this.resolveArray(node as ArrayExpr, document, extraScopes);
                 break;
 
-            case ReferenceExpr:
+            case ReferenceExpr.$type:
                 this.resolveReference(node as ReferenceExpr, document, extraScopes);
                 break;
 
-            case MemberAccessExpr:
+            case MemberAccessExpr.$type:
                 this.resolveMemberAccess(node as MemberAccessExpr, document, extraScopes);
                 break;
 
-            case UnaryExpr:
+            case UnaryExpr.$type:
                 this.resolveUnary(node as UnaryExpr, document, extraScopes);
                 break;
 
-            case BinaryExpr:
+            case BinaryExpr.$type:
                 this.resolveBinary(node as BinaryExpr, document, extraScopes);
                 break;
 
-            case ObjectExpr:
+            case ObjectExpr.$type:
                 this.resolveObject(node as ObjectExpr, document, extraScopes);
                 break;
 
-            case ThisExpr:
+            case ThisExpr.$type:
                 this.resolveThis(node as ThisExpr, document, extraScopes);
                 break;
 
-            case NullExpr:
+            case NullExpr.$type:
                 this.resolveNull(node as NullExpr, document, extraScopes);
                 break;
 
-            case AttributeArg:
+            case AttributeArg.$type:
                 this.resolveAttributeArg(node as AttributeArg, document, extraScopes);
                 break;
 
-            case DataModel:
+            case DataModel.$type:
                 this.resolveDataModel(node as DataModel, document, extraScopes);
                 break;
 
-            case DataField:
+            case DataField.$type:
                 this.resolveDataField(node as DataField, document, extraScopes);
                 break;
 

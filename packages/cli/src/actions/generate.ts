@@ -63,10 +63,10 @@ export async function run(options: Options) {
                 (
                     model.declarations.filter(
                         (v) =>
-                            v.$cstNode?.parent?.element.$type === 'Model' &&
-                            !!v.$cstNode.parent.element.$document?.uri?.fsPath,
+                            v.$cstNode?.container?.astNode.$type === 'Model' &&
+                            !!v.$cstNode.container.astNode.$document?.uri?.fsPath,
                     ) as AbstractDeclaration[]
-                ).map((v) => v.$cstNode!.parent!.element.$document!.uri!.fsPath),
+                ).map((v) => v.$cstNode!.container!.astNode.$document!.uri!.fsPath),
             );
 
         const watchedPaths = getRootModelWatchPaths(model);
@@ -189,7 +189,7 @@ async function runPlugins(schemaFile: string, model: Model, outputPath: string, 
             // resolve relative plugin paths against the schema file where the plugin is declared,
             // not the entry schema file
             const pluginSourcePath =
-                plugin.$cstNode?.parent?.element.$document?.uri?.fsPath ?? schemaFile;
+                plugin.$cstNode?.container?.astNode.$document?.uri?.fsPath ?? schemaFile;
             cliPlugin = await loadPluginModule(provider, path.dirname(pluginSourcePath));
         }
 
