@@ -1,0 +1,10 @@
+/**
+ * Marks a `DateTime` field as the soft-delete indicator for its owning model.
+ *
+ * When the soft-delete plugin is installed, reads against the model are automatically filtered
+ * to exclude rows whose marked field is non-null, and delete operations are rewritten to set
+ * the marked field to the current timestamp instead of physically removing the row.
+ *
+ * A model can have at most one `@deletedAt` field.
+ */
+attribute @deletedAt() @@@targetField([DateTimeField]) @@@once @@@onceInModel

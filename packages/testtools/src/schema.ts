@@ -62,6 +62,7 @@ export async function generateTsSchema(
     extraSourceFiles?: Record<string, string>,
     withLiteSchema?: boolean,
     extraZModelFiles?: Record<string, string>,
+    extraPluginModelFiles?: string[],
 ) {
     const workDir = createTestProject();
 
@@ -85,7 +86,7 @@ export async function generateTsSchema(
         }
     }
 
-    const result = await loadDocumentWithPlugins(zmodelPath);
+    const result = await loadDocumentWithPlugins(zmodelPath, extraPluginModelFiles);
     if (!result.success) {
         throw new Error(`Failed to load schema from ${zmodelPath}: ${result.errors}`);
     }

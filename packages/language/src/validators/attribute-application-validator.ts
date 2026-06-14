@@ -26,6 +26,7 @@ import {
 } from '../generated/ast';
 import {
     getAllAttributes,
+    getAllFields,
     getAttributeArg,
     getContainingDataModel,
     getDataSourceProvider,
@@ -81,6 +82,7 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
 
         this.checkDeprecation(attr, accept);
         this.checkDuplicatedAttributes(attr, accept, contextDataModel);
+        this.checkOnceInModel(attr, accept);
 
         const filledParams = new Set<AttributeParam>();
 
@@ -160,6 +162,31 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
         const duplicates = allAttributes.filter((a) => a.decl.ref === attrDecl && a !== attr);
         if (duplicates.length > 0) {
             accept('error', `Attribute "${attrDecl.name}" can only be applied once`, { node: attr });
+        }
+    }
+
+    private checkOnceInModel(attr: AttributeApplication, accept: ValidationAcceptor) {
+        const attrDecl = attr.decl.ref;
+        if (!attrDecl?.attributes.some((a) => a.decl.ref?.name === '@@@onceInModel')) {
+            return;
+        }
+
+        // only meaningful for field-level attributes within a data model
+        const field = attr.$container;
+        if (!isDataField(field)) {
+            return;
+        }
+        const dataModel = getContainingDataModel(attr);
+        if (!dataModel) {
+            return;
+        }
+
+        // count distinct fields (including inherited) carrying this attribute
+        const fieldsWithAttr = getAllFields(dataModel).filter((f) =>
+            f.attributes.some((a) => a.decl.ref === attrDecl),
+        );
+        if (fieldsWithAttr.length > 1) {
+            accept('error', `Attribute "${attrDecl.name}" can only be applied to one field per model`, { node: attr });
         }
     }
 
