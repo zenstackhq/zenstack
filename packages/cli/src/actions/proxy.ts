@@ -157,9 +157,8 @@ export async function run(options: Options) {
     }
 
     // If a studioAuthKey is provided, create an authDb with the policy plugin
-    let authDb: ClientContract<SchemaDef> | undefined;
+    const authDb = db.$use(new PolicyPlugin()) as ClientContract<SchemaDef>;
     if (options.studioAuthKey) {
-        authDb = db.$use(new PolicyPlugin()) as ClientContract<SchemaDef>;
         console.log(colors.gray('Access policy plugin enabled for authorization.'));
     }
 
@@ -260,9 +259,9 @@ async function createDialect(provider: string, databaseUrl: string, outputPath: 
 export function createProxyApp(
     client: ClientContract<SchemaDef>,
     schema: SchemaDef,
+    authDb: ClientContract<SchemaDef>,
     auth?: {
         studioAuthKey: string;
-        authDb: ClientContract<SchemaDef>;
         /** Seconds within which a signed request is considered valid. Defaults to 60. */
         signatureToleranceSecs: number;
     },
@@ -291,7 +290,7 @@ export function createProxyApp(
         '/api/model',
         ZenStackMiddleware({
             apiHandler: new RPCApiHandler({ schema }),
-            getClient: (req) => resolveClient(client, auth?.authDb, req),
+            getClient: (req) => resolveClient(client, authDb, req, !!auth?.studioAuthKey),
         }),
     );
 
@@ -394,14 +393,17 @@ function createSignatureMiddleware(publicKey: string, toleranceSeconds: number) 
  */
 function resolveClient(
     client: ClientContract<SchemaDef>,
-    authDb: ClientContract<SchemaDef> | undefined,
+    authDb: ClientContract<SchemaDef>,
     req: express.Request,
+    isAuthKeyEnabled: boolean,
 ): ClientContract<SchemaDef> {
-    if (!authDb) {
+    const authHeader = req.headers['authorization'];
+
+    // If AuthKey is not enabled, and Authorization header is not present, then it is the basic access without auth.
+    if (!isAuthKeyEnabled && !authHeader) {
         return client;
     }
 
-    const authHeader = req.headers['authorization'];
     if (!authHeader?.startsWith('Bearer ')) {
         return authDb;
     }
@@ -429,15 +431,15 @@ function startServer(
     client: ClientContract<SchemaDef>,
     schema: any,
     options: Options,
-    authDb?: ClientContract<SchemaDef>,
+    authDb: ClientContract<SchemaDef>,
 ) {
     const app = createProxyApp(
         client,
         schema,
+        authDb,
         options.studioAuthKey
             ? {
                   studioAuthKey: options.studioAuthKey,
-                  authDb: authDb!,
                   signatureToleranceSecs: options.signatureToleranceSecs,
               }
             : undefined,
