@@ -263,6 +263,26 @@ Arguments following -- are passed to the seed script. E.g.: "zen db seed -- --us
         .addOption(new Option('-o, --output <path>', 'output directory for `zen generate` command'))
         .addOption(new Option('-d, --databaseUrl <url>', 'database connection URL'))
         .addOption(new Option('-l, --logLevel <level...>', 'Query log levels (e.g., query, error)'))
+        .addOption(
+            new Option(
+                '--studioAuthKey <key>',
+                'Authentication key from ZenStack Studio. When set, the proxy will only accept requests signed by your Studio project.\nCan also be set via the ZENSTACK_STUDIO_AUTH_KEY environment variable. ',
+            ),
+        )
+        .addOption(
+            new Option(
+                '--signatureToleranceSecs <seconds>',
+                'Maximum age (in seconds) of a signed request before it is rejected as a replay. Defaults to 60.',
+            )
+                .default(60)
+                .argParser((v) => {
+                    const parsed = parseInt(v, 10);
+                    if (isNaN(parsed) || parsed < 0) {
+                        throw new CliError(`--signatureToleranceSecs must be a positive integer, got: ${v}`);
+                    }
+                    return parsed;
+                }),
+        )
         .addOption(noVersionCheckOption)
         .action(proxyAction);
 
