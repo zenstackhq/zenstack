@@ -147,7 +147,7 @@ export async function run(options: Options) {
         log: log && log.length > 0 ? log : undefined,
         omit: Object.keys(omit).length > 0 ? omit : undefined,
         skipValidationForComputedFields: true,
-    });
+    }) as ClientContract<SchemaDef>;
 
     // check whether the database is reachable
     try {

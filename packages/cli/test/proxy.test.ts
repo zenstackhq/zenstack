@@ -5,8 +5,6 @@ import http from 'node:http';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createProxyApp } from '../src/actions/proxy';
 
-type TestClientOptions = Parameters<typeof createTestClient>[1];
-
 // ─── Ed25519 key pair for tests ───────────────────────────────────────────────
 const TEST_PRIVATE_KEY = `-----BEGIN PRIVATE KEY-----
 MC4CAQAwBQYDK2VwBCIEIHIlHXhk+zc9ziuvrYAnZZgGL36H1GXwfsYchM9dM8gR
