@@ -301,9 +301,19 @@ export abstract class LateralJoinDialectBase<Schema extends SchemaDef> extends B
                 objArgs,
                 ...Object.entries<any>((payload as any).include)
                     .filter(([, value]) => value)
-                    .map(([field]) => ({
-                        [field]: eb.ref(`${parentResultName}$${field}.$data`),
-                    })),
+                    .map(([field, value]) => {
+                        if (field === '_count') {
+                            return {
+                                [field]: this.buildCountJson(
+                                    relationModel as GetModels<Schema>,
+                                    eb,
+                                    relationModelAlias,
+                                    value,
+                                ),
+                            };
+                        }
+                        return { [field]: eb.ref(`${parentResultName}$${field}.$data`) };
+                    }),
             );
         }
 

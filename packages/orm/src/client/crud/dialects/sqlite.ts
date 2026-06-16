@@ -317,6 +317,15 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
                     ...Object.entries<any>((payload as any).include)
                         .filter(([, value]) => value)
                         .map(([field, value]) => {
+                            if (field === '_count') {
+                                const subJson = this.buildCountJson(
+                                    relationModel,
+                                    eb,
+                                    tmpAlias(`${parentAlias}$${relationField}`),
+                                    value,
+                                );
+                                return [sql.lit(field), subJson];
+                            }
                             const subJson = this.buildRelationJSON(
                                 relationModel,
                                 eb,
