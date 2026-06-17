@@ -2088,14 +2088,14 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
     private makeIdFilter(idFields: FieldDef[], resourceId: string, nested: boolean = true) {
         const decodedId = decodeURIComponent(resourceId);
         if (idFields.length === 1) {
-            return { [idFields[0]!.name]: this.coerce(idFields[0]!, decodedId) };
+            return { [idFields[0]!.name]: this.coerce(idFields[0]!, decodedId, true) };
         } else if (nested) {
             return {
                 // TODO: support `@@id` with custom name
                 [idFields.map((idf) => idf.name).join(DEFAULT_ID_DIVIDER)]: idFields.reduce(
                     (acc, curr, idx) => ({
                         ...acc,
-                        [curr.name]: this.coerce(curr, decodedId.split(this.idDivider)[idx]),
+                        [curr.name]: this.coerce(curr, decodedId.split(this.idDivider)[idx], true),
                     }),
                     {},
                 ),
@@ -2104,7 +2104,7 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
             return idFields.reduce(
                 (acc, curr, idx) => ({
                     ...acc,
-                    [curr.name]: this.coerce(curr, decodedId.split(this.idDivider)[idx]),
+                    [curr.name]: this.coerce(curr, decodedId.split(this.idDivider)[idx], true),
                 }),
                 {},
             );
@@ -2120,13 +2120,13 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
 
     private makeIdConnect(idFields: FieldDef[], id: string | number) {
         if (idFields.length === 1) {
-            return { [idFields[0]!.name]: this.coerce(idFields[0]!, id) };
+            return { [idFields[0]!.name]: this.coerce(idFields[0]!, id, true) };
         } else {
             return {
                 [this.makeDefaultIdKey(idFields)]: idFields.reduce(
                     (acc, curr, idx) => ({
                         ...acc,
-                        [curr.name]: this.coerce(curr, `${id}`.split(this.idDivider)[idx]),
+                        [curr.name]: this.coerce(curr, `${id}`.split(this.idDivider)[idx], true),
                     }),
                     {},
                 ),
@@ -2175,8 +2175,18 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
         }
     }
 
-    private coerce(fieldDef: FieldDef, value: any) {
+    private coerce(fieldDef: FieldDef, value: any, emptyAsNull: boolean = false) {
         if (typeof value === 'string') {
+            // A null segment of a compound id is serialized as an empty string (see
+            // `makeCompoundId`, which joins the segments). Mirror that when parsing an
+            // id back, so the id the handler itself emits round-trips: an empty segment
+            // for an optional field is `null` (matched via `IS NULL`) rather than being
+            // run through the type coercion below (e.g. `parseInt('')` -> NaN -> 400).
+            // Only applied for id parsing (`emptyAsNull`), not filter values. See #2716.
+            if (emptyAsNull && value === '' && fieldDef.optional) {
+                return null;
+            }
+
             if (fieldDef.attributes?.some((attr) => attr.name === '@json')) {
                 try {
                     return JSON.parse(value);

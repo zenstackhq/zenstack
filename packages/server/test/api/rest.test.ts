@@ -3187,6 +3187,14 @@ describe('REST server tests', () => {
         author User? @relation(fields: [authorId], references: [id])
         authorId Int?
     }
+
+    model Notice {
+        id Int @id @default(autoincrement())
+        number String
+        lot Int?
+
+        @@unique([number, lot])
+    }
     `;
         beforeEach(async () => {
             client = await createTestClient(schema);
@@ -3197,6 +3205,7 @@ describe('REST server tests', () => {
                 externalIdMapping: {
                     User: 'name_source',
                     Post: 'short_title',
+                    Notice: 'number_lot',
                 },
             });
             handler = (args) => _handler.handleRequest({ ...args, url: new URL(`http://localhost/${args.path}`) });
@@ -3249,6 +3258,32 @@ describe('REST server tests', () => {
                 type: 'User',
                 id: 'User1_a',
             });
+        });
+
+        it('round-trips a compound id with a null segment (#2716)', async () => {
+            // Notice is exposed by the `number_lot` unique pair, where `lot` is
+            // optional. A row with `lot = null` is serialized with an empty trailing
+            // segment, e.g. `N1_`. That id must be fetchable, not 400 — the handler
+            // emits it, so it has to accept it back.
+            await client.notice.create({ data: { id: 1, number: 'N1', lot: 1 } });
+            await client.notice.create({ data: { id: 2, number: 'N1', lot: null } });
+
+            // The null-lot row is serialized as `N1_` (trailing empty), not `N1_0`.
+            let r = await handler({ method: 'get', path: '/notice', query: {}, client });
+            expect(r.status).toBe(200);
+            const nullRow = (r.body.data as any[]).find((d) => d.attributes.lot === null);
+            expect(nullRow.id).toBe(`N1${idDivider}`);
+
+            // A present segment still round-trips unchanged.
+            r = await handler({ method: 'get', path: `/notice/N1${idDivider}1`, query: {}, client });
+            expect(r.status).toBe(200);
+            expect(r.body.data.attributes.lot).toBe(1);
+
+            // The emitted null-lot id round-trips: the empty segment parses as NULL.
+            r = await handler({ method: 'get', path: `/notice/N1${idDivider}`, query: {}, client });
+            expect(r.status).toBe(200);
+            expect(r.body.data.id).toBe(`N1${idDivider}`);
+            expect(r.body.data.attributes.lot).toBeNull();
         });
     });
 
