@@ -1189,6 +1189,57 @@ describe('Client find tests ', () => {
         expect(result3?._count.posts).toBe(1);
     });
 
+    it('supports _count nested inside an include', async () => {
+        // regression for https://github.com/zenstackhq/zenstack/issues/2669
+        const user = await createUser(client, 'u1@test.com');
+        const [post1] = await createPosts(client, user.id);
+        await client.comment.createMany({
+            data: [
+                { content: 'c1', postId: post1.id },
+                { content: 'c2', postId: post1.id },
+            ],
+        });
+
+        // _count nested inside a relation's `include` (not `select`)
+        const result = await client.user.findFirst({
+            include: {
+                posts: {
+                    include: {
+                        _count: { select: { comments: true } },
+                    },
+                },
+            },
+        });
+
+        expect(result?.posts).toHaveLength(2);
+        const p1 = result?.posts.find((p) => p.id === post1.id);
+        const p2 = result?.posts.find((p) => p.id !== post1.id);
+        expect(p1?._count).toEqual({ comments: 2 });
+        expect(p2?._count).toEqual({ comments: 0 });
+
+        // `_count: true` nested inside an include
+        const result2 = await client.user.findFirst({
+            include: {
+                posts: {
+                    include: { _count: true },
+                },
+            },
+        });
+        expect(result2?.posts.find((p) => p.id === post1.id)?._count).toEqual({ comments: 2 });
+
+        // _count nested inside an include, with a filter on the counted relation
+        const result3 = await client.user.findFirst({
+            include: {
+                posts: {
+                    include: {
+                        _count: { select: { comments: { where: { content: 'c1' } } } },
+                    },
+                },
+            },
+        });
+        expect(result3?.posts.find((p) => p.id === post1.id)?._count).toEqual({ comments: 1 });
+    });
+
     it('rejects orderBy array elements with multiple keys', async () => {
         await createUser(client, 'u1@test.com');
 
