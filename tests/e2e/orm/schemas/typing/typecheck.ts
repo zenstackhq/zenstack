@@ -74,6 +74,16 @@ async function find() {
     });
     console.log(user2.email);
     console.log(user2.profile?.age);
+    // @ts-expect-error name was not selected
+    console.log(user2.name);
+
+    await client.user.findMany({
+        select: {
+            email: true,
+            // @ts-expect-error invalid select field
+            missingField: true,
+        },
+    });
 
     await client.user.findUnique({
         // @ts-expect-error expect unique filter

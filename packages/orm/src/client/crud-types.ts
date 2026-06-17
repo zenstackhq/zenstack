@@ -1315,8 +1315,20 @@ export type Subset<T, U> = {
     [key in keyof T]: key extends keyof U ? T[key] : never;
 };
 
+type NoExtraKeys<T, Shape> = T extends object ? T & { [K in Exclude<keyof T, keyof Shape>]: never } : T;
+
+type PreserveNullish<T, Strict> = Strict | Extract<T, null | undefined>;
+
+type StrictArgProperty<T, U, Key extends PropertyKey> = Key extends keyof U
+    ? PreserveNullish<T, NoExtraKeys<NonNullable<T>, NonNullable<U[Key]>>>
+    : T;
+
 export type SelectSubset<T, U> = {
-    [key in keyof T]: key extends keyof U ? T[key] : never;
+    [key in keyof T]: key extends keyof U
+        ? key extends 'select' | 'include' | 'omit'
+            ? StrictArgProperty<T[key], U, key>
+            : T[key]
+        : never;
 } & (T extends { select: any; include: any }
     ? 'Please either choose `select` or `include`.'
     : T extends { select: any; omit: any }
