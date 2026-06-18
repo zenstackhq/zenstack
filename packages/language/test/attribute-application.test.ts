@@ -558,6 +558,34 @@ describe('Attribute application validation tests', () => {
                 /Attribute "@softDelete" can only be applied to one field per model/,
             );
         });
+
+        // Duplicates that only co-occur through inheritance (none declared on the leaf model itself)
+        // are detected at the model level via `getAllFields`.
+        it('rejects when the attribute arrives only through inheritance (two mixins)', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                attribute @softDelete() @@@targetField([DateTimeField]) @@@onceInModel
+
+                type Base1 {
+                    deletedAt DateTime? @softDelete
+                }
+
+                type Base2 {
+                    removedAt DateTime? @softDelete
+                }
+
+                model Foo with Base1 Base2 {
+                    id Int @id @default(autoincrement())
+                }
+                `,
+                /Attribute "@softDelete" can only be applied to one field per model/,
+            );
+        });
     });
 
     it('requires relation and fk to have consistent optionality', async () => {

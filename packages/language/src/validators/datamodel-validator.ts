@@ -3,7 +3,9 @@ import { AstUtils, type AstNode, type DiagnosticInfo, type ValidationAcceptor } 
 import { IssueCodes, SCALAR_TYPES } from '../constants';
 import {
     ArrayExpr,
+    Attribute,
     DataField,
+    DataFieldAttribute,
     DataModel,
     DataModelAttribute,
     ReferenceExpr,
@@ -38,6 +40,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         validateDuplicatedDeclarations(dm, getAllFields(dm), accept);
         this.validateAttributes(dm, accept);
         this.validateFields(dm, accept);
+        this.validateOnceInModelAttributes(dm, accept);
         if (dm.mixins.length > 0) {
             this.validateMixins(dm, accept);
         }
@@ -141,6 +144,40 @@ export default class DataModelValidator implements AstValidator<DataModel> {
 
     private validateAttributes(dm: DataModel, accept: ValidationAcceptor) {
         getAllAttributes(dm).forEach((attr) => validateAttributeApplication(attr, accept, dm));
+    }
+
+    // Validates field-level attributes marked with `@@@onceInModel`, which may be applied to at
+    // most one field per model (including fields inherited from base models and mixins). This must
+    // run at the model level so that duplicates which only co-occur through inheritance are detected
+    // — per-field validation only sees the model that physically declares each field.
+    private validateOnceInModelAttributes(dm: DataModel, accept: ValidationAcceptor) {
+        // group field attributes carrying `@@@onceInModel` by their attribute declaration
+        const occurrences = new Map<Attribute, DataFieldAttribute[]>();
+        for (const field of getAllFields(dm)) {
+            for (const attr of field.attributes) {
+                const decl = attr.decl.ref;
+                if (decl && hasAttribute(decl, '@@@onceInModel')) {
+                    const list = occurrences.get(decl) ?? [];
+                    list.push(attr);
+                    occurrences.set(decl, list);
+                }
+            }
+        }
+
+        for (const [decl, attrs] of occurrences) {
+            if (attrs.length <= 1) {
+                continue;
+            }
+            const message = `Attribute "${decl.name}" can only be applied to one field per model`;
+            // prefer reporting on offending attributes declared on this model's own fields; if all
+            // offending fields are inherited, report on the model declaration itself
+            const local = attrs.filter((attr) => dm.fields.includes(attr.$container as DataField));
+            if (local.length > 0) {
+                local.forEach((attr) => accept('error', message, { node: attr }));
+            } else {
+                accept('error', message, { node: dm });
+            }
+        }
     }
 
     private parseRelation(field: DataField, accept?: ValidationAcceptor) {
