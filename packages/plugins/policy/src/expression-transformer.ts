@@ -254,8 +254,14 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                     return BinaryOperationNode.create(left, OperatorNode.create('in'), right);
                 } else {
                     // array contains
+                    const leftFieldDef = this.getFieldDefFromFieldRef(normalizedLeft, context);
+                    const comparand =
+                        leftFieldDef && QueryUtils.isEnum(this.schema, leftFieldDef.type)
+                            ? // cast lhs otherwise dialect like pg can reject due to type mismatch
+                              this.dialect.castText(new ExpressionWrapper(left)).toOperationNode()
+                            : left;
                     return BinaryOperationNode.create(
-                        left,
+                        comparand,
                         OperatorNode.create('='),
                         FunctionNode.create('any', [right]),
                     );
