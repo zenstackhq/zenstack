@@ -7,8 +7,8 @@ import { SoftDeletePlugin } from '../src';
 // test client explicitly so that `@zenstackhq/testtools` doesn't need to depend on this plugin.
 const PLUGIN_MODEL_FILE = fileURLToPath(new URL('../plugin.zmodel', import.meta.url));
 
-function createSoftDeleteTestClient(schema: string) {
-    return createTestClient(schema, { extraPluginModelFiles: [PLUGIN_MODEL_FILE] });
+function createSoftDeleteTestClient(schema: string, extraOptions: Record<string, unknown> = {}) {
+    return createTestClient(schema, { extraPluginModelFiles: [PLUGIN_MODEL_FILE], ...extraOptions });
 }
 
 const schema = `
@@ -319,5 +319,116 @@ model Child {
         // parent and its children are physically gone
         await expect(raw.parent.findUnique({ where: { id: parent.id } })).resolves.toBeNull();
         await expect(raw.child.findMany({ where: { parentId: parent.id } })).resolves.toHaveLength(0);
+    });
+
+    it('soft-deletes a model whose @deletedAt is inherited from a mixin', async () => {
+        // The marker is declared on a `type` mixin and flattened into the model's fields, so the
+        // plugin should treat the composed model exactly like one that declares @deletedAt directly.
+        const mixinSchema = `
+type SoftDeletable {
+    deletedAt DateTime? @deletedAt
+}
+
+model Item with SoftDeletable {
+    id   Int    @id @default(autoincrement())
+    name String
+}
+`;
+        const raw = await createSoftDeleteTestClient(mixinSchema);
+        const db = raw.$use(new SoftDeletePlugin());
+
+        const a = await db.item.create({ data: { name: 'a' } });
+        const b = await db.item.create({ data: { name: 'b' } });
+
+        await db.item.delete({ where: { id: a.id } });
+
+        // hidden from reads through the plugin
+        await expect(db.item.findMany()).resolves.toEqual([
+            expect.objectContaining({ id: b.id, name: 'b', deletedAt: null }),
+        ]);
+        await expect(db.item.findUnique({ where: { id: a.id } })).resolves.toBeNull();
+
+        // physically present, just marked deleted (peek via the plugin-less client)
+        const row = await raw.item.findUniqueOrThrow({ where: { id: a.id } });
+        expect(row.deletedAt).not.toBeNull();
+    });
+
+    it('soft-deletes a delegate model marked on the base', async () => {
+        // The @deletedAt marker lives on the polymorphic base. Deleting through either the base or a
+        // concrete model should soft-delete the base row, and reads through both should hide it.
+        const delegateSchema = `
+model Content {
+    id          Int       @id @default(autoincrement())
+    contentType String
+    deletedAt   DateTime? @deletedAt
+    @@delegate(contentType)
+}
+
+model Article extends Content {
+    title String
+}
+`;
+        const raw = await createSoftDeleteTestClient(delegateSchema, { usePrismaPush: true });
+        const db = raw.$use(new SoftDeletePlugin());
+
+        const a = await db.article.create({ data: { title: 'a' } });
+        const b = await db.article.create({ data: { title: 'b' } });
+
+        // delete through the concrete model
+        await db.article.delete({ where: { id: a.id } });
+
+        // hidden from reads through both the concrete and base accessors
+        await expect(db.article.findUnique({ where: { id: a.id } })).resolves.toBeNull();
+        await expect(db.content.findUnique({ where: { id: a.id } })).resolves.toBeNull();
+        await expect(db.article.findMany()).resolves.toEqual([expect.objectContaining({ id: b.id, title: 'b' })]);
+
+        // the base row is physically present, just marked deleted (the concrete row survives too)
+        const baseRow = await raw.content.findUniqueOrThrow({ where: { id: a.id } });
+        expect(baseRow.deletedAt).not.toBeNull();
+        await expect(raw.article.findUnique({ where: { id: a.id } })).resolves.not.toBeNull();
+
+        // delete through the base model soft-deletes as well
+        await db.content.delete({ where: { id: b.id } });
+        await expect(db.article.findUnique({ where: { id: b.id } })).resolves.toBeNull();
+        const baseRowB = await raw.content.findUniqueOrThrow({ where: { id: b.id } });
+        expect(baseRowB.deletedAt).not.toBeNull();
+    });
+
+    it('does not update an already soft-deleted delegate row', async () => {
+        // The marker lives on the base, but updates target the concrete sub-table. Updating a
+        // concrete-only field of a soft-deleted row must still be a no-op. The ORM funnels every
+        // delegate update through an `id IN (<read>)` subquery that inherits the soft-delete read
+        // filter, so the soft-deleted row is invisible to the update.
+        const delegateSchema = `
+model Content {
+    id          Int       @id @default(autoincrement())
+    contentType String
+    deletedAt   DateTime? @deletedAt
+    @@delegate(contentType)
+}
+
+model Article extends Content {
+    title String
+}
+`;
+        const raw = await createSoftDeleteTestClient(delegateSchema, { usePrismaPush: true });
+        const db = raw.$use(new SoftDeletePlugin());
+
+        const a = await db.article.create({ data: { title: 'a' } });
+        await db.article.delete({ where: { id: a.id } });
+
+        // updateMany on the concrete field skips the soft-deleted row and reports a zero count
+        await expect(db.article.updateMany({ where: { id: a.id }, data: { title: 'changed' } })).resolves.toEqual({
+            count: 0,
+        });
+
+        // a single update can't find the soft-deleted row at all
+        await expect(db.article.update({ where: { id: a.id }, data: { title: 'changed' } })).rejects.toThrow(
+            /not found/i,
+        );
+
+        // the concrete row is physically untouched (peek via the plugin-less client)
+        const row = await raw.article.findUniqueOrThrow({ where: { id: a.id } });
+        expect(row.title).toBe('a');
     });
 });

@@ -101,6 +101,16 @@ class SoftDeleteHandler<Schema extends SchemaDef> extends OperationNodeTransform
         if (!info) {
             return result;
         }
+        // Any model that participates in a delegate (polymorphic) hierarchy has its `@deletedAt`
+        // handled by `transformSelectQuery`, never here: reconstruction joins are filtered through
+        // the outer WHERE (walking the FROM entity's base chain), and relation reads become subqueries
+        // filtered by their own FROM. The marker may also live on a table that isn't the one under
+        // this join's alias (a base, or a descendant joined for polymorphic packing). So never add an
+        // ON-clause predicate for a hierarchy member — at best it's redundant, and on a LEFT join it
+        // would only null the joined columns and leak the row.
+        if (this.isInDelegateHierarchy(info.model)) {
+            return result;
+        }
         const deletedAt = this.getDeletedAtField(info.model);
         if (!deletedAt) {
             return result;
@@ -183,16 +193,41 @@ class SoftDeleteHandler<Schema extends SchemaDef> extends OperationNodeTransform
             if (!info) {
                 continue;
             }
-            const deletedAt = this.getDeletedAtField(info.model);
-            if (!deletedAt) {
-                continue;
+            const target = this.getSoftDeleteTarget(info);
+            if (target) {
+                filters.push(this.buildIsNullPredicate(target.table, target.column));
             }
-            filters.push(this.buildIsNullPredicate(info.alias ?? info.model, deletedAt.name));
         }
         if (filters.length === 0) {
             return undefined;
         }
         return filters.reduce((acc, f) => this.andNode(acc, f));
+    }
+
+    // Resolve the single `@deletedAt` column to filter when reading a table. `@@@onceInModel` allows
+    // at most one marker per inheritance hierarchy, so it's either declared on the model itself or
+    // inherited from exactly one delegate base — where the column physically lives on the base's
+    // table (LEFT-joined under its own model name, see buildDelegateJoin), so the filter must key off
+    // that base rather than the queried table.
+    private getSoftDeleteTarget(info: TableInfo): { table: string; column: string } | undefined {
+        const own = this.getDeletedAtField(info.model);
+        if (own) {
+            return { table: info.alias ?? info.model, column: own.name };
+        }
+        let base = QueryUtils.getModel(this.client.$schema, info.model)?.baseModel;
+        while (base) {
+            const marker = this.getDeletedAtField(base);
+            if (marker) {
+                return { table: base, column: marker.name };
+            }
+            base = QueryUtils.getModel(this.client.$schema, base)?.baseModel;
+        }
+        return undefined;
+    }
+
+    private isInDelegateHierarchy(model: string): boolean {
+        const modelDef = QueryUtils.getModel(this.client.$schema, model);
+        return !!modelDef && (!!modelDef.isDelegate || !!modelDef.baseModel);
     }
 
     private buildIsNullPredicate(table: string, column: string): OperationNode {
@@ -239,6 +274,16 @@ class SoftDeleteHandler<Schema extends SchemaDef> extends OperationNodeTransform
         }
         for (const fieldDef of Object.values(modelDef.fields)) {
             if (fieldDef.attributes?.some((a) => a.name === SOFT_DELETE_ATTRIBUTE)) {
+                if (fieldDef.originModel) {
+                    // In a delegate (polymorphic) hierarchy the marker physically lives on the base
+                    // table, but it's surfaced on every concrete sub-model's field list (tagged with
+                    // `originModel`). Skip it here so we don't reference a non-existent
+                    // `<SubModel>.<deletedAt>` column — the base model contributes its own FROM/JOIN
+                    // node that carries the soft-delete filter on the real column. Likewise, a
+                    // concrete delete is rewritten by the ORM into a delete on the base table, so the
+                    // delete-to-update conversion also keys off the base model.
+                    continue;
+                }
                 if (!fieldDef.optional) {
                     // A non-nullable marker can never be null, so the `IS NULL` read filter would
                     // hide every row. Require the marker to be optional so "not deleted" === null.
