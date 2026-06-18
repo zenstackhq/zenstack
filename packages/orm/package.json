@@ -2,7 +2,7 @@
     "name": "@zenstackhq/orm",
     "displayName": "ZenStack ORM",
     "description": "ZenStack ORM",
-    "version": "3.7.2",
+    "version": "3.8.0",
     "type": "module",
     "author": {
         "name": "ZenStack Team",
@@ -158,7 +158,7 @@
         "@zenstackhq/tsdown-config": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*",
         "@zenstackhq/vitest-config": "workspace:*",
-        "tsx": "^4.19.2",
+        "tsx": "catalog:",
         "zod": "^4.1.0"
     },
     "funding": "https://github.com/sponsors/zenstackhq"

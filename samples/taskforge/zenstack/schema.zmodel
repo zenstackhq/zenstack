@@ -1,0 +1,805 @@
+// ============================================================================
+//  TaskForge — a team collaboration / project-tracking SaaS
+//  ZenStack v3 schema (ZModel). Database: SQLite.
+//
+//  Demonstrates: 1-1, 1-many, implicit & explicit many-to-many, self relations,
+//  polymorphism (@@delegate), typed JSON (@json), computed fields (@computed),
+//  reusable field mixins (`type ... with`), and enums.
+//
+//  Workflow:
+//    pnpm zen:generate   # compile this schema -> ./schema.ts (the typed client)
+//    pnpm db:push        # sync the SQLite database to this schema
+// ============================================================================
+
+datasource db {
+    provider = 'sqlite'
+    url      = env('DATABASE_URL')
+}
+
+// ----------------------------------------------------------------------------
+//  Mixins — reusable field bundles inlined into models with `with`.
+// ----------------------------------------------------------------------------
+
+type Timestamps {
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+// ----------------------------------------------------------------------------
+//  Enums
+// ----------------------------------------------------------------------------
+
+enum OrgRole {
+    OWNER
+    ADMIN
+    MEMBER
+    GUEST
+}
+
+enum ProjectRole {
+    LEAD
+    CONTRIBUTOR
+    VIEWER
+}
+
+enum IssueStatus {
+    BACKLOG
+    TODO
+    IN_PROGRESS
+    IN_REVIEW
+    DONE
+    CANCELED
+}
+
+enum Priority {
+    NONE
+    LOW
+    MEDIUM
+    HIGH
+    URGENT
+}
+
+enum SprintStatus {
+    PLANNED
+    ACTIVE
+    COMPLETED
+}
+
+enum MilestoneStatus {
+    OPEN
+    CLOSED
+}
+
+enum InvitationStatus {
+    PENDING
+    ACCEPTED
+    REVOKED
+    EXPIRED
+}
+
+enum PlanTier {
+    FREE
+    PRO
+    BUSINESS
+    ENTERPRISE
+}
+
+enum SubscriptionStatus {
+    TRIALING
+    ACTIVE
+    PAST_DUE
+    CANCELED
+}
+
+enum InvoiceStatus {
+    DRAFT
+    OPEN
+    PAID
+    VOID
+}
+
+enum NotificationType {
+    ISSUE_ASSIGNED
+    ISSUE_MENTIONED
+    COMMENT_ADDED
+    INVITATION
+    BILLING
+}
+
+enum IntegrationProvider {
+    GITHUB
+    GITLAB
+    SLACK
+    DISCORD
+    FIGMA
+}
+
+enum CustomFieldType {
+    TEXT
+    NUMBER
+    BOOLEAN
+    DATE
+    SELECT
+}
+
+// ============================================================================
+//  Authentication models (better-auth core schema)
+//  Mapped to better-auth's expected lowercase table names.
+// ============================================================================
+
+model User {
+    id            String   @id
+    name          String
+    email         String   @unique
+    emailVerified Boolean  @default(false)
+    image         String?
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @default(now()) @updatedAt
+
+    // --- auth relations ---
+    accounts Account[]
+    sessions Session[]
+
+    // --- domain relations ---
+    ownedOrganizations     Organization[]   @relation("OrgOwner")
+    memberships            Membership[]
+    sentInvitations        Invitation[]     @relation("InvitationInviter")
+    teamMemberships        TeamMembership[]
+    ledTeams               Team[]           @relation("TeamLead")
+    projectMemberships     ProjectMember[]
+    ledProjects            Project[]        @relation("ProjectLead")
+    authoredIssues         Issue[]          @relation("IssueAuthor")
+    assignedIssues         Issue[]          @relation("IssueAssignee")
+    watchedIssues          Issue[]          @relation("IssueWatchers")
+    comments               Comment[]
+    attachments            Attachment[]
+    reactions              Reaction[]
+    authoredDocuments      Document[]       @relation("DocAuthor")
+    collaboratingDocuments Document[]       @relation("DocCollaborators")
+    activities             ActivityLog[]
+    notifications          Notification[]   @relation("NotifRecipient")
+    triggeredNotifications Notification[]   @relation("NotifActor")
+    timeEntries            TimeEntry[]
+    installedIntegrations  Integration[]
+    apiTokens              ApiToken[]
+
+    @@map('user')
+}
+
+model Account {
+    id                    String    @id
+    accountId             String
+    providerId            String
+    userId                String
+    user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+    accessToken           String?
+    refreshToken          String?
+    idToken               String?
+    accessTokenExpiresAt  DateTime?
+    refreshTokenExpiresAt DateTime?
+    scope                 String?
+    password              String?
+    createdAt             DateTime  @default(now())
+    updatedAt             DateTime  @updatedAt
+
+    @@index([userId])
+    @@map('account')
+}
+
+model Session {
+    id        String   @id
+    expiresAt DateTime
+    token     String   @unique
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    ipAddress String?
+    userAgent String?
+    userId    String
+    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@map('session')
+}
+
+model Verification {
+    id         String   @id
+    identifier String
+    value      String
+    expiresAt  DateTime
+    createdAt  DateTime @default(now())
+    updatedAt  DateTime @default(now()) @updatedAt
+
+    @@index([identifier])
+    @@map('verification')
+}
+
+// ============================================================================
+//  Tenancy — organizations, members, teams
+// ============================================================================
+
+model Organization with Timestamps {
+    id      String  @id @default(cuid())
+    name    String
+    slug    String  @unique
+    logoUrl String?
+
+    // 1-1: an organization optionally has a billing customer & subscription
+    billingCustomer BillingCustomer?
+    subscription    Subscription?
+
+    // owner (1-many from the User's perspective, but conceptually one owner)
+    owner   User   @relation("OrgOwner", fields: [ownerId], references: [id])
+    ownerId String
+
+    members      Membership[]
+    invitations  Invitation[]
+    teams        Team[]
+    projects     Project[]
+    labels       Label[]
+    customFields CustomField[]
+    webhooks     Webhook[]
+    integrations Integration[]
+    apiTokens    ApiToken[]
+    activities   ActivityLog[]
+
+
+    @@index([ownerId])
+    @@map('organization')
+}
+
+/// Explicit many-to-many join between User and Organization, carrying a role.
+model Membership with Timestamps {
+    id   String  @id @default(cuid())
+    role OrgRole @default(MEMBER)
+
+    user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId         String
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    organizationId String
+
+
+    @@unique([userId, organizationId])
+    @@index([organizationId])
+    @@map('membership')
+}
+
+model Invitation with Timestamps {
+    id     String           @id @default(cuid())
+    email  String
+    role   OrgRole          @default(MEMBER)
+    status InvitationStatus @default(PENDING)
+    token  String           @unique
+    expiresAt DateTime
+
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    organizationId String
+    inviter        User         @relation("InvitationInviter", fields: [inviterId], references: [id])
+    inviterId      String
+
+
+    @@index([organizationId])
+    @@index([email])
+    @@map('invitation')
+}
+
+model Team with Timestamps {
+    id          String  @id @default(cuid())
+    name        String
+    key         String  // short prefix used for issue identifiers, e.g. "ENG"
+    description String?
+
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    organizationId String
+    lead           User?        @relation("TeamLead", fields: [leadId], references: [id])
+    leadId         String?
+
+    members  TeamMembership[]
+    projects Project[]
+
+
+    @@unique([organizationId, key])
+    @@index([organizationId])
+    @@map('team')
+}
+
+/// Explicit many-to-many join between User and Team.
+model TeamMembership with Timestamps {
+    id String @id @default(cuid())
+
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId String
+    team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+    teamId String
+
+
+    @@unique([userId, teamId])
+    @@index([teamId])
+    @@map('team_membership')
+}
+
+// ============================================================================
+//  Projects, issues & planning
+// ============================================================================
+
+model Project with Timestamps {
+    id          String  @id @default(cuid())
+    name        String
+    slug        String
+    description String?
+    archived    Boolean @default(false)
+
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    organizationId String
+    team           Team?        @relation(fields: [teamId], references: [id], onDelete: SetNull)
+    teamId         String?
+    lead           User?        @relation("ProjectLead", fields: [leadId], references: [id])
+    leadId         String?
+
+    members    ProjectMember[]
+    issues     Issue[]
+    milestones Milestone[]
+    sprints    Sprint[]
+    documents  Document[]
+
+    // computed: number of issues not in a terminal state (implemented in client config)
+    openIssueCount Int @computed
+
+
+    @@unique([organizationId, slug])
+    @@index([teamId])
+    @@map('project')
+}
+
+/// Explicit many-to-many join between User and Project, carrying a role.
+model ProjectMember with Timestamps {
+    id   String      @id @default(cuid())
+    role ProjectRole @default(CONTRIBUTOR)
+
+    user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId    String
+    project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+    projectId String
+
+
+    @@unique([userId, projectId])
+    @@index([projectId])
+    @@map('project_member')
+}
+
+model Issue with Timestamps {
+    id          String      @id @default(cuid())
+    number      Int         // per-project sequential number
+    title       String
+    description String?
+    status      IssueStatus @default(BACKLOG)
+    priority    Priority    @default(NONE)
+    estimate    Int?        // story points
+    dueDate     DateTime?
+
+    // Arbitrary, strongly-typed metadata bag stored as JSON.
+    metadata IssueMetadata? @json
+
+    project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+    projectId String
+
+    author     User   @relation("IssueAuthor", fields: [authorId], references: [id])
+    authorId   String
+    assignee   User?  @relation("IssueAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+    assigneeId String?
+
+    milestone   Milestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+    milestoneId String?
+    sprint      Sprint?    @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+    sprintId    String?
+
+    // Self-relation: sub-issues / parent issue.
+    parent    Issue?  @relation("SubIssues", fields: [parentId], references: [id], onDelete: SetNull)
+    parentId  String?
+    children  Issue[] @relation("SubIssues")
+
+    // Implicit many-to-many: labels and watchers.
+    labels   Label[]
+    watchers User[]  @relation("IssueWatchers")
+
+    comments          Comment[]
+    attachments       Attachment[]
+    reactions         Reaction[]
+    timeEntries       TimeEntry[]
+    customFieldValues CustomFieldValue[]
+
+    // computed: number of comments on this issue (implemented in client config)
+    commentCount Int @computed
+
+
+    @@unique([projectId, number])
+    @@index([projectId, status])
+    @@index([assigneeId])
+    @@map('issue')
+}
+
+/// Strongly-typed JSON payload for Issue.metadata.
+type IssueMetadata {
+    sourceUrl    String?
+    externalId   String?
+    storyPoints  Int?
+    blockedById  String?
+}
+
+model Label with Timestamps {
+    id    String @id @default(cuid())
+    name  String
+    color String @default("#999999")
+
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    organizationId String
+
+    issues Issue[]
+
+
+    @@unique([organizationId, name])
+    @@map('label')
+}
+
+model Milestone with Timestamps {
+    id          String          @id @default(cuid())
+    title       String
+    description String?
+    status      MilestoneStatus @default(OPEN)
+    dueDate     DateTime?
+
+    project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+    projectId String
+
+    issues Issue[]
+
+
+    @@index([projectId])
+    @@map('milestone')
+}
+
+model Sprint with Timestamps {
+    id        String       @id @default(cuid())
+    name      String
+    status    SprintStatus @default(PLANNED)
+    startDate DateTime?
+    endDate   DateTime?
+    goal      String?
+
+    project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+    projectId String
+
+    issues Issue[]
+
+
+    @@index([projectId])
+    @@map('sprint')
+}
+
+// ============================================================================
+//  Collaboration — comments, reactions, attachments, documents
+// ============================================================================
+
+model Comment with Timestamps {
+    id   String @id @default(cuid())
+    body String
+
+    issue   Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+    issueId String
+    author  User  @relation(fields: [authorId], references: [id])
+    authorId String
+
+    // Self-relation: threaded replies.
+    parent   Comment?  @relation("CommentThread", fields: [parentId], references: [id], onDelete: SetNull)
+    parentId String?
+    replies  Comment[] @relation("CommentThread")
+
+    reactions Reaction[]
+
+
+    @@index([issueId])
+    @@map('comment')
+}
+
+model Reaction {
+    id    String @id @default(cuid())
+    emoji String
+
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId String
+
+    // A reaction targets either an issue or a comment (both optional FKs).
+    issue     Issue?   @relation(fields: [issueId], references: [id], onDelete: Cascade)
+    issueId   String?
+    comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+    commentId String?
+
+    createdAt DateTime @default(now())
+
+    @@unique([userId, issueId, emoji])
+    @@unique([userId, commentId, emoji])
+    @@map('reaction')
+}
+
+/// Polymorphic base. Concrete subtypes are FileAttachment / ImageAttachment / LinkAttachment.
+/// Create the concrete models, never `Attachment` directly.
+model Attachment with Timestamps {
+    id   String @id @default(cuid())
+    kind String // discriminator
+
+    issue        Issue  @relation(fields: [issueId], references: [id], onDelete: Cascade)
+    issueId      String
+    uploadedBy   User   @relation(fields: [uploadedById], references: [id])
+    uploadedById String
+
+
+    @@delegate(kind)
+    @@index([issueId])
+    @@map('attachment')
+}
+
+model FileAttachment extends Attachment {
+    fileName String
+    fileSize Int
+    mimeType String
+}
+
+model ImageAttachment extends Attachment {
+    url    String
+    width  Int?
+    height Int?
+    alt    String?
+}
+
+model LinkAttachment extends Attachment {
+    url   String
+    title String?
+}
+
+model Document with Timestamps {
+    id    String @id @default(cuid())
+    title String
+
+    // Rich content stored as typed JSON.
+    content DocContent? @json
+
+    project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+    projectId String
+
+    author   User @relation("DocAuthor", fields: [authorId], references: [id])
+    authorId String
+
+    // Self-relation: document tree (folders / nested pages).
+    parent   Document?  @relation("DocTree", fields: [parentId], references: [id], onDelete: SetNull)
+    parentId String?
+    children Document[] @relation("DocTree")
+
+    // Implicit many-to-many: collaborators.
+    collaborators User[] @relation("DocCollaborators")
+
+
+    @@index([projectId])
+    @@map('document')
+}
+
+/// Strongly-typed JSON payload for Document.content.
+type DocContent {
+    format   String  // e.g. "markdown" | "tiptap"
+    body     String
+    revision Int     @default(1)
+}
+
+// ============================================================================
+//  Custom fields, time tracking
+// ============================================================================
+
+model CustomField with Timestamps {
+    id   String          @id @default(cuid())
+    name String
+    type CustomFieldType @default(TEXT)
+
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    organizationId String
+
+    values CustomFieldValue[]
+
+
+    @@unique([organizationId, name])
+    @@map('custom_field')
+}
+
+/// Explicit many-to-many join between CustomField and Issue, carrying a value.
+model CustomFieldValue {
+    id    String @id @default(cuid())
+    value String
+
+    field   CustomField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+    fieldId String
+    issue   Issue       @relation(fields: [issueId], references: [id], onDelete: Cascade)
+    issueId String
+
+    @@unique([fieldId, issueId])
+    @@index([issueId])
+    @@map('custom_field_value')
+}
+
+model TimeEntry {
+    id       String   @id @default(cuid())
+    minutes  Int
+    note     String?
+    spentAt  DateTime @default(now())
+
+    issue   Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+    issueId String
+    user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId  String
+
+    @@index([issueId])
+    @@index([userId])
+    @@map('time_entry')
+}
+
+// ============================================================================
+//  Automation & integrations
+// ============================================================================
+
+model Webhook with Timestamps {
+    id      String  @id @default(cuid())
+    url     String
+    secret  String
+    active  Boolean @default(true)
+
+    // The list of subscribed events, stored as typed JSON (SQLite has no scalar lists).
+    config WebhookConfig @json
+
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    organizationId String
+
+
+    @@index([organizationId])
+    @@map('webhook')
+}
+
+/// Strongly-typed JSON payload for Webhook.config.
+type WebhookConfig {
+    events      String  // comma-separated event names
+    contentType String  @default("application/json")
+}
+
+model Integration with Timestamps {
+    id       String              @id @default(cuid())
+    provider IntegrationProvider
+    config   IntegrationConfig   @json
+
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    organizationId String
+    installedBy    User         @relation(fields: [installedById], references: [id])
+    installedById  String
+
+
+    @@unique([organizationId, provider])
+    @@map('integration')
+}
+
+/// Strongly-typed JSON payload for Integration.config.
+type IntegrationConfig {
+    accessToken String
+    accountName String?
+    scopes      String?
+}
+
+model ApiToken with Timestamps {
+    id         String    @id @default(cuid())
+    name       String
+    tokenHash  String    @unique
+    scopes     String // space-separated scopes
+    lastUsedAt DateTime?
+    expiresAt  DateTime?
+
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    organizationId String
+    user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId         String
+
+
+    @@index([organizationId])
+    @@map('api_token')
+}
+
+model ActivityLog {
+    id         String @id @default(cuid())
+    action     String // e.g. "issue.created", "project.archived"
+    targetType String
+    targetId   String
+
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    organizationId String
+    actor          User         @relation(fields: [actorId], references: [id])
+    actorId        String
+
+    createdAt DateTime @default(now())
+
+    @@index([organizationId])
+    @@index([actorId])
+    @@map('activity_log')
+}
+
+model Notification {
+    id      String           @id @default(cuid())
+    type    NotificationType
+    message String
+    read    Boolean          @default(false)
+
+    recipient   User    @relation("NotifRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+    recipientId String
+    actor       User?   @relation("NotifActor", fields: [actorId], references: [id], onDelete: SetNull)
+    actorId     String?
+
+    createdAt DateTime @default(now())
+
+    @@index([recipientId, read])
+    @@map('notification')
+}
+
+// ============================================================================
+//  Billing
+// ============================================================================
+
+model BillingCustomer with Timestamps {
+    id               String @id @default(cuid())
+    stripeCustomerId String @unique
+    email            String
+
+    // 1-1 with Organization.
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    organizationId String       @unique
+
+
+    @@map('billing_customer')
+}
+
+model Plan {
+    id            String   @id @default(cuid())
+    name          String
+    tier          PlanTier @unique
+    priceCents    Int      @default(0)
+    seatLimit     Int?
+
+    subscriptions Subscription[]
+
+    @@map('plan')
+}
+
+model Subscription with Timestamps {
+    id                 String             @id @default(cuid())
+    status             SubscriptionStatus @default(TRIALING)
+    currentPeriodEnd   DateTime?
+    cancelAtPeriodEnd  Boolean            @default(false)
+
+    // 1-1 with Organization.
+    organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    organizationId String       @unique
+
+    plan   Plan   @relation(fields: [planId], references: [id])
+    planId String
+
+    invoices Invoice[]
+
+
+    @@index([planId])
+    @@map('subscription')
+}
+
+model Invoice with Timestamps {
+    id          String        @id @default(cuid())
+    number      String        @unique
+    amountCents Int
+    status      InvoiceStatus @default(DRAFT)
+    issuedAt    DateTime      @default(now())
+    paidAt      DateTime?
+
+    subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+    subscriptionId String
+
+
+    @@index([subscriptionId])
+    @@map('invoice')
+}

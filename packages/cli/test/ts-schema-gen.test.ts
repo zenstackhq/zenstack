@@ -462,9 +462,9 @@ model User {
             true,
         );
 
-        expect(schemaLite!.models.User.attributes).toBeUndefined();
-        expect(schemaLite!.models.User.fields.id.attributes).toBeUndefined();
-        expect(schemaLite!.models.User.fields.email.attributes).toBeUndefined();
+        expect(schemaLite!.models['User']!.attributes).toBeUndefined();
+        expect(schemaLite!.models['User']!.fields['id']!.attributes).toBeUndefined();
+        expect(schemaLite!.models['User']!.fields['email']!.attributes).toBeUndefined();
     });
 
     it('supports ignorable fields for @updatedAt', async () => {

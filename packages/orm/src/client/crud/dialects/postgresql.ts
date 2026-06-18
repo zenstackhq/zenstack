@@ -409,7 +409,7 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
     }
 
     override buildArrayLength(array: Expression<unknown>): AliasableExpression<number> {
-        return this.eb.fn('array_length', [array]);
+        return this.eb.fn('array_length', [array, sql.lit(1)]);
     }
 
     override buildArrayValue(values: Expression<unknown>[], elemType: string): AliasableExpression<unknown> {

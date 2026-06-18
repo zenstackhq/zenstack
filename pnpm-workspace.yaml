@@ -16,8 +16,8 @@ catalog:
     better-sqlite3: ^12.5.0
     decimal.js: ^10.4.3
     kysely: ~0.29.0
-    langium: 3.5.0
-    langium-cli: 3.5.0
+    langium: 4.2.4
+    langium-cli: 4.2.1
     next: 16.1.6
     nuxt: 4.3.1
     '@sveltejs/kit': 2.53.2
@@ -34,3 +34,4 @@ catalog:
     vue: 3.5.22
     zod: ^4.0.0
     zod-validation-error: ^4.0.1
+    tsx: ^4.22.0

@@ -12,6 +12,16 @@ import Decimal from 'decimal.js';
 import { z } from 'zod';
 import { SchemaFactoryError } from './error';
 
+// z.string()[mapped]
+const stringFuncZodMap = {
+    isEmail: 'email',
+    isUrl: 'url',
+    isPhone: 'e164',
+    isDate: 'date',
+    isTime: 'time',
+    isDateTime: 'datetime',
+} as const;
+
 function getArgValue<T extends string | number | boolean>(expr: Expression | undefined): T | undefined {
     if (!expr || !ExpressionUtils.isLiteral(expr)) {
         return undefined;
@@ -75,6 +85,14 @@ export function addStringValidation(
             case '@phone':
                 result = result.e164();
                 break;
+            case '@date':
+                result = result.date();
+                break;
+            case '@time': {
+                const precision = getArgValue<number>(attr.args?.[0]?.value);
+                result = result.time({ precision });
+                break;
+            }
             case '@datetime':
                 result = result.datetime();
                 break;
@@ -537,18 +555,19 @@ function evalCall(data: any, expr: CallExpression) {
         case 'isEmail':
         case 'isUrl':
         case 'isPhone':
+        case 'isDate':
+        case 'isTime':
         case 'isDateTime': {
             if (fieldArg === undefined || fieldArg === null || fieldArg === ABSENT) {
                 return false;
             }
             invariant(typeof fieldArg === 'string', `"${f}" first argument must be a string`);
-            const fn = f === 'isEmail'
-                ? ('email' as const)
-                : f === 'isUrl'
-                    ? ('url' as const)
-                    : f === 'isPhone'
-                        ? ('e164' as const)
-                        : ('datetime' as const);
+            if (f === 'isTime') {
+                const precision = getArgValue<number>(expr.args?.[1]);
+                invariant((precision === null || precision == undefined) || typeof precision === 'number', `"isTime" optional second argument must be a number`);
+                return z.iso.time({ precision }).safeParse(fieldArg).success;
+            }
+            const fn = stringFuncZodMap[f];
             return z.string()[fn]().safeParse(fieldArg).success;
         }
         // list functions
