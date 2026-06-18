@@ -2,7 +2,7 @@ import { createTestClient } from '@zenstackhq/testtools';
 import { describe, expect, it } from 'vitest';
 
 // https://github.com/zenstackhq/zenstack/issues/2669
-describe('Regression for issue 2669 ($provider)', () => {
+describe('Regression for issue 2669', () => {
     const schema = `
 model User {
     id    Int    @id @default(autoincrement())
