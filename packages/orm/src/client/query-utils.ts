@@ -20,8 +20,38 @@ export function hasModel(schema: SchemaDef, model: string) {
         .includes(model.toLowerCase());
 }
 
+/**
+ * Structural lookups derived purely from the (immutable) schema. The schema does not
+ * change for a client's lifetime, so these results are memoized per-schema and shared
+ * across every consumer (orm query building + plugins). Keyed by the schema object so
+ * the cache dies with the schema and never leaks across schemas. See issue #2715.
+ */
+interface SchemaLookupCache {
+    model: Map<string, ModelDef | undefined>;
+    m2mRelation: Map<string, ReturnType<typeof computeManyToManyRelation>>;
+    m2mJoinTable?: Map<string, ManyToManyJoinTableEndpoints | undefined>;
+}
+
+const schemaLookupCache = new WeakMap<SchemaDef, SchemaLookupCache>();
+
+function getSchemaLookupCache(schema: SchemaDef): SchemaLookupCache {
+    let cache = schemaLookupCache.get(schema);
+    if (!cache) {
+        cache = { model: new Map(), m2mRelation: new Map() };
+        schemaLookupCache.set(schema, cache);
+    }
+    return cache;
+}
+
 export function getModel(schema: SchemaDef, model: string) {
-    return Object.values(schema.models).find((m) => m.name.toLowerCase() === model.toLowerCase());
+    const cache = getSchemaLookupCache(schema);
+    const key = model.toLowerCase();
+    if (cache.model.has(key)) {
+        return cache.model.get(key);
+    }
+    const result = Object.values(schema.models).find((m) => m.name.toLowerCase() === key);
+    cache.model.set(key, result);
+    return result;
 }
 
 export function getTypeDef(schema: SchemaDef, type: string) {
@@ -260,6 +290,58 @@ export function makeDefaultOrderBy(schema: SchemaDef, model: string) {
 }
 
 export function getManyToManyRelation(schema: SchemaDef, model: string, field: string) {
+    const cache = getSchemaLookupCache(schema);
+    const key = `${model} ${field}`;
+    if (cache.m2mRelation.has(key)) {
+        return cache.m2mRelation.get(key);
+    }
+    const result = computeManyToManyRelation(schema, model, field);
+    cache.m2mRelation.set(key, result);
+    return result;
+}
+
+/**
+ * Endpoints of an implicit many-to-many relation, identified by its join table name.
+ */
+export interface ManyToManyJoinTableEndpoints {
+    model: string;
+    field: string;
+    otherModel: string;
+    otherField: string;
+}
+
+/**
+ * Resolve the relation endpoints for an implicit many-to-many join table by its table
+ * name, or `undefined` if the table is not an implicit m2m join table. The join-table
+ * index is built once per schema (single pass) and reused, making this an O(1) lookup.
+ * See issue #2715.
+ */
+export function getManyToManyJoinTable(
+    schema: SchemaDef,
+    joinTableName: string,
+): ManyToManyJoinTableEndpoints | undefined {
+    const cache = getSchemaLookupCache(schema);
+    if (!cache.m2mJoinTable) {
+        const map = new Map<string, ManyToManyJoinTableEndpoints>();
+        for (const model of Object.values(schema.models)) {
+            for (const field of Object.values(model.fields)) {
+                const m2m = getManyToManyRelation(schema, model.name, field.name);
+                if (m2m?.joinTable && !map.has(m2m.joinTable)) {
+                    map.set(m2m.joinTable, {
+                        model: model.name,
+                        field: field.name,
+                        otherModel: m2m.otherModel,
+                        otherField: m2m.otherField,
+                    });
+                }
+            }
+        }
+        cache.m2mJoinTable = map;
+    }
+    return cache.m2mJoinTable.get(joinTableName);
+}
+
+function computeManyToManyRelation(schema: SchemaDef, model: string, field: string) {
     const fieldDef = requireField(schema, model, field);
     if (!fieldDef.array || !fieldDef.relation?.opposite) {
         return undefined;
