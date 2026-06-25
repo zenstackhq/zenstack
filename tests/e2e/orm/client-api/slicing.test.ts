@@ -379,6 +379,7 @@ describe('Query slicing tests', () => {
                     select: {
                         id: true,
                         posts: {
+                            // @ts-expect-error Comment is excluded by slicing
                             select: { id: true, comments: true },
                         },
                     },

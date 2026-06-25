@@ -85,6 +85,43 @@ async function find() {
         },
     });
 
+    await client.user.findMany({
+        select: {
+            posts: {
+                select: {
+                    title: true,
+                    // @ts-expect-error invalid nested select field
+                    missingField: true,
+                },
+            },
+        },
+    });
+
+    await client.user.findMany({
+        include: {
+            posts: {
+                include: {
+                    meta: {
+                        select: {
+                            reviewed: true,
+                            // @ts-expect-error invalid deeply nested select field
+                            missingField: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    await client.user.findMany({
+        select: {
+            posts: {
+                // @ts-expect-error invalid nested omit field
+                omit: { missingField: true },
+            },
+        },
+    });
+
     await client.user.findUnique({
         // @ts-expect-error expect unique filter
         where: { name: 'Alex' },
@@ -102,13 +139,40 @@ async function find() {
     });
 
     await client.user.findMany({
+        where: {
+            email: 'alex@zenstack.dev',
+            // @ts-expect-error invalid where field
+            missingField: 'value',
+        },
+    });
+
+    await client.user.findMany({
         skip: 1,
         take: 1,
         orderBy: {
             email: 'asc',
             name: 'desc',
+            // @ts-expect-error invalid orderBy field
+            missingField: 'asc',
         },
         cursor: { id: 1 },
+    });
+
+    await client.user.findMany({
+        select: {
+            posts: {
+                where: {
+                    title: 'Hello',
+                    // @ts-expect-error invalid nested where field
+                    missingField: 'value',
+                },
+                orderBy: {
+                    title: 'asc',
+                    // @ts-expect-error invalid nested orderBy field
+                    missingField: 'asc',
+                },
+            },
+        },
     });
 
     const user3 = await client.user.findFirstOrThrow({
