@@ -702,7 +702,10 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             } else {
                 // transform the first segment into a relation access, then continue with the rest of the members
                 const firstMemberFieldDef = QueryUtils.requireField(this.schema, context.thisType, expr.members[0]!);
-                receiver = this.transformRelationAccess(expr.members[0]!, firstMemberFieldDef.type, restContext);
+                receiver = this.transformRelationAccess(expr.members[0]!, firstMemberFieldDef.type, {
+                    ...restContext,
+                    modelOrType: context.thisType,
+                });
                 members = expr.members.slice(1);
                 // startType should be the type of the relation access
                 startType = firstMemberFieldDef.type;
@@ -756,7 +759,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             currType = fieldDef.type;
         }
 
-        let currNode: SelectQueryNode | ColumnNode | ReferenceNode | undefined = undefined;
+        let currNode: SelectQueryNode | ColumnNode | ReferenceNode | FunctionNode | undefined = undefined;
 
         for (let i = members.length - 1; i >= 0; i--) {
             const member = members[i]!;
@@ -788,7 +791,9 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 invariant(i === members.length - 1, 'plain field access must be the last segment');
                 invariant(!currNode, 'plain field access must be the last segment');
 
-                currNode = ColumnNode.create(member);
+                currNode = fieldDef.array && this.schema.provider.type === 'postgresql'
+                    ? FunctionNode.create('unnest', [ColumnNode.create(member)])
+                    : ColumnNode.create(member);
             }
         }
 
