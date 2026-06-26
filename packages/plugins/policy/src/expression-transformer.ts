@@ -40,7 +40,9 @@ import {
     ReferenceNode,
     SelectionNode,
     SelectQueryNode,
+    sql,
     TableNode,
+    UnaryOperationNode,
     ValueListNode,
     ValueNode,
     WhereNode,
@@ -253,13 +255,20 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 if (ValueListNode.is(right)) {
                     return BinaryOperationNode.create(left, OperatorNode.create('in'), right);
                 } else {
-                    // array contains
                     const leftFieldDef = this.getFieldDefFromFieldRef(normalizedLeft, context);
                     const comparand =
                         leftFieldDef && QueryUtils.isEnum(this.schema, leftFieldDef.type)
-                            ? // cast lhs otherwise dialect like pg can reject due to type mismatch
-                              this.dialect.castText(new ExpressionWrapper(left)).toOperationNode()
+                            ? this.dialect.castText(new ExpressionWrapper(left)).toOperationNode()
                             : left;
+
+                    // if RHS is a subquery selecting an array column, use
+                    // a cross-db EXISTS approach instead of `= ANY(subquery)`
+                    const rightFieldDef = this.getFieldDefFromFieldRef(normalizedRight, context);
+                    if (rightFieldDef?.array && SelectQueryNode.is(right)) {
+                        return this.buildArrayInExists(comparand, right as SelectQueryNode);
+                    }
+
+                    // array contains
                     return BinaryOperationNode.create(
                         comparand,
                         OperatorNode.create('='),
@@ -705,6 +714,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 receiver = this.transformRelationAccess(expr.members[0]!, firstMemberFieldDef.type, {
                     ...restContext,
                     modelOrType: context.thisType,
+                    alias: context.thisAlias,
                 });
                 members = expr.members.slice(1);
                 // startType should be the type of the relation access
@@ -1020,6 +1030,21 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             ExpressionUtils.isThis(expr.receiver)
         ) {
             return QueryUtils.getField(this.schema, model, expr.members[0]!);
+        } else if (
+            ExpressionUtils.isMember(expr) &&
+            ExpressionUtils.isThis(expr.receiver) &&
+            expr.members.length > 1
+        ) {
+            // `this.relation.field` chain — walk from the @@allow model
+            const firstDef = QueryUtils.getField(this.schema, model, expr.members[0]!);
+            if (!firstDef?.relation) return undefined;
+            let currModel = firstDef.type;
+            for (let i = 1; i < expr.members.length - 1; i++) {
+                const hopDef = QueryUtils.getField(this.schema, currModel, expr.members[i]!);
+                if (!hopDef?.relation) return undefined;
+                currModel = hopDef.type;
+            }
+            return QueryUtils.getField(this.schema, currModel, expr.members[expr.members.length - 1]!);
         } else if (ExpressionUtils.isMember(expr) && ExpressionUtils.isField(expr.receiver)) {
             // relation chain access (e.g. `owner.id`, `user.profile.uuid_field`): walk the
             // relation hops and return the terminal field's FieldDef so native-type info
@@ -1036,5 +1061,74 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         } else {
             return undefined;
         }
+    }
+    /**
+     * Build a cross-database EXISTS subquery for `scalar IN relation.arrayField`.
+     * Preserves the original subquery FROM to handle joined relations (e.g. m2m).
+     */
+    private buildArrayInExists(
+        scalar: OperationNode,
+        subquery: SelectQueryNode,
+    ): OperationNode {
+        // PG: subquery already has unnest() from _member, just use = ANY(subquery)
+        if (this.schema.provider.type === 'postgresql') {
+            return BinaryOperationNode.create(
+                scalar,
+                OperatorNode.create('='),
+                FunctionNode.create('any', [subquery as unknown as OperationNode]),
+            );
+        }
+
+        const eb = this.eb;
+
+        const table = subquery.from!.froms[0] as TableNode;
+        const tableName = table.table.identifier.name;
+
+        const sel = subquery.selections![0]!;
+        const alias = sel.selection as AliasNode;
+        const colName = (alias.node as ColumnNode).column.name;
+
+        const tableRef = eb.ref(`${tableName}.${colName}`);
+        const scalarRef = new ExpressionWrapper(scalar);
+
+        let arrayCheck: OperationNode;
+        if (this.schema.provider.type === 'sqlite') {
+            arrayCheck = eb
+                .exists(
+                    eb
+                        .selectFrom(eb.fn('json_each', [tableRef]).as('_je'))
+                        .select(eb.lit(1).as('_'))
+                        .where(eb.ref('_je.value'), '=', scalarRef),
+                )
+                .toOperationNode();
+        } else {
+            // mysql
+            arrayCheck = eb
+                .exists(
+                    eb
+                        .selectFrom(
+                            sql`JSON_TABLE(${tableRef}, '$[*]' COLUMNS(value JSON PATH '$'))`.as('_jt'),
+                        )
+                        .select(eb.lit(1).as('_'))
+                        .where(eb.ref('_jt.value'), '=', scalarRef),
+                )
+                .toOperationNode();
+        }
+
+        // combine array check with original WHERE
+        const combinedWhere = subquery.where
+            ? conjunction(this.dialect, [subquery.where.where, arrayCheck])
+            : arrayCheck;
+
+        // preserve original FROM to handle joins (m2m etc.)
+        return UnaryOperationNode.create(
+            {
+                kind: 'SelectQueryNode',
+                from: subquery.from,
+                where: WhereNode.create(combinedWhere),
+                selections: [SelectionNode.create(AliasNode.create(ValueNode.createImmediate(1), IdentifierNode.create('_')))],
+            } as SelectQueryNode,
+            OperatorNode.create('exists'),
+        );
     }
 }
