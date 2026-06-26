@@ -1290,40 +1290,39 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
     }
 
     private resolveManyToManyJoinTable(tableName: string) {
-        for (const model of Object.values(this.client.$schema.models)) {
-            for (const field of Object.values(model.fields)) {
-                const m2m = QueryUtils.getManyToManyRelation(this.client.$schema, model.name, field.name);
-                if (m2m?.joinTable === tableName) {
-                    const sortedRecord = [
-                        {
-                            model: model.name,
-                            field: field.name,
-                        },
-                        {
-                            model: m2m.otherModel,
-                            field: m2m.otherField,
-                        },
-                    ].sort(this.manyToManySorter);
-
-                    const firstIdFields = QueryUtils.requireIdFields(this.client.$schema, sortedRecord[0]!.model);
-                    const secondIdFields = QueryUtils.requireIdFields(this.client.$schema, sortedRecord[1]!.model);
-                    invariant(
-                        firstIdFields.length === 1 && secondIdFields.length === 1,
-                        'only single-field id is supported for implicit many-to-many join table',
-                    );
-
-                    return {
-                        firstModel: sortedRecord[0]!.model,
-                        firstField: sortedRecord[0]!.field,
-                        firstIdField: firstIdFields[0]!,
-                        secondModel: sortedRecord[1]!.model,
-                        secondField: sortedRecord[1]!.field,
-                        secondIdField: secondIdFields[0]!,
-                    };
-                }
-            }
+        // O(1) lookup backed by a per-schema index (built once); previously this scanned
+        // the entire schema on every call for every table. See issue #2715.
+        const endpoints = QueryUtils.getManyToManyJoinTable(this.client.$schema, tableName);
+        if (!endpoints) {
+            return undefined;
         }
-        return undefined;
+
+        const sortedRecord = [
+            {
+                model: endpoints.model,
+                field: endpoints.field,
+            },
+            {
+                model: endpoints.otherModel,
+                field: endpoints.otherField,
+            },
+        ].sort(this.manyToManySorter);
+
+        const firstIdFields = QueryUtils.requireIdFields(this.client.$schema, sortedRecord[0]!.model);
+        const secondIdFields = QueryUtils.requireIdFields(this.client.$schema, sortedRecord[1]!.model);
+        invariant(
+            firstIdFields.length === 1 && secondIdFields.length === 1,
+            'only single-field id is supported for implicit many-to-many join table',
+        );
+
+        return {
+            firstModel: sortedRecord[0]!.model,
+            firstField: sortedRecord[0]!.field,
+            firstIdField: firstIdFields[0]!,
+            secondModel: sortedRecord[1]!.model,
+            secondField: sortedRecord[1]!.field,
+            secondIdField: secondIdFields[0]!,
+        };
     }
 
     private manyToManySorter(a: { model: string; field: string }, b: { model: string; field: string }): number {
