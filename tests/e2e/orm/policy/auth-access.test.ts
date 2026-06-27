@@ -601,4 +601,82 @@ model Doc {
         });
         expect((await user2.doc.findMany()).map((d) => d.id).sort()).toEqual([1, 2]);
     });
+
+    it('keeps this-rooted collection predicates on the @@allow model inside auth bindings (Fix #3)', async () => {
+        const db = await createPolicyTestClient(
+            `
+model User {
+    id Int @id
+    assignments RoleAssignment[]
+    @@auth
+}
+
+model Scope {
+    id Int @id
+    parentId Int?
+    parent Scope? @relation("ScopeParent", fields: [parentId], references: [id])
+    children Scope[] @relation("ScopeParent")
+    ancestors ScopeClosure[] @relation("Descendant")
+    descendants ScopeClosure[] @relation("Ancestor")
+    docs Doc[]
+    assignments RoleAssignment[]
+    @@allow('all', true)
+}
+
+model ScopeClosure {
+    ancestorId Int
+    descendantId Int
+    ancestor Scope @relation("Ancestor", fields: [ancestorId], references: [id])
+    descendant Scope @relation("Descendant", fields: [descendantId], references: [id])
+    @@id([ancestorId, descendantId])
+    @@allow('all', true)
+}
+
+model RoleAssignment {
+    id Int @id
+    userId Int
+    scopeId Int
+    user User @relation(fields: [userId], references: [id])
+    scope Scope @relation(fields: [scopeId], references: [id])
+    @@allow('all', true)
+}
+
+model Doc {
+    id Int @id
+    authScopeId Int
+    authScope Scope @relation(fields: [authScopeId], references: [id])
+
+    @@allow('read', auth().assignments?[rs,
+        rs.scope == this.authScope ||
+        this.authScope.ancestors?[ancestor == rs.scope]
+    ])
+}
+`,
+            { provider: 'postgresql' },
+        );
+
+        await db.$unuseAll().scope.createMany({
+            data: [
+                { id: 1 },
+                { id: 2, parentId: 1 },
+            ],
+        });
+        await db.$unuseAll().scopeClosure.createMany({
+            data: [
+                { ancestorId: 1, descendantId: 1 },
+                { ancestorId: 2, descendantId: 2 },
+                { ancestorId: 1, descendantId: 2 },
+            ],
+        });
+        await db.$unuseAll().doc.create({
+            data: { id: 1, authScopeId: 2 },
+        });
+
+        const reader = db.$setAuth({
+            id: 1,
+            assignments: [{ id: 1, scopeId: 1, scope: { id: 1 } }],
+        });
+
+        await expect(reader.doc.findUnique({ where: { id: 1 } })).toResolveTruthy();
+    });
 });

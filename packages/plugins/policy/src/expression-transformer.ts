@@ -320,16 +320,11 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
     }
 
     private normalizeBinaryOperationOperands(expr: BinaryExpression, context: ExpressionTransformerContext) {
-        if (context.contextValue) {
-            // no normalization needed if evaluating against a value object
-            return { normalizedLeft: expr.left, normalizedRight: expr.right };
-        }
-
-        // if relation fields are used directly in comparison, it can only be compared with null,
-        // so we normalize the args with the id field (use the first id field if multiple)
+        // If relation fields are used directly in comparison, normalize both sides to the
+        // first id field. This is required both for SQL-backed relation comparisons and for
+        // value-backed auth/binding objects carried through collection predicates.
         let normalizedLeft: Expression = expr.left;
         if (this.isRelationField(expr.left, context)) {
-            invariant(ExpressionUtils.isNull(expr.right), 'only null comparison is supported for relation field');
             const leftRelDef = this.getFieldDefFromFieldRef(expr.left, context);
             invariant(leftRelDef, 'failed to get relation field definition');
             const idFields = QueryUtils.requireIdFields(this.schema, leftRelDef.type);
@@ -337,7 +332,6 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         }
         let normalizedRight: Expression = expr.right;
         if (this.isRelationField(expr.right, context)) {
-            invariant(ExpressionUtils.isNull(expr.left), 'only null comparison is supported for relation field');
             const rightRelDef = this.getFieldDefFromFieldRef(expr.right, context);
             invariant(rightRelDef, 'failed to get relation field definition');
             const idFields = QueryUtils.requireIdFields(this.schema, rightRelDef.type);
@@ -349,7 +343,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
     private transformCollectionPredicate(expr: BinaryExpression, context: ExpressionTransformerContext) {
         this.ensureCollectionPredicateOperator(expr.op);
 
-        if (this.isAuthMember(expr.left) || context.contextValue) {
+        if (this.isAuthMember(expr.left) || (context.contextValue && !this.isThisRootedMember(expr.left))) {
             invariant(
                 ExpressionUtils.isMember(expr.left) || ExpressionUtils.isField(expr.left),
                 'expected member or field expression',
@@ -367,7 +361,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
 
             // get LHS's type
             const baseType = this.isAuthMember(expr.left) ? this.authType : context.modelOrType;
-            const memberType = this.getMemberType(baseType, expr.left);
+            const memberType = this.getMemberType(baseType, expr.left, context);
 
             // transform the entire expression with a value LHS and the correct context type
             return this.transformValueCollectionPredicate(receiver, expr, { ...context, modelOrType: memberType });
@@ -418,12 +412,9 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             ...context,
             modelOrType: newContextModel,
             alias: undefined,
+            contextValue: undefined,
             bindingScope: bindingScope,
         });
-
-        if (expr.op === '!') {
-            predicateFilter = logicalNot(this.dialect, predicateFilter);
-        }
 
         const count = FunctionNode.create('count', [ValueNode.createImmediate(1)]);
 
@@ -511,18 +502,35 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         }
     }
 
-    private getMemberType(receiverType: string, expr: MemberExpression | FieldExpression) {
+    private getMemberType(
+        receiverType: string,
+        expr: MemberExpression | FieldExpression,
+        context?: ExpressionTransformerContext,
+    ) {
         if (ExpressionUtils.isField(expr)) {
             const fieldDef = QueryUtils.requireField(this.schema, receiverType, expr.field);
             return fieldDef.type;
         } else {
             let currType = receiverType;
+            if (ExpressionUtils.isThis(expr.receiver)) {
+                invariant(context, 'context is required for resolving this-rooted member types');
+                currType = context.thisType;
+            } else if (ExpressionUtils.isBinding(expr.receiver)) {
+                invariant(context, 'context is required for resolving binding-rooted member types');
+                currType = this.requireBindingScope(expr.receiver, context).type;
+            } else if (ExpressionUtils.isField(expr.receiver)) {
+                const fieldDef = QueryUtils.requireField(this.schema, receiverType, expr.receiver.field);
+                currType = fieldDef.type;
+            }
             for (const member of expr.members) {
                 const fieldDef = QueryUtils.requireField(this.schema, currType, member);
                 currType = fieldDef.type;
             }
             return currType;
         }
+    }
+    private isThisRootedMember(expr: Expression) {
+        return ExpressionUtils.isMember(expr) && ExpressionUtils.isThis(expr.receiver);
     }
 
     private transformAuthBinary(expr: BinaryExpression, context: ExpressionTransformerContext) {
@@ -1038,6 +1046,21 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             // `this.relation.field` chain — walk from the @@allow model
             const firstDef = QueryUtils.getField(this.schema, model, expr.members[0]!);
             if (!firstDef?.relation) return undefined;
+            let currModel = firstDef.type;
+            for (let i = 1; i < expr.members.length - 1; i++) {
+                const hopDef = QueryUtils.getField(this.schema, currModel, expr.members[i]!);
+                if (!hopDef?.relation) return undefined;
+                currModel = hopDef.type;
+            }
+            return QueryUtils.getField(this.schema, currModel, expr.members[expr.members.length - 1]!);
+        } else if (ExpressionUtils.isMember(expr) && ExpressionUtils.isBinding(expr.receiver)) {
+            const binding = this.requireBindingScope(expr.receiver, context);
+            const firstDef = QueryUtils.getField(this.schema, binding.type, expr.members[0]!);
+            if (!firstDef) return undefined;
+            if (expr.members.length === 1) {
+                return firstDef;
+            }
+            if (!firstDef.relation) return undefined;
             let currModel = firstDef.type;
             for (let i = 1; i < expr.members.length - 1; i++) {
                 const hopDef = QueryUtils.getField(this.schema, currModel, expr.members[i]!);
