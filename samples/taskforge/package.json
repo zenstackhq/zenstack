@@ -1,6 +1,6 @@
 {
     "name": "taskforge",
-    "version": "3.8.0",
+    "version": "3.8.1",
     "type": "module",
     "private": true,
     "description": "A CLI for a team collaboration / project-tracking platform, built on ZenStack v3 (ORM) and better-auth.",
