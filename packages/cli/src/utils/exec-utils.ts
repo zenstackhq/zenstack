@@ -1,4 +1,4 @@
-import { execSync as _exec, type ExecSyncOptions } from 'child_process';
+import { execSync as _exec, execFileSync, type ExecSyncOptions } from 'child_process';
 import { fileURLToPath } from 'url';
 
 /**
@@ -23,7 +23,13 @@ export function execPackage(
     options?: Omit<ExecSyncOptions, 'env'> & { env?: Record<string, string> },
 ): void {
     const packageManager = process?.versions?.['bun'] ? 'bunx' : 'npx';
-    execSync(`${packageManager} ${cmd}`, options);
+    const [executable, ...args] = cmd.split(' ');
+    execFileSync(packageManager, [executable, ...args], {
+        encoding: 'utf-8',
+        stdio: options?.stdio ?? 'inherit',
+        env: options?.env ? { ...process.env, ...options.env } : undefined,
+        ...options,
+    });
 }
 
 /**
@@ -57,5 +63,10 @@ export function execPrisma(args: string, options?: Omit<ExecSyncOptions, 'env'> 
         return;
     }
 
-    execSync(`node "${prismaPath}" ${args}`, _options);
+    execFileSync('node', [prismaPath, ...args.split(' ')], {
+        encoding: 'utf-8',
+        stdio: _options?.stdio ?? 'inherit',
+        env: _options?.env ? { ...process.env, ..._options.env } : undefined,
+        ..._options,
+    });
 }
