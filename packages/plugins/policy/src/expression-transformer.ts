@@ -1138,18 +1138,17 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 .toOperationNode();
         }
 
-        // combine array check with original WHERE
         const combinedWhere = subquery.where
             ? conjunction(this.dialect, [subquery.where.where, arrayCheck])
             : arrayCheck;
 
-        // preserve original FROM to handle joins (m2m etc.)
         return UnaryOperationNode.create(
             {
-                kind: 'SelectQueryNode',
-                from: subquery.from,
+                ...(subquery as SelectQueryNode),
                 where: WhereNode.create(combinedWhere),
-                selections: [SelectionNode.create(AliasNode.create(ValueNode.createImmediate(1), IdentifierNode.create('_')))],
+                selections: [
+                    SelectionNode.create(AliasNode.create(ValueNode.createImmediate(1), IdentifierNode.create('_'))),
+                ],
             } as SelectQueryNode,
             OperatorNode.create('exists'),
         );
