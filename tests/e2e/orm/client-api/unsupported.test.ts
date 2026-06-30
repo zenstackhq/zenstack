@@ -205,6 +205,7 @@ describe('Unsupported field exclusion - Zod runtime validation', () => {
         it('rejects Unsupported fields in select', async () => {
             // valid call
             await db.item.findMany({ select: { id: true, name: true } });
+            // @ts-expect-error data (Unsupported) should not be in select
             await expect(db.item.findMany({ select: { data: true } })).toBeRejectedByValidation();
         });
 
@@ -218,6 +219,7 @@ describe('Unsupported field exclusion - Zod runtime validation', () => {
         it('rejects Unsupported fields in orderBy', async () => {
             // valid call
             await db.item.findMany({ orderBy: { name: 'asc' } });
+            // @ts-expect-error data (Unsupported) should not be in orderBy
             await expect(db.item.findMany({ orderBy: { data: 'asc' } })).toBeRejectedByValidation();
         });
 

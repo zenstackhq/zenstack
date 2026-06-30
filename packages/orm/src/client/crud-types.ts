@@ -1315,8 +1315,59 @@ export type Subset<T, U> = {
     [key in keyof T]: key extends keyof U ? T[key] : never;
 };
 
+type PreserveNullish<T, Strict> = Strict | Extract<T, null | undefined>;
+
+type NoExtraKeys<T, Shape> = Shape extends unknown
+    ? T extends Shape
+        ? T extends object
+            ? T & { [K in Exclude<keyof T, keyof Shape>]: never }
+            : T
+        : never
+    : never;
+
+type StrictExistingArg<T, Shape> = PreserveNullish<T, NoExtraKeys<NonNullable<T>, NonNullable<Shape>>>;
+
+type StrictExistingArgKeys = 'where' | 'orderBy' | 'cursor';
+
+type StrictQueryArgs<T, Shape> = T extends object
+    ? {
+          [K in keyof T]: K extends keyof Shape
+              ? K extends 'select' | 'include' | 'omit'
+                  ? StrictArgProperty<T[K], Shape, K>
+                  : K extends StrictExistingArgKeys
+                    ? StrictExistingArg<T[K], Shape[K]>
+                    : T[K]
+              : never;
+      }
+    : T;
+
+type StrictSelectionValue<T, Shape> =
+    T extends object
+        ? Extract<NonNullable<Shape>, object> extends infer ObjectShape extends object
+            ? [ObjectShape] extends [never]
+                ? T
+                : PreserveNullish<T, StrictQueryArgs<NonNullable<T>, ObjectShape> & ObjectShape>
+            : T
+        : T;
+
+type StrictSelection<T, Shape> = T extends object
+    ? {
+          [K in keyof T]: K extends keyof Shape ? StrictSelectionValue<T[K], Shape[K]> : never;
+      }
+    : T;
+
+type StrictArgProperty<T, U, Key extends PropertyKey> = Key extends keyof U
+    ? PreserveNullish<T, StrictSelection<NonNullable<T>, NonNullable<U[Key]>> & NonNullable<U[Key]>>
+    : T;
+
 export type SelectSubset<T, U> = {
-    [key in keyof T]: key extends keyof U ? T[key] : never;
+    [key in keyof T]: key extends keyof U
+        ? key extends 'select' | 'include' | 'omit'
+            ? StrictArgProperty<T[key], U, key>
+            : key extends StrictExistingArgKeys
+              ? StrictExistingArg<T[key], U[key]>
+              : T[key]
+        : never;
 } & (T extends { select: any; include: any }
     ? 'Please either choose `select` or `include`.'
     : T extends { select: any; omit: any }

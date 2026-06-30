@@ -216,6 +216,7 @@ describe('Query slicing tests', () => {
             // Profile is excluded, so selecting it should cause type error
             await expect(
                 db.user.findMany({
+                    // @ts-expect-error Profile is excluded by slicing
                     select: { id: true, profile: true },
                 }),
             ).toBeRejectedByValidation(['"profile"', '"select"']);
@@ -223,6 +224,7 @@ describe('Query slicing tests', () => {
             // Comment is excluded, so selecting it should cause type error
             await expect(
                 db.post.findMany({
+                    // @ts-expect-error Comment is excluded by slicing
                     select: { id: true, comments: true },
                 }),
             ).toBeRejectedByValidation(['"comments"', '"select"']);
@@ -295,6 +297,7 @@ describe('Query slicing tests', () => {
             // Profile is not included, so selecting it should cause type error
             await expect(
                 db.user.findMany({
+                    // @ts-expect-error Profile is not included by slicing
                     select: { id: true, profile: true },
                 }),
             ).toBeRejectedByValidation(['"profile"', '"select"']);
@@ -302,6 +305,7 @@ describe('Query slicing tests', () => {
             // Comment is not included, so selecting it should cause type error
             await expect(
                 db.post.findMany({
+                    // @ts-expect-error Comment is not included by slicing
                     select: { id: true, comments: true },
                 }),
             ).toBeRejectedByValidation(['"comments"', '"select"']);
@@ -375,6 +379,7 @@ describe('Query slicing tests', () => {
                     select: {
                         id: true,
                         posts: {
+                            // @ts-expect-error Comment is excluded by slicing
                             select: { id: true, comments: true },
                         },
                     },
