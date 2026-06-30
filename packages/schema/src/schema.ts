@@ -84,8 +84,8 @@ export type FieldDef = {
     computed?: boolean;
     /**
      * For a parameterized computed field, the parameters it declares (keyed by name).
-     * The corresponding arguments are supplied at query time wherever the field is
-     * referenced (in `where`, `orderBy`, or `select`).
+     * The corresponding arguments are supplied at query time when the field is used in
+     * `orderBy`.
      */
     params?: Record<string, ProcedureParam>;
     originModel?: string;

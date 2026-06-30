@@ -653,7 +653,10 @@ export class TsSchemaGenerator {
             .with('BigInt', () => 'bigint')
             .with('Decimal', () => 'number')
             .with('DateTime', () => 'Date')
-            .otherwise(() => type.reference?.ref?.name ?? 'unknown');
+            // non-scalar references (enums/type defs/models) aren't in scope in the generated
+            // schema file, so fall back to `unknown` — same convention as computed-field return
+            // types (`mapFieldTypeToTSType`). Runtime zod still validates these precisely.
+            .otherwise(() => 'unknown');
         if (type.array) {
             result = `${result}[]`;
         }

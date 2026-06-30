@@ -245,6 +245,15 @@ model Post {
         // a parameterized computed field is not auto-returned (it needs args)
         const plain = await db.user.findFirstOrThrow({ where: { id: 1 } });
         expect(plain).not.toHaveProperty('popularPostCount');
+
+        // cursor pagination can't be combined with a parameterized computed sort
+        // (its sort key is not a real column)
+        await expect(
+            db.user.findMany({
+                orderBy: { popularPostCount: { args: { minViews: 100 }, sort: 'desc' } },
+                cursor: { id: 1 },
+            } as any),
+        ).rejects.toThrow(/cursor pagination cannot be combined/);
     });
 
     it('works with a DateTime-parameterized computed field', async () => {

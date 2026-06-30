@@ -177,6 +177,12 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                         if (typeof ob !== 'object' || ob === null) return undefined;
                         if ('_fuzzyRelevance' in ob) return '_fuzzyRelevance';
                         if ('_ftsRelevance' in ob) return '_ftsRelevance';
+                        // a parameterized computed field orders by `{ args, sort }`; its sort
+                        // key is not a real column, so it can't participate in a cursor compare
+                        const argsEntry = Object.entries(ob).find(
+                            ([, v]) => v !== null && typeof v === 'object' && 'args' in (v as object),
+                        );
+                        if (argsEntry) return argsEntry[0];
                         return undefined;
                     })
                     .find((k) => k !== undefined);
