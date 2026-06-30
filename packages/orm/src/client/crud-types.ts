@@ -143,7 +143,11 @@ type FlatModelResult<
 > = {
     [Key in NonRelationFields<Schema, Model> as ShouldOmitField<Schema, Model, Options, Key, Omit> extends true
         ? never
-        : Key]: MapModelFieldType<Schema, Model, Key>;
+        : // parameterized computed fields require query-time args, so they are not
+          // auto-returned (only usable in `orderBy`)
+          FieldHasComputedArgs<Schema, Model, Key> extends true
+          ? never
+          : Key]: MapModelFieldType<Schema, Model, Key>;
 };
 
 // Builds a discriminated union from a delegate model's direct sub-models. Recursion depth
@@ -336,11 +340,15 @@ export type WhereInput<
     ScalarOnly extends boolean = false,
     WithAggregations extends boolean = false,
 > = {
-    [Key in GetModelFields<Schema, Model> as ScalarOnly extends true
-        ? Key extends RelationFields<Schema, Model>
-            ? never
-            : Key
-        : Key]?: FieldFilter<Schema, Model, Key, Options, WithAggregations>;
+    // parameterized computed fields are excluded here — filtering them would require
+    // query-time args; they are currently only usable in `orderBy`
+    [Key in GetModelFields<Schema, Model> as FieldHasComputedArgs<Schema, Model, Key> extends true
+        ? never
+        : ScalarOnly extends true
+          ? Key extends RelationFields<Schema, Model>
+              ? never
+              : Key
+          : Key]?: FieldFilter<Schema, Model, Key, Options, WithAggregations>;
 } & {
     $expr?: (eb: ExpressionBuilder<ToKyselySchema<Schema>, Model>) => OperandExpression<SqlBool>;
 } & {
@@ -1128,27 +1136,73 @@ export type FtsRelevanceOrderBy<Schema extends SchemaDef, Model extends GetModel
     };
 };
 
+/**
+ * The query-time arguments object of a parameterized computed field, derived from the
+ * generated `computedFields` stub signature `(context, args) => R` — the same source
+ * `ComputedFieldsOptions` reads, so the implementation signature and the query-time args
+ * can never drift apart. Resolves to `never` for non-parameterized fields.
+ */
+export type ComputedFieldArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Field extends GetModelFields<Schema, Model>,
+> = 'computedFields' extends keyof GetModel<Schema, Model>
+    ? Field extends keyof GetModel<Schema, Model>['computedFields']
+        ? GetModel<Schema, Model>['computedFields'][Field] extends (...args: infer P) => any
+            ? P extends [any, infer Args]
+                ? Args
+                : never
+            : never
+        : never
+    : never;
+
+/**
+ * Whether `Field` is a parameterized computed field (its args object is not `never`).
+ */
+export type FieldHasComputedArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Field extends GetModelFields<Schema, Model>,
+> = [ComputedFieldArgs<Schema, Model, Field>] extends [never] ? false : true;
+
 export type OrderBy<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     WithRelation extends boolean,
     WithAggregation extends boolean,
 > = {
-    [Key in NonRelationFields<Schema, Model>]?: ModelFieldIsOptional<Schema, Model, Key> extends true
-        ?
-              | SortOrder
-              | {
-                    /**
-                     * Sort order
-                     */
-                    sort: SortOrder;
+    [Key in NonRelationFields<Schema, Model>]?: FieldHasComputedArgs<Schema, Model, Key> extends true
+        ? {
+              /**
+               * Arguments for the parameterized computed field.
+               */
+              args: ComputedFieldArgs<Schema, Model, Key>;
 
-                    /**
-                     * Treatment of null values
-                     */
-                    nulls?: NullsOrder;
-                }
-        : SortOrder;
+              /**
+               * Sort order
+               */
+              sort: SortOrder;
+
+              /**
+               * Treatment of null values
+               */
+              nulls?: NullsOrder;
+          }
+        : ModelFieldIsOptional<Schema, Model, Key> extends true
+          ?
+                | SortOrder
+                | {
+                      /**
+                       * Sort order
+                       */
+                      sort: SortOrder;
+
+                      /**
+                       * Treatment of null values
+                       */
+                      nulls?: NullsOrder;
+                  }
+          : SortOrder;
 } & (WithRelation extends true
     ? {
           [Key in RelationFields<Schema, Model>]?: FieldIsArray<Schema, Model, Key> extends true
@@ -1259,7 +1313,11 @@ export type SelectInput<
     AllowRelation extends boolean = true,
     ExtResult extends ExtResultBase<Schema> = {},
 > = {
-    [Key in NonRelationFields<Schema, Model>]?: boolean;
+    // parameterized computed fields are excluded — selecting them would require
+    // query-time args; they are currently only usable in `orderBy`
+    [Key in NonRelationFields<Schema, Model> as FieldHasComputedArgs<Schema, Model, Key> extends true
+        ? never
+        : Key]?: boolean;
 } & (AllowRelation extends true ? IncludeInput<Schema, Model, Options, AllowCount, ExtResult> : {});
 
 type SelectCount<Schema extends SchemaDef, Model extends GetModels<Schema>, Options extends QueryOptions<Schema>> =

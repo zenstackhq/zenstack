@@ -186,7 +186,12 @@ fragment ExtendsClause:
 
 DataField:
     (comments+=TRIPLE_SLASH_COMMENT)*
-    name=RegularIDWithTypeNames type=DataFieldType (attributes+=DataFieldAttribute)*;
+    name=RegularIDWithTypeNames ('(' params+=DataFieldParam (',' params+=DataFieldParam)* ')' ':')? type=DataFieldType (attributes+=DataFieldAttribute)*;
+
+// Parameters of a parameterized field (only meaningful on `@computed` fields).
+// Shares the shape of FunctionParam/ProcedureParam.
+DataFieldParam:
+    TRIPLE_SLASH_COMMENT* name=RegularID ':' type=FunctionParamType (optional?='?')?;
 
 DataFieldType:
     (type=BuiltinType | unsupported=UnsupportedFieldType | reference=[TypeDeclaration:RegularID]) (array?='[' ']')? (optional?='?')?;

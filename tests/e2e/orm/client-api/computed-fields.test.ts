@@ -180,6 +180,149 @@ model User {
         ]);
     });
 
+    it('works with parameterized computed fields in orderBy', async () => {
+        const db = await createTestClient(
+            `
+model User {
+    id Int @id @default(autoincrement())
+    name String
+    posts Post[]
+    popularPostCount(minViews: Int): Int @computed
+}
+
+model Post {
+    id Int @id @default(autoincrement())
+    viewCount Int @default(0)
+    author User @relation(fields: [authorId], references: [id])
+    authorId Int
+}
+`,
+            {
+                computedFields: {
+                    User: {
+                        // counts the user's posts whose viewCount >= the query-time `minViews` arg
+                        popularPostCount: (eb: any, ctx: any, args: any) =>
+                            eb
+                                .selectFrom('Post')
+                                .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
+                                .where('Post.viewCount', '>=', args.minViews)
+                                .select(({ fn }: any) => fn.countAll().as('cnt')),
+                    },
+                },
+            } as any,
+        );
+
+        // Alice: posts [300, 50, 50]  → (>=100)=1, (>=250)=1
+        // Bob:   posts [120, 120, 10] → (>=100)=2, (>=250)=0
+        await db.user.create({
+            data: { id: 1, name: 'Alice', posts: { create: [{ viewCount: 300 }, { viewCount: 50 }, { viewCount: 50 }] } },
+        });
+        await db.user.create({
+            data: { id: 2, name: 'Bob', posts: { create: [{ viewCount: 120 }, { viewCount: 120 }, { viewCount: 10 }] } },
+        });
+
+        // minViews=100: Alice=1, Bob=2 → desc ⇒ [Bob, Alice]
+        await expect(
+            db.user.findMany({
+                orderBy: [{ popularPostCount: { args: { minViews: 100 }, sort: 'desc' } }, { id: 'asc' }],
+            }),
+        ).resolves.toMatchObject([{ id: 2 }, { id: 1 }]);
+
+        // minViews=250: Alice=1, Bob=0 → desc ⇒ [Alice, Bob] (different arg ⇒ different order)
+        await expect(
+            db.user.findMany({
+                orderBy: [{ popularPostCount: { args: { minViews: 250 }, sort: 'desc' } }, { id: 'asc' }],
+            }),
+        ).resolves.toMatchObject([{ id: 1 }, { id: 2 }]);
+
+        // ascending flips the minViews=100 ordering
+        await expect(
+            db.user.findMany({
+                orderBy: [{ popularPostCount: { args: { minViews: 100 }, sort: 'asc' } }, { id: 'asc' }],
+            }),
+        ).resolves.toMatchObject([{ id: 1 }, { id: 2 }]);
+
+        // a parameterized computed field is not auto-returned (it needs args)
+        const plain = await db.user.findFirstOrThrow({ where: { id: 1 } });
+        expect(plain).not.toHaveProperty('popularPostCount');
+
+        // cursor pagination can't be combined with a parameterized computed sort
+        // (its sort key is not a real column)
+        await expect(
+            db.user.findMany({
+                orderBy: { popularPostCount: { args: { minViews: 100 }, sort: 'desc' } },
+                cursor: { id: 1 },
+            } as any),
+        ).rejects.toThrow(/cursor pagination cannot be combined/);
+    });
+
+    it('works with a DateTime-parameterized computed field', async () => {
+        const db = await createTestClient(
+            `
+model User {
+    id Int @id @default(autoincrement())
+    name String
+    posts Post[]
+    recentPostCount(since: DateTime): Int @computed
+}
+
+model Post {
+    id Int @id @default(autoincrement())
+    createdAt DateTime
+    author User @relation(fields: [authorId], references: [id])
+    authorId Int
+}
+`,
+            {
+                computedFields: {
+                    User: {
+                        // counts the user's posts created on/after the query-time `since` arg.
+                        // (a computed-field impl writes raw Kysely, so it binds the dialect's
+                        // native value — SQLite stores DateTime as an ISO string)
+                        recentPostCount: (eb: any, ctx: any, args: any) =>
+                            eb
+                                .selectFrom('Post')
+                                .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
+                                .where('Post.createdAt', '>=', args.since.toISOString())
+                                .select(({ fn }: any) => fn.countAll().as('cnt')),
+                    },
+                },
+            } as any,
+        );
+
+        // Alice: 3 posts in early 2024; Bob: 1 post in Aug 2024
+        await db.user.create({
+            data: {
+                id: 1,
+                name: 'Alice',
+                posts: {
+                    create: [
+                        { createdAt: new Date('2024-01-01') },
+                        { createdAt: new Date('2024-02-01') },
+                        { createdAt: new Date('2024-03-01') },
+                    ],
+                },
+            },
+        });
+        await db.user.create({
+            data: { id: 2, name: 'Bob', posts: { create: [{ createdAt: new Date('2024-08-01') }] } },
+        });
+
+        // since 2024-01-01: Alice=3, Bob=1 → desc ⇒ [Alice, Bob]
+        await expect(
+            db.user.findMany({
+                orderBy: [{ recentPostCount: { args: { since: new Date('2024-01-01') }, sort: 'desc' } }, { id: 'asc' }],
+            }),
+        ).resolves.toMatchObject([{ id: 1 }, { id: 2 }]);
+
+        // since 2024-07-01: Alice=0, Bob=1 → desc ⇒ [Bob, Alice] (later `since` flips the order)
+        await expect(
+            db.user.findMany({
+                orderBy: [{ recentPostCount: { args: { since: new Date('2024-07-01') }, sort: 'desc' } }, { id: 'asc' }],
+            }),
+        ).resolves.toMatchObject([{ id: 2 }, { id: 1 }]);
+    });
+
     it('is typed correctly for non-optional fields', async () => {
         await createTestClient(
             `

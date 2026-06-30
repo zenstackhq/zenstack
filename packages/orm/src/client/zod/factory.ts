@@ -407,6 +407,25 @@ export class ZodSchemaFactory<
         }
     }
 
+    // Builds the validation schema for a parameterized computed field's `args` object,
+    // keyed by the field's declared params (e.g. `{ categoryId: number }`).
+    private makeFieldArgsSchema(params: NonNullable<FieldDef['params']>) {
+        return z.strictObject(
+            Object.fromEntries(
+                Object.entries(params).map(([name, param]) => {
+                    let paramSchema: ZodType = this.makeScalarSchema(param.type);
+                    if (param.array) {
+                        paramSchema = paramSchema.array();
+                    }
+                    if (param.optional) {
+                        paramSchema = paramSchema.optional();
+                    }
+                    return [name, paramSchema];
+                }),
+            ),
+        );
+    }
+
     @cache()
     private makeEnumSchema(_enum: string) {
         const enumDef = getEnum(this.schema, _enum);
@@ -1386,7 +1405,16 @@ export class ZodSchemaFactory<
                 }
             } else {
                 // scalars
-                if (fieldDef.optional) {
+                if (fieldDef.computed && fieldDef.params) {
+                    // parameterized computed field: `{ args, sort, nulls? }`
+                    fields[field] = z
+                        .strictObject({
+                            args: this.makeFieldArgsSchema(fieldDef.params),
+                            sort,
+                            nulls: z.union([z.literal('first'), z.literal('last')]).optional(),
+                        })
+                        .optional();
+                } else if (fieldDef.optional) {
                     fields[field] = z
                         .union([
                             sort,
