@@ -5,11 +5,13 @@ import {
     BinaryExpr,
     DataField,
     DataFieldAttribute,
+    DataFieldParam,
     DataFieldType,
     DataModel,
     DataModelAttribute,
     Enum,
     Expression,
+    FunctionParamType,
     InvocationExpr,
     isArrayExpr,
     isBinaryExpr,
@@ -541,31 +543,63 @@ export class TsSchemaGenerator {
 
     private createComputedFieldsObject(fields: DataField[]) {
         return ts.factory.createObjectLiteralExpression(
-            fields.map((field) =>
-                ts.factory.createMethodDeclaration(
+            fields.map((field) => {
+                const params: ts.ParameterDeclaration[] = [
+                    // parameter: `_context: { modelAlias: string }`
+                    ts.factory.createParameterDeclaration(
+                        undefined,
+                        undefined,
+                        '_context',
+                        undefined,
+                        ts.factory.createTypeLiteralNode([
+                            ts.factory.createPropertySignature(
+                                undefined,
+                                'modelAlias',
+                                undefined,
+                                ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword),
+                            ),
+                        ]),
+                        undefined,
+                    ),
+                ];
+
+                // For a parameterized computed field, add `args: { <param>: <type> }`.
+                // The field's params flow into this stub's signature so that
+                // `Parameters<typeof stub>` carries the args type for both the
+                // implementation (ComputedFieldsOptions) and the query input types.
+                if (field.params.length > 0) {
+                    params.push(
+                        ts.factory.createParameterDeclaration(
+                            undefined,
+                            undefined,
+                            'args',
+                            undefined,
+                            ts.factory.createTypeLiteralNode(
+                                field.params.map((param) =>
+                                    ts.factory.createPropertySignature(
+                                        undefined,
+                                        param.name,
+                                        param.optional
+                                            ? ts.factory.createToken(ts.SyntaxKind.QuestionToken)
+                                            : undefined,
+                                        ts.factory.createTypeReferenceNode(
+                                            this.mapFunctionParamTypeToTSType(param.type),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                            undefined,
+                        ),
+                    );
+                }
+
+                return ts.factory.createMethodDeclaration(
                     undefined,
                     undefined,
                     field.name,
                     undefined,
                     undefined,
-                    [
-                        // parameter: `context: { modelAlias: string }`
-                        ts.factory.createParameterDeclaration(
-                            undefined,
-                            undefined,
-                            '_context',
-                            undefined,
-                            ts.factory.createTypeLiteralNode([
-                                ts.factory.createPropertySignature(
-                                    undefined,
-                                    'modelAlias',
-                                    undefined,
-                                    ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword),
-                                ),
-                            ]),
-                            undefined,
-                        ),
-                    ],
+                    params,
                     ts.factory.createTypeReferenceNode(this.mapFieldTypeToTSType(field.type)),
                     ts.factory.createBlock(
                         [
@@ -577,10 +611,53 @@ export class TsSchemaGenerator {
                         ],
                         true,
                     ),
+                );
+            }),
+            true,
+        );
+    }
+
+    // Emits the `params` metadata for a parameterized computed field. Shape mirrors
+    // `ProcedureParam` (`Record<string, { name; type; array?; optional? }>`) and is
+    // read at runtime (to forward args) and by the zod input-validation factory.
+    private createFieldParamsObject(params: DataFieldParam[]) {
+        return ts.factory.createObjectLiteralExpression(
+            params.map((param) =>
+                ts.factory.createPropertyAssignment(
+                    param.name,
+                    ts.factory.createObjectLiteralExpression([
+                        ts.factory.createPropertyAssignment('name', ts.factory.createStringLiteral(param.name)),
+                        ...(param.optional
+                            ? [ts.factory.createPropertyAssignment('optional', ts.factory.createTrue())]
+                            : []),
+                        ...(param.type.array
+                            ? [ts.factory.createPropertyAssignment('array', ts.factory.createTrue())]
+                            : []),
+                        ts.factory.createPropertyAssignment(
+                            'type',
+                            ts.factory.createStringLiteral(param.type.type ?? param.type.reference!.$refText),
+                        ),
+                    ]),
                 ),
             ),
             true,
         );
+    }
+
+    private mapFunctionParamTypeToTSType(type: FunctionParamType): string {
+        let result = match(type.type)
+            .with('String', () => 'string')
+            .with('Boolean', () => 'boolean')
+            .with('Int', () => 'number')
+            .with('Float', () => 'number')
+            .with('BigInt', () => 'bigint')
+            .with('Decimal', () => 'number')
+            .with('DateTime', () => 'Date')
+            .otherwise(() => type.reference?.ref?.name ?? 'unknown');
+        if (type.array) {
+            result = `${result}[]`;
+        }
+        return result;
     }
 
     private createUpdatedAtObject(ignoreArg: AttributeArg) {
@@ -737,6 +814,14 @@ export class TsSchemaGenerator {
 
         if (hasAttribute(field, '@computed')) {
             objectFields.push(ts.factory.createPropertyAssignment('computed', ts.factory.createTrue()));
+        }
+
+        // parameterized computed field: emit the declared params so the runtime can
+        // forward query-time args and the zod factory can validate them
+        if (field.params.length > 0) {
+            objectFields.push(
+                ts.factory.createPropertyAssignment('params', this.createFieldParamsObject(field.params)),
+            );
         }
 
         if (isDataModel(field.type.reference?.ref)) {

@@ -180,6 +180,73 @@ model User {
         ]);
     });
 
+    it('works with parameterized computed fields in orderBy', async () => {
+        const db = await createTestClient(
+            `
+model User {
+    id Int @id @default(autoincrement())
+    name String
+    posts Post[]
+    popularPostCount(minViews: Int): Int @computed
+}
+
+model Post {
+    id Int @id @default(autoincrement())
+    viewCount Int @default(0)
+    author User @relation(fields: [authorId], references: [id])
+    authorId Int
+}
+`,
+            {
+                computedFields: {
+                    User: {
+                        // counts the user's posts whose viewCount >= the query-time `minViews` arg
+                        popularPostCount: (eb: any, ctx: any, args: any) =>
+                            eb
+                                .selectFrom('Post')
+                                .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
+                                .where('Post.viewCount', '>=', args.minViews)
+                                .select(({ fn }: any) => fn.countAll().as('cnt')),
+                    },
+                },
+            } as any,
+        );
+
+        // Alice: posts [300, 50, 50]  → (>=100)=1, (>=250)=1
+        // Bob:   posts [120, 120, 10] → (>=100)=2, (>=250)=0
+        await db.user.create({
+            data: { id: 1, name: 'Alice', posts: { create: [{ viewCount: 300 }, { viewCount: 50 }, { viewCount: 50 }] } },
+        });
+        await db.user.create({
+            data: { id: 2, name: 'Bob', posts: { create: [{ viewCount: 120 }, { viewCount: 120 }, { viewCount: 10 }] } },
+        });
+
+        // minViews=100: Alice=1, Bob=2 → desc ⇒ [Bob, Alice]
+        await expect(
+            db.user.findMany({
+                orderBy: [{ popularPostCount: { args: { minViews: 100 }, sort: 'desc' } }, { id: 'asc' }],
+            }),
+        ).resolves.toMatchObject([{ id: 2 }, { id: 1 }]);
+
+        // minViews=250: Alice=1, Bob=0 → desc ⇒ [Alice, Bob] (different arg ⇒ different order)
+        await expect(
+            db.user.findMany({
+                orderBy: [{ popularPostCount: { args: { minViews: 250 }, sort: 'desc' } }, { id: 'asc' }],
+            }),
+        ).resolves.toMatchObject([{ id: 1 }, { id: 2 }]);
+
+        // ascending flips the minViews=100 ordering
+        await expect(
+            db.user.findMany({
+                orderBy: [{ popularPostCount: { args: { minViews: 100 }, sort: 'asc' } }, { id: 'asc' }],
+            }),
+        ).resolves.toMatchObject([{ id: 1 }, { id: 2 }]);
+
+        // a parameterized computed field is not auto-returned (it needs args)
+        const plain = await db.user.findFirstOrThrow({ where: { id: 1 } });
+        expect(plain).not.toHaveProperty('popularPostCount');
+    });
+
     it('is typed correctly for non-optional fields', async () => {
         await createTestClient(
             `
