@@ -247,6 +247,73 @@ model Post {
         expect(plain).not.toHaveProperty('popularPostCount');
     });
 
+    it('works with a DateTime-parameterized computed field', async () => {
+        const db = await createTestClient(
+            `
+model User {
+    id Int @id @default(autoincrement())
+    name String
+    posts Post[]
+    recentPostCount(since: DateTime): Int @computed
+}
+
+model Post {
+    id Int @id @default(autoincrement())
+    createdAt DateTime
+    author User @relation(fields: [authorId], references: [id])
+    authorId Int
+}
+`,
+            {
+                computedFields: {
+                    User: {
+                        // counts the user's posts created on/after the query-time `since` arg.
+                        // (a computed-field impl writes raw Kysely, so it binds the dialect's
+                        // native value — SQLite stores DateTime as an ISO string)
+                        recentPostCount: (eb: any, ctx: any, args: any) =>
+                            eb
+                                .selectFrom('Post')
+                                .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
+                                .where('Post.createdAt', '>=', args.since.toISOString())
+                                .select(({ fn }: any) => fn.countAll().as('cnt')),
+                    },
+                },
+            } as any,
+        );
+
+        // Alice: 3 posts in early 2024; Bob: 1 post in Aug 2024
+        await db.user.create({
+            data: {
+                id: 1,
+                name: 'Alice',
+                posts: {
+                    create: [
+                        { createdAt: new Date('2024-01-01') },
+                        { createdAt: new Date('2024-02-01') },
+                        { createdAt: new Date('2024-03-01') },
+                    ],
+                },
+            },
+        });
+        await db.user.create({
+            data: { id: 2, name: 'Bob', posts: { create: [{ createdAt: new Date('2024-08-01') }] } },
+        });
+
+        // since 2024-01-01: Alice=3, Bob=1 → desc ⇒ [Alice, Bob]
+        await expect(
+            db.user.findMany({
+                orderBy: [{ recentPostCount: { args: { since: new Date('2024-01-01') }, sort: 'desc' } }, { id: 'asc' }],
+            }),
+        ).resolves.toMatchObject([{ id: 1 }, { id: 2 }]);
+
+        // since 2024-07-01: Alice=0, Bob=1 → desc ⇒ [Bob, Alice] (later `since` flips the order)
+        await expect(
+            db.user.findMany({
+                orderBy: [{ recentPostCount: { args: { since: new Date('2024-07-01') }, sort: 'desc' } }, { id: 'asc' }],
+            }),
+        ).resolves.toMatchObject([{ id: 2 }, { id: 1 }]);
+    });
+
     it('is typed correctly for non-optional fields', async () => {
         await createTestClient(
             `
