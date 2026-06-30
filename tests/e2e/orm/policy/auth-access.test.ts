@@ -476,7 +476,7 @@ model Channel {
         ).resolves.toBeTruthy();
     });
 
-    it('resolves this.relation.field against @@allow model in collection predicates (Fix #1)', async () => {
+    it('resolves this.relation.field against @@allow model in collection predicates', async () => {
         const db = await createPolicyTestClient(
             `
 model User {
@@ -532,7 +532,7 @@ model Post {
         expect(posts2.map((p) => p.id).sort()).toEqual([1, 2]);
     });
 
-    it('handles this.relation.arrayField with in operator (Fix #2)', async () => {
+    it('handles this.relation.arrayField with in operator', async () => {
         const db = await createPolicyTestClient(
             `
 model User {
@@ -656,10 +656,7 @@ model Doc {
         );
 
         await db.$unuseAll().scope.createMany({
-            data: [
-                { id: 1 },
-                { id: 2, parentId: 1 },
-            ],
+            data: [{ id: 1 }, { id: 2, parentId: 1 }],
         });
         await db.$unuseAll().scopeClosure.createMany({
             data: [

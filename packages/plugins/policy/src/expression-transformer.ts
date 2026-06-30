@@ -40,9 +40,7 @@ import {
     ReferenceNode,
     SelectionNode,
     SelectQueryNode,
-    sql,
     TableNode,
-    UnaryOperationNode,
     ValueListNode,
     ValueNode,
     WhereNode,
@@ -253,22 +251,33 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 return this.transformValue(false, 'Boolean');
             } else {
                 if (ValueListNode.is(right)) {
+                    // simple `in` operator with a list of values, e.g. `field in [1, 2, 3]`
                     return BinaryOperationNode.create(left, OperatorNode.create('in'), right);
                 } else {
+                    // array contains
                     const leftFieldDef = this.getFieldDefFromFieldRef(normalizedLeft, context);
                     const comparand =
                         leftFieldDef && QueryUtils.isEnum(this.schema, leftFieldDef.type)
-                            ? this.dialect.castText(new ExpressionWrapper(left)).toOperationNode()
+                            ? // cast lhs otherwise dialect like pg can reject due to type mismatch
+                              this.dialect.castText(new ExpressionWrapper(left)).toOperationNode()
                             : left;
-
-                    // if RHS is a subquery selecting an array column, use
-                    // a cross-db EXISTS approach instead of `= ANY(subquery)`
-                    const rightFieldDef = this.getFieldDefFromFieldRef(normalizedRight, context);
-                    if (rightFieldDef?.array && SelectQueryNode.is(right)) {
-                        return this.buildArrayInExists(comparand, right as SelectQueryNode);
+                    if (SelectQueryNode.is(right)) {
+                        // RHS is a correlated subquery selecting an array column (e.g.
+                        // `this.relation.arrayField`). As a scalar subquery it yields the
+                        // array value, so membership must be tested with array-contains.
+                        // `= ANY((subquery))` would instead treat the subquery as a row-set
+                        // and compare the scalar against whole array rows (type error on pg).
+                        const rightFieldDef = this.getFieldDefFromFieldRef(normalizedRight, context);
+                        return this.dialect
+                            .buildArrayContains(
+                                new ExpressionWrapper(right),
+                                new ExpressionWrapper(comparand),
+                                rightFieldDef?.type,
+                            )
+                            .toOperationNode();
                     }
 
-                    // array contains
+                    // path for direct array field (not from relation)
                     return BinaryOperationNode.create(
                         comparand,
                         OperatorNode.create('='),
@@ -320,9 +329,10 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
     }
 
     private normalizeBinaryOperationOperands(expr: BinaryExpression, context: ExpressionTransformerContext) {
-        // If relation fields are used directly in comparison, normalize both sides to the
-        // first id field. This is required both for SQL-backed relation comparisons and for
-        // value-backed auth/binding objects carried through collection predicates.
+        // If relation fields are used directly in a comparison, normalize both sides to the
+        // first id field (used for multiple). This applies whether the relation is SQL-backed
+        // or carried as an auth/binding value object through a collection predicate, so a
+        // comparison like `relation == binding.relation` reduces to `relation.id == binding.relation.id`.
         let normalizedLeft: Expression = expr.left;
         if (this.isRelationField(expr.left, context)) {
             const leftRelDef = this.getFieldDefFromFieldRef(expr.left, context);
@@ -343,6 +353,9 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
     private transformCollectionPredicate(expr: BinaryExpression, context: ExpressionTransformerContext) {
         this.ensureCollectionPredicateOperator(expr.op);
 
+        // Evaluate the collection as a value when it comes from `auth()` or when we're already
+        // iterating a value tree. `this`-rooted collections are excluded: they are relations on
+        // the `@@allow` model and must be resolved via SQL joins, not the in-memory value tree.
         if (this.isAuthMember(expr.left) || (context.contextValue && !this.isThisRootedMember(expr.left))) {
             invariant(
                 ExpressionUtils.isMember(expr.left) || ExpressionUtils.isField(expr.left),
@@ -361,7 +374,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
 
             // get LHS's type
             const baseType = this.isAuthMember(expr.left) ? this.authType : context.modelOrType;
-            const memberType = this.getMemberType(baseType, expr.left, context);
+            const memberType = this.getMemberType(baseType, expr.left);
 
             // transform the entire expression with a value LHS and the correct context type
             return this.transformValueCollectionPredicate(receiver, expr, { ...context, modelOrType: memberType });
@@ -412,9 +425,14 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             ...context,
             modelOrType: newContextModel,
             alias: undefined,
+            // binding values (if any) remain available through `bindingScope`
             contextValue: undefined,
             bindingScope: bindingScope,
         });
+
+        if (expr.op === '!') {
+            predicateFilter = logicalNot(this.dialect, predicateFilter);
+        }
 
         const count = FunctionNode.create('count', [ValueNode.createImmediate(1)]);
 
@@ -502,35 +520,18 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         }
     }
 
-    private getMemberType(
-        receiverType: string,
-        expr: MemberExpression | FieldExpression,
-        context?: ExpressionTransformerContext,
-    ) {
+    private getMemberType(receiverType: string, expr: MemberExpression | FieldExpression) {
         if (ExpressionUtils.isField(expr)) {
             const fieldDef = QueryUtils.requireField(this.schema, receiverType, expr.field);
             return fieldDef.type;
         } else {
             let currType = receiverType;
-            if (ExpressionUtils.isThis(expr.receiver)) {
-                invariant(context, 'context is required for resolving this-rooted member types');
-                currType = context.thisType;
-            } else if (ExpressionUtils.isBinding(expr.receiver)) {
-                invariant(context, 'context is required for resolving binding-rooted member types');
-                currType = this.requireBindingScope(expr.receiver, context).type;
-            } else if (ExpressionUtils.isField(expr.receiver)) {
-                const fieldDef = QueryUtils.requireField(this.schema, receiverType, expr.receiver.field);
-                currType = fieldDef.type;
-            }
             for (const member of expr.members) {
                 const fieldDef = QueryUtils.requireField(this.schema, currType, member);
                 currType = fieldDef.type;
             }
             return currType;
         }
-    }
-    private isThisRootedMember(expr: Expression) {
-        return ExpressionUtils.isMember(expr) && ExpressionUtils.isThis(expr.receiver);
     }
 
     private transformAuthBinary(expr: BinaryExpression, context: ExpressionTransformerContext) {
@@ -708,7 +709,8 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
 
         if (ExpressionUtils.isThis(expr.receiver)) {
             if (expr.members.length === 1) {
-                // `this.relation` case, equivalent to field access
+                // `this.relation` case, equivalent to field access; keep memberFilter/memberSelect
+                // so `_field` can build the collection-predicate subquery (count/filter)
                 return this._field(ExpressionUtils.field(expr.members[0]!), {
                     ...context,
                     alias: context.thisAlias,
@@ -717,12 +719,14 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                     contextValue: undefined,
                 });
             } else {
-                // transform the first segment into a relation access, then continue with the rest of the members
+                // transform the first segment into a relation access, then continue with the rest of
+                // the members; root the chain at the correct context model (thisType/thisAlias)
                 const firstMemberFieldDef = QueryUtils.requireField(this.schema, context.thisType, expr.members[0]!);
                 receiver = this.transformRelationAccess(expr.members[0]!, firstMemberFieldDef.type, {
                     ...restContext,
-                    modelOrType: context.thisType,
                     alias: context.thisAlias,
+                    modelOrType: context.thisType,
+                    contextValue: undefined,
                 });
                 members = expr.members.slice(1);
                 // startType should be the type of the relation access
@@ -777,7 +781,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             currType = fieldDef.type;
         }
 
-        let currNode: SelectQueryNode | ColumnNode | ReferenceNode | FunctionNode | undefined = undefined;
+        let currNode: SelectQueryNode | ColumnNode | ReferenceNode | undefined = undefined;
 
         for (let i = members.length - 1; i >= 0; i--) {
             const member = members[i]!;
@@ -809,9 +813,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 invariant(i === members.length - 1, 'plain field access must be the last segment');
                 invariant(!currNode, 'plain field access must be the last segment');
 
-                currNode = fieldDef.array && this.schema.provider.type === 'postgresql'
-                    ? FunctionNode.create('unnest', [ColumnNode.create(member)])
-                    : ColumnNode.create(member);
+                currNode = ColumnNode.create(member);
             }
         }
 
@@ -1000,6 +1002,10 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         return ExpressionUtils.isMember(expr) && this.isAuthCall(expr.receiver);
     }
 
+    private isThisRootedMember(expr: Expression) {
+        return ExpressionUtils.isMember(expr) && ExpressionUtils.isThis(expr.receiver);
+    }
+
     private isNullNode(node: OperationNode) {
         return ValueNode.is(node) && node.value === null;
     }
@@ -1030,127 +1036,38 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             ExpressionUtils.isMember(expr) && ExpressionUtils.isThis(expr.receiver)
                 ? context.thisType
                 : context.modelOrType;
+
+        // walks a chain of member names from `startModel`, treating all but the last segment as
+        // relation hops, and returns the terminal field's FieldDef; returns undefined if any
+        // segment is missing or an intermediate hop is not a relation.
+        const walkRelationChain = (startModel: string, members: string[]): FieldDef | undefined => {
+            let currModel = startModel;
+            for (let i = 0; i < members.length - 1; i++) {
+                const hopDef = QueryUtils.getField(this.schema, currModel, members[i]!);
+                if (!hopDef?.relation) return undefined;
+                currModel = hopDef.type;
+            }
+            return QueryUtils.getField(this.schema, currModel, members[members.length - 1]!);
+        };
+
         if (ExpressionUtils.isField(expr)) {
             return QueryUtils.getField(this.schema, model, expr.field);
-        } else if (
-            ExpressionUtils.isMember(expr) &&
-            expr.members.length === 1 &&
-            ExpressionUtils.isThis(expr.receiver)
-        ) {
-            return QueryUtils.getField(this.schema, model, expr.members[0]!);
-        } else if (
-            ExpressionUtils.isMember(expr) &&
-            ExpressionUtils.isThis(expr.receiver) &&
-            expr.members.length > 1
-        ) {
-            // `this.relation.field` chain — walk from the @@allow model
-            const firstDef = QueryUtils.getField(this.schema, model, expr.members[0]!);
-            if (!firstDef?.relation) return undefined;
-            let currModel = firstDef.type;
-            for (let i = 1; i < expr.members.length - 1; i++) {
-                const hopDef = QueryUtils.getField(this.schema, currModel, expr.members[i]!);
-                if (!hopDef?.relation) return undefined;
-                currModel = hopDef.type;
+        } else if (ExpressionUtils.isMember(expr)) {
+            if (ExpressionUtils.isThis(expr.receiver)) {
+                // `this.<...>.field` chain rooted at the `this` model.
+                return walkRelationChain(model, expr.members);
+            } else if (ExpressionUtils.isBinding(expr.receiver)) {
+                // `binding.<...>.field` chain rooted at a collection-predicate binding.
+                const binding = this.requireBindingScope(expr.receiver, context);
+                return walkRelationChain(binding.type, expr.members);
+            } else if (ExpressionUtils.isField(expr.receiver)) {
+                // relation chain access (e.g. `owner.id`, `user.profile.uuid_field`): the field
+                // receiver is the first hop, so native-type info (@db.*) on the terminal field is
+                // available for casting in buildComparison.
+                return walkRelationChain(model, [expr.receiver.field, ...expr.members]);
             }
-            return QueryUtils.getField(this.schema, currModel, expr.members[expr.members.length - 1]!);
-        } else if (ExpressionUtils.isMember(expr) && ExpressionUtils.isBinding(expr.receiver)) {
-            const binding = this.requireBindingScope(expr.receiver, context);
-            const firstDef = QueryUtils.getField(this.schema, binding.type, expr.members[0]!);
-            if (!firstDef) return undefined;
-            if (expr.members.length === 1) {
-                return firstDef;
-            }
-            if (!firstDef.relation) return undefined;
-            let currModel = firstDef.type;
-            for (let i = 1; i < expr.members.length - 1; i++) {
-                const hopDef = QueryUtils.getField(this.schema, currModel, expr.members[i]!);
-                if (!hopDef?.relation) return undefined;
-                currModel = hopDef.type;
-            }
-            return QueryUtils.getField(this.schema, currModel, expr.members[expr.members.length - 1]!);
-        } else if (ExpressionUtils.isMember(expr) && ExpressionUtils.isField(expr.receiver)) {
-            // relation chain access (e.g. `owner.id`, `user.profile.uuid_field`): walk the
-            // relation hops and return the terminal field's FieldDef so native-type info
-            // (@db.*) is available for casting in buildComparison
-            const receiverDef = QueryUtils.getField(this.schema, model, expr.receiver.field);
-            if (!receiverDef?.relation) return undefined;
-            let currModel = receiverDef.type;
-            for (let i = 0; i < expr.members.length - 1; i++) {
-                const hopDef = QueryUtils.getField(this.schema, currModel, expr.members[i]!);
-                if (!hopDef?.relation) return undefined;
-                currModel = hopDef.type;
-            }
-            return QueryUtils.getField(this.schema, currModel, expr.members[expr.members.length - 1]!);
         } else {
             return undefined;
         }
-    }
-    /**
-     * Build a cross-database EXISTS subquery for `scalar IN relation.arrayField`.
-     * Preserves the original subquery FROM to handle joined relations (e.g. m2m).
-     */
-    private buildArrayInExists(
-        scalar: OperationNode,
-        subquery: SelectQueryNode,
-    ): OperationNode {
-        // PG: subquery already has unnest() from _member, just use = ANY(subquery)
-        if (this.schema.provider.type === 'postgresql') {
-            return BinaryOperationNode.create(
-                scalar,
-                OperatorNode.create('='),
-                FunctionNode.create('any', [subquery as unknown as OperationNode]),
-            );
-        }
-
-        const eb = this.eb;
-
-        const table = subquery.from!.froms[0] as TableNode;
-        const tableName = table.table.identifier.name;
-
-        const sel = subquery.selections![0]!;
-        const alias = sel.selection as AliasNode;
-        const colName = (alias.node as ColumnNode).column.name;
-
-        const tableRef = eb.ref(`${tableName}.${colName}`);
-        const scalarRef = new ExpressionWrapper(scalar);
-
-        let arrayCheck: OperationNode;
-        if (this.schema.provider.type === 'sqlite') {
-            arrayCheck = eb
-                .exists(
-                    eb
-                        .selectFrom(eb.fn('json_each', [tableRef]).as('_je'))
-                        .select(eb.lit(1).as('_'))
-                        .where(eb.ref('_je.value'), '=', scalarRef),
-                )
-                .toOperationNode();
-        } else {
-            // mysql
-            arrayCheck = eb
-                .exists(
-                    eb
-                        .selectFrom(
-                            sql`JSON_TABLE(${tableRef}, '$[*]' COLUMNS(value JSON PATH '$'))`.as('_jt'),
-                        )
-                        .select(eb.lit(1).as('_'))
-                        .where(eb.ref('_jt.value'), '=', scalarRef),
-                )
-                .toOperationNode();
-        }
-
-        const combinedWhere = subquery.where
-            ? conjunction(this.dialect, [subquery.where.where, arrayCheck])
-            : arrayCheck;
-
-        return UnaryOperationNode.create(
-            {
-                ...(subquery as SelectQueryNode),
-                where: WhereNode.create(combinedWhere),
-                selections: [
-                    SelectionNode.create(AliasNode.create(ValueNode.createImmediate(1), IdentifierNode.create('_'))),
-                ],
-            } as SelectQueryNode,
-            OperatorNode.create('exists'),
-        );
     }
 }
