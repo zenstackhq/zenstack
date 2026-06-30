@@ -475,4 +475,205 @@ model Channel {
             userDb2.channel.update({ where: { id: 1 }, data: { name: 'general-updated' } }),
         ).resolves.toBeTruthy();
     });
+
+    it('resolves this.relation.field against @@allow model in collection predicates', async () => {
+        const db = await createPolicyTestClient(
+            `
+model User {
+    id Int @id @default(autoincrement())
+    level Int
+    permissions Permission[]
+    posts Post[]
+    @@auth
+}
+
+model Permission {
+    id Int @id @default(autoincrement())
+    user User @relation(fields: [userId], references: [id])
+    userId Int
+    clearance Int
+}
+
+model Post {
+    id Int @id @default(autoincrement())
+    author User @relation(fields: [authorId], references: [id])
+    authorId Int
+
+    @@allow('read', auth().permissions?[p, p.clearance >= this.author.level])
+}
+`,
+            { provider: 'postgresql' },
+        );
+
+        await db.$unuseAll().post.create({
+            data: { id: 1, author: { create: { id: 1, level: 5 } } },
+        });
+        await db.$unuseAll().post.create({
+            data: { id: 2, author: { create: { id: 2, level: 10 } } },
+        });
+
+        // no auth: no permissions → cannot read any post
+        await expect(db.post.findMany()).resolves.toHaveLength(0);
+
+        // clearance 5: can read author level ≤ 5 → only post 1 (author level 5)
+        const user1 = db.$setAuth({
+            id: 3,
+            permissions: [{ id: 1, clearance: 5 }],
+        });
+        const posts1 = await user1.post.findMany();
+        expect(posts1.map((p) => p.id).sort()).toEqual([1]);
+
+        // clearance 10: can read author level ≤ 10 → both posts
+        const user2 = db.$setAuth({
+            id: 4,
+            permissions: [{ id: 2, clearance: 10 }],
+        });
+        const posts2 = await user2.post.findMany();
+        expect(posts2.map((p) => p.id).sort()).toEqual([1, 2]);
+    });
+
+    it('handles this.relation.arrayField with in operator', async () => {
+        const db = await createPolicyTestClient(
+            `
+model User {
+    id Int @id @default(autoincrement())
+    permissions Permission[]
+    @@auth
+}
+
+model Group {
+    id Int @id @default(autoincrement())
+    visibleDocIds Int[]
+    docs Doc[]
+}
+
+model Permission {
+    id Int @id @default(autoincrement())
+    user User @relation(fields: [userId], references: [id])
+    userId Int
+    allowedDocIds Int[]
+}
+
+model Doc {
+    id Int @id @default(autoincrement())
+    group Group @relation(fields: [groupId], references: [id])
+    groupId Int
+
+    @@allow('read',
+        auth().permissions?[p, this.id in p.allowedDocIds] ||
+        this.id in this.group.visibleDocIds
+    )
+}
+`,
+            { provider: 'postgresql' },
+        );
+
+        await db.$unuseAll().group.create({
+            data: { id: 1, visibleDocIds: [1] },
+        });
+        await db.$unuseAll().group.create({
+            data: { id: 2, visibleDocIds: [] },
+        });
+        await db.$unuseAll().user.create({
+            data: { id: 1 },
+        });
+        await db.$unuseAll().user.create({
+            data: { id: 2 },
+        });
+        await db.$unuseAll().permission.create({
+            data: { id: 10, userId: 2, allowedDocIds: [2] },
+        });
+        await db.$unuseAll().doc.createMany({
+            data: [
+                { id: 1, groupId: 1 },
+                { id: 2, groupId: 2 },
+            ],
+        });
+
+        // User 1 (no perms): doc 1 visible via group.visibleDocIds
+        const user1 = db.$setAuth({ id: 1, permissions: [] });
+        expect((await user1.doc.findMany()).map((d) => d.id).sort()).toEqual([1]);
+
+        // User 2 (perm allows doc 2): sees doc 1 (group-visible) + doc 2 (permission)
+        const user2 = db.$setAuth({
+            id: 2,
+            permissions: [{ id: 10, allowedDocIds: [2] }],
+        });
+        expect((await user2.doc.findMany()).map((d) => d.id).sort()).toEqual([1, 2]);
+    });
+
+    it('keeps this-rooted collection predicates on the @@allow model inside auth bindings', async () => {
+        const db = await createPolicyTestClient(
+            `
+model User {
+    id Int @id
+    assignments RoleAssignment[]
+    @@auth
+}
+
+model Scope {
+    id Int @id
+    parentId Int?
+    parent Scope? @relation("ScopeParent", fields: [parentId], references: [id])
+    children Scope[] @relation("ScopeParent")
+    ancestors ScopeClosure[] @relation("Descendant")
+    descendants ScopeClosure[] @relation("Ancestor")
+    docs Doc[]
+    assignments RoleAssignment[]
+    @@allow('all', true)
+}
+
+model ScopeClosure {
+    ancestorId Int
+    descendantId Int
+    ancestor Scope @relation("Ancestor", fields: [ancestorId], references: [id])
+    descendant Scope @relation("Descendant", fields: [descendantId], references: [id])
+    @@id([ancestorId, descendantId])
+    @@allow('all', true)
+}
+
+model RoleAssignment {
+    id Int @id
+    userId Int
+    scopeId Int
+    user User @relation(fields: [userId], references: [id])
+    scope Scope @relation(fields: [scopeId], references: [id])
+    @@allow('all', true)
+}
+
+model Doc {
+    id Int @id
+    authScopeId Int
+    authScope Scope @relation(fields: [authScopeId], references: [id])
+
+    @@allow('read', auth().assignments?[rs,
+        rs.scope == this.authScope ||
+        this.authScope.ancestors?[ancestor == rs.scope]
+    ])
+}
+`,
+            { provider: 'postgresql' },
+        );
+
+        await db.$unuseAll().scope.createMany({
+            data: [{ id: 1 }, { id: 2, parentId: 1 }],
+        });
+        await db.$unuseAll().scopeClosure.createMany({
+            data: [
+                { ancestorId: 1, descendantId: 1 },
+                { ancestorId: 2, descendantId: 2 },
+                { ancestorId: 1, descendantId: 2 },
+            ],
+        });
+        await db.$unuseAll().doc.create({
+            data: { id: 1, authScopeId: 2 },
+        });
+
+        const reader = db.$setAuth({
+            id: 1,
+            assignments: [{ id: 1, scopeId: 1, scope: { id: 1 } }],
+        });
+
+        await expect(reader.doc.findUnique({ where: { id: 1 } })).toResolveTruthy();
+    });
 });
