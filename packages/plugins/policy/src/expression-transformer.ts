@@ -1066,8 +1066,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 // available for casting in buildComparison.
                 return walkRelationChain(model, [expr.receiver.field, ...expr.members]);
             }
-        } else {
-            return undefined;
         }
+        return undefined;
     }
 }
