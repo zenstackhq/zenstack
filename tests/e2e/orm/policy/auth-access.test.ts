@@ -602,7 +602,7 @@ model Doc {
         expect((await user2.doc.findMany()).map((d) => d.id).sort()).toEqual([1, 2]);
     });
 
-    it('keeps this-rooted collection predicates on the @@allow model inside auth bindings (Fix #3)', async () => {
+    it('keeps this-rooted collection predicates on the @@allow model inside auth bindings', async () => {
         const db = await createPolicyTestClient(
             `
 model User {
