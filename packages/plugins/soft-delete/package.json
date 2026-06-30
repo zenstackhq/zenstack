@@ -2,7 +2,7 @@
     "name": "@zenstackhq/plugin-soft-delete",
     "displayName": "ZenStack Soft Delete Plugin",
     "description": "ZenStack plugin that implements soft-delete by intercepting Kysely queries",
-    "version": "3.8.1",
+    "version": "3.8.2",
     "type": "module",
     "author": {
         "name": "ZenStack Team",
