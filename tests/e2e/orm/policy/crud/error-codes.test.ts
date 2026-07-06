@@ -1,6 +1,6 @@
 import { ORMError } from '@zenstackhq/orm';
 import { PolicyPlugin } from '@zenstackhq/plugin-policy';
-import { createPolicyTestClient, createTestClient } from '@zenstackhq/testtools';
+import { createPolicyTestClient, createTestClient, getTestDbProvider } from '@zenstackhq/testtools';
 import { describe, expect, it } from 'vitest';
 
 describe('Policy error code tests', () => {
@@ -960,7 +960,21 @@ model Foo {
         await expect(db.foo.update({ where: { id: row.id }, data: { x: -1 } })).toBeRejectedByPolicy(undefined, [
             'NEGATIVE_AFTER_UPDATE',
         ]);
-        // the UPDATE, then one merged post-update check+diagnostics SELECT
-        expect(kinds).toEqual(['UpdateQueryNode', 'SelectQueryNode']);
+        if (getTestDbProvider() === 'mysql') {
+            // Without RETURNING the flow needs extra roundtrips: the ORM pre-loads the entity
+            // id, the policy handler loads before-update entities to be able to read rows back
+            // by id, then after the UPDATE reads the updated rows and runs the merged
+            // post-update check+diagnostics SELECT.
+            expect(kinds).toEqual([
+                'SelectQueryNode',
+                'SelectQueryNode',
+                'UpdateQueryNode',
+                'SelectQueryNode',
+                'SelectQueryNode',
+            ]);
+        } else {
+            // the UPDATE, then one merged post-update check+diagnostics SELECT
+            expect(kinds).toEqual(['UpdateQueryNode', 'SelectQueryNode']);
+        }
     });
 });

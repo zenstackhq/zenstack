@@ -53,7 +53,6 @@ import {
 } from '../../query-utils';
 import { getCrudDialect } from '../dialects';
 import type { BaseCrudDialect } from '../dialects/base-dialect';
-import { ZenStackQueryExecutor } from '../../executor/zenstack-query-executor';
 import { InputValidator } from '../validator';
 
 /**
@@ -1229,7 +1228,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         const loadThisEntity = async () => {
             if (thisEntity === undefined) {
                 thisEntity = bypassReadPolicyForPreload
-                    ? await this.readUniqueDirect(kysely, model, {
+                    ? await this.readUniqueBypassingReadPolicy(kysely, model, {
                           where: origWhere,
                           select: this.makeIdSelect(model),
                       } as any)
@@ -1588,7 +1587,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         return NUMERIC_FIELD_TYPES.includes(fieldDef.type) && !fieldDef.array;
     }
 
-    private makeContextComment(context: { model: string; operation: CRUD }) {
+    private makeContextComment(context: { model: string; operation: CRUD; bypassReadPolicy?: boolean }) {
         if (!this.options.plugins?.some((plugin) => plugin.onKyselyQuery)) {
             // the context is only consumed by `onKyselyQuery` hooks, skip the overhead otherwise
             return sql``;
@@ -2581,9 +2580,11 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         });
     }
 
-    // Like readUnique but bypasses onKyselyQuery interceptors (e.g. policy plugin).
-    // Used for the MySQL update pre-load so read-denied rows are still reachable.
-    private async readUniqueDirect(
+    // Like readUnique but tags the query with a `bypassReadPolicy` context so the policy
+    // plugin skips its read filter. Used for the MySQL update pre-load so read-denied rows
+    // are still reachable and the UPDATE's own policy error codes surface. Other query
+    // interceptors (e.g. soft-delete) still apply.
+    private async readUniqueBypassingReadPolicy(
         kysely: AnyKysely,
         model: string,
         args: FindArgs<Schema, GetModels<Schema>, any, true>,
@@ -2596,16 +2597,15 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         } else {
             query = this.dialect.buildSelectAllFields(model, query, (args as any)?.omit, model);
         }
-        const queryNode = query.toOperationNode();
-        // In a transaction, kysely.getExecutor() is Kysely's wrapper — not ZenStackQueryExecutor.
-        // Route connection acquisition through the outer executor; compile and execute on the base one.
-        const outerExecutor = kysely.getExecutor();
-        const zenExecutor = (this.client as any).kyselyProps.executor as ZenStackQueryExecutor;
-        const compiled = zenExecutor.compileQuery(queryNode, createQueryId());
-        const r = await outerExecutor.provideConnection((connection) =>
-            zenExecutor.executeQueryDirect(compiled, connection),
-        );
-        return r.rows[0] ?? null;
+        query = query.modifyEnd(this.makeContextComment({ model, operation: 'read', bypassReadPolicy: true }));
+        const compiled = kysely.getExecutor().compileQuery(query.toOperationNode(), createQueryId());
+        try {
+            const r = await kysely.getExecutor().executeQuery(compiled);
+            return r.rows[0] ?? null;
+        } catch (err) {
+            if (err instanceof ORMError) throw err;
+            throw createDBQueryError(`Failed to execute query: ${err}`, err, compiled.sql, compiled.parameters);
+        }
     }
 
     // Given multiple unique filters, load all matching entities and return their id fields in one query

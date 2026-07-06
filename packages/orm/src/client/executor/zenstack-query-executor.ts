@@ -681,13 +681,6 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
         }
     }
 
-    /**
-     * Execute a compiled query on `connection`, bypassing all `onKyselyQuery` plugin interceptors.
-     */
-    async executeQueryDirect(compiledQuery: CompiledQuery, connection: DatabaseConnection): Promise<QueryResult<unknown>> {
-        return this.internalExecuteQuery(compiledQuery.query, connection, compiledQuery.queryId);
-    }
-
     private async internalExecuteQuery(
         query: RootOperationNode,
         connection: DatabaseConnection,

@@ -412,6 +412,15 @@ export type QueryContext = {
      * Values must be JSON-serializable to survive the comment round-trip.
      */
     pluginArgs?: Record<string, unknown>;
+
+    /**
+     * Set on internal pre-load SELECTs that resolve entity IDs before a mutation on dialects
+     * without RETURNING (e.g. MySQL). Access-policy plugins should skip read filtering for
+     * such queries — the mutation that follows enforces its own policy, and filtering here
+     * would mask its error codes. Other query-filtering plugins (e.g. soft-delete) must
+     * still apply.
+     */
+    bypassReadPolicy?: boolean;
 };
 
 export type OnKyselyQueryArgs<Schema extends SchemaDef> = {

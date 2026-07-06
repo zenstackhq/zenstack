@@ -1,5 +1,6 @@
 import { type OnKyselyQueryArgs, type RuntimePlugin } from '@zenstackhq/orm';
 import type { SchemaDef } from '@zenstackhq/orm/schema';
+import { SelectQueryNode } from 'kysely';
 import { z } from 'zod';
 import { check } from './functions';
 import type { PolicyPluginOptions } from './options';
@@ -49,6 +50,11 @@ export class PolicyPlugin implements RuntimePlugin<SchemaDef, PolicyExtQueryArgs
     };
 
     onKyselyQuery({ query, client, proceed, queryContext }: OnKyselyQueryArgs<SchemaDef>) {
+        if (queryContext?.bypassReadPolicy && SelectQueryNode.is(query)) {
+            // internal pre-load SELECT for a mutation on a non-RETURNING dialect: skip the
+            // read filter so the mutation that follows can surface its own policy errors
+            return proceed(query);
+        }
         const fetchPolicyCodes = queryContext?.pluginArgs?.['fetchPolicyCodes'] as boolean | undefined;
         const effectiveOptions: PolicyPluginOptions =
             fetchPolicyCodes !== undefined ? { ...this.options, fetchPolicyCodes } : this.options;
