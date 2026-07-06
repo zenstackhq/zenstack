@@ -1,7 +1,4 @@
 {
     "extends": "@zenstackhq/typescript-config/base.json",
-    "compilerOptions": {
-        "types": ["node"]
-    },
     "include": ["src/**/*"]
 }

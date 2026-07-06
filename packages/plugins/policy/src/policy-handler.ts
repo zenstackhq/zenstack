@@ -48,7 +48,6 @@ import {
 } from 'kysely';
 import { match } from 'ts-pattern';
 import { ColumnCollector } from './column-collector';
-import { policyContextStorage } from './context';
 import { ExpressionTransformer } from './expression-transformer';
 import type { PolicyPluginOptions } from './options';
 import type { Policy, PolicyOperation } from './types';
@@ -81,6 +80,7 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
     constructor(
         private readonly client: ClientContract<Schema>,
         private readonly options: PolicyPluginOptions = {},
+        private readonly ormOperation?: string,
     ) {
         super();
         this.dialect = getCrudDialect(this.client.$schema, this.client.$options);
@@ -105,10 +105,7 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
             const selectNode = node as SelectQueryNode;
             const result = await proceed(this.transformNode(node));
             // When 0 rows returned on a throwing single-row read (findFirstOrThrow/findUniqueOrThrow), distinguish "not found" from policy denial
-            if (
-                result.rows.length === 0 &&
-                SINGLE_ROW_OR_THROW_OPERATIONS.has(policyContextStorage.getStore()?.operation ?? '')
-            ) {
+            if (result.rows.length === 0 && SINGLE_ROW_OR_THROW_OPERATIONS.has(this.ormOperation ?? '')) {
                 await this.postReadZeroRowsCheck(selectNode, proceed);
             }
             return result;

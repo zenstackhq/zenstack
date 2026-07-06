@@ -1,7 +1,6 @@
 import { type OnKyselyQueryArgs, type RuntimePlugin } from '@zenstackhq/orm';
 import type { SchemaDef } from '@zenstackhq/orm/schema';
 import { z } from 'zod';
-import { policyContextStorage } from './context';
 import { check } from './functions';
 import type { PolicyPluginOptions } from './options';
 import { PolicyHandler } from './policy-handler';
@@ -45,27 +44,11 @@ export class PolicyPlugin implements RuntimePlugin<SchemaDef, PolicyExtQueryArgs
         $delete: fetchPolicyCodesSchema,
     };
 
-    // onQuery and onKyselyQuery are decoupled hook call sites with no shared argument path;
-    // AsyncLocalStorage bridges per-query context into the Kysely executor.
-    onQuery(ctx: {
-        operation: string;
-        args: Record<string, unknown> | undefined;
-        proceed: (args: Record<string, unknown> | undefined) => Promise<unknown>;
-        [key: string]: unknown;
-    }) {
-        return policyContextStorage.run(
-            { operation: ctx.operation, fetchPolicyCodes: ctx.args?.['fetchPolicyCodes'] as boolean | undefined },
-            () => ctx.proceed(ctx.args),
-        );
-    }
-
-    onKyselyQuery({ query, client, proceed }: OnKyselyQueryArgs<SchemaDef>) {
-        const ctx = policyContextStorage.getStore();
+    onKyselyQuery({ query, client, proceed, queryContext }: OnKyselyQueryArgs<SchemaDef>) {
+        const fetchPolicyCodes = queryContext?.pluginArgs?.['fetchPolicyCodes'] as boolean | undefined;
         const effectiveOptions: PolicyPluginOptions =
-            ctx?.fetchPolicyCodes !== undefined
-                ? { ...this.options, fetchPolicyCodes: ctx.fetchPolicyCodes }
-                : this.options;
-        const handler = new PolicyHandler<SchemaDef>(client, effectiveOptions);
+            fetchPolicyCodes !== undefined ? { ...this.options, fetchPolicyCodes } : this.options;
+        const handler = new PolicyHandler<SchemaDef>(client, effectiveOptions, queryContext?.ormOperation);
         return handler.handle(query, proceed);
     }
 }

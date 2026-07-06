@@ -56,7 +56,6 @@
     },
     "devDependencies": {
         "@types/better-sqlite3": "catalog:",
-        "@types/node": "catalog:",
         "@types/pg": "^8.0.0",
         "@zenstackhq/eslint-config": "workspace:*",
         "@zenstackhq/tsdown-config": "workspace:*",

@@ -688,9 +688,6 @@ importers:
       '@types/better-sqlite3':
         specifier: 'catalog:'
         version: 7.6.13
-      '@types/node':
-        specifier: 'catalog:'
-        version: 20.19.24
       '@types/pg':
         specifier: ^8.0.0
         version: 8.11.11
