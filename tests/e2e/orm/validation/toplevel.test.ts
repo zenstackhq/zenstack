@@ -7,13 +7,17 @@ describe('Toplevel field validation tests', () => {
         const db = await createTestClient(
             `
         model Foo {
-            id Int @id @default(autoincrement())
-            str1 String? @length(2, 4) @startsWith('a') @endsWith('b') @contains('m') @regex('b{2}')
-            str2 String? @email
-            str3 String? @datetime
-            str4 String? @url
-            str5 String? @trim @lower
-            str6 String? @upper
+            id    Int     @id @default(autoincrement())
+            str1  String? @length(2, 4) @startsWith('a') @endsWith('b') @contains('m') @regex('b{2}')
+            str2  String? @email
+            str3  String? @datetime
+            str4  String? @url
+            str5  String? @trim @lower
+            str6  String? @upper
+            str7  String? @phone
+            str8  String? @date
+            str9  String? @time
+            str10 String? @time(-1)
         }
         `,
         );
@@ -83,6 +87,30 @@ describe('Toplevel field validation tests', () => {
             } else {
                 await expect(_t({ str6: 'aBc' })).resolves.toMatchObject({ count: 1 });
             }
+
+            // violates @phone
+            await expect(_t({ str7: 'not-a-phone' })).toBeRejectedByValidation(['Invalid E.164']);
+
+            // satisfies @phone
+            await expect(_t({ str7: '+15555555555' })).toResolveTruthy();
+
+            // violates @date
+            await expect(_t({ str8: 'not-a-date' })).toBeRejectedByValidation(['Invalid ISO date']);
+
+            // satisfies @date
+            await expect(_t({ str8: '2000-01-01' })).toResolveTruthy();
+
+            // violates @time
+            await expect(_t({ str9: 'not-a-time' })).toBeRejectedByValidation(['Invalid ISO time']);
+
+            // satisfies @time
+            await expect(_t({ str9: '03:15:00' })).toResolveTruthy();
+
+            // violates @time(-1)
+            await expect(_t({ str10: '03:15:00' })).toBeRejectedByValidation(['Invalid ISO time']);
+
+            // satisfies @time(-1)
+            await expect(_t({ str10: '03:15' })).toResolveTruthy();
         }
     });
 

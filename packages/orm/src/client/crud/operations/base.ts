@@ -37,6 +37,7 @@ import {
     ensureArray,
     extractIdFields,
     flattenCompoundUniqueFilters,
+    getDelegateDiscriminatorValue,
     getDiscriminatorField,
     getField,
     getIdValues,
@@ -250,7 +251,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
 
     // TODO: this is not clean, needs a better solution
     protected get hasPolicyEnabled() {
-        return this.options.plugins?.some((plugin) => plugin.constructor.name === 'PolicyPlugin');
+        return this.options.plugins?.some((plugin) => plugin.id === 'policy') ?? false;
     }
 
     protected requireModel(model: string) {
@@ -471,12 +472,13 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                     Array.isArray(value.set)
                 ) {
                     // deal with nested "set" for scalar lists
-                    createFields[field] = this.dialect.transformInput(value.set, fieldDef.type as BuiltinType, true);
+                    createFields[field] = this.dialect.transformInput(value.set, fieldDef.type as BuiltinType, true, fieldDef);
                 } else {
                     createFields[field] = this.dialect.transformInput(
                         value,
                         fieldDef.type as BuiltinType,
                         !!fieldDef.array,
+                        fieldDef,
                     );
                 }
             } else {
@@ -631,7 +633,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
 
         const discriminatorField = getDiscriminatorField(this.schema, model);
         invariant(discriminatorField, `Base model "${model}" must have a discriminator field`);
-        thisCreateFields[discriminatorField] = forModel;
+        thisCreateFields[discriminatorField] = getDelegateDiscriminatorValue(this.schema, forModel);
 
         // create base model entity
         const baseEntity: any = await this.create(
@@ -919,7 +921,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             for (const [name, value] of Object.entries(item)) {
                 const fieldDef = this.requireField(model, name);
                 invariant(!fieldDef.relation, 'createMany does not support relations');
-                newItem[name] = this.dialect.transformInput(value, fieldDef.type as BuiltinType, !!fieldDef.array);
+                newItem[name] = this.dialect.transformInput(value, fieldDef.type as BuiltinType, !!fieldDef.array, fieldDef);
             }
             if (fromRelation) {
                 for (const { fk, pk } of relationKeyPairs) {
@@ -957,6 +959,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                                 fieldDef.default,
                                 fieldDef.type as BuiltinType,
                                 !!fieldDef.array,
+                                fieldDef,
                             );
                         }
                     }
@@ -1043,7 +1046,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                     remainingFields[field] = value;
                 }
             });
-            thisCreateFields[discriminatorField] = forModel;
+            thisCreateFields[discriminatorField] = getDelegateDiscriminatorValue(this.schema, forModel);
             thisCreateRows.push(thisCreateFields);
             remainingFieldRows.push(remainingFields);
         }
@@ -1089,11 +1092,12 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                             generated,
                             fieldDef.type as BuiltinType,
                             !!fieldDef.array,
+                            fieldDef,
                         );
                     }
                 } else if (fieldDef?.updatedAt) {
                     // TODO: should this work at kysely level instead?
-                    values[field] = this.dialect.transformInput(new Date(), 'DateTime', false);
+                    values[field] = this.dialect.transformInput(new Date(), 'DateTime', false, fieldDef);
                 } else if (fieldDef?.default !== undefined) {
                     let value = fieldDef.default;
                     if (fieldDef.type === 'Json') {
@@ -1104,7 +1108,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                             value = JSON.parse(value);
                         }
                     }
-                    values[field] = this.dialect.transformInput(value, fieldDef.type as BuiltinType, !!fieldDef.array);
+                    values[field] = this.dialect.transformInput(value, fieldDef.type as BuiltinType, !!fieldDef.array, fieldDef);
                 }
             }
         }
@@ -1208,7 +1212,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                     if (finalData === data) {
                         finalData = clone(data);
                     }
-                    finalData[fieldName] = this.dialect.transformInput(new Date(), 'DateTime', false);
+                    finalData[fieldName] = this.dialect.transformInput(new Date(), 'DateTime', false, fieldDef);
                     autoUpdatedFields.push(fieldName);
                 }
             }
@@ -1485,7 +1489,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             return this.transformScalarListUpdate(model, field, fieldDef, data[field]);
         }
 
-        return this.dialect.transformInput(data[field], fieldDef.type as BuiltinType, !!fieldDef.array);
+        return this.dialect.transformInput(data[field], fieldDef.type as BuiltinType, !!fieldDef.array, fieldDef);
     }
 
     private isNumericIncrementalUpdate(fieldDef: FieldDef, value: any) {
@@ -1543,7 +1547,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         );
 
         const key = Object.keys(payload)[0];
-        const value = this.dialect.transformInput(payload[key!], fieldDef.type as BuiltinType, false);
+        const value = this.dialect.transformInput(payload[key!], fieldDef.type as BuiltinType, false, fieldDef);
         const eb = expressionBuilder<any, any>();
         const fieldRef = this.dialect.fieldRef(model, field);
 
@@ -1566,7 +1570,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
     ) {
         invariant(Object.keys(payload).length === 1, 'Only one of "set", "push" can be provided');
         const key = Object.keys(payload)[0];
-        const value = this.dialect.transformInput(payload[key!], fieldDef.type as BuiltinType, true);
+        const value = this.dialect.transformInput(payload[key!], fieldDef.type as BuiltinType, true, fieldDef);
         const eb = expressionBuilder<any, any>();
         const fieldRef = this.dialect.fieldRef(model, field);
 

@@ -23,6 +23,7 @@ type Address {
 model User {
     id        String    @id @default(cuid())
     email     String    @email @meta("description", "The user's email address")
+    phone     String    @phone
     username  String    @length(3, 50)
     website   String?   @url
     code      String    @startsWith("USR")
@@ -31,7 +32,9 @@ model User {
     bigNum    BigInt    @gte(0)
     balance   Decimal   @gt(0)
     active    Boolean
-    birthdate DateTime?
+    birthdate String?   @date
+    localTime String?   @time
+    createdAt DateTime?
     avatar    Bytes?
     metadata  Json?
     status    Status

@@ -18,7 +18,7 @@ async function find() {
     console.log(r.rating);
 
     // discriminated union narrows sub-model fields
-    if (r.assetType === 'Video') {
+    if (r.assetType === 'ASSET_KIND_VIDEO') {
         // video
         console.log(r.duration);
         // only one choice `RatedVideo`
@@ -38,7 +38,7 @@ async function find() {
     });
     // @ts-expect-error
     console.log(r1.duration);
-    if (r1.assetType === 'Video') {
+    if (r1.assetType === 'ASSET_KIND_VIDEO') {
         // @ts-expect-error
         console.log(r1.duration);
     }
@@ -53,7 +53,7 @@ async function find() {
     console.log(r2.assets[0]?.rating);
 
     // discriminated union narrows sub-model fields when queried via relation
-    if (r2.assets[0]?.assetType === 'Video') {
+    if (r2.assets[0]?.assetType === 'ASSET_KIND_VIDEO') {
         // video
         console.log(r2.assets[0]?.duration);
         // only one choice `RatedVideo`
@@ -75,29 +75,29 @@ async function find() {
 async function create() {
     // delegate creation is not allowed
     // @ts-expect-error
-    client.asset.create({ data: { assetType: 'Video' } });
+    client.asset.create({ data: { assetType: 'ASSET_KIND_VIDEO' } });
     // @ts-expect-error
-    client.asset.createMany({ data: [{ assetType: 'Video' }] });
+    client.asset.createMany({ data: [{ assetType: 'ASSET_KIND_VIDEO' }] });
     // @ts-expect-error
-    client.asset.upsert({ where: { id: 1 }, create: { assetType: 'Video' }, update: { assetType: 'Video' } });
+    client.asset.upsert({ where: { id: 1 }, create: { assetType: 'ASSET_KIND_VIDEO' }, update: { assetType: 'ASSET_KIND_VIDEO' } });
 
     // nested creation is not allowed either
     // @ts-expect-error
-    client.user.create({ data: { assets: { create: { assetType: 'Video' } } } });
+    client.user.create({ data: { assets: { create: { assetType: 'ASSET_KIND_VIDEO' } } } });
     // @ts-expect-error
-    client.user.create({ data: { assets: { connectOrCreate: { where: { id: 1 }, create: { assetType: 'Video' } } } } });
+    client.user.create({ data: { assets: { connectOrCreate: { where: { id: 1 }, create: { assetType: 'ASSET_KIND_VIDEO' } } } } });
     // @ts-expect-error
-    client.user.update({ where: { id: 1 }, data: { assets: { create: { assetType: 'Video' } } } });
+    client.user.update({ where: { id: 1 }, data: { assets: { create: { assetType: 'ASSET_KIND_VIDEO' } } } });
     client.user.update({
         where: { id: 1 },
         // @ts-expect-error
-        data: { assets: { connectOrCreate: { where: { id: 1 }, create: { assetType: 'Video' } } } },
+        data: { assets: { connectOrCreate: { where: { id: 1 }, create: { assetType: 'ASSET_KIND_VIDEO' } } } },
     });
     client.user.update({
         where: { id: 1 },
         data: {
             // @ts-expect-error
-            assets: { upsert: { where: { id: 1 }, create: { assetType: 'Video' }, update: { assetType: 'Video' } } },
+            assets: { upsert: { where: { id: 1 }, create: { assetType: 'ASSET_KIND_VIDEO' }, update: { assetType: 'ASSET_KIND_VIDEO' } } },
         },
     });
 
@@ -109,7 +109,7 @@ async function create() {
     //         rating: 5,
     //         duration: 100,
     //         // @ts-expect-error
-    //         assetType: 'Video',
+    //         assetType: 'ASSET_KIND_VIDEO',
     //     },
     // });
 }
@@ -133,7 +133,7 @@ async function update() {
     //     data: {
     //         url: 'valid-update',
     //         // @ts-expect-error
-    //         assetType: 'Video',
+    //         assetType: 'ASSET_KIND_VIDEO',
     //     },
     // });
 
@@ -143,7 +143,7 @@ async function update() {
     //     data: {
     //         format: 'jpg',
     //         // @ts-expect-error
-    //         assetType: 'Image',
+    //         assetType: 'ASSET_KIND_IMAGE',
     //     },
     // });
 
@@ -152,7 +152,7 @@ async function update() {
         where: { rating: { gt: 3 } },
         data: {
             // @ts-expect-error
-            assetType: 'Video',
+            assetType: 'ASSET_KIND_VIDEO',
         },
     });
 
@@ -164,7 +164,7 @@ async function update() {
     //     update: {
     //         rating: 4,
     //         // @ts-expect-error
-    //         assetType: 'Video',
+    //         assetType: 'ASSET_KIND_VIDEO',
     //     },
     // });
 }

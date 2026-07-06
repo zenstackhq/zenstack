@@ -1,4 +1,4 @@
-import type { ClientContract, QueryOptions } from '@zenstackhq/orm';
+import { ExtQueryArgsMarker, ExtResultMarker, type QueryOptions } from '@zenstackhq/orm';
 import type { SchemaDef } from '@zenstackhq/schema';
 
 /**
@@ -12,9 +12,14 @@ export type MaybePromise<T> = T | Promise<T> | PromiseLike<T>;
 export type InferSchema<T> = T extends { $schema: infer S extends SchemaDef } ? S : T extends SchemaDef ? T : never;
 
 /**
+ * Extracts the ExtQueryArgs type from a client contract, or defaults to `{}`.
+ */
+export type InferExtQueryArgs<T> = T extends { [ExtQueryArgsMarker]?: infer E } ? (unknown extends E ? {} : E) : {};
+
+/**
  * Extracts the ExtResult type from a client contract, or defaults to `{}`.
  */
-export type InferExtResult<T> = T extends ClientContract<any, any, any, any, infer E> ? E : {};
+export type InferExtResult<T> = T extends { [ExtResultMarker]?: infer E } ? (unknown extends E ? {} : E) : {};
 
 /**
  * Infers query options from a client contract type, or defaults to `QueryOptions<Schema>`.

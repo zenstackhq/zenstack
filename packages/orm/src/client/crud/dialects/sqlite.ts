@@ -317,6 +317,15 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
                     ...Object.entries<any>((payload as any).include)
                         .filter(([, value]) => value)
                         .map(([field, value]) => {
+                            if (field === '_count') {
+                                const subJson = this.buildCountJson(
+                                    relationModel,
+                                    eb,
+                                    tmpAlias(`${parentAlias}$${relationField}`),
+                                    value,
+                                );
+                                return [sql.lit(field), subJson];
+                            }
                             const subJson = this.buildRelationJSON(
                                 relationModel,
                                 eb,
@@ -561,6 +570,20 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
         _unaccent: boolean,
     ): SelectQueryBuilder<any, any, any> {
         throw createNotSupportedError('"_fuzzyRelevance" ordering is not supported by the "sqlite" provider');
+    }
+
+    override buildFullTextFilter(_fieldRef: Expression<any>, _payload: unknown): Expression<SqlBool> {
+        throw createNotSupportedError('"fts" filter is not supported by the "sqlite" provider');
+    }
+
+    override buildFtsRelevanceOrderBy(
+        _query: SelectQueryBuilder<any, any, any>,
+        _fieldRefs: Expression<any>[],
+        _search: string,
+        _config: string | undefined,
+        _sort: SortOrder,
+    ): SelectQueryBuilder<any, any, any> {
+        throw createNotSupportedError('"_ftsRelevance" ordering is not supported by the "sqlite" provider');
     }
     // #endregion
 }

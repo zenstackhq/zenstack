@@ -224,7 +224,7 @@ export class ClientImpl {
     ): Promise<T>;
 
     // overload for sequential transaction
-    $transaction<P extends ZenStackPromise<SchemaDef, any>[]>(
+    $transaction<P extends ZenStackPromise<any>[]>(
         arg: [...P],
         options?: { isolationLevel?: TransactionIsolationLevel },
     ): Promise<UnwrapTuplePromises<P>>;
@@ -269,8 +269,15 @@ export class ClientImpl {
         }
     }
 
+    private getPromiseCallback(promise: ZenStackPromise<any>) {
+        invariant((promise as any).cb, 'Invalid ZenStackPromise, missing cb property');
+        const cb = (promise as any).cb;
+        invariant(typeof cb === 'function', 'Invalid ZenStackPromise, cb property is not a function');
+        return (promise as any).cb;
+    }
+
     private async sequentialTransaction(
-        arg: ZenStackPromise<SchemaDef, any>[],
+        arg: ZenStackPromise<any>[],
         options?: { isolationLevel?: TransactionIsolationLevel },
     ) {
         const execute = async (tx: AnyKysely) => {
@@ -278,7 +285,8 @@ export class ClientImpl {
             txClient.kysely = tx;
             const result: any[] = [];
             for (const promise of arg) {
-                result.push(await promise.cb(txClient as unknown as ClientContract<SchemaDef>));
+                const cb = this.getPromiseCallback(promise);
+                result.push(await cb(txClient as unknown as ClientContract<SchemaDef>));
             }
             return result;
         };

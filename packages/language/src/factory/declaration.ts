@@ -69,7 +69,7 @@ export class DataModelFactory extends AstFactory<DataModel> {
 
     constructor() {
         super({
-            type: DataModel,
+            type: DataModel.$type,
             node: {
                 attributes: [],
                 comments: [],
@@ -151,7 +151,7 @@ export class DataFieldFactory extends AstFactory<DataField> {
     type?: DataFieldTypeFactory;
 
     constructor() {
-        super({ type: DataField, node: { attributes: [], comments: [] } });
+        super({ type: DataField.$type, node: { attributes: [], comments: [] } });
     }
 
     addAttribute(
@@ -204,7 +204,7 @@ export class DataFieldTypeFactory extends AstFactory<DataFieldType> {
     unsupported?: UnsupportedFieldTypeFactory;
 
     constructor() {
-        super({ type: DataFieldType });
+        super({ type: DataFieldType.$type });
     }
 
     setArray(array: boolean) {
@@ -254,7 +254,7 @@ export class DataFieldTypeFactory extends AstFactory<DataFieldType> {
 export class UnsupportedFieldTypeFactory extends AstFactory<UnsupportedFieldType> {
     value?: AstFactory<LiteralExpr>;
     constructor() {
-        super({ type: UnsupportedFieldType });
+        super({ type: UnsupportedFieldType.$type });
     }
     setValue(builder: (value: ExpressionBuilder<LiteralExpr>) => AstFactory<LiteralExpr>) {
         this.value = builder(ExpressionBuilder());
@@ -269,7 +269,7 @@ export class ModelFactory extends AstFactory<Model> {
     declarations: AstFactory<AbstractDeclaration>[] = [];
     imports: ModelImportFactory[] = [];
     constructor() {
-        super({ type: Model, node: { declarations: [], imports: [] } });
+        super({ type: Model.$type, node: { declarations: [], imports: [] } });
     }
     addImport(builder: (b: ModelImportFactory) => ModelImportFactory) {
         this.imports.push(builder(new ModelImportFactory()).setContainer(this.node));
@@ -291,7 +291,7 @@ export class ModelImportFactory extends AstFactory<ModelImport> {
     path?: string | undefined;
 
     constructor() {
-        super({ type: ModelImport });
+        super({ type: ModelImport.$type });
     }
 
     setPath(path: string) {
@@ -310,7 +310,7 @@ export class EnumFactory extends AstFactory<Enum> {
     attributes: DataModelAttributeFactory[] = [];
 
     constructor() {
-        super({ type: Enum, node: { comments: [], fields: [], attributes: [] } });
+        super({ type: Enum.$type, node: { comments: [], fields: [], attributes: [] } });
     }
 
     addField(builder: (b: EnumFieldFactory) => EnumFieldFactory) {
@@ -344,7 +344,7 @@ export class EnumFieldFactory extends AstFactory<EnumField> {
     attributes: DataFieldAttributeFactory[] = [];
 
     constructor() {
-        super({ type: EnumField, node: { comments: [], attributes: [] } });
+        super({ type: EnumField.$type, node: { comments: [], attributes: [] } });
     }
 
     setName(name: RegularIDWithTypeNames) {

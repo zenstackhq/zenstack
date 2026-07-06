@@ -205,6 +205,12 @@ attribute @@@completionHint(_ values: String[])
 attribute @@@once()
 
 /**
+ * Indicates that a field-level attribute can only be applied to a single field within a model
+ * (including fields inherited from base models and mixins).
+ */
+attribute @@@onceInModel()
+
+/**
  * Defines a single-field ID on the model.
  *
  * @param map: The name of the underlying primary key constraint in the database.
@@ -218,7 +224,7 @@ attribute @id(map: String?, length: Int?, sort: SortOrder?, clustered: Boolean?)
  * Defines a default value for a field.
  * @param value: An expression (e.g. 5, true, now(), auth()).
  */
-attribute @default(_ value: ContextType, map: String?) @@@prisma
+attribute @default(_ value: ContextType, map: String?) @@@prisma @@@once
 
 /**
  * Defines a unique constraint for this field.
@@ -394,11 +400,25 @@ attribute @ignore() @@@prisma
 attribute @@ignore() @@@prisma
 
 /**
- * Indicates that the field should be omitted by default when read with an ORM client. The omission can be 
+ * Indicates that the field should be omitted by default when read with an ORM client. The omission can be
  * overridden in options passed to create `ZenStackClient`, or at query time by explicitly passing in an
  * `omit` clause. The attribute is only effective for ORM query APIs, not for query-builder APIs.
  */
 attribute @omit()
+
+/**
+ * Marks a `String` field as fuzzy-searchable. Fields with this attribute can be used with the
+ * `fuzzy` filter operator and the `_fuzzyRelevance` orderBy. Fuzzy search is currently
+ * supported only on the `postgresql` provider (requires `pg_trgm` extension).
+ */
+attribute @fuzzy() @@@targetField([StringField]) @@@once
+
+/**
+ * Marks a `String` field as full-text-searchable. Fields with this attribute can be used with the
+ * `fts` filter operator and the `_ftsRelevance` orderBy. Full-text search is currently
+ * supported only on the `postgresql` provider (uses `to_tsvector` / `to_tsquery` / `ts_rank`).
+ */
+attribute @fullText() @@@targetField([StringField]) @@@once
 
 /**
  * Automatically stores the time when a record was last updated.
@@ -533,9 +553,24 @@ attribute @email(_ message: String?) @@@targetField([StringField]) @@@validation
 attribute @datetime(_ message: String?) @@@targetField([StringField]) @@@validation
 
 /**
+ * Validates a string field value is a valid ISO date.
+ */
+attribute @date(_ message: String?) @@@targetField([StringField]) @@@validation
+
+/**
+ * Validates a string field value is a valid ISO time.
+ */
+attribute @time(_ precision: Int?, _ message: String?) @@@targetField([StringField]) @@@validation
+
+/**
  * Validates a string field value is a valid url.
  */
 attribute @url(_ message: String?) @@@targetField([StringField]) @@@validation
+
+/**
+ * Validates a string field value is a valid E.164 phone number.
+ */
+attribute @phone(_ message: String?) @@@targetField([StringField]) @@@validation
 
 /**
  * Trims whitespaces from the start and end of the string.
@@ -603,9 +638,27 @@ function isDateTime(field: String): Boolean {
 } @@@expressionContext([ValidationRule])
 
 /**
+ * Validates a string field value is a valid ISO date.
+ */
+function isDate(field: String): Boolean {
+} @@@expressionContext([ValidationRule])
+
+/**
+ * Validates a string field value is a valid ISO time.
+ */
+function isTime(field: String, precision: Int?): Boolean {
+} @@@expressionContext([ValidationRule])
+
+/**
  * Validates a string field value is a valid url.
  */
 function isUrl(field: String): Boolean {
+} @@@expressionContext([ValidationRule])
+
+/**
+ * Validates a string field value is a valid E.164 phone number.
+ */
+function isPhone(field: String): Boolean {
 } @@@expressionContext([ValidationRule])
 
 //////////////////////////////////////////////
@@ -626,6 +679,13 @@ attribute @@prisma.passthrough(_ text: String)
  * Marks a model to be a delegate. Used for implementing polymorphism.
  */
 attribute @@delegate(_ discriminator: FieldReference)
+
+/**
+ * Maps a delegate sub-model to a specific discriminator value. If not set the sub-model name is used as the discriminator value by default.
+ *
+ * @param value: A string literal or enum member used as the discriminator.
+ */
+attribute @@delegateMap(_ value: Any)
 
 /**
  * Used for specifying operator classes for GIN index.

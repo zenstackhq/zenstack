@@ -157,6 +157,21 @@ export type QueryOptions<Schema extends SchemaDef> = {
 };
 
 /**
+ * Projects a (typically inferred) client options type down to only the members that influence
+ * ORM typing - the {@link QueryOptions} fields (`omit`, `allowQueryTimeOmitOverride`, `slicing`).
+ *
+ * The full options object inferred at `new ZenStackClient(...)` carries heavy function types for
+ * `computedFields` and `procedures`. Those are never read by the model/operation types, but if the
+ * raw options type is fanned out across every model's `ModelOperations` instantiation (30+ for a
+ * typical schema) it inflates type checking dramatically. Projecting to the query-relevant subset
+ * before the fan-out keeps the per-model types cheap while preserving full options on `$options`.
+ */
+export type QueryRelevantOptions<Schema extends SchemaDef, Options> = Pick<
+    Options,
+    Extract<keyof Options, keyof QueryOptions<Schema>>
+>;
+
+/**
  * ZenStack client options.
  */
 export type ClientOptions<Schema extends SchemaDef> = QueryOptions<Schema> & {

@@ -596,6 +596,26 @@ describe('RPC OpenAPI spec generation - queryOptions slicing', () => {
         expect(spec.components?.schemas?.['User']).toBeDefined();
     });
 
+    it('drops relation fields pointing to excluded models from entity schemas', async () => {
+        const client = await createTestClient(schema);
+        const handler = new RPCApiHandler({
+            schema: client.$schema,
+            queryOptions: { slicing: { excludedModels: ['Post'] as any } },
+        });
+        // `generateSpec` also validates the document, so a dangling `$ref` to the
+        // excluded `Post` schema would fail here.
+        const spec = await generateSpec(handler);
+
+        // referencing models keep their other fields but lose relations to the excluded model
+        const userProps = (spec.components?.schemas?.['User'] as any)?.properties;
+        expect(userProps?.['email']).toBeDefined();
+        expect(userProps?.['posts']).toBeUndefined();
+
+        const commentProps = (spec.components?.schemas?.['Comment'] as any)?.properties;
+        expect(commentProps?.['content']).toBeDefined();
+        expect(commentProps?.['post']).toBeUndefined();
+    });
+
     it('includedModels removes excluded model entity schemas from components', async () => {
         const client = await createTestClient(schema);
         const handler = new RPCApiHandler({
@@ -856,6 +876,30 @@ mutation procedure softDelete(id: Int?): User
         const schemaKeys = Object.keys(spec.components?.schemas ?? {});
         expect(schemaKeys.some((k) => k.startsWith('getUser'))).toBe(false);
         expect(schemaKeys.some((k) => k.startsWith('createUser'))).toBe(true);
+    });
+
+    it('procedure returning an excluded model does not emit a dangling ref', async () => {
+        const client = await createTestClient(procSchema);
+        const handler = new RPCApiHandler({
+            schema: client.$schema,
+            queryOptions: { slicing: { excludedModels: ['User'] as any } },
+        });
+        // `getUser`/`createUser`/`optionalSearch` all return `User`, which is excluded.
+        // `generateSpec` validates, so a dangling `$ref` to the absent `User` schema would fail.
+        const spec = await generateSpec(handler);
+
+        expect(spec.components?.schemas?.['User']).toBeUndefined();
+
+        // the procedures themselves are still exposed, but their result shape is generic
+        const dataSchema = (spec.paths?.['/$procs/getUser']?.get as any)?.responses?.['200']?.content?.[
+            'application/json'
+        ]?.schema?.properties?.data;
+        expect(dataSchema).toEqual({});
+
+        const listDataSchema = (spec.paths?.['/$procs/optionalSearch']?.get as any)?.responses?.['200']?.content?.[
+            'application/json'
+        ]?.schema?.properties?.data;
+        expect(listDataSchema).toEqual({ type: 'array', items: {} });
     });
 
     it('slicing includedProcedures removes non-listed procedure args from components schemas', async () => {

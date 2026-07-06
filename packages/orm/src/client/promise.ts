@@ -1,16 +1,11 @@
-import type { SchemaDef } from '@zenstackhq/schema';
 import type { ClientContract } from './contract';
 
 /**
  * A promise that only executes when it's awaited or .then() is called.
  */
-export type ZenStackPromise<Schema extends SchemaDef, T> = Promise<T> & {
-    /**
-     * @private
-     * Callable to get a plain promise.
-     */
-    cb: (txClient?: ClientContract<Schema>) => Promise<T>;
-};
+export interface ZenStackPromise<T> extends Promise<T> {
+    [Symbol.toStringTag]: 'ZenStackPromise';
+}
 
 /**
  * Creates a promise that only executes when it's awaited or .then() is called.
@@ -18,7 +13,7 @@ export type ZenStackPromise<Schema extends SchemaDef, T> = Promise<T> & {
  */
 export function createZenStackPromise(
     callback: (txClient?: ClientContract<any>) => Promise<unknown>,
-): ZenStackPromise<any, unknown> {
+): ZenStackPromise<unknown> {
     let promise: Promise<unknown> | undefined;
     const cb = (txClient?: ClientContract<any>) => {
         try {
@@ -41,7 +36,7 @@ export function createZenStackPromise(
         },
         cb,
         [Symbol.toStringTag]: 'ZenStackPromise',
-    };
+    } as ZenStackPromise<unknown>;
 }
 
 function valueToPromise(thing: any): Promise<any> {

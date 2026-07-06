@@ -1,3 +1,3 @@
 export { createSchemaFactory } from './factory';
-export type { ModelSchemaOptions, GetModelSchemaShapeWithOptions } from './types';
+export type { ModelSchemaOptions, GetModelSchemaShapeWithOptions, JsonValue } from './types';
 export * as ZodUtils from './utils';

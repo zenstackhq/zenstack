@@ -33,7 +33,7 @@ export function getAllQueries(queryClient: QueryClient): readonly QueryInfo[] {
                 operation: parsed?.operation,
                 args: parsed?.args,
                 data: state.data,
-                optimisticUpdate: !!parsed.flags.optimisticUpdate,
+                optimisticUpdate: !!parsed.flags?.optimisticUpdate,
                 updateData: (data: unknown, cancelOnTheFlyQueries: boolean) => {
                     queryClient.setQueryData<unknown>(queryKey, data);
                     if (cancelOnTheFlyQueries) {

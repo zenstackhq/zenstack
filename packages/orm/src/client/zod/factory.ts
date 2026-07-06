@@ -80,6 +80,37 @@ export function createQuerySchemaFactory(clientOrSchema: any, options?: any) {
 }
 
 /**
+ * Builds a `DateTime` value schema that accepts a `Date` object or any string
+ * the JS `Date` constructor parses, and coerces it to a `Date`. ISO datetime,
+ * ISO date, and time-only strings (e.g. `"09:00:00"` for `@db.Time` fields,
+ * anchored to the Unix epoch) are the documented happy paths; other formats
+ * accepted by `new Date(...)` also pass through, mirroring Prisma's pre-3.5
+ * behaviour. Strings the engine can't parse fall through and are rejected by
+ * `z.date()` with the standard error.
+ *
+ * @see https://github.com/zenstackhq/zenstack/issues/2631
+ */
+export function coercedDateTimeSchema(): ZodType {
+    // The schema keeps the original `z.iso.datetime() | z.iso.date() | z.date()`
+    // union so the generated OpenAPI spec still documents the accepted ISO
+    // forms. Preprocess runs first and coerces strings into `Date` objects,
+    // so the union's `z.date()` arm catches everything that successfully
+    // parses — including non-ISO formats like `"2024/01/15"` for Prisma
+    // compatibility (rejected with the standard error if `new Date(...)`
+    // returns Invalid Date).
+    return z.preprocess((val) => {
+        if (typeof val !== 'string') return val;
+        if (/^\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d\d(?::\d\d)?)?$/.test(val)) {
+            const hasTz = val.endsWith('Z') || /[+-]\d\d(?::\d\d)?$/.test(val);
+            const d = new Date(`1970-01-01T${val}${hasTz ? '' : 'Z'}`);
+            return isNaN(d.getTime()) ? val : d;
+        }
+        const d = new Date(val);
+        return isNaN(d.getTime()) ? val : d;
+    }, z.union([z.iso.datetime(), z.iso.date(), z.date()]));
+}
+
+/**
  * Options for creating Zod schemas.
  */
 export type CreateSchemaOptions = {
@@ -93,8 +124,11 @@ export type CreateSchemaOptions = {
  * Factory class responsible for creating and caching Zod schemas for ORM input validation.
  */
 export class ZodSchemaFactory<
-    Schema extends SchemaDef,
-    Options extends ClientOptions<Schema> = ClientOptions<Schema>,
+    in out Schema extends SchemaDef,
+    // Bounded by `QueryOptions` (not `ClientOptions`): only `omit`/`slicing` shape the schema types.
+    // The `$zod` accessor passes the client's *projected* (query-relevant) options, so the heavy
+    // options literal never reaches the (invariant) arg types this factory produces.
+    in out Options extends QueryOptions<Schema> = ClientOptions<Schema>,
     ExtQueryArgs extends ExtQueryArgsBase = {},
 > {
     private readonly schemaCache = new Map<string, ZodType>();
@@ -104,7 +138,10 @@ export class ZodSchemaFactory<
     private readonly options: Options;
     private readonly extraValidationsEnabled = true;
 
-    constructor(client: ClientContract<Schema, Options, ExtQueryArgs, any>);
+    // The client's `Options` type arg is intentionally erased here (`any`) - the factory only needs
+    // the schema and the runtime options object; its own `Options` type param is supplied (projected)
+    // by the caller (`$zod`).
+    constructor(client: ClientContract<Schema, any, ExtQueryArgs, any>);
     constructor(schema: Schema, options?: Options);
     constructor(clientOrSchema: any, options?: Options) {
         if ('$schema' in clientOrSchema) {
@@ -117,7 +154,9 @@ export class ZodSchemaFactory<
     }
 
     private get plugins(): AnyPlugin[] {
-        return this.options.plugins ?? [];
+        // `plugins` is a runtime-only field absent from the query-relevant `Options` type;
+        // read it weakly (the concrete options object always carries it at runtime).
+        return (this.options as { plugins?: AnyPlugin[] }).plugins ?? [];
     }
 
     /**
@@ -379,7 +418,11 @@ export class ZodSchemaFactory<
         const schema = z.looseObject(
             Object.fromEntries(
                 Object.entries(typeDef.fields).map(([field, def]) => {
-                    let fieldSchema = this.makeScalarSchema(def.type);
+                    // Wrap nested typedef references in z.lazy() so cyclic or self-referencing
+                    // typedefs don't recurse infinitely while building schemas.
+                    let fieldSchema: ZodType = isTypeDef(this.schema, def.type)
+                        ? z.lazy(() => this.makeTypeDefSchema(def.type))
+                        : this.makeScalarSchema(def.type);
                     if (def.array) {
                         fieldSchema = fieldSchema.array();
                     }
@@ -500,6 +543,8 @@ export class ZodSchemaFactory<
                         !!fieldDef.optional,
                         withAggregations,
                         allowedFilterKinds,
+                        !!fieldDef.fuzzy,
+                        !!fieldDef.fullText,
                     );
                 }
             }
@@ -787,9 +832,13 @@ export class ZodSchemaFactory<
         optional: boolean,
         withAggregations: boolean,
         allowedFilterKinds: string[] | undefined,
+        withFuzzy = false,
+        withFullText = false,
     ) {
         return match(type)
-            .with('String', () => this.makeStringFilterSchema(optional, withAggregations, allowedFilterKinds))
+            .with('String', () =>
+                this.makeStringFilterSchema(optional, withAggregations, allowedFilterKinds, withFuzzy, withFullText),
+            )
             .with(P.union('Int', 'Float', 'Decimal', 'BigInt'), (type) =>
                 this.makeNumberFilterSchema(type, optional, withAggregations, allowedFilterKinds),
             )
@@ -849,7 +898,7 @@ export class ZodSchemaFactory<
 
     @cache()
     private makeDateTimeValueSchema(): ZodType {
-        const schema = z.union([z.iso.datetime(), z.iso.date(), z.date()]);
+        const schema = coercedDateTimeSchema();
         this.registerSchema('DateTime', schema);
         return schema;
     }
@@ -1007,11 +1056,22 @@ export class ZodSchemaFactory<
         optional: boolean,
         withAggregations: boolean,
         allowedFilterKinds: string[] | undefined,
+        withFuzzy = false,
+        withFullText = false,
     ): ZodType {
         const baseComponents = this.makeCommonPrimitiveFilterComponents(
             z.string(),
             optional,
-            () => z.lazy(() => this.makeStringFilterSchema(optional, withAggregations, allowedFilterKinds)),
+            () =>
+                z.lazy(() =>
+                    this.makeStringFilterSchema(
+                        optional,
+                        withAggregations,
+                        allowedFilterKinds,
+                        withFuzzy,
+                        withFullText,
+                    ),
+                ),
             undefined,
             withAggregations ? ['_count', '_min', '_max'] : undefined,
             allowedFilterKinds,
@@ -1021,9 +1081,14 @@ export class ZodSchemaFactory<
             startsWith: z.string().optional(),
             endsWith: z.string().optional(),
             contains: z.string().optional(),
-            ...(this.providerSupportsFuzzySearch
+            ...(withFuzzy && this.providerSupportsFuzzySearch
                 ? {
                       fuzzy: this.makeFuzzyFilterSchema().optional(),
+                  }
+                : {}),
+            ...(withFullText && this.providerSupportsFullTextSearch
+                ? {
+                      fts: this.makeFullTextFilterSchema().optional(),
                   }
                 : {}),
             ...(this.providerSupportsCaseSensitivity
@@ -1042,8 +1107,9 @@ export class ZodSchemaFactory<
         };
 
         const schema = this.createUnionFilterSchema(z.string(), optional, allComponents, allowedFilterKinds);
+        const featureSuffix = `${withFuzzy ? 'Fuzzy' : ''}${withFullText ? 'FullText' : ''}`;
         this.registerSchema(
-            `StringFilter${this.filterSchemaSuffix({ optional, allowedFilterKinds, withAggregations })}`,
+            `StringFilter${this.filterSchemaSuffix({ optional, allowedFilterKinds, withAggregations })}${featureSuffix}`,
             schema,
         );
         return schema;
@@ -1062,6 +1128,13 @@ export class ZodSchemaFactory<
         });
     }
 
+    private makeFullTextFilterSchema() {
+        return z.strictObject({
+            search: z.string().min(1),
+            config: z.string().min(1).optional(),
+        });
+    }
+
     @cache()
     private makeSelectSchema(model: string, options?: CreateSchemaOptions) {
         const fields: Record<string, ZodType> = {};
@@ -1075,7 +1148,13 @@ export class ZodSchemaFactory<
                     fields[field] = this.makeRelationSelectIncludeSchema(model, field, options).optional();
                 }
             } else {
-                fields[field] = z.boolean().optional();
+                if (this.options.allowQueryTimeOmitOverride === false && this.isFieldOmittedByConfig(model, field)) {
+                    // when query-time omit override is disallowed, an omitted field cannot be
+                    // un-omitted by explicitly selecting it, so only allow `false`
+                    fields[field] = z.literal(false).optional();
+                } else {
+                    fields[field] = z.boolean().optional();
+                }
             }
         }
 
@@ -1181,6 +1260,24 @@ export class ZodSchemaFactory<
         const result = z.union([z.boolean(), objSchema]);
         this.registerSchema(`${model}${upperCaseFirst(field)}RelationInput`, result);
         return result;
+    }
+
+    /**
+     * Determines whether a field is configured to be omitted at the schema or client-options level
+     * (query-level omit is excluded as it's mutually exclusive with `select`).
+     */
+    private isFieldOmittedByConfig(model: string, field: string): boolean {
+        // options-level omit
+        const omitConfig =
+            (this.options.omit as Record<string, any> | undefined)?.[lowerCaseFirst(model)] ??
+            (this.options.omit as Record<string, any> | undefined)?.[model];
+        if (omitConfig && typeof omitConfig[field] === 'boolean') {
+            return omitConfig[field];
+        }
+
+        // schema-level omit
+        const fieldDef = requireField(this.schema, model, field);
+        return !!fieldDef.omit;
     }
 
     @cache()
@@ -1290,7 +1387,7 @@ export class ZodSchemaFactory<
                             sort,
                             z.strictObject({
                                 sort,
-                                nulls: z.union([z.literal('first'), z.literal('last')]),
+                                nulls: z.union([z.literal('first'), z.literal('last')]).optional(),
                             }),
                         ])
                         .optional();
@@ -1308,21 +1405,37 @@ export class ZodSchemaFactory<
             }
         }
 
-        // _fuzzyRelevance ordering for fuzzy search (string fields only, postgres only).
-        // Distinct from a future `_searchRelevance` for full-text search.
+        // _fuzzyRelevance ordering for fuzzy search — only fields annotated with `@fuzzy` (postgres only).
         if (this.providerSupportsFuzzySearch) {
-            const stringFieldNames = this.getModelFields(model)
-                .filter(([, def]) => !def.relation && def.type === 'String')
+            const fuzzyFieldNames = this.getModelFields(model)
+                .filter(([, def]) => !def.relation && def.type === 'String' && def.fuzzy === true)
                 .map(([name]) => name);
-            if (stringFieldNames.length > 0) {
+            if (fuzzyFieldNames.length > 0) {
                 fields['_fuzzyRelevance'] = z
                     .strictObject({
-                        fields: z.array(z.enum(stringFieldNames as [string, ...string[]])).min(1),
+                        fields: z.array(z.enum(fuzzyFieldNames as [string, ...string[]])).min(1),
                         search: z.string(),
                         mode: z
                             .union([z.literal('simple'), z.literal('word'), z.literal('strictWord')])
                             .default('simple'),
                         unaccent: z.boolean().default(false),
+                        sort,
+                    })
+                    .optional();
+            }
+        }
+
+        // _ftsRelevance ordering for full-text search — only fields annotated with `@fullText` (postgres only).
+        if (this.providerSupportsFullTextSearch) {
+            const fullTextFieldNames = this.getModelFields(model)
+                .filter(([, def]) => !def.relation && def.type === 'String' && def.fullText === true)
+                .map(([name]) => name);
+            if (fullTextFieldNames.length > 0) {
+                fields['_ftsRelevance'] = z
+                    .strictObject({
+                        fields: z.array(z.enum(fullTextFieldNames as [string, ...string[]])).min(1),
+                        search: z.string().min(1),
+                        config: z.string().min(1).optional(),
                         sort,
                     })
                     .optional();
@@ -2285,6 +2398,10 @@ export class ZodSchemaFactory<
     }
 
     private get providerSupportsCaseSensitivity() {
+        return this.schema.provider.type === 'postgresql';
+    }
+
+    private get providerSupportsFullTextSearch() {
         return this.schema.provider.type === 'postgresql';
     }
 

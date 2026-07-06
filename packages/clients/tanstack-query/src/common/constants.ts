@@ -1,5 +1,6 @@
-/** Route segment for custom procedures. */
-export const CUSTOM_PROC_ROUTE_NAME = '$procs';
+export { CUSTOM_PROC_ROUTE_NAME, TRANSACTION_ROUTE_PREFIX } from '@zenstackhq/client-helpers';
 
-/** Route prefix for transaction endpoints. */
-export const TRANSACTION_ROUTE_PREFIX = '$transaction';
+/**
+ * The default query endpoint.
+ */
+export const DEFAULT_QUERY_ENDPOINT = '/api/model';

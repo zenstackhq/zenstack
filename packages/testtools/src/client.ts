@@ -73,6 +73,13 @@ type ExtraTestClientOptions = {
     extraZModelFiles?: Record<string, string>;
 
     /**
+     * Extra plugin `plugin.zmodel` files (resolved absolute paths) to merge into the schema
+     * when loading. Use this to make a plugin's custom attributes available without testtools
+     * having to depend on the plugin.
+     */
+    extraPluginModelFiles?: string[];
+
+    /**
      * Extra TypeScript source files to create and compile.
      */
     extraSourceFiles?: Record<string, string>;
@@ -143,6 +150,7 @@ export async function createTestClient(
             options?.extraSourceFiles,
             undefined,
             options?.extraZModelFiles,
+            options?.extraPluginModelFiles,
         );
         workDir = generated.workDir;
         model = generated.model;
@@ -226,7 +234,10 @@ export async function createTestClient(
                 'a schema file must be provided when using prisma db push',
             );
             if (!model) {
-                const r = await loadDocumentWithPlugins(path.join(workDir, 'schema.zmodel'));
+                const r = await loadDocumentWithPlugins(
+                    path.join(workDir, 'schema.zmodel'),
+                    options?.extraPluginModelFiles,
+                );
                 if (!r.success) {
                     throw new Error(r.errors.join('\n'));
                 }

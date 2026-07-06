@@ -17,8 +17,8 @@ import { createZModelServices, type ZModelServices } from './module';
 import {
     getAllFields,
     getDataModelAndTypeDefs,
+    getDataSourceProvider,
     getDocument,
-    getLiteral,
     hasAttribute,
     resolveImport,
     resolveTransitiveImports,
@@ -251,7 +251,7 @@ function validationAfterImportMerge(model: Model) {
 export async function formatDocument(content: string) {
     const services = createZModelServices().ZModelLanguage;
     const langiumDocuments = services.shared.workspace.LangiumDocuments;
-    const document = langiumDocuments.createDocument(URI.parse('memory://schema.zmodel'), content);
+    const document = langiumDocuments.createDocument(URI.parse('memory:///schema.zmodel'), content);
     const formatter = services.lsp.Formatter as ZModelFormatter;
     const identifier = { uri: document.uri.toString() };
     const options = formatter.getFormatOptions() ?? {
@@ -262,14 +262,3 @@ export async function formatDocument(content: string) {
     return TextDocument.applyEdits(document.textDocument, edits);
 }
 
-function getDataSourceProvider(model: Model) {
-    const dataSource = model.declarations.find(isDataSource);
-    if (!dataSource) {
-        return undefined;
-    }
-    const provider = dataSource?.fields.find((f) => f.name === 'provider');
-    if (!provider) {
-        return undefined;
-    }
-    return getLiteral<string>(provider.value);
-}

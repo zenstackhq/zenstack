@@ -1,5 +1,5 @@
 import type { CliPlugin } from '@zenstackhq/sdk';
-import { TsSchemaGenerator } from '@zenstackhq/sdk';
+import { detectImportFileExtension, TsSchemaGenerator } from '@zenstackhq/sdk';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -22,9 +22,12 @@ const plugin: CliPlugin = {
         // liteOnly mode
         const liteOnly = pluginOptions['liteOnly'] === true;
 
-        // add .js extension when importing
-        const importWithFileExtension = pluginOptions['importWithFileExtension'];
-        if (importWithFileExtension && typeof importWithFileExtension !== 'string') {
+        // file extension to append to relative imports; when not explicitly set,
+        // auto-detect from the project's tsconfig (".js" for node16/nodenext ESM)
+        let importWithFileExtension = pluginOptions['importWithFileExtension'];
+        if (importWithFileExtension === undefined) {
+            importWithFileExtension = detectImportFileExtension(outDir);
+        } else if (typeof importWithFileExtension !== 'string') {
             throw new Error('The "importWithFileExtension" option must be a string if specified.');
         }
 

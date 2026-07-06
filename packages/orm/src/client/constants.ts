@@ -71,6 +71,9 @@ export const FILTER_PROPERTY_TO_KIND = {
     // Fuzzy search operators
     fuzzy: 'Fuzzy',
 
+    // Full-text search operators
+    fts: 'FullText',
+
     // List operators
     has: 'List',
     hasEvery: 'List',
