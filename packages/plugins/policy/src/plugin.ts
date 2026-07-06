@@ -7,11 +7,13 @@ import { PolicyHandler } from './policy-handler';
 
 export type { PolicyPluginOptions } from './options';
 
+// Keys must stay optional so that a policy-enabled client remains assignable
+// to the base `ClientContract` (whose ext query args default to `{}`).
 type PolicyExtQueryArgs = {
-    $read: Pick<PolicyPluginOptions, 'fetchPolicyCodes'>;
-    $create: Pick<PolicyPluginOptions, 'fetchPolicyCodes'>;
-    $update: Pick<PolicyPluginOptions, 'fetchPolicyCodes'>;
-    $delete: Pick<PolicyPluginOptions, 'fetchPolicyCodes'>;
+    $read?: Pick<PolicyPluginOptions, 'fetchPolicyCodes'>;
+    $create?: Pick<PolicyPluginOptions, 'fetchPolicyCodes'>;
+    $update?: Pick<PolicyPluginOptions, 'fetchPolicyCodes'>;
+    $delete?: Pick<PolicyPluginOptions, 'fetchPolicyCodes'>;
 };
 
 const fetchPolicyCodesSchema = z.object({ fetchPolicyCodes: z.boolean().optional() });
@@ -37,7 +39,9 @@ export class PolicyPlugin implements RuntimePlugin<SchemaDef, PolicyExtQueryArgs
         };
     }
 
-    readonly queryArgs = {
+    // The explicit annotation keeps the keys optional so that `$use` infers
+    // `PolicyExtQueryArgs` with optional keys (see comment above).
+    readonly queryArgs: { [K in keyof PolicyExtQueryArgs]: z.ZodType<PolicyExtQueryArgs[K]> } = {
         $read: fetchPolicyCodesSchema,
         $create: fetchPolicyCodesSchema,
         $update: fetchPolicyCodesSchema,
