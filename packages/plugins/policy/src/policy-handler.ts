@@ -426,11 +426,30 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
                 ),
             );
 
-        const postUpdateResult = await proceed(postUpdateQuery.toOperationNode());
-        if (!postUpdateResult.rows[0]?.$condition) {
+        // one EXISTS column per coded policy, evaluated in the same query so a rejection
+        // doesn't cost an extra diagnostic roundtrip
+        const policiesWithCode =
+            this.options.fetchPolicyCodes !== false
+                ? this.getModelPolicies(model, 'post-update').filter((p) => p.code)
+                : [];
+        const codeSelections = this.buildPostUpdateCodeSelections(
+            policiesWithCode,
+            model,
+            idConditions,
+            beforeUpdateInfo,
+        );
+
+        const postUpdateQueryNode = postUpdateQuery.toOperationNode();
+        const postUpdateResult = await proceed(
+            codeSelections.length > 0
+                ? { ...postUpdateQueryNode, selections: [...(postUpdateQueryNode.selections ?? []), ...codeSelections] }
+                : postUpdateQueryNode,
+        );
+        const row = postUpdateResult.rows[0] ?? {};
+        if (!row.$condition) {
             const policyCodes =
-                this.options.fetchPolicyCodes !== false
-                    ? await this.findViolatingPostUpdatePolicyCodes(model, idConditions, beforeUpdateInfo, proceed)
+                policiesWithCode.length > 0
+                    ? policiesWithCode.filter((_, i) => row[`$c${i}`]).map((p) => p.code!)
                     : undefined;
             throw createRejectedByPolicyError(
                 model,
@@ -923,22 +942,22 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         const valueRows = node.values
             ? this.unwrapCreateValueRows(node.values, mutationModel, fields, isManyToManyJoinTable)
             : [[]];
-        for (const values of valueRows) {
-            if (isManyToManyJoinTable) {
+        if (isManyToManyJoinTable) {
+            for (const values of valueRows) {
                 await this.enforcePreCreatePolicyForManyToManyJoinTable(
                     mutationModel,
                     fields,
                     values.map((v) => v.node),
                     proceed,
                 );
-            } else {
-                await this.enforcePreCreatePolicyForOne(
-                    mutationModel,
-                    fields,
-                    values.map((v) => v.node),
-                    proceed,
-                );
             }
+        } else {
+            await this.enforcePreCreatePolicyForRows(
+                mutationModel,
+                fields,
+                valueRows.map((values) => values.map((v) => v.node)),
+                proceed,
+            );
         }
     }
 
@@ -1005,56 +1024,74 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         }
     }
 
-    private async enforcePreCreatePolicyForOne(
+    private async enforcePreCreatePolicyForRows(
         model: string,
         fields: string[],
-        values: OperationNode[],
+        valueRows: OperationNode[][],
         proceed: ProceedKyselyQueryFunction,
     ) {
         const allFields = QueryUtils.getModelFields(this.client.$schema, model, { inherited: true });
-        const allValues: KyselyExpression<any>[] = [];
-
-        for (const def of allFields) {
-            const index = fields.indexOf(def.name);
-            if (index >= 0) {
-                allValues.push(new ExpressionWrapper(values[index]!));
-            } else {
-                // set non-provided fields to null
-                allValues.push(this.eb.lit(null));
+        const rows = valueRows.map((values) => {
+            const allValues: KyselyExpression<any>[] = [];
+            for (const def of allFields) {
+                const index = fields.indexOf(def.name);
+                if (index >= 0) {
+                    allValues.push(new ExpressionWrapper(values[index]!));
+                } else {
+                    // set non-provided fields to null
+                    allValues.push(this.eb.lit(null));
+                }
             }
-        }
+            return allValues;
+        });
 
-        // create a `SELECT column1 as field1, column2 as field2, ... FROM (VALUES (...))` table for policy evaluation
-        const valuesTable = this.dialect.buildValuesTableSelect(allFields, [allValues]);
+        // create a `SELECT column1 as field1, column2 as field2, ... FROM (VALUES (...), ...)` table
+        // containing all proposed rows for policy evaluation
+        const valuesTable = this.dialect.buildValuesTableSelect(allFields, rows);
 
         const filter = this.buildPolicyFilter(model, undefined, 'create');
 
-        // check if the provided values satisfy the create policy
-
-        // `SELECT 1 FROM (VALUES (...)) AS t(column1, column2, ...) WHERE <filter>`
-        const preCreateInner = this.eb
+        // the create passes the policy check iff all proposed rows satisfy the filter:
+        // `(SELECT COUNT(1) FROM (VALUES (...), ...) AS t WHERE <filter>) = <row count>`
+        const satisfyingRows = this.eb
             .selectFrom(valuesTable.as(model))
-            .select(this.eb.lit(1).as('_'))
+            .select(this.eb.fn('COUNT', [this.eb.lit(1)]).as('_'))
             .where(() => new ExpressionWrapper(filter));
-
-        const result = await proceed(
-            // `SELECT EXISTS(preCreateInner) AS $condition`
-            {
-                kind: 'SelectQueryNode',
-                selections: [
-                    SelectionNode.create(
-                        AliasNode.create(
-                            this.eb.exists(preCreateInner).toOperationNode(),
-                            IdentifierNode.create('$condition'),
-                        ),
-                    ),
-                ],
-            } satisfies SelectQueryNode,
+        const conditionSelection = SelectionNode.create(
+            AliasNode.create(
+                this.eb(satisfyingRows, '=', valueRows.length).toOperationNode(),
+                IdentifierNode.create('$condition'),
+            ),
         );
-        if (!result.rows[0]?.$condition) {
+
+        // one EXISTS column per coded policy, evaluated in the same query so a rejection
+        // doesn't cost an extra diagnostic roundtrip
+        const policiesWithCode =
+            this.options.fetchPolicyCodes !== false ? this.getModelPolicies(model, 'create').filter((p) => p.code) : [];
+        const codeSelections = policiesWithCode.map((policy, i) => {
+            const condition = this.compilePolicyCondition(model, undefined, 'create', policy);
+            // For allow rules, negate: EXISTS(NOT condition) = true when any proposed row violates allow.
+            // For deny rules, keep as-is: EXISTS(condition) = true when deny fires.
+            const existsCondition = policy.kind === 'allow' ? logicalNot(this.dialect, condition) : condition;
+            const inner = this.eb
+                .selectFrom(valuesTable.as(model))
+                .select(this.eb.lit(1).as('_'))
+                .where(() => new ExpressionWrapper(existsCondition));
+            return SelectionNode.create(
+                AliasNode.create(this.eb.exists(inner).toOperationNode(), IdentifierNode.create(`$c${i}`)),
+            );
+        });
+
+        const result = await proceed({
+            kind: 'SelectQueryNode',
+            selections: [conditionSelection, ...codeSelections],
+        } satisfies SelectQueryNode);
+
+        const row = result.rows[0] ?? {};
+        if (!row.$condition) {
             const policyCodes =
                 this.options.fetchPolicyCodes !== false
-                    ? await this.findViolatingCreatePolicyCodes(model, valuesTable, proceed)
+                    ? policiesWithCode.filter((_, i) => row[`$c${i}`]).map((p) => p.code!)
                     : undefined;
             throw createRejectedByPolicyError(model, RejectedByPolicyReason.NO_ACCESS, undefined, policyCodes);
         }
@@ -1153,40 +1190,14 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         return ExpressionUtils.isLiteral(expr) && expr.value === true;
     }
 
-    private async findViolatingCreatePolicyCodes(
-        model: string,
-        valuesTable: ReturnType<BaseCrudDialect<Schema>['buildValuesTableSelect']>,
-        proceed: ProceedKyselyQueryFunction,
-    ): Promise<string[]> {
-        const policiesWithCode = this.getModelPolicies(model, 'create').filter((p) => p.code);
-        if (policiesWithCode.length === 0) {
-            return [];
-        }
-
-        const selections = policiesWithCode.map((policy, i) => {
-            const condition = this.compilePolicyCondition(model, undefined, 'create', policy);
-            // For allow rules, negate: EXISTS(NOT condition) = true when any proposed row violates allow.
-            // For deny rules, keep as-is: EXISTS(condition) = true when deny fires.
-            const existsCondition = policy.kind === 'allow' ? logicalNot(this.dialect, condition) : condition;
-            const inner = this.eb
-                .selectFrom(valuesTable.as(model))
-                .select(this.eb.lit(1).as('_'))
-                .where(() => new ExpressionWrapper(existsCondition));
-            return SelectionNode.create(
-                AliasNode.create(this.eb.exists(inner).toOperationNode(), IdentifierNode.create(`$c${i}`)),
-            );
-        });
-
-        return this.evaluatePolicyDiagnostics(policiesWithCode, selections, proceed);
-    }
-
-    private async findViolatingPostUpdatePolicyCodes(
+    // Builds one EXISTS selection per coded post-update policy, meant to be appended to the
+    // post-update check query so codes are determined in the same roundtrip.
+    private buildPostUpdateCodeSelections(
+        policiesWithCode: Policy[],
         model: string,
         idConditions: OperationNode,
         beforeUpdateInfo: Awaited<ReturnType<typeof this.loadBeforeUpdateEntities>>,
-        proceed: ProceedKyselyQueryFunction,
-    ): Promise<string[]> {
-        const policiesWithCode = this.getModelPolicies(model, 'post-update').filter((p) => p.code);
+    ): SelectionNode[] {
         if (policiesWithCode.length === 0) {
             return [];
         }
@@ -1230,19 +1241,7 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
             );
         });
 
-        return this.evaluatePolicyDiagnostics(policiesWithCode, selections, proceed);
-    }
-
-    // Single diagnostic query: one EXISTS column per coded policy.
-    // EXISTS=true means a violation: deny condition fired, or allow condition wasn't met (negated in caller).
-    private async evaluatePolicyDiagnostics(
-        policiesWithCode: Policy[],
-        selections: SelectionNode[],
-        proceed: ProceedKyselyQueryFunction,
-    ): Promise<string[]> {
-        const result = await proceed({ kind: 'SelectQueryNode', selections } satisfies SelectQueryNode);
-        const row = result.rows[0] ?? {};
-        return policiesWithCode.filter((_, i) => row[`$c${i}`]).map((p) => p.code!);
+        return selections;
     }
 
     private async processReadBack(node: CrudQueryNode, result: QueryResult<any>, proceed: ProceedKyselyQueryFunction) {

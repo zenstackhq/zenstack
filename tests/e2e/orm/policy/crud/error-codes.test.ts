@@ -868,4 +868,99 @@ model Foo {
         // post-update: without override, codes are suppressed and we get a policy rejection without codes (not NotFound)
         await expect(db.foo.update({ where: { id: positiveX.id }, data: { x: -1 } })).toBeRejectedByPolicy(undefined, []);
     });
+
+    // ── rejection determination roundtrips ────────────────────────────────────
+
+    // The counting plugin is registered before the policy plugin, which makes it sit closer
+    // to the database in the interceptor chain, so it observes every query the policy
+    // handler issues (checks, diagnostics, and the mutation itself).
+    const makeQueryCounter = (kinds: string[]) => ({
+        id: 'query-counter',
+        onKyselyQuery({ query, proceed }: any) {
+            kinds.push(query.kind);
+            return proceed(query);
+        },
+    });
+
+    it('determines create rejection and codes in a single query', async () => {
+        const kinds: string[] = [];
+        const db = await createPolicyTestClient(
+            `
+model Foo {
+    id Int @id @default(autoincrement())
+    x  Int
+    @@deny('create', x <= 0, 'NEGATIVE_X_CREATE')
+    @@allow('create,read', true)
+}
+`,
+            { plugins: [makeQueryCounter(kinds)] },
+        );
+        await expect(db.foo.create({ data: { x: 0 } })).toBeRejectedByPolicy(undefined, ['NEGATIVE_X_CREATE']);
+        // one merged check+diagnostics SELECT, and the INSERT never runs
+        expect(kinds).toEqual(['SelectQueryNode']);
+    });
+
+    it('checks pre-create policy for all rows of a batched create in a single query', async () => {
+        const kinds: string[] = [];
+        const db = await createPolicyTestClient(
+            `
+model Foo {
+    id Int @id @default(autoincrement())
+    x  Int
+    @@deny('create', x <= 0, 'NEGATIVE_X_CREATE')
+    @@allow('create,read', true)
+}
+`,
+            { plugins: [makeQueryCounter(kinds)] },
+        );
+        await expect(db.foo.createMany({ data: [{ x: 1 }, { x: 2 }, { x: 3 }] })).resolves.toMatchObject({ count: 3 });
+        // one policy check SELECT covering all three rows, then the INSERT
+        expect(kinds).toEqual(['SelectQueryNode', 'InsertQueryNode']);
+    });
+
+    it('returns codes from all violating rows of a rejected batched create', async () => {
+        const kinds: string[] = [];
+        const db = await createPolicyTestClient(
+            `
+model Foo {
+    id Int @id @default(autoincrement())
+    x  Int
+    y  Int
+    @@deny('create', x <= 0, 'NEGATIVE_X_CREATE')
+    @@deny('create', y <= 0, 'NEGATIVE_Y_CREATE')
+    @@allow('create,read', true)
+}
+`,
+            { plugins: [makeQueryCounter(kinds)] },
+        );
+        // first row violates the y rule, second row violates the x rule
+        await expect(db.foo.createMany({ data: [{ x: 1, y: 0 }, { x: 0, y: 1 }] })).toBeRejectedByPolicy(undefined, [
+            'NEGATIVE_X_CREATE',
+            'NEGATIVE_Y_CREATE',
+        ]);
+        expect(kinds).toEqual(['SelectQueryNode']);
+    });
+
+    it('determines post-update rejection and codes in a single query', async () => {
+        const kinds: string[] = [];
+        const db = await createPolicyTestClient(
+            `
+model Foo {
+    id Int @id @default(autoincrement())
+    x  Int
+    @@allow('create,read,update', true)
+    @@deny('post-update', x <= 0, 'NEGATIVE_AFTER_UPDATE')
+    @@allow('post-update', x > 0)
+}
+`,
+            { plugins: [makeQueryCounter(kinds)] },
+        );
+        const row = await db.foo.create({ data: { x: 1 } });
+        kinds.length = 0;
+        await expect(db.foo.update({ where: { id: row.id }, data: { x: -1 } })).toBeRejectedByPolicy(undefined, [
+            'NEGATIVE_AFTER_UPDATE',
+        ]);
+        // the UPDATE, then one merged post-update check+diagnostics SELECT
+        expect(kinds).toEqual(['UpdateQueryNode', 'SelectQueryNode']);
+    });
 });
