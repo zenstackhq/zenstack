@@ -26,7 +26,6 @@
     ],
     "exports": {
         ".": {
-            "browser": "./dist/browser.mjs",
             "import": {
                 "types": "./dist/index.d.mts",
                 "default": "./dist/index.mjs"

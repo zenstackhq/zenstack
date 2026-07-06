@@ -3,7 +3,6 @@ import { createConfig } from '@zenstackhq/tsdown-config';
 export default createConfig({
     entry: {
         index: 'src/index.ts',
-        browser: 'src/browser.ts',
         schema: 'src/schema.ts',
         helpers: 'src/helpers.ts',
         'common-types': 'src/common-types.ts',
