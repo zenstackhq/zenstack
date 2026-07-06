@@ -19,7 +19,7 @@ import { ulid } from 'ulid';
 import * as uuid from 'uuid';
 import type { AnyKysely } from '../../../utils/kysely-utils';
 import { extractFields, fieldsToSelectObject, isEmptyObject } from '../../../utils/object-utils';
-import { NUMERIC_FIELD_TYPES } from '../../constants';
+import { CONTEXT_COMMENT_PREFIX, NUMERIC_FIELD_TYPES } from '../../constants';
 import { TransactionIsolationLevel, type ClientContract, type CRUD } from '../../contract';
 import type { FindArgs, SelectIncludeOmit, WhereInput } from '../../crud-types';
 import {
@@ -31,6 +31,7 @@ import {
     ORMError,
     ORMErrorReason,
 } from '../../errors';
+import type { QueryContext } from '../../plugin';
 import type { ToKysely } from '../../query-builder';
 import {
     ensureArray,
@@ -225,6 +226,23 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
     }
 
     abstract handle(operation: CoreCrudOperations, args: any): Promise<unknown>;
+
+    /**
+     * Context of the top-level ORM API call, embedded into generated queries as a
+     * trailing SQL comment (see {@link makeContextComment}).
+     */
+    protected callContext?: { ormOperation: AllCrudOperations; pluginArgs?: Record<string, unknown> };
+
+    /**
+     * Returns a clone carrying the given call context, so concurrent invocations
+     * (e.g. an `onQuery` hook calling `proceed` multiple times in parallel) each
+     * get their own context.
+     */
+    withCallContext(context: { ormOperation: AllCrudOperations; pluginArgs?: Record<string, unknown> }) {
+        const clone = this.withClient(this.client);
+        clone.callContext = context;
+        return clone;
+    }
 
     withClient(client: ClientContract<Schema>) {
         return new (this.constructor as new (...args: any[]) => this)(client, this.model, this.inputValidator);
@@ -1566,9 +1584,19 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         return NUMERIC_FIELD_TYPES.includes(fieldDef.type) && !fieldDef.array;
     }
 
-    private makeContextComment(_context: { model: string; operation: CRUD }) {
-        return sql``;
-        // return sql.raw(`${CONTEXT_COMMENT_PREFIX}${JSON.stringify(context)}`);
+    private makeContextComment(context: { model: string; operation: CRUD }) {
+        if (!this.options.plugins?.some((plugin) => plugin.onKyselyQuery)) {
+            // the context is only consumed by `onKyselyQuery` hooks, skip the overhead otherwise
+            return sql``;
+        }
+        const payload: QueryContext = {
+            ...context,
+            ...(this.callContext?.ormOperation ? { ormOperation: this.callContext.ormOperation } : {}),
+            ...(this.callContext?.pluginArgs && Object.keys(this.callContext.pluginArgs).length > 0
+                ? { pluginArgs: this.callContext.pluginArgs }
+                : {}),
+        };
+        return sql.raw(`${CONTEXT_COMMENT_PREFIX}${JSON.stringify(payload)}`);
     }
 
     protected async updateMany<

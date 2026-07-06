@@ -1,6 +1,7 @@
 import type { OperationNode, QueryId, QueryResult, RootOperationNode, UnknownRow } from 'kysely';
 import type { ZodType } from 'zod';
 import type { ClientContract, ZModelFunction } from '.';
+import type { CRUD } from './contract';
 import type { GetModelFields, GetModels, NonRelationFields, SchemaDef } from '@zenstackhq/schema';
 import type { MaybePromise } from '../utils/type-utils';
 import type { MapModelFieldType } from './crud-types';
@@ -385,10 +386,43 @@ export type PluginAfterEntityMutationArgs<Schema extends SchemaDef> = MutationHo
 
 // #region OnKyselyQuery hooks
 
+/**
+ * ORM-level context attached to generated Kysely queries (serialized as a trailing
+ * SQL comment at query-build time) and surfaced to `onKyselyQuery` hooks after the
+ * executor deserializes and strips it.
+ */
+export type QueryContext = {
+    /**
+     * The model the query operates on.
+     */
+    model: string;
+
+    /**
+     * The CRUD kind of this specific SQL statement.
+     */
+    operation: CRUD;
+
+    /**
+     * The top-level ORM API method that triggered the query, e.g. 'findUniqueOrThrow'.
+     */
+    ormOperation?: AllCrudOperations;
+
+    /**
+     * Plugin-extended query args passed to the top-level ORM call, e.g. `{ fetchPolicyCodes: false }`.
+     * Values must be JSON-serializable to survive the comment round-trip.
+     */
+    pluginArgs?: Record<string, unknown>;
+};
+
 export type OnKyselyQueryArgs<Schema extends SchemaDef> = {
     schema: SchemaDef;
     client: ClientContract<Schema>;
     query: RootOperationNode;
+    /**
+     * ORM-level context of the query, if it originated from a top-level ORM API call.
+     * Undefined for queries built directly with the query builder or spawned by plugins.
+     */
+    queryContext?: QueryContext;
     proceed: ProceedKyselyQueryFunction;
 };
 

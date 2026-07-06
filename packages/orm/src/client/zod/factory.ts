@@ -32,16 +32,11 @@ import type {
     UpdateManyArgs,
     UpsertArgs,
 } from '../crud-types';
-import {
-    CoreCreateOperations,
-    CoreDeleteOperations,
-    CoreReadOperations,
-    CoreUpdateOperations,
-    type CoreCrudOperations,
-} from '../crud/operations/base';
+import { type CoreCrudOperations } from '../crud/operations/base';
 import { createInternalError } from '../errors';
 import type { ClientOptions, QueryOptions } from '../options';
 import type { AnyPlugin, ExtQueryArgsBase } from '../plugin';
+import { getPluginExtQueryArgsSchema } from '../plugin-utils';
 import {
     fieldHasDefaultValue,
     getEnum,
@@ -2230,78 +2225,13 @@ export class ZodSchemaFactory<
         let result = schema;
         for (const plugin of this.plugins ?? []) {
             if (plugin.queryArgs) {
-                const pluginSchema = this.getPluginExtQueryArgsSchema(plugin, operation);
+                const pluginSchema = getPluginExtQueryArgsSchema(plugin, operation);
                 if (pluginSchema) {
                     result = result.extend(pluginSchema.shape);
                 }
             }
         }
         return result.strict();
-    }
-
-    private getPluginExtQueryArgsSchema(plugin: AnyPlugin, operation: string): ZodObject | undefined {
-        if (!plugin.queryArgs) {
-            return undefined;
-        }
-
-        let result: ZodType | undefined;
-
-        if (operation in plugin.queryArgs && plugin.queryArgs[operation]) {
-            // most specific operation takes highest precedence
-            result = plugin.queryArgs[operation];
-        } else if (operation === 'upsert') {
-            // upsert is special: it's in both CoreCreateOperations and CoreUpdateOperations
-            // so we need to merge both $create and $update schemas to match the type system
-            const createSchema =
-                '$create' in plugin.queryArgs && plugin.queryArgs['$create'] ? plugin.queryArgs['$create'] : undefined;
-            const updateSchema =
-                '$update' in plugin.queryArgs && plugin.queryArgs['$update'] ? plugin.queryArgs['$update'] : undefined;
-
-            if (createSchema && updateSchema) {
-                invariant(createSchema instanceof ZodObject, 'Plugin extended query args schema must be a Zod object');
-                invariant(updateSchema instanceof ZodObject, 'Plugin extended query args schema must be a Zod object');
-                // merge both schemas (combines their properties)
-                result = createSchema.extend(updateSchema.shape);
-            } else if (createSchema) {
-                result = createSchema;
-            } else if (updateSchema) {
-                result = updateSchema;
-            }
-        } else if (
-            // then comes grouped operations: $create, $read, $update, $delete
-            CoreCreateOperations.includes(operation as CoreCreateOperations) &&
-            '$create' in plugin.queryArgs &&
-            plugin.queryArgs['$create']
-        ) {
-            result = plugin.queryArgs['$create'];
-        } else if (
-            CoreReadOperations.includes(operation as CoreReadOperations) &&
-            '$read' in plugin.queryArgs &&
-            plugin.queryArgs['$read']
-        ) {
-            result = plugin.queryArgs['$read'];
-        } else if (
-            CoreUpdateOperations.includes(operation as CoreUpdateOperations) &&
-            '$update' in plugin.queryArgs &&
-            plugin.queryArgs['$update']
-        ) {
-            result = plugin.queryArgs['$update'];
-        } else if (
-            CoreDeleteOperations.includes(operation as CoreDeleteOperations) &&
-            '$delete' in plugin.queryArgs &&
-            plugin.queryArgs['$delete']
-        ) {
-            result = plugin.queryArgs['$delete'];
-        } else if ('$all' in plugin.queryArgs && plugin.queryArgs['$all']) {
-            // finally comes $all
-            result = plugin.queryArgs['$all'];
-        }
-
-        invariant(
-            result === undefined || result instanceof ZodObject,
-            'Plugin extended query args schema must be a Zod object',
-        );
-        return result;
     }
 
     // #endregion

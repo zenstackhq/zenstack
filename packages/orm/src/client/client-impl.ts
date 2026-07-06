@@ -41,6 +41,7 @@ import * as BuiltinFunctions from './functions';
 import { SchemaDbPusher } from './helpers/schema-db-pusher';
 import type { ClientOptions, ProceduresOptions } from './options';
 import type { AnyPlugin } from './plugin';
+import { extractPluginQueryArgs } from './plugin-utils';
 import { createZenStackPromise, type ZenStackPromise } from './promise';
 import { fieldHasDefaultValue, getField, isUnsupportedField, requireModel } from './query-utils';
 import { ResultProcessor } from './result-processor';
@@ -619,7 +620,13 @@ function createModelCrudHandler(
                     ? prepareArgsForExtResult(_args, model, schema, plugins)
                     : _args;
 
-                const _handler = txClient ? handler.withClient(txClient) : handler;
+                const txHandler = txClient ? handler.withClient(txClient) : handler;
+                // make the top-level call context available for embedding into generated queries,
+                // using the final args (after any `onQuery` hook overrides)
+                const _handler = txHandler.withCallContext({
+                    ormOperation: nominalOperation,
+                    pluginArgs: extractPluginQueryArgs(client.$options.plugins, operation, _args),
+                });
                 const r = await _handler.handle(operation, processedArgs);
                 if (!r && throwIfNoResult) {
                     throw createNotFoundError(model);

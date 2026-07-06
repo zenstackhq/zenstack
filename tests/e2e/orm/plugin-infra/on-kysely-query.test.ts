@@ -1,7 +1,8 @@
-import { type ClientContract } from '@zenstackhq/orm';
+import { definePlugin, type ClientContract, type QueryContext } from '@zenstackhq/orm';
 import { createTestClient } from '@zenstackhq/testtools';
-import { InsertQueryNode, PrimitiveValueListNode, ValuesNode } from 'kysely';
+import { InsertQueryNode, PrimitiveValueListNode, ValuesNode, type OperationNode } from 'kysely';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import z from 'zod';
 import { schema } from '../schemas/basic';
 
 describe('On kysely query tests', () => {
@@ -223,5 +224,54 @@ describe('On kysely query tests', () => {
         await expect(called1).toBe(true);
         await expect(called2).toBe(true);
         await expect(client.user.findFirst()).toResolveNull();
+    });
+
+    it('provides query context to hooks', async () => {
+        const contexts: (QueryContext | undefined)[] = [];
+        const client = _client.$use(
+            definePlugin({
+                id: 'test-plugin',
+                queryArgs: {
+                    $read: z.object({ testArg: z.string().optional() }),
+                },
+                onKyselyQuery({ query, queryContext, proceed }) {
+                    contexts.push(queryContext);
+                    // the context comment must be stripped before hooks see the query
+                    const endModifiers = (query as { endModifiers?: readonly OperationNode[] }).endModifiers;
+                    expect(JSON.stringify(endModifiers ?? [])).not.toContain('$$context');
+                    return proceed(query);
+                },
+            }),
+        );
+
+        await client.user.create({ data: { id: '1', email: 'u1@test.com' } });
+        expect(contexts).toContainEqual(
+            expect.objectContaining({ model: 'User', operation: 'create', ormOperation: 'create' }),
+        );
+
+        contexts.length = 0;
+        await client.user.findUniqueOrThrow({ where: { id: '1' }, testArg: 'hello' });
+        expect(contexts).toContainEqual(
+            expect.objectContaining({
+                model: 'User',
+                operation: 'read',
+                ormOperation: 'findUniqueOrThrow',
+                pluginArgs: { testArg: 'hello' },
+            }),
+        );
+    });
+
+    it('provides no query context for raw query builder queries', async () => {
+        const contexts: (QueryContext | undefined)[] = [];
+        const client = _client.$use({
+            id: 'test-plugin',
+            onKyselyQuery({ query, queryContext, proceed }) {
+                contexts.push(queryContext);
+                return proceed(query);
+            },
+        });
+
+        await client.$qb.selectFrom('User').selectAll().execute();
+        expect(contexts).toEqual([undefined]);
     });
 });
