@@ -17,8 +17,10 @@ Ordered by impact. Checkboxes are open items.
 - [x] Enum value **append** (pg `ALTER TYPE … ADD VALUE IF NOT EXISTS`)
 - [x] Replace the `columnsEqual` JSON-compare with attribute-level diffing (`alterColumnChanges`)
 - [x] Primary key change on **SQLite** (handled by the table rebuild)
-- [ ] Primary key change on **pg/mysql** (still `unsupported`)
-- [ ] Foreign key add/drop on existing columns; `onDelete`/`onUpdate` change (still `unsupported`)
+- [x] Foreign key add/drop on existing columns; `onDelete`/`onUpdate` change (drop + re-add on
+      pg/mysql, rebuild on sqlite)
+- [ ] Primary key change on **pg/mysql** — composite done (drop + add constraint); single-`@id`
+      moves still `unsupported`
 - [ ] Enum value **removal / reorder** (still `unsupported` — pg can't drop enum values in place)
 - [ ] MySQL enum value changes (inline-enum column MODIFY; currently `unsupported`)
 - [ ] `db push` alter detection — `diffForPush` uses name-only introspection, so `db push`

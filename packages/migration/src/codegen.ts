@@ -188,6 +188,26 @@ export function generateMigrateBody(changes: SchemaChange[], provider: Provider,
             case 'drop-index':
                 statements.push(`    await db.schema.dropIndex('${change.index.name}').execute();`);
                 break;
+            case 'add-foreign-key':
+                statements.push(emitAddForeignKey(change.table.name, change.fk));
+                break;
+            case 'drop-foreign-key':
+                statements.push(
+                    `    await db.schema.alterTable('${change.table.name}').dropConstraint('${change.fk.name}').execute();`,
+                );
+                break;
+            case 'drop-primary-key':
+                statements.push(
+                    `    await db.schema.alterTable('${change.table.name}').dropConstraint('${primaryKeyName(provider, change.table.name)}').execute();`,
+                );
+                break;
+            case 'add-primary-key': {
+                const cols = change.table.primaryKey.map((c) => `'${c}'`).join(', ');
+                statements.push(
+                    `    await db.schema.alterTable('${change.table.name}').addPrimaryKeyConstraint('${primaryKeyName(provider, change.table.name)}', [${cols}]).execute();`,
+                );
+                break;
+            }
             case 'rebuild-table':
                 statements.push(emitRebuildTable(provider, change.table, change.copyColumns, snapshot));
                 break;
@@ -355,6 +375,24 @@ function emitForeignKey(fk: { name: string; columns: string[]; refTable: string;
     }
     const cb = actions.length > 0 ? `, (cb) => cb${actions.join('')}` : '';
     return `        .addForeignKeyConstraint('${fk.name}', [${cols}], '${fk.refTable}', [${refCols}]${cb})`;
+}
+
+/** Emits an `ALTER TABLE … ADD CONSTRAINT … FOREIGN KEY …` statement. */
+function emitAddForeignKey(
+    tableName: string,
+    fk: { name: string; columns: string[]; refTable: string; refColumns: string[]; onDelete?: CascadeAction; onUpdate?: CascadeAction },
+): string {
+    const cols = fk.columns.map((c) => `'${c}'`).join(', ');
+    const refCols = fk.refColumns.map((c) => `'${c}'`).join(', ');
+    const actions: string[] = [];
+    if (fk.onDelete) {
+        actions.push(`.onDelete('${mapCascade(fk.onDelete)}')`);
+    }
+    if (fk.onUpdate) {
+        actions.push(`.onUpdate('${mapCascade(fk.onUpdate)}')`);
+    }
+    const cb = actions.length > 0 ? `, (cb) => cb${actions.join('')}` : '';
+    return `    await db.schema.alterTable('${tableName}').addForeignKeyConstraint('${fk.name}', [${cols}], '${fk.refTable}', [${refCols}]${cb}).execute();`;
 }
 
 function emitAddColumn(

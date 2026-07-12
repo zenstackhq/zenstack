@@ -23,6 +23,13 @@ export type SchemaChange =
     | { kind: 'alter-column'; table: TableSnapshot; from: ColumnSnapshot; to: ColumnSnapshot }
     | { kind: 'create-index'; table: TableSnapshot; index: IndexSnapshot }
     | { kind: 'drop-index'; table: TableSnapshot; index: IndexSnapshot }
+    // A foreign key added/dropped on already-existing columns, or recreated because its
+    // referential actions (onDelete/onUpdate) changed.
+    | { kind: 'add-foreign-key'; table: TableSnapshot; fk: ForeignKeySnapshot }
+    | { kind: 'drop-foreign-key'; table: TableSnapshot; fk: ForeignKeySnapshot }
+    // A composite (`@@id`) primary-key change — drop then re-add the constraint (pg/mysql).
+    | { kind: 'add-primary-key'; table: TableSnapshot }
+    | { kind: 'drop-primary-key'; table: TableSnapshot }
     // SQLite can't alter/drop columns in place, so the table is rebuilt to its desired shape,
     // copying data for the columns that carry over (`source` → `target`, honoring renames).
     | { kind: 'rebuild-table'; table: TableSnapshot; copyColumns: ColumnCopy[] }
@@ -115,28 +122,30 @@ function diffTable(
     const sourceOf = (name: string): string | undefined =>
         oldColumnOf.get(name) ?? (from.columns[name] ? name : undefined);
 
-    // SQLite can't drop a foreign-key column or alter a column in place — rebuild the table
+    // classify columns (added = brand new, dropped = removed and not renamed)
+    const addedColumns = new Set(Object.keys(to.columns).filter((n) => !oldColumnOf.has(n) && !from.columns[n]));
+    const droppedColumns = new Set(
+        Object.keys(from.columns).filter((n) => !to.columns[n] && !renamedFromColumns.has(n)),
+    );
+    const { adds: fkAdds, drops: fkDrops } = diffForeignKeys(from, to, addedColumns, droppedColumns);
+
+    // SQLite can't alter/drop columns or add/drop constraints in place — rebuild the table
     // instead. A rebuild recreates the table in its desired shape and copies the carried-over
-    // columns, so it also handles primary-key changes for free.
-    const droppedFkColumn = Object.keys(from.columns).some(
-        (name) =>
-            !to.columns[name] &&
-            !renamedFromColumns.has(name) &&
-            from.foreignKeys.some((fk) => fk.columns.includes(name)),
+    // columns, so it also handles primary-key and foreign-key changes for free.
+    const droppedFkColumn = [...droppedColumns].some((name) =>
+        from.foreignKeys.some((fk) => fk.columns.includes(name)),
     );
     const alteredColumn = Object.entries(to.columns).some(([name, column]) => {
         const source = sourceOf(name);
         return source !== undefined && !columnsEqualIgnoringName(from.columns[source]!, column);
     });
     const pkChanged = !arraysEqual(from.primaryKey, to.primaryKey);
-    if (provider === 'sqlite' && (droppedFkColumn || alteredColumn || pkChanged)) {
+    const fkChanged = fkAdds.length > 0 || fkDrops.length > 0;
+    if (provider === 'sqlite' && (droppedFkColumn || alteredColumn || pkChanged || fkChanged)) {
         return [{ kind: 'rebuild-table', table: to, copyColumns: rebuildCopyColumns(from, to, sourceOf) }];
     }
 
     const changes: SchemaChange[] = [];
-
-    const addedColumns = new Set<string>();
-    const droppedColumns = new Set<string>();
 
     for (const [name, column] of Object.entries(to.columns)) {
         const renamedFrom = oldColumnOf.get(name);
@@ -148,18 +157,14 @@ function diffTable(
         }
         const before = from.columns[name];
         if (!before) {
-            addedColumns.add(name);
             // if this column is the sole column of a new foreign key, add it inline
             changes.push({ kind: 'add-column', table: to, column, fk: singleColumnFk(to, name) });
         } else {
             changes.push(...alterColumnChanges(before, column, to));
         }
     }
-    for (const [name, column] of Object.entries(from.columns)) {
-        if (!to.columns[name] && !renamedFromColumns.has(name)) {
-            droppedColumns.add(name);
-            changes.push({ kind: 'drop-column', table: to, column });
-        }
+    for (const name of droppedColumns) {
+        changes.push({ kind: 'drop-column', table: to, column: from.columns[name]! });
     }
 
     // indexes — compared by name (add/drop; a `map:` rename is a drop + create)
@@ -176,45 +181,70 @@ function diffTable(
         }
     }
 
-    // primary-key changes on an existing table aren't automated yet
+    // primary-key changes (pg/mysql; sqlite handles them via the rebuild above). A composite
+    // (`@@id`) change is a drop + re-add of the constraint. Changes involving a single-field
+    // `@id` (empty `primaryKey`) are entangled with the column definition and stay manual.
     if (!arraysEqual(from.primaryKey, to.primaryKey)) {
-        changes.push({
-            kind: 'unsupported',
-            description: `primary key on table "${to.name}" changed and requires a manual migration`,
-        });
+        if (from.primaryKey.length > 0 && to.primaryKey.length > 0) {
+            changes.push({ kind: 'drop-primary-key', table: to });
+            changes.push({ kind: 'add-primary-key', table: to });
+        } else {
+            changes.push({
+                kind: 'unsupported',
+                description: `primary key on table "${to.name}" changed and requires a manual migration`,
+            });
+        }
     }
 
-    // foreign keys — compared by (columns -> target), ignoring the constraint name so a
-    // relation rename is a no-op. Single-column FKs on added/dropped columns are handled
-    // inline by the corresponding add-column / drop-column.
-    const fromFks = new Map(from.foreignKeys.map((fk) => [fkKey(fk), fk]));
-    const toFks = new Map(to.foreignKeys.map((fk) => [fkKey(fk), fk]));
-    for (const [key, fk] of toFks) {
-        if (fromFks.has(key)) {
-            continue;
-        }
-        if (fk.columns.length === 1 && addedColumns.has(fk.columns[0]!)) {
-            continue; // added inline with the column
-        }
-        changes.push({
-            kind: 'unsupported',
-            description: `adding foreign key on existing columns of table "${to.name}" requires a manual migration`,
-        });
+    // foreign keys — drop-then-add on existing columns / action changes (pg/mysql)
+    for (const fk of fkDrops) {
+        changes.push({ kind: 'drop-foreign-key', table: to, fk });
     }
-    for (const [key, fk] of fromFks) {
-        if (toFks.has(key)) {
-            continue;
-        }
-        if (fk.columns.length === 1 && droppedColumns.has(fk.columns[0]!)) {
-            continue; // removed together with the dropped column
-        }
-        changes.push({
-            kind: 'unsupported',
-            description: `dropping foreign key while keeping its columns on table "${to.name}" requires a manual migration`,
-        });
+    for (const fk of fkAdds) {
+        changes.push({ kind: 'add-foreign-key', table: to, fk });
     }
 
     return changes;
+}
+
+/**
+ * Diffs foreign keys by their (columns -> target) key, ignoring the constraint name so a
+ * relation rename is a no-op. Single-column FKs on just-added/just-dropped columns are handled
+ * inline by add-column / drop-column and excluded here. A change to `onDelete`/`onUpdate` is a
+ * drop + re-add of the constraint.
+ */
+function diffForeignKeys(
+    from: TableSnapshot,
+    to: TableSnapshot,
+    addedColumns: Set<string>,
+    droppedColumns: Set<string>,
+): { adds: ForeignKeySnapshot[]; drops: ForeignKeySnapshot[] } {
+    const fromByKey = new Map(from.foreignKeys.map((fk) => [fkKey(fk), fk]));
+    const toByKey = new Map(to.foreignKeys.map((fk) => [fkKey(fk), fk]));
+    const adds: ForeignKeySnapshot[] = [];
+    const drops: ForeignKeySnapshot[] = [];
+
+    for (const [key, fk] of toByKey) {
+        if (fk.columns.length === 1 && addedColumns.has(fk.columns[0]!)) {
+            continue; // added inline with its column
+        }
+        const before = fromByKey.get(key);
+        if (!before) {
+            adds.push(fk);
+        } else if (before.onDelete !== fk.onDelete || before.onUpdate !== fk.onUpdate) {
+            drops.push(before);
+            adds.push(fk);
+        }
+    }
+    for (const [key, fk] of fromByKey) {
+        if (fk.columns.length === 1 && droppedColumns.has(fk.columns[0]!)) {
+            continue; // removed together with its column
+        }
+        if (!toByKey.has(key)) {
+            drops.push(fk);
+        }
+    }
+    return { adds, drops };
 }
 
 /**

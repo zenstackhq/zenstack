@@ -75,6 +75,24 @@ export async function applyChanges(
             case 'drop-index':
                 await db.schema.dropIndex(change.index.name).ifExists().execute();
                 break;
+            case 'add-foreign-key':
+                await addForeignKey(db, change.table.name, change.fk);
+                break;
+            case 'drop-foreign-key':
+                await db.schema.alterTable(change.table.name).dropConstraint(change.fk.name).execute();
+                break;
+            case 'drop-primary-key':
+                await db.schema
+                    .alterTable(change.table.name)
+                    .dropConstraint(primaryKeyName(provider, change.table.name))
+                    .execute();
+                break;
+            case 'add-primary-key':
+                await db.schema
+                    .alterTable(change.table.name)
+                    .addPrimaryKeyConstraint(primaryKeyName(provider, change.table.name), change.table.primaryKey as string[])
+                    .execute();
+                break;
             case 'rebuild-table':
                 await rebuildTable(db, change.table, change.copyColumns, snapshot, provider);
                 break;
@@ -167,6 +185,23 @@ async function rebuildTable(
         await createIndex(db, table.name, index);
     }
     await sql`PRAGMA foreign_keys = ON`.execute(db);
+}
+
+/** Adds a foreign-key constraint to an existing table. */
+async function addForeignKey(db: Kysely<any>, tableName: string, fk: ForeignKeySnapshot) {
+    await db.schema
+        .alterTable(tableName)
+        .addForeignKeyConstraint(fk.name, fk.columns as string[], fk.refTable, fk.refColumns as string[], (cb) => {
+            let out = cb;
+            if (fk.onDelete) {
+                out = out.onDelete(mapCascade(fk.onDelete));
+            }
+            if (fk.onUpdate) {
+                out = out.onUpdate(mapCascade(fk.onUpdate));
+            }
+            return out;
+        })
+        .execute();
 }
 
 /** Applies an in-place column change (type / nullability / default) on PostgreSQL/MySQL. */
