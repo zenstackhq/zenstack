@@ -1,6 +1,6 @@
 <div align="center">
     <a href="https://zenstack.dev">
-    <img src="https://raw.githubusercontent.com/zenstackhq/zenstack-docs/main/static/img/new-logo-full.png" height="64">
+    <img src="https://raw.githubusercontent.com/zenstackhq/zenstack-docs/main/static/img/new-logo-full.png" height="64" alt="ZenStack">
     </a>
     <h1>Modern Data Layer for TypeScript Apps</h1>
     <a href="https://www.npmjs.com/package/@zenstackhq/cli?activeTab=versions">
