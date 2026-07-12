@@ -19,8 +19,9 @@ Ordered by impact. Checkboxes are open items.
 - [x] Primary key change on **SQLite** (handled by the table rebuild)
 - [x] Foreign key add/drop on existing columns; `onDelete`/`onUpdate` change (drop + re-add on
       pg/mysql, rebuild on sqlite)
-- [ ] Primary key change on **pg/mysql** — composite done (drop + add constraint); single-`@id`
-      moves still `unsupported`
+- [x] Primary key change on **pg/mysql** — composite `@@id` and single-`@id` moves (drop + re-add
+      the constraint by its deterministic name; better than Drizzle, which leaves the DROP a
+      manual step). Adding/removing a PK entirely is still `unsupported`.
 - [ ] Enum value **removal / reorder** (still `unsupported` — pg can't drop enum values in place)
 - [ ] MySQL enum value changes (inline-enum column MODIFY; currently `unsupported`)
 - [ ] `db push` alter detection — `diffForPush` uses name-only introspection, so `db push`

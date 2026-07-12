@@ -90,7 +90,7 @@ export async function applyChanges(
             case 'add-primary-key':
                 await db.schema
                     .alterTable(change.table.name)
-                    .addPrimaryKeyConstraint(primaryKeyName(provider, change.table.name), change.table.primaryKey as string[])
+                    .addPrimaryKeyConstraint(primaryKeyName(provider, change.table.name), change.columns)
                     .execute();
                 break;
             case 'rebuild-table':

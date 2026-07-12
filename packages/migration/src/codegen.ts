@@ -202,7 +202,7 @@ export function generateMigrateBody(changes: SchemaChange[], provider: Provider,
                 );
                 break;
             case 'add-primary-key': {
-                const cols = change.table.primaryKey.map((c) => `'${c}'`).join(', ');
+                const cols = change.columns.map((c) => `'${c}'`).join(', ');
                 statements.push(
                     `    await db.schema.alterTable('${change.table.name}').addPrimaryKeyConstraint('${primaryKeyName(provider, change.table.name)}', [${cols}]).execute();`,
                 );

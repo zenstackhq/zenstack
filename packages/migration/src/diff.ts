@@ -27,8 +27,9 @@ export type SchemaChange =
     // referential actions (onDelete/onUpdate) changed.
     | { kind: 'add-foreign-key'; table: TableSnapshot; fk: ForeignKeySnapshot }
     | { kind: 'drop-foreign-key'; table: TableSnapshot; fk: ForeignKeySnapshot }
-    // A composite (`@@id`) primary-key change — drop then re-add the constraint (pg/mysql).
-    | { kind: 'add-primary-key'; table: TableSnapshot }
+    // A primary-key change (composite `@@id` or single `@id` move) — drop then re-add the
+    // constraint on pg/mysql (`columns` are the new PK columns); rebuild on sqlite.
+    | { kind: 'add-primary-key'; table: TableSnapshot; columns: string[] }
     | { kind: 'drop-primary-key'; table: TableSnapshot }
     // SQLite can't alter/drop columns in place, so the table is rebuilt to its desired shape,
     // copying data for the columns that carry over (`source` → `target`, honoring renames).
@@ -139,7 +140,10 @@ function diffTable(
         const source = sourceOf(name);
         return source !== undefined && !columnsEqualIgnoringName(from.columns[source]!, column);
     });
-    const pkChanged = !arraysEqual(from.primaryKey, to.primaryKey);
+    // the effective primary key — composite `@@id` columns, or the single `@id` column
+    const fromPk = effectivePrimaryKey(from);
+    const toPk = effectivePrimaryKey(to);
+    const pkChanged = !arraysEqual(fromPk, toPk);
     const fkChanged = fkAdds.length > 0 || fkDrops.length > 0;
     if (provider === 'sqlite' && (droppedFkColumn || alteredColumn || pkChanged || fkChanged)) {
         return [{ kind: 'rebuild-table', table: to, copyColumns: rebuildCopyColumns(from, to, sourceOf) }];
@@ -182,12 +186,13 @@ function diffTable(
     }
 
     // primary-key changes (pg/mysql; sqlite handles them via the rebuild above). A composite
-    // (`@@id`) change is a drop + re-add of the constraint. Changes involving a single-field
-    // `@id` (empty `primaryKey`) are entangled with the column definition and stay manual.
-    if (!arraysEqual(from.primaryKey, to.primaryKey)) {
-        if (from.primaryKey.length > 0 && to.primaryKey.length > 0) {
+    // `@@id` change or a single `@id` move is a drop + re-add of the constraint (like Prisma;
+    // we can name the constraint deterministically, so it needs no manual step). Adding or
+    // removing the primary key entirely is left manual.
+    if (pkChanged) {
+        if (fromPk.length > 0 && toPk.length > 0) {
             changes.push({ kind: 'drop-primary-key', table: to });
-            changes.push({ kind: 'add-primary-key', table: to });
+            changes.push({ kind: 'add-primary-key', table: to, columns: toPk });
         } else {
             changes.push({
                 kind: 'unsupported',
@@ -269,7 +274,18 @@ function alterColumnChanges(from: ColumnSnapshot, to: ColumnSnapshot, table: Tab
 
 /** Whether a column change only involves type/nullability/default (safe to `ALTER`). */
 function isSimpleColumnAlter(from: ColumnSnapshot, to: ColumnSnapshot): boolean {
-    return from.array === to.array && from.autoIncrement === to.autoIncrement && from.primaryKey === to.primaryKey;
+    // `primaryKey` is handled by the primary-key diff, not as a column alteration
+    return from.array === to.array && from.autoIncrement === to.autoIncrement;
+}
+
+/** The effective primary-key columns: composite `@@id` columns, or the single `@id` column. */
+function effectivePrimaryKey(table: TableSnapshot): string[] {
+    if (table.primaryKey.length > 0) {
+        return table.primaryKey;
+    }
+    return Object.values(table.columns)
+        .filter((c) => c.primaryKey)
+        .map((c) => c.name);
 }
 
 /** Columns to copy during a SQLite table rebuild, mapping each new column to its source (honoring renames). */
@@ -349,9 +365,13 @@ function columnsEqual(a: ColumnSnapshot, b: ColumnSnapshot): boolean {
     return JSON.stringify(a) === JSON.stringify(b);
 }
 
-/** Compares two columns ignoring their name — used to detect whether a rename also alters the column. */
+/**
+ * Compares two columns ignoring their name and `primaryKey` flag — used to detect whether a
+ * column was altered. The primary key is compared separately (a single-`@id` move shows up as
+ * a `primaryKey` flag flip, which is handled by the primary-key diff, not as a column alter).
+ */
 function columnsEqualIgnoringName(a: ColumnSnapshot, b: ColumnSnapshot): boolean {
-    return columnsEqual({ ...a, name: '' }, { ...b, name: '' });
+    return columnsEqual({ ...a, name: '', primaryKey: false }, { ...b, name: '', primaryKey: false });
 }
 
 function arraysEqual(a: readonly string[], b: readonly string[]): boolean {
