@@ -24,6 +24,8 @@ Ordered by impact. Checkboxes are open items.
       manual step). Adding/removing a PK entirely is still `unsupported`.
 - [ ] Enum value **removal / reorder** (still `unsupported` — pg can't drop enum values in place)
 - [ ] MySQL enum value changes (inline-enum column MODIFY; currently `unsupported`)
+      — note: MySQL is now a first-class, tested provider (see §5); only enum value *changes*
+      remain unsupported there
 - [ ] `db push` alter detection — `diffForPush` uses name-only introspection, so `db push`
       still misses type/nullability/default changes (needs richer introspection). Prisma's
       `db push` handles these. `migrate dev`/`deploy` do handle them.
@@ -64,8 +66,11 @@ We rely on Kysely's migrator (name-only tracking). Missing vs Prisma's `_prisma_
 
 ## 5. Provider coverage & misc
 
-- [ ] MySQL is second-class — type/naming code exists but is untested (e2e migration suite covers
-      sqlite + postgres only). Add MySQL coverage.
+- [x] MySQL is first-class — the full migration suite runs on `TEST_DB_PROVIDER=mysql`
+      (107/108, only the pg-specific enum test skipped). Engine handles MySQL's DDL
+      differences: `MODIFY COLUMN` for alters, `DROP INDEX … ON table`, `DROP PRIMARY KEY`,
+      explicit FK add/drop (MySQL ignores inline references and blocks dropping FK columns),
+      and FK-backing-index handling in `db push`.
 - [ ] Down migrations — not planned (parity with Prisma; roll-forward by design)
 
 ## Where we already match or beat Prisma

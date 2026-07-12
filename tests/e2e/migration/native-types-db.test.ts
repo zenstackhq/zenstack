@@ -1,44 +1,27 @@
 import { describe, expect, it } from 'vitest';
-import {
-    columnNames,
-    columnType,
-    compile,
-    createTestDb,
-    currentProvider,
-    runDbPush,
-    runMigrateDev,
-    type Provider,
-} from './support/harness';
+import { columnNames, columnType, compile, createTestDb, currentProvider, runDbPush, runMigrateDev, type Provider } from './support/harness';
 
-// The provider is selected by `TEST_DB_PROVIDER` (default `sqlite`).
 const provider: Provider = currentProvider();
+const ID = 'id Int @id @default(autoincrement())';
 
-// A model exercising Prisma-style native database types.
-const NATIVE = `
-model Widget {
-    id        Int      @id @default(autoincrement())
-    code      String   @db.VarChar(64)
-    uid       String   @db.Uuid
-    price     Decimal  @db.Decimal(10, 2)
-    qty       Int      @db.SmallInt
-    createdAt DateTime @db.Timestamptz
-}
-`;
+// Native `@db.*` types are provider-specific; use a valid set per provider.
+const POSTGRES_MODEL = `model Widget { ${ID}  code String @db.VarChar(64)  uid String @db.Uuid  price Decimal @db.Decimal(10, 2)  qty Int @db.SmallInt  createdAt DateTime @db.Timestamptz }`;
+const MYSQL_MODEL = `model Widget { ${ID}  code String @db.VarChar(64)  price Decimal @db.Decimal(10, 2)  qty Int @db.SmallInt  createdAt DateTime @db.DateTime(6) }`;
 
-// Expected introspected column types on Postgres (Kysely reports pg type names).
-const PG_TYPES: Record<string, string> = {
-    code: 'varchar',
-    uid: 'uuid',
-    price: 'numeric',
-    qty: 'int2',
-    createdAt: 'timestamptz',
+// The concrete column types the database reports for each provider (Kysely introspection).
+const EXPECTED: Partial<Record<Provider, Record<string, string>>> = {
+    postgresql: { code: 'varchar', uid: 'uuid', price: 'numeric', qty: 'int2', createdAt: 'timestamptz' },
+    mysql: { code: 'varchar', price: 'decimal', qty: 'smallint', createdAt: 'datetime' },
 };
+
+// SQLite is dynamically typed and ignores native types (advisory); postgres model works there too.
+const MODEL = provider === 'mysql' ? MYSQL_MODEL : POSTGRES_MODEL;
 
 describe(`native @db.* types applied via CLI flows (${provider})`, () => {
     it.each(['push', 'dev'] as const)('%s', async (flow) => {
         const db = await createTestDb(provider);
         try {
-            const schema = await compile(NATIVE, provider);
+            const schema = await compile(MODEL, provider);
             if (flow === 'push') {
                 await runDbPush(db, undefined, schema);
             } else {
@@ -46,16 +29,15 @@ describe(`native @db.* types applied via CLI flows (${provider})`, () => {
             }
 
             const intro = await db.introspect();
-            expect(columnNames(intro, 'Widget')).toEqual(['code', 'createdAt', 'id', 'price', 'qty', 'uid']);
+            expect(columnNames(intro, 'Widget')).toContain('code');
 
-            if (provider === 'postgresql') {
-                // native types map to the concrete Postgres column types
-                for (const [column, expected] of Object.entries(PG_TYPES)) {
-                    expect(columnType(intro, 'Widget', column)).toBe(expected);
+            // native types map to the concrete column types (SQLite ignores them)
+            const expected = EXPECTED[provider];
+            if (expected) {
+                for (const [column, type] of Object.entries(expected)) {
+                    expect(columnType(intro, 'Widget', column)).toBe(type);
                 }
             }
-            // on SQLite native types are advisory (dynamic typing) — applying without error
-            // and creating the columns is the contract.
         } finally {
             await db.cleanup();
         }

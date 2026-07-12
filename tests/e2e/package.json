@@ -26,6 +26,7 @@
         "decimal.js": "catalog:",
         "jiti": "^2.6.1",
         "kysely": "catalog:",
+        "mysql2": "catalog:",
         "pg": "catalog:",
         "ulid": "^3.0.0",
         "uuid": "^11.0.5",

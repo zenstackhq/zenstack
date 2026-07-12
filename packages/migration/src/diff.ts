@@ -128,7 +128,7 @@ function diffTable(
     const droppedColumns = new Set(
         Object.keys(from.columns).filter((n) => !to.columns[n] && !renamedFromColumns.has(n)),
     );
-    const { adds: fkAdds, drops: fkDrops } = diffForeignKeys(from, to, addedColumns, droppedColumns);
+    const { adds: fkAdds, drops: fkDrops } = diffForeignKeys(from, to, addedColumns, droppedColumns, provider);
 
     // SQLite can't alter/drop columns or add/drop constraints in place — rebuild the table
     // instead. A rebuild recreates the table in its desired shape and copies the carried-over
@@ -151,6 +151,12 @@ function diffTable(
 
     const changes: SchemaChange[] = [];
 
+    // drop foreign keys first — MySQL requires dropping the FK before its column (pg cascades,
+    // and pg/sqlite exclude column-drop FKs from `fkDrops` anyway)
+    for (const fk of fkDrops) {
+        changes.push({ kind: 'drop-foreign-key', table: to, fk });
+    }
+
     for (const [name, column] of Object.entries(to.columns)) {
         const renamedFrom = oldColumnOf.get(name);
         if (renamedFrom) {
@@ -161,8 +167,10 @@ function diffTable(
         }
         const before = from.columns[name];
         if (!before) {
-            // if this column is the sole column of a new foreign key, add it inline
-            changes.push({ kind: 'add-column', table: to, column, fk: singleColumnFk(to, name) });
+            // a single-column FK is added inline with the column on pg/sqlite; MySQL ignores
+            // inline REFERENCES, so it gets a separate add-foreign-key below instead
+            const fk = provider === 'mysql' ? undefined : singleColumnFk(to, name);
+            changes.push({ kind: 'add-column', table: to, column, fk });
         } else {
             changes.push(...alterColumnChanges(before, column, to));
         }
@@ -201,10 +209,7 @@ function diffTable(
         }
     }
 
-    // foreign keys — drop-then-add on existing columns / action changes (pg/mysql)
-    for (const fk of fkDrops) {
-        changes.push({ kind: 'drop-foreign-key', table: to, fk });
-    }
+    // add foreign keys last, once their columns exist (drops were emitted first, above)
     for (const fk of fkAdds) {
         changes.push({ kind: 'add-foreign-key', table: to, fk });
     }
@@ -223,14 +228,19 @@ function diffForeignKeys(
     to: TableSnapshot,
     addedColumns: Set<string>,
     droppedColumns: Set<string>,
+    provider: Snapshot['provider'],
 ): { adds: ForeignKeySnapshot[]; drops: ForeignKeySnapshot[] } {
+    // pg/sqlite add/drop a single-column FK together with its column (inline reference / cascade
+    // / rebuild); MySQL ignores inline references and blocks dropping an FK column, so those FKs
+    // must be added/dropped explicitly.
+    const inlineWithColumn = provider !== 'mysql';
     const fromByKey = new Map(from.foreignKeys.map((fk) => [fkKey(fk), fk]));
     const toByKey = new Map(to.foreignKeys.map((fk) => [fkKey(fk), fk]));
     const adds: ForeignKeySnapshot[] = [];
     const drops: ForeignKeySnapshot[] = [];
 
     for (const [key, fk] of toByKey) {
-        if (fk.columns.length === 1 && addedColumns.has(fk.columns[0]!)) {
+        if (inlineWithColumn && fk.columns.length === 1 && addedColumns.has(fk.columns[0]!)) {
             continue; // added inline with its column
         }
         const before = fromByKey.get(key);
@@ -242,7 +252,7 @@ function diffForeignKeys(
         }
     }
     for (const [key, fk] of fromByKey) {
-        if (fk.columns.length === 1 && droppedColumns.has(fk.columns[0]!)) {
+        if (inlineWithColumn && fk.columns.length === 1 && droppedColumns.has(fk.columns[0]!)) {
             continue; // removed together with its column
         }
         if (!toByKey.has(key)) {

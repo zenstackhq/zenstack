@@ -1376,6 +1376,9 @@ importers:
       kysely:
         specifier: 'catalog:'
         version: 0.29.0
+      mysql2:
+        specifier: 'catalog:'
+        version: 3.16.1
       pg:
         specifier: 'catalog:'
         version: 8.16.3

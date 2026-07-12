@@ -186,7 +186,12 @@ export function generateMigrateBody(changes: SchemaChange[], provider: Provider,
                 statements.push(emitCreateIndex(change.table.name, change.index));
                 break;
             case 'drop-index':
-                statements.push(`    await db.schema.dropIndex('${change.index.name}').execute();`);
+                // MySQL requires the table: DROP INDEX name ON table
+                statements.push(
+                    provider === 'mysql'
+                        ? `    await db.schema.dropIndex('${change.index.name}').on('${change.table.name}').execute();`
+                        : `    await db.schema.dropIndex('${change.index.name}').execute();`,
+                );
                 break;
             case 'add-foreign-key':
                 statements.push(emitAddForeignKey(change.table.name, change.fk));
@@ -197,8 +202,11 @@ export function generateMigrateBody(changes: SchemaChange[], provider: Provider,
                 );
                 break;
             case 'drop-primary-key':
+                // MySQL's primary key is always named PRIMARY — drop it with DROP PRIMARY KEY
                 statements.push(
-                    `    await db.schema.alterTable('${change.table.name}').dropConstraint('${primaryKeyName(provider, change.table.name)}').execute();`,
+                    provider === 'mysql'
+                        ? `    await sql.raw('ALTER TABLE \`${change.table.name}\` DROP PRIMARY KEY').execute(db);`
+                        : `    await db.schema.alterTable('${change.table.name}').dropConstraint('${primaryKeyName(provider, change.table.name)}').execute();`,
                 );
                 break;
             case 'add-primary-key': {
@@ -338,6 +346,24 @@ function emitAlterColumn(
     to: ColumnSnapshot,
     snapshot: Snapshot,
 ): string {
+    // MySQL has no granular ALTER COLUMN — redefine the whole column with MODIFY COLUMN
+    if (provider === 'mysql') {
+        const type = emitColumnType(provider, to, snapshot);
+        const mods: string[] = [];
+        if (to.autoIncrement) {
+            mods.push('.autoIncrement()'); // must be restated or the column loses it
+        }
+        const value = emitDefaultValue(provider, to);
+        if (value !== undefined) {
+            mods.push(`.defaultTo(${value})`);
+        }
+        if (!to.nullable) {
+            mods.push('.notNull()');
+        }
+        const cb = mods.length > 0 ? `, (col) => col${mods.join('')}` : '';
+        return `    await db.schema.alterTable('${table.name}').modifyColumn('${to.name}', ${type}${cb}).execute();`;
+    }
+
     const stmts: string[] = [];
     const alter = (op: string) => `    await db.schema.alterTable('${table.name}').alterColumn('${to.name}', (col) => ${op}).execute();`;
 

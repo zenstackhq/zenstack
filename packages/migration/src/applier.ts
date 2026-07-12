@@ -73,7 +73,12 @@ export async function applyChanges(
                 await createIndex(db, change.table.name, change.index);
                 break;
             case 'drop-index':
-                await db.schema.dropIndex(change.index.name).ifExists().execute();
+                if (provider === 'mysql') {
+                    // MySQL requires the table and has no IF EXISTS for DROP INDEX
+                    await db.schema.dropIndex(change.index.name).on(change.table.name).execute();
+                } else {
+                    await db.schema.dropIndex(change.index.name).ifExists().execute();
+                }
                 break;
             case 'add-foreign-key':
                 await addForeignKey(db, change.table.name, change.fk);
@@ -82,10 +87,14 @@ export async function applyChanges(
                 await db.schema.alterTable(change.table.name).dropConstraint(change.fk.name).execute();
                 break;
             case 'drop-primary-key':
-                await db.schema
-                    .alterTable(change.table.name)
-                    .dropConstraint(primaryKeyName(provider, change.table.name))
-                    .execute();
+                if (provider === 'mysql') {
+                    await sql.raw(`ALTER TABLE \`${change.table.name}\` DROP PRIMARY KEY`).execute(db);
+                } else {
+                    await db.schema
+                        .alterTable(change.table.name)
+                        .dropConstraint(primaryKeyName(provider, change.table.name))
+                        .execute();
+                }
                 break;
             case 'add-primary-key':
                 await db.schema
@@ -213,6 +222,28 @@ async function alterColumn(
     snapshot: Snapshot,
     provider: Provider,
 ) {
+    // MySQL has no granular ALTER COLUMN — redefine the whole column with MODIFY COLUMN
+    if (provider === 'mysql') {
+        await db.schema
+            .alterTable(tableName)
+            .modifyColumn(to.name, columnType(provider, to, snapshot), (col) => {
+                let out = col;
+                if (to.autoIncrement) {
+                    out = out.autoIncrement();
+                }
+                const value = defaultValue(to, provider);
+                if (value !== undefined) {
+                    out = out.defaultTo(value);
+                }
+                if (!to.nullable) {
+                    out = out.notNull();
+                }
+                return out;
+            })
+            .execute();
+        return;
+    }
+
     if (sqlTypeText(provider, from, snapshot) !== sqlTypeText(provider, to, snapshot)) {
         await db.schema
             .alterTable(tableName)

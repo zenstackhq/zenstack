@@ -2,7 +2,8 @@ import type { SchemaDef } from '@zenstackhq/schema';
 import { createTestProject, generateTsSchema, getTestDbProvider } from '@zenstackhq/testtools';
 import BetterSqlite3 from 'better-sqlite3';
 import { createJiti } from 'jiti';
-import { Kysely, PostgresDialect, SqliteDialect, sql } from 'kysely';
+import { Kysely, MysqlDialect, PostgresDialect, SqliteDialect, sql } from 'kysely';
+import { createPool as createMysqlPool } from 'mysql2';
 import { execSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
@@ -11,7 +12,7 @@ import path from 'node:path';
 import { Client as PgClient, Pool } from 'pg';
 import { MigrationEngine, type RenameResolver } from '@zenstackhq/migration';
 
-export type Provider = 'sqlite' | 'postgresql';
+export type Provider = 'sqlite' | 'postgresql' | 'mysql';
 
 export const PG = {
     host: process.env['TEST_PG_HOST'] ?? 'localhost',
@@ -20,10 +21,21 @@ export const PG = {
     password: process.env['TEST_PG_PASSWORD'] ?? 'postgres',
 };
 
+export const MYSQL = {
+    host: process.env['TEST_MYSQL_HOST'] ?? 'localhost',
+    port: process.env['TEST_MYSQL_PORT'] ? Number(process.env['TEST_MYSQL_PORT']) : 3306,
+    user: process.env['TEST_MYSQL_USER'] ?? 'root',
+    password: process.env['TEST_MYSQL_PASSWORD'] ?? 'mysql',
+};
+
+// small connection pools so the parallel test suite doesn't exhaust MySQL's connection limit
+const mysqlUrl = (database = '') =>
+    `mysql://${MYSQL.user}:${MYSQL.password}@${MYSQL.host}:${MYSQL.port}/${database}?connectionLimit=3`;
+
 /**
  * The database provider for the current test run, selected by the `TEST_DB_PROVIDER`
  * environment variable (default `sqlite`), following the repo's e2e convention. This
- * migration suite covers `sqlite` and `postgresql`; other providers are skipped.
+ * migration suite is first-class on `sqlite`, `postgresql`, and `mysql`.
  */
 export function currentProvider(): Provider {
     return getTestDbProvider() as Provider;
@@ -86,6 +98,30 @@ export async function createTestDb(provider: Provider, options?: { debug: boolea
             introspect: () => introspectSqlite(dbFile),
             typecheck,
             cleanup: async () => fs.rmSync(workDir, { recursive: true, force: true }),
+        };
+    }
+
+    if (provider === 'mysql') {
+        // create an isolated database
+        const dbName = `zmig_${randomUUID().replace(/-/g, '').slice(0, 20)}`;
+        const admin = createMysqlPool(mysqlUrl());
+        await admin.promise().query(`DROP DATABASE IF EXISTS \`${dbName}\``);
+        await admin.promise().query(`CREATE DATABASE \`${dbName}\``);
+        await admin.promise().end();
+        const url = mysqlUrl(dbName);
+        return {
+            provider,
+            workDir,
+            url,
+            baseDir: workDir,
+            introspect: () => introspectMysql(url),
+            typecheck,
+            cleanup: async () => {
+                fs.rmSync(workDir, { recursive: true, force: true });
+                const a = createMysqlPool(mysqlUrl());
+                await a.promise().query(`DROP DATABASE IF EXISTS \`${dbName}\``);
+                await a.promise().end();
+            },
         };
     }
 
@@ -261,6 +297,9 @@ function openKysely(db: TestDb): Kysely<any> {
         const dbFile = path.join(db.baseDir, 'test.db');
         return new Kysely<any>({ dialect: new SqliteDialect({ database: new BetterSqlite3(dbFile) }) });
     }
+    if (db.provider === 'mysql') {
+        return new Kysely<any>({ dialect: new MysqlDialect({ pool: createMysqlPool(db.url) }) });
+    }
     return new Kysely<any>({ dialect: new PostgresDialect({ pool: new Pool({ connectionString: db.url }) }) });
 }
 
@@ -306,6 +345,15 @@ async function introspectPostgres(url: string): Promise<DbSchema> {
     }
 }
 
+async function introspectMysql(url: string): Promise<DbSchema> {
+    const db = new Kysely<any>({ dialect: new MysqlDialect({ pool: createMysqlPool(url) }) });
+    try {
+        return await introspectViaKysely(db, 'mysql');
+    } finally {
+        await db.destroy();
+    }
+}
+
 async function introspectViaKysely(db: Kysely<any>, provider: Provider): Promise<DbSchema> {
     const tables: Record<string, DbTable> = {};
     const meta = await db.introspection.getTables();
@@ -317,13 +365,60 @@ async function introspectViaKysely(db: Kysely<any>, provider: Provider): Promise
         for (const c of t.columns) {
             columns[c.name] = { nullable: c.isNullable, type: c.dataType };
         }
-        tables[t.name] = {
-            columns,
-            indexes: provider === 'sqlite' ? await sqliteIndexes(db, t.name) : await postgresIndexes(db, t.name),
-            foreignKeys: provider === 'sqlite' ? await sqliteFks(db, t.name) : await postgresFks(db, t.name),
-        };
+        const indexes =
+            provider === 'sqlite'
+                ? await sqliteIndexes(db, t.name)
+                : provider === 'mysql'
+                  ? await mysqlIndexes(db, t.name)
+                  : await postgresIndexes(db, t.name);
+        const foreignKeys =
+            provider === 'sqlite'
+                ? await sqliteFks(db, t.name)
+                : provider === 'mysql'
+                  ? await mysqlFks(db, t.name)
+                  : await postgresFks(db, t.name);
+        tables[t.name] = { columns, indexes, foreignKeys };
     }
     return { tables };
+}
+
+async function mysqlIndexes(db: Kysely<any>, table: string): Promise<DbIndex[]> {
+    const rows = (
+        await sql<{ INDEX_NAME: string; NON_UNIQUE: number; COLUMN_NAME: string }>`
+            SELECT INDEX_NAME, NON_UNIQUE, COLUMN_NAME
+            FROM information_schema.STATISTICS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ${table}
+            ORDER BY INDEX_NAME, SEQ_IN_INDEX
+        `.execute(db)
+    ).rows;
+    const byName = new Map<string, DbIndex>();
+    for (const r of rows) {
+        if (r.INDEX_NAME === 'PRIMARY') {
+            continue; // primary key, not an index we manage
+        }
+        const existing = byName.get(r.INDEX_NAME) ?? { name: r.INDEX_NAME, columns: [], unique: Number(r.NON_UNIQUE) === 0 };
+        existing.columns.push(r.COLUMN_NAME);
+        byName.set(r.INDEX_NAME, existing);
+    }
+    return [...byName.values()];
+}
+
+async function mysqlFks(db: Kysely<any>, table: string): Promise<DbForeignKey[]> {
+    const rows = (
+        await sql<{ CONSTRAINT_NAME: string; COLUMN_NAME: string; REFERENCED_TABLE_NAME: string }>`
+            SELECT CONSTRAINT_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME
+            FROM information_schema.KEY_COLUMN_USAGE
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ${table} AND REFERENCED_TABLE_NAME IS NOT NULL
+            ORDER BY CONSTRAINT_NAME, ORDINAL_POSITION
+        `.execute(db)
+    ).rows;
+    const byName = new Map<string, DbForeignKey>();
+    for (const r of rows) {
+        const existing = byName.get(r.CONSTRAINT_NAME) ?? { columns: [], refTable: r.REFERENCED_TABLE_NAME };
+        existing.columns.push(r.COLUMN_NAME);
+        byName.set(r.CONSTRAINT_NAME, existing);
+    }
+    return [...byName.values()];
 }
 
 async function sqliteIndexes(db: Kysely<any>, table: string): Promise<DbIndex[]> {
