@@ -2,7 +2,7 @@ import type { DataSourceProviderType } from '@zenstackhq/schema';
 import { sql, type ColumnDefinitionBuilder, type CreateTableBuilder, type Kysely } from 'kysely';
 import { sqlTypeText } from './codegen';
 import { primaryKeyName } from './conventions';
-import type { SchemaChange } from './diff';
+import type { ColumnCopy, SchemaChange } from './diff';
 import type { ColumnSnapshot, ForeignKeySnapshot, IndexSnapshot, Snapshot, TableSnapshot } from './types';
 
 type Provider = DataSourceProviderType;
@@ -36,6 +36,15 @@ export async function applyChanges(
                     await db.schema.dropType(change.enum.name).ifExists().execute();
                 }
                 break;
+            case 'alter-enum-add-values':
+                if (provider === 'postgresql') {
+                    for (const value of change.added) {
+                        await sql
+                            .raw(`ALTER TYPE "${change.enum.name}" ADD VALUE IF NOT EXISTS '${value.replace(/'/g, "''")}'`)
+                            .execute(db);
+                    }
+                }
+                break;
             case 'create-table':
                 await createTable(db, change.table, snapshot, provider);
                 for (const index of change.table.indexes) {
@@ -56,6 +65,9 @@ export async function applyChanges(
                 break;
             case 'rename-column':
                 await db.schema.alterTable(change.table.name).renameColumn(change.from, change.column.name).execute();
+                break;
+            case 'alter-column':
+                await alterColumn(db, change.table.name, change.from, change.to, snapshot, provider);
                 break;
             case 'create-index':
                 await createIndex(db, change.table.name, change.index);
@@ -133,25 +145,65 @@ async function addColumn(
         .execute();
 }
 
-/** SQLite table rebuild used to drop foreign-key columns (create temp -> copy -> swap). */
+/** SQLite table rebuild (create temp -> copy -> swap) used to alter/drop columns. */
 async function rebuildTable(
     db: Kysely<any>,
     table: TableSnapshot,
-    copyColumns: string[],
+    copyColumns: ColumnCopy[],
     snapshot: Snapshot,
     provider: Provider,
 ) {
     const temp = `_zenstack_new_${table.name}`;
-    const cols = copyColumns.map((c) => `"${c}"`).join(', ');
+    const targets = copyColumns.map((c) => `"${c.target}"`).join(', ');
+    const sources = copyColumns.map((c) => `"${c.source}"`).join(', ');
     await sql`PRAGMA foreign_keys = OFF`.execute(db);
     await createTable(db, { ...table, name: temp }, snapshot, provider);
-    await sql.raw(`INSERT INTO "${temp}" (${cols}) SELECT ${cols} FROM "${table.name}"`).execute(db);
+    if (copyColumns.length > 0) {
+        await sql.raw(`INSERT INTO "${temp}" (${targets}) SELECT ${sources} FROM "${table.name}"`).execute(db);
+    }
     await db.schema.dropTable(table.name).execute();
     await sql.raw(`ALTER TABLE "${temp}" RENAME TO "${table.name}"`).execute(db);
     for (const index of table.indexes) {
         await createIndex(db, table.name, index);
     }
     await sql`PRAGMA foreign_keys = ON`.execute(db);
+}
+
+/** Applies an in-place column change (type / nullability / default) on PostgreSQL/MySQL. */
+async function alterColumn(
+    db: Kysely<any>,
+    tableName: string,
+    from: ColumnSnapshot,
+    to: ColumnSnapshot,
+    snapshot: Snapshot,
+    provider: Provider,
+) {
+    if (sqlTypeText(provider, from, snapshot) !== sqlTypeText(provider, to, snapshot)) {
+        await db.schema
+            .alterTable(tableName)
+            .alterColumn(to.name, (col) => col.setDataType(columnType(provider, to, snapshot)))
+            .execute();
+    }
+    if (from.nullable !== to.nullable) {
+        await db.schema
+            .alterTable(tableName)
+            .alterColumn(to.name, (col) => (to.nullable ? col.dropNotNull() : col.setNotNull()))
+            .execute();
+    }
+    if (JSON.stringify(from.default) !== JSON.stringify(to.default)) {
+        const value = defaultValue(to, provider);
+        if (value !== undefined) {
+            await db.schema
+                .alterTable(tableName)
+                .alterColumn(to.name, (col) => col.setDefault(value))
+                .execute();
+        } else if (from.default) {
+            await db.schema
+                .alterTable(tableName)
+                .alterColumn(to.name, (col) => col.dropDefault())
+                .execute();
+        }
+    }
 }
 
 async function createIndex(db: Kysely<any>, tableName: string, index: IndexSnapshot) {

@@ -9,6 +9,8 @@ import type { ColumnSnapshot, EnumSnapshot, ForeignKeySnapshot, IndexSnapshot, S
 export type SchemaChange =
     | { kind: 'create-enum'; enum: EnumSnapshot }
     | { kind: 'drop-enum'; enum: EnumSnapshot }
+    // Appends values to an existing enum type (PostgreSQL `ALTER TYPE … ADD VALUE`).
+    | { kind: 'alter-enum-add-values'; enum: EnumSnapshot; added: string[] }
     | { kind: 'create-table'; table: TableSnapshot }
     | { kind: 'drop-table'; table: TableSnapshot }
     // A table (model) rename — preserves the table and its data. `to` is the new table def.
@@ -17,12 +19,20 @@ export type SchemaChange =
     | { kind: 'drop-column'; table: TableSnapshot; column: ColumnSnapshot }
     // A column (field) rename — preserves the column and its data. `column` is the new def.
     | { kind: 'rename-column'; table: TableSnapshot; from: string; column: ColumnSnapshot }
+    // An in-place column change (type / nullability / default). `to` is the new def.
+    | { kind: 'alter-column'; table: TableSnapshot; from: ColumnSnapshot; to: ColumnSnapshot }
     | { kind: 'create-index'; table: TableSnapshot; index: IndexSnapshot }
     | { kind: 'drop-index'; table: TableSnapshot; index: IndexSnapshot }
-    // SQLite can't drop a foreign-key column via ALTER, so the table is rebuilt to its
-    // desired shape, copying the overlapping columns.
-    | { kind: 'rebuild-table'; table: TableSnapshot; copyColumns: string[] }
+    // SQLite can't alter/drop columns in place, so the table is rebuilt to its desired shape,
+    // copying data for the columns that carry over (`source` → `target`, honoring renames).
+    | { kind: 'rebuild-table'; table: TableSnapshot; copyColumns: ColumnCopy[] }
     | { kind: 'unsupported'; description: string };
+
+/** A column carried over during a SQLite table rebuild: copy `source` (old) into `target` (new). */
+export interface ColumnCopy {
+    target: string;
+    source: string;
+}
 
 /**
  * Diffs two snapshots and returns the ordered list of changes to get from `from` to `to`.
@@ -36,13 +46,21 @@ export function diffSnapshots(from: Snapshot, to: Snapshot, plan: RenamePlan = E
 
     // enums
     for (const [name, enumDef] of Object.entries(to.enums)) {
-        if (!from.enums[name]) {
+        const before = from.enums[name];
+        if (!before) {
             changes.push({ kind: 'create-enum', enum: enumDef });
-        } else if (!arraysEqual(from.enums[name]!.values, enumDef.values)) {
-            changes.push({
-                kind: 'unsupported',
-                description: `enum "${name}" values changed (${from.enums[name]!.values.join(', ')} -> ${enumDef.values.join(', ')})`,
-            });
+        } else if (!arraysEqual(before.values, enumDef.values)) {
+            // appended values can be added in place on PostgreSQL; anything else (removal,
+            // reorder, non-pg) needs a manual migration
+            const added = appendedValues(before.values, enumDef.values);
+            if (added && to.provider === 'postgresql') {
+                changes.push({ kind: 'alter-enum-add-values', enum: enumDef, added });
+            } else {
+                changes.push({
+                    kind: 'unsupported',
+                    description: `enum "${name}" values changed (${before.values.join(', ')} -> ${enumDef.values.join(', ')}) and requires a manual migration`,
+                });
+            }
         }
     }
     for (const [name, enumDef] of Object.entries(from.enums)) {
@@ -93,17 +111,26 @@ function diffTable(
     const oldColumnOf = new Map(columnRenames.map((m) => [m.to, m.from])); // new column -> old column
     const renamedFromColumns = new Set(columnRenames.map((m) => m.from));
 
-    // SQLite can't drop a column that participates in a foreign key — rebuild the table.
-    // A *renamed* column is not a drop, so it doesn't force a rebuild.
+    // resolves a `to` column back to its source column in `from` (following a rename), if any
+    const sourceOf = (name: string): string | undefined =>
+        oldColumnOf.get(name) ?? (from.columns[name] ? name : undefined);
+
+    // SQLite can't drop a foreign-key column or alter a column in place — rebuild the table
+    // instead. A rebuild recreates the table in its desired shape and copies the carried-over
+    // columns, so it also handles primary-key changes for free.
     const droppedFkColumn = Object.keys(from.columns).some(
         (name) =>
             !to.columns[name] &&
             !renamedFromColumns.has(name) &&
             from.foreignKeys.some((fk) => fk.columns.includes(name)),
     );
-    if (provider === 'sqlite' && droppedFkColumn) {
-        const copyColumns = Object.keys(to.columns).filter((name) => from.columns[name]);
-        return [{ kind: 'rebuild-table', table: to, copyColumns }];
+    const alteredColumn = Object.entries(to.columns).some(([name, column]) => {
+        const source = sourceOf(name);
+        return source !== undefined && !columnsEqualIgnoringName(from.columns[source]!, column);
+    });
+    const pkChanged = !arraysEqual(from.primaryKey, to.primaryKey);
+    if (provider === 'sqlite' && (droppedFkColumn || alteredColumn || pkChanged)) {
+        return [{ kind: 'rebuild-table', table: to, copyColumns: rebuildCopyColumns(from, to, sourceOf) }];
     }
 
     const changes: SchemaChange[] = [];
@@ -115,13 +142,8 @@ function diffTable(
         const renamedFrom = oldColumnOf.get(name);
         if (renamedFrom) {
             changes.push({ kind: 'rename-column', table: to, from: renamedFrom, column });
-            // a rename only changes the name; any other difference needs a manual alter
-            if (!columnsEqualIgnoringName(from.columns[renamedFrom]!, column)) {
-                changes.push({
-                    kind: 'unsupported',
-                    description: `column "${to.name}.${name}" changed while being renamed and requires a manual migration`,
-                });
-            }
+            // a rename may also change the column's type/nullability/default
+            changes.push(...alterColumnChanges(from.columns[renamedFrom]!, column, to));
             continue;
         }
         const before = from.columns[name];
@@ -129,11 +151,8 @@ function diffTable(
             addedColumns.add(name);
             // if this column is the sole column of a new foreign key, add it inline
             changes.push({ kind: 'add-column', table: to, column, fk: singleColumnFk(to, name) });
-        } else if (!columnsEqual(before, column)) {
-            changes.push({
-                kind: 'unsupported',
-                description: `column "${to.name}.${name}" changed and requires a manual migration`,
-            });
+        } else {
+            changes.push(...alterColumnChanges(before, column, to));
         }
     }
     for (const [name, column] of Object.entries(from.columns)) {
@@ -196,6 +215,60 @@ function diffTable(
     }
 
     return changes;
+}
+
+/**
+ * Diffs two versions of a column (ignoring name). Returns an `alter-column` for an in-place
+ * change of type/nullability/default, nothing when unchanged, or `unsupported` when the change
+ * touches structural aspects we don't automate (array-ness, auto-increment, primary key).
+ */
+function alterColumnChanges(from: ColumnSnapshot, to: ColumnSnapshot, table: TableSnapshot): SchemaChange[] {
+    if (columnsEqualIgnoringName(from, to)) {
+        return [];
+    }
+    if (isSimpleColumnAlter(from, to)) {
+        return [{ kind: 'alter-column', table, from, to }];
+    }
+    return [
+        {
+            kind: 'unsupported',
+            description: `column "${table.name}.${to.name}" changed in a way that requires a manual migration`,
+        },
+    ];
+}
+
+/** Whether a column change only involves type/nullability/default (safe to `ALTER`). */
+function isSimpleColumnAlter(from: ColumnSnapshot, to: ColumnSnapshot): boolean {
+    return from.array === to.array && from.autoIncrement === to.autoIncrement && from.primaryKey === to.primaryKey;
+}
+
+/** Columns to copy during a SQLite table rebuild, mapping each new column to its source (honoring renames). */
+function rebuildCopyColumns(
+    from: TableSnapshot,
+    to: TableSnapshot,
+    sourceOf: (name: string) => string | undefined,
+): ColumnCopy[] {
+    const copies: ColumnCopy[] = [];
+    for (const target of Object.keys(to.columns)) {
+        const source = sourceOf(target);
+        if (source && from.columns[source]) {
+            copies.push({ target, source });
+        }
+    }
+    return copies;
+}
+
+/** If `to` is `from` with values appended (a safe in-place enum extension), returns the appended values. */
+function appendedValues(from: readonly string[], to: readonly string[]): string[] | undefined {
+    if (to.length <= from.length) {
+        return undefined;
+    }
+    for (let i = 0; i < from.length; i++) {
+        if (from[i] !== to[i]) {
+            return undefined;
+        }
+    }
+    return to.slice(from.length);
 }
 
 /** The foreign key whose sole column is `columnName`, if any. */

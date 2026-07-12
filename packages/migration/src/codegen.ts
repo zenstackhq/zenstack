@@ -1,6 +1,6 @@
 import type { CascadeAction, DataSourceProviderType } from '@zenstackhq/schema';
 import { primaryKeyName } from './conventions';
-import type { SchemaChange } from './diff';
+import type { ColumnCopy, SchemaChange } from './diff';
 import type { ColumnSnapshot, EnumSnapshot, IndexSnapshot, NativeTypeSnapshot, Snapshot, TableSnapshot } from './types';
 
 type Provider = DataSourceProviderType;
@@ -145,6 +145,13 @@ export function generateMigrateBody(changes: SchemaChange[], provider: Provider,
             case 'drop-enum':
                 statements.push(emitDropEnum(provider, change.enum));
                 break;
+            case 'alter-enum-add-values':
+                for (const value of change.added) {
+                    statements.push(
+                        `    await sql\`ALTER TYPE "${change.enum.name}" ADD VALUE IF NOT EXISTS '${sqlLiteral(value)}'\`.execute(db);`,
+                    );
+                }
+                break;
             case 'create-table':
                 statements.push(emitCreateTable(provider, change.table, snapshot));
                 for (const index of change.table.indexes) {
@@ -171,6 +178,9 @@ export function generateMigrateBody(changes: SchemaChange[], provider: Provider,
                 statements.push(
                     `    await db.schema.alterTable('${change.table.name}').renameColumn('${change.from}', '${change.column.name}').execute();`,
                 );
+                break;
+            case 'alter-column':
+                statements.push(emitAlterColumn(provider, change.table, change.from, change.to, snapshot));
                 break;
             case 'create-index':
                 statements.push(emitCreateIndex(change.table.name, change.index));
@@ -232,14 +242,17 @@ function emitCreateIndex(tableName: string, index: IndexSnapshot): string {
     return `    await db.schema.createIndex('${index.name}')${unique}.on('${tableName}').columns([${cols}]).execute();`;
 }
 
-/** Emits the SQLite table-rebuild sequence used to drop foreign-key columns. */
-function emitRebuildTable(provider: Provider, table: TableSnapshot, copyColumns: string[], snapshot: Snapshot): string {
+/** Emits the SQLite table-rebuild sequence (create temp → copy → swap) used to alter/drop columns. */
+function emitRebuildTable(provider: Provider, table: TableSnapshot, copyColumns: ColumnCopy[], snapshot: Snapshot): string {
     const temp = `_zenstack_new_${table.name}`;
-    const cols = copyColumns.map((c) => `"${c}"`).join(', ');
+    const targets = copyColumns.map((c) => `"${c.target}"`).join(', ');
+    const sources = copyColumns.map((c) => `"${c.source}"`).join(', ');
     const lines = [
         '    await sql`PRAGMA foreign_keys = OFF`.execute(db);',
         emitCreateTable(provider, table, snapshot, temp),
-        `    await sql\`INSERT INTO "${temp}" (${cols}) SELECT ${cols} FROM "${table.name}"\`.execute(db);`,
+        ...(copyColumns.length > 0
+            ? [`    await sql\`INSERT INTO "${temp}" (${targets}) SELECT ${sources} FROM "${table.name}"\`.execute(db);`]
+            : []),
         `    await db.schema.dropTable('${table.name}').execute();`,
         `    await sql\`ALTER TABLE "${temp}" RENAME TO "${table.name}"\`.execute(db);`,
         ...table.indexes.map((index) => emitCreateIndex(table.name, index)),
@@ -266,9 +279,9 @@ function columnModifiers(provider: Provider, column: ColumnSnapshot): string[] {
         // postgres uses the `serial` type instead of an autoIncrement modifier
         mods.push('.autoIncrement()');
     }
-    const def = emitDefault(provider, column);
-    if (def) {
-        mods.push(def);
+    const defaultValue = emitDefaultValue(provider, column);
+    if (defaultValue !== undefined) {
+        mods.push(`.defaultTo(${defaultValue})`);
     }
     // `@unique` is represented as a (unique) index, not a column modifier
     if (!column.nullable) {
@@ -277,21 +290,17 @@ function columnModifiers(provider: Provider, column: ColumnSnapshot): string[] {
     return mods;
 }
 
-function emitDefault(provider: Provider, column: ColumnSnapshot): string | undefined {
+/** The default value as a TS expression (for `.defaultTo(...)` / `.setDefault(...)`), or undefined. */
+function emitDefaultValue(provider: Provider, column: ColumnSnapshot): string | undefined {
     const def = column.default;
     if (!def) {
         return undefined;
     }
     switch (def.kind) {
         case 'literal':
-            if (typeof def.value === 'string') {
-                return `.defaultTo('${def.value.replace(/'/g, "\\'")}')`;
-            }
-            return `.defaultTo(${def.value})`;
+            return typeof def.value === 'string' ? `'${sqlLiteral(def.value)}'` : `${def.value}`;
         case 'now':
-            return provider === 'mysql'
-                ? '.defaultTo(sql`CURRENT_TIMESTAMP(3)`)'
-                : '.defaultTo(sql`CURRENT_TIMESTAMP`)';
+            return provider === 'mysql' ? 'sql`CURRENT_TIMESTAMP(3)`' : 'sql`CURRENT_TIMESTAMP`';
         case 'autoincrement':
             // handled via the serial type / autoIncrement modifier
             return undefined;
@@ -299,6 +308,39 @@ function emitDefault(provider: Provider, column: ColumnSnapshot): string | undef
             // other generator functions are not yet supported automatically
             return undefined;
     }
+}
+
+/** Emits the statements for an in-place column change (type / nullability / default). */
+function emitAlterColumn(
+    provider: Provider,
+    table: TableSnapshot,
+    from: ColumnSnapshot,
+    to: ColumnSnapshot,
+    snapshot: Snapshot,
+): string {
+    const stmts: string[] = [];
+    const alter = (op: string) => `    await db.schema.alterTable('${table.name}').alterColumn('${to.name}', (col) => ${op}).execute();`;
+
+    if (sqlTypeText(provider, from, snapshot) !== sqlTypeText(provider, to, snapshot)) {
+        stmts.push(alter(`col.setDataType(${emitColumnType(provider, to, snapshot)})`));
+    }
+    if (from.nullable !== to.nullable) {
+        stmts.push(alter(to.nullable ? 'col.dropNotNull()' : 'col.setNotNull()'));
+    }
+    if (JSON.stringify(from.default) !== JSON.stringify(to.default)) {
+        const value = emitDefaultValue(provider, to);
+        if (value !== undefined) {
+            stmts.push(alter(`col.setDefault(${value})`));
+        } else if (from.default) {
+            stmts.push(alter('col.dropDefault()'));
+        }
+    }
+    return stmts.join('\n\n');
+}
+
+/** Escapes a string for embedding in a single-quoted SQL/TS literal. */
+function sqlLiteral(value: string): string {
+    return value.replace(/'/g, "\\'");
 }
 
 function emitForeignKey(fk: { name: string; columns: string[]; refTable: string; refColumns: string[]; onDelete?: CascadeAction; onUpdate?: CascadeAction }): string {

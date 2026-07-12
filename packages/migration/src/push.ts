@@ -124,7 +124,9 @@ export function diffForPush(current: CurrentDbState, desired: Snapshot, acceptDa
             const droppedColumns = [...currentColumns].filter((c) => !table.columns[c]);
             if (droppedColumns.some((c) => fkColumns.has(c))) {
                 if (acceptDataLoss) {
-                    const copyColumns = Object.keys(table.columns).filter((c) => currentColumns.has(c));
+                    const copyColumns = Object.keys(table.columns)
+                        .filter((c) => currentColumns.has(c))
+                        .map((c) => ({ target: c, source: c }));
                     changes.push({ kind: 'rebuild-table', table, copyColumns });
                     for (const c of droppedColumns) {
                         dataLoss.push(`column "${table.name}.${c}"`);
