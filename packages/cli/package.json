@@ -42,6 +42,7 @@
     "dependencies": {
         "@zenstackhq/common-helpers": "workspace:*",
         "@zenstackhq/language": "workspace:*",
+        "@zenstackhq/migration": "workspace:*",
         "@zenstackhq/orm": "workspace:*",
         "@zenstackhq/schema": "workspace:*",
         "@zenstackhq/sdk": "workspace:*",

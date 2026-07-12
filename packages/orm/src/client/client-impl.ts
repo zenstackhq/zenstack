@@ -38,7 +38,6 @@ import { createConfigError, createNotFoundError, createNotSupportedError } from 
 import { ZenStackDriver } from './executor/zenstack-driver';
 import { ZenStackQueryExecutor } from './executor/zenstack-query-executor';
 import * as BuiltinFunctions from './functions';
-import { SchemaDbPusher } from './helpers/schema-db-pusher';
 import type { ClientOptions, ProceduresOptions } from './options';
 import type { AnyPlugin } from './plugin';
 import { createZenStackPromise, type ZenStackPromise } from './promise';
@@ -376,10 +375,6 @@ export class ClientImpl {
 
     async $disconnect() {
         await this.kysely.destroy();
-    }
-
-    async $pushSchema() {
-        await new SchemaDbPusher(this.schema, this.kysely).push();
     }
 
     $use(plugin: AnyPlugin) {

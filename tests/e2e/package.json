@@ -16,6 +16,7 @@
         "@paralleldrive/cuid2": "^2.2.2",
         "@zenstackhq/cli": "workspace:*",
         "@zenstackhq/language": "workspace:*",
+        "@zenstackhq/migration": "workspace:*",
         "@zenstackhq/orm": "workspace:*",
         "@zenstackhq/plugin-policy": "workspace:*",
         "@zenstackhq/schema": "workspace:*",
@@ -23,7 +24,9 @@
         "@zenstackhq/testtools": "workspace:*",
         "better-sqlite3": "catalog:",
         "decimal.js": "catalog:",
+        "jiti": "^2.6.1",
         "kysely": "catalog:",
+        "pg": "catalog:",
         "ulid": "^3.0.0",
         "uuid": "^11.0.5",
         "cuid": "^3.0.0",
@@ -31,6 +34,8 @@
         "ts-pattern": "catalog:"
     },
     "devDependencies": {
+        "@types/better-sqlite3": "catalog:",
+        "@types/pg": "^8.16.0",
         "@zenstackhq/cli": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*",
         "@zenstackhq/vitest-config": "workspace:*"

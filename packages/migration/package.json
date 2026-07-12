@@ -1,7 +1,7 @@
 {
-    "name": "@zenstackhq/testtools",
-    "displayName": "ZenStack Test Tools",
-    "description": "ZenStack Test Tools",
+    "name": "@zenstackhq/migration",
+    "displayName": "ZenStack Migration Engine",
+    "description": "Native database schema migration engine for ZenStack, built on Kysely.",
     "version": "3.8.3",
     "type": "module",
     "author": {
@@ -20,7 +20,12 @@
         "lint": "eslint src --ext ts",
         "pack": "pnpm pack"
     },
-    "keywords": [],
+    "keywords": [
+        "orm",
+        "migration",
+        "database",
+        "kysely"
+    ],
     "files": [
         "dist"
     ],
@@ -35,38 +40,36 @@
                 "default": "./dist/index.cjs"
             }
         },
-        "./types": {
-            "types": "./dist/types.d.ts"
-        }
+        "./package.json": "./package.json"
     },
     "dependencies": {
-        "@zenstackhq/common-helpers": "workspace:*",
-        "@zenstackhq/language": "workspace:*",
-        "@zenstackhq/migration": "workspace:*",
-        "@zenstackhq/schema": "workspace:*",
         "@zenstackhq/orm": "workspace:*",
-        "@zenstackhq/sdk": "workspace:*",
-        "@zenstackhq/plugin-policy": "workspace:*",
-        "glob": "^11.1.0",
-        "kysely": "catalog:",
-        "mysql2": "catalog:",
-        "prisma": "catalog:",
-        "tmp": "catalog:",
-        "ts-pattern": "catalog:"
-    },
-    "peerDependencies": {
-        "better-sqlite3": "catalog:",
-        "pg": "catalog:"
+        "@zenstackhq/schema": "workspace:*",
+        "kysely": "catalog:"
     },
     "devDependencies": {
         "@types/better-sqlite3": "catalog:",
         "@types/node": "catalog:",
-        "@types/pg": "^8.11.11",
-        "@types/tmp": "catalog:",
+        "@types/pg": "^8.16.0",
         "@zenstackhq/eslint-config": "workspace:*",
         "@zenstackhq/tsdown-config": "workspace:*",
-        "@zenstackhq/typescript-config": "workspace:*",
-        "typescript": "catalog:"
+        "@zenstackhq/typescript-config": "workspace:*"
+    },
+    "peerDependencies": {
+        "better-sqlite3": "catalog:",
+        "mysql2": "catalog:",
+        "pg": "catalog:"
+    },
+    "peerDependenciesMeta": {
+        "better-sqlite3": {
+            "optional": true
+        },
+        "mysql2": {
+            "optional": true
+        },
+        "pg": {
+            "optional": true
+        }
     },
     "funding": "https://github.com/sponsors/zenstackhq"
 }

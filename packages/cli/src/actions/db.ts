@@ -12,6 +12,8 @@ import {
     loadSchemaDocument,
     requireDataSourceUrl,
 } from './action-utils';
+import { logError, logSuccess, logWarning } from '../utils/log';
+import { isNativeEnabled, prepareEngine, printNativeBanner } from './migration-support';
 import { consolidateEnums, syncEnums, syncRelation, syncTable, type Relation } from './pull';
 import { providers as pullProviders } from './pull/provider';
 import { getDatasource, getDbName, getRelationFieldsKey, getRelationFkName, getRelationName, isDatabaseManagedAttribute } from './pull/utils';
@@ -20,9 +22,12 @@ import { CliError } from '../cli-error';
 
 type PushOptions = {
     schema?: string;
+    output?: string;
     acceptDataLoss?: boolean;
     forceReset?: boolean;
     randomPrismaSchemaName?: boolean;
+    /** Use the native ZenStack migration engine instead of Prisma. */
+    native?: boolean;
 };
 
 export type PullOptions = {
@@ -69,6 +74,13 @@ export async function run(command: string, options: any) {
 }
 
 async function runPush(options: PushOptions) {
+    if (isNativeEnabled(options.native)) {
+        // route to the native ZenStack migration engine
+        printNativeBanner();
+        await runPushNative(options);
+        return;
+    }
+
     const schemaFile = getSchemaFile(options.schema);
 
     // validate datasource url exists
@@ -97,6 +109,44 @@ async function runPush(options: PushOptions) {
     } finally {
         if (fs.existsSync(prismaSchemaFile)) {
             fs.unlinkSync(prismaSchemaFile);
+        }
+    }
+}
+
+async function runPushNative(options: PushOptions) {
+    const { engine } = await prepareEngine(options);
+
+    const result = await engine.push({
+        acceptDataLoss: options.acceptDataLoss,
+        forceReset: options.forceReset,
+    });
+
+    if (result.aborted) {
+        logError('Cannot push: the following changes would cause data loss:');
+        for (const item of result.blocked) {
+            logError(`  - ${item}`);
+        }
+        logWarning('\nRe-run with --accept-data-loss to apply them.');
+        throw new CliError('Push aborted to prevent data loss.');
+    }
+
+    const unsupported = result.applied.filter((c) => c.kind === 'unsupported');
+    const appliedCount = result.applied.length - unsupported.length;
+    if (appliedCount === 0) {
+        logSuccess('Your database is already in sync with the schema.');
+    } else {
+        logSuccess(`Your database is now in sync with the schema (${appliedCount} change(s) applied).`);
+    }
+
+    for (const item of result.dataLoss) {
+        logWarning(`  dropped ${item}`);
+    }
+    if (unsupported.length > 0) {
+        logWarning('\nSome changes could not be applied automatically and need a manual migration:');
+        for (const change of unsupported) {
+            if (change.kind === 'unsupported') {
+                logWarning(`  - ${change.description}`);
+            }
         }
     }
 }

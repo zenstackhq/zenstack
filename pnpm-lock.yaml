@@ -212,6 +212,9 @@ importers:
       '@zenstackhq/language':
         specifier: workspace:*
         version: link:../language
+      '@zenstackhq/migration':
+        specifier: workspace:*
+        version: link:../migration
       '@zenstackhq/orm':
         specifier: workspace:*
         version: link:../orm
@@ -622,6 +625,46 @@ importers:
         specifier: 'catalog:'
         version: 0.2.5
 
+  packages/migration:
+    dependencies:
+      '@zenstackhq/orm':
+        specifier: workspace:*
+        version: link:../orm
+      '@zenstackhq/schema':
+        specifier: workspace:*
+        version: link:../schema
+      better-sqlite3:
+        specifier: 'catalog:'
+        version: 12.5.0
+      kysely:
+        specifier: 'catalog:'
+        version: 0.29.0
+      mysql2:
+        specifier: 'catalog:'
+        version: 3.16.1
+      pg:
+        specifier: 'catalog:'
+        version: 8.16.3
+    devDependencies:
+      '@types/better-sqlite3':
+        specifier: 'catalog:'
+        version: 7.6.13
+      '@types/node':
+        specifier: 'catalog:'
+        version: 20.19.24
+      '@types/pg':
+        specifier: ^8.16.0
+        version: 8.16.0
+      '@zenstackhq/eslint-config':
+        specifier: workspace:*
+        version: link:../config/eslint-config
+      '@zenstackhq/tsdown-config':
+        specifier: workspace:*
+        version: link:../config/tsdown-config
+      '@zenstackhq/typescript-config':
+        specifier: workspace:*
+        version: link:../config/typescript-config
+
   packages/orm:
     dependencies:
       '@paralleldrive/cuid2':
@@ -945,6 +988,9 @@ importers:
       '@zenstackhq/language':
         specifier: workspace:*
         version: link:../language
+      '@zenstackhq/migration':
+        specifier: workspace:*
+        version: link:../migration
       '@zenstackhq/orm':
         specifier: workspace:*
         version: link:../orm
@@ -1297,6 +1343,9 @@ importers:
       '@zenstackhq/language':
         specifier: workspace:*
         version: link:../../packages/language
+      '@zenstackhq/migration':
+        specifier: workspace:*
+        version: link:../../packages/migration
       '@zenstackhq/orm':
         specifier: workspace:*
         version: link:../../packages/orm
@@ -1321,9 +1370,15 @@ importers:
       decimal.js:
         specifier: 'catalog:'
         version: 10.6.0
+      jiti:
+        specifier: ^2.6.1
+        version: 2.6.1
       kysely:
         specifier: 'catalog:'
         version: 0.29.0
+      pg:
+        specifier: 'catalog:'
+        version: 8.16.3
       ts-pattern:
         specifier: 'catalog:'
         version: 5.7.1
@@ -1337,6 +1392,12 @@ importers:
         specifier: 'catalog:'
         version: 4.1.12
     devDependencies:
+      '@types/better-sqlite3':
+        specifier: 'catalog:'
+        version: 7.6.13
+      '@types/pg':
+        specifier: ^8.16.0
+        version: 8.16.0
       '@zenstackhq/typescript-config':
         specifier: workspace:*
         version: link:../../packages/config/typescript-config

@@ -115,7 +115,7 @@ export async function createProject(
     return { workDir, schema };
 }
 
-export function runCli(command: string, cwd: string) {
+export function runCli(command: string, cwd: string, env?: Record<string, string>) {
     const cli = path.join(__dirname, '../dist/index.mjs');
-    execSync(`node ${cli} ${command}`, { cwd });
+    execSync(`node ${cli} ${command}`, { cwd, env: env ? { ...process.env, ...env } : process.env });
 }

@@ -1,5 +1,6 @@
 import { invariant } from '@zenstackhq/common-helpers';
 import type { Model } from '@zenstackhq/language/ast';
+import { applyChanges, buildSnapshot, diffSnapshots, emptySnapshot } from '@zenstackhq/migration';
 import { ZenStackClient, type ClientContract, type ClientOptions } from '@zenstackhq/orm';
 import type { DataSourceProviderType, SchemaDef } from '@zenstackhq/orm/schema';
 import { PolicyPlugin } from '@zenstackhq/plugin-policy';
@@ -265,7 +266,7 @@ export async function createTestClient(
     let client = new ZenStackClient(_schema, _options);
 
     if (!options?.usePrismaPush && !options?.dbFile) {
-        await client.$pushSchema();
+        await pushSchemaToDatabase(client, _schema, provider);
     }
 
     // install plugins
@@ -276,6 +277,21 @@ export async function createTestClient(
     }
 
     return client;
+}
+
+/**
+ * Creates the physical schema for a test database using the native migration engine's DDL
+ * applier, running over the client's own (raw) Kysely connection. Sharing the connection is
+ * important for in-memory SQLite, where a separate connection would be a different database.
+ */
+async function pushSchemaToDatabase(
+    client: ClientContract<SchemaDef>,
+    schema: SchemaDef,
+    provider: DataSourceProviderType,
+): Promise<void> {
+    const snapshot = buildSnapshot(schema);
+    const changes = diffSnapshots(emptySnapshot(provider), snapshot);
+    await applyChanges(client.$qbRaw as any, changes, snapshot, provider);
 }
 
 function createDialect(provider: DataSourceProviderType, dbName: string, workDir: string) {

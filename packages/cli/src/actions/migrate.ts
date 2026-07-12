@@ -3,6 +3,8 @@ import path from 'node:path';
 import { CliError } from '../cli-error';
 import { execPrisma } from '../utils/exec-utils';
 import { generateTempPrismaSchema, getSchemaFile, requireDataSourceUrl } from './action-utils';
+import { run as runNative } from './migrate-native';
+import { isNativeEnabled, printNativeBanner } from './migration-support';
 import { run as runSeed } from './seed';
 
 type CommonOptions = {
@@ -10,6 +12,8 @@ type CommonOptions = {
     migrations?: string;
     skipSeed?: boolean;
     randomPrismaSchemaName?: boolean;
+    /** Use the native ZenStack migration engine instead of Prisma. */
+    native?: boolean;
 };
 
 type DevOptions = CommonOptions & {
@@ -34,6 +38,19 @@ type ResolveOptions = CommonOptions & {
  * CLI action for migration-related commands
  */
 export async function run(command: string, options: CommonOptions) {
+    if (isNativeEnabled(options.native)) {
+        // route to the native ZenStack migration engine
+        printNativeBanner();
+        await runNative(command, options);
+        return;
+    }
+
+    if (command === 'baseline') {
+        throw new CliError(
+            '`migrate baseline` is only available with the native migration engine. Pass --native or set ZENSTACK_NATIVE_MIGRATE=1.',
+        );
+    }
+
     const schemaFile = getSchemaFile(options.schema);
 
     // validate datasource url exists

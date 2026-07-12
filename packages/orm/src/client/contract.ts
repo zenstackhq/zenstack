@@ -264,12 +264,6 @@ export type ClientContract<
     get $zod(): ZodSchemaFactory<Schema, QueryRelevantOptions<Schema, Options>, ExtQueryArgs>;
 
     /**
-     * Pushes the schema to the database. For testing purposes only.
-     * @private
-     */
-    $pushSchema(): Promise<void>;
-
-    /**
      * Returns diagnostics information such as cache and slow query statistics.
      */
     get $diagnostics(): Promise<Diagnostics>;

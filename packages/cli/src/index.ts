@@ -81,6 +81,11 @@ function createProgram() {
         'append a random UUID to the temporary Prisma schema filename (e.g., ~schema.<uuid>.prisma) to avoid collisions between concurrent runs sharing a working directory',
     ).default(false);
 
+    const nativeOption = new Option(
+        '--native',
+        'use the native ZenStack migration engine instead of Prisma (experimental)',
+    ).default(false);
+
     program
         .command('generate')
         .description('Run code generation plugins')
@@ -117,8 +122,19 @@ function createProgram() {
         .addOption(new Option('--create-only', 'only create migration, do not apply'))
         .addOption(migrationsOption)
         .addOption(randomPrismaSchemaNameOption)
+        .addOption(nativeOption)
         .description('Create a migration from changes in schema and apply it to the database')
         .action((options) => migrateAction('dev', options));
+
+    migrateCommand
+        .command('baseline')
+        .addOption(schemaOption)
+        .addOption(noVersionCheckOption)
+        .addOption(new Option('-n, --name <name>', 'baseline migration name'))
+        .addOption(migrationsOption)
+        .addOption(nativeOption)
+        .description('Adopt an existing database: record its current schema as already applied (native engine)')
+        .action((options) => migrateAction('baseline', options));
 
     migrateCommand
         .command('reset')
@@ -128,6 +144,7 @@ function createProgram() {
         .addOption(new Option('--skip-seed', 'skip seeding the database after reset'))
         .addOption(noVersionCheckOption)
         .addOption(randomPrismaSchemaNameOption)
+        .addOption(nativeOption)
         .description('Reset your database and apply all migrations, all data will be lost')
         .addHelpText(
             'after',
@@ -141,6 +158,7 @@ function createProgram() {
         .addOption(noVersionCheckOption)
         .addOption(migrationsOption)
         .addOption(randomPrismaSchemaNameOption)
+        .addOption(nativeOption)
         .description('Deploy your pending migrations to your production/staging database')
         .action((options) => migrateAction('deploy', options));
 
@@ -150,6 +168,7 @@ function createProgram() {
         .addOption(noVersionCheckOption)
         .addOption(migrationsOption)
         .addOption(randomPrismaSchemaNameOption)
+        .addOption(nativeOption)
         .description('Check the status of your database migrations')
         .action((options) => migrateAction('status', options));
 
@@ -159,6 +178,7 @@ function createProgram() {
         .addOption(noVersionCheckOption)
         .addOption(migrationsOption)
         .addOption(randomPrismaSchemaNameOption)
+        .addOption(nativeOption)
         .addOption(new Option('--applied <migration>', 'record a specific migration as applied'))
         .addOption(new Option('--rolled-back <migration>', 'record a specific migration as rolled back'))
         .description('Resolve issues with database migrations in deployment databases')
@@ -174,6 +194,7 @@ function createProgram() {
         .addOption(new Option('--accept-data-loss', 'ignore data loss warnings'))
         .addOption(new Option('--force-reset', 'force a reset of the database before push'))
         .addOption(randomPrismaSchemaNameOption)
+        .addOption(nativeOption)
         .action((options) => dbAction('push', options));
 
     dbCommand
