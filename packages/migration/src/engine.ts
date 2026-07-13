@@ -1,5 +1,6 @@
 import { ZenStackClient, type ClientContract } from '@zenstackhq/orm';
 import type { DataSourceProviderType, SchemaDef } from '@zenstackhq/schema';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { sql, type Kysely } from 'kysely';
@@ -124,7 +125,18 @@ export class MigrationEngine {
     async deploy(): Promise<MigrationResultSet> {
         const client = await this.createClient();
         try {
-            return await this.createMigrator(client).migrateToLatest();
+            const db = client.$qbRaw;
+            await this.ensureMigrationTable(db);
+            // refuse to proceed if a previously-applied migration was edited
+            const modified = await this.findModifiedMigration(db);
+            if (modified) {
+                return { error: new Error(migrationModifiedMessage(modified)) };
+            }
+            const result = await this.createMigrator(client).migrateToLatest();
+            if (!result.error) {
+                await this.recordChecksums(db);
+            }
+            return result;
         } finally {
             await client.$disconnect();
         }
@@ -150,7 +162,12 @@ export class MigrationEngine {
         try {
             // use the raw Kysely so catalog introspection isn't schema-qualified by the ORM
             await this.dropAllTables(client.$qbRaw);
-            return await this.createMigrator(client).migrateToLatest();
+            const result = await this.createMigrator(client).migrateToLatest();
+            if (!result.error) {
+                await this.ensureMigrationTable(client.$qbRaw);
+                await this.recordChecksums(client.$qbRaw);
+            }
+            return result;
         } finally {
             await client.$disconnect();
         }
@@ -194,13 +211,16 @@ export class MigrationEngine {
                 return; // idempotent
             }
             const timestamp = (this.options.now?.() ?? new Date()).toISOString();
-            await db.insertInto(MIGRATION_TABLE).values({ name, timestamp }).execute();
+            await db
+                .insertInto(MIGRATION_TABLE)
+                .values({ name, timestamp, checksum: this.migrationChecksum(name) })
+                .execute();
         } finally {
             await client.$disconnect();
         }
     }
 
-    /** Creates Kysely's migration tracking table if it doesn't already exist. */
+    /** Creates the migration tracking table (name/timestamp, plus a checksum column) if needed. */
     private async ensureMigrationTable(db: Kysely<any>): Promise<void> {
         await db.schema
             .createTable(MIGRATION_TABLE)
@@ -208,6 +228,55 @@ export class MigrationEngine {
             .addColumn('name', 'varchar(255)', (col) => col.notNull().primaryKey())
             .addColumn('timestamp', 'varchar(255)', (col) => col.notNull())
             .execute();
+        // the table may pre-exist without a checksum column (Kysely's migrator creates only
+        // name/timestamp) — add it if missing
+        try {
+            await db.schema
+                .alterTable(MIGRATION_TABLE)
+                .addColumn('checksum', 'varchar(64)', (col) => col)
+                .execute();
+        } catch {
+            // column already exists
+        }
+    }
+
+    /** SHA-256 of a migration's `migration.ts`, or undefined if the file is missing. */
+    private migrationChecksum(name: string): string | undefined {
+        const file = path.join(this.options.migrationsDir, name, 'migration.ts');
+        if (!fs.existsSync(file)) {
+            return undefined;
+        }
+        return crypto.createHash('sha256').update(fs.readFileSync(file, 'utf-8')).digest('hex');
+    }
+
+    /** Returns the name of the first applied migration whose `migration.ts` no longer matches its recorded checksum. */
+    private async findModifiedMigration(db: Kysely<any>): Promise<string | undefined> {
+        const rows = await db.selectFrom(MIGRATION_TABLE).select(['name', 'checksum']).execute();
+        for (const row of rows as Array<{ name: string; checksum: string | null }>) {
+            if (!row.checksum) {
+                continue; // no recorded checksum (legacy row) — nothing to compare
+            }
+            const actual = this.migrationChecksum(row.name);
+            // a missing file is reported separately by Kysely as a corrupt migration
+            if (actual !== undefined && actual !== row.checksum) {
+                return row.name;
+            }
+        }
+        return undefined;
+    }
+
+    /** Records checksums for applied migrations that don't have one yet. */
+    private async recordChecksums(db: Kysely<any>): Promise<void> {
+        const rows = await db.selectFrom(MIGRATION_TABLE).select(['name', 'checksum']).execute();
+        for (const row of rows as Array<{ name: string; checksum: string | null }>) {
+            if (row.checksum) {
+                continue;
+            }
+            const checksum = this.migrationChecksum(row.name);
+            if (checksum !== undefined) {
+                await db.updateTable(MIGRATION_TABLE).set({ checksum }).where('name', '=', row.name).execute();
+            }
+        }
     }
 
     /** Whether the migrations directory contains at least one migration (a folder with a snapshot). */
@@ -292,6 +361,13 @@ export class MigrationEngine {
             `${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}`
         );
     }
+}
+
+function migrationModifiedMessage(name: string): string {
+    return (
+        `Migration "${name}" was modified after it was applied (checksum mismatch). ` +
+        `Revert the change to its migration.ts, or run "migrate reset" to rebuild the database from the current migrations.`
+    );
 }
 
 function slugify(name: string): string {

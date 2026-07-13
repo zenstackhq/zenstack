@@ -37,7 +37,9 @@ resolver — better than Prisma's drop+create).
 
 We rely on Kysely's migrator (name-only tracking). Missing vs Prisma's `_prisma_migrations`:
 
-- [ ] Checksums — detect edits to already-applied `migration.ts` (Prisma refuses)
+- [x] Checksums — a `checksum` column on `zenstack_migration` stores the SHA-256 of each
+      applied `migration.ts`; `deploy` refuses (returns an error, applies nothing) if an
+      already-applied migration was edited, and backfills checksums for legacy rows
 - [ ] Failed-migration state — Kysely only records on success, so a mid-failure migration is
       retried on the next run (possibly on a partially-applied DB). Prisma records
       `finished_at = NULL` and blocks until resolved. Needs failed-state tracking + a

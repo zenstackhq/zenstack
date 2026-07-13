@@ -196,6 +196,33 @@ describe('native migration engine', () => {
         });
     });
 
+    describe('checksums', () => {
+        const at = '2026-01-01T00:00:00Z';
+
+        it('refuses to deploy when an applied migration was edited', async () => {
+            const init = await makeEngine(schemaV1(), at).generate('init');
+            await makeEngine(schemaV1(), at).deploy(); // applies + records checksum
+
+            // tamper with the already-applied migration.ts
+            fs.appendFileSync(path.join(init.dir!, 'migration.ts'), '\n// tampered\n');
+
+            // author a new migration and try to deploy — it must refuse and not apply anything
+            await makeEngine(schemaV2(), '2026-01-02T00:00:00Z').generate('add_age');
+            const result = await makeEngine(schemaV2(), '2026-01-02T00:00:00Z').deploy();
+
+            expect(result.error).toBeDefined();
+            expect(String((result.error as Error).message)).toMatch(/modified|checksum/i);
+            expect(columns('User')).not.toContain('age'); // the new migration was not applied
+        });
+
+        it('deploys cleanly when applied migrations are unchanged', async () => {
+            await makeEngine(schemaV1(), at).generate('init');
+            expect((await makeEngine(schemaV1(), at).deploy()).error).toBeUndefined();
+            // re-deploying an unchanged history verifies checksums and is a no-op
+            expect((await makeEngine(schemaV1(), at).deploy()).error).toBeUndefined();
+        });
+    });
+
     describe('db push', () => {
         const at = '2026-01-01T00:00:00Z';
 
