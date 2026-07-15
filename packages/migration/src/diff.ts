@@ -11,6 +11,11 @@ export type SchemaChange =
     | { kind: 'drop-enum'; enum: EnumSnapshot }
     // Appends values to an existing enum type (PostgreSQL `ALTER TYPE … ADD VALUE`).
     | { kind: 'alter-enum-add-values'; enum: EnumSnapshot; added: string[] }
+    // Recreates an enum whose values were removed/reordered (PostgreSQL can't drop enum values
+    // in place): create a new type, cast every using column over, then swap names and drop the
+    // old type. `columns` are the using columns as they exist *before* the migration (the
+    // database state when this change applies). `enum` is the new definition.
+    | { kind: 'recreate-enum'; enum: EnumSnapshot; columns: EnumColumnUsage[] }
     | { kind: 'create-table'; table: TableSnapshot }
     | { kind: 'drop-table'; table: TableSnapshot }
     // A table (model) rename — preserves the table and its data. `to` is the new table def.
@@ -42,6 +47,12 @@ export interface ColumnCopy {
     source: string;
 }
 
+/** A column typed with a given enum, identified by its physical table name. */
+export interface EnumColumnUsage {
+    table: string;
+    column: ColumnSnapshot;
+}
+
 /**
  * Diffs two snapshots and returns the ordered list of changes to get from `from` to `to`.
  *
@@ -51,6 +62,7 @@ export interface ColumnCopy {
  */
 export function diffSnapshots(from: Snapshot, to: Snapshot, plan: RenamePlan = EMPTY_RENAME_PLAN): SchemaChange[] {
     const changes: SchemaChange[] = [];
+    const mysqlEnumsChanged: string[] = [];
 
     // enums
     for (const [name, enumDef] of Object.entries(to.enums)) {
@@ -58,16 +70,21 @@ export function diffSnapshots(from: Snapshot, to: Snapshot, plan: RenamePlan = E
         if (!before) {
             changes.push({ kind: 'create-enum', enum: enumDef });
         } else if (!arraysEqual(before.values, enumDef.values)) {
-            // appended values can be added in place on PostgreSQL; anything else (removal,
-            // reorder, non-pg) needs a manual migration
-            const added = appendedValues(before.values, enumDef.values);
-            if (added && to.provider === 'postgresql') {
-                changes.push({ kind: 'alter-enum-add-values', enum: enumDef, added });
-            } else {
-                changes.push({
-                    kind: 'unsupported',
-                    description: `enum "${name}" values changed (${before.values.join(', ')} -> ${enumDef.values.join(', ')}) and requires a manual migration`,
-                });
+            if (to.provider === 'postgresql') {
+                // appended values can be added in place; a removal/reorder recreates the type
+                // and casts the using columns over
+                const added = appendedValues(before.values, enumDef.values);
+                if (added) {
+                    changes.push({ kind: 'alter-enum-add-values', enum: enumDef, added });
+                } else {
+                    changes.push({ kind: 'recreate-enum', enum: enumDef, columns: enumUsages(from, name) });
+                }
+            } else if (to.provider === 'mysql') {
+                // MySQL enums are inline in the column type (`enum('A','B')`), so a value change
+                // is lowered to a MODIFY COLUMN per using column — emitted after the table loop
+                // below so any table/column renames have already run and the physical names
+                // match. SQLite stores enums as plain text, so a value change needs no DDL.
+                mysqlEnumsChanged.push(name);
             }
         }
     }
@@ -95,6 +112,21 @@ export function diffSnapshots(from: Snapshot, to: Snapshot, plan: RenamePlan = E
                 changes.push({ kind: 'create-table', table });
             } else {
                 changes.push(...diffTable(before, table, to.provider, columnRenames));
+            }
+        }
+    }
+
+    // MySQL enum value changes: restate every using column with the new enum(...) via
+    // MODIFY COLUMN (the alter-column path). Uses the `to` snapshot so names are post-rename
+    // and defaults/nullability are the desired ones; the new enum values render from the
+    // after snapshot at codegen/apply time. Skips columns diffTable already altered.
+    for (const name of mysqlEnumsChanged) {
+        for (const { table, column } of enumUsages(to, name)) {
+            const alreadyAltered = changes.some(
+                (c) => c.kind === 'alter-column' && c.table.name === table && c.to.name === column.name,
+            );
+            if (!alreadyAltered) {
+                changes.push({ kind: 'alter-column', table: to.tables[table]!, from: column, to: column });
             }
         }
     }
@@ -325,6 +357,19 @@ function appendedValues(from: readonly string[], to: readonly string[]): string[
         }
     }
     return to.slice(from.length);
+}
+
+/** All columns typed with the given enum across the snapshot's tables. */
+function enumUsages(snapshot: Snapshot, enumName: string): EnumColumnUsage[] {
+    const usages: EnumColumnUsage[] = [];
+    for (const table of Object.values(snapshot.tables)) {
+        for (const column of Object.values(table.columns)) {
+            if (column.isEnum && column.type === enumName) {
+                usages.push({ table: table.name, column });
+            }
+        }
+    }
+    return usages;
 }
 
 /** The foreign key whose sole column is `columnName`, if any. */

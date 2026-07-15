@@ -1,9 +1,9 @@
 import type { DataSourceProviderType } from '@zenstackhq/schema';
 import { sql, type ColumnDefinitionBuilder, type CreateTableBuilder, type Kysely } from 'kysely';
-import { sqlTypeText } from './codegen';
+import { restorableEnumDefault, sqlTypeText } from './codegen';
 import { primaryKeyName } from './conventions';
-import type { ColumnCopy, SchemaChange } from './diff';
-import type { ColumnSnapshot, ForeignKeySnapshot, IndexSnapshot, Snapshot, TableSnapshot } from './types';
+import type { ColumnCopy, EnumColumnUsage, SchemaChange } from './diff';
+import type { ColumnSnapshot, EnumSnapshot, ForeignKeySnapshot, IndexSnapshot, Snapshot, TableSnapshot } from './types';
 
 type Provider = DataSourceProviderType;
 
@@ -43,6 +43,11 @@ export async function applyChanges(
                             .raw(`ALTER TYPE "${change.enum.name}" ADD VALUE IF NOT EXISTS '${value.replace(/'/g, "''")}'`)
                             .execute(db);
                     }
+                }
+                break;
+            case 'recreate-enum':
+                if (provider === 'postgresql') {
+                    await recreateEnum(db, change.enum, change.columns);
                 }
                 break;
             case 'create-table':
@@ -194,6 +199,43 @@ async function rebuildTable(
         await createIndex(db, table.name, index);
     }
     await sql`PRAGMA foreign_keys = ON`.execute(db);
+}
+
+/**
+ * Recreates a PostgreSQL enum whose values were removed/reordered: create a `<name>_new`
+ * type, cast every using column over, then swap the names and drop the old type. Column
+ * defaults are dropped for the cast and restored when their value still exists.
+ */
+async function recreateEnum(db: Kysely<any>, enumDef: EnumSnapshot, columns: EnumColumnUsage[]) {
+    const newName = `${enumDef.name}_new`;
+    const oldName = `${enumDef.name}_old`;
+    await db.schema.createType(newName).asEnum(enumDef.values).execute();
+    for (const { table, column } of columns) {
+        if (column.default) {
+            await db.schema
+                .alterTable(table)
+                .alterColumn(column.name, (col) => col.dropDefault())
+                .execute();
+        }
+        const array = column.array ? '[]' : '';
+        await sql
+            .raw(
+                `ALTER TABLE "${table}" ALTER COLUMN "${column.name}" TYPE "${newName}"${array} USING ("${column.name}"::text${array}::"${newName}"${array})`,
+            )
+            .execute(db);
+    }
+    await sql.raw(`ALTER TYPE "${enumDef.name}" RENAME TO "${oldName}"`).execute(db);
+    await sql.raw(`ALTER TYPE "${newName}" RENAME TO "${enumDef.name}"`).execute(db);
+    await db.schema.dropType(oldName).execute();
+    for (const { table, column } of columns) {
+        const value = restorableEnumDefault(column, enumDef);
+        if (value !== undefined) {
+            await db.schema
+                .alterTable(table)
+                .alterColumn(column.name, (col) => col.setDefault(value))
+                .execute();
+        }
+    }
 }
 
 /** Adds a foreign-key constraint to an existing table. */

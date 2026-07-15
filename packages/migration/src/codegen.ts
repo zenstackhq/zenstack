@@ -1,6 +1,6 @@
 import type { CascadeAction, DataSourceProviderType } from '@zenstackhq/schema';
 import { primaryKeyName } from './conventions';
-import type { ColumnCopy, SchemaChange } from './diff';
+import type { ColumnCopy, EnumColumnUsage, SchemaChange } from './diff';
 import type { ColumnSnapshot, EnumSnapshot, IndexSnapshot, NativeTypeSnapshot, Snapshot, TableSnapshot } from './types';
 
 type Provider = DataSourceProviderType;
@@ -152,6 +152,9 @@ export function generateMigrateBody(changes: SchemaChange[], provider: Provider,
                     );
                 }
                 break;
+            case 'recreate-enum':
+                statements.push(emitRecreateEnum(provider, change.enum, change.columns));
+                break;
             case 'create-table':
                 statements.push(emitCreateTable(provider, change.table, snapshot));
                 for (const index of change.table.indexes) {
@@ -242,6 +245,54 @@ function emitDropEnum(provider: Provider, enumDef: EnumSnapshot): string {
         return `    // enum "${enumDef.name}" needs no drop for the "${provider}" provider`;
     }
     return `    await db.schema.dropType('${enumDef.name}').execute();`;
+}
+
+/**
+ * Recreates a PostgreSQL enum whose values were removed or reordered (pg can't drop enum
+ * values in place): create a `<name>_new` type, cast every using column over
+ * (`USING col::text::new`), then swap the names and drop the old type. Column defaults must
+ * be dropped before the cast; they are restored afterwards when their value still exists in
+ * the new enum. The cast fails at apply time if a removed value is still present in the data.
+ */
+function emitRecreateEnum(provider: Provider, enumDef: EnumSnapshot, columns: EnumColumnUsage[]): string {
+    if (provider !== 'postgresql') {
+        return `    // enum "${enumDef.name}" is represented inline for the "${provider}" provider`;
+    }
+    const newName = `${enumDef.name}_new`;
+    const oldName = `${enumDef.name}_old`;
+    const values = enumDef.values.map((v) => `'${sqlLiteral(v)}'`).join(', ');
+    const lines = [`    await db.schema.createType('${newName}').asEnum([${values}]).execute();`];
+    for (const { table, column } of columns) {
+        if (column.default) {
+            lines.push(
+                `    await db.schema.alterTable('${table}').alterColumn('${column.name}', (col) => col.dropDefault()).execute();`,
+            );
+        }
+        const array = column.array ? '[]' : '';
+        lines.push(
+            `    await sql\`ALTER TABLE "${table}" ALTER COLUMN "${column.name}" TYPE "${newName}"${array} USING ("${column.name}"::text${array}::"${newName}"${array})\`.execute(db);`,
+        );
+    }
+    lines.push(`    await sql\`ALTER TYPE "${enumDef.name}" RENAME TO "${oldName}"\`.execute(db);`);
+    lines.push(`    await sql\`ALTER TYPE "${newName}" RENAME TO "${enumDef.name}"\`.execute(db);`);
+    lines.push(`    await db.schema.dropType('${oldName}').execute();`);
+    for (const { table, column } of columns) {
+        const value = restorableEnumDefault(column, enumDef);
+        if (value !== undefined) {
+            lines.push(
+                `    await db.schema.alterTable('${table}').alterColumn('${column.name}', (col) => col.setDefault('${sqlLiteral(value)}')).execute();`,
+            );
+        }
+    }
+    return lines.join('\n');
+}
+
+/** The literal default to restore after an enum recreate, when its value survived the change. */
+export function restorableEnumDefault(column: ColumnSnapshot, enumDef: EnumSnapshot): string | undefined {
+    const def = column.default;
+    return def?.kind === 'literal' && typeof def.value === 'string' && enumDef.values.includes(def.value)
+        ? def.value
+        : undefined;
 }
 
 function emitCreateTable(provider: Provider, table: TableSnapshot, snapshot: Snapshot, nameOverride?: string): string {
