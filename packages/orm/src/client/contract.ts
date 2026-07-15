@@ -393,7 +393,8 @@ export type AllModelOperations<
               >(
                   args?: SelectSubset<
                       T,
-                      CrudArgsType<Schema, Model, 'createManyAndReturn', Options, ExtQueryArgs, ExtResult>
+                      CrudArgsType<Schema, Model, 'createManyAndReturn', Options, ExtQueryArgs, ExtResult>,
+                      Options
                   >,
               ): ZenStackPromise<CrudReturnType<Schema, Model, 'createManyAndReturn', T, Options, ExtResult>>;
 
@@ -422,7 +423,11 @@ export type AllModelOperations<
               updateManyAndReturn<
                   T extends CrudArgsType<Schema, Model, 'updateManyAndReturn', Options, ExtQueryArgs, ExtResult>,
               >(
-                  args: Subset<T, CrudArgsType<Schema, Model, 'updateManyAndReturn', Options, ExtQueryArgs, ExtResult>>,
+                  args: Subset<
+                      T,
+                      CrudArgsType<Schema, Model, 'updateManyAndReturn', Options, ExtQueryArgs, ExtResult>,
+                      Options
+                  >,
               ): ZenStackPromise<CrudReturnType<Schema, Model, 'updateManyAndReturn', T, Options, ExtResult>>;
           });
 
@@ -620,7 +625,7 @@ type CommonModelOperations<
      * ```
      */
     create<T extends CrudArgsType<Schema, Model, 'create', Options, ExtQueryArgs, ExtResult>>(
-        args: SelectSubset<T, CrudArgsType<Schema, Model, 'create', Options, ExtQueryArgs, ExtResult>>,
+        args: SelectSubset<T, CrudArgsType<Schema, Model, 'create', Options, ExtQueryArgs, ExtResult>, Options>,
     ): ZenStackPromise<CrudReturnType<Schema, Model, 'create', T, Options, ExtResult>>;
 
     /**
@@ -649,7 +654,7 @@ type CommonModelOperations<
      * ```
      */
     createMany<T extends CrudArgsType<Schema, Model, 'createMany', Options, ExtQueryArgs, ExtResult>>(
-        args?: SelectSubset<T, CrudArgsType<Schema, Model, 'createMany', Options, ExtQueryArgs, ExtResult>>,
+        args?: SelectSubset<T, CrudArgsType<Schema, Model, 'createMany', Options, ExtQueryArgs, ExtResult>, Options>,
     ): ZenStackPromise<CrudReturnType<Schema, Model, 'createMany', T, Options, ExtResult>>;
 
     /**
@@ -770,7 +775,7 @@ type CommonModelOperations<
      * ```
      */
     update<T extends CrudArgsType<Schema, Model, 'update', Options, ExtQueryArgs, ExtResult>>(
-        args: SelectSubset<T, CrudArgsType<Schema, Model, 'update', Options, ExtQueryArgs, ExtResult>>,
+        args: SelectSubset<T, CrudArgsType<Schema, Model, 'update', Options, ExtQueryArgs, ExtResult>, Options>,
     ): ZenStackPromise<CrudReturnType<Schema, Model, 'update', T, Options, ExtResult>>;
 
     /**
@@ -794,7 +799,7 @@ type CommonModelOperations<
      * });
      */
     updateMany<T extends CrudArgsType<Schema, Model, 'updateMany', Options, ExtQueryArgs, ExtResult>>(
-        args: Subset<T, CrudArgsType<Schema, Model, 'updateMany', Options, ExtQueryArgs, ExtResult>>,
+        args: Subset<T, CrudArgsType<Schema, Model, 'updateMany', Options, ExtQueryArgs, ExtResult>, Options>,
     ): ZenStackPromise<CrudReturnType<Schema, Model, 'updateMany', T, Options, ExtResult>>;
 
     /**
@@ -818,7 +823,7 @@ type CommonModelOperations<
      * ```
      */
     upsert<T extends CrudArgsType<Schema, Model, 'upsert', Options, ExtQueryArgs, ExtResult>>(
-        args: SelectSubset<T, CrudArgsType<Schema, Model, 'upsert', Options, ExtQueryArgs, ExtResult>>,
+        args: SelectSubset<T, CrudArgsType<Schema, Model, 'upsert', Options, ExtQueryArgs, ExtResult>, Options>,
     ): ZenStackPromise<CrudReturnType<Schema, Model, 'upsert', T, Options, ExtResult>>;
 
     /**

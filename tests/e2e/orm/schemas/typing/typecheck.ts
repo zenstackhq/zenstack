@@ -17,6 +17,20 @@ const client = new ZenStackClient(schema, {
     },
 });
 
+const strictClient = new ZenStackClient(schema, {
+    dialect: new SqliteDialect({ database: new SQLite('./zenstack/test.db') }),
+    computedFields: {
+        user: {
+            postCount: (eb) =>
+                eb
+                    .selectFrom('Post')
+                    .whereRef('Post.authorId', '=', 'id')
+                    .select(({ fn }) => fn.countAll<number>().as('postCount')),
+        },
+    },
+    typing: { exactQueryArgs: true },
+});
+
 async function main() {
     await find();
     await create();
@@ -31,6 +45,60 @@ async function main() {
 }
 
 async function find() {
+    await client.user.findMany({
+        where: {
+            posts: {
+                some: {
+                    // @ts-expect-error unknown nested where field
+                    missingField: true,
+                },
+            },
+        },
+    });
+
+    await client.user.findMany({
+        select: {
+            posts: {
+                select: {
+                    // @ts-expect-error unknown deeply nested select field
+                    missingField: true,
+                },
+            },
+        },
+    });
+
+    await client.user.findMany({
+        include: {
+            posts: {
+                where: {
+                    // @ts-expect-error unknown where field nested in include
+                    missingField: true,
+                },
+            },
+        },
+    });
+
+    await client.user.findMany({
+        select: {
+            _count: {
+                select: {
+                    // @ts-expect-error unknown nested count field
+                    missingField: true,
+                },
+            },
+        },
+    });
+
+    const invalidArgs = {
+        where: {
+            posts: {
+                some: { missingField: true },
+            },
+        },
+    };
+    // @ts-expect-error hoisted arguments are recursively checked too
+    await client.user.findMany(invalidArgs);
+
     const user1 = await client.user.findFirst({
         where: {
             name: 'Alex',
@@ -223,6 +291,96 @@ async function find() {
 }
 
 async function create() {
+    // Exact nested argument checking stays opt-in for compatibility.
+    await client.user.create({
+        data: {
+            name: 'Alex',
+            email: 'alex@zenstack.dev',
+            profile: {
+                create: {
+                    age: 20,
+                    missingField: true,
+                },
+            },
+        },
+    });
+
+    await strictClient.user.create({
+        data: {
+            name: 'Alex',
+            email: 'alex@zenstack.dev',
+            profile: {
+                create: {
+                    age: 20,
+                    // @ts-expect-error unknown nested create field in exact mode
+                    missingField: true,
+                },
+            },
+        },
+    });
+
+    const invalidNestedCreateArgs = {
+        data: {
+            name: 'Alex',
+            email: 'alex@zenstack.dev',
+            profile: { create: { age: 20, missingField: true } },
+        },
+    };
+    // @ts-expect-error hoisted nested write arguments are checked in exact mode
+    await strictClient.user.create(invalidNestedCreateArgs);
+
+    const invalidNestedCreateArrayArgs = {
+        data: {
+            title: 'post',
+            content: 'content',
+            author: { connect: { id: 1 } },
+            tags: {
+                create: [{ name: 'valid' }, { name: 'invalid', missingField: true }],
+            },
+        },
+    };
+    // @ts-expect-error exactness recurses into array elements
+    await strictClient.post.create(invalidNestedCreateArrayArgs);
+
+    await strictClient.profile.create({
+        data: { age: 20, user: { connect: { id: 1 } } },
+    });
+
+    await strictClient.profile.create({
+        data: { age: 20, userId: 1 },
+    });
+
+    await strictClient.profile.create({
+        // @ts-expect-error checked and unchecked create branches cannot be mixed
+        data: {
+            age: 20,
+            userId: 1,
+            user: { connect: { id: 1 } },
+        },
+    });
+
+    await strictClient.user.create({
+        data: {
+            name: 'JSON user',
+            email: 'json@example.com',
+            createdAt: new Date(),
+            identity: { providers: [{ id: 'github', name: 'GitHub' }] },
+        },
+    });
+
+    await strictClient.profile.create({
+        data: {
+            age: 20,
+            user: {
+                connect: {
+                    id: 1,
+                    // @ts-expect-error unknown nested connect field
+                    missingField: true,
+                },
+            },
+        },
+    });
+
     await client.user.create({
         // @ts-expect-error email is required
         data: { name: 'Alex' },
@@ -372,7 +530,7 @@ async function create() {
             tags: { create: [{ name: 'tag2' }, { name: 'tag3' }] },
         },
     });
-    await client.tag.create({
+    await strictClient.tag.create({
         data: {
             name: 'tag4',
             posts: {
@@ -382,6 +540,8 @@ async function create() {
                         title: 'Hello World',
                         content: 'This is a test post',
                         author: { connect: { id: 1 } },
+                        // @ts-expect-error unknown nested connectOrCreate field
+                        missingField: true,
                     },
                 },
             },
@@ -406,7 +566,22 @@ async function update() {
         },
     });
 
-    await client.user.update({
+    const invalidMutationWhereArgs = {
+        where: { id: 1, missingField: true },
+        data: { name: 'Alex' },
+    };
+    // @ts-expect-error exact mode checks hoisted mutation where arguments
+    await strictClient.user.update(invalidMutationWhereArgs);
+
+    const invalidMutationSelectArgs = {
+        where: { id: 1 },
+        data: { name: 'Alex' },
+        select: { posts: { select: { missingField: true } } },
+    };
+    // @ts-expect-error exact mode checks hoisted mutation relation selects
+    await strictClient.user.update(invalidMutationSelectArgs);
+
+    await strictClient.user.update({
         where: { id: 1 },
         data: {
             posts: {
@@ -440,6 +615,8 @@ async function update() {
                     data: {
                         title: 'Hello World',
                         content: 'This is a test post',
+                        // @ts-expect-error unknown deeply nested update field
+                        missingField: true,
                     },
                 },
                 upsert: {
@@ -451,6 +628,8 @@ async function update() {
                     update: {
                         title: 'Hello World',
                         content: 'This is a test post',
+                        // @ts-expect-error unknown deeply nested upsert field
+                        missingField: true,
                     },
                 },
                 updateMany: {
@@ -462,6 +641,22 @@ async function update() {
                 },
             },
         },
+    });
+
+    await strictClient.user.upsert({
+        where: { id: 1 },
+        create: {
+            name: 'Alex',
+            email: 'alex@zenstack.dev',
+            profile: {
+                create: {
+                    age: 20,
+                    // @ts-expect-error unknown field in a top-level upsert create payload
+                    missingField: true,
+                },
+            },
+        },
+        update: { name: 'Alex' },
     });
 
     await client.user.update({
