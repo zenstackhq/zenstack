@@ -1,6 +1,7 @@
 export * from './applier';
 export * from './codegen';
 export * from './conventions';
+export * from './data-loss';
 export * from './diff';
 export * from './engine';
 export * from './kysely-factory';

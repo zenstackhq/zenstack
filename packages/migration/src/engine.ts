@@ -6,6 +6,7 @@ import path from 'node:path';
 import { sql, type Kysely } from 'kysely';
 import { Migrator, type MigrationResultSet } from 'kysely/migration';
 import { applyChanges } from './applier';
+import { dataLossWarnings, filterDataLossRisks, type ConfirmDataLossCallback } from './data-loss';
 import { diffSnapshots, type SchemaChange } from './diff';
 import { createDialect, createKysely } from './kysely-factory';
 import { ZenStackMigrationProvider, type ModuleImporter } from './provider';
@@ -35,6 +36,11 @@ export interface MigrationEngineOptions {
      * during {@link MigrationEngine.generate}. Omit for the default (everything is drop + create).
      */
     resolver?: RenameResolver;
+    /**
+     * Invoked before writing a migration containing destructive changes; return `false` to
+     * abort. When omitted, migrations generate without confirmation.
+     */
+    confirmDataLoss?: ConfirmDataLossCallback;
     /** Clock, injectable for deterministic tests. */
     now?: () => Date;
 }
@@ -44,6 +50,10 @@ export interface GenerateResult {
     dir?: string;
     name?: string;
     changes: SchemaChange[];
+    /** Data-loss warnings for the generated changes (`[]` when none). */
+    warnings: string[];
+    /** True when `confirmDataLoss` declined the migration and nothing was written. */
+    aborted?: boolean;
 }
 
 export interface PushResult {
@@ -80,14 +90,32 @@ export class MigrationEngine {
         const changes = diffSnapshots(before, after, plan);
 
         if (changes.length === 0) {
-            return { created: false, changes };
+            return { created: false, changes, warnings: [] };
+        }
+
+        let risks = dataLossWarnings(before, after, changes);
+        // only touch the database when there's both something destructive and someone to ask —
+        // the hook-absent path must stay connection-free
+        if (risks.length > 0 && this.options.confirmDataLoss) {
+            const db = await createKysely(this.provider, this.options.connectionUrl, this.options.baseDir);
+            try {
+                risks = await filterDataLossRisks(db, risks);
+            } finally {
+                await db.destroy();
+            }
+            if (risks.length > 0) {
+                const ok = await this.options.confirmDataLoss(risks.map((r) => r.message));
+                if (!ok) {
+                    return { created: false, aborted: true, changes, warnings: risks.map((r) => r.message) };
+                }
+            }
         }
 
         const folderName = `${this.timestamp()}_${slugify(name)}`;
         const dir = path.join(this.options.migrationsDir, folderName);
         writeMigrationFolder({ dir, changes, after });
 
-        return { created: true, dir, name: folderName, changes };
+        return { created: true, dir, name: folderName, changes, warnings: risks.map((r) => r.message) };
     }
 
     /**

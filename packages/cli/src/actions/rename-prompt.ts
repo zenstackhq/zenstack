@@ -1,7 +1,7 @@
-import type { RenameMapping, RenameResolver } from '@zenstackhq/migration';
+import type { ConfirmDataLossCallback, RenameMapping, RenameResolver } from '@zenstackhq/migration';
 import colors from 'colors';
 import readline from 'node:readline';
-import { logInfo } from '../utils/log';
+import { logInfo, logWarning } from '../utils/log';
 
 /**
  * Builds a {@link RenameResolver} that interactively asks the user, for each newly appearing
@@ -20,6 +20,34 @@ export function createInteractiveRenameResolver(): RenameResolver | undefined {
     return {
         resolveTableRenames: (q) => resolve('table', undefined, q),
         resolveColumnRenames: (q) => resolve('column', q.table, q),
+    };
+}
+
+/**
+ * Builds a {@link ConfirmDataLossCallback} that prints the detected destructive changes and
+ * interactively asks the user to confirm before the migration is created and applied.
+ *
+ * Requires an interactive TTY. In a non-interactive environment (CI, piped input) this
+ * returns `undefined` so the caller can decide how to proceed (typically abort) instead of
+ * hanging on a prompt that can never be answered.
+ */
+export function createInteractiveDataLossConfirmer(): ConfirmDataLossCallback | undefined {
+    if (!process.stdin.isTTY || !process.stdout.isTTY) {
+        return undefined;
+    }
+    return (warnings) => {
+        logWarning('\n⚠️  Destructive changes detected:');
+        for (const warning of warnings) {
+            logWarning(`  - ${warning}`);
+        }
+        const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+        return new Promise<boolean>((resolve) => {
+            rl.question(`${colors.bold('Are you sure you want to create and apply this migration?')} (y/N) `, (answer) => {
+                rl.close();
+                const text = answer.trim().toLowerCase();
+                resolve(text === 'y' || text === 'yes');
+            });
+        }).finally(() => rl.close());
     };
 }
 

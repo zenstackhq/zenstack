@@ -12,7 +12,7 @@ vi.mock('node:readline', () => ({
     },
 }));
 
-import { createInteractiveRenameResolver } from '../src/actions/rename-prompt';
+import { createInteractiveDataLossConfirmer, createInteractiveRenameResolver } from '../src/actions/rename-prompt';
 
 /** Runs `fn` with both stdin/stdout reporting as a TTY, restoring the originals afterward. */
 function withTTY<T>(fn: () => T): T {
@@ -82,5 +82,43 @@ describe('interactive rename resolver', () => {
             deleted: ['name'],
         });
         expect(result).toEqual([]);
+    });
+});
+
+describe('interactive data-loss confirmer', () => {
+    const warnings = ['column "User.name" will be dropped (its data will be lost)'];
+
+    it('is disabled (undefined) without a TTY — safe for CI/non-interactive runs', () => {
+        const inTTY = process.stdin.isTTY;
+        const outTTY = process.stdout.isTTY;
+        (process.stdin as any).isTTY = false;
+        (process.stdout as any).isTTY = false;
+        try {
+            expect(createInteractiveDataLossConfirmer()).toBeUndefined();
+        } finally {
+            (process.stdin as any).isTTY = inTTY;
+            (process.stdout as any).isTTY = outTTY;
+        }
+    });
+
+    it('confirms on "y" (case-insensitive, "yes" accepted too)', async () => {
+        answers.queue = ['y'];
+        const confirm = withTTY(() => createInteractiveDataLossConfirmer())!;
+        await expect(confirm(warnings)).resolves.toBe(true);
+
+        answers.queue = ['YES'];
+        await expect(confirm(warnings)).resolves.toBe(true);
+    });
+
+    it('declines on "n"', async () => {
+        answers.queue = ['n'];
+        const confirm = withTTY(() => createInteractiveDataLossConfirmer())!;
+        await expect(confirm(warnings)).resolves.toBe(false);
+    });
+
+    it('defaults empty input to "no" (safe default)', async () => {
+        answers.queue = ['']; // just press enter
+        const confirm = withTTY(() => createInteractiveDataLossConfirmer())!;
+        await expect(confirm(warnings)).resolves.toBe(false);
     });
 });

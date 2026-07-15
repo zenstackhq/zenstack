@@ -1,6 +1,6 @@
 import { ConfigExpr, InvocationExpr, isDataSource, isInvocationExpr, isLiteralExpr, LiteralExpr, type Model } from '@zenstackhq/language/ast';
 import { getStringLiteral } from '@zenstackhq/language/utils';
-import { MigrationEngine, type RenameResolver } from '@zenstackhq/migration';
+import { MigrationEngine, type ConfirmDataLossCallback, type RenameResolver } from '@zenstackhq/migration';
 import type { DataSourceProviderType, SchemaDef } from '@zenstackhq/schema';
 import { createJiti } from 'jiti';
 import path from 'node:path';
@@ -57,6 +57,8 @@ export async function prepareEngine(options: {
     output?: string;
     /** Optional rename resolver used when authoring migrations (see `migrate dev`). */
     resolver?: RenameResolver;
+    /** Optional confirmation hook invoked before authoring a migration with destructive changes. */
+    confirmDataLoss?: ConfirmDataLossCallback;
 }): Promise<PreparedEngine> {
     const schemaFile = getSchemaFile(options.schema);
     let outputPath = getOutputPath(options, schemaFile);
@@ -86,6 +88,7 @@ export async function prepareEngine(options: {
         baseDir: outputPath,
         importer: { import: (id: string) => jiti.import(id) },
         resolver: options.resolver,
+        confirmDataLoss: options.confirmDataLoss,
     });
 
     return { engine, schema, outputPath, provider, url, jiti };

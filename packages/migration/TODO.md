@@ -22,10 +22,15 @@ Ordered by impact. Checkboxes are open items.
 - [x] Primary key change on **pg/mysql** — composite `@@id` and single-`@id` moves (drop + re-add
       the constraint by its deterministic name; better than Drizzle, which leaves the DROP a
       manual step). Adding/removing a PK entirely is still `unsupported`.
-- [ ] Enum value **removal / reorder** (still `unsupported` — pg can't drop enum values in place)
-- [ ] MySQL enum value changes (inline-enum column MODIFY; currently `unsupported`)
-      — note: MySQL is now a first-class, tested provider (see §5); only enum value *changes*
-      remain unsupported there
+- [x] Enum value **removal / reorder** — pg can't drop enum values in place, so the type is
+      recreated Prisma-style (`recreate-enum`): create `<name>_new`, cast every using column
+      over (`USING col::text::new`, dropping/restoring column defaults around the cast), swap
+      names, drop the old type. Fails at apply time if a removed value is still in the data
+      (same as Prisma). SQLite enum value changes are now a no-op (enums are plain text there)
+      instead of `unsupported`.
+- [x] MySQL enum value changes — lowered to `alter-column` (`MODIFY COLUMN` restating the new
+      inline `enum(...)`) per using column, emitted after the table loop so names are
+      post-rename; fails at apply time under strict mode if a removed value is still in row data
 - [ ] `db push` alter detection — `diffForPush` uses name-only introspection, so `db push`
       still misses type/nullability/default changes (needs richer introspection). Prisma's
       `db push` handles these. `migrate dev`/`deploy` do handle them.
@@ -52,9 +57,10 @@ We rely on Kysely's migrator (name-only tracking). Missing vs Prisma's `_prisma_
 
 ## 3. Data-safety UX
 
-- [ ] `migrate dev` data-loss warnings — `drop-column`/`drop-table` are generated silently;
-      Prisma prints "you are about to drop … all data will be lost". (`db push` already has
-      data-loss detection via `diffForPush` — reuse it.)
+- [x] `migrate dev` data-loss warnings — warnings computed from the snapshot diff (drop
+      table/column, sqlite rebuild drops, enum value removals), filtered data-aware against the
+      live DB (fail-safe: kept on probe errors), gated by a `confirmDataLoss` hook — interactive
+      y/N in `migrate dev`, abort in non-TTY, printed-only with `--create-only`.
 - [ ] Detect "add required column to a non-empty table" — currently emits `.notNull()` and fails
       at apply time; Prisma warns it needs a default
 
@@ -69,11 +75,33 @@ We rely on Kysely's migrator (name-only tracking). Missing vs Prisma's `_prisma_
 ## 5. Provider coverage & misc
 
 - [x] MySQL is first-class — the full migration suite runs on `TEST_DB_PROVIDER=mysql`
-      (107/108, only the pg-specific enum test skipped). Engine handles MySQL's DDL
+      (only the pg-specific enum tests are skipped). Engine handles MySQL's DDL
       differences: `MODIFY COLUMN` for alters, `DROP INDEX … ON table`, `DROP PRIMARY KEY`,
       explicit FK add/drop (MySQL ignores inline references and blocks dropping FK columns),
       and FK-backing-index handling in `db push`.
 - [ ] Down migrations — not planned (parity with Prisma; roll-forward by design)
+
+## 6. Rollout / activation
+
+- [ ] Revisit the `--native` switch (and `ZENSTACK_NATIVE_MIGRATE` env var) used to activate the
+      new engine. Decide the long-term story: keep it opt-in, flip the default with a
+      `--legacy`/`--prisma` escape hatch, or drop the Prisma path once at parity.
+
+  **Key constraint — it is not just a flag.** The native engine records history in its own
+  `zenstack_migration` table and cannot read Prisma's `_prisma_migrations` / `prisma/migrations/*.sql`.
+  Switching an existing project therefore requires a one-time **baselining cutover per database**
+  (`baseline` / `resolve --applied`) so the engine doesn't think the schema is empty and try to
+  recreate everything. Because the tracking table is per-DB, dev/staging/prod each need it — so a
+  naive default-flip would break existing projects.
+
+  Sub-tasks to make the cutover smooth:
+  - [ ] A guided `migrate adopt` (or `baseline --from-prisma`) that detects an existing
+        `_prisma_migrations`, verifies the live DB matches the current schema (drift check), and
+        baselines automatically — one command per environment instead of manual steps.
+  - [ ] Docs + a clear error when the engine is pointed at a Prisma-managed DB with no
+        `zenstack_migration` table (tell the user to `adopt`/`baseline`, don't silently recreate).
+  - [ ] Decide whether to keep the old `prisma/migrations` history around (read-only) or discard it
+        after adoption.
 
 ## Where we already match or beat Prisma
 

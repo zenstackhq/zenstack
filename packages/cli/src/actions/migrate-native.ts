@@ -3,7 +3,7 @@ import colors from 'colors';
 import { CliError } from '../cli-error';
 import { logInfo, logSuccess, logWarning } from '../utils/log';
 import { prepareEngine } from './migration-support';
-import { createInteractiveRenameResolver } from './rename-prompt';
+import { createInteractiveDataLossConfirmer, createInteractiveRenameResolver } from './rename-prompt';
 import { run as runSeed } from './seed';
 
 type CommonOptions = {
@@ -87,13 +87,39 @@ async function runResolve(options: ResolveOptions) {
 async function runDev(options: DevOptions) {
     // interactively disambiguate renames vs drop+create when a TTY is available
     const resolver = createInteractiveRenameResolver();
-    const { engine } = await prepareEngine({ ...options, resolver });
+
+    // with --create-only nothing gets applied, so destructive changes need no confirmation —
+    // the warnings are printed after generation instead. Otherwise confirm interactively, or
+    // refuse in a non-interactive session.
+    const interactiveConfirmer = options.createOnly ? undefined : createInteractiveDataLossConfirmer();
+    const confirmDataLoss = options.createOnly
+        ? undefined
+        : (interactiveConfirmer ??
+          ((warnings: string[]) => {
+              printDataLossWarnings(warnings);
+              return false;
+          }));
+
+    const { engine } = await prepareEngine({ ...options, resolver, confirmDataLoss });
 
     // diff the compiled schema into a new migration
     const result = await engine.generate(options.name ?? 'migration');
 
+    if (result.aborted) {
+        if (interactiveConfirmer) {
+            throw new CliError('Migration aborted. No migration was created and nothing was applied.');
+        }
+        throw new CliError(
+            'Destructive changes detected and confirmation is unavailable in a non-interactive session. ' +
+                'Re-run in an interactive terminal to confirm, or use --create-only to author the migration and review it before applying.',
+        );
+    }
+
     if (result.created) {
         logSuccess(`Created migration: ${result.name}`);
+        if (options.createOnly && result.warnings.length > 0) {
+            printDataLossWarnings(result.warnings);
+        }
         reportUnsupported(result.changes);
     } else {
         logInfo('No schema changes detected. Your migrations are up to date.');
@@ -105,6 +131,13 @@ async function runDev(options: DevOptions) {
 
     reportDeploy(await engine.deploy());
     await maybeSeed(options);
+}
+
+function printDataLossWarnings(warnings: string[]) {
+    logWarning('\n⚠️  Destructive changes detected:');
+    for (const warning of warnings) {
+        logWarning(`  - ${warning}`);
+    }
 }
 
 async function runDeploy(options: CommonOptions) {
