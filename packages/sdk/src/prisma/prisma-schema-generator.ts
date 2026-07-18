@@ -260,6 +260,10 @@ export class PrismaSchemaGenerator {
         return attr.decl.ref.attributes.some((a) => a.decl.ref?.name === '@@@prisma');
     }
 
+    private isNativeTypeMappingAttribute(attr: DataFieldAttribute) {
+        return attr.decl.$refText.startsWith('@db.');
+    }
+
     private getUnsupportedFieldType(fieldType: DataFieldType) {
         if (fieldType.unsupported) {
             const value = getStringLiteral(fieldType.unsupported.value);
@@ -337,7 +341,13 @@ export class PrismaSchemaGenerator {
     }
 
     private makeFieldAttribute(attr: DataFieldAttribute) {
-        const attrName = attr.decl.ref!.name;
+        let attrName = attr.decl.ref!.name;
+        if (this.isNativeTypeMappingAttribute(attr)) {
+            const dataSource = this.zmodel.declarations.find(isDataSource);
+            if (dataSource) {
+                attrName = attrName.replace('@db', `@${dataSource.name}`)
+            }
+        }
         return new PrismaFieldAttribute(
             attrName,
             attr.args.map((arg) => this.makeAttributeArg(arg)),
