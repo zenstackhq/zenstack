@@ -46,4 +46,49 @@ model User {
         expect(prismaSchemaText.includes('nanoid(12)')).toBe(true);
         expect(prismaSchemaText.includes('nanoid12_%s')).toBe(false);
     });
+
+    it('renames native type mappings to match the datasource', async () => {
+        const model = await loadSchema(`
+datasource ds {
+    provider = 'postgresql'
+    url      = env('POSTGRES_URL')
+}
+
+model User {
+    id       String   @id
+    string   String   @db.Text
+    boolean  Boolean  @db.Boolean
+    int      Int      @db.Integer
+    bigInt   BigInt   @db.BigInt
+    float    Float    @db.Real
+    decimal  Decimal  @db.Money
+    dateTime DateTime @db.Timestamptz(3)
+    json     Json     @db.JsonB
+    bytes    Bytes    @db.ByteA
+}
+        `);
+
+        const generator = new PrismaSchemaGenerator(model);
+        const prismaSchemaText = await generator.generate();
+
+        expect(prismaSchemaText.includes('@db.Text')).toBe(false);
+        expect(prismaSchemaText.includes('@db.Boolean')).toBe(false);
+        expect(prismaSchemaText.includes('@db.Integer')).toBe(false);
+        expect(prismaSchemaText.includes('@db.BigInt')).toBe(false);
+        expect(prismaSchemaText.includes('@db.Real')).toBe(false);
+        expect(prismaSchemaText.includes('@db.Money')).toBe(false);
+        expect(prismaSchemaText.includes('@db.Timestamptz(3)')).toBe(false);
+        expect(prismaSchemaText.includes('@db.JsonB')).toBe(false);
+        expect(prismaSchemaText.includes('@db.ByteA')).toBe(false);
+
+        expect(prismaSchemaText.includes('@ds.Text')).toBe(true);
+        expect(prismaSchemaText.includes('@ds.Boolean')).toBe(true);
+        expect(prismaSchemaText.includes('@ds.Integer')).toBe(true);
+        expect(prismaSchemaText.includes('@ds.BigInt')).toBe(true);
+        expect(prismaSchemaText.includes('@ds.Real')).toBe(true);
+        expect(prismaSchemaText.includes('@ds.Money')).toBe(true);
+        expect(prismaSchemaText.includes('@ds.Timestamptz(3)')).toBe(true);
+        expect(prismaSchemaText.includes('@ds.JsonB')).toBe(true);
+        expect(prismaSchemaText.includes('@ds.ByteA')).toBe(true);
+    });
 });
