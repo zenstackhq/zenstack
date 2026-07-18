@@ -345,7 +345,7 @@ export class PrismaSchemaGenerator {
         if (this.isNativeTypeMappingAttribute(attr)) {
             const dataSource = this.zmodel.declarations.find(isDataSource);
             if (dataSource) {
-                attrName = attrName.replace('@db', `@${dataSource.name}`)
+                attrName = attrName.replace('@db', `@${dataSource.name}`);
             }
         }
         return new PrismaFieldAttribute(
