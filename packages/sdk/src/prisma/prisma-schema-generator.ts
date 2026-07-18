@@ -261,7 +261,7 @@ export class PrismaSchemaGenerator {
     }
 
     private isNativeTypeMappingAttribute(attr: DataFieldAttribute) {
-        return attr.decl.$refText.startsWith('@db.');
+        return attr.decl.$refText.startsWith('@db.') && this.isPrismaAttribute(attr);
     }
 
     private getUnsupportedFieldType(fieldType: DataFieldType) {
