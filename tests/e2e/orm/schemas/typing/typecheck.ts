@@ -99,6 +99,25 @@ async function find() {
     // @ts-expect-error hoisted arguments are recursively checked too
     await client.user.findMany(invalidArgs);
 
+    const invalidExactReadArgs = {
+        where: {
+            posts: {
+                some: { title: 'post', missingField: true },
+            },
+        },
+        select: {
+            posts: {
+                where: { title: 'post', missingField: true },
+                orderBy: { title: 'asc' as const, missingField: 'asc' as const },
+                cursor: { id: 1, missingField: true },
+                select: { id: true, missingField: true },
+            },
+        },
+    };
+    await client.user.findMany(invalidExactReadArgs);
+    // @ts-expect-error exact mode recursively checks all supplied read arguments
+    await strictClient.user.findMany(invalidExactReadArgs);
+
     const user1 = await client.user.findFirst({
         where: {
             name: 'Alex',
@@ -752,6 +771,16 @@ async function update() {
 }
 
 async function del() {
+    const invalidDeleteArgs = { where: { id: 1, missingField: true }, select: { id: true } };
+    await client.user.delete(invalidDeleteArgs);
+    // @ts-expect-error exact mode checks delete arguments
+    await strictClient.user.delete(invalidDeleteArgs);
+
+    const invalidDeleteManyArgs = { where: { name: 'Alex', missingField: true } };
+    await client.user.deleteMany(invalidDeleteManyArgs);
+    // @ts-expect-error exact mode checks deleteMany arguments
+    await strictClient.user.deleteMany(invalidDeleteManyArgs);
+
     // @ts-expect-error where is required
     await client.user.delete({});
 
@@ -768,6 +797,16 @@ async function del() {
 }
 
 async function count() {
+    const invalidCountArgs = { where: { name: 'Alex', missingField: true } };
+    await client.user.count(invalidCountArgs);
+    // @ts-expect-error exact mode checks count arguments
+    await strictClient.user.count(invalidCountArgs);
+
+    const invalidExistsArgs = { where: { id: 1, missingField: true } };
+    await client.user.exists(invalidExistsArgs);
+    // @ts-expect-error exact mode checks exists arguments
+    await strictClient.user.exists(invalidExistsArgs);
+
     await client.user.count();
     await client.user.count({
         where: {
@@ -786,6 +825,11 @@ async function count() {
 }
 
 async function aggregate() {
+    const invalidAggregateArgs = { _avg: { age: true as const, missingField: true } };
+    await client.profile.aggregate(invalidAggregateArgs);
+    // @ts-expect-error exact mode checks aggregate arguments
+    await strictClient.profile.aggregate(invalidAggregateArgs);
+
     const r = await client.profile.aggregate({
         _count: true,
         _avg: { age: true },
@@ -812,6 +856,14 @@ async function aggregate() {
 }
 
 async function groupBy() {
+    const invalidGroupByArgs = {
+        by: 'regionCountry' as const,
+        _sum: { age: true as const, missingField: true },
+    };
+    await client.profile.groupBy(invalidGroupByArgs);
+    // @ts-expect-error exact mode checks groupBy arguments
+    await strictClient.profile.groupBy(invalidGroupByArgs);
+
     const r = await client.profile.groupBy({
         by: ['regionCountry', 'regionCity'],
         _count: true,
