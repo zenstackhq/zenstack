@@ -178,7 +178,7 @@ async function runPull(options: PullOptions) {
                         rr.references.schema === relation.references.schema &&
                         rr.references.table === relation.references.table) ||
                         (rr.schema === relation.references.schema &&
-                            rr.columns[0] === relation.references.columns[0] &&
+                            rr.table === relation.references.table &&
                             rr.references.schema === relation.schema &&
                             rr.references.table === relation.table))
                 );

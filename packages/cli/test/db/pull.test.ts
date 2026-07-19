@@ -324,7 +324,6 @@ model User {
             const restoredSchema = getSchema(workDir);
             expect(restoredSchema).toEqual(schema);
         });
-
     });
 
     describe('Pull with existing schema - preserve schema features', () => {
@@ -424,10 +423,9 @@ enum Role {
     USER
     ADMIN
     MODERATOR
-}`,
-// When using MySQL, the introspection simply overrides the enum and cannot detect if it exists with the same name because it only stores the values.
-// TODO: Create a better way to handle this, possibly by finding enums by their values as well if the schema exists.
-            );
+}`);
+            // When using MySQL, the introspection simply overrides the enum and cannot detect if it exists with the same name because it only stores the values.
+            // TODO: Create a better way to handle this, possibly by finding enums by their values as well if the schema exists.
             runCli('db push', workDir);
 
             runCli('db pull --indent 4', workDir);
@@ -486,10 +484,33 @@ model Post {
             expect(pulledUserSchema).toEqual(userModel);
             expect(pulledPostSchema).toEqual(postModel);
         });
+
+        it('should preserve opposite-direction relations between the same two tables', async () => {
+            const { workDir, schema } = await createProject(
+                `model User {
+    id      Int    @id @default(autoincrement())
+    postId  Int?   @unique
+    favPost Post?  @relation('FavPost', fields: [postId], references: [id])
+    posts   Post[] @relation('UserPosts')
+}
+
+model Post {
+    id       Int    @id @default(autoincrement())
+    userId   Int
+    author   User   @relation('UserPosts', fields: [userId], references: [id])
+    favUser  User?  @relation('FavPost')
+}`,
+            );
+            runCli('db push', workDir);
+
+            runCli('db pull --indent 4', workDir);
+
+            const preservedSchema = getSchema(workDir);
+            expect(preservedSchema).toEqual(schema);
+        });
     });
 
     describe('Pull should preserve enum declaration order', () => {
-
         it('should preserve interleaved enum and model ordering', async () => {
             const { workDir, schema } = await createProject(
                 `enum Role {
@@ -824,13 +845,16 @@ model Post {
 
     @@schema('content')
 }`,
-            { provider: 'postgresql', datasourceFields:{ schemas: ['public', 'content', 'auth'] } },
+            { provider: 'postgresql', datasourceFields: { schemas: ['public', 'content', 'auth'] } },
         );
         runCli('db push', workDir);
 
         const schemaFile = path.join(workDir, 'zenstack/schema.zmodel');
 
-        fs.writeFileSync(schemaFile, getDefaultPrelude({ provider: 'postgresql', datasourceFields:{ schemas: ['public', 'content', 'auth']} }));
+        fs.writeFileSync(
+            schemaFile,
+            getDefaultPrelude({ provider: 'postgresql', datasourceFields: { schemas: ['public', 'content', 'auth'] } }),
+        );
         runCli('db pull --indent 4', workDir);
 
         const restoredSchema = getSchema(workDir);
@@ -906,7 +930,7 @@ enum Status {
     INACTIVE
     SUSPENDED
 }`,
-            { provider: 'postgresql', datasourceFields:{ schemas: ['public', 'content', 'auth'] }  },
+            { provider: 'postgresql', datasourceFields: { schemas: ['public', 'content', 'auth'] } },
         );
         runCli('db push', workDir);
 
@@ -1040,7 +1064,7 @@ model Tenant {
         await client.connect();
         try {
             await client.query(
-                `ALTER TABLE "ComputedUsers" ADD COLUMN "fullName" text GENERATED ALWAYS AS ("firstName" || ' ' || "lastName") STORED`
+                `ALTER TABLE "ComputedUsers" ADD COLUMN "fullName" text GENERATED ALWAYS AS ("firstName" || ' ' || "lastName") STORED`,
             );
         } finally {
             await client.end();
@@ -1055,14 +1079,16 @@ model Tenant {
 
         // The generated column should be pulled as Unsupported with the full expression.
         // format_type returns 'text', and pg_get_expr returns the expression.
-        expect(restoredSchema).toEqual(await formatDocument(`${getDefaultPrelude({ provider: 'postgresql' })}
+        expect(restoredSchema).toEqual(
+            await formatDocument(`${getDefaultPrelude({ provider: 'postgresql' })}
 
 model ComputedUsers {
     id        Int                                                                                        @id @default(autoincrement())
     firstName String
     lastName  String
     fullName  Unsupported('text GENERATED ALWAYS AS ((("firstName" || \\' \\'::text) || "lastName")) STORED')?
-}`));
+}`),
+        );
     });
 
     it('should pull virtual generated columns as Unsupported with full expression', async ({ skip }) => {
@@ -1091,7 +1117,7 @@ model ComputedUsers {
         await client.connect();
         try {
             await client.query(
-                `ALTER TABLE "ComputedProducts" ADD COLUMN "total" integer GENERATED ALWAYS AS ("price" * "qty") STORED`
+                `ALTER TABLE "ComputedProducts" ADD COLUMN "total" integer GENERATED ALWAYS AS ("price" * "qty") STORED`,
             );
         } finally {
             await client.end();
@@ -1103,14 +1129,16 @@ model ComputedUsers {
 
         const restoredSchema = getSchema(workDir);
 
-        expect(restoredSchema).toEqual(await formatDocument(`${getDefaultPrelude({ provider: 'postgresql' })}
+        expect(restoredSchema).toEqual(
+            await formatDocument(`${getDefaultPrelude({ provider: 'postgresql' })}
 
 model ComputedProducts {
     id    Int                                                                    @id @default(autoincrement())
     price Int                                                                    @default(0)
     qty   Int                                                                    @default(0)
     total Unsupported('integer GENERATED ALWAYS AS ((price * qty)) STORED')?
-}`));
+}`),
+        );
     });
 });
 
@@ -1173,7 +1201,7 @@ describe('DB pull - MySQL specific features', () => {
         const connection = await mysql.createConnection(getTestDbUrl('mysql', dbName));
         try {
             await connection.execute(
-                "ALTER TABLE `ComputedUsers` ADD COLUMN `fullName` varchar(511) GENERATED ALWAYS AS (CONCAT(`firstName`, ' ', `lastName`)) STORED"
+                "ALTER TABLE `ComputedUsers` ADD COLUMN `fullName` varchar(511) GENERATED ALWAYS AS (CONCAT(`firstName`, ' ', `lastName`)) STORED",
             );
         } finally {
             await connection.end();
@@ -1189,14 +1217,16 @@ describe('DB pull - MySQL specific features', () => {
         // The generated column should be pulled as Unsupported with the full expression.
         // MySQL uses COLUMN_TYPE (e.g., 'varchar(511)') and GENERATION_EXPRESSION for the expr,
         // and EXTRA contains 'STORED GENERATED' or 'VIRTUAL GENERATED'.
-        expect(restoredSchema).toEqual(await formatDocument(`${getDefaultPrelude({ provider: 'mysql' })}
+        expect(restoredSchema).toEqual(
+            await formatDocument(`${getDefaultPrelude({ provider: 'mysql' })}
 
 model ComputedUsers {
     id        Int                                                                                                         @id @default(autoincrement())
     firstName String                                                                                                      @db.VarChar(255)
     lastName  String                                                                                                      @db.VarChar(255)
     fullName  Unsupported('varchar(511) GENERATED ALWAYS AS (concat(\`firstName\`,\\' \\',\`lastName\`)) STORED')?
-}`));
+}`),
+        );
     });
 
     it('should pull virtual generated columns as Unsupported with full expression', async ({ skip }) => {
@@ -1221,7 +1251,7 @@ model ComputedUsers {
         const connection = await mysql.createConnection(getTestDbUrl('mysql', dbName));
         try {
             await connection.execute(
-                "ALTER TABLE `ComputedProducts` ADD COLUMN `total` int GENERATED ALWAYS AS (`price` * `qty`) VIRTUAL"
+                'ALTER TABLE `ComputedProducts` ADD COLUMN `total` int GENERATED ALWAYS AS (`price` * `qty`) VIRTUAL',
             );
         } finally {
             await connection.end();
@@ -1233,14 +1263,16 @@ model ComputedUsers {
 
         const restoredSchema = getSchema(workDir);
 
-        expect(restoredSchema).toEqual(await formatDocument(`${getDefaultPrelude({ provider: 'mysql' })}
+        expect(restoredSchema).toEqual(
+            await formatDocument(`${getDefaultPrelude({ provider: 'mysql' })}
 
 model ComputedProducts {
     id    Int                                                              @id @default(autoincrement())
     price Int                                                              @default(0)
     qty   Int                                                              @default(0)
     total Unsupported('int GENERATED ALWAYS AS ((\`price\` * \`qty\`)) VIRTUAL')?
-}`));
+}`),
+        );
     });
 });
 
@@ -1295,7 +1327,7 @@ model Tenant {
             return;
         }
         // Create a minimal project and push to get the database file.
-        const { workDir } = await createProject("");
+        const { workDir } = await createProject('');
 
         // Open the SQLite database directly and add a table with an untyped column.
         // In SQLite, CREATE TABLE t("data") gives column "data" no declared type,
@@ -1351,14 +1383,16 @@ model Tenant {
         const restoredSchema = getSchema(workDir);
 
         // first_name and last_name should be regular String fields
-      expect(restoredSchema).toEqual(await formatDocument(`${getDefaultPrelude()}
+        expect(restoredSchema).toEqual(
+            await formatDocument(`${getDefaultPrelude()}
 
 model ComputedUsers {
   id Int @id @default(autoincrement())
   firstName String
   lastName  String
   fullName  Unsupported('TEXT GENERATED ALWAYS AS (firstName || \\' \\' || lastName) STORED')?
-}`));
+}`),
+        );
     });
 
     it('should pull virtual generated columns as Unsupported', async ({ skip }) => {
@@ -1389,14 +1423,16 @@ model ComputedUsers {
 
         const restoredSchema = getSchema(workDir);
 
-        expect(restoredSchema).toEqual(await formatDocument(`${getDefaultPrelude()}
+        expect(restoredSchema).toEqual(
+            await formatDocument(`${getDefaultPrelude()}
 
 model ComputedProducts {
     id    Int                                                      @id @default(autoincrement())
     price Int                                                      @default(0)
     qty   Int                                                      @default(0)
     total Unsupported('INTEGER GENERATED ALWAYS AS ("price" * "qty") VIRTUAL')?
-}`));
+}`),
+        );
     });
 });
 
@@ -1419,7 +1455,8 @@ enum UserStatus {
     ACTIVE
     INACTIVE
     SUSPENDED
-}`);
+}`,
+        );
         runCli('db push', workDir);
 
         const schemaFile = path.join(workDir, 'zenstack/schema.zmodel');
