@@ -1,4 +1,4 @@
-import { ZenStackClient } from '@zenstackhq/orm';
+import { ZenStackClient, type Subset } from '@zenstackhq/orm';
 import SQLite from 'better-sqlite3';
 import { SqliteDialect } from 'kysely';
 import { Role, Status, type Identity, type IdentityProvider } from './models';
@@ -912,6 +912,15 @@ function enums() {
 }
 
 function typeDefs() {
+    const emptyExactObject: Subset<{}, {}, { typing: { exactQueryArgs: true } }> = {};
+    console.log(emptyExactObject);
+
+    const invalidEmptyExactObject: Subset<{ extra: true }, {}, { typing: { exactQueryArgs: true } }> = {
+        // @ts-expect-error finite empty shapes still reject supplied properties
+        extra: true,
+    };
+    console.log(invalidEmptyExactObject);
+
     const identityProvider: IdentityProvider = {
         id: '123',
         name: 'GitHub',

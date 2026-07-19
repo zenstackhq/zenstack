@@ -96,13 +96,11 @@ type _ObjectKeys<T> = T extends object ? keyof T : never;
 type _ObjectValue<T, K extends PropertyKey> = T extends object ? (K extends keyof T ? T[K] : never) : never;
 type _ArrayItem<T> = T extends readonly (infer Item)[] ? Item : never;
 
-type _NoExtraObject<T extends object, Shape, Keys extends PropertyKey = _ObjectKeys<Shape>> = [Keys] extends [never]
-    ? never
-    : string extends Keys
-      ? unknown
-      : {
-            [K in keyof T]: K extends Keys ? NoExtraProperties<T[K], _ObjectValue<Shape, K>> : never;
-        };
+type _NoExtraObject<T extends object, Shape, Keys extends PropertyKey = _ObjectKeys<Shape>> = string extends Keys
+    ? unknown
+    : {
+          [K in keyof T]: K extends Keys ? NoExtraProperties<T[K], _ObjectValue<Shape, K>> : never;
+      };
 
 /**
  * Rejects unknown keys by walking only the finite inferred input. Expected unions are distributed
