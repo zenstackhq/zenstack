@@ -118,6 +118,27 @@ async function find() {
     // @ts-expect-error exact mode recursively checks all supplied read arguments
     await strictClient.user.findMany(invalidExactReadArgs);
 
+    const optionalInvalidWhere: { posts: { some: { title: string; missingField: true } } } | undefined =
+        Math.random() > 0.5 ? { posts: { some: { title: 'post', missingField: true } } } : undefined;
+    await client.user.findMany({ where: optionalInvalidWhere });
+    // @ts-expect-error exact mode preserves checking across optional unions
+    await strictClient.user.findMany({ where: optionalInvalidWhere });
+
+    const nullableInvalidSelect: { posts: { select: { id: true; missingField: true } } } | null =
+        Math.random() > 0.5 ? { posts: { select: { id: true, missingField: true } } } : null;
+    await client.user.findMany({ select: nullableInvalidSelect });
+    // @ts-expect-error exact mode preserves checking across nullable unions
+    await strictClient.user.findMany({ select: nullableInvalidSelect });
+
+    type BrandedUserId = number & { readonly __brand: 'UserId' };
+    type BrandedEmail = string & { readonly __brand: 'Email' };
+    const brandedUserId = 1 as BrandedUserId;
+    const brandedEmail = 'alex@zenstack.dev' as BrandedEmail;
+    await client.user.findUnique({ where: { id: brandedUserId } });
+    await strictClient.user.findUnique({ where: { id: brandedUserId } });
+    await client.user.findUnique({ where: { email: brandedEmail } });
+    await strictClient.user.findUnique({ where: { email: brandedEmail } });
+
     const user1 = await client.user.findFirst({
         where: {
             name: 'Alex',
