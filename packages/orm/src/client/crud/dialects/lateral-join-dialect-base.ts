@@ -261,6 +261,8 @@ export abstract class LateralJoinDialectBase<Schema extends SchemaDef> extends B
                 objArgs,
                 ...Object.entries(relationModelDef.fields)
                     .filter(([, value]) => !value.relation)
+                    // a parameterized computed field is never auto-returned (it needs args)
+                    .filter(([, value]) => !(value.computed && value.params))
                     .filter(([name]) => !this.shouldOmitField(omit, relationModel, name))
                     .map(([field]) => ({
                         [field]: this.fieldRef(relationModel, field, relationModelAlias, false),
@@ -286,8 +288,12 @@ export abstract class LateralJoinDialectBase<Schema extends SchemaDef> extends B
                             const fieldValue = fieldDef.relation
                                 ? // reference the synthesized JSON field
                                   eb.ref(`${parentResultName}$${field}.$data`)
-                                : // reference a plain field
-                                  this.fieldRef(relationModel, field, relationModelAlias, false);
+                                : fieldDef.computed && fieldDef.params
+                                  ? // parameterized computed field: inline the computer with its
+                                    // query-time args (correlates to the relation's real columns)
+                                    this.fieldRef(relationModel, field, relationModelAlias, true, (value as any).args)
+                                  : // reference a plain field
+                                    this.fieldRef(relationModel, field, relationModelAlias, false);
                             return { [field]: fieldValue };
                         }
                     }),
@@ -310,6 +316,13 @@ export abstract class LateralJoinDialectBase<Schema extends SchemaDef> extends B
                                     relationModelAlias,
                                     value,
                                 ),
+                            };
+                        }
+                        const fieldDef = requireField(this.schema, relationModel, field);
+                        if (fieldDef.computed && fieldDef.params) {
+                            // parameterized computed field included on the relation: inline with args
+                            return {
+                                [field]: this.fieldRef(relationModel, field, relationModelAlias, true, (value as any).args),
                             };
                         }
                         return { [field]: eb.ref(`${parentResultName}$${field}.$data`) };

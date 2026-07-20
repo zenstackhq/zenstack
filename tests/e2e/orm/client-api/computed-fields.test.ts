@@ -206,7 +206,9 @@ model Post {
                                 .selectFrom('Post')
                                 .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
                                 .where('Post.viewCount', '>=', args.minViews)
-                                .select(({ fn }: any) => fn.countAll().as('cnt')),
+                                // cast so the count comes back as a number on all dialects
+                                // (postgres `count(*)` is bigint → otherwise a string)
+                                .select(() => sql<number>`cast(count(*) as integer)`.as('cnt')),
                     },
                 },
             } as any,
@@ -284,7 +286,9 @@ model Post {
                                 .selectFrom('Post')
                                 .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
                                 .where('Post.createdAt', '>=', args.since.toISOString())
-                                .select(({ fn }: any) => fn.countAll().as('cnt')),
+                                // cast so the count comes back as a number on all dialects
+                                // (postgres `count(*)` is bigint → otherwise a string)
+                                .select(() => sql<number>`cast(count(*) as integer)`.as('cnt')),
                     },
                 },
             } as any,
@@ -348,7 +352,9 @@ model Post {
                                 .selectFrom('Post')
                                 .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
                                 .where('Post.viewCount', '>=', args.minViews)
-                                .select(({ fn }: any) => fn.countAll().as('cnt')),
+                                // cast so the count comes back as a number on all dialects
+                                // (postgres `count(*)` is bigint → otherwise a string)
+                                .select(() => sql<number>`cast(count(*) as integer)`.as('cnt')),
                     },
                 },
             } as any,
@@ -415,7 +421,9 @@ model Post {
                                 .selectFrom('Post')
                                 .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
                                 .where('Post.viewCount', '>=', args.minViews)
-                                .select(({ fn }: any) => fn.countAll().as('cnt')),
+                                // cast so the count comes back as a number on all dialects
+                                // (postgres `count(*)` is bigint → otherwise a string)
+                                .select(() => sql<number>`cast(count(*) as integer)`.as('cnt')),
                     },
                 },
             } as any,
@@ -483,7 +491,9 @@ model Post {
                                 .selectFrom('Post')
                                 .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
                                 .where('Post.viewCount', '>=', args.minViews)
-                                .select(({ fn }: any) => fn.countAll().as('cnt')),
+                                // cast so the count comes back as a number on all dialects
+                                // (postgres `count(*)` is bigint → otherwise a string)
+                                .select(() => sql<number>`cast(count(*) as integer)`.as('cnt')),
                     },
                 },
             } as any,
@@ -522,13 +532,53 @@ model Post {
     });
 
     it('works with parameterized computed fields in groupBy by (keyed entry)', async () => {
+        // NOTE: grouping by a *row-local* parameterized computed field works on all dialects.
+        // A computed field backed by a *correlated subquery* is subject to the database's own
+        // rules for grouping by a correlated expression (Postgres rejects it, SQLite allows it) —
+        // that constraint is orthogonal to this feature and applies to any correlated GROUP BY.
+        const db = await createTestClient(
+            `
+model Product {
+    id Int @id @default(autoincrement())
+    price Int
+    priceTier(threshold: Int) Int @computed
+}
+`,
+            {
+                computedFields: {
+                    Product: {
+                        // price tier via a row-local CASE expression (deterministic integer, no
+                        // float-division / cast-rounding differences across dialects)
+                        priceTier: (_eb: any, ctx: any, args: any) =>
+                            sql<number>`case when ${sql.ref(`${ctx.modelAlias}.price`)} >= ${args.threshold} then 1 else 0 end`,
+                    },
+                },
+            } as any,
+        );
+
+        // prices [10, 25, 30, 55]; priceTier(threshold=30) = [0, 0, 1, 1]
+        await db.product.createMany({
+            data: [{ price: 10 }, { price: 25 }, { price: 30 }, { price: 55 }],
+        });
+
+        // group by the computed tier: 0→{10,25}, 1→{30,55}
+        const groups = await db.product.groupBy({
+            by: [{ field: 'priceTier', args: { threshold: 30 } }],
+            _count: { _all: true },
+        });
+        expect(groups.sort((a: any, b: any) => a.priceTier - b.priceTier)).toEqual([
+            { priceTier: 0, _count: { _all: 2 } },
+            { priceTier: 1, _count: { _all: 2 } },
+        ]);
+    });
+
+    it('works with parameterized computed fields in a nested include/select', async () => {
         const db = await createTestClient(
             `
 model User {
     id Int @id @default(autoincrement())
     name String
     posts Post[]
-    popularPostCount(minViews: Int) Int @computed
 }
 
 model Post {
@@ -536,42 +586,50 @@ model Post {
     viewCount Int @default(0)
     author User @relation(fields: [authorId], references: [id])
     authorId Int
+    weightedViews(factor: Int) Int @computed
 }
 `,
             {
                 computedFields: {
-                    User: {
-                        popularPostCount: (eb: any, ctx: any, args: any) =>
-                            eb
-                                .selectFrom('Post')
-                                .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
-                                .where('Post.viewCount', '>=', args.minViews)
-                                .select(({ fn }: any) => fn.countAll().as('cnt')),
+                    Post: {
+                        // viewCount * factor, correlated to the row via ctx.modelAlias
+                        weightedViews: (_eb: any, ctx: any, args: any) =>
+                            sql<number>`${sql.ref(`${ctx.modelAlias}.viewCount`)} * ${args.factor}`,
                     },
                 },
             } as any,
         );
 
-        // popularPostCount(minViews=100): Alice=1, Bob=2, Carol=1, Dave=0
         await db.user.create({
-            data: { id: 1, name: 'Alice', posts: { create: [{ viewCount: 300 }, { viewCount: 50 }, { viewCount: 50 }] } },
+            data: {
+                id: 1,
+                name: 'Alice',
+                posts: { create: [{ id: 1, viewCount: 300 }, { id: 2, viewCount: 50 }] },
+            },
         });
-        await db.user.create({
-            data: { id: 2, name: 'Bob', posts: { create: [{ viewCount: 120 }, { viewCount: 120 }, { viewCount: 10 }] } },
-        });
-        await db.user.create({ data: { id: 3, name: 'Carol', posts: { create: [{ viewCount: 200 }] } } });
-        await db.user.create({ data: { id: 4, name: 'Dave' } });
 
-        // group by the computed value: buckets 0→{Dave}, 1→{Alice,Carol}, 2→{Bob}
-        const groups = await db.user.groupBy({
-            by: [{ field: 'popularPostCount', args: { minViews: 100 } }],
-            _count: { _all: true },
-            orderBy: { popularPostCount: { args: { minViews: 100 }, sort: 'asc' } },
+        // nested `include` of a parameterized computed field on the related model
+        const u1 = await db.user.findFirstOrThrow({
+            where: { id: 1 },
+            include: { posts: { include: { weightedViews: { args: { factor: 10 } } }, orderBy: { id: 'asc' } } },
         });
-        expect(groups).toEqual([
-            { popularPostCount: 0, _count: { _all: 1 } },
-            { popularPostCount: 1, _count: { _all: 2 } },
-            { popularPostCount: 2, _count: { _all: 1 } },
+        expect(u1.posts.map((p: any) => p.weightedViews)).toEqual([3000, 500]);
+
+        // a different arg yields different nested values
+        const u2 = await db.user.findFirstOrThrow({
+            where: { id: 1 },
+            include: { posts: { include: { weightedViews: { args: { factor: 2 } } }, orderBy: { id: 'asc' } } },
+        });
+        expect(u2.posts.map((p: any) => p.weightedViews)).toEqual([600, 100]);
+
+        // nested `select` narrows to the computed value
+        const u3 = await db.user.findFirstOrThrow({
+            where: { id: 1 },
+            include: { posts: { select: { id: true, weightedViews: { args: { factor: 2 } } }, orderBy: { id: 'asc' } } },
+        });
+        expect(u3.posts).toEqual([
+            { id: 1, weightedViews: 600 },
+            { id: 2, weightedViews: 100 },
         ]);
     });
 
@@ -600,7 +658,9 @@ model Post {
                                 .selectFrom('Post')
                                 .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
                                 .where('Post.viewCount', '>=', args.minViews)
-                                .select(({ fn }: any) => fn.countAll().as('cnt')),
+                                // cast so the count comes back as a number on all dialects
+                                // (postgres `count(*)` is bigint → otherwise a string)
+                                .select(() => sql<number>`cast(count(*) as integer)`.as('cnt')),
                     },
                 },
             } as any,

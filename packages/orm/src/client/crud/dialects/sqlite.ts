@@ -266,6 +266,8 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
                 objArgs.push(
                     ...Object.entries(relationModelDef.fields)
                         .filter(([, value]) => !value.relation)
+                        // a parameterized computed field is never auto-returned (it needs args)
+                        .filter(([, value]) => !(value.computed && value.params))
                         .filter(([name]) => !this.shouldOmitField(omit, relationModel, name))
                         .map(([field]) => [sql.lit(field), this.fieldRef(relationModel, field, subQueryName, false)])
                         .flatMap((v) => v),
@@ -295,6 +297,20 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
                                         value,
                                     );
                                     return [sql.lit(field), subJson];
+                                } else if (fieldDef.computed && fieldDef.params) {
+                                    // parameterized computed field on the relation: inline the
+                                    // computer with its query-time args (correlates to the
+                                    // relation's real columns, which are materialized)
+                                    return [
+                                        sql.lit(field),
+                                        this.fieldRef(
+                                            relationModel,
+                                            field,
+                                            subQueryName,
+                                            true,
+                                            (value as any).args,
+                                        ) as ArgsType,
+                                    ];
                                 } else {
                                     return [
                                         sql.lit(field),
@@ -325,6 +341,21 @@ export class SqliteCrudDialect<Schema extends SchemaDef> extends BaseCrudDialect
                                     value,
                                 );
                                 return [sql.lit(field), subJson];
+                            }
+                            const fieldDef = requireField(this.schema, relationModel, field);
+                            if (fieldDef.computed && fieldDef.params) {
+                                // parameterized computed field included on the relation: inline
+                                // the computer with its query-time args
+                                return [
+                                    sql.lit(field),
+                                    this.fieldRef(
+                                        relationModel,
+                                        field,
+                                        subQueryName,
+                                        true,
+                                        (value as any).args,
+                                    ) as ArgsType,
+                                ];
                             }
                             const subJson = this.buildRelationJSON(
                                 relationModel,

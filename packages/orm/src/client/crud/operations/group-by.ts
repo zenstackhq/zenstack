@@ -1,4 +1,5 @@
 import type { SchemaDef } from '@zenstackhq/schema';
+import { sql } from 'kysely';
 import { match } from 'ts-pattern';
 import { aggregate, getField } from '../../query-utils';
 import { BaseOperationHandler } from './base';
@@ -28,7 +29,15 @@ export class GroupByOperationHandler<Schema extends SchemaDef> extends BaseOpera
                 ? { field: by as string, args: undefined as unknown }
                 : { field: by.field as string, args: by.args as unknown },
         );
-        query = query.groupBy(byEntries.map((e) => fieldRef(e.field, e.args)));
+        query = query.groupBy(
+            byEntries.map((e) => {
+                const fieldDef = getField(this.schema, this.model, e.field);
+                // group a computed field by its SELECT output alias so GROUP BY and the projected
+                // expression stay identical (re-inlining a parameterized computer binds its args as
+                // separate placeholders, which Postgres treats as distinct expressions)
+                return fieldDef?.computed ? sql.ref(e.field) : fieldRef(e.field, e.args);
+            }),
+        );
 
         // skip & take
         const skip = parsedArgs?.skip;
