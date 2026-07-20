@@ -2171,10 +2171,10 @@ export class ZodSchemaFactory<
                 _all: z.literal(true).optional(),
                 ...this.getModelFields(model).reduce(
                     (acc, [field, fieldDef]) => {
-                        // a parameterized computed field has no `args` slot in `_count`
-                        if (!this.isParameterizedComputedField(fieldDef)) {
-                            acc[field] = z.literal(true).optional();
-                        }
+                        // a parameterized computed field is counted by supplying its `args`
+                        acc[field] = this.isParameterizedComputedField(fieldDef)
+                            ? z.strictObject({ args: this.makeFieldArgsSchema(fieldDef.params!) }).optional()
+                            : z.literal(true).optional();
                         return acc;
                     },
                     {} as Record<string, ZodType>,
@@ -2217,8 +2217,11 @@ export class ZodSchemaFactory<
         const schema = z.strictObject(
             this.getModelFields(model).reduce(
                 (acc, [field, fieldDef]) => {
-                    if (this.isNumericField(fieldDef) && !this.isParameterizedComputedField(fieldDef)) {
-                        acc[field] = z.literal(true).optional();
+                    if (this.isNumericField(fieldDef)) {
+                        // a parameterized computed field is aggregated by supplying its `args`
+                        acc[field] = this.isParameterizedComputedField(fieldDef)
+                            ? z.strictObject({ args: this.makeFieldArgsSchema(fieldDef.params!) }).optional()
+                            : z.literal(true).optional();
                     }
                     return acc;
                 },
@@ -2234,8 +2237,11 @@ export class ZodSchemaFactory<
         const schema = z.strictObject(
             this.getModelFields(model).reduce(
                 (acc, [field, fieldDef]) => {
-                    if (!fieldDef.relation && !fieldDef.array && !this.isParameterizedComputedField(fieldDef)) {
-                        acc[field] = z.literal(true).optional();
+                    if (!fieldDef.relation && !fieldDef.array) {
+                        // a parameterized computed field is aggregated by supplying its `args`
+                        acc[field] = this.isParameterizedComputedField(fieldDef)
+                            ? z.strictObject({ args: this.makeFieldArgsSchema(fieldDef.params!) }).optional()
+                            : z.literal(true).optional();
                     }
                     return acc;
                 },

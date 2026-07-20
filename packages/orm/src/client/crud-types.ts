@@ -2292,10 +2292,10 @@ export type CountArgs<
 } & ExtractExtQueryArgs<ExtQueryArgs, 'count'>;
 
 type CountAggregateInput<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
-    // a parameterized computed field has no `args` slot in `_count`, so it is excluded
-    [Key in NonRelationFields<Schema, Model> as FieldHasComputedArgs<Schema, Model, Key> extends true
-        ? never
-        : Key]?: true;
+    // a parameterized computed field is counted by supplying its query-time `args`
+    [Key in NonRelationFields<Schema, Model>]?: FieldHasComputedArgs<Schema, Model, Key> extends true
+        ? { args: ComputedFieldArgs<Schema, Model, Key> }
+        : true;
 } & { _all?: true };
 
 export type CountResult<Schema extends SchemaDef, _Model extends GetModels<Schema>, Args> = Args extends {
@@ -2374,15 +2374,17 @@ type NumericFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = 
         | 'Decimal'
         ? FieldIsArray<Schema, Model, Key> extends true
             ? never
-            : // a parameterized computed field has no `args` slot in `_sum`/`_avg`, so it is excluded
-              FieldHasComputedArgs<Schema, Model, Key> extends true
-              ? never
-              : Key
+            : Key
         : never]: GetModelField<Schema, Model, Key>;
 };
 
 type SumAvgInput<Schema extends SchemaDef, Model extends GetModels<Schema>, ValueType> = {
-    [Key in NumericFields<Schema, Model>]?: ValueType;
+    // a parameterized computed field is aggregated by supplying its query-time `args`
+    [Key in NumericFields<Schema, Model>]?: Key extends GetModelFields<Schema, Model>
+        ? FieldHasComputedArgs<Schema, Model, Key> extends true
+            ? { args: ComputedFieldArgs<Schema, Model, Key> }
+            : ValueType
+        : ValueType;
 };
 
 type MinMaxInput<Schema extends SchemaDef, Model extends GetModels<Schema>, ValueType> = {
@@ -2390,10 +2392,10 @@ type MinMaxInput<Schema extends SchemaDef, Model extends GetModels<Schema>, Valu
         ? never
         : FieldIsRelation<Schema, Model, Key> extends true
           ? never
-          : // a parameterized computed field has no `args` slot in `_min`/`_max`, so it is excluded
-            FieldHasComputedArgs<Schema, Model, Key> extends true
-            ? never
-            : Key]?: ValueType;
+          : Key]?: // a parameterized computed field is aggregated by supplying its query-time `args`
+    FieldHasComputedArgs<Schema, Model, Key> extends true
+        ? { args: ComputedFieldArgs<Schema, Model, Key> }
+        : ValueType;
 };
 
 export type AggregateResult<Schema extends SchemaDef, _Model extends GetModels<Schema>, Args> = (Args extends {

@@ -458,6 +458,69 @@ model Post {
         ).toBeRejectedByValidation();
     });
 
+    it('works with parameterized computed fields in aggregate (_sum/_max/_count)', async () => {
+        const db = await createTestClient(
+            `
+model User {
+    id Int @id @default(autoincrement())
+    name String
+    posts Post[]
+    popularPostCount(minViews: Int) Int @computed
+}
+
+model Post {
+    id Int @id @default(autoincrement())
+    viewCount Int @default(0)
+    author User @relation(fields: [authorId], references: [id])
+    authorId Int
+}
+`,
+            {
+                computedFields: {
+                    User: {
+                        popularPostCount: (eb: any, ctx: any, args: any) =>
+                            eb
+                                .selectFrom('Post')
+                                .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
+                                .where('Post.viewCount', '>=', args.minViews)
+                                .select(({ fn }: any) => fn.countAll().as('cnt')),
+                    },
+                },
+            } as any,
+        );
+
+        // Alice: [300, 50, 50] → (>=100)=1, (>=40)=3 ; Bob: [120, 120, 10] → (>=100)=2, (>=40)=2
+        await db.user.create({
+            data: { id: 1, name: 'Alice', posts: { create: [{ viewCount: 300 }, { viewCount: 50 }, { viewCount: 50 }] } },
+        });
+        await db.user.create({
+            data: { id: 2, name: 'Bob', posts: { create: [{ viewCount: 120 }, { viewCount: 120 }, { viewCount: 10 }] } },
+        });
+
+        // minViews=100 ⇒ Alice=1, Bob=2 ⇒ sum=3, max=2, count(non-null)=2
+        await expect(
+            db.user.aggregate({
+                _sum: { popularPostCount: { args: { minViews: 100 } } },
+                _max: { popularPostCount: { args: { minViews: 100 } } },
+                _count: { popularPostCount: { args: { minViews: 100 } } },
+            }),
+        ).resolves.toMatchObject({
+            _sum: { popularPostCount: 3 },
+            _max: { popularPostCount: 2 },
+            _count: { popularPostCount: 2 },
+        });
+
+        // minViews=40 ⇒ Alice=3, Bob=2 ⇒ sum=5 (a different arg produces a different aggregate)
+        await expect(
+            db.user.aggregate({ _sum: { popularPostCount: { args: { minViews: 40 } } } }),
+        ).resolves.toMatchObject({ _sum: { popularPostCount: 5 } });
+
+        // the bare-`true` shorthand is rejected — args must be supplied
+        await expect(
+            db.user.aggregate({ _sum: { popularPostCount: true } as any }),
+        ).toBeRejectedByValidation();
+    });
+
     it('excludes parameterized computed fields from contexts that cannot supply args', async () => {
         const db = await createTestClient(
             `
@@ -492,12 +555,10 @@ model Post {
         await db.user.create({ data: { id: 1, name: 'Alice' } });
 
         // these contexts can't carry `args`, so a parameterized computed field is rejected by
-        // input validation (it's usable via `orderBy`, `where`, `select`/`include`). `as any`
-        // bypasses the matching compile-time exclusions in the query input types.
+        // input validation (it's usable via `orderBy`, `where`, `select`/`include`, and the
+        // aggregate inputs). `as any` bypasses the matching compile-time exclusions.
         await expect(db.user.findMany({ distinct: ['popularPostCount'] as any })).toBeRejectedByValidation();
         await expect(db.user.findMany({ omit: { popularPostCount: true } as any })).toBeRejectedByValidation();
-        await expect(db.user.aggregate({ _count: { popularPostCount: true } as any })).toBeRejectedByValidation();
-        await expect(db.user.aggregate({ _sum: { popularPostCount: true } as any })).toBeRejectedByValidation();
         await expect(
             db.user.groupBy({ by: ['popularPostCount'], _count: true } as any),
         ).toBeRejectedByValidation();

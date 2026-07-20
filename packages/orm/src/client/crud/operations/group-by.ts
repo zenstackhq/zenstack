@@ -15,7 +15,11 @@ export class GroupByOperationHandler<Schema extends SchemaDef> extends BaseOpera
             .selectFrom(this.model as string)
             .where(() => this.dialect.buildFilter(this.model, this.model, parsedArgs?.where));
 
-        const fieldRef = (field: string) => this.dialect.fieldRef(this.model, field);
+        // `computedArgs` is set when aggregating a parameterized computed field; the model name
+        // is passed as the alias so a computed field that references `ctx.modelAlias` resolves
+        // against the grouped table
+        const fieldRef = (field: string, computedArgs?: unknown) =>
+            this.dialect.fieldRef(this.model, field, this.model, true, computedArgs);
 
         // groupBy
         const bys = typeof parsedArgs.by === 'string' ? [parsedArgs.by] : (parsedArgs.by as string[]);
@@ -52,14 +56,15 @@ export class GroupByOperationHandler<Schema extends SchemaDef> extends BaseOpera
                         query = query.select((eb) => this.dialect.castInt(eb.fn.countAll()).as('_count'));
                     } else {
                         Object.entries(value).forEach(([field, val]) => {
-                            if (val === true) {
+                            const args = val && typeof val === 'object' && 'args' in val ? (val as any).args : undefined;
+                            if (val === true || args !== undefined) {
                                 if (field === '_all') {
                                     query = query.select((eb) =>
                                         this.dialect.castInt(eb.fn.countAll()).as(`_count._all`),
                                     );
                                 } else {
                                     query = query.select((eb) =>
-                                        this.dialect.castInt(eb.fn.count(fieldRef(field))).as(`${key}.${field}`),
+                                        this.dialect.castInt(eb.fn.count(fieldRef(field, args))).as(`${key}.${field}`),
                                     );
                                 }
                             }
@@ -73,8 +78,9 @@ export class GroupByOperationHandler<Schema extends SchemaDef> extends BaseOpera
                 case '_max':
                 case '_min': {
                     Object.entries(value).forEach(([field, val]) => {
-                        if (val === true) {
-                            query = query.select((eb) => aggregate(eb, fieldRef(field), key).as(`${key}.${field}`));
+                        const args = val && typeof val === 'object' && 'args' in val ? (val as any).args : undefined;
+                        if (val === true || args !== undefined) {
+                            query = query.select((eb) => aggregate(eb, fieldRef(field, args), key).as(`${key}.${field}`));
                         }
                     });
                     break;
