@@ -1360,33 +1360,34 @@ export type IncludeInput<
     AllowCount extends boolean = true,
     ExtResult extends ExtResultBase<Schema> = {},
 > = {
-    [Key in RelationFields<Schema, Model> as RelationFieldType<Schema, Model, Key> extends GetSlicedModels<
-        Schema,
-        Options
-    >
-        ? Key
-        : never]?:
-        | boolean
-        | FindArgs<
-              Schema,
-              RelationFieldType<Schema, Model, Key>,
-              Options,
-              FieldIsArray<Schema, Model, Key>,
-              // where clause is allowed only if the relation is array or optional
-              FieldIsArray<Schema, Model, Key> extends true
-                  ? true
-                  : ModelFieldIsOptional<Schema, Model, Key> extends true
-                    ? true
-                    : false,
-              ExtResult
-          >;
-} & {
-    // a parameterized computed field can be selected by supplying its query-time `args` (mirrors
-    // the relation per-key-object shape). Because `SelectInput` intersects `IncludeInput`, this
-    // also makes the field selectable via `select: { field: { args } }`.
-    [Key in NonRelationFields<Schema, Model> as FieldHasComputedArgs<Schema, Model, Key> extends true
-        ? Key
-        : never]?: { args: ComputedFieldArgs<Schema, Model, Key> };
+    // A single mapped type over relations + parameterized computed fields. Keeping this as one
+    // object member (rather than intersecting a separate mapped type) preserves excess-property
+    // checking on `include`/`select` literals. A parameterized computed field is selectable by
+    // supplying its query-time `args` (mirrors the relation per-key-object shape); because
+    // `SelectInput` intersects `IncludeInput`, this also enables `select: { field: { args } }`.
+    [Key in GetModelFields<Schema, Model> as Key extends RelationFields<Schema, Model>
+        ? RelationFieldType<Schema, Model, Key> extends GetSlicedModels<Schema, Options>
+            ? Key
+            : never
+        : FieldHasComputedArgs<Schema, Model, Key> extends true
+          ? Key
+          : never]?: Key extends RelationFields<Schema, Model>
+        ?
+              | boolean
+              | FindArgs<
+                    Schema,
+                    RelationFieldType<Schema, Model, Key>,
+                    Options,
+                    FieldIsArray<Schema, Model, Key>,
+                    // where clause is allowed only if the relation is array or optional
+                    FieldIsArray<Schema, Model, Key> extends true
+                        ? true
+                        : ModelFieldIsOptional<Schema, Model, Key> extends true
+                          ? true
+                          : false,
+                    ExtResult
+                >
+        : { args: ComputedFieldArgs<Schema, Model, Key> };
 } & (AllowCount extends true
     ? // _count is only allowed if the model has to-many relations
       HasToManyRelations<Schema, Model> extends true
