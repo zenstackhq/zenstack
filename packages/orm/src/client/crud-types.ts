@@ -269,6 +269,14 @@ export type ModelResult<
                     FieldIsArray<Schema, Model, Key>,
                     ExtResult
                 >;
+            } & {
+                // an included parameterized computed field surfaces as its scalar return type
+                // (it is not auto-returned, so it only appears when explicitly included)
+                [Key in keyof I & NonRelationFields<Schema, Model> as I[Key] extends false | undefined
+                    ? never
+                    : FieldHasComputedArgs<Schema, Model, Key> extends true
+                      ? Key
+                      : never]: MapModelFieldType<Schema, Model, Key>;
             } & ('_count' extends keyof I
                     ? I['_count'] extends false | undefined
                         ? {}
@@ -340,15 +348,15 @@ export type WhereInput<
     ScalarOnly extends boolean = false,
     WithAggregations extends boolean = false,
 > = {
-    // parameterized computed fields are excluded here — filtering them would require
-    // query-time args; they are currently only usable in `orderBy`
-    [Key in GetModelFields<Schema, Model> as FieldHasComputedArgs<Schema, Model, Key> extends true
-        ? never
-        : ScalarOnly extends true
-          ? Key extends RelationFields<Schema, Model>
-              ? never
-              : Key
-          : Key]?: FieldFilter<Schema, Model, Key, Options, WithAggregations>;
+    [Key in GetModelFields<Schema, Model> as ScalarOnly extends true
+        ? Key extends RelationFields<Schema, Model>
+            ? never
+            : Key
+        : Key]?: FieldHasComputedArgs<Schema, Model, Key> extends true
+        ? // a parameterized computed field carries its query-time `args` alongside the filter
+          // operators; the intersection drops the bare-value shorthand (args must be supplied)
+          { args: ComputedFieldArgs<Schema, Model, Key> } & FieldFilter<Schema, Model, Key, Options, WithAggregations>
+        : FieldFilter<Schema, Model, Key, Options, WithAggregations>;
 } & {
     $expr?: (eb: ExpressionBuilder<ToKyselySchema<Schema>, Model>) => OperandExpression<SqlBool>;
 } & {
@@ -1372,6 +1380,13 @@ export type IncludeInput<
                     : false,
               ExtResult
           >;
+} & {
+    // a parameterized computed field can be selected by supplying its query-time `args` (mirrors
+    // the relation per-key-object shape). Because `SelectInput` intersects `IncludeInput`, this
+    // also makes the field selectable via `select: { field: { args } }`.
+    [Key in NonRelationFields<Schema, Model> as FieldHasComputedArgs<Schema, Model, Key> extends true
+        ? Key
+        : never]?: { args: ComputedFieldArgs<Schema, Model, Key> };
 } & (AllowCount extends true
     ? // _count is only allowed if the model has to-many relations
       HasToManyRelations<Schema, Model> extends true

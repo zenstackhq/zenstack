@@ -323,6 +323,141 @@ model Post {
         ).resolves.toMatchObject([{ id: 2 }, { id: 1 }]);
     });
 
+    it('works with parameterized computed fields in where (args alongside operators)', async () => {
+        const db = await createTestClient(
+            `
+model User {
+    id Int @id @default(autoincrement())
+    name String
+    posts Post[]
+    popularPostCount(minViews: Int) Int @computed
+}
+
+model Post {
+    id Int @id @default(autoincrement())
+    viewCount Int @default(0)
+    author User @relation(fields: [authorId], references: [id])
+    authorId Int
+}
+`,
+            {
+                computedFields: {
+                    User: {
+                        popularPostCount: (eb: any, ctx: any, args: any) =>
+                            eb
+                                .selectFrom('Post')
+                                .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
+                                .where('Post.viewCount', '>=', args.minViews)
+                                .select(({ fn }: any) => fn.countAll().as('cnt')),
+                    },
+                },
+            } as any,
+        );
+
+        // Alice: posts [300, 50, 50]  → (>=100)=1, (>=40)=3
+        // Bob:   posts [120, 120, 10] → (>=100)=2, (>=40)=2
+        await db.user.create({
+            data: { id: 1, name: 'Alice', posts: { create: [{ viewCount: 300 }, { viewCount: 50 }, { viewCount: 50 }] } },
+        });
+        await db.user.create({
+            data: { id: 2, name: 'Bob', posts: { create: [{ viewCount: 120 }, { viewCount: 120 }, { viewCount: 10 }] } },
+        });
+
+        // minViews=100, count >= 2 ⇒ only Bob (Alice=1, Bob=2)
+        await expect(
+            db.user.findMany({
+                where: { popularPostCount: { args: { minViews: 100 }, gte: 2 } },
+                orderBy: { id: 'asc' },
+            }),
+        ).resolves.toMatchObject([{ id: 2 }]);
+
+        // minViews=40, count >= 3 ⇒ only Alice (Alice=3, Bob=2) — a different arg selects a different row
+        await expect(
+            db.user.findMany({
+                where: { popularPostCount: { args: { minViews: 40 }, gte: 3 } },
+                orderBy: { id: 'asc' },
+            }),
+        ).resolves.toMatchObject([{ id: 1 }]);
+
+        // composes with AND and other fields
+        await expect(
+            db.user.findMany({
+                where: { AND: [{ popularPostCount: { args: { minViews: 100 }, gte: 1 } }, { name: 'Alice' }] },
+            }),
+        ).resolves.toMatchObject([{ id: 1 }]);
+
+        // the bare-value shorthand is rejected — args must be supplied
+        await expect(db.user.findMany({ where: { popularPostCount: 2 } as any })).toBeRejectedByValidation();
+    });
+
+    it('works with parameterized computed fields in select and include', async () => {
+        const db = await createTestClient(
+            `
+model User {
+    id Int @id @default(autoincrement())
+    name String
+    posts Post[]
+    popularPostCount(minViews: Int) Int @computed
+}
+
+model Post {
+    id Int @id @default(autoincrement())
+    viewCount Int @default(0)
+    author User @relation(fields: [authorId], references: [id])
+    authorId Int
+}
+`,
+            {
+                computedFields: {
+                    User: {
+                        popularPostCount: (eb: any, ctx: any, args: any) =>
+                            eb
+                                .selectFrom('Post')
+                                .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
+                                .where('Post.viewCount', '>=', args.minViews)
+                                .select(({ fn }: any) => fn.countAll().as('cnt')),
+                    },
+                },
+            } as any,
+        );
+
+        // Alice: posts [300, 50, 50] → (>=100)=1, (>=40)=3
+        await db.user.create({
+            data: { id: 1, name: 'Alice', posts: { create: [{ viewCount: 300 }, { viewCount: 50 }, { viewCount: 50 }] } },
+        });
+
+        // `select` narrows to the computed value; different args ⇒ different values
+        await expect(
+            db.user.findUniqueOrThrow({
+                where: { id: 1 },
+                select: { id: true, popularPostCount: { args: { minViews: 100 } } },
+            }),
+        ).resolves.toEqual({ id: 1, popularPostCount: 1 });
+        await expect(
+            db.user.findUniqueOrThrow({
+                where: { id: 1 },
+                select: { popularPostCount: { args: { minViews: 40 } } },
+            }),
+        ).resolves.toEqual({ popularPostCount: 3 });
+
+        // `include` returns it alongside the auto-selected scalar fields
+        await expect(
+            db.user.findUniqueOrThrow({
+                where: { id: 1 },
+                include: { popularPostCount: { args: { minViews: 100 } } },
+            }),
+        ).resolves.toMatchObject({ id: 1, name: 'Alice', popularPostCount: 1 });
+
+        // still not auto-returned when no args are supplied
+        const plain = await db.user.findUniqueOrThrow({ where: { id: 1 } });
+        expect(plain).not.toHaveProperty('popularPostCount');
+
+        // the boolean shorthand is rejected — args must be supplied
+        await expect(
+            db.user.findUniqueOrThrow({ where: { id: 1 }, select: { popularPostCount: true } as any }),
+        ).toBeRejectedByValidation();
+    });
+
     it('excludes parameterized computed fields from contexts that cannot supply args', async () => {
         const db = await createTestClient(
             `
@@ -356,11 +491,9 @@ model Post {
 
         await db.user.create({ data: { id: 1, name: 'Alice' } });
 
-        // none of these contexts can carry `args`, so a parameterized computed field is rejected
-        // by input validation (it remains usable only via `orderBy`). `as any` bypasses the
-        // matching compile-time exclusions in the query input types.
-        await expect(db.user.findMany({ where: { popularPostCount: 1 } as any })).toBeRejectedByValidation();
-        await expect(db.user.findMany({ select: { popularPostCount: true } as any })).toBeRejectedByValidation();
+        // these contexts can't carry `args`, so a parameterized computed field is rejected by
+        // input validation (it's usable via `orderBy`, `where`, `select`/`include`). `as any`
+        // bypasses the matching compile-time exclusions in the query input types.
         await expect(db.user.findMany({ distinct: ['popularPostCount'] as any })).toBeRejectedByValidation();
         await expect(db.user.findMany({ omit: { popularPostCount: true } as any })).toBeRejectedByValidation();
         await expect(db.user.aggregate({ _count: { popularPostCount: true } as any })).toBeRejectedByValidation();
