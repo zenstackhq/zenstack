@@ -1165,6 +1165,16 @@ export type FieldHasComputedArgs<
     Field extends GetModelFields<Schema, Model>,
 > = [ComputedFieldArgs<Schema, Model, Field>] extends [never] ? false : true;
 
+/**
+ * `NonRelationFields` with parameterized computed fields removed. Used where a field can only be
+ * referenced by name, with no slot to carry `args` (groupBy `by`, `distinct`).
+ */
+export type NonParamComputedNonRelationFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = keyof {
+    [Key in NonRelationFields<Schema, Model> as FieldHasComputedArgs<Schema, Model, Key> extends true
+        ? never
+        : Key]: 0;
+};
+
 export type OrderBy<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
@@ -1562,7 +1572,7 @@ export type FindArgs<
                     /**
                      * Distinct fields. Only supported by providers that natively support SQL "DISTINCT ON".
                      */
-                    distinct?: OrArray<NonRelationFields<Schema, Model>>;
+                    distinct?: OrArray<NonParamComputedNonRelationFields<Schema, Model>>;
                 }
               : {})
     : {}) &
@@ -2267,7 +2277,10 @@ export type CountArgs<
 } & ExtractExtQueryArgs<ExtQueryArgs, 'count'>;
 
 type CountAggregateInput<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
-    [Key in NonRelationFields<Schema, Model>]?: true;
+    // a parameterized computed field has no `args` slot in `_count`, so it is excluded
+    [Key in NonRelationFields<Schema, Model> as FieldHasComputedArgs<Schema, Model, Key> extends true
+        ? never
+        : Key]?: true;
 } & { _all?: true };
 
 export type CountResult<Schema extends SchemaDef, _Model extends GetModels<Schema>, Args> = Args extends {
@@ -2346,7 +2359,10 @@ type NumericFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = 
         | 'Decimal'
         ? FieldIsArray<Schema, Model, Key> extends true
             ? never
-            : Key
+            : // a parameterized computed field has no `args` slot in `_sum`/`_avg`, so it is excluded
+              FieldHasComputedArgs<Schema, Model, Key> extends true
+              ? never
+              : Key
         : never]: GetModelField<Schema, Model, Key>;
 };
 
@@ -2359,7 +2375,10 @@ type MinMaxInput<Schema extends SchemaDef, Model extends GetModels<Schema>, Valu
         ? never
         : FieldIsRelation<Schema, Model, Key> extends true
           ? never
-          : Key]?: ValueType;
+          : // a parameterized computed field has no `args` slot in `_min`/`_max`, so it is excluded
+            FieldHasComputedArgs<Schema, Model, Key> extends true
+            ? never
+            : Key]?: ValueType;
 };
 
 export type AggregateResult<Schema extends SchemaDef, _Model extends GetModels<Schema>, Args> = (Args extends {
@@ -2442,7 +2461,9 @@ export type GroupByArgs<
     /**
      * Fields to group by
      */
-    by: NonRelationFields<Schema, Model> | NonEmptyArray<NonRelationFields<Schema, Model>>;
+    by:
+        | NonParamComputedNonRelationFields<Schema, Model>
+        | NonEmptyArray<NonParamComputedNonRelationFields<Schema, Model>>;
 
     /**
      * Filter conditions for the grouped records

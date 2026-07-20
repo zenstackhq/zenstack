@@ -187,7 +187,7 @@ model User {
     id Int @id @default(autoincrement())
     name String
     posts Post[]
-    popularPostCount(minViews: Int): Int @computed
+    popularPostCount(minViews: Int) Int @computed
 }
 
 model Post {
@@ -263,7 +263,7 @@ model User {
     id Int @id @default(autoincrement())
     name String
     posts Post[]
-    recentPostCount(since: DateTime): Int @computed
+    recentPostCount(since: DateTime) Int @computed
 }
 
 model Post {
@@ -321,6 +321,53 @@ model Post {
                 orderBy: [{ recentPostCount: { args: { since: new Date('2024-07-01') }, sort: 'desc' } }, { id: 'asc' }],
             }),
         ).resolves.toMatchObject([{ id: 2 }, { id: 1 }]);
+    });
+
+    it('excludes parameterized computed fields from contexts that cannot supply args', async () => {
+        const db = await createTestClient(
+            `
+model User {
+    id Int @id @default(autoincrement())
+    name String
+    posts Post[]
+    popularPostCount(minViews: Int) Int @computed
+}
+
+model Post {
+    id Int @id @default(autoincrement())
+    viewCount Int @default(0)
+    author User @relation(fields: [authorId], references: [id])
+    authorId Int
+}
+`,
+            {
+                computedFields: {
+                    User: {
+                        popularPostCount: (eb: any, ctx: any, args: any) =>
+                            eb
+                                .selectFrom('Post')
+                                .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
+                                .where('Post.viewCount', '>=', args.minViews)
+                                .select(({ fn }: any) => fn.countAll().as('cnt')),
+                    },
+                },
+            } as any,
+        );
+
+        await db.user.create({ data: { id: 1, name: 'Alice' } });
+
+        // none of these contexts can carry `args`, so a parameterized computed field is rejected
+        // by input validation (it remains usable only via `orderBy`). `as any` bypasses the
+        // matching compile-time exclusions in the query input types.
+        await expect(db.user.findMany({ where: { popularPostCount: 1 } as any })).toBeRejectedByValidation();
+        await expect(db.user.findMany({ select: { popularPostCount: true } as any })).toBeRejectedByValidation();
+        await expect(db.user.findMany({ distinct: ['popularPostCount'] as any })).toBeRejectedByValidation();
+        await expect(db.user.findMany({ omit: { popularPostCount: true } as any })).toBeRejectedByValidation();
+        await expect(db.user.aggregate({ _count: { popularPostCount: true } as any })).toBeRejectedByValidation();
+        await expect(db.user.aggregate({ _sum: { popularPostCount: true } as any })).toBeRejectedByValidation();
+        await expect(
+            db.user.groupBy({ by: ['popularPostCount'], _count: true } as any),
+        ).toBeRejectedByValidation();
     });
 
     it('is typed correctly for non-optional fields', async () => {
