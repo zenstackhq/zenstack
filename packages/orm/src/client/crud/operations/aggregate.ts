@@ -1,7 +1,11 @@
 import type { SchemaDef } from '@zenstackhq/schema';
 import { match } from 'ts-pattern';
+import { createInvalidInputError } from '../../errors';
 import { getField } from '../../query-utils';
 import { BaseOperationHandler } from './base';
+
+// stable key for comparing two `args` payloads (bigint-safe)
+const argsKey = (v: unknown) => JSON.stringify(v, (_k, val) => (typeof val === 'bigint' ? `${val}n` : val));
 
 export class AggregateOperationHandler<Schema extends SchemaDef> extends BaseOperationHandler<Schema> {
     async handle(_operation: 'aggregate', args: unknown | undefined) {
@@ -34,7 +38,19 @@ export class AggregateOperationHandler<Schema extends SchemaDef> extends BaseOpe
                                 return;
                             }
                             if (!selectedFields.includes(field)) selectedFields.push(field);
-                            if (args !== undefined) computedArgsByField[field] = args;
+                            if (args !== undefined) {
+                                // the field is materialized once into `$sub`, so every aggregation
+                                // of it must agree on `args` — otherwise the result would silently
+                                // use whichever `args` was seen last
+                                const prev = computedArgsByField[field];
+                                if (prev !== undefined && argsKey(prev) !== argsKey(args)) {
+                                    throw createInvalidInputError(
+                                        `computed field "${field}" is aggregated with conflicting "args"; ` +
+                                            `the same field can only be aggregated with one set of arguments per query`,
+                                    );
+                                }
+                                computedArgsByField[field] = args;
+                            }
                         });
                 }
             }

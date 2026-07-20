@@ -529,6 +529,14 @@ model Post {
         await expect(
             db.user.aggregate({ _sum: { popularPostCount: true } as any }),
         ).toBeRejectedByValidation();
+
+        // the field is materialized once, so aggregating it with conflicting args is rejected
+        await expect(
+            db.user.aggregate({
+                _sum: { popularPostCount: { args: { minViews: 100 } } },
+                _avg: { popularPostCount: { args: { minViews: 40 } } },
+            }),
+        ).rejects.toThrow(/conflicting "args"/);
     });
 
     it('works with parameterized computed fields in groupBy by (keyed entry)', async () => {
