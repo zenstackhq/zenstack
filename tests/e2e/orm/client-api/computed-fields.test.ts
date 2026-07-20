@@ -206,9 +206,7 @@ model Post {
                                 .selectFrom('Post')
                                 .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
                                 .where('Post.viewCount', '>=', args.minViews)
-                                // cast so the count comes back as a number on all dialects
-                                // (postgres `count(*)` is bigint → otherwise a string)
-                                .select(() => sql<number>`cast(count(*) as integer)`.as('cnt')),
+                                .select(({ fn }: any) => fn.countAll().as('cnt')),
                     },
                 },
             } as any,
@@ -286,9 +284,7 @@ model Post {
                                 .selectFrom('Post')
                                 .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
                                 .where('Post.createdAt', '>=', args.since.toISOString())
-                                // cast so the count comes back as a number on all dialects
-                                // (postgres `count(*)` is bigint → otherwise a string)
-                                .select(() => sql<number>`cast(count(*) as integer)`.as('cnt')),
+                                .select(({ fn }: any) => fn.countAll().as('cnt')),
                     },
                 },
             } as any,
@@ -352,9 +348,7 @@ model Post {
                                 .selectFrom('Post')
                                 .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
                                 .where('Post.viewCount', '>=', args.minViews)
-                                // cast so the count comes back as a number on all dialects
-                                // (postgres `count(*)` is bigint → otherwise a string)
-                                .select(() => sql<number>`cast(count(*) as integer)`.as('cnt')),
+                                .select(({ fn }: any) => fn.countAll().as('cnt')),
                     },
                 },
             } as any,
@@ -399,70 +393,56 @@ model Post {
     it('works with parameterized computed fields in select and include', async () => {
         const db = await createTestClient(
             `
-model User {
+model Product {
     id Int @id @default(autoincrement())
     name String
-    posts Post[]
-    popularPostCount(minViews: Int) Int @computed
-}
-
-model Post {
-    id Int @id @default(autoincrement())
-    viewCount Int @default(0)
-    author User @relation(fields: [authorId], references: [id])
-    authorId Int
+    price Int
+    priceTimes(factor: Int) Int @computed
 }
 `,
             {
                 computedFields: {
-                    User: {
-                        popularPostCount: (eb: any, ctx: any, args: any) =>
-                            eb
-                                .selectFrom('Post')
-                                .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
-                                .where('Post.viewCount', '>=', args.minViews)
-                                // cast so the count comes back as a number on all dialects
-                                // (postgres `count(*)` is bigint → otherwise a string)
-                                .select(() => sql<number>`cast(count(*) as integer)`.as('cnt')),
+                    Product: {
+                        // a row-local arithmetic expression (price * factor); returns a plain integer
+                        // on every dialect, so the selected value is a number (not a bigint string)
+                        priceTimes: (_eb: any, ctx: any, args: any) =>
+                            sql<number>`${sql.ref(`${ctx.modelAlias}.price`)} * ${args.factor}`,
                     },
                 },
             } as any,
         );
 
-        // Alice: posts [300, 50, 50] → (>=100)=1, (>=40)=3
-        await db.user.create({
-            data: { id: 1, name: 'Alice', posts: { create: [{ viewCount: 300 }, { viewCount: 50 }, { viewCount: 50 }] } },
-        });
+        await db.product.create({ data: { id: 1, name: 'Widget', price: 100 } });
 
         // `select` narrows to the computed value; different args ⇒ different values
         await expect(
-            db.user.findUniqueOrThrow({
+            db.product.findUniqueOrThrow({
                 where: { id: 1 },
-                select: { id: true, popularPostCount: { args: { minViews: 100 } } },
+                select: { id: true, priceTimes: { args: { factor: 2 } } },
             }),
-        ).resolves.toEqual({ id: 1, popularPostCount: 1 });
+        ).resolves.toEqual({ id: 1, priceTimes: 200 });
         await expect(
-            db.user.findUniqueOrThrow({
+            db.product.findUniqueOrThrow({
                 where: { id: 1 },
-                select: { popularPostCount: { args: { minViews: 40 } } },
+                select: { priceTimes: { args: { factor: 3 } } },
             }),
-        ).resolves.toEqual({ popularPostCount: 3 });
+        ).resolves.toEqual({ priceTimes: 300 });
 
         // `include` returns it alongside the auto-selected scalar fields
         await expect(
-            db.user.findUniqueOrThrow({
+            db.product.findUniqueOrThrow({
                 where: { id: 1 },
-                include: { popularPostCount: { args: { minViews: 100 } } },
+                include: { priceTimes: { args: { factor: 2 } } },
             }),
-        ).resolves.toMatchObject({ id: 1, name: 'Alice', popularPostCount: 1 });
+        ).resolves.toMatchObject({ id: 1, name: 'Widget', price: 100, priceTimes: 200 });
 
         // still not auto-returned when no args are supplied
-        const plain = await db.user.findUniqueOrThrow({ where: { id: 1 } });
-        expect(plain).not.toHaveProperty('popularPostCount');
+        const plain = await db.product.findUniqueOrThrow({ where: { id: 1 } });
+        expect(plain).not.toHaveProperty('priceTimes');
 
         // the boolean shorthand is rejected — args must be supplied
         await expect(
-            db.user.findUniqueOrThrow({ where: { id: 1 }, select: { popularPostCount: true } as any }),
+            db.product.findUniqueOrThrow({ where: { id: 1 }, select: { priceTimes: true } as any }),
         ).toBeRejectedByValidation();
     });
 
@@ -491,9 +471,7 @@ model Post {
                                 .selectFrom('Post')
                                 .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
                                 .where('Post.viewCount', '>=', args.minViews)
-                                // cast so the count comes back as a number on all dialects
-                                // (postgres `count(*)` is bigint → otherwise a string)
-                                .select(() => sql<number>`cast(count(*) as integer)`.as('cnt')),
+                                .select(({ fn }: any) => fn.countAll().as('cnt')),
                     },
                 },
             } as any,
@@ -666,9 +644,7 @@ model Post {
                                 .selectFrom('Post')
                                 .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
                                 .where('Post.viewCount', '>=', args.minViews)
-                                // cast so the count comes back as a number on all dialects
-                                // (postgres `count(*)` is bigint → otherwise a string)
-                                .select(() => sql<number>`cast(count(*) as integer)`.as('cnt')),
+                                .select(({ fn }: any) => fn.countAll().as('cnt')),
                     },
                 },
             } as any,
