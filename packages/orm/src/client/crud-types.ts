@@ -2459,6 +2459,20 @@ type GroupByHaving<
     out Options extends QueryOptions<Schema> = QueryOptions<Schema>,
 > = Omit<WhereInput<Schema, Model, Options, true, true>, '$expr'>;
 
+// A `groupBy` `by` entry for a parameterized computed field: the field name plus its query-time
+// `args` (a plain field name can't carry args). The map is keyed by the parameterized computed
+// fields; indexing it yields the union of `{ field, args }` entries (or `never` when there are none).
+type ParamComputedByEntryMap<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+    [Key in NonRelationFields<Schema, Model> as FieldHasComputedArgs<Schema, Model, Key> extends true
+        ? Key
+        : never]: { field: Key; args: ComputedFieldArgs<Schema, Model, Key> };
+};
+type GroupByComputedByEntry<Schema extends SchemaDef, Model extends GetModels<Schema>> =
+    ParamComputedByEntryMap<Schema, Model>[keyof ParamComputedByEntryMap<Schema, Model>];
+
+// Extracts the grouped field name from a `by` entry (a plain name or a `{ field, args }` object).
+type ByFieldName<By> = By extends { field: infer F } ? F : By;
+
 export type GroupByArgs<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
@@ -2480,7 +2494,10 @@ export type GroupByArgs<
      */
     by:
         | NonParamComputedNonRelationFields<Schema, Model>
-        | NonEmptyArray<NonParamComputedNonRelationFields<Schema, Model>>;
+        | GroupByComputedByEntry<Schema, Model>
+        | NonEmptyArray<
+              NonParamComputedNonRelationFields<Schema, Model> | GroupByComputedByEntry<Schema, Model>
+          >;
 
     /**
      * Filter conditions for the grouped records
@@ -2532,7 +2549,7 @@ export type GroupByResult<
     Args extends { by: unknown },
 > = Array<
     {
-        [Key in NonRelationFields<Schema, Model> as Key extends ValueOfPotentialTuple<Args['by']>
+        [Key in NonRelationFields<Schema, Model> as Key extends ByFieldName<ValueOfPotentialTuple<Args['by']>>
             ? Key
             : never]: MapModelFieldType<Schema, Model, Key>;
     } & (Args extends { _count: infer Count }

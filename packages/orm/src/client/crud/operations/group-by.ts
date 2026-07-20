@@ -21,9 +21,14 @@ export class GroupByOperationHandler<Schema extends SchemaDef> extends BaseOpera
         const fieldRef = (field: string, computedArgs?: unknown) =>
             this.dialect.fieldRef(this.model, field, this.model, true, computedArgs);
 
-        // groupBy
-        const bys = typeof parsedArgs.by === 'string' ? [parsedArgs.by] : (parsedArgs.by as string[]);
-        query = query.groupBy(bys.map((by) => fieldRef(by)));
+        // groupBy — a parameterized computed field is a `{ field, args }` entry; others are names
+        const rawBys = Array.isArray(parsedArgs.by) ? parsedArgs.by : [parsedArgs.by];
+        const byEntries = rawBys.map((by: any) =>
+            typeof by === 'string'
+                ? { field: by as string, args: undefined as unknown }
+                : { field: by.field as string, args: by.args as unknown },
+        );
+        query = query.groupBy(byEntries.map((e) => fieldRef(e.field, e.args)));
 
         // skip & take
         const skip = parsedArgs?.skip;
@@ -44,8 +49,8 @@ export class GroupByOperationHandler<Schema extends SchemaDef> extends BaseOpera
         }
 
         // select all by fields
-        for (const by of bys) {
-            query = query.select(() => fieldRef(by).as(by));
+        for (const e of byEntries) {
+            query = query.select(() => fieldRef(e.field, e.args).as(e.field));
         }
 
         // aggregations

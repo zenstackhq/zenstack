@@ -2264,10 +2264,26 @@ export class ZodSchemaFactory<
         const nonRelationFields = this.getModelFields(model)
             .filter(([, def]) => !def.relation && !this.isParameterizedComputedField(def))
             .map(([name]) => name);
-        const bySchema =
-            nonRelationFields.length > 0
-                ? this.orArray(z.enum(nonRelationFields as [string, ...string[]]), true)
-                : z.never();
+        const byMembers: ZodType[] = [];
+        if (nonRelationFields.length > 0) {
+            byMembers.push(z.enum(nonRelationFields as [string, ...string[]]));
+        }
+        // a parameterized computed field is grouped by a `{ field, args }` entry (it can't be
+        // named on its own — it needs query-time args)
+        for (const [field, fieldDef] of this.getModelFields(model)) {
+            if (this.isParameterizedComputedField(fieldDef)) {
+                byMembers.push(
+                    z.strictObject({ field: z.literal(field), args: this.makeFieldArgsSchema(fieldDef.params!) }),
+                );
+            }
+        }
+        const byElement =
+            byMembers.length === 0
+                ? undefined
+                : byMembers.length === 1
+                  ? byMembers[0]!
+                  : z.union(byMembers as [ZodType, ZodType, ...ZodType[]]);
+        const bySchema = byElement ? this.orArray(byElement, true) : z.never();
 
         const baseSchema = z.strictObject({
             where: this.makeWhereSchema(model, false, false, false, options).optional(),
@@ -2287,7 +2303,8 @@ export class ZodSchemaFactory<
 
         // fields used in `having` must be either in the `by` list, or aggregations
         schema = schema.refine((value: any) => {
-            const bys = enumerate(value.by);
+            // normalize `by` entries to field names (a parameterized computed field is a `{ field, args }` entry)
+            const bys = enumerate(value.by).map((b: any) => (typeof b === 'string' ? b : b?.field));
             if (value.having && typeof value.having === 'object') {
                 for (const [key, val] of Object.entries(value.having)) {
                     if (AggregateOperators.includes(key as any)) {
@@ -2314,7 +2331,8 @@ export class ZodSchemaFactory<
 
         // fields used in `orderBy` must be either in the `by` list, or aggregations
         schema = schema.refine((value: any) => {
-            const bys = enumerate(value.by);
+            // normalize `by` entries to field names (a parameterized computed field is a `{ field, args }` entry)
+            const bys = enumerate(value.by).map((b: any) => (typeof b === 'string' ? b : b?.field));
             for (const orderBy of enumerate(value.orderBy)) {
                 if (
                     orderBy &&

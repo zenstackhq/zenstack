@@ -521,6 +521,60 @@ model Post {
         ).toBeRejectedByValidation();
     });
 
+    it('works with parameterized computed fields in groupBy by (keyed entry)', async () => {
+        const db = await createTestClient(
+            `
+model User {
+    id Int @id @default(autoincrement())
+    name String
+    posts Post[]
+    popularPostCount(minViews: Int) Int @computed
+}
+
+model Post {
+    id Int @id @default(autoincrement())
+    viewCount Int @default(0)
+    author User @relation(fields: [authorId], references: [id])
+    authorId Int
+}
+`,
+            {
+                computedFields: {
+                    User: {
+                        popularPostCount: (eb: any, ctx: any, args: any) =>
+                            eb
+                                .selectFrom('Post')
+                                .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
+                                .where('Post.viewCount', '>=', args.minViews)
+                                .select(({ fn }: any) => fn.countAll().as('cnt')),
+                    },
+                },
+            } as any,
+        );
+
+        // popularPostCount(minViews=100): Alice=1, Bob=2, Carol=1, Dave=0
+        await db.user.create({
+            data: { id: 1, name: 'Alice', posts: { create: [{ viewCount: 300 }, { viewCount: 50 }, { viewCount: 50 }] } },
+        });
+        await db.user.create({
+            data: { id: 2, name: 'Bob', posts: { create: [{ viewCount: 120 }, { viewCount: 120 }, { viewCount: 10 }] } },
+        });
+        await db.user.create({ data: { id: 3, name: 'Carol', posts: { create: [{ viewCount: 200 }] } } });
+        await db.user.create({ data: { id: 4, name: 'Dave' } });
+
+        // group by the computed value: buckets 0→{Dave}, 1→{Alice,Carol}, 2→{Bob}
+        const groups = await db.user.groupBy({
+            by: [{ field: 'popularPostCount', args: { minViews: 100 } }],
+            _count: { _all: true },
+            orderBy: { popularPostCount: { args: { minViews: 100 }, sort: 'asc' } },
+        });
+        expect(groups).toEqual([
+            { popularPostCount: 0, _count: { _all: 1 } },
+            { popularPostCount: 1, _count: { _all: 2 } },
+            { popularPostCount: 2, _count: { _all: 1 } },
+        ]);
+    });
+
     it('excludes parameterized computed fields from contexts that cannot supply args', async () => {
         const db = await createTestClient(
             `
@@ -554,11 +608,12 @@ model Post {
 
         await db.user.create({ data: { id: 1, name: 'Alice' } });
 
-        // these contexts can't carry `args`, so a parameterized computed field is rejected by
-        // input validation (it's usable via `orderBy`, `where`, `select`/`include`, and the
-        // aggregate inputs). `as any` bypasses the matching compile-time exclusions.
+        // `distinct` and `omit` have no `args` slot, so a parameterized computed field is rejected
+        // by input validation there (it's usable via orderBy, where, select/include, the aggregate
+        // inputs, and groupBy `by`). `as any` bypasses the matching compile-time exclusions.
         await expect(db.user.findMany({ distinct: ['popularPostCount'] as any })).toBeRejectedByValidation();
         await expect(db.user.findMany({ omit: { popularPostCount: true } as any })).toBeRejectedByValidation();
+        // groupBy `by` requires the keyed `{ field, args }` entry — the bare name is rejected
         await expect(
             db.user.groupBy({ by: ['popularPostCount'], _count: true } as any),
         ).toBeRejectedByValidation();
