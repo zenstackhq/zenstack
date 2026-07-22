@@ -125,7 +125,7 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
     private get hasEntityMutationPluginsWithAfterMutationHooks() {
         return (this.client.$options.plugins ?? []).some((plugin) => {
             if (!plugin.onEntityMutation) return false;
-            if (plugin.onEntityMutation.afterEntityMutation) return true;
+            if (plugin.onEntityMutation['$all']?.afterEntityMutation) return true;
             const models = Object.keys(this.client.$schema.models);
             return models.some((model) => (plugin.onEntityMutation as any)?.[model]?.afterEntityMutation);
         });
@@ -360,9 +360,9 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
                     continue;
                 }
 
-                // catch-all hook
-                if (onEntityMutation.beforeEntityMutation) {
-                    await onEntityMutation.beforeEntityMutation({
+                // all-model hook
+                if (onEntityMutation['$all']?.beforeEntityMutation) {
+                    await onEntityMutation['$all'].beforeEntityMutation({
                         model: mutationInfo.model,
                         action: mutationInfo.action,
                         queryNode,
@@ -401,29 +401,19 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
                 continue;
             }
 
-            // catch-all hook
-            if (onEntityMutation.afterEntityMutation) {
-                const runInTx = onEntityMutation.runAfterMutationWithinTransaction ?? false;
-                if (
-                    filterFor === 'all' ||
-                    (filterFor === 'inTx' && runInTx) ||
-                    (filterFor === 'outTx' && !runInTx)
-                ) {
-                    hooks.push(onEntityMutation.afterEntityMutation.bind(plugin));
+            // all-model hook
+            if (onEntityMutation['$all']?.afterEntityMutation) {
+                const runInTx = onEntityMutation['$all'].runAfterMutationWithinTransaction ?? false;
+                if (filterFor === 'all' || (filterFor === 'inTx' && runInTx) || (filterFor === 'outTx' && !runInTx)) {
+                    hooks.push(onEntityMutation['$all'].afterEntityMutation.bind(plugin));
                 }
             }
 
             // per-model hook
             const modelHooks = (onEntityMutation as Record<string, any>)[mutationInfo.model];
             if (modelHooks?.afterEntityMutation) {
-                const runInTx = modelHooks.runAfterMutationWithinTransaction
-                    ?? onEntityMutation.runAfterMutationWithinTransaction
-                    ?? false;
-                if (
-                    filterFor === 'all' ||
-                    (filterFor === 'inTx' && runInTx) ||
-                    (filterFor === 'outTx' && !runInTx)
-                ) {
+                const runInTx = modelHooks.runAfterMutationWithinTransaction ?? false;
+                if (filterFor === 'all' || (filterFor === 'inTx' && runInTx) || (filterFor === 'outTx' && !runInTx)) {
                     hooks.push(modelHooks.afterEntityMutation.bind(plugin));
                 }
             }

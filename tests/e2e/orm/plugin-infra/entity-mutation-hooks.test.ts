@@ -22,20 +22,22 @@ describe('Entity mutation hooks tests', () => {
         const client = _client.$use({
             id: 'test',
             onEntityMutation: {
-                beforeEntityMutation(args) {
-                    beforeCalled[args.action] = true;
-                    if (args.action === 'create') {
-                        expect(InsertQueryNode.is(args.queryNode)).toBe(true);
-                    }
-                    if (args.action === 'update') {
-                        expect(UpdateQueryNode.is(args.queryNode)).toBe(true);
-                    }
-                    if (args.action === 'delete') {
-                        expect(DeleteQueryNode.is(args.queryNode)).toBe(true);
-                    }
-                },
-                afterEntityMutation(args) {
-                    afterCalled[args.action] = true;
+                $all: {
+                    beforeEntityMutation(args) {
+                        beforeCalled[args.action] = true;
+                        if (args.action === 'create') {
+                            expect(InsertQueryNode.is(args.queryNode)).toBe(true);
+                        }
+                        if (args.action === 'update') {
+                            expect(UpdateQueryNode.is(args.queryNode)).toBe(true);
+                        }
+                        if (args.action === 'delete') {
+                            expect(DeleteQueryNode.is(args.queryNode)).toBe(true);
+                        }
+                    },
+                    afterEntityMutation(args) {
+                        afterCalled[args.action] = true;
+                    },
                 },
             },
         });
@@ -72,24 +74,26 @@ describe('Entity mutation hooks tests', () => {
         const client = _client.$use({
             id: 'test',
             onEntityMutation: {
-                async beforeEntityMutation(args) {
-                    if (args.action === 'update' || args.action === 'delete') {
-                        await expect(args.loadBeforeMutationEntities()).resolves.toEqual([
-                            expect.objectContaining({
-                                email: args.action === 'update' ? 'u1@test.com' : 'u3@test.com',
-                            }),
-                        ]);
-                        queryIds[args.action].before = args.queryId.queryId;
-                    }
-                },
-                async afterEntityMutation(args) {
-                    if (args.action === 'update' || args.action === 'delete') {
-                        queryIds[args.action].after = args.queryId.queryId;
-                    }
+                $all: {
+                    async beforeEntityMutation(args) {
+                        if (args.action === 'update' || args.action === 'delete') {
+                            await expect(args.loadBeforeMutationEntities()).resolves.toEqual([
+                                expect.objectContaining({
+                                    email: args.action === 'update' ? 'u1@test.com' : 'u3@test.com',
+                                }),
+                            ]);
+                            queryIds[args.action].before = args.queryId.queryId;
+                        }
+                    },
+                    async afterEntityMutation(args) {
+                        if (args.action === 'update' || args.action === 'delete') {
+                            queryIds[args.action].after = args.queryId.queryId;
+                        }
 
-                    if (args.action === 'update') {
-                        beforeMutationEntitiesInAfterHooks = args.beforeMutationEntities;
-                    }
+                        if (args.action === 'update') {
+                            beforeMutationEntitiesInAfterHooks = args.beforeMutationEntities;
+                        }
+                    },
                 },
             },
         });
@@ -122,22 +126,24 @@ describe('Entity mutation hooks tests', () => {
         const client = _client.$use({
             id: 'test',
             onEntityMutation: {
-                async afterEntityMutation(args) {
-                    if (args.action === 'create' || args.action === 'update') {
-                        if (args.action === 'create') {
-                            userCreateIntercepted = true;
+                $all: {
+                    async afterEntityMutation(args) {
+                        if (args.action === 'create' || args.action === 'update') {
+                            if (args.action === 'create') {
+                                userCreateIntercepted = true;
+                            }
+                            if (args.action === 'update') {
+                                userUpdateIntercepted = true;
+                            }
+                            await expect(args.loadAfterMutationEntities()).resolves.toEqual(
+                                expect.arrayContaining([
+                                    expect.objectContaining({
+                                        email: args.action === 'create' ? 'u1@test.com' : 'u2@test.com',
+                                    }),
+                                ]),
+                            );
                         }
-                        if (args.action === 'update') {
-                            userUpdateIntercepted = true;
-                        }
-                        await expect(args.loadAfterMutationEntities()).resolves.toEqual(
-                            expect.arrayContaining([
-                                expect.objectContaining({
-                                    email: args.action === 'create' ? 'u1@test.com' : 'u2@test.com',
-                                }),
-                            ]),
-                        );
-                    }
+                    },
                 },
             },
         });
@@ -162,38 +168,40 @@ describe('Entity mutation hooks tests', () => {
         const client = _client.$use({
             id: 'test',
             onEntityMutation: {
-                async afterEntityMutation(args) {
-                    if (args.action === 'create') {
-                        userCreateIntercepted = true;
-                        await expect(args.loadAfterMutationEntities()).resolves.toEqual(
-                            expect.arrayContaining([
-                                expect.objectContaining({ email: 'u1@test.com' }),
-                                expect.objectContaining({ email: 'u2@test.com' }),
-                            ]),
-                        );
-                    } else if (args.action === 'update') {
-                        userUpdateIntercepted = true;
-                        await expect(args.loadAfterMutationEntities()).resolves.toEqual(
-                            expect.arrayContaining([
-                                expect.objectContaining({
-                                    email: 'u1@test.com',
-                                    name: 'A user',
-                                }),
-                                expect.objectContaining({
-                                    email: 'u2@test.com',
-                                    name: 'A user',
-                                }),
-                            ]),
-                        );
-                    } else if (args.action === 'delete') {
-                        userDeleteIntercepted = true;
-                        await expect(args.loadAfterMutationEntities()).resolves.toEqual(
-                            expect.arrayContaining([
-                                expect.objectContaining({ email: 'u1@test.com' }),
-                                expect.objectContaining({ email: 'u2@test.com' }),
-                            ]),
-                        );
-                    }
+                $all: {
+                    async afterEntityMutation(args) {
+                        if (args.action === 'create') {
+                            userCreateIntercepted = true;
+                            await expect(args.loadAfterMutationEntities()).resolves.toEqual(
+                                expect.arrayContaining([
+                                    expect.objectContaining({ email: 'u1@test.com' }),
+                                    expect.objectContaining({ email: 'u2@test.com' }),
+                                ]),
+                            );
+                        } else if (args.action === 'update') {
+                            userUpdateIntercepted = true;
+                            await expect(args.loadAfterMutationEntities()).resolves.toEqual(
+                                expect.arrayContaining([
+                                    expect.objectContaining({
+                                        email: 'u1@test.com',
+                                        name: 'A user',
+                                    }),
+                                    expect.objectContaining({
+                                        email: 'u2@test.com',
+                                        name: 'A user',
+                                    }),
+                                ]),
+                            );
+                        } else if (args.action === 'delete') {
+                            userDeleteIntercepted = true;
+                            await expect(args.loadAfterMutationEntities()).resolves.toEqual(
+                                expect.arrayContaining([
+                                    expect.objectContaining({ email: 'u1@test.com' }),
+                                    expect.objectContaining({ email: 'u2@test.com' }),
+                                ]),
+                            );
+                        }
+                    },
                 },
             },
         });
@@ -216,18 +224,20 @@ describe('Entity mutation hooks tests', () => {
         const client = _client.$use({
             id: 'test',
             onEntityMutation: {
-                async afterEntityMutation(args) {
-                    if (args.action === 'create') {
-                        if (args.model === 'Post') {
-                            const afterEntities = await args.loadAfterMutationEntities();
-                            if ((afterEntities![0] as any).title === 'Post1') {
-                                post1Intercepted = true;
-                            }
-                            if ((afterEntities![0] as any).title === 'Post2') {
-                                post2Intercepted = true;
+                $all: {
+                    async afterEntityMutation(args) {
+                        if (args.action === 'create') {
+                            if (args.model === 'Post') {
+                                const afterEntities = await args.loadAfterMutationEntities();
+                                if ((afterEntities![0] as any).title === 'Post1') {
+                                    post1Intercepted = true;
+                                }
+                                if ((afterEntities![0] as any).title === 'Post2') {
+                                    post2Intercepted = true;
+                                }
                             }
                         }
-                    }
+                    },
                 },
             },
         });
@@ -256,12 +266,14 @@ describe('Entity mutation hooks tests', () => {
         const client = _client.$use({
             id: 'test',
             onEntityMutation: {
-                async afterEntityMutation(args) {
-                    triggered.push({
-                        action: args.action,
-                        model: args.model,
-                        afterMutationEntities: await args.loadAfterMutationEntities(),
-                    });
+                $all: {
+                    async afterEntityMutation(args) {
+                        triggered.push({
+                            action: args.action,
+                            model: args.model,
+                            afterMutationEntities: await args.loadAfterMutationEntities(),
+                        });
+                    },
                 },
             },
         });
@@ -303,17 +315,19 @@ describe('Entity mutation hooks tests', () => {
             const client = _client.$use({
                 id: 'test',
                 onEntityMutation: {
-                    async beforeEntityMutation(ctx) {
-                        await ctx.client.profile.create({
-                            data: { bio: 'Bio1' },
-                        });
-                    },
-                    async afterEntityMutation(ctx) {
-                        intercepted = true;
-                        await ctx.client.user.update({
-                            where: { email: 'u1@test.com' },
-                            data: { email: 'u2@test.com' },
-                        });
+                    $all: {
+                        async beforeEntityMutation(ctx) {
+                            await ctx.client.profile.create({
+                                data: { bio: 'Bio1' },
+                            });
+                        },
+                        async afterEntityMutation(ctx) {
+                            intercepted = true;
+                            await ctx.client.user.update({
+                                where: { email: 'u1@test.com' },
+                                data: { email: 'u2@test.com' },
+                            });
+                        },
                     },
                 },
             });
@@ -333,18 +347,20 @@ describe('Entity mutation hooks tests', () => {
             const client = _client.$use({
                 id: 'test',
                 onEntityMutation: {
-                    runAfterMutationWithinTransaction: true,
-                    async beforeEntityMutation(ctx) {
-                        await ctx.client.profile.create({
-                            data: { bio: 'Bio1' },
-                        });
-                    },
-                    async afterEntityMutation(ctx) {
-                        intercepted = true;
-                        await ctx.client.user.update({
-                            where: { email: 'u1@test.com' },
-                            data: { email: 'u2@test.com' },
-                        });
+                    $all: {
+                        runAfterMutationWithinTransaction: true,
+                        async beforeEntityMutation(ctx) {
+                            await ctx.client.profile.create({
+                                data: { bio: 'Bio1' },
+                            });
+                        },
+                        async afterEntityMutation(ctx) {
+                            intercepted = true;
+                            await ctx.client.user.update({
+                                where: { email: 'u1@test.com' },
+                                data: { email: 'u2@test.com' },
+                            });
+                        },
                     },
                 },
             });
@@ -362,8 +378,10 @@ describe('Entity mutation hooks tests', () => {
             const client = _client.$use({
                 id: 'test',
                 onEntityMutation: {
-                    async beforeEntityMutation() {
-                        throw new Error('trigger failure');
+                    $all: {
+                        async beforeEntityMutation() {
+                            throw new Error('trigger failure');
+                        },
                     },
                 },
             });
@@ -384,9 +402,11 @@ describe('Entity mutation hooks tests', () => {
             const client = _client.$use({
                 id: 'test',
                 onEntityMutation: {
-                    async afterEntityMutation() {
-                        intercepted = true;
-                        throw new Error('trigger rollback');
+                    $all: {
+                        async afterEntityMutation() {
+                            intercepted = true;
+                            throw new Error('trigger rollback');
+                        },
                     },
                 },
             });
@@ -406,11 +426,13 @@ describe('Entity mutation hooks tests', () => {
             const client = _client.$use({
                 id: 'test',
                 onEntityMutation: {
-                    runAfterMutationWithinTransaction: true,
-                    async afterEntityMutation(ctx) {
-                        intercepted = true;
-                        await ctx.client.user.create({ data: { email: 'u2@test.com' } });
-                        throw new Error('trigger rollback');
+                    $all: {
+                        runAfterMutationWithinTransaction: true,
+                        async afterEntityMutation(ctx) {
+                            intercepted = true;
+                            await ctx.client.user.create({ data: { email: 'u2@test.com' } });
+                            throw new Error('trigger rollback');
+                        },
                     },
                 },
             });
@@ -432,9 +454,11 @@ describe('Entity mutation hooks tests', () => {
             const client = _client.$use({
                 id: 'test',
                 onEntityMutation: {
-                    async afterEntityMutation(ctx) {
-                        intercepted = true;
-                        await ctx.client.user.create({ data: { email: 'u2@test.com' } });
+                    $all: {
+                        async afterEntityMutation(ctx) {
+                            intercepted = true;
+                            await ctx.client.user.create({ data: { email: 'u2@test.com' } });
+                        },
                     },
                 },
             });
@@ -461,10 +485,12 @@ describe('Entity mutation hooks tests', () => {
             const client = _client.$use({
                 id: 'test',
                 onEntityMutation: {
-                    runAfterMutationWithinTransaction: true,
-                    async afterEntityMutation(ctx) {
-                        intercepted = true;
-                        await ctx.client.user.create({ data: { email: 'u2@test.com' } });
+                    $all: {
+                        runAfterMutationWithinTransaction: true,
+                        async afterEntityMutation(ctx) {
+                            intercepted = true;
+                            await ctx.client.user.create({ data: { email: 'u2@test.com' } });
+                        },
                     },
                 },
             });
@@ -492,13 +518,15 @@ describe('Entity mutation hooks tests', () => {
             const client = _client.$use({
                 id: 'test',
                 onEntityMutation: {
-                    async beforeEntityMutation(args) {
-                        if (args.action === 'update') {
-                            intercepted = true;
-                            await expect(args.loadBeforeMutationEntities()).resolves.toEqual([
-                                expect.objectContaining({ email: 'u1@test.com' }),
-                            ]);
-                        }
+                    $all: {
+                        async beforeEntityMutation(args) {
+                            if (args.action === 'update') {
+                                intercepted = true;
+                                await expect(args.loadBeforeMutationEntities()).resolves.toEqual([
+                                    expect.objectContaining({ email: 'u1@test.com' }),
+                                ]);
+                            }
+                        },
                     },
                 },
             });
@@ -519,11 +547,13 @@ describe('Entity mutation hooks tests', () => {
             const client = _client.$use({
                 id: 'test',
                 onEntityMutation: {
-                    async beforeEntityMutation(ctx) {
-                        intercepted = true;
-                        await ctx.client.profile.create({
-                            data: { bio: 'Bio1' },
-                        });
+                    $all: {
+                        async beforeEntityMutation(ctx) {
+                            intercepted = true;
+                            await ctx.client.profile.create({
+                                data: { bio: 'Bio1' },
+                            });
+                        },
                     },
                 },
             });
@@ -549,27 +579,29 @@ describe('Entity mutation hooks tests', () => {
             const client = _client.$use({
                 id: 'test',
                 onEntityMutation: {
-                    async beforeEntityMutation(ctx) {
-                        const r = await ctx.client.user.findUnique({ where: { email: 'u1@test.com' } });
-                        if (r) {
-                            // second create
-                            txVisible = true;
-                        } else {
-                            // first create
-                            await ctx.client.profile.create({
-                                data: { bio: 'Bio1' },
+                    $all: {
+                        async beforeEntityMutation(ctx) {
+                            const r = await ctx.client.user.findUnique({ where: { email: 'u1@test.com' } });
+                            if (r) {
+                                // second create
+                                txVisible = true;
+                            } else {
+                                // first create
+                                await ctx.client.profile.create({
+                                    data: { bio: 'Bio1' },
+                                });
+                            }
+                        },
+                        async afterEntityMutation(ctx) {
+                            if (intercepted) {
+                                return;
+                            }
+                            intercepted = true;
+                            await ctx.client.user.update({
+                                where: { email: 'u1@test.com' },
+                                data: { email: 'u3@test.com' },
                             });
-                        }
-                    },
-                    async afterEntityMutation(ctx) {
-                        if (intercepted) {
-                            return;
-                        }
-                        intercepted = true;
-                        await ctx.client.user.update({
-                            where: { email: 'u1@test.com' },
-                            data: { email: 'u3@test.com' },
-                        });
+                        },
                     },
                 },
             });
@@ -602,16 +634,18 @@ describe('Entity mutation hooks tests', () => {
             const client = _client.$use({
                 id: 'test',
                 onEntityMutation: {
-                    runAfterMutationWithinTransaction: true,
-                    async afterEntityMutation(ctx) {
-                        if (intercepted) {
-                            return;
-                        }
-                        intercepted = true;
-                        await ctx.client.user.update({
-                            where: { email: 'u1@test.com' },
-                            data: { email: 'u3@test.com' },
-                        });
+                    $all: {
+                        runAfterMutationWithinTransaction: true,
+                        async afterEntityMutation(ctx) {
+                            if (intercepted) {
+                                return;
+                            }
+                            intercepted = true;
+                            await ctx.client.user.update({
+                                where: { email: 'u1@test.com' },
+                                data: { email: 'u3@test.com' },
+                            });
+                        },
                     },
                 },
             });
@@ -642,10 +676,12 @@ describe('Entity mutation hooks tests', () => {
             const client = _client.$use({
                 id: 'test',
                 onEntityMutation: {
-                    async afterEntityMutation(ctx) {
-                        intercepted = true;
-                        await ctx.client.user.create({ data: { email: 'u2@test.com' } });
-                        throw new Error('trigger error');
+                    $all: {
+                        async afterEntityMutation(ctx) {
+                            intercepted = true;
+                            await ctx.client.user.create({ data: { email: 'u2@test.com' } });
+                            throw new Error('trigger error');
+                        },
                     },
                 },
             });
@@ -668,11 +704,13 @@ describe('Entity mutation hooks tests', () => {
             const client = _client.$use({
                 id: 'test',
                 onEntityMutation: {
-                    runAfterMutationWithinTransaction: true,
-                    async afterEntityMutation(ctx) {
-                        intercepted = true;
-                        await ctx.client.user.create({ data: { email: 'u2@test.com' } });
-                        throw new Error('trigger error');
+                    $all: {
+                        runAfterMutationWithinTransaction: true,
+                        async afterEntityMutation(ctx) {
+                            intercepted = true;
+                            await ctx.client.user.create({ data: { email: 'u2@test.com' } });
+                            throw new Error('trigger error');
+                        },
                     },
                 },
             });
@@ -752,8 +790,10 @@ describe('Entity mutation hooks tests', () => {
         const client = _client.$use({
             id: 'test',
             onEntityMutation: {
-                afterEntityMutation(args) {
-                    catchAllModels.push(args.model);
+                $all: {
+                    afterEntityMutation(args) {
+                        catchAllModels.push(args.model);
+                    },
                 },
                 User: {
                     afterEntityMutation(args) {
@@ -851,7 +891,9 @@ model Child extends Base {
         const withPlugin = client.$use({
             id: 'test',
             onEntityMutation: {
-                afterEntityMutation() {},
+                $all: {
+                    afterEntityMutation() {},
+                },
             },
         });
 

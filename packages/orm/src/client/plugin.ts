@@ -288,6 +288,12 @@ type OnQueryHookContext<Schema extends SchemaDef> = {
 // #region OnEntityMutation hooks
 
 export type EntityMutationHooksDef<Schema extends SchemaDef> = {
+    [M in '$all' | GetModels<Schema>]?: M extends '$all'
+        ? AllEntityMutationHooksDef<Schema>
+        : ModelEntityMutationHooksDef<Schema, M & GetModels<Schema>>;
+};
+
+export type AllEntityMutationHooksDef<Schema extends SchemaDef> = {
     /**
      * Called before entities are mutated.
      */
@@ -311,11 +317,6 @@ export type EntityMutationHooksDef<Schema extends SchemaDef> = {
      * Defaults to `false`.
      */
     runAfterMutationWithinTransaction?: boolean;
-} & {
-    /**
-     * Per-model mutation hooks. Register hooks for specific models to get typed entity results.
-     */
-    [M in GetModels<Schema>]?: ModelEntityMutationHooksDef<Schema, M>;
 };
 
 type MutationHooksArgs<Schema extends SchemaDef> = {
@@ -380,27 +381,31 @@ export type PluginAfterEntityMutationArgs<Schema extends SchemaDef> = MutationHo
 
     /**
      * The ZenStack client you can use to perform additional operations.
-     * See {@link EntityMutationHooksDef.runAfterMutationWithinTransaction} for detailed transaction behavior.
+     * See {@link AllEntityMutationHooksDef.runAfterMutationWithinTransaction} for detailed transaction behavior.
      *
      * Mutations initiated from this client will NOT trigger entity mutation hooks to avoid infinite loops.
      */
     client: ClientContract<Schema>;
 };
 
-export type PluginModelBeforeEntityMutationArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> =
-    Omit<MutationHooksArgs<Schema>, 'model'> & {
-        model: Model;
-        loadBeforeMutationEntities(): Promise<DefaultModelResult<Schema, Model>[] | undefined>;
-        client: ClientContract<Schema>;
-    };
+export type PluginModelBeforeEntityMutationArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = Omit<
+    MutationHooksArgs<Schema>,
+    'model'
+> & {
+    model: Model;
+    loadBeforeMutationEntities(): Promise<DefaultModelResult<Schema, Model>[] | undefined>;
+    client: ClientContract<Schema>;
+};
 
-export type PluginModelAfterEntityMutationArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> =
-    Omit<MutationHooksArgs<Schema>, 'model'> & {
-        model: Model;
-        loadAfterMutationEntities(): Promise<DefaultModelResult<Schema, Model>[] | undefined>;
-        beforeMutationEntities?: DefaultModelResult<Schema, Model>[];
-        client: ClientContract<Schema>;
-    };
+export type PluginModelAfterEntityMutationArgs<Schema extends SchemaDef, Model extends GetModels<Schema>> = Omit<
+    MutationHooksArgs<Schema>,
+    'model'
+> & {
+    model: Model;
+    loadAfterMutationEntities(): Promise<DefaultModelResult<Schema, Model>[] | undefined>;
+    beforeMutationEntities?: DefaultModelResult<Schema, Model>[];
+    client: ClientContract<Schema>;
+};
 
 export type ModelEntityMutationHooksDef<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
     beforeEntityMutation?: (args: PluginModelBeforeEntityMutationArgs<Schema, Model>) => MaybePromise<void>;
