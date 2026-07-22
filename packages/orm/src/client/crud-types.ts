@@ -141,13 +141,17 @@ type FlatModelResult<
     Omit,
     Options extends QueryOptions<Schema>,
 > = {
-    [Key in NonRelationFields<Schema, Model> as ShouldOmitField<Schema, Model, Options, Key, Omit> extends true
+    // parameterized computed fields require query-time args, so they are not
+    // auto-returned (only usable in `orderBy`)
+    [Key in NonParamComputedNonRelationFields<Schema, Model> as ShouldOmitField<
+        Schema,
+        Model,
+        Options,
+        Key,
+        Omit
+    > extends true
         ? never
-        : // parameterized computed fields require query-time args, so they are not
-          // auto-returned (only usable in `orderBy`)
-          FieldHasComputedArgs<Schema, Model, Key> extends true
-          ? never
-          : Key]: MapModelFieldType<Schema, Model, Key>;
+        : Key]: MapModelFieldType<Schema, Model, Key>;
 };
 
 // Builds a discriminated union from a delegate model's direct sub-models. Recursion depth
@@ -1325,9 +1329,7 @@ export type SelectInput<
 > = {
     // parameterized computed fields are excluded — selecting them would require
     // query-time args; they are currently only usable in `orderBy`
-    [Key in NonRelationFields<Schema, Model> as FieldHasComputedArgs<Schema, Model, Key> extends true
-        ? never
-        : Key]?: boolean;
+    [Key in NonParamComputedNonRelationFields<Schema, Model>]?: boolean;
 } & (AllowRelation extends true ? IncludeInput<Schema, Model, Options, AllowCount, ExtResult> : {});
 
 type SelectCount<Schema extends SchemaDef, Model extends GetModels<Schema>, Options extends QueryOptions<Schema>> =
