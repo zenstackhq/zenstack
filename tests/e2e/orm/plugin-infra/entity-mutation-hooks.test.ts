@@ -811,8 +811,13 @@ describe('Entity mutation hooks tests', () => {
                     async afterEntityMutation(args) {
                         const entities = await args.loadAfterMutationEntities();
                         if (entities) {
-                            // This access compiles without casts because entities is User[]
-                            const _email: string = entities[0].email;
+                            const entity = entities[0];
+                            expect(entity).toBeDefined();
+                            if (!entity) {
+                                return;
+                            }
+                            // This access compiles without casts because entity is a User
+                            const _email: string = entity.email;
                             expect(_email).toBeTruthy();
                         }
                     },
