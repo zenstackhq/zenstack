@@ -41,6 +41,7 @@ import type {
     MapBaseType,
     MaybePromise,
     NonEmptyArray,
+    NoExtraProperties,
     NullableIf,
     Optional,
     OrArray,
@@ -1311,17 +1312,22 @@ export type IncludeInput<
         : {}
     : {});
 
-export type Subset<T, U> = {
-    [key in keyof T]: key extends keyof U ? T[key] : never;
-};
+type StrictArgs<T, U, Options> = Options extends { typing: { exactQueryArgs: true } }
+    ? NoExtraProperties<T, U>
+    : unknown;
 
-export type SelectSubset<T, U> = {
+export type Subset<T, U, Options = {}> = {
     [key in keyof T]: key extends keyof U ? T[key] : never;
-} & (T extends { select: any; include: any }
-    ? 'Please either choose `select` or `include`.'
-    : T extends { select: any; omit: any }
-      ? 'Please either choose `select` or `omit`.'
-      : {});
+} & StrictArgs<T, U, Options>;
+
+export type SelectSubset<T, U, Options = {}> = {
+    [key in keyof T]: key extends keyof U ? T[key] : never;
+} & StrictArgs<T, U, Options> &
+    (T extends { select: any; include: any }
+        ? 'Please either choose `select` or `include`.'
+        : T extends { select: any; omit: any }
+          ? 'Please either choose `select` or `omit`.'
+          : {});
 
 type ToManyRelationFilter<
     in out Schema extends SchemaDef,
@@ -1453,7 +1459,11 @@ type OppositeRelationAndFK<
 
 //#region Find args
 
-type FilterArgs<in out Schema extends SchemaDef, in out Model extends GetModels<Schema>, in out Options extends QueryOptions<Schema>> = {
+type FilterArgs<
+    in out Schema extends SchemaDef,
+    in out Model extends GetModels<Schema>,
+    in out Options extends QueryOptions<Schema>,
+> = {
     /**
      * Filter conditions
      */
