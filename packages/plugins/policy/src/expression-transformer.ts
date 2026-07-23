@@ -251,6 +251,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 return this.transformValue(false, 'Boolean');
             } else {
                 if (ValueListNode.is(right)) {
+                    // simple `in` operator with a list of values, e.g. `field in [1, 2, 3]`
                     return BinaryOperationNode.create(left, OperatorNode.create('in'), right);
                 } else {
                     // array contains
@@ -260,6 +261,23 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                             ? // cast lhs otherwise dialect like pg can reject due to type mismatch
                               this.dialect.castText(new ExpressionWrapper(left)).toOperationNode()
                             : left;
+                    if (SelectQueryNode.is(right)) {
+                        // RHS is a correlated subquery selecting an array column (e.g.
+                        // `this.relation.arrayField`). As a scalar subquery it yields the
+                        // array value, so membership must be tested with array-contains.
+                        // `= ANY((subquery))` would instead treat the subquery as a row-set
+                        // and compare the scalar against whole array rows (type error on pg).
+                        const rightFieldDef = this.getFieldDefFromFieldRef(normalizedRight, context);
+                        return this.dialect
+                            .buildArrayContains(
+                                new ExpressionWrapper(right),
+                                new ExpressionWrapper(comparand),
+                                rightFieldDef?.type,
+                            )
+                            .toOperationNode();
+                    }
+
+                    // path for direct array field (not from relation)
                     return BinaryOperationNode.create(
                         comparand,
                         OperatorNode.create('='),
@@ -311,16 +329,12 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
     }
 
     private normalizeBinaryOperationOperands(expr: BinaryExpression, context: ExpressionTransformerContext) {
-        if (context.contextValue) {
-            // no normalization needed if evaluating against a value object
-            return { normalizedLeft: expr.left, normalizedRight: expr.right };
-        }
-
-        // if relation fields are used directly in comparison, it can only be compared with null,
-        // so we normalize the args with the id field (use the first id field if multiple)
+        // If relation fields are used directly in a comparison, normalize both sides to the
+        // first id field (used for multiple). This applies whether the relation is SQL-backed
+        // or carried as an auth/binding value object through a collection predicate, so a
+        // comparison like `relation == binding.relation` reduces to `relation.id == binding.relation.id`.
         let normalizedLeft: Expression = expr.left;
         if (this.isRelationField(expr.left, context)) {
-            invariant(ExpressionUtils.isNull(expr.right), 'only null comparison is supported for relation field');
             const leftRelDef = this.getFieldDefFromFieldRef(expr.left, context);
             invariant(leftRelDef, 'failed to get relation field definition');
             const idFields = QueryUtils.requireIdFields(this.schema, leftRelDef.type);
@@ -328,7 +342,6 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         }
         let normalizedRight: Expression = expr.right;
         if (this.isRelationField(expr.right, context)) {
-            invariant(ExpressionUtils.isNull(expr.left), 'only null comparison is supported for relation field');
             const rightRelDef = this.getFieldDefFromFieldRef(expr.right, context);
             invariant(rightRelDef, 'failed to get relation field definition');
             const idFields = QueryUtils.requireIdFields(this.schema, rightRelDef.type);
@@ -340,7 +353,10 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
     private transformCollectionPredicate(expr: BinaryExpression, context: ExpressionTransformerContext) {
         this.ensureCollectionPredicateOperator(expr.op);
 
-        if (this.isAuthMember(expr.left) || context.contextValue) {
+        // Evaluate the collection as a value when it comes from `auth()` or when we're already
+        // iterating a value tree. `this`-rooted collections are excluded: they are relations on
+        // the `@@allow` model and must be resolved via SQL joins, not the in-memory value tree.
+        if (this.isAuthMember(expr.left) || (context.contextValue && !this.isThisRootedMember(expr.left))) {
             invariant(
                 ExpressionUtils.isMember(expr.left) || ExpressionUtils.isField(expr.left),
                 'expected member or field expression',
@@ -409,6 +425,8 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             ...context,
             modelOrType: newContextModel,
             alias: undefined,
+            // binding values (if any) remain available through `bindingScope`
+            contextValue: undefined,
             bindingScope: bindingScope,
         });
 
@@ -691,7 +709,8 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
 
         if (ExpressionUtils.isThis(expr.receiver)) {
             if (expr.members.length === 1) {
-                // `this.relation` case, equivalent to field access
+                // `this.relation` case, equivalent to field access; keep memberFilter/memberSelect
+                // so `_field` can build the collection-predicate subquery (count/filter)
                 return this._field(ExpressionUtils.field(expr.members[0]!), {
                     ...context,
                     alias: context.thisAlias,
@@ -700,9 +719,15 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                     contextValue: undefined,
                 });
             } else {
-                // transform the first segment into a relation access, then continue with the rest of the members
+                // transform the first segment into a relation access, then continue with the rest of
+                // the members; root the chain at the correct context model (thisType/thisAlias)
                 const firstMemberFieldDef = QueryUtils.requireField(this.schema, context.thisType, expr.members[0]!);
-                receiver = this.transformRelationAccess(expr.members[0]!, firstMemberFieldDef.type, restContext);
+                receiver = this.transformRelationAccess(expr.members[0]!, firstMemberFieldDef.type, {
+                    ...restContext,
+                    alias: context.thisAlias,
+                    modelOrType: context.thisType,
+                    contextValue: undefined,
+                });
                 members = expr.members.slice(1);
                 // startType should be the type of the relation access
                 startType = firstMemberFieldDef.type;
@@ -977,6 +1002,10 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         return ExpressionUtils.isMember(expr) && this.isAuthCall(expr.receiver);
     }
 
+    private isThisRootedMember(expr: Expression) {
+        return ExpressionUtils.isMember(expr) && ExpressionUtils.isThis(expr.receiver);
+    }
+
     private isNullNode(node: OperationNode) {
         return ValueNode.is(node) && node.value === null;
     }
@@ -1007,29 +1036,37 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             ExpressionUtils.isMember(expr) && ExpressionUtils.isThis(expr.receiver)
                 ? context.thisType
                 : context.modelOrType;
-        if (ExpressionUtils.isField(expr)) {
-            return QueryUtils.getField(this.schema, model, expr.field);
-        } else if (
-            ExpressionUtils.isMember(expr) &&
-            expr.members.length === 1 &&
-            ExpressionUtils.isThis(expr.receiver)
-        ) {
-            return QueryUtils.getField(this.schema, model, expr.members[0]!);
-        } else if (ExpressionUtils.isMember(expr) && ExpressionUtils.isField(expr.receiver)) {
-            // relation chain access (e.g. `owner.id`, `user.profile.uuid_field`): walk the
-            // relation hops and return the terminal field's FieldDef so native-type info
-            // (@db.*) is available for casting in buildComparison
-            const receiverDef = QueryUtils.getField(this.schema, model, expr.receiver.field);
-            if (!receiverDef?.relation) return undefined;
-            let currModel = receiverDef.type;
-            for (let i = 0; i < expr.members.length - 1; i++) {
-                const hopDef = QueryUtils.getField(this.schema, currModel, expr.members[i]!);
+
+        // walks a chain of member names from `startModel`, treating all but the last segment as
+        // relation hops, and returns the terminal field's FieldDef; returns undefined if any
+        // segment is missing or an intermediate hop is not a relation.
+        const walkRelationChain = (startModel: string, members: string[]): FieldDef | undefined => {
+            let currModel = startModel;
+            for (let i = 0; i < members.length - 1; i++) {
+                const hopDef = QueryUtils.getField(this.schema, currModel, members[i]!);
                 if (!hopDef?.relation) return undefined;
                 currModel = hopDef.type;
             }
-            return QueryUtils.getField(this.schema, currModel, expr.members[expr.members.length - 1]!);
-        } else {
-            return undefined;
+            return QueryUtils.getField(this.schema, currModel, members[members.length - 1]!);
+        };
+
+        if (ExpressionUtils.isField(expr)) {
+            return QueryUtils.getField(this.schema, model, expr.field);
+        } else if (ExpressionUtils.isMember(expr)) {
+            if (ExpressionUtils.isThis(expr.receiver)) {
+                // `this.<...>.field` chain rooted at the `this` model.
+                return walkRelationChain(model, expr.members);
+            } else if (ExpressionUtils.isBinding(expr.receiver)) {
+                // `binding.<...>.field` chain rooted at a collection-predicate binding.
+                const binding = this.requireBindingScope(expr.receiver, context);
+                return walkRelationChain(binding.type, expr.members);
+            } else if (ExpressionUtils.isField(expr.receiver)) {
+                // relation chain access (e.g. `owner.id`, `user.profile.uuid_field`): the field
+                // receiver is the first hop, so native-type info (@db.*) on the terminal field is
+                // available for casting in buildComparison.
+                return walkRelationChain(model, [expr.receiver.field, ...expr.members]);
+            }
         }
+        return undefined;
     }
 }
