@@ -117,5 +117,38 @@ export async function createProject(
 
 export function runCli(command: string, cwd: string) {
     const cli = path.join(__dirname, '../dist/index.mjs');
-    execSync(`node ${cli} ${command}`, { cwd });
+    const start = Date.now();
+    let output: string;
+    try {
+        output = execSync(`node ${cli} ${command}`, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    } catch (err: any) {
+        console.error(`[runCli] "${command}" FAILED in ${cwd} after ${Date.now() - start}ms`);
+        console.error(`[runCli] status=${err.status} signal=${err.signal}`);
+        console.error(`[runCli] stdout:\n${err.stdout}`);
+        console.error(`[runCli] stderr:\n${err.stderr}`);
+        throw err;
+    }
+    const cwdExists = fs.existsSync(cwd);
+    console.log(
+        `[runCli] "${command}" cwd=${cwd} took=${Date.now() - start}ms exit=0 cwdExistsAfter=${cwdExists}\n` +
+            `[runCli] dir listing: ${cwdExists ? listDirs(cwd) : 'N/A'}\n` +
+            `[runCli] output:\n${output}`,
+    );
+    if (!cwdExists) {
+        throw new Error(`[runCli] workDir vanished after "${command}": ${cwd}`);
+    }
+    return output;
+}
+
+function listDirs(cwd: string) {
+    const lines: string[] = [];
+    for (const entry of fs.readdirSync(cwd)) {
+        lines.push(entry);
+        if (entry !== 'node_modules' && fs.statSync(path.join(cwd, entry)).isDirectory()) {
+            for (const sub of fs.readdirSync(path.join(cwd, entry))) {
+                lines.push(`${entry}/${sub}`);
+            }
+        }
+    }
+    return lines.join(', ');
 }
