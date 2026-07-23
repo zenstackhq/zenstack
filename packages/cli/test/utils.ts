@@ -126,6 +126,9 @@ export function runCli(command: string, cwd: string) {
         console.error(`[runCli] status=${err.status} signal=${err.signal}`);
         console.error(`[runCli] stdout:\n${err.stdout}`);
         console.error(`[runCli] stderr:\n${err.stderr}`);
+        // with the 2>&1 redirect the CLI's error text lands in stdout; fold it back into
+        // the error message so tests matching on it (toThrow(/.../)) keep working
+        err.message = `${err.message}\n${err.stdout ?? ''}${err.stderr ?? ''}`;
         throw err;
     }
     const cwdExists = fs.existsSync(cwd);
