@@ -117,5 +117,14 @@ export async function createProject(
 
 export function runCli(command: string, cwd: string) {
     const cli = path.join(__dirname, '../dist/index.mjs');
-    execSync(`node ${cli} ${command}`, { cwd });
+    try {
+        return execSync(`node ${cli} ${command}`, { cwd, encoding: 'utf8' });
+    } catch (err: any) {
+        // surface the child's output in the test log — without this, CLI failures show up
+        // as bare assertion errors with no clue about what the CLI actually did
+        console.error(`[runCli] "${command}" failed in ${cwd} (status=${err.status}, signal=${err.signal})`);
+        console.error(`[runCli] stdout:\n${err.stdout}`);
+        console.error(`[runCli] stderr:\n${err.stderr}`);
+        throw err;
+    }
 }
