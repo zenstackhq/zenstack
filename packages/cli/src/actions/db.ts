@@ -168,23 +168,29 @@ async function runPull(options: PullOptions) {
             });
             resolvedRelations.push(...relations);
         }
+        // Normalize schema values: MySQL uses null for references.schema but '' for table.schema;
+        // treat null, undefined, and '' as equivalent when comparing schemas.
+        const schemasMatch = (a: string | null | undefined, b: string | null | undefined) =>
+            (a ?? '') === (b ?? '');
+
         // sync relation fields
         for (const relation of resolvedRelations) {
             const similarRelations = resolvedRelations.filter((rr) => {
                 return (
                     rr !== relation &&
-                    ((rr.schema === relation.schema &&
+                    ((schemasMatch(rr.schema, relation.schema) &&
                         rr.table === relation.table &&
-                        rr.references.schema === relation.references.schema &&
+                        schemasMatch(rr.references.schema, relation.references.schema) &&
                         rr.references.table === relation.references.table) ||
-                        (rr.schema === relation.references.schema &&
-                            rr.columns[0] === relation.references.columns[0] &&
-                            rr.references.schema === relation.schema &&
+                        (schemasMatch(rr.schema, relation.references.schema) &&
+                            rr.table === relation.references.table &&
+                            schemasMatch(rr.references.schema, relation.schema) &&
                             rr.references.table === relation.table))
                 );
             }).length;
             const selfRelation =
-                relation.references.schema === relation.schema && relation.references.table === relation.table;
+                schemasMatch(relation.references.schema, relation.schema) &&
+                relation.references.table === relation.table;
             syncRelation({
                 model: newModel,
                 relation,
