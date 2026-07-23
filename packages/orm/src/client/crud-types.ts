@@ -142,7 +142,15 @@ type FlatModelResult<
     Omit,
     Options extends QueryOptions<Schema>,
 > = {
-    [Key in NonRelationFields<Schema, Model> as ShouldOmitField<Schema, Model, Options, Key, Omit> extends true
+    // parameterized computed fields require query-time args, so they are not
+    // auto-returned (only usable in `orderBy`)
+    [Key in NonParamComputedNonRelationFields<Schema, Model> as ShouldOmitField<
+        Schema,
+        Model,
+        Options,
+        Key,
+        Omit
+    > extends true
         ? never
         : Key]: MapModelFieldType<Schema, Model, Key>;
 };
@@ -337,11 +345,15 @@ export type WhereInput<
     ScalarOnly extends boolean = false,
     WithAggregations extends boolean = false,
 > = {
-    [Key in GetModelFields<Schema, Model> as ScalarOnly extends true
-        ? Key extends RelationFields<Schema, Model>
-            ? never
-            : Key
-        : Key]?: FieldFilter<Schema, Model, Key, Options, WithAggregations>;
+    // parameterized computed fields are excluded here — filtering them would require
+    // query-time args; they are currently only usable in `orderBy`
+    [Key in GetModelFields<Schema, Model> as FieldHasComputedArgs<Schema, Model, Key> extends true
+        ? never
+        : ScalarOnly extends true
+          ? Key extends RelationFields<Schema, Model>
+              ? never
+              : Key
+          : Key]?: FieldFilter<Schema, Model, Key, Options, WithAggregations>;
 } & {
     $expr?: (eb: ExpressionBuilder<ToKyselySchema<Schema>, Model>) => OperandExpression<SqlBool>;
 } & {
@@ -1129,27 +1141,83 @@ export type FtsRelevanceOrderBy<Schema extends SchemaDef, Model extends GetModel
     };
 };
 
+/**
+ * The query-time arguments object of a parameterized computed field, derived from the
+ * generated `computedFields` stub signature `(context, args) => R` — the same source
+ * `ComputedFieldsOptions` reads, so the implementation signature and the query-time args
+ * can never drift apart. Resolves to `never` for non-parameterized fields.
+ */
+export type ComputedFieldArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Field extends GetModelFields<Schema, Model>,
+> = 'computedFields' extends keyof GetModel<Schema, Model>
+    ? Field extends keyof GetModel<Schema, Model>['computedFields']
+        ? GetModel<Schema, Model>['computedFields'][Field] extends (...args: infer P) => any
+            ? P extends [any, infer Args]
+                ? Args
+                : never
+            : never
+        : never
+    : never;
+
+/**
+ * Whether `Field` is a parameterized computed field (its args object is not `never`).
+ */
+export type FieldHasComputedArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Field extends GetModelFields<Schema, Model>,
+> = [ComputedFieldArgs<Schema, Model, Field>] extends [never] ? false : true;
+
+/**
+ * `NonRelationFields` with parameterized computed fields removed. Used where a field can only be
+ * referenced by name, with no slot to carry `args` (groupBy `by`, `distinct`).
+ */
+export type NonParamComputedNonRelationFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = keyof {
+    [Key in NonRelationFields<Schema, Model> as FieldHasComputedArgs<Schema, Model, Key> extends true
+        ? never
+        : Key]: 0;
+};
+
 export type OrderBy<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     WithRelation extends boolean,
     WithAggregation extends boolean,
 > = {
-    [Key in NonRelationFields<Schema, Model>]?: ModelFieldIsOptional<Schema, Model, Key> extends true
-        ?
-              | SortOrder
-              | {
-                    /**
-                     * Sort order
-                     */
-                    sort: SortOrder;
+    [Key in NonRelationFields<Schema, Model>]?: FieldHasComputedArgs<Schema, Model, Key> extends true
+        ? {
+              /**
+               * Arguments for the parameterized computed field.
+               */
+              args: ComputedFieldArgs<Schema, Model, Key>;
 
-                    /**
-                     * Treatment of null values
-                     */
-                    nulls?: NullsOrder;
-                }
-        : SortOrder;
+              /**
+               * Sort order
+               */
+              sort: SortOrder;
+
+              /**
+               * Treatment of null values
+               */
+              nulls?: NullsOrder;
+          }
+        : ModelFieldIsOptional<Schema, Model, Key> extends true
+          ?
+                | SortOrder
+                | {
+                      /**
+                       * Sort order
+                       */
+                      sort: SortOrder;
+
+                      /**
+                       * Treatment of null values
+                       */
+                      nulls?: NullsOrder;
+                  }
+          : SortOrder;
 } & (WithRelation extends true
     ? {
           [Key in RelationFields<Schema, Model>]?: FieldIsArray<Schema, Model, Key> extends true
@@ -1260,7 +1328,9 @@ export type SelectInput<
     AllowRelation extends boolean = true,
     ExtResult extends ExtResultBase<Schema> = {},
 > = {
-    [Key in NonRelationFields<Schema, Model>]?: boolean;
+    // parameterized computed fields are excluded — selecting them would require
+    // query-time args; they are currently only usable in `orderBy`
+    [Key in NonParamComputedNonRelationFields<Schema, Model>]?: boolean;
 } & (AllowRelation extends true ? IncludeInput<Schema, Model, Options, AllowCount, ExtResult> : {});
 
 type SelectCount<Schema extends SchemaDef, Model extends GetModels<Schema>, Options extends QueryOptions<Schema>> =
@@ -1514,7 +1584,7 @@ export type FindArgs<
                     /**
                      * Distinct fields. Only supported by providers that natively support SQL "DISTINCT ON".
                      */
-                    distinct?: OrArray<NonRelationFields<Schema, Model>>;
+                    distinct?: OrArray<NonParamComputedNonRelationFields<Schema, Model>>;
                 }
               : {})
     : {}) &
@@ -2219,7 +2289,10 @@ export type CountArgs<
 } & ExtractExtQueryArgs<ExtQueryArgs, 'count'>;
 
 type CountAggregateInput<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
-    [Key in NonRelationFields<Schema, Model>]?: true;
+    // a parameterized computed field has no `args` slot in `_count`, so it is excluded
+    [Key in NonRelationFields<Schema, Model> as FieldHasComputedArgs<Schema, Model, Key> extends true
+        ? never
+        : Key]?: true;
 } & { _all?: true };
 
 export type CountResult<Schema extends SchemaDef, _Model extends GetModels<Schema>, Args> = Args extends {
@@ -2298,7 +2371,10 @@ type NumericFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = 
         | 'Decimal'
         ? FieldIsArray<Schema, Model, Key> extends true
             ? never
-            : Key
+            : // a parameterized computed field has no `args` slot in `_sum`/`_avg`, so it is excluded
+              FieldHasComputedArgs<Schema, Model, Key> extends true
+              ? never
+              : Key
         : never]: GetModelField<Schema, Model, Key>;
 };
 
@@ -2311,7 +2387,10 @@ type MinMaxInput<Schema extends SchemaDef, Model extends GetModels<Schema>, Valu
         ? never
         : FieldIsRelation<Schema, Model, Key> extends true
           ? never
-          : Key]?: ValueType;
+          : // a parameterized computed field has no `args` slot in `_min`/`_max`, so it is excluded
+            FieldHasComputedArgs<Schema, Model, Key> extends true
+            ? never
+            : Key]?: ValueType;
 };
 
 export type AggregateResult<Schema extends SchemaDef, _Model extends GetModels<Schema>, Args> = (Args extends {
@@ -2394,7 +2473,9 @@ export type GroupByArgs<
     /**
      * Fields to group by
      */
-    by: NonRelationFields<Schema, Model> | NonEmptyArray<NonRelationFields<Schema, Model>>;
+    by:
+        | NonParamComputedNonRelationFields<Schema, Model>
+        | NonEmptyArray<NonParamComputedNonRelationFields<Schema, Model>>;
 
     /**
      * Filter conditions for the grouped records
