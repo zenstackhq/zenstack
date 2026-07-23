@@ -53,9 +53,13 @@ export function execPrisma(args: string, options?: Omit<ExecSyncOptions, 'env'> 
 
     if (!prismaPath) {
         // fallback to npx/bunx execute
+        console.error(`[zen-diag] execPrisma FALLBACK to npx/bunx, args=${args}`);
         execPackage(`prisma ${args}`, _options);
+        console.error(`[zen-diag] execPrisma npx/bunx fallback returned`);
         return;
     }
 
+    console.error(`[zen-diag] execPrisma spawning: node "${prismaPath}" ${args}`);
     execSync(`node "${prismaPath}" ${args}`, _options);
+    console.error(`[zen-diag] execPrisma child returned`);
 }

@@ -120,7 +120,7 @@ export function runCli(command: string, cwd: string) {
     const start = Date.now();
     let output: string;
     try {
-        output = execSync(`node ${cli} ${command}`, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+        output = execSync(`node ${cli} ${command} 2>&1`, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
     } catch (err: any) {
         console.error(`[runCli] "${command}" FAILED in ${cwd} after ${Date.now() - start}ms`);
         console.error(`[runCli] status=${err.status} signal=${err.signal}`);

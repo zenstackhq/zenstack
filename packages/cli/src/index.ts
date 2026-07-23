@@ -300,6 +300,8 @@ Arguments following -- are passed to the seed script. E.g.: "zen db seed -- --us
 async function main() {
     let exitCode = 0;
 
+    console.error(`[zen-diag] main start pid=${process.pid} node=${process.version} argv=${process.argv.slice(2).join(' ')}`);
+
     const program = createProgram();
     program.exitOverride();
 
@@ -311,6 +313,7 @@ async function main() {
         if (e instanceof CommanderError) {
             // ignore
             exitCode = e.exitCode;
+            console.error(`[zen-diag] CommanderError code=${e.code} exitCode=${e.exitCode} message=${e.message}`);
         } else if (e instanceof CliError) {
             // log
             console.error(colors.red(e.message));
@@ -320,6 +323,8 @@ async function main() {
             exitCode = 1;
         }
     }
+
+    console.error(`[zen-diag] main end exitCode=${exitCode}`);
 
     if (
         (program.args.includes('generate') && (program.args.includes('-w') || program.args.includes('--watch'))) ||
