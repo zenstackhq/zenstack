@@ -63,7 +63,9 @@ export async function loadSchemaDocument(
     const returnServices = opts.returnServices ?? false;
     const mergeImports = opts.mergeImports ?? true;
 
+    console.error(`[zen-diag] loadSchemaDocument start ${schemaFile}`);
     const loadResult = await loadDocument(schemaFile, [], mergeImports);
+    console.error(`[zen-diag] loadSchemaDocument end`);
     if (!loadResult.success) {
         loadResult.errors.forEach((err) => {
             console.error(colors.red(err));

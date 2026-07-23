@@ -290,7 +290,9 @@ Arguments following -- are passed to the seed script. E.g.: "zen db seed -- --us
 
     program.hook('preAction', async (_thisCommand, actionCommand) => {
         if (actionCommand.getOptionValue('versionCheck') !== false) {
+            console.error(`[zen-diag] checkNewVersion start`);
             await checkNewVersion();
+            console.error(`[zen-diag] checkNewVersion end`);
         }
     });
 
@@ -301,6 +303,14 @@ async function main() {
     let exitCode = 0;
 
     console.error(`[zen-diag] main start pid=${process.pid} node=${process.version} argv=${process.argv.slice(2).join(' ')}`);
+    process.on('beforeExit', (code) => {
+        // fires only when the event loop drains naturally (NOT on process.exit) — if we ever
+        // see this, some await never resolved and node is exiting mid-flight
+        console.error(`[zen-diag] beforeExit fired! code=${code} — event loop drained mid-execution`);
+    });
+    process.on('exit', (code) => {
+        console.error(`[zen-diag] process exit code=${code}`);
+    });
 
     const program = createProgram();
     program.exitOverride();
