@@ -408,9 +408,9 @@ export class ZodSchemaFactory<
     }
 
     // A parameterized computed field declares query-time `params`. Unlike a plain computed
-    // field, it can't be evaluated without an `args` object, so it is excluded from contexts
-    // that have no slot to carry `args` (where/select/omit, the aggregate inputs, and
-    // groupBy `by`). It is currently only usable in `orderBy`.
+    // field, it can't be evaluated without an `args` object, so wherever it is used the `args`
+    // are supplied alongside it: `orderBy`, `where`/`having`, `select`/`include`, the aggregate
+    // inputs (`_count`/`_min`/`_max`/`_sum`/`_avg`), and groupBy `by` (as a `{ field, args }` entry).
     private isParameterizedComputedField(fieldDef: FieldDef): boolean {
         return !!(fieldDef.computed && fieldDef.params);
     }

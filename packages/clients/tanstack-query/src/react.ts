@@ -84,6 +84,7 @@ export { AnyNull, DbNull, JsonNull } from '@zenstackhq/client-helpers';
 export type { InferExtResult, InferOptions, InferSchema } from '@zenstackhq/client-helpers';
 export type { FetchFn } from '@zenstackhq/client-helpers/fetch';
 export type { SchemaDef } from '@zenstackhq/schema';
+export { getQueryKey } from './common/query-key.js';
 
 type ProcedureHookFn<
     Schema extends SchemaDef,
