@@ -35,7 +35,8 @@ export class GroupByOperationHandler<Schema extends SchemaDef> extends BaseOpera
                 // group a computed field by its SELECT output alias so GROUP BY and the projected
                 // expression stay identical (re-inlining a parameterized computer binds its args as
                 // separate placeholders, which Postgres treats as distinct expressions)
-                return fieldDef?.computed ? sql.ref(e.field) : fieldRef(e.field, e.args);
+                // (only parameterized computed fields carry `args`, and they take the branch above)
+                return fieldDef?.computed ? sql.ref(e.field) : fieldRef(e.field);
             }),
         );
 
