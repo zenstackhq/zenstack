@@ -1074,13 +1074,10 @@ export class TsSchemaGenerator {
                 continue;
             }
             if (otherField.type.reference?.ref === sourceModel) {
-                if (relationName) {
-                    // if relation has a name, the opposite side must match
-                    const otherRelationName = this.getRelationName(otherField);
-                    if (otherRelationName === relationName) {
-                        return otherField;
-                    }
-                } else {
+                // relation names must match on both sides, including the case where neither side
+                // is named - otherwise an unnamed relation can be paired with a named one that
+                // happens to be declared first
+                if (this.getRelationName(otherField) === relationName) {
                     return otherField;
                 }
             }
