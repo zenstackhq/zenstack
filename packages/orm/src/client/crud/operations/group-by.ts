@@ -1,4 +1,5 @@
 import type { SchemaDef } from '@zenstackhq/schema';
+import { sql } from 'kysely';
 import { match } from 'ts-pattern';
 import { aggregate, getField } from '../../query-utils';
 import { BaseOperationHandler } from './base';
@@ -15,11 +16,29 @@ export class GroupByOperationHandler<Schema extends SchemaDef> extends BaseOpera
             .selectFrom(this.model as string)
             .where(() => this.dialect.buildFilter(this.model, this.model, parsedArgs?.where));
 
-        const fieldRef = (field: string) => this.dialect.fieldRef(this.model, field);
+        // `computedArgs` is set when aggregating a parameterized computed field; the model name
+        // is passed as the alias so a computed field that references `ctx.modelAlias` resolves
+        // against the grouped table
+        const fieldRef = (field: string, computedArgs?: unknown) =>
+            this.dialect.fieldRef(this.model, field, this.model, true, computedArgs);
 
-        // groupBy
-        const bys = typeof parsedArgs.by === 'string' ? [parsedArgs.by] : (parsedArgs.by as string[]);
-        query = query.groupBy(bys.map((by) => fieldRef(by)));
+        // groupBy — a parameterized computed field is a `{ field, args }` entry; others are names
+        const rawBys = Array.isArray(parsedArgs.by) ? parsedArgs.by : [parsedArgs.by];
+        const byEntries = rawBys.map((by: any) =>
+            typeof by === 'string'
+                ? { field: by as string, args: undefined as unknown }
+                : { field: by.field as string, args: by.args as unknown },
+        );
+        query = query.groupBy(
+            byEntries.map((e) => {
+                const fieldDef = getField(this.schema, this.model, e.field);
+                // group a computed field by its SELECT output alias so GROUP BY and the projected
+                // expression stay identical (re-inlining a parameterized computer binds its args as
+                // separate placeholders, which Postgres treats as distinct expressions)
+                // (only parameterized computed fields carry `args`, and they take the branch above)
+                return fieldDef?.computed ? sql.ref(e.field) : fieldRef(e.field);
+            }),
+        );
 
         // skip & take
         const skip = parsedArgs?.skip;
@@ -40,8 +59,8 @@ export class GroupByOperationHandler<Schema extends SchemaDef> extends BaseOpera
         }
 
         // select all by fields
-        for (const by of bys) {
-            query = query.select(() => fieldRef(by).as(by));
+        for (const e of byEntries) {
+            query = query.select(() => fieldRef(e.field, e.args).as(e.field));
         }
 
         // aggregations
@@ -52,14 +71,15 @@ export class GroupByOperationHandler<Schema extends SchemaDef> extends BaseOpera
                         query = query.select((eb) => this.dialect.castInt(eb.fn.countAll()).as('_count'));
                     } else {
                         Object.entries(value).forEach(([field, val]) => {
-                            if (val === true) {
+                            const args = val && typeof val === 'object' && 'args' in val ? (val as any).args : undefined;
+                            if (val === true || args !== undefined) {
                                 if (field === '_all') {
                                     query = query.select((eb) =>
                                         this.dialect.castInt(eb.fn.countAll()).as(`_count._all`),
                                     );
                                 } else {
                                     query = query.select((eb) =>
-                                        this.dialect.castInt(eb.fn.count(fieldRef(field))).as(`${key}.${field}`),
+                                        this.dialect.castInt(eb.fn.count(fieldRef(field, args))).as(`${key}.${field}`),
                                     );
                                 }
                             }
@@ -73,8 +93,9 @@ export class GroupByOperationHandler<Schema extends SchemaDef> extends BaseOpera
                 case '_max':
                 case '_min': {
                     Object.entries(value).forEach(([field, val]) => {
-                        if (val === true) {
-                            query = query.select((eb) => aggregate(eb, fieldRef(field), key).as(`${key}.${field}`));
+                        const args = val && typeof val === 'object' && 'args' in val ? (val as any).args : undefined;
+                        if (val === true || args !== undefined) {
+                            query = query.select((eb) => aggregate(eb, fieldRef(field, args), key).as(`${key}.${field}`));
                         }
                     });
                     break;

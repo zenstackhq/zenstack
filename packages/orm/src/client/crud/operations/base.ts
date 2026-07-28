@@ -344,8 +344,12 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
 
             const fieldDef = this.requireField(model, field);
             if (!fieldDef.relation) {
-                // scalar field
-                result = this.dialect.buildSelectField(result, model, parentAlias, field);
+                // scalar field — a parameterized computed field carries its query-time `args`
+                const computedArgs =
+                    fieldDef.computed && fieldDef.params && typeof payload === 'object' && 'args' in payload
+                        ? payload.args
+                        : undefined;
+                result = this.dialect.buildSelectField(result, model, parentAlias, field, computedArgs);
             } else {
                 if (!fieldDef.array && !fieldDef.optional && payload.where) {
                     throw createInternalError(`Field "${field}" does not support filtering`, model);
@@ -2091,7 +2095,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                     // read parent's fk
                     const fromEntity = await this.readUnique(kysely, fromRelation.model, {
                         where: fromRelation.ids,
-                        select: fieldsToSelectObject(keyPairs.map(({ fk }) => fk)),
+                        select: fieldsToSelectObject(keyPairs.map(({ fk }) => fk)) as any,
                     });
                     if (!fromEntity || keyPairs.some(({ fk }) => fromEntity[fk] == null)) {
                         return;

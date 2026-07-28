@@ -236,12 +236,27 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             if (fieldDef.relation) {
                 result = this.and(result, this.buildRelationFilter(model, modelAlias, key, fieldDef, payload));
             } else {
+                // a parameterized computed field carries its query-time `args` alongside the filter
+                // operators; pull them out so they reach the implementation, and filter on the rest
+                let computedArgs: unknown;
+                let filterPayload = payload;
+                if (fieldDef.computed && fieldDef.params && payload && typeof payload === 'object' && 'args' in payload) {
+                    computedArgs = (payload as any).args;
+                    const { args: _args, ...rest } = payload as any;
+                    filterPayload = rest;
+                }
                 // if the field is from a base model, build a reference from that model
-                const fieldRef = this.fieldRef(fieldDef.originModel ?? model, key, fieldDef.originModel ?? modelAlias);
+                const fieldRef = this.fieldRef(
+                    fieldDef.originModel ?? model,
+                    key,
+                    fieldDef.originModel ?? modelAlias,
+                    true,
+                    computedArgs,
+                );
                 if (fieldDef.array) {
-                    result = this.and(result, this.buildArrayFilter(fieldRef, fieldDef, payload));
+                    result = this.and(result, this.buildArrayFilter(fieldRef, fieldDef, filterPayload));
                 } else {
-                    result = this.and(result, this.buildPrimitiveFilter(fieldRef, fieldDef, payload));
+                    result = this.and(result, this.buildPrimitiveFilter(fieldRef, fieldDef, filterPayload));
                 }
             }
         }
@@ -1460,6 +1475,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         model: string,
         modelAlias: string,
         field: string,
+        computedArgs?: unknown,
     ): SelectQueryBuilder<any, any, any> {
         const fieldDef = requireField(this.schema, model, field);
 
@@ -1468,7 +1484,8 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         const fieldModel = fieldDef.originModel ?? model;
         const alias = fieldDef.originModel ?? modelAlias;
 
-        return query.select(() => this.fieldRef(fieldModel, field, alias).as(field));
+        // `computedArgs` is set for a parameterized computed field selected via `select`/`include`
+        return query.select(() => this.fieldRef(fieldModel, field, alias, true, computedArgs).as(field));
     }
 
     buildDelegateJoin(

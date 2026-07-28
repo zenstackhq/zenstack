@@ -408,9 +408,9 @@ export class ZodSchemaFactory<
     }
 
     // A parameterized computed field declares query-time `params`. Unlike a plain computed
-    // field, it can't be evaluated without an `args` object, so it is excluded from contexts
-    // that have no slot to carry `args` (where/select/omit, the aggregate inputs, and
-    // groupBy `by`). It is currently only usable in `orderBy`.
+    // field, it can't be evaluated without an `args` object, so wherever it is used the `args`
+    // are supplied alongside it: `orderBy`, `where`/`having`, `select`/`include`, the aggregate
+    // inputs (`_count`/`_min`/`_max`/`_sum`/`_avg`), and groupBy `by` (as a `{ field, args }` entry).
     private isParameterizedComputedField(fieldDef: FieldDef): boolean {
         return !!(fieldDef.computed && fieldDef.params);
     }
@@ -432,6 +432,18 @@ export class ZodSchemaFactory<
                 }),
             ),
         );
+    }
+
+    // Wraps a field's normal filter schema so a parameterized computed field carries its
+    // query-time `args` alongside the filter operators. `args` is required and the bare-value
+    // shorthand is dropped (the field can't be filtered without args). Works uniformly across
+    // field types: the operator components are lifted from the existing filter object(s) (the
+    // filter schema is either `value | { ...ops }` or a bare `{ ...ops }`).
+    private addComputedArgsToFilter(filterSchema: ZodType, params: NonNullable<FieldDef['params']>): ZodType {
+        const members: any[] = filterSchema instanceof z.ZodUnion ? (filterSchema.options as any[]) : [filterSchema];
+        const objectMembers = members.filter((m) => m instanceof z.ZodObject);
+        const components: Record<string, ZodType> = Object.assign({}, ...objectMembers.map((o) => o.shape));
+        return z.strictObject({ args: this.makeFieldArgsSchema(params), ...components });
     }
 
     @cache()
@@ -503,11 +515,6 @@ export class ZodSchemaFactory<
 
         const fields: Record<string, any> = {};
         for (const [field, fieldDef] of this.getModelFields(model)) {
-            // a parameterized computed field can't be filtered without `args`; excluded from `where`
-            if (this.isParameterizedComputedField(fieldDef)) {
-                continue;
-            }
-
             let fieldSchema: ZodType | undefined;
 
             if (fieldDef.relation) {
@@ -584,6 +591,12 @@ export class ZodSchemaFactory<
                         !!fieldDef.fullText,
                     );
                 }
+            }
+
+            if (fieldSchema && this.isParameterizedComputedField(fieldDef)) {
+                // a parameterized computed field carries its query-time `args` alongside the
+                // filter operators (args required; the bare-value shorthand is dropped)
+                fieldSchema = this.addComputedArgsToFilter(fieldSchema, fieldDef.params!);
             }
 
             if (fieldSchema) {
@@ -1176,8 +1189,9 @@ export class ZodSchemaFactory<
     private makeSelectSchema(model: string, options?: CreateSchemaOptions) {
         const fields: Record<string, ZodType> = {};
         for (const [field, fieldDef] of this.getModelFields(model)) {
-            // a parameterized computed field can't be selected without `args`; excluded from `select`
             if (this.isParameterizedComputedField(fieldDef)) {
+                // a parameterized computed field is selected by supplying its query-time `args`
+                fields[field] = z.strictObject({ args: this.makeFieldArgsSchema(fieldDef.params!) }).optional();
                 continue;
             }
             if (fieldDef.relation) {
@@ -1375,6 +1389,9 @@ export class ZodSchemaFactory<
                 if (this.isModelAllowed(fieldDef.type)) {
                     fields[field] = this.makeRelationSelectIncludeSchema(model, field, options).optional();
                 }
+            } else if (this.isParameterizedComputedField(fieldDef)) {
+                // a parameterized computed field is included by supplying its query-time `args`
+                fields[field] = z.strictObject({ args: this.makeFieldArgsSchema(fieldDef.params!) }).optional();
             }
         }
 
@@ -2154,10 +2171,10 @@ export class ZodSchemaFactory<
                 _all: z.literal(true).optional(),
                 ...this.getModelFields(model).reduce(
                     (acc, [field, fieldDef]) => {
-                        // a parameterized computed field has no `args` slot in `_count`
-                        if (!this.isParameterizedComputedField(fieldDef)) {
-                            acc[field] = z.literal(true).optional();
-                        }
+                        // a parameterized computed field is counted by supplying its `args`
+                        acc[field] = this.isParameterizedComputedField(fieldDef)
+                            ? z.strictObject({ args: this.makeFieldArgsSchema(fieldDef.params!) }).optional()
+                            : z.literal(true).optional();
                         return acc;
                     },
                     {} as Record<string, ZodType>,
@@ -2200,8 +2217,11 @@ export class ZodSchemaFactory<
         const schema = z.strictObject(
             this.getModelFields(model).reduce(
                 (acc, [field, fieldDef]) => {
-                    if (this.isNumericField(fieldDef) && !this.isParameterizedComputedField(fieldDef)) {
-                        acc[field] = z.literal(true).optional();
+                    if (this.isNumericField(fieldDef)) {
+                        // a parameterized computed field is aggregated by supplying its `args`
+                        acc[field] = this.isParameterizedComputedField(fieldDef)
+                            ? z.strictObject({ args: this.makeFieldArgsSchema(fieldDef.params!) }).optional()
+                            : z.literal(true).optional();
                     }
                     return acc;
                 },
@@ -2217,8 +2237,11 @@ export class ZodSchemaFactory<
         const schema = z.strictObject(
             this.getModelFields(model).reduce(
                 (acc, [field, fieldDef]) => {
-                    if (!fieldDef.relation && !fieldDef.array && !this.isParameterizedComputedField(fieldDef)) {
-                        acc[field] = z.literal(true).optional();
+                    if (!fieldDef.relation && !fieldDef.array) {
+                        // a parameterized computed field is aggregated by supplying its `args`
+                        acc[field] = this.isParameterizedComputedField(fieldDef)
+                            ? z.strictObject({ args: this.makeFieldArgsSchema(fieldDef.params!) }).optional()
+                            : z.literal(true).optional();
                     }
                     return acc;
                 },
@@ -2241,10 +2264,26 @@ export class ZodSchemaFactory<
         const nonRelationFields = this.getModelFields(model)
             .filter(([, def]) => !def.relation && !this.isParameterizedComputedField(def))
             .map(([name]) => name);
-        const bySchema =
-            nonRelationFields.length > 0
-                ? this.orArray(z.enum(nonRelationFields as [string, ...string[]]), true)
-                : z.never();
+        const byMembers: ZodType[] = [];
+        if (nonRelationFields.length > 0) {
+            byMembers.push(z.enum(nonRelationFields as [string, ...string[]]));
+        }
+        // a parameterized computed field is grouped by a `{ field, args }` entry (it can't be
+        // named on its own — it needs query-time args)
+        for (const [field, fieldDef] of this.getModelFields(model)) {
+            if (this.isParameterizedComputedField(fieldDef)) {
+                byMembers.push(
+                    z.strictObject({ field: z.literal(field), args: this.makeFieldArgsSchema(fieldDef.params!) }),
+                );
+            }
+        }
+        const byElement =
+            byMembers.length === 0
+                ? undefined
+                : byMembers.length === 1
+                  ? byMembers[0]!
+                  : z.union(byMembers as [ZodType, ZodType, ...ZodType[]]);
+        const bySchema = byElement ? this.orArray(byElement, true) : z.never();
 
         const baseSchema = z.strictObject({
             where: this.makeWhereSchema(model, false, false, false, options).optional(),
@@ -2264,7 +2303,8 @@ export class ZodSchemaFactory<
 
         // fields used in `having` must be either in the `by` list, or aggregations
         schema = schema.refine((value: any) => {
-            const bys = enumerate(value.by);
+            // normalize `by` entries to field names (a parameterized computed field is a `{ field, args }` entry)
+            const bys = enumerate(value.by).map((b: any) => (typeof b === 'string' ? b : b?.field));
             if (value.having && typeof value.having === 'object') {
                 for (const [key, val] of Object.entries(value.having)) {
                     if (AggregateOperators.includes(key as any)) {
@@ -2291,7 +2331,8 @@ export class ZodSchemaFactory<
 
         // fields used in `orderBy` must be either in the `by` list, or aggregations
         schema = schema.refine((value: any) => {
-            const bys = enumerate(value.by);
+            // normalize `by` entries to field names (a parameterized computed field is a `{ field, args }` entry)
+            const bys = enumerate(value.by).map((b: any) => (typeof b === 'string' ? b : b?.field));
             for (const orderBy of enumerate(value.orderBy)) {
                 if (
                     orderBy &&

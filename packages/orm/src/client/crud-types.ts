@@ -274,6 +274,14 @@ export type ModelResult<
                     FieldIsArray<Schema, Model, Key>,
                     ExtResult
                 >;
+            } & {
+                // an included parameterized computed field surfaces as its scalar return type
+                // (it is not auto-returned, so it only appears when explicitly included)
+                [Key in keyof I & NonRelationFields<Schema, Model> as I[Key] extends false | undefined
+                    ? never
+                    : FieldHasComputedArgs<Schema, Model, Key> extends true
+                      ? Key
+                      : never]: MapModelFieldType<Schema, Model, Key>;
             } & ('_count' extends keyof I
                     ? I['_count'] extends false | undefined
                         ? {}
@@ -345,15 +353,15 @@ export type WhereInput<
     ScalarOnly extends boolean = false,
     WithAggregations extends boolean = false,
 > = {
-    // parameterized computed fields are excluded here — filtering them would require
-    // query-time args; they are currently only usable in `orderBy`
-    [Key in GetModelFields<Schema, Model> as FieldHasComputedArgs<Schema, Model, Key> extends true
-        ? never
-        : ScalarOnly extends true
-          ? Key extends RelationFields<Schema, Model>
-              ? never
-              : Key
-          : Key]?: FieldFilter<Schema, Model, Key, Options, WithAggregations>;
+    [Key in GetModelFields<Schema, Model> as ScalarOnly extends true
+        ? Key extends RelationFields<Schema, Model>
+            ? never
+            : Key
+        : Key]?: FieldHasComputedArgs<Schema, Model, Key> extends true
+        ? // a parameterized computed field carries its query-time `args` alongside the filter
+          // operators; the intersection drops the bare-value shorthand (args must be supplied)
+          { args: ComputedFieldArgs<Schema, Model, Key> } & FieldFilter<Schema, Model, Key, Options, WithAggregations>
+        : FieldFilter<Schema, Model, Key, Options, WithAggregations>;
 } & {
     $expr?: (eb: ExpressionBuilder<ToKyselySchema<Schema>, Model>) => OperandExpression<SqlBool>;
 } & {
@@ -1355,26 +1363,34 @@ export type IncludeInput<
     AllowCount extends boolean = true,
     ExtResult extends ExtResultBase<Schema> = {},
 > = {
-    [Key in RelationFields<Schema, Model> as RelationFieldType<Schema, Model, Key> extends GetSlicedModels<
-        Schema,
-        Options
-    >
-        ? Key
-        : never]?:
-        | boolean
-        | FindArgs<
-              Schema,
-              RelationFieldType<Schema, Model, Key>,
-              Options,
-              FieldIsArray<Schema, Model, Key>,
-              // where clause is allowed only if the relation is array or optional
-              FieldIsArray<Schema, Model, Key> extends true
-                  ? true
-                  : ModelFieldIsOptional<Schema, Model, Key> extends true
-                    ? true
-                    : false,
-              ExtResult
-          >;
+    // A single mapped type over relations + parameterized computed fields. Keeping this as one
+    // object member (rather than intersecting a separate mapped type) preserves excess-property
+    // checking on `include`/`select` literals. A parameterized computed field is selectable by
+    // supplying its query-time `args` (mirrors the relation per-key-object shape); because
+    // `SelectInput` intersects `IncludeInput`, this also enables `select: { field: { args } }`.
+    [Key in GetModelFields<Schema, Model> as Key extends RelationFields<Schema, Model>
+        ? RelationFieldType<Schema, Model, Key> extends GetSlicedModels<Schema, Options>
+            ? Key
+            : never
+        : FieldHasComputedArgs<Schema, Model, Key> extends true
+          ? Key
+          : never]?: Key extends RelationFields<Schema, Model>
+        ?
+              | boolean
+              | FindArgs<
+                    Schema,
+                    RelationFieldType<Schema, Model, Key>,
+                    Options,
+                    FieldIsArray<Schema, Model, Key>,
+                    // where clause is allowed only if the relation is array or optional
+                    FieldIsArray<Schema, Model, Key> extends true
+                        ? true
+                        : ModelFieldIsOptional<Schema, Model, Key> extends true
+                          ? true
+                          : false,
+                    ExtResult
+                >
+        : { args: ComputedFieldArgs<Schema, Model, Key> };
 } & (AllowCount extends true
     ? // _count is only allowed if the model has to-many relations
       HasToManyRelations<Schema, Model> extends true
@@ -2289,10 +2305,10 @@ export type CountArgs<
 } & ExtractExtQueryArgs<ExtQueryArgs, 'count'>;
 
 type CountAggregateInput<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
-    // a parameterized computed field has no `args` slot in `_count`, so it is excluded
-    [Key in NonRelationFields<Schema, Model> as FieldHasComputedArgs<Schema, Model, Key> extends true
-        ? never
-        : Key]?: true;
+    // a parameterized computed field is counted by supplying its query-time `args`
+    [Key in NonRelationFields<Schema, Model>]?: FieldHasComputedArgs<Schema, Model, Key> extends true
+        ? { args: ComputedFieldArgs<Schema, Model, Key> }
+        : true;
 } & { _all?: true };
 
 export type CountResult<Schema extends SchemaDef, _Model extends GetModels<Schema>, Args> = Args extends {
@@ -2371,15 +2387,17 @@ type NumericFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = 
         | 'Decimal'
         ? FieldIsArray<Schema, Model, Key> extends true
             ? never
-            : // a parameterized computed field has no `args` slot in `_sum`/`_avg`, so it is excluded
-              FieldHasComputedArgs<Schema, Model, Key> extends true
-              ? never
-              : Key
+            : Key
         : never]: GetModelField<Schema, Model, Key>;
 };
 
 type SumAvgInput<Schema extends SchemaDef, Model extends GetModels<Schema>, ValueType> = {
-    [Key in NumericFields<Schema, Model>]?: ValueType;
+    // a parameterized computed field is aggregated by supplying its query-time `args`
+    [Key in NumericFields<Schema, Model>]?: Key extends GetModelFields<Schema, Model>
+        ? FieldHasComputedArgs<Schema, Model, Key> extends true
+            ? { args: ComputedFieldArgs<Schema, Model, Key> }
+            : ValueType
+        : ValueType;
 };
 
 type MinMaxInput<Schema extends SchemaDef, Model extends GetModels<Schema>, ValueType> = {
@@ -2387,10 +2405,10 @@ type MinMaxInput<Schema extends SchemaDef, Model extends GetModels<Schema>, Valu
         ? never
         : FieldIsRelation<Schema, Model, Key> extends true
           ? never
-          : // a parameterized computed field has no `args` slot in `_min`/`_max`, so it is excluded
-            FieldHasComputedArgs<Schema, Model, Key> extends true
-            ? never
-            : Key]?: ValueType;
+          : Key]?: // a parameterized computed field is aggregated by supplying its query-time `args`
+    FieldHasComputedArgs<Schema, Model, Key> extends true
+        ? { args: ComputedFieldArgs<Schema, Model, Key> }
+        : ValueType;
 };
 
 export type AggregateResult<Schema extends SchemaDef, _Model extends GetModels<Schema>, Args> = (Args extends {
@@ -2454,6 +2472,20 @@ type GroupByHaving<
     out Options extends QueryOptions<Schema> = QueryOptions<Schema>,
 > = Omit<WhereInput<Schema, Model, Options, true, true>, '$expr'>;
 
+// A `groupBy` `by` entry for a parameterized computed field: the field name plus its query-time
+// `args` (a plain field name can't carry args). The map is keyed by the parameterized computed
+// fields; indexing it yields the union of `{ field, args }` entries (or `never` when there are none).
+type ParamComputedByEntryMap<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
+    [Key in NonRelationFields<Schema, Model> as FieldHasComputedArgs<Schema, Model, Key> extends true
+        ? Key
+        : never]: { field: Key; args: ComputedFieldArgs<Schema, Model, Key> };
+};
+type GroupByComputedByEntry<Schema extends SchemaDef, Model extends GetModels<Schema>> =
+    ParamComputedByEntryMap<Schema, Model>[keyof ParamComputedByEntryMap<Schema, Model>];
+
+// Extracts the grouped field name from a `by` entry (a plain name or a `{ field, args }` object).
+type ByFieldName<By> = By extends { field: infer F } ? F : By;
+
 export type GroupByArgs<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
@@ -2475,7 +2507,10 @@ export type GroupByArgs<
      */
     by:
         | NonParamComputedNonRelationFields<Schema, Model>
-        | NonEmptyArray<NonParamComputedNonRelationFields<Schema, Model>>;
+        | GroupByComputedByEntry<Schema, Model>
+        | NonEmptyArray<
+              NonParamComputedNonRelationFields<Schema, Model> | GroupByComputedByEntry<Schema, Model>
+          >;
 
     /**
      * Filter conditions for the grouped records
@@ -2527,7 +2562,7 @@ export type GroupByResult<
     Args extends { by: unknown },
 > = Array<
     {
-        [Key in NonRelationFields<Schema, Model> as Key extends ValueOfPotentialTuple<Args['by']>
+        [Key in NonRelationFields<Schema, Model> as Key extends ByFieldName<ValueOfPotentialTuple<Args['by']>>
             ? Key
             : never]: MapModelFieldType<Schema, Model, Key>;
     } & (Args extends { _count: infer Count }
