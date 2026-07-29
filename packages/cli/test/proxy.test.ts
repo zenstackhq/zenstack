@@ -843,7 +843,7 @@ describe('CLI proxy tests', () => {
                             port: 3000,
                             signatureToleranceSecs: 60,
                         }),
-                    ).rejects.toThrow('zen studio --introspect -d <url>');
+                    ).rejects.toThrow('npx @zenstackhq/cli studio --introspect -d <databaseUrl>');
                 } finally {
                     if (originalEnv !== undefined) process.env['DATABASE_URL'] = originalEnv;
                 }
@@ -859,7 +859,7 @@ describe('CLI proxy tests', () => {
                             port: 3000,
                             signatureToleranceSecs: 60,
                         }),
-                    ).rejects.toThrow('zen studio --introspect');
+                    ).rejects.toThrow('npx @zenstackhq/cli studio --introspect');
                 } finally {
                     if (originalEnv !== undefined) {
                         process.env['DATABASE_URL'] = originalEnv;
