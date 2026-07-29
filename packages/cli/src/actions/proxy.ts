@@ -157,7 +157,7 @@ export async function run(options: Options) {
     }
 
     // If a studioAuthKey is provided, create an authDb with the policy plugin
-    const authDb = db.$use(new PolicyPlugin()) as ClientContract<SchemaDef>;
+    const authDb: ClientContract<SchemaDef> = db.$use(new PolicyPlugin());
     if (options.studioAuthKey) {
         console.log(colors.gray('Access policy plugin enabled for authorization.'));
     }
@@ -423,7 +423,7 @@ function resolveClient(
         // SuperUser has full access without policy enforcement, so we return the base client directly.
         return client;
     } else {
-        return authDb.$setAuth(claim.data) as ClientContract<SchemaDef>;
+        return authDb.$setAuth(claim.data);
     }
 }
 

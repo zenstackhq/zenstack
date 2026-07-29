@@ -36,9 +36,10 @@ import { TransactionIsolationLevel, type ClientContract } from '../contract';
 import { getCrudDialect } from '../crud/dialects';
 import type { BaseCrudDialect } from '../crud/dialects/base-dialect';
 import { createDBQueryError, createInternalError, ORMError } from '../errors';
-import type { AfterEntityMutationCallback, OnKyselyQueryCallback } from '../plugin';
+import type { AfterEntityMutationCallback, OnKyselyQueryCallback, QueryContext } from '../plugin';
 import { requireIdFields, stripAlias } from '../query-utils';
 import { QueryNameMapper } from './name-mapper';
+import { extractQueryContext } from './query-context-utils';
 import { TempAliasTransformer } from './temp-alias-transformer';
 import type { ZenStackDriver } from './zenstack-driver';
 
@@ -139,6 +140,10 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
         // if the query is a raw query, we need to carry over the parameters
         const queryParams = (compiledQuery as any).$raw ? compiledQuery.parameters : undefined;
 
+        // extract the ORM context embedded as a trailing SQL comment and strip it so
+        // neither plugins nor the database driver see it
+        const { queryContext, strippedNode } = extractQueryContext(compiledQuery.query);
+
         // needs to ensure transaction if we:
         // - have plugins with Kysely hooks, as they may spawn more queries (check: should creating tx be plugin's responsibility?)
         // - have entity mutation plugins
@@ -149,7 +154,7 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
             try {
                 // mutations are wrapped in tx if not already in one
                 if (
-                    this.isMutationNode(compiledQuery.query) &&
+                    this.isMutationNode(strippedNode) &&
                     !this.driver.isTransactionConnection(connection) &&
                     needEnsureTx
                 ) {
@@ -160,7 +165,8 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
                 }
                 const result = await this.proceedQueryWithKyselyInterceptors(
                     connection,
-                    compiledQuery.query,
+                    strippedNode,
+                    queryContext,
                     queryParams,
                     compiledQuery.queryId,
                 );
@@ -192,6 +198,7 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
     private async proceedQueryWithKyselyInterceptors(
         connection: DatabaseConnection,
         queryNode: RootOperationNode,
+        queryContext: QueryContext | undefined,
         parameters: readonly unknown[] | undefined,
         queryId: QueryId,
     ) {
@@ -213,6 +220,7 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
                     client: this.client as unknown as ClientContract<SchemaDef>,
                     schema: this.client.$schema,
                     query,
+                    queryContext,
                     proceed: _p,
                 });
                 return hookResult;

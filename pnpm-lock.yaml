@@ -727,6 +727,9 @@ importers:
       ts-pattern:
         specifier: 'catalog:'
         version: 5.7.1
+      zod:
+        specifier: 'catalog:'
+        version: 4.1.12
     devDependencies:
       '@types/better-sqlite3':
         specifier: 'catalog:'

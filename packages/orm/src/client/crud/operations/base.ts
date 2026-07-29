@@ -19,7 +19,7 @@ import { ulid } from 'ulid';
 import * as uuid from 'uuid';
 import type { AnyKysely } from '../../../utils/kysely-utils';
 import { extractFields, fieldsToSelectObject, isEmptyObject } from '../../../utils/object-utils';
-import { NUMERIC_FIELD_TYPES } from '../../constants';
+import { CONTEXT_COMMENT_PREFIX, NUMERIC_FIELD_TYPES } from '../../constants';
 import { TransactionIsolationLevel, type ClientContract, type CRUD } from '../../contract';
 import type { FindArgs, SelectIncludeOmit, WhereInput } from '../../crud-types';
 import {
@@ -31,6 +31,7 @@ import {
     ORMError,
     ORMErrorReason,
 } from '../../errors';
+import type { QueryContext } from '../../plugin';
 import type { ToKysely } from '../../query-builder';
 import {
     ensureArray,
@@ -170,6 +171,16 @@ export const AllReadOperations = [...CoreReadOperations, 'findUniqueOrThrow', 'f
 export type AllReadOperations = (typeof AllReadOperations)[number];
 
 /**
+ * List of single-row read operations that throw when no row is found.
+ */
+export const SingleRowOrThrowOperations = ['findUniqueOrThrow', 'findFirstOrThrow'] as const;
+
+/**
+ * List of single-row read operations that throw when no row is found.
+ */
+export type SingleRowOrThrowOperations = (typeof SingleRowOrThrowOperations)[number];
+
+/**
  * List of all write operations - simply an alias of CoreWriteOperations.
  */
 export const AllWriteOperations = CoreWriteOperations;
@@ -215,6 +226,23 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
     }
 
     abstract handle(operation: CoreCrudOperations, args: any): Promise<unknown>;
+
+    /**
+     * Context of the top-level ORM API call, embedded into generated queries as a
+     * trailing SQL comment (see {@link makeContextComment}).
+     */
+    protected callContext?: { ormOperation: AllCrudOperations; pluginArgs?: Record<string, unknown> };
+
+    /**
+     * Returns a clone carrying the given call context, so concurrent invocations
+     * (e.g. an `onQuery` hook calling `proceed` multiple times in parallel) each
+     * get their own context.
+     */
+    withCallContext(context: { ormOperation: AllCrudOperations; pluginArgs?: Record<string, unknown> }) {
+        const clone = this.withClient(this.client);
+        clone.callContext = context;
+        return clone;
+    }
 
     withClient(client: ClientContract<Schema>) {
         return new (this.constructor as new (...args: any[]) => this)(client, this.model, this.inputValidator);
@@ -313,6 +341,9 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             const r = await kysely.getExecutor().executeQuery(compiled);
             result = r.rows;
         } catch (err) {
+            // Re-throw ORMErrors (e.g. policy violations with custom error codes) as-is
+            // to avoid wrapping them in a generic DBQueryError and losing their type/code.
+            if (err instanceof ORMError) throw err;
             throw createDBQueryError(`Failed to execute query: ${err}`, err, compiled.sql, compiled.parameters);
         }
 
@@ -1190,11 +1221,22 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             }
         }
 
+        // For non-RETURNING dialects that require it (e.g. MySQL), the pre-load SELECT must
+        // bypass the read policy so that read-denied rows are still reachable and the UPDATE
+        // can run, allowing its own policy error codes to be surfaced.
+        const bypassReadPolicyForPreload =
+            !this.dialect.supportsReturning && !fromRelation && this.dialect.requiresUpdatePreloadBypassReadPolicy;
+
         // lazily load the entity to be updated
         let thisEntity: any;
         const loadThisEntity = async () => {
             if (thisEntity === undefined) {
-                thisEntity = (await this.getEntityIds(kysely, model, origWhere)) ?? null;
+                thisEntity = bypassReadPolicyForPreload
+                    ? await this.readUniqueBypassingReadPolicy(kysely, model, {
+                          where: origWhere,
+                          select: this.makeIdSelect(model),
+                      } as any)
+                    : ((await this.getEntityIds(kysely, model, origWhere)) ?? null);
                 if (!thisEntity && throwIfNotFound) {
                     throw createNotFoundError(model);
                 }
@@ -1549,9 +1591,19 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
         return NUMERIC_FIELD_TYPES.includes(fieldDef.type) && !fieldDef.array;
     }
 
-    private makeContextComment(_context: { model: string; operation: CRUD }) {
-        return sql``;
-        // return sql.raw(`${CONTEXT_COMMENT_PREFIX}${JSON.stringify(context)}`);
+    private makeContextComment(context: { model: string; operation: CRUD; bypassReadPolicy?: boolean }) {
+        if (!this.options.plugins?.some((plugin) => plugin.onKyselyQuery)) {
+            // the context is only consumed by `onKyselyQuery` hooks, skip the overhead otherwise
+            return sql``;
+        }
+        const payload: QueryContext = {
+            ...context,
+            ...(this.callContext?.ormOperation ? { ormOperation: this.callContext.ormOperation } : {}),
+            ...(this.callContext?.pluginArgs && Object.keys(this.callContext.pluginArgs).length > 0
+                ? { pluginArgs: this.callContext.pluginArgs }
+                : {}),
+        };
+        return sql.raw(`${CONTEXT_COMMENT_PREFIX}${JSON.stringify(payload)}`);
     }
 
     protected async updateMany<
@@ -2530,6 +2582,34 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             where: uniqueFilter,
             select: this.makeIdSelect(model),
         });
+    }
+
+    // Like readUnique but tags the query with a `bypassReadPolicy` context so the policy
+    // plugin skips its read filter. Used for the MySQL update pre-load so read-denied rows
+    // are still reachable and the UPDATE's own policy error codes surface. Other query
+    // interceptors (e.g. soft-delete) still apply.
+    private async readUniqueBypassingReadPolicy(
+        kysely: AnyKysely,
+        model: string,
+        args: FindArgs<Schema, GetModels<Schema>, any, true>,
+    ): Promise<any | null> {
+        let query = this.dialect.buildSelectModel(model, model);
+        const argsWithTake = { ...args, take: 1 };
+        query = this.dialect.buildFilterSortTake(model, argsWithTake, query, model);
+        if ('select' in args && args.select) {
+            query = this.buildFieldSelection(model, query, args.select, model);
+        } else {
+            query = this.dialect.buildSelectAllFields(model, query, (args as any)?.omit, model);
+        }
+        query = query.modifyEnd(this.makeContextComment({ model, operation: 'read', bypassReadPolicy: true }));
+        const compiled = kysely.getExecutor().compileQuery(query.toOperationNode(), createQueryId());
+        try {
+            const r = await kysely.getExecutor().executeQuery(compiled);
+            return r.rows[0] ?? null;
+        } catch (err) {
+            if (err instanceof ORMError) throw err;
+            throw createDBQueryError(`Failed to execute query: ${err}`, err, compiled.sql, compiled.parameters);
+        }
     }
 
     // Given multiple unique filters, load all matching entities and return their id fields in one query

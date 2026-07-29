@@ -81,6 +81,20 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
      */
     abstract get insertIgnoreMethod(): 'onConflict' | 'ignore';
 
+    /**
+     * Whether the pre-load SELECT (used to resolve entity IDs before a top-level UPDATE on
+     * non-RETURNING dialects) must bypass the read-policy filter.
+     *
+     * MySQL pre-loads entity IDs before running an UPDATE. If the row is read-denied the
+     * pre-load returns null and the UPDATE never runs, masking update-deny error codes.
+     * Setting this to true tags the pre-load with a `bypassReadPolicy` query context so
+     * the policy plugin skips its read filter for it. Other `onKyselyQuery` interceptors
+     * (e.g. soft-delete) still apply.
+     */
+    get requiresUpdatePreloadBypassReadPolicy(): boolean {
+        return false;
+    }
+
     // #endregion
 
     // #region value transformation

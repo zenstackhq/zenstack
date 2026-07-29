@@ -5,4 +5,11 @@ export type PolicyPluginOptions = {
      * not inspect or reject them.
      */
     dangerouslyAllowRawSql?: boolean;
+
+    /**
+     * Whether to run the diagnostic query to determine which policy rule was violated when
+     * a write is rejected. Defaults to `true`. Set to `false` to skip it globally for
+     * performance. Can be overridden per-query with the `fetchPolicyCodes` option.
+     */
+    fetchPolicyCodes?: boolean;
 };

@@ -88,17 +88,31 @@ expect.extend({
         };
     },
 
-    async toBeRejectedByPolicy(received: Promise<unknown>, expectedMessages?: string[]) {
+    async toBeRejectedByPolicy(received: Promise<unknown>, expectedMessages?: string[], expectedCodes?: string[]) {
         if (!isPromise(received)) {
             return { message: () => 'a promise is expected', pass: false };
         }
         try {
             await received;
         } catch (err) {
-            if (expectedMessages && err instanceof ORMError && err.reason === ORMErrorReason.REJECTED_BY_POLICY) {
-                const r = expectErrorMessages(expectedMessages, err.message || '');
-                if (r) {
-                    return r;
+            if (err instanceof ORMError && err.reason === ORMErrorReason.REJECTED_BY_POLICY) {
+                if (expectedMessages) {
+                    const r = expectErrorMessages(expectedMessages, err.message || '');
+                    if (r) {
+                        return r;
+                    }
+                }
+                if (expectedCodes) {
+                    const actualCodes = err.policyCodes ?? [];
+                    const missing = expectedCodes.filter((c) => !actualCodes.includes(c));
+                    const extra = actualCodes.filter((c) => !expectedCodes.includes(c));
+                    if (missing.length > 0 || extra.length > 0) {
+                        return {
+                            message: () =>
+                                `expected policy codes [${expectedCodes.join(', ')}], got [${actualCodes.join(', ') || '(none)'}]`,
+                            pass: false,
+                        };
+                    }
                 }
             }
             return expectErrorReason(err, ORMErrorReason.REJECTED_BY_POLICY);
