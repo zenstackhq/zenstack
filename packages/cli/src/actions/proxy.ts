@@ -1,4 +1,3 @@
-import { formatDocument, ZModelCodeGenerator } from '@zenstackhq/language';
 import {
     ConfigExpr,
     InvocationExpr,
@@ -6,7 +5,6 @@ import {
     isInvocationExpr,
     isLiteralExpr,
     LiteralExpr,
-    type Model,
 } from '@zenstackhq/language/ast';
 import { getStringLiteral } from '@zenstackhq/language/utils';
 import { ZenStackClient, type ClientContract } from '@zenstackhq/orm';
@@ -34,8 +32,7 @@ import { execSync } from '../utils/exec-utils';
 import { getVersion } from '../utils/version-utils';
 import { getOutputPath, getSchemaFile, loadSchemaDocument } from './action-utils';
 import type { DataSourceProviderType } from '@zenstackhq/schema';
-import { providers as pullProviders, type IntrospectionProvider } from './pull/provider';
-import { syncEnums, syncRelation, syncTable, type Relation } from './pull';
+import { runPull } from './db';
 import { z } from 'zod';
 
 type Options = {
@@ -88,14 +85,6 @@ function normalizePublicKey(key: string): string {
 export async function run(options: Options) {
     // Resolve public key: CLI arg takes precedence, then ZENSTACK_STUDIO_AUTH_KEY env var.
     options = { ...options, studioAuthKey: options.studioAuthKey ?? process.env['ZENSTACK_STUDIO_AUTH_KEY'] };
-    if (!options.studioAuthKey) {
-        console.warn(
-            colors.yellow(
-                'Warning: This proxy has no authentication. Do not expose it to the public network.\n' +
-                    'To secure it, get an API key from ZenStack Studio and set it via the ZENSTACK_STUDIO_AUTH_KEY environment variable.',
-            ),
-        );
-    }
 
     const allowedLogLevels = ['error', 'query'] as const;
     const log = options.logLevel?.filter((level): level is (typeof allowedLogLevels)[number] =>
@@ -173,6 +162,15 @@ export async function run(options: Options) {
     }
 
     startServer(db, schemaModule.schema, options, authDb);
+
+    if (!options.studioAuthKey) {
+        console.warn(
+            colors.yellow(
+                'Warning: This proxy has no authentication. Do not expose it to the public network.\n' +
+                    'To secure it, get an API key from ZenStack Studio and set it via the ZENSTACK_STUDIO_AUTH_KEY environment variable.',
+            ),
+        );
+    }
 }
 
 function evaluateUrl(schemaUrl: ConfigExpr) {
@@ -494,7 +492,7 @@ function startServer(
 // --introspect helpers
 // ---------------------------------------------------------------------------
 
-async function resolveSchema(options: Options): Promise<string> {
+export async function resolveSchema(options: Options): Promise<string> {
     try {
         return getSchemaFile(options.schema);
     } catch (err) {
@@ -522,19 +520,14 @@ async function resolveSchema(options: Options): Promise<string> {
         // Resolve database URL
         const databaseUrl = options.databaseUrl ?? process.env['DATABASE_URL'];
         if (!databaseUrl) {
-            throw new CliError(
-                '--introspect requires a database connection — pass -d <url> or set DATABASE_URL.',
-            );
+            throw new CliError('--introspect requires a database connection — pass -d <url> or set DATABASE_URL.');
         }
 
         // If the default schema file already exists, skip introspection
         const defaultSchemaPath = path.resolve('zenstack', 'schema.zmodel');
         if (fs.existsSync(defaultSchemaPath)) {
             console.log(
-                colors.gray(
-                    'Note: --introspect ignored because a schema file already exists at ' +
-                        defaultSchemaPath,
-                ),
+                colors.gray('Note: --introspect ignored because a schema file already exists at ' + defaultSchemaPath),
             );
             return defaultSchemaPath;
         }
@@ -547,11 +540,11 @@ async function resolveSchema(options: Options): Promise<string> {
 
         // Introspect and generate schema
         const urlFromEnv = !options.databaseUrl;
-        const schemaFile = await introspectAndGenerateSchema(
-            databaseUrl,
-            providerType,
-            urlFromEnv,
-        );
+        const schemaFile = await introspectAndGenerateSchema(databaseUrl, providerType, urlFromEnv);
+
+        // Run code generation from the generated schema
+        const { run: runGenerate } = await import('./generate');
+        await runGenerate({ schema: schemaFile, silent: false, watch: false });
 
         console.log(
             colors.yellow(
@@ -567,7 +560,7 @@ async function resolveSchema(options: Options): Promise<string> {
     }
 }
 
-function getProviderFromUrl(url: string): DataSourceProviderType {
+export function getProviderFromUrl(url: string): DataSourceProviderType {
     if (url.startsWith('postgres://') || url.startsWith('postgresql://')) {
         return 'postgresql';
     }
@@ -611,14 +604,10 @@ async function installPackagesForIntrospect(providerType: DataSourceProviderType
     for (const pkg of allPackages) {
         const resolved = resolveCommand(pm.agent, 'add', [
             pkg.name,
-            ...(pkg.dev
-                ? [pm.agent.startsWith('yarn') || pm.agent === 'bun' ? '--dev' : '--save-dev']
-                : []),
+            ...(pkg.dev ? [pm.agent.startsWith('yarn') || pm.agent === 'bun' ? '--dev' : '--save-dev'] : []),
         ]);
         if (!resolved) {
-            throw new CliError(
-                `Unable to determine how to install package "${pkg.name}". Please install it manually.`,
-            );
+            throw new CliError(`Unable to determine how to install package "${pkg.name}". Please install it manually.`);
         }
 
         const spinner = ora(`Installing "${pkg.name}"`).start();
@@ -639,113 +628,28 @@ async function introspectAndGenerateSchema(
     providerType: DataSourceProviderType,
     urlFromEnv: boolean,
 ): Promise<string> {
-    const provider: IntrospectionProvider = pullProviders[providerType];
-    if (!provider) {
-        throw new CliError(`No introspection provider found for: ${providerType}`);
-    }
-
-    // Build a minimal datasource-only schema so we can bootstrap Langium services
+    // Write a minimal datasource-only schema so runPull has something to load
     const urlExpr = urlFromEnv ? 'env("DATABASE_URL")' : `'${databaseUrl}'`;
     const minimalSchema = `datasource db {\n    provider = '${providerType}'\n    url = ${urlExpr}\n}\n`;
 
-    // Write the minimal schema to disk first, then load it so Langium has a proper document URI
     const schemaDir = path.resolve('zenstack');
     const schemaFile = path.join(schemaDir, 'schema.zmodel');
     fs.mkdirSync(schemaDir, { recursive: true });
     fs.writeFileSync(schemaFile, minimalSchema, 'utf-8');
 
-    // Load the minimal schema to get services
-    const { model, services } = await loadSchemaDocument(schemaFile, { returnServices: true });
-
-    // Introspect the database
-    const spinner = ora('Introspecting database...').start();
-    let introspectionResult;
-    try {
-        introspectionResult = await provider.introspect(databaseUrl, {
-            schemas: ['public'],
-            modelCasing: 'pascal',
-        });
-        spinner.succeed('Database introspected successfully.');
-    } catch (err) {
-        spinner.fail('Failed to introspect database.');
-        throw err;
-    }
-
-    // Build a fresh AST Model with the datasource already in it from loadSchemaDocument
-    const newModel: Model = {
-        $type: 'Model',
-        $container: undefined,
-        $containerProperty: undefined,
-        $containerIndex: undefined,
-        declarations: [...model.declarations.filter((d) => d.$type === 'DataSource')],
-        imports: [],
-    };
-
-    // Sync enums
-    syncEnums({
-        dbEnums: introspectionResult.enums,
-        model: newModel,
-        oldModel: model,
-        provider,
-        services,
-        options: { schema: schemaFile, modelCasing: 'pascal', fieldCasing: 'none', alwaysMap: false, quote: 'single', indent: 4 },
-        defaultSchema: 'public',
+    // Delegate to runPull with provider/URL overrides
+    await runPull({
+        schema: schemaFile,
+        output: schemaFile,
+        databaseUrl,
+        provider: providerType,
+        modelCasing: 'pascal',
+        fieldCasing: 'none',
+        alwaysMap: false,
+        quote: 'single',
+        indent: 4,
     });
 
-    // Sync tables and collect relations
-    const resolvedRelations: Relation[] = [];
-    for (const table of introspectionResult.tables) {
-        const relations = syncTable({
-            table,
-            model: newModel,
-            oldModel: model,
-            provider,
-            services,
-            options: { schema: schemaFile, modelCasing: 'pascal', fieldCasing: 'none', alwaysMap: false, quote: 'single', indent: 4 },
-            defaultSchema: 'public',
-        });
-        resolvedRelations.push(...relations);
-    }
-
-    // Normalize schema values for relation matching
-    const schemasMatch = (a: string | null | undefined, b: string | null | undefined) =>
-        (a ?? '') === (b ?? '');
-
-    // Sync relations
-    for (const relation of resolvedRelations) {
-        const similarRelations = resolvedRelations.filter((rr) => {
-            return (
-                rr !== relation &&
-                ((schemasMatch(rr.schema, relation.schema) &&
-                    rr.table === relation.table &&
-                    schemasMatch(rr.references.schema, relation.references.schema) &&
-                    rr.references.table === relation.references.table) ||
-                    (schemasMatch(rr.schema, relation.references.schema) &&
-                        rr.table === relation.references.table &&
-                        schemasMatch(rr.references.schema, relation.schema) &&
-                        rr.references.table === relation.table))
-            );
-        }).length;
-        const selfRelation =
-            schemasMatch(relation.references.schema, relation.schema) &&
-            relation.references.table === relation.table;
-        syncRelation({
-            model: newModel,
-            relation,
-            services,
-            options: { schema: schemaFile, modelCasing: 'pascal', fieldCasing: 'none', alwaysMap: false, quote: 'single', indent: 4 },
-            selfRelation,
-            similarRelations,
-        });
-    }
-
-    // Generate zmodel text
-    const generator = new ZModelCodeGenerator({ quote: 'single', indent: 4 });
-    const generatedCode = generator.generate(newModel);
-    const formatted = await formatDocument(generatedCode);
-
-    // Write the final schema
-    fs.writeFileSync(schemaFile, formatted, 'utf-8');
     console.log(colors.green(`\n✅ Schema generated: ${colors.cyan(schemaFile)}`));
 
     return schemaFile;
