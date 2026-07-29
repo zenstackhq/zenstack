@@ -30,7 +30,7 @@ import type { Pool as PgPoolType } from 'pg';
 import { CliError } from '../cli-error';
 import { execSync } from '../utils/exec-utils';
 import { getVersion } from '../utils/version-utils';
-import { getOutputPath, getSchemaFile, loadSchemaDocument } from './action-utils';
+import { getOutputPath, getSchemaFile, isPackageInstalled, loadPackage, loadSchemaDocument } from './action-utils';
 import type { DataSourceProviderType } from '@zenstackhq/schema';
 import { runPull } from './db';
 import { z } from 'zod';
@@ -206,13 +206,14 @@ function redactDatabaseUrl(url: string): string {
     }
 }
 
-async function createDialect(provider: string, databaseUrl: string, outputPath: string) {
+export async function createDialect(provider: string, databaseUrl: string, outputPath: string) {
     switch (provider) {
         case 'sqlite': {
             let SQLite: typeof BetterSqlite3;
-            try {
-                SQLite = (await import('better-sqlite3')).default;
-            } catch {
+            const mod = await loadPackage('better-sqlite3');
+            if (mod) {
+                SQLite = mod.default || mod;
+            } else {
                 throw new CliError(
                     `Package "better-sqlite3" is required for SQLite support. Please install it with: npm install better-sqlite3`,
                 );
@@ -231,9 +232,10 @@ async function createDialect(provider: string, databaseUrl: string, outputPath: 
         }
         case 'postgresql': {
             let PgPool: typeof PgPoolType;
-            try {
-                PgPool = (await import('pg')).Pool;
-            } catch {
+            const mod = await loadPackage('pg');
+            if (mod) {
+                PgPool = mod.Pool || mod.default?.Pool;
+            } else {
                 throw new CliError(
                     `Package "pg" is required for PostgreSQL support. Please install it with: npm install pg`,
                 );
@@ -247,9 +249,10 @@ async function createDialect(provider: string, databaseUrl: string, outputPath: 
         }
         case 'mysql': {
             let createMysqlPool: typeof MysqlCreatePool;
-            try {
-                createMysqlPool = (await import('mysql2')).createPool;
-            } catch {
+            const mod = await loadPackage('mysql2');
+            if (mod) {
+                createMysqlPool = mod.createPool || mod.default?.createPool;
+            } else {
                 throw new CliError(
                     `Package "mysql2" is required for MySQL support. Please install it with: npm install mysql2`,
                 );
@@ -502,19 +505,13 @@ export async function resolveSchema(options: Options): Promise<string> {
         if (!options.introspect) {
             // Provide a helpful error depending on whether DATABASE_URL is set
             const hasEnvUrl = !!process.env['DATABASE_URL'];
-            if (hasEnvUrl) {
-                throw new CliError(
-                    'No schema file found. You can either:\n' +
-                        '  • Specify the schema explicitly:  zen studio --schema <path>\n' +
-                        '  • Auto-generate from the database: zen studio --introspect',
-                );
-            } else {
-                throw new CliError(
-                    'No schema file found. You can either:\n' +
-                        '  • Specify the schema explicitly:  zen studio --schema <path> -d <url>\n' +
-                        '  • Auto-generate from the database: zen studio --introspect -d <url>',
-                );
-            }
+            const dbFlag = hasEnvUrl ? '' : '-d <databaseUrl>';
+
+            throw new CliError(
+                'No ZModel schema file found in default locations.\n' +
+                    `  • If you have an existing schema file, specify it explicitly:\n    npx @zenstackhq/cli studio --schema <path> ${dbFlag}\n` +
+                    `  • Otherwise, auto-generate from the database:\n    npx @zenstackhq/cli studio --introspect ${dbFlag}`,
+            );
         }
 
         // Resolve database URL
@@ -536,7 +533,7 @@ export async function resolveSchema(options: Options): Promise<string> {
         const providerType = getProviderFromUrl(databaseUrl);
 
         // Install required packages
-        await installPackagesForIntrospect(providerType);
+        await installDbDriverPackage(providerType);
 
         // Introspect and generate schema
         const urlFromEnv = !options.databaseUrl;
@@ -573,13 +570,7 @@ export function getProviderFromUrl(url: string): DataSourceProviderType {
     throw new CliError(`Unable to determine database type from URL: ${url}`);
 }
 
-async function installPackagesForIntrospect(providerType: DataSourceProviderType) {
-    const corePackages = [
-        { name: '@zenstackhq/cli@latest', dev: true },
-        { name: '@zenstackhq/schema@latest', dev: false },
-        { name: '@zenstackhq/orm@latest', dev: false },
-    ];
-
+export async function installDbDriverPackage(providerType: DataSourceProviderType) {
     // Add the appropriate DB driver
     const driverPackage: { name: string; dev: false } = (() => {
         switch (providerType) {
@@ -592,7 +583,9 @@ async function installPackagesForIntrospect(providerType: DataSourceProviderType
         }
     })();
 
-    const allPackages = [...corePackages, driverPackage];
+    if (isPackageInstalled(driverPackage.name)) {
+        return;
+    }
 
     let pm = await detect();
     if (!pm) {
@@ -601,25 +594,25 @@ async function installPackagesForIntrospect(providerType: DataSourceProviderType
 
     console.log(colors.gray(`Using package manager: ${pm.agent}`));
 
-    for (const pkg of allPackages) {
-        const resolved = resolveCommand(pm.agent, 'add', [
-            pkg.name,
-            ...(pkg.dev ? [pm.agent.startsWith('yarn') || pm.agent === 'bun' ? '--dev' : '--save-dev'] : []),
-        ]);
-        if (!resolved) {
-            throw new CliError(`Unable to determine how to install package "${pkg.name}". Please install it manually.`);
-        }
+    const resolved = resolveCommand(pm.agent, 'add', [
+        driverPackage.name,
+        ...(driverPackage.dev ? [pm.agent.startsWith('yarn') || pm.agent === 'bun' ? '--dev' : '--save-dev'] : []),
+    ]);
+    if (!resolved) {
+        throw new CliError(
+            `Unable to determine how to install package "${driverPackage.name}". Please install it manually.`,
+        );
+    }
 
-        const spinner = ora(`Installing "${pkg.name}"`).start();
-        try {
-            execSync(`${resolved.command} ${resolved.args.join(' ')}`, {
-                cwd: process.cwd(),
-            });
-            spinner.succeed();
-        } catch (e) {
-            spinner.fail();
-            throw e;
-        }
+    const spinner = ora(`Installing "${driverPackage.name}"`).start();
+    try {
+        execSync(`${resolved.command} ${resolved.args.join(' ')}`, {
+            cwd: process.cwd(),
+        });
+        spinner.succeed();
+    } catch (e) {
+        spinner.fail();
+        throw e;
     }
 }
 

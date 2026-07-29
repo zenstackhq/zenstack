@@ -382,3 +382,35 @@ export function startUsageTipsFetch() {
         }
     };
 }
+
+export function isPackageInstalled(pkgName: string): boolean {
+    try {
+        const projectRequire = createRequire(path.resolve(process.cwd(), 'package.json'));
+        projectRequire.resolve(pkgName);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+export async function loadPackage(pkgName: string) {
+    try {
+        return await import(pkgName);
+    } catch {
+        // If zenstack CLI is running directly using npx/pnpm in a temp folder,
+        // dynamic package import will fail. Also check the current project folder.
+        try {
+            const projectRequire = createRequire(path.resolve(process.cwd(), 'package.json'));
+            const resolvedPath = projectRequire.resolve(pkgName);
+            return await import(pathToFileURL(resolvedPath).href);
+        } catch {
+            try {
+                const projectRequire = createRequire(path.resolve(process.cwd(), 'package.json'));
+                return projectRequire(pkgName);
+            } catch {
+                return null;
+            }
+        }
+    }
+}
+
