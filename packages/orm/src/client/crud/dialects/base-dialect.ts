@@ -402,8 +402,9 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             field,
             joinAlias,
         );
-        const baseJoin = this.eb
-            .selectFrom(`${fieldDef.type} as ${joinAlias}`)
+        // use `buildSelectModel` so that delegate base tables are joined - the filter may
+        // reference fields inherited from a base, which live on the base table
+        const baseJoin = this.buildSelectModel(fieldDef.type, joinAlias)
             .select(this.eb.lit(1).as('_'))
             .where(() =>
                 this.and(...joinPairs.map(([left, right]) => this.eb(this.eb.ref(left), '=', this.eb.ref(right)))),
