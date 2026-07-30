@@ -1,5 +1,5 @@
 import { invariant } from '@zenstackhq/common-helpers';
-import type { ModelDef, SchemaDef, TypeDefDef } from '@zenstackhq/schema';
+import type { SchemaDef } from '@zenstackhq/schema';
 import type { QueryId } from 'kysely';
 import {
     AndNode,
@@ -37,7 +37,7 @@ import { getCrudDialect } from '../crud/dialects';
 import type { BaseCrudDialect } from '../crud/dialects/base-dialect';
 import { createDBQueryError, createInternalError, ORMError } from '../errors';
 import type { AfterEntityMutationCallback, OnKyselyQueryCallback } from '../plugin';
-import { requireIdFields, stripAlias } from '../query-utils';
+import { requireIdFields, schemaHasMappedNames, stripAlias } from '../query-utils';
 import { QueryNameMapper } from './name-mapper';
 import { TempAliasTransformer } from './temp-alias-transformer';
 import type { ZenStackDriver } from './zenstack-driver';
@@ -97,7 +97,7 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
         this.nameMapper =
             nameMapper ??
             (client.$schema.provider.type === 'postgresql' || // postgres queries need to be schema-qualified
-            this.schemaHasMappedNames(client.$schema)
+            schemaHasMappedNames(client.$schema)
                 ? new QueryNameMapper(client as unknown as ClientContract<SchemaDef>)
                 : undefined);
 
@@ -110,17 +110,6 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
      */
     getNameMapper() {
         return this.nameMapper;
-    }
-
-    private schemaHasMappedNames(schema: SchemaDef) {
-        const hasMapAttr = (decl: ModelDef | TypeDefDef) => {
-            if (decl.attributes?.some((attr) => attr.name === '@@map')) {
-                return true;
-            }
-            return Object.values(decl.fields).some((field) => field.attributes?.some((attr) => attr.name === '@map'));
-        };
-
-        return Object.values(schema.models).some(hasMapAttr) || Object.values(schema.typeDefs ?? []).some(hasMapAttr);
     }
 
     private get kysely() {

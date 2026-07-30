@@ -63,6 +63,31 @@ describe('Regression for issue #2773', () => {
         expect(nameMapperOf(derived)).not.toBe(mapper);
     });
 
+    it('keeps working when the schema needs no mapper at all', async () => {
+        // sqlite + no @@map/@map means nameMapper stays undefined. Deciding that walks every model
+        // and field, and it is asked on every executor construction, so it is memoized per schema -
+        // this guards the path where nothing is threaded through.
+        const db = await createTestClient(
+            `
+model Item {
+    id   Int    @id @default(autoincrement())
+    name String
+}
+            `,
+            { provider: 'sqlite' },
+        )
+        expect(nameMapperOf(db)).toBeUndefined();
+
+        await db.item.create({ data: { name: 'a' } });
+        const outside = await db.item.findMany();
+        expect(outside).toHaveLength(1);
+
+        await db.$transaction(async (tx: any) => {
+            expect(nameMapperOf(tx)).toBeUndefined();
+            expect(await tx.item.findMany()).toHaveLength(1);
+        });
+    });
+
     it('applies @@map and @map identically inside and outside a transaction', async () => {
         const db = await createTestClient(schema, { provider: 'postgresql' });
         await db.post.create({ data: { title: 'hello' } });
