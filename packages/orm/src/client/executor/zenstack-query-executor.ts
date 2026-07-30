@@ -86,17 +86,30 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
         private readonly connectionProvider: ConnectionProvider,
         plugins: KyselyPlugin[] = [],
         private suppressMutationHooks: boolean = false,
+        nameMapper?: QueryNameMapper,
     ) {
         super(compiler, adapter, connectionProvider, plugins);
 
-        if (
-            client.$schema.provider.type === 'postgresql' || // postgres queries need to be schema-qualified
+        // A `QueryNameMapper` is derived purely from the client's `$schema` and `$options`, and building
+        // it is O(models x fields) (plus an O(models x relations) pass for postgres). Reuse the one from
+        // the executor/client we're derived from when it was built from the same schema and options,
+        // otherwise every derived executor rebuilds whole-schema state. See issue #2773.
+        this.nameMapper =
+            nameMapper ??
+            (client.$schema.provider.type === 'postgresql' || // postgres queries need to be schema-qualified
             this.schemaHasMappedNames(client.$schema)
-        ) {
-            this.nameMapper = new QueryNameMapper(client as unknown as ClientContract<SchemaDef>);
-        }
+                ? new QueryNameMapper(client as unknown as ClientContract<SchemaDef>)
+                : undefined);
 
         this.dialect = getCrudDialect(client.$schema, client.$options);
+    }
+
+    /**
+     * The name mapper built for this executor's schema, if the schema needs one. Exposed so that
+     * derived clients built from the same schema and options can reuse it instead of rebuilding it.
+     */
+    getNameMapper() {
+        return this.nameMapper;
     }
 
     private schemaHasMappedNames(schema: SchemaDef) {
@@ -770,6 +783,7 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
             this.connectionProvider,
             [...this.plugins, plugin],
             this.suppressMutationHooks,
+            this.nameMapper,
         );
     }
 
@@ -782,6 +796,7 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
             this.connectionProvider,
             [...this.plugins, ...plugins],
             this.suppressMutationHooks,
+            this.nameMapper,
         );
     }
 
@@ -794,6 +809,7 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
             this.connectionProvider,
             [plugin, ...this.plugins],
             this.suppressMutationHooks,
+            this.nameMapper,
         );
     }
 
@@ -806,6 +822,7 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
             this.connectionProvider,
             [],
             this.suppressMutationHooks,
+            this.nameMapper,
         );
     }
 
@@ -818,6 +835,7 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
             connectionProvider,
             this.plugins as KyselyPlugin[],
             this.suppressMutationHooks,
+            this.nameMapper,
         );
         // replace client with a new one associated with the new executor
         newExecutor.client = this.client.withExecutor(newExecutor);
