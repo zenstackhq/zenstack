@@ -814,8 +814,8 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                         clauses.push(this.buildArrayFilter(fieldReceiver, fieldDef, value));
                     } else {
                         let _receiver = fieldReceiver;
-                        if (fieldDef.type === 'String') {
-                            // trim quotes for string fields
+                        if (fieldDef.type === 'String' || isEnum(this.schema, fieldDef.type)) {
+                            // trim quotes for string and enum fields (enums are stored as JSON strings)
                             _receiver = this.trimTextQuotes(this.castText(fieldReceiver));
                         }
                         clauses.push(this.buildPrimitiveFilter(_receiver, fieldDef, value));
