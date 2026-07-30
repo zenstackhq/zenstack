@@ -358,7 +358,7 @@ export const sqlite: IntrospectionProvider = {
                         foreign_key_on_delete: fk?.foreign_key_on_delete ?? null,
                         pk: !!c.pk,
                         computed: isGenerated,
-                        nullable: c.notnull !== 1 && !c.pk, // SQLite treats PRIMARY KEY columns as NOT NULL
+                        nullable: c.notnull !== 1,
                         default: defaultValue,
                         unique: uniqueSingleColumn.has(c.name),
                         unique_name: null,

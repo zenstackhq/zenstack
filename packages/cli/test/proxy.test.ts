@@ -900,7 +900,7 @@ describe('CLI proxy tests', () => {
 
                 const SQLite = (await import('better-sqlite3')).default;
                 const db = new SQLite(path.join(tmpDir, 'test.db'));
-                db.exec('CREATE TABLE test (id INTEGER PRIMARY KEY);');
+                db.exec('CREATE TABLE test (id INTEGER NOT NULL PRIMARY KEY);');
                 db.close();
 
                 const originalCwd = process.cwd();
@@ -932,7 +932,7 @@ describe('CLI proxy tests', () => {
                 // Create dummy sqlite db
                 const SQLite = (await import('better-sqlite3')).default;
                 const db = new SQLite(dbFile);
-                db.exec('CREATE TABLE test (id INTEGER PRIMARY KEY);');
+                db.exec('CREATE TABLE test (id INTEGER NOT NULL PRIMARY KEY);');
                 db.close();
 
                 const originalCwd = process.cwd();
