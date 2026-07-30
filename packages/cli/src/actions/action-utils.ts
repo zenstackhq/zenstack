@@ -408,7 +408,7 @@ export async function loadPackage(pkgName: string) {
                 const projectRequire = createRequire(path.resolve(process.cwd(), 'package.json'));
                 return projectRequire(pkgName);
             } catch (requireErr) {
-                if (process.env.DEBUG) {
+                if (process.env['DEBUG']) {
                     console.error(importErr, resolvedImportErr, requireErr);
                 }
                 return null;
@@ -416,4 +416,3 @@ export async function loadPackage(pkgName: string) {
         }
     }
 }
-

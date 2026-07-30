@@ -3,7 +3,6 @@ import { CliError } from '../../../cli-error';
 import { loadPackage } from '../../action-utils';
 import { getAttributeRef, getDbName, getFunctionRef, normalizeDecimalDefault, normalizeFloatDefault } from '../utils';
 import type { IntrospectedEnum, IntrospectedSchema, IntrospectedTable, IntrospectionProvider } from './provider';
-import path from 'path';
 
 // Note: We dynamically import better-sqlite3 inside the async function to avoid
 // requiring it at module load time for environments that don't use SQLite.
@@ -141,14 +140,7 @@ export const sqlite: IntrospectionProvider = {
             );
         }
 
-        let resolvedUrl = connectionString.trim();
-        if (resolvedUrl.startsWith('file:')) {
-            const filePath = resolvedUrl.substring('file:'.length);
-            if (!path.isAbsolute(filePath)) {
-                resolvedUrl = path.join(process.cwd(), filePath);
-            }
-        }
-        const db = new SQLite(resolvedUrl, { readonly: true });
+        const db = new SQLite(connectionString, { readonly: true });
 
         try {
             const all = <T>(sql: string): T[] => {

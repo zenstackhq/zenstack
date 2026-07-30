@@ -898,6 +898,11 @@ describe('CLI proxy tests', () => {
                 const schemaFile = path.join(schemaDir, 'schema.zmodel');
                 fs.writeFileSync(schemaFile, 'datasource db { provider = "sqlite" url = "file:./test.db" }');
 
+                const SQLite = (await import('better-sqlite3')).default;
+                const db = new SQLite(path.join(tmpDir, 'test.db'));
+                db.exec('CREATE TABLE test (id INTEGER PRIMARY KEY);');
+                db.close();
+
                 const originalCwd = process.cwd();
                 process.chdir(tmpDir);
                 try {
@@ -910,6 +915,39 @@ describe('CLI proxy tests', () => {
                         databaseUrl: 'file:./test.db',
                     });
                     expect(result).toBe(path.resolve('zenstack', 'schema.zmodel'));
+                } finally {
+                    process.chdir(originalCwd);
+                    fs.rmSync(tmpDir, { recursive: true, force: true });
+                }
+            });
+
+            it('should adjust relative sqlite database url when introspecting schema', async () => {
+                const fs = await import('node:fs');
+                const path = await import('node:path');
+                const os = await import('node:os');
+
+                const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zenstack-test-introspect-'));
+                const dbFile = path.join(tmpDir, 'test.db');
+
+                // Create dummy sqlite db
+                const SQLite = (await import('better-sqlite3')).default;
+                const db = new SQLite(dbFile);
+                db.exec('CREATE TABLE test (id INTEGER PRIMARY KEY);');
+                db.close();
+
+                const originalCwd = process.cwd();
+                process.chdir(tmpDir);
+                try {
+                    const result = await resolveSchema({
+                        schema: '/nonexistent/path/schema.zmodel',
+                        port: 3000,
+                        signatureToleranceSecs: 60,
+                        introspect: true,
+                        databaseUrl: 'file:./test.db',
+                    });
+                    expect(result).toBe(path.resolve('zenstack', 'schema.zmodel'));
+                    const content = fs.readFileSync(result, 'utf-8');
+                    expect(content).toContain("url = 'file:../test.db'");
                 } finally {
                     process.chdir(originalCwd);
                     fs.rmSync(tmpDir, { recursive: true, force: true });

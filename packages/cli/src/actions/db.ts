@@ -135,9 +135,15 @@ export async function runPull(options: PullOptions) {
         };
 
         if (options.provider && options.databaseUrl) {
+            let databaseUrl = options.databaseUrl;
+            // Handle SQLite file URLs for local files
+            if (options.provider === 'sqlite' && databaseUrl.startsWith('file:')) {
+                databaseUrl = new URL(databaseUrl, `file:${model.$document!.uri.path}`).pathname;
+                if (process.platform === 'win32' && databaseUrl[0] === '/') databaseUrl = databaseUrl.slice(1);
+            }
             datasource = {
                 provider: options.provider,
-                url: options.databaseUrl,
+                url: databaseUrl,
                 defaultSchema: 'public',
                 allSchemas: ['public'],
             };

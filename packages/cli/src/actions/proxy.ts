@@ -220,10 +220,8 @@ export async function createDialect(provider: string, databaseUrl: string, outpu
             }
             let resolvedUrl = databaseUrl.trim();
             if (resolvedUrl.startsWith('file:')) {
-                const filePath = resolvedUrl.substring('file:'.length);
-                if (!path.isAbsolute(filePath)) {
-                    resolvedUrl = path.join(outputPath, filePath);
-                }
+                resolvedUrl = new URL(resolvedUrl, `file:${outputPath}`).pathname;
+                if (process.platform === 'win32' && resolvedUrl[0] === '/') resolvedUrl = resolvedUrl.slice(1);
             }
             console.log(colors.gray(`Connecting to SQLite database at: ${resolvedUrl}`));
             return new SqliteDialect({
@@ -496,13 +494,12 @@ function startServer(
 // ---------------------------------------------------------------------------
 
 export async function resolveSchema(options: Options): Promise<string> {
-    try {
-        return getSchemaFile(options.schema);
-    } catch (err) {
-        if (!(err instanceof CliError)) throw err;
+    if (!options.introspect) {
+        try {
+            return getSchemaFile(options.schema);
+        } catch (err) {
+            if (!(err instanceof CliError)) throw err;
 
-        // Schema not found – check whether we should introspect
-        if (!options.introspect) {
             // Provide a helpful error depending on whether DATABASE_URL is set
             const hasEnvUrl = !!process.env['DATABASE_URL'];
             const dbFlag = hasEnvUrl ? '' : '-d <databaseUrl>';
@@ -513,20 +510,11 @@ export async function resolveSchema(options: Options): Promise<string> {
                     `  • Otherwise, auto-generate from the database:\n    npx @zenstackhq/cli studio --introspect ${dbFlag}`,
             );
         }
-
+    } else {
         // Resolve database URL
         const databaseUrl = options.databaseUrl ?? process.env['DATABASE_URL'];
         if (!databaseUrl) {
             throw new CliError('--introspect requires a database connection — pass -d <url> or set DATABASE_URL.');
-        }
-
-        // If the default schema file already exists, skip introspection
-        const defaultSchemaPath = path.resolve('zenstack', 'schema.zmodel');
-        if (fs.existsSync(defaultSchemaPath)) {
-            console.log(
-                colors.gray('Note: --introspect ignored because a schema file already exists at ' + defaultSchemaPath),
-            );
-            return defaultSchemaPath;
         }
 
         // Determine DB provider type from URL
@@ -616,13 +604,51 @@ export async function installDbDriverPackage(providerType: DataSourceProviderTyp
     }
 }
 
+function adjustSqliteUrlForSchema(url: string): { isRelative: boolean; adjustedUrl: string } {
+    let prefix = '';
+    let filePath = url;
+
+    if (url.startsWith('file:')) {
+        prefix = 'file:';
+        filePath = url.substring('file:'.length);
+    } else if (url.startsWith('sqlite:')) {
+        prefix = 'sqlite:';
+        filePath = url.substring('sqlite:'.length);
+    }
+
+    if (!path.isAbsolute(filePath)) {
+        const adjustedPath = path.join('..', filePath).replace(/\\/g, '/');
+        return {
+            isRelative: true,
+            adjustedUrl: `${prefix}${adjustedPath}`,
+        };
+    }
+
+    return {
+        isRelative: false,
+        adjustedUrl: url,
+    };
+}
+
 async function introspectAndGenerateSchema(
     databaseUrl: string,
     providerType: DataSourceProviderType,
     urlFromEnv: boolean,
 ): Promise<string> {
     // Write a minimal datasource-only schema so runPull has something to load
-    const urlExpr = urlFromEnv ? 'env("DATABASE_URL")' : `'${databaseUrl}'`;
+    let urlExpr: string;
+    if (providerType === 'sqlite') {
+        const { isRelative, adjustedUrl } = adjustSqliteUrlForSchema(databaseUrl);
+        if (isRelative) {
+            urlExpr = `'${adjustedUrl}'`;
+            databaseUrl = adjustedUrl; // Update databaseUrl to the adjusted relative path for runPull
+        } else {
+            urlExpr = urlFromEnv ? 'env("DATABASE_URL")' : `'${databaseUrl}'`;
+        }
+    } else {
+        urlExpr = urlFromEnv ? 'env("DATABASE_URL")' : `'${databaseUrl}'`;
+    }
+
     const minimalSchema = `datasource db {\n    provider = '${providerType}'\n    url = ${urlExpr}\n}\n`;
 
     const schemaDir = path.resolve('zenstack');
