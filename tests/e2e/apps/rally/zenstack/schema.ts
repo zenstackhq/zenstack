@@ -5,2533 +5,3988 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
+import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from '@zenstackhq/schema';
 export class SchemaType implements SchemaDef {
     provider = {
-        type: "postgresql"
+        type: 'postgresql',
     } as const;
     models = {
         Account: {
-            name: "Account",
+            name: 'Account',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("cuid") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('cuid') as FieldDefault,
                 },
                 userId: {
-                    name: "userId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
+                    name: 'userId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('user_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['user'] as readonly string[],
                 },
                 provider: {
-                    name: "provider",
-                    type: "String"
+                    name: 'provider',
+                    type: 'String',
                 },
                 providerAccountId: {
-                    name: "providerAccountId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("provider_account_id") }] }] as readonly AttributeApplication[]
+                    name: 'providerAccountId',
+                    type: 'String',
+                    attributes: [
+                        {
+                            name: '@map',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('provider_account_id') }],
+                        },
+                    ] as readonly AttributeApplication[],
                 },
                 refresh_token: {
-                    name: "refresh_token",
-                    type: "String",
+                    name: 'refresh_token',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@db.Text" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@db.Text' }] as readonly AttributeApplication[],
                 },
                 access_token: {
-                    name: "access_token",
-                    type: "String",
+                    name: 'access_token',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@db.Text" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@db.Text' }] as readonly AttributeApplication[],
                 },
                 expires_at: {
-                    name: "expires_at",
-                    type: "Int",
-                    optional: true
+                    name: 'expires_at',
+                    type: 'Int',
+                    optional: true,
                 },
                 scope: {
-                    name: "scope",
-                    type: "String",
-                    optional: true
+                    name: 'scope',
+                    type: 'String',
+                    optional: true,
                 },
                 id_token: {
-                    name: "id_token",
-                    type: "String",
+                    name: 'id_token',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@db.Text" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@db.Text' }] as readonly AttributeApplication[],
                 },
                 user: {
-                    name: "user",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "accounts", fields: ["userId"], references: ["id"], onDelete: "Cascade" }
+                    name: 'user',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'accounts', fields: ['userId'], references: ['id'], onDelete: 'Cascade' },
                 },
                 accessTokenExpiresAt: {
-                    name: "accessTokenExpiresAt",
-                    type: "DateTime",
+                    name: 'accessTokenExpiresAt',
+                    type: 'DateTime',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("access_token_expires_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        {
+                            name: '@map',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('access_token_expires_at') }],
+                        },
+                    ] as readonly AttributeApplication[],
                 },
                 refreshTokenExpiresAt: {
-                    name: "refreshTokenExpiresAt",
-                    type: "DateTime",
+                    name: 'refreshTokenExpiresAt',
+                    type: 'DateTime',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("refresh_token_expires_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        {
+                            name: '@map',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('refresh_token_expires_at') }],
+                        },
+                    ] as readonly AttributeApplication[],
                 },
                 password: {
-                    name: "password",
-                    type: "String",
+                    name: 'password',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("password") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('password') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("created_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('created_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("updated_at") }] }] as readonly AttributeApplication[]
-                }
+                    attributes: [
+                        { name: '@updatedAt' },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('updated_at') }] },
+                    ] as readonly AttributeApplication[],
+                },
             },
             attributes: [
-                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("provider"), ExpressionUtils.field("providerAccountId")]) }] },
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("accounts") }] }
+                {
+                    name: '@@unique',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('String', [
+                                ExpressionUtils.field('provider'),
+                                ExpressionUtils.field('providerAccountId'),
+                            ]),
+                        },
+                    ],
+                },
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('accounts') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" },
-                provider_providerAccountId: { provider: { type: "String" }, providerAccountId: { type: "String" } }
-            }
+                id: { type: 'String' },
+                provider_providerAccountId: { provider: { type: 'String' }, providerAccountId: { type: 'String' } },
+            },
         },
         User: {
-            name: "User",
+            name: 'User',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("cuid") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('cuid') as FieldDefault,
                 },
                 name: {
-                    name: "name",
-                    type: "String"
+                    name: 'name',
+                    type: 'String',
                 },
                 email: {
-                    name: "email",
-                    type: "String",
+                    name: 'email',
+                    type: 'String',
                     unique: true,
-                    attributes: [{ name: "@unique" }, { name: "@db.Citext" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@unique' }, { name: '@db.Citext' }] as readonly AttributeApplication[],
                 },
                 emailVerified: {
-                    name: "emailVerified",
-                    type: "Boolean",
+                    name: 'emailVerified',
+                    type: 'Boolean',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("email_verified") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('email_verified') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 image: {
-                    name: "image",
-                    type: "String",
-                    optional: true
+                    name: 'image',
+                    type: 'String',
+                    optional: true,
                 },
                 timeZone: {
-                    name: "timeZone",
-                    type: "String",
+                    name: 'timeZone',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("time_zone") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('time_zone') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 weekStart: {
-                    name: "weekStart",
-                    type: "Int",
+                    name: 'weekStart',
+                    type: 'Int',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("week_start") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('week_start') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 timeFormat: {
-                    name: "timeFormat",
-                    type: "TimeFormat",
+                    name: 'timeFormat',
+                    type: 'TimeFormat',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("time_format") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('time_format') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 locale: {
-                    name: "locale",
-                    type: "String",
-                    optional: true
+                    name: 'locale',
+                    type: 'String',
+                    optional: true,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("created_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('created_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     optional: true,
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("updated_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@updatedAt' },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('updated_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 customerId: {
-                    name: "customerId",
-                    type: "String",
+                    name: 'customerId',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("customer_id") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('customer_id') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 banned: {
-                    name: "banned",
-                    type: "Boolean",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'banned',
+                    type: 'Boolean',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 bannedAt: {
-                    name: "bannedAt",
-                    type: "DateTime",
+                    name: 'bannedAt',
+                    type: 'DateTime',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("banned_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('banned_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 banReason: {
-                    name: "banReason",
-                    type: "String",
+                    name: 'banReason',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("ban_reason") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('ban_reason') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 banExpires: {
-                    name: "banExpires",
-                    type: "DateTime",
+                    name: 'banExpires',
+                    type: 'DateTime',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("ban_expires") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('ban_expires') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 role: {
-                    name: "role",
-                    type: "UserRole",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("user") }] }] as readonly AttributeApplication[],
-                    default: "user" as FieldDefault
+                    name: 'role',
+                    type: 'UserRole',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('user') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'user' as FieldDefault,
                 },
                 lastLoginMethod: {
-                    name: "lastLoginMethod",
-                    type: "String",
+                    name: 'lastLoginMethod',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("last_login_method") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('last_login_method') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 isAnonymous: {
-                    name: "isAnonymous",
-                    type: "Boolean",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("anonymous") }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'isAnonymous',
+                    type: 'Boolean',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('anonymous') }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 comments: {
-                    name: "comments",
-                    type: "Comment",
+                    name: 'comments',
+                    type: 'Comment',
                     array: true,
-                    relation: { opposite: "user" }
+                    relation: { opposite: 'user' },
                 },
                 polls: {
-                    name: "polls",
-                    type: "Poll",
+                    name: 'polls',
+                    type: 'Poll',
                     array: true,
-                    relation: { opposite: "user" }
+                    relation: { opposite: 'user' },
                 },
                 watcher: {
-                    name: "watcher",
-                    type: "Watcher",
+                    name: 'watcher',
+                    type: 'Watcher',
                     array: true,
-                    relation: { opposite: "user" }
+                    relation: { opposite: 'user' },
                 },
                 accounts: {
-                    name: "accounts",
-                    type: "Account",
+                    name: 'accounts',
+                    type: 'Account',
                     array: true,
-                    relation: { opposite: "user" }
+                    relation: { opposite: 'user' },
                 },
                 participants: {
-                    name: "participants",
-                    type: "Participant",
+                    name: 'participants',
+                    type: 'Participant',
                     array: true,
-                    relation: { opposite: "user" }
+                    relation: { opposite: 'user' },
                 },
                 paymentMethods: {
-                    name: "paymentMethods",
-                    type: "PaymentMethod",
+                    name: 'paymentMethods',
+                    type: 'PaymentMethod',
                     array: true,
-                    relation: { opposite: "user" }
+                    relation: { opposite: 'user' },
                 },
                 spaceMemberInvites: {
-                    name: "spaceMemberInvites",
-                    type: "SpaceMemberInvite",
+                    name: 'spaceMemberInvites',
+                    type: 'SpaceMemberInvite',
                     array: true,
-                    relation: { opposite: "invitedBy" }
+                    relation: { opposite: 'invitedBy' },
                 },
                 subscriptions: {
-                    name: "subscriptions",
-                    type: "Subscription",
+                    name: 'subscriptions',
+                    type: 'Subscription',
                     array: true,
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("UserToSubscription") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "user", name: "UserToSubscription" }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('UserToSubscription') }],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'user', name: 'UserToSubscription' },
                 },
                 spaces: {
-                    name: "spaces",
-                    type: "Space",
+                    name: 'spaces',
+                    type: 'Space',
                     array: true,
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("UserSpaces") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "owner", name: "UserSpaces" }
+                    attributes: [
+                        { name: '@relation', args: [{ name: 'name', value: ExpressionUtils.literal('UserSpaces') }] },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'owner', name: 'UserSpaces' },
                 },
                 memberOf: {
-                    name: "memberOf",
-                    type: "SpaceMember",
+                    name: 'memberOf',
+                    type: 'SpaceMember',
                     array: true,
-                    relation: { opposite: "user" }
+                    relation: { opposite: 'user' },
                 },
                 pollViews: {
-                    name: "pollViews",
-                    type: "PollView",
+                    name: 'pollViews',
+                    type: 'PollView',
                     array: true,
-                    relation: { opposite: "user" }
+                    relation: { opposite: 'user' },
                 },
                 scheduledEvents: {
-                    name: "scheduledEvents",
-                    type: "ScheduledEvent",
+                    name: 'scheduledEvents',
+                    type: 'ScheduledEvent',
                     array: true,
-                    relation: { opposite: "user" }
+                    relation: { opposite: 'user' },
                 },
                 scheduledEventInvites: {
-                    name: "scheduledEventInvites",
-                    type: "ScheduledEventInvite",
+                    name: 'scheduledEventInvites',
+                    type: 'ScheduledEventInvite',
                     array: true,
-                    relation: { opposite: "user" }
+                    relation: { opposite: 'user' },
                 },
                 calendarConnections: {
-                    name: "calendarConnections",
-                    type: "CalendarConnection",
+                    name: 'calendarConnections',
+                    type: 'CalendarConnection',
                     array: true,
-                    relation: { opposite: "user" }
+                    relation: { opposite: 'user' },
                 },
                 credentials: {
-                    name: "credentials",
-                    type: "Credential",
+                    name: 'credentials',
+                    type: 'Credential',
                     array: true,
-                    relation: { opposite: "user" }
+                    relation: { opposite: 'user' },
                 },
                 defaultDestinationCalendarId: {
-                    name: "defaultDestinationCalendarId",
-                    type: "String",
+                    name: 'defaultDestinationCalendarId',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("default_destination_calendar_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "defaultDestinationCalendar"
-                    ] as readonly string[]
+                    attributes: [
+                        {
+                            name: '@map',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('default_destination_calendar_id') }],
+                        },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['defaultDestinationCalendar'] as readonly string[],
                 },
                 defaultDestinationCalendar: {
-                    name: "defaultDestinationCalendar",
-                    type: "ProviderCalendar",
+                    name: 'defaultDestinationCalendar',
+                    type: 'ProviderCalendar',
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("UserDefaultDestinationCalendar") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("defaultDestinationCalendarId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "userDefaultDestination", name: "UserDefaultDestinationCalendar", fields: ["defaultDestinationCalendarId"], references: ["id"], onDelete: "SetNull" }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                { name: 'name', value: ExpressionUtils.literal('UserDefaultDestinationCalendar') },
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [
+                                        ExpressionUtils.field('defaultDestinationCalendarId'),
+                                    ]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('SetNull') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: {
+                        opposite: 'userDefaultDestination',
+                        name: 'UserDefaultDestinationCalendar',
+                        fields: ['defaultDestinationCalendarId'],
+                        references: ['id'],
+                        onDelete: 'SetNull',
+                    },
                 },
                 sessions: {
-                    name: "sessions",
-                    type: "Session",
+                    name: 'sessions',
+                    type: 'Session',
                     array: true,
-                    relation: { opposite: "user" }
+                    relation: { opposite: 'user' },
                 },
                 impersonatedSessions: {
-                    name: "impersonatedSessions",
-                    type: "Session",
+                    name: 'impersonatedSessions',
+                    type: 'Session',
                     array: true,
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("ImpersonatedSessions") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "impersonatedByUser", name: "ImpersonatedSessions" }
-                }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('ImpersonatedSessions') }],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'impersonatedByUser', name: 'ImpersonatedSessions' },
+                },
             },
             attributes: [
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("users") }] }
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('users') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" },
-                email: { type: "String" }
-            }
+                id: { type: 'String' },
+                email: { type: 'String' },
+            },
         },
         VerificationToken: {
-            name: "VerificationToken",
+            name: 'VerificationToken',
             fields: {
                 identifier: {
-                    name: "identifier",
-                    type: "String",
-                    attributes: [{ name: "@db.Citext" }] as readonly AttributeApplication[]
+                    name: 'identifier',
+                    type: 'String',
+                    attributes: [{ name: '@db.Citext' }] as readonly AttributeApplication[],
                 },
                 token: {
-                    name: "token",
-                    type: "String",
+                    name: 'token',
+                    type: 'String',
                     id: true,
                     unique: true,
-                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
                 },
                 expires: {
-                    name: "expires",
-                    type: "DateTime"
-                }
+                    name: 'expires',
+                    type: 'DateTime',
+                },
             },
             attributes: [
-                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("identifier"), ExpressionUtils.field("token")]) }] },
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("verification_tokens") }] }
+                {
+                    name: '@@unique',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('String', [
+                                ExpressionUtils.field('identifier'),
+                                ExpressionUtils.field('token'),
+                            ]),
+                        },
+                    ],
+                },
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('verification_tokens') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["token"],
+            idFields: ['token'],
             uniqueFields: {
-                token: { type: "String" },
-                identifier_token: { identifier: { type: "String" }, token: { type: "String" } }
-            }
+                token: { type: 'String' },
+                identifier_token: { identifier: { type: 'String' }, token: { type: 'String' } },
+            },
         },
         Session: {
-            name: "Session",
+            name: 'Session',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@id' }] as readonly AttributeApplication[],
                 },
                 expiresAt: {
-                    name: "expiresAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("expires_at") }] }] as readonly AttributeApplication[]
+                    name: 'expiresAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('expires_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 token: {
-                    name: "token",
-                    type: "String"
+                    name: 'token',
+                    type: 'String',
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("created_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('created_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("updated_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@updatedAt' },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('updated_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 ipAddress: {
-                    name: "ipAddress",
-                    type: "String",
+                    name: 'ipAddress',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("ip_address") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('ip_address') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 userAgent: {
-                    name: "userAgent",
-                    type: "String",
+                    name: 'userAgent',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_agent") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('user_agent') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 userId: {
-                    name: "userId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
+                    name: 'userId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('user_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['user'] as readonly string[],
                 },
                 impersonatedBy: {
-                    name: "impersonatedBy",
-                    type: "String",
+                    name: 'impersonatedBy',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("impersonated_by") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "impersonatedByUser"
-                    ] as readonly string[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('impersonated_by') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['impersonatedByUser'] as readonly string[],
                 },
                 user: {
-                    name: "user",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "sessions", fields: ["userId"], references: ["id"], onDelete: "Cascade" }
+                    name: 'user',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'sessions', fields: ['userId'], references: ['id'], onDelete: 'Cascade' },
                 },
                 impersonatedByUser: {
-                    name: "impersonatedByUser",
-                    type: "User",
+                    name: 'impersonatedByUser',
+                    type: 'User',
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("ImpersonatedSessions") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("impersonatedBy")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "impersonatedSessions", name: "ImpersonatedSessions", fields: ["impersonatedBy"], references: ["id"] }
-                }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                { name: 'name', value: ExpressionUtils.literal('ImpersonatedSessions') },
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('impersonatedBy')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: {
+                        opposite: 'impersonatedSessions',
+                        name: 'ImpersonatedSessions',
+                        fields: ['impersonatedBy'],
+                        references: ['id'],
+                    },
+                },
             },
             attributes: [
-                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("token")]) }] },
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("sessions") }] }
+                {
+                    name: '@@unique',
+                    args: [
+                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('token')]) },
+                    ],
+                },
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('sessions') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" },
-                token: { type: "String" }
-            }
+                id: { type: 'String' },
+                token: { type: 'String' },
+            },
         },
         Verification: {
-            name: "Verification",
+            name: 'Verification',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@id' }] as readonly AttributeApplication[],
                 },
                 identifier: {
-                    name: "identifier",
-                    type: "String"
+                    name: 'identifier',
+                    type: 'String',
                 },
                 value: {
-                    name: "value",
-                    type: "String"
+                    name: 'value',
+                    type: 'String',
                 },
                 expiresAt: {
-                    name: "expiresAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("expires_at") }] }] as readonly AttributeApplication[]
+                    name: 'expiresAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('expires_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("created_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('created_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@updatedAt" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("updated_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
-                }
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@updatedAt' },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('updated_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
+                },
             },
             attributes: [
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("verifications") }] }
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('verifications') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" }
-            }
+                id: { type: 'String' },
+            },
         },
         Poll: {
-            name: "Poll",
+            name: 'Poll',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
                     unique: true,
-                    attributes: [{ name: "@id" }, { name: "@unique" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("id") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@unique' },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('id') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("created_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('created_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("updated_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@updatedAt' },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('updated_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 deadline: {
-                    name: "deadline",
-                    type: "DateTime",
-                    optional: true
+                    name: 'deadline',
+                    type: 'DateTime',
+                    optional: true,
                 },
                 title: {
-                    name: "title",
-                    type: "String"
+                    name: 'title',
+                    type: 'String',
                 },
                 description: {
-                    name: "description",
-                    type: "String",
-                    optional: true
+                    name: 'description',
+                    type: 'String',
+                    optional: true,
                 },
                 location: {
-                    name: "location",
-                    type: "String",
-                    optional: true
+                    name: 'location',
+                    type: 'String',
+                    optional: true,
                 },
                 userId: {
-                    name: "userId",
-                    type: "String",
+                    name: 'userId',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('user_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['user'] as readonly string[],
                 },
                 guestId: {
-                    name: "guestId",
-                    type: "String",
+                    name: 'guestId',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("guest_id") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('guest_id') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 timeZone: {
-                    name: "timeZone",
-                    type: "String",
+                    name: 'timeZone',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("time_zone") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('time_zone') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 status: {
-                    name: "status",
-                    type: "PollStatus",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("live") }] }] as readonly AttributeApplication[],
-                    default: "live" as FieldDefault
+                    name: 'status',
+                    type: 'PollStatus',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('live') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'live' as FieldDefault,
                 },
                 deleted: {
-                    name: "deleted",
-                    type: "Boolean",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'deleted',
+                    type: 'Boolean',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 deletedAt: {
-                    name: "deletedAt",
-                    type: "DateTime",
+                    name: 'deletedAt',
+                    type: 'DateTime',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("deleted_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('deleted_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 touchedAt: {
-                    name: "touchedAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("touched_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'touchedAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('touched_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 participantUrlId: {
-                    name: "participantUrlId",
-                    type: "String",
+                    name: 'participantUrlId',
+                    type: 'String',
                     unique: true,
-                    attributes: [{ name: "@unique" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("participant_url_id") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@unique' },
+                        {
+                            name: '@map',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('participant_url_id') }],
+                        },
+                    ] as readonly AttributeApplication[],
                 },
                 adminUrlId: {
-                    name: "adminUrlId",
-                    type: "String",
+                    name: 'adminUrlId',
+                    type: 'String',
                     unique: true,
-                    attributes: [{ name: "@unique" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("admin_url_id") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@unique' },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('admin_url_id') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 eventId: {
-                    name: "eventId",
-                    type: "String",
+                    name: 'eventId',
+                    type: 'String',
                     unique: true,
                     optional: true,
-                    attributes: [{ name: "@unique" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("event_id") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@unique' },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('event_id') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 scheduledEventId: {
-                    name: "scheduledEventId",
-                    type: "String",
+                    name: 'scheduledEventId',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("scheduled_event_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "scheduledEvent"
-                    ] as readonly string[]
+                    attributes: [
+                        {
+                            name: '@map',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('scheduled_event_id') }],
+                        },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['scheduledEvent'] as readonly string[],
                 },
                 hideParticipants: {
-                    name: "hideParticipants",
-                    type: "Boolean",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("hide_participants") }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'hideParticipants',
+                    type: 'Boolean',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('hide_participants') }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 hideScores: {
-                    name: "hideScores",
-                    type: "Boolean",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("hide_scores") }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'hideScores',
+                    type: 'Boolean',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('hide_scores') }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 disableComments: {
-                    name: "disableComments",
-                    type: "Boolean",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("disable_comments") }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'disableComments',
+                    type: 'Boolean',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('disable_comments') }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 requireParticipantEmail: {
-                    name: "requireParticipantEmail",
-                    type: "Boolean",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("require_participant_email") }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'requireParticipantEmail',
+                    type: 'Boolean',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                        {
+                            name: '@map',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('require_participant_email') }],
+                        },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 user: {
-                    name: "user",
-                    type: "User",
+                    name: 'user',
+                    type: 'User',
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "polls", fields: ["userId"], references: ["id"], onDelete: "Cascade" }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'polls', fields: ['userId'], references: ['id'], onDelete: 'Cascade' },
                 },
                 scheduledEvent: {
-                    name: "scheduledEvent",
-                    type: "ScheduledEvent",
+                    name: 'scheduledEvent',
+                    type: 'ScheduledEvent',
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("scheduledEventId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "polls", fields: ["scheduledEventId"], references: ["id"], onDelete: "SetNull" }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('scheduledEventId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('SetNull') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: {
+                        opposite: 'polls',
+                        fields: ['scheduledEventId'],
+                        references: ['id'],
+                        onDelete: 'SetNull',
+                    },
                 },
                 options: {
-                    name: "options",
-                    type: "Option",
+                    name: 'options',
+                    type: 'Option',
                     array: true,
-                    relation: { opposite: "poll" }
+                    relation: { opposite: 'poll' },
                 },
                 participants: {
-                    name: "participants",
-                    type: "Participant",
+                    name: 'participants',
+                    type: 'Participant',
                     array: true,
-                    relation: { opposite: "poll" }
+                    relation: { opposite: 'poll' },
                 },
                 watchers: {
-                    name: "watchers",
-                    type: "Watcher",
+                    name: 'watchers',
+                    type: 'Watcher',
                     array: true,
-                    relation: { opposite: "poll" }
+                    relation: { opposite: 'poll' },
                 },
                 comments: {
-                    name: "comments",
-                    type: "Comment",
+                    name: 'comments',
+                    type: 'Comment',
                     array: true,
-                    relation: { opposite: "poll" }
+                    relation: { opposite: 'poll' },
                 },
                 votes: {
-                    name: "votes",
-                    type: "Vote",
+                    name: 'votes',
+                    type: 'Vote',
                     array: true,
-                    relation: { opposite: "poll" }
+                    relation: { opposite: 'poll' },
                 },
                 views: {
-                    name: "views",
-                    type: "PollView",
+                    name: 'views',
+                    type: 'PollView',
                     array: true,
-                    relation: { opposite: "poll" }
+                    relation: { opposite: 'poll' },
                 },
                 space: {
-                    name: "space",
-                    type: "Space",
+                    name: 'space',
+                    type: 'Space',
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("spaceId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "polls", fields: ["spaceId"], references: ["id"], onDelete: "SetNull" }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('spaceId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('SetNull') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'polls', fields: ['spaceId'], references: ['id'], onDelete: 'SetNull' },
                 },
                 spaceId: {
-                    name: "spaceId",
-                    type: "String",
+                    name: 'spaceId',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("space_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "space"
-                    ] as readonly string[]
-                }
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('space_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['space'] as readonly string[],
+                },
             },
             attributes: [
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("guestId")]) }, { name: "type", value: ExpressionUtils.literal("Hash") }] },
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("spaceId")]) }, { name: "type", value: ExpressionUtils.literal("Hash") }] },
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "type", value: ExpressionUtils.literal("Hash") }] },
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("polls") }] }
+                {
+                    name: '@@index',
+                    args: [
+                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('guestId')]) },
+                        { name: 'type', value: ExpressionUtils.literal('Hash') },
+                    ],
+                },
+                {
+                    name: '@@index',
+                    args: [
+                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('spaceId')]) },
+                        { name: 'type', value: ExpressionUtils.literal('Hash') },
+                    ],
+                },
+                {
+                    name: '@@index',
+                    args: [
+                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('userId')]) },
+                        { name: 'type', value: ExpressionUtils.literal('Hash') },
+                    ],
+                },
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('polls') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" },
-                participantUrlId: { type: "String" },
-                adminUrlId: { type: "String" },
-                eventId: { type: "String" }
-            }
+                id: { type: 'String' },
+                participantUrlId: { type: 'String' },
+                adminUrlId: { type: 'String' },
+                eventId: { type: 'String' },
+            },
         },
         Watcher: {
-            name: "Watcher",
+            name: 'Watcher',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 userId: {
-                    name: "userId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
+                    name: 'userId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('user_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['user'] as readonly string[],
                 },
                 pollId: {
-                    name: "pollId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("poll_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "poll"
-                    ] as readonly string[]
+                    name: 'pollId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('poll_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['poll'] as readonly string[],
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("created_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('created_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 poll: {
-                    name: "poll",
-                    type: "Poll",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("pollId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "watchers", fields: ["pollId"], references: ["id"], onDelete: "Cascade" }
+                    name: 'poll',
+                    type: 'Poll',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('pollId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'watchers', fields: ['pollId'], references: ['id'], onDelete: 'Cascade' },
                 },
                 user: {
-                    name: "user",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "watcher", fields: ["userId"], references: ["id"], onDelete: "Cascade" }
-                }
+                    name: 'user',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'watcher', fields: ['userId'], references: ['id'], onDelete: 'Cascade' },
+                },
             },
             attributes: [
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("pollId")]) }, { name: "type", value: ExpressionUtils.literal("Hash") }] },
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("watchers") }] }
+                {
+                    name: '@@index',
+                    args: [
+                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('pollId')]) },
+                        { name: 'type', value: ExpressionUtils.literal('Hash') },
+                    ],
+                },
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('watchers') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         Participant: {
-            name: "Participant",
+            name: 'Participant',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("cuid") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('cuid') as FieldDefault,
                 },
                 name: {
-                    name: "name",
-                    type: "String"
+                    name: 'name',
+                    type: 'String',
                 },
                 email: {
-                    name: "email",
-                    type: "String",
-                    optional: true
+                    name: 'email',
+                    type: 'String',
+                    optional: true,
                 },
                 userId: {
-                    name: "userId",
-                    type: "String",
+                    name: 'userId',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('user_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['user'] as readonly string[],
                 },
                 guestId: {
-                    name: "guestId",
-                    type: "String",
+                    name: 'guestId',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("guest_id") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('guest_id') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 pollId: {
-                    name: "pollId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("poll_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "poll"
-                    ] as readonly string[]
+                    name: 'pollId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('poll_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['poll'] as readonly string[],
                 },
                 locale: {
-                    name: "locale",
-                    type: "String",
-                    optional: true
+                    name: 'locale',
+                    type: 'String',
+                    optional: true,
                 },
                 timeZone: {
-                    name: "timeZone",
-                    type: "String",
+                    name: 'timeZone',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("time_zone") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('time_zone') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("created_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('created_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     optional: true,
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("updated_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@updatedAt' },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('updated_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 deleted: {
-                    name: "deleted",
-                    type: "Boolean",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'deleted',
+                    type: 'Boolean',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 deletedAt: {
-                    name: "deletedAt",
-                    type: "DateTime",
+                    name: 'deletedAt',
+                    type: 'DateTime',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("deleted_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('deleted_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 votes: {
-                    name: "votes",
-                    type: "Vote",
+                    name: 'votes',
+                    type: 'Vote',
                     array: true,
-                    relation: { opposite: "participant" }
+                    relation: { opposite: 'participant' },
                 },
                 poll: {
-                    name: "poll",
-                    type: "Poll",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("pollId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "participants", fields: ["pollId"], references: ["id"], onDelete: "Cascade" }
+                    name: 'poll',
+                    type: 'Poll',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('pollId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'participants', fields: ['pollId'], references: ['id'], onDelete: 'Cascade' },
                 },
                 user: {
-                    name: "user",
-                    type: "User",
+                    name: 'user',
+                    type: 'User',
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "participants", fields: ["userId"], references: ["id"], onDelete: "SetNull" }
-                }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('SetNull') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'participants', fields: ['userId'], references: ['id'], onDelete: 'SetNull' },
+                },
             },
             attributes: [
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("pollId")]) }, { name: "type", value: ExpressionUtils.literal("Hash") }] },
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("participants") }] }
+                {
+                    name: '@@index',
+                    args: [
+                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('pollId')]) },
+                        { name: 'type', value: ExpressionUtils.literal('Hash') },
+                    ],
+                },
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('participants') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" }
-            }
+                id: { type: 'String' },
+            },
         },
         Option: {
-            name: "Option",
+            name: 'Option',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("cuid") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('cuid') as FieldDefault,
                 },
                 startTime: {
-                    name: "startTime",
-                    type: "DateTime",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("start_time") }] }, { name: "@db.Timestamp", args: [{ name: "x", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[]
+                    name: 'startTime',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('start_time') }] },
+                        { name: '@db.Timestamp', args: [{ name: 'x', value: ExpressionUtils.literal(0) }] },
+                    ] as readonly AttributeApplication[],
                 },
                 duration: {
-                    name: "duration",
-                    type: "Int",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("duration_minutes") }] }] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault
+                    name: 'duration',
+                    type: 'Int',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('duration_minutes') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault,
                 },
                 pollId: {
-                    name: "pollId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("poll_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "poll"
-                    ] as readonly string[]
+                    name: 'pollId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('poll_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['poll'] as readonly string[],
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("created_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('created_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 votes: {
-                    name: "votes",
-                    type: "Vote",
+                    name: 'votes',
+                    type: 'Vote',
                     array: true,
-                    relation: { opposite: "option" }
+                    relation: { opposite: 'option' },
                 },
                 poll: {
-                    name: "poll",
-                    type: "Poll",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("pollId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "options", fields: ["pollId"], references: ["id"], onDelete: "Cascade" }
-                }
+                    name: 'poll',
+                    type: 'Poll',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('pollId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'options', fields: ['pollId'], references: ['id'], onDelete: 'Cascade' },
+                },
             },
             attributes: [
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("pollId")]) }, { name: "type", value: ExpressionUtils.literal("Hash") }] },
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("options") }] }
+                {
+                    name: '@@index',
+                    args: [
+                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('pollId')]) },
+                        { name: 'type', value: ExpressionUtils.literal('Hash') },
+                    ],
+                },
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('options') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" }
-            }
+                id: { type: 'String' },
+            },
         },
         Vote: {
-            name: "Vote",
+            name: 'Vote',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("cuid") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('cuid') as FieldDefault,
                 },
                 participantId: {
-                    name: "participantId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("participant_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "participant"
-                    ] as readonly string[]
+                    name: 'participantId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('participant_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['participant'] as readonly string[],
                 },
                 optionId: {
-                    name: "optionId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("option_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "option"
-                    ] as readonly string[]
+                    name: 'optionId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('option_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['option'] as readonly string[],
                 },
                 pollId: {
-                    name: "pollId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("poll_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "poll"
-                    ] as readonly string[]
+                    name: 'pollId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('poll_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['poll'] as readonly string[],
                 },
                 type: {
-                    name: "type",
-                    type: "VoteType",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("yes") }] }] as readonly AttributeApplication[],
-                    default: "yes" as FieldDefault
+                    name: 'type',
+                    type: 'VoteType',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('yes') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'yes' as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("created_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('created_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     optional: true,
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("updated_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@updatedAt' },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('updated_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 participant: {
-                    name: "participant",
-                    type: "Participant",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("participantId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "votes", fields: ["participantId"], references: ["id"], onDelete: "Cascade" }
+                    name: 'participant',
+                    type: 'Participant',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('participantId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'votes', fields: ['participantId'], references: ['id'], onDelete: 'Cascade' },
                 },
                 option: {
-                    name: "option",
-                    type: "Option",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("optionId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "votes", fields: ["optionId"], references: ["id"], onDelete: "Cascade" }
+                    name: 'option',
+                    type: 'Option',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('optionId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'votes', fields: ['optionId'], references: ['id'], onDelete: 'Cascade' },
                 },
                 poll: {
-                    name: "poll",
-                    type: "Poll",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("pollId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "votes", fields: ["pollId"], references: ["id"], onDelete: "Cascade" }
-                }
+                    name: 'poll',
+                    type: 'Poll',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('pollId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'votes', fields: ['pollId'], references: ['id'], onDelete: 'Cascade' },
+                },
             },
             attributes: [
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("pollId")]) }, { name: "type", value: ExpressionUtils.literal("Hash") }] },
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("participantId")]) }, { name: "type", value: ExpressionUtils.literal("Hash") }] },
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("optionId")]) }, { name: "type", value: ExpressionUtils.literal("Hash") }] },
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("votes") }] }
+                {
+                    name: '@@index',
+                    args: [
+                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('pollId')]) },
+                        { name: 'type', value: ExpressionUtils.literal('Hash') },
+                    ],
+                },
+                {
+                    name: '@@index',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('String', [ExpressionUtils.field('participantId')]),
+                        },
+                        { name: 'type', value: ExpressionUtils.literal('Hash') },
+                    ],
+                },
+                {
+                    name: '@@index',
+                    args: [
+                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('optionId')]) },
+                        { name: 'type', value: ExpressionUtils.literal('Hash') },
+                    ],
+                },
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('votes') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" }
-            }
+                id: { type: 'String' },
+            },
         },
         Comment: {
-            name: "Comment",
+            name: 'Comment',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("cuid") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('cuid') as FieldDefault,
                 },
                 content: {
-                    name: "content",
-                    type: "String"
+                    name: 'content',
+                    type: 'String',
                 },
                 pollId: {
-                    name: "pollId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("poll_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "poll"
-                    ] as readonly string[]
+                    name: 'pollId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('poll_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['poll'] as readonly string[],
                 },
                 authorName: {
-                    name: "authorName",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("author_name") }] }] as readonly AttributeApplication[]
+                    name: 'authorName',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('author_name') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 userId: {
-                    name: "userId",
-                    type: "String",
+                    name: 'userId',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('user_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['user'] as readonly string[],
                 },
                 guestId: {
-                    name: "guestId",
-                    type: "String",
+                    name: 'guestId',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("guest_id") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('guest_id') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("created_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('created_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     optional: true,
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("updated_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@updatedAt' },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('updated_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 poll: {
-                    name: "poll",
-                    type: "Poll",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("pollId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "comments", fields: ["pollId"], references: ["id"], onDelete: "Cascade" }
+                    name: 'poll',
+                    type: 'Poll',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('pollId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'comments', fields: ['pollId'], references: ['id'], onDelete: 'Cascade' },
                 },
                 user: {
-                    name: "user",
-                    type: "User",
+                    name: 'user',
+                    type: 'User',
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "comments", fields: ["userId"], references: ["id"], onDelete: "Cascade" }
-                }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'comments', fields: ['userId'], references: ['id'], onDelete: 'Cascade' },
+                },
             },
             attributes: [
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("pollId")]) }, { name: "type", value: ExpressionUtils.literal("Hash") }] },
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("comments") }] }
+                {
+                    name: '@@index',
+                    args: [
+                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('pollId')]) },
+                        { name: 'type', value: ExpressionUtils.literal('Hash') },
+                    ],
+                },
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('comments') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" }
-            }
+                id: { type: 'String' },
+            },
         },
         PollView: {
-            name: "PollView",
+            name: 'PollView',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("cuid") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('cuid') as FieldDefault,
                 },
                 pollId: {
-                    name: "pollId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("poll_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "poll"
-                    ] as readonly string[]
+                    name: 'pollId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('poll_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['poll'] as readonly string[],
                 },
                 ipAddress: {
-                    name: "ipAddress",
-                    type: "String",
+                    name: 'ipAddress',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("ip_address") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('ip_address') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 userId: {
-                    name: "userId",
-                    type: "String",
+                    name: 'userId',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('user_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['user'] as readonly string[],
                 },
                 userAgent: {
-                    name: "userAgent",
-                    type: "String",
+                    name: 'userAgent',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_agent") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('user_agent') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 viewedAt: {
-                    name: "viewedAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("viewed_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'viewedAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('viewed_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 poll: {
-                    name: "poll",
-                    type: "Poll",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("pollId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "views", fields: ["pollId"], references: ["id"], onDelete: "Cascade" }
+                    name: 'poll',
+                    type: 'Poll',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('pollId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'views', fields: ['pollId'], references: ['id'], onDelete: 'Cascade' },
                 },
                 user: {
-                    name: "user",
-                    type: "User",
+                    name: 'user',
+                    type: 'User',
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "pollViews", fields: ["userId"], references: ["id"], onDelete: "SetNull" }
-                }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('SetNull') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'pollViews', fields: ['userId'], references: ['id'], onDelete: 'SetNull' },
+                },
             },
             attributes: [
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("pollId")]) }, { name: "type", value: ExpressionUtils.literal("Hash") }] },
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "type", value: ExpressionUtils.literal("Hash") }] },
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("DateTime", [ExpressionUtils.field("viewedAt")]) }] },
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("poll_views") }] }
+                {
+                    name: '@@index',
+                    args: [
+                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('pollId')]) },
+                        { name: 'type', value: ExpressionUtils.literal('Hash') },
+                    ],
+                },
+                {
+                    name: '@@index',
+                    args: [
+                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('userId')]) },
+                        { name: 'type', value: ExpressionUtils.literal('Hash') },
+                    ],
+                },
+                {
+                    name: '@@index',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('DateTime', [ExpressionUtils.field('viewedAt')]),
+                        },
+                    ],
+                },
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('poll_views') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" }
-            }
+                id: { type: 'String' },
+            },
         },
         Space: {
-            name: "Space",
+            name: 'Space',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("uuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("uuid") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('uuid') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('uuid') as FieldDefault,
                 },
                 name: {
-                    name: "name",
-                    type: "String"
+                    name: 'name',
+                    type: 'String',
                 },
                 image: {
-                    name: "image",
-                    type: "String",
-                    optional: true
+                    name: 'image',
+                    type: 'String',
+                    optional: true,
                 },
                 ownerId: {
-                    name: "ownerId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("owner_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "owner"
-                    ] as readonly string[]
+                    name: 'ownerId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('owner_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['owner'] as readonly string[],
                 },
                 tier: {
-                    name: "tier",
-                    type: "SpaceTier",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("hobby") }] }] as readonly AttributeApplication[],
-                    default: "hobby" as FieldDefault
+                    name: 'tier',
+                    type: 'SpaceTier',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('hobby') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'hobby' as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("created_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('created_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("updated_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@updatedAt' },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('updated_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 owner: {
-                    name: "owner",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("UserSpaces") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("ownerId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "spaces", name: "UserSpaces", fields: ["ownerId"], references: ["id"], onDelete: "Cascade" }
+                    name: 'owner',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                { name: 'name', value: ExpressionUtils.literal('UserSpaces') },
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('ownerId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: {
+                        opposite: 'spaces',
+                        name: 'UserSpaces',
+                        fields: ['ownerId'],
+                        references: ['id'],
+                        onDelete: 'Cascade',
+                    },
                 },
                 polls: {
-                    name: "polls",
-                    type: "Poll",
+                    name: 'polls',
+                    type: 'Poll',
                     array: true,
-                    relation: { opposite: "space" }
+                    relation: { opposite: 'space' },
                 },
                 scheduledEvents: {
-                    name: "scheduledEvents",
-                    type: "ScheduledEvent",
+                    name: 'scheduledEvents',
+                    type: 'ScheduledEvent',
                     array: true,
-                    relation: { opposite: "space" }
+                    relation: { opposite: 'space' },
                 },
                 subscriptions: {
-                    name: "subscriptions",
-                    type: "Subscription",
+                    name: 'subscriptions',
+                    type: 'Subscription',
                     array: true,
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("SpaceToSubscription") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "space", name: "SpaceToSubscription" }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('SpaceToSubscription') }],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'space', name: 'SpaceToSubscription' },
                 },
                 members: {
-                    name: "members",
-                    type: "SpaceMember",
+                    name: 'members',
+                    type: 'SpaceMember',
                     array: true,
-                    relation: { opposite: "space" }
+                    relation: { opposite: 'space' },
                 },
                 memberInvites: {
-                    name: "memberInvites",
-                    type: "SpaceMemberInvite",
+                    name: 'memberInvites',
+                    type: 'SpaceMemberInvite',
                     array: true,
-                    relation: { opposite: "space" }
-                }
+                    relation: { opposite: 'space' },
+                },
             },
             attributes: [
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("ownerId")]) }, { name: "type", value: ExpressionUtils.literal("Hash") }] },
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("spaces") }] }
+                {
+                    name: '@@index',
+                    args: [
+                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('ownerId')]) },
+                        { name: 'type', value: ExpressionUtils.literal('Hash') },
+                    ],
+                },
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('spaces') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" }
-            }
+                id: { type: 'String' },
+            },
         },
         SpaceMember: {
-            name: "SpaceMember",
+            name: 'SpaceMember',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("uuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("uuid") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('uuid') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('uuid') as FieldDefault,
                 },
                 spaceId: {
-                    name: "spaceId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("space_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "space"
-                    ] as readonly string[]
+                    name: 'spaceId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('space_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['space'] as readonly string[],
                 },
                 userId: {
-                    name: "userId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
+                    name: 'userId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('user_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['user'] as readonly string[],
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("created_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('created_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("updated_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@updatedAt' },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('updated_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 role: {
-                    name: "role",
-                    type: "SpaceMemberRole",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("MEMBER") }] }] as readonly AttributeApplication[],
-                    default: "MEMBER" as FieldDefault
+                    name: 'role',
+                    type: 'SpaceMemberRole',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('MEMBER') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'MEMBER' as FieldDefault,
                 },
                 lastSelectedAt: {
-                    name: "lastSelectedAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("last_selected_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'lastSelectedAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('last_selected_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 space: {
-                    name: "space",
-                    type: "Space",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("spaceId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "members", fields: ["spaceId"], references: ["id"], onDelete: "Cascade" }
+                    name: 'space',
+                    type: 'Space',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('spaceId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'members', fields: ['spaceId'], references: ['id'], onDelete: 'Cascade' },
                 },
                 user: {
-                    name: "user",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "memberOf", fields: ["userId"], references: ["id"], onDelete: "Cascade" }
-                }
+                    name: 'user',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'memberOf', fields: ['userId'], references: ['id'], onDelete: 'Cascade' },
+                },
             },
             attributes: [
-                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("spaceId"), ExpressionUtils.field("userId")]) }] },
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("spaceId")]) }, { name: "type", value: ExpressionUtils.literal("Hash") }, { name: "map", value: ExpressionUtils.literal("space_members_space_id_idx") }] },
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "type", value: ExpressionUtils.literal("Hash") }, { name: "map", value: ExpressionUtils.literal("space_members_user_id_idx") }] },
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("space_members") }] }
+                {
+                    name: '@@unique',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('String', [
+                                ExpressionUtils.field('spaceId'),
+                                ExpressionUtils.field('userId'),
+                            ]),
+                        },
+                    ],
+                },
+                {
+                    name: '@@index',
+                    args: [
+                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('spaceId')]) },
+                        { name: 'type', value: ExpressionUtils.literal('Hash') },
+                        { name: 'map', value: ExpressionUtils.literal('space_members_space_id_idx') },
+                    ],
+                },
+                {
+                    name: '@@index',
+                    args: [
+                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('userId')]) },
+                        { name: 'type', value: ExpressionUtils.literal('Hash') },
+                        { name: 'map', value: ExpressionUtils.literal('space_members_user_id_idx') },
+                    ],
+                },
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('space_members') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" },
-                spaceId_userId: { spaceId: { type: "String" }, userId: { type: "String" } }
-            }
+                id: { type: 'String' },
+                spaceId_userId: { spaceId: { type: 'String' }, userId: { type: 'String' } },
+            },
         },
         SpaceMemberInvite: {
-            name: "SpaceMemberInvite",
+            name: 'SpaceMemberInvite',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("uuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("uuid") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('uuid') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('uuid') as FieldDefault,
                 },
                 spaceId: {
-                    name: "spaceId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("space_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "space"
-                    ] as readonly string[]
+                    name: 'spaceId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('space_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['space'] as readonly string[],
                 },
                 email: {
-                    name: "email",
-                    type: "String"
+                    name: 'email',
+                    type: 'String',
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("created_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('created_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("updated_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@updatedAt' },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('updated_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 role: {
-                    name: "role",
-                    type: "SpaceMemberRole",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("MEMBER") }] }] as readonly AttributeApplication[],
-                    default: "MEMBER" as FieldDefault
+                    name: 'role',
+                    type: 'SpaceMemberRole',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('MEMBER') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'MEMBER' as FieldDefault,
                 },
                 inviterId: {
-                    name: "inviterId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("inviter_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "invitedBy"
-                    ] as readonly string[]
+                    name: 'inviterId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('inviter_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['invitedBy'] as readonly string[],
                 },
                 invitedBy: {
-                    name: "invitedBy",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("inviterId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "spaceMemberInvites", fields: ["inviterId"], references: ["id"], onDelete: "Cascade" }
+                    name: 'invitedBy',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('inviterId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: {
+                        opposite: 'spaceMemberInvites',
+                        fields: ['inviterId'],
+                        references: ['id'],
+                        onDelete: 'Cascade',
+                    },
                 },
                 space: {
-                    name: "space",
-                    type: "Space",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("spaceId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "memberInvites", fields: ["spaceId"], references: ["id"], onDelete: "Cascade" }
-                }
+                    name: 'space',
+                    type: 'Space',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('spaceId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: {
+                        opposite: 'memberInvites',
+                        fields: ['spaceId'],
+                        references: ['id'],
+                        onDelete: 'Cascade',
+                    },
+                },
             },
             attributes: [
-                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("spaceId"), ExpressionUtils.field("email")]) }] },
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("spaceId")]) }, { name: "type", value: ExpressionUtils.literal("Hash") }, { name: "map", value: ExpressionUtils.literal("space_member_invites_space_id_idx") }] },
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("space_member_invites") }] }
+                {
+                    name: '@@unique',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('String', [
+                                ExpressionUtils.field('spaceId'),
+                                ExpressionUtils.field('email'),
+                            ]),
+                        },
+                    ],
+                },
+                {
+                    name: '@@index',
+                    args: [
+                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('spaceId')]) },
+                        { name: 'type', value: ExpressionUtils.literal('Hash') },
+                        { name: 'map', value: ExpressionUtils.literal('space_member_invites_space_id_idx') },
+                    ],
+                },
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('space_member_invites') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" },
-                spaceId_email: { spaceId: { type: "String" }, email: { type: "String" } }
-            }
+                id: { type: 'String' },
+                spaceId_email: { spaceId: { type: 'String' }, email: { type: 'String' } },
+            },
         },
         Subscription: {
-            name: "Subscription",
+            name: 'Subscription',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@id' }] as readonly AttributeApplication[],
                 },
                 priceId: {
-                    name: "priceId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("price_id") }] }] as readonly AttributeApplication[]
+                    name: 'priceId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('price_id') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 quantity: {
-                    name: "quantity",
-                    type: "Int",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(1) }] }] as readonly AttributeApplication[],
-                    default: 1 as FieldDefault
+                    name: 'quantity',
+                    type: 'Int',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(1) }] },
+                    ] as readonly AttributeApplication[],
+                    default: 1 as FieldDefault,
                 },
                 subscriptionItemId: {
-                    name: "subscriptionItemId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("subscription_item_id") }] }] as readonly AttributeApplication[]
+                    name: 'subscriptionItemId',
+                    type: 'String',
+                    attributes: [
+                        {
+                            name: '@map',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('subscription_item_id') }],
+                        },
+                    ] as readonly AttributeApplication[],
                 },
                 amount: {
-                    name: "amount",
-                    type: "Int"
+                    name: 'amount',
+                    type: 'Int',
                 },
                 status: {
-                    name: "status",
-                    type: "SubscriptionStatus"
+                    name: 'status',
+                    type: 'SubscriptionStatus',
                 },
                 active: {
-                    name: "active",
-                    type: "Boolean"
+                    name: 'active',
+                    type: 'Boolean',
                 },
                 currency: {
-                    name: "currency",
-                    type: "String"
+                    name: 'currency',
+                    type: 'String',
                 },
                 interval: {
-                    name: "interval",
-                    type: "SubscriptionInterval"
+                    name: 'interval',
+                    type: 'SubscriptionInterval',
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("created_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('created_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 periodStart: {
-                    name: "periodStart",
-                    type: "DateTime",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("period_start") }] }] as readonly AttributeApplication[]
+                    name: 'periodStart',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('period_start') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 periodEnd: {
-                    name: "periodEnd",
-                    type: "DateTime",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("period_end") }] }] as readonly AttributeApplication[]
+                    name: 'periodEnd',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('period_end') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 cancelAtPeriodEnd: {
-                    name: "cancelAtPeriodEnd",
-                    type: "Boolean",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("cancel_at_period_end") }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'cancelAtPeriodEnd',
+                    type: 'Boolean',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                        {
+                            name: '@map',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('cancel_at_period_end') }],
+                        },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 userId: {
-                    name: "userId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
+                    name: 'userId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('user_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['user'] as readonly string[],
                 },
                 spaceId: {
-                    name: "spaceId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("space_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "space"
-                    ] as readonly string[]
+                    name: 'spaceId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('space_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['space'] as readonly string[],
                 },
                 user: {
-                    name: "user",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("UserToSubscription") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "subscriptions", name: "UserToSubscription", fields: ["userId"], references: ["id"], onDelete: "Cascade" }
+                    name: 'user',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                { name: 'name', value: ExpressionUtils.literal('UserToSubscription') },
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: {
+                        opposite: 'subscriptions',
+                        name: 'UserToSubscription',
+                        fields: ['userId'],
+                        references: ['id'],
+                        onDelete: 'Cascade',
+                    },
                 },
                 space: {
-                    name: "space",
-                    type: "Space",
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("SpaceToSubscription") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("spaceId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "subscriptions", name: "SpaceToSubscription", fields: ["spaceId"], references: ["id"], onDelete: "Cascade" }
-                }
+                    name: 'space',
+                    type: 'Space',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                { name: 'name', value: ExpressionUtils.literal('SpaceToSubscription') },
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('spaceId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: {
+                        opposite: 'subscriptions',
+                        name: 'SpaceToSubscription',
+                        fields: ['spaceId'],
+                        references: ['id'],
+                        onDelete: 'Cascade',
+                    },
+                },
             },
             attributes: [
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "type", value: ExpressionUtils.literal("Hash") }] },
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("spaceId")]) }, { name: "type", value: ExpressionUtils.literal("Hash") }] },
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("subscriptions") }] }
+                {
+                    name: '@@index',
+                    args: [
+                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('userId')]) },
+                        { name: 'type', value: ExpressionUtils.literal('Hash') },
+                    ],
+                },
+                {
+                    name: '@@index',
+                    args: [
+                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('spaceId')]) },
+                        { name: 'type', value: ExpressionUtils.literal('Hash') },
+                    ],
+                },
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('subscriptions') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" }
-            }
+                id: { type: 'String' },
+            },
         },
         PaymentMethod: {
-            name: "PaymentMethod",
+            name: 'PaymentMethod',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@id' }] as readonly AttributeApplication[],
                 },
                 userId: {
-                    name: "userId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
+                    name: 'userId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('user_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['user'] as readonly string[],
                 },
                 type: {
-                    name: "type",
-                    type: "String"
+                    name: 'type',
+                    type: 'String',
                 },
                 data: {
-                    name: "data",
-                    type: "Json"
+                    name: 'data',
+                    type: 'Json',
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("created_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('created_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("updated_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@updatedAt' },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('updated_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 user: {
-                    name: "user",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "paymentMethods", fields: ["userId"], references: ["id"], onDelete: "Cascade" }
-                }
+                    name: 'user',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: {
+                        opposite: 'paymentMethods',
+                        fields: ['userId'],
+                        references: ['id'],
+                        onDelete: 'Cascade',
+                    },
+                },
             },
             attributes: [
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("payment_methods") }] }
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('payment_methods') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" }
-            }
+                id: { type: 'String' },
+            },
         },
         ScheduledEvent: {
-            name: "ScheduledEvent",
+            name: 'ScheduledEvent',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("cuid") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('cuid') as FieldDefault,
                 },
                 userId: {
-                    name: "userId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
+                    name: 'userId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('user_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['user'] as readonly string[],
                 },
                 spaceId: {
-                    name: "spaceId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("space_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "space"
-                    ] as readonly string[]
+                    name: 'spaceId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('space_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['space'] as readonly string[],
                 },
                 title: {
-                    name: "title",
-                    type: "String"
+                    name: 'title',
+                    type: 'String',
                 },
                 description: {
-                    name: "description",
-                    type: "String",
-                    optional: true
+                    name: 'description',
+                    type: 'String',
+                    optional: true,
                 },
                 location: {
-                    name: "location",
-                    type: "String",
-                    optional: true
+                    name: 'location',
+                    type: 'String',
+                    optional: true,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("created_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('created_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("updated_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@updatedAt' },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('updated_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 status: {
-                    name: "status",
-                    type: "ScheduledEventStatus",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("confirmed") }] }] as readonly AttributeApplication[],
-                    default: "confirmed" as FieldDefault
+                    name: 'status',
+                    type: 'ScheduledEventStatus',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('confirmed') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'confirmed' as FieldDefault,
                 },
                 timeZone: {
-                    name: "timeZone",
-                    type: "String",
+                    name: 'timeZone',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("time_zone") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('time_zone') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 start: {
-                    name: "start",
-                    type: "DateTime"
+                    name: 'start',
+                    type: 'DateTime',
                 },
                 end: {
-                    name: "end",
-                    type: "DateTime"
+                    name: 'end',
+                    type: 'DateTime',
                 },
                 allDay: {
-                    name: "allDay",
-                    type: "Boolean",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("all_day") }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'allDay',
+                    type: 'Boolean',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('all_day') }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 deletedAt: {
-                    name: "deletedAt",
-                    type: "DateTime",
+                    name: 'deletedAt',
+                    type: 'DateTime',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("deleted_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('deleted_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 sequence: {
-                    name: "sequence",
-                    type: "Int",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault
+                    name: 'sequence',
+                    type: 'Int',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
+                    ] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault,
                 },
                 uid: {
-                    name: "uid",
-                    type: "String",
+                    name: 'uid',
+                    type: 'String',
                     unique: true,
-                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
                 },
                 user: {
-                    name: "user",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "scheduledEvents", fields: ["userId"], references: ["id"], onDelete: "Cascade" }
+                    name: 'user',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: {
+                        opposite: 'scheduledEvents',
+                        fields: ['userId'],
+                        references: ['id'],
+                        onDelete: 'Cascade',
+                    },
                 },
                 space: {
-                    name: "space",
-                    type: "Space",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("spaceId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "scheduledEvents", fields: ["spaceId"], references: ["id"], onDelete: "Cascade" }
+                    name: 'space',
+                    type: 'Space',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('spaceId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: {
+                        opposite: 'scheduledEvents',
+                        fields: ['spaceId'],
+                        references: ['id'],
+                        onDelete: 'Cascade',
+                    },
                 },
                 rescheduledDates: {
-                    name: "rescheduledDates",
-                    type: "RescheduledEventDate",
+                    name: 'rescheduledDates',
+                    type: 'RescheduledEventDate',
                     array: true,
-                    relation: { opposite: "scheduledEvent" }
+                    relation: { opposite: 'scheduledEvent' },
                 },
                 invites: {
-                    name: "invites",
-                    type: "ScheduledEventInvite",
+                    name: 'invites',
+                    type: 'ScheduledEventInvite',
                     array: true,
-                    relation: { opposite: "scheduledEvent" }
+                    relation: { opposite: 'scheduledEvent' },
                 },
                 polls: {
-                    name: "polls",
-                    type: "Poll",
+                    name: 'polls',
+                    type: 'Poll',
                     array: true,
-                    relation: { opposite: "scheduledEvent" }
-                }
+                    relation: { opposite: 'scheduledEvent' },
+                },
             },
             attributes: [
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("spaceId")]) }, { name: "type", value: ExpressionUtils.literal("Hash") }] },
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "type", value: ExpressionUtils.literal("Hash") }] },
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("scheduled_events") }] }
+                {
+                    name: '@@index',
+                    args: [
+                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('spaceId')]) },
+                        { name: 'type', value: ExpressionUtils.literal('Hash') },
+                    ],
+                },
+                {
+                    name: '@@index',
+                    args: [
+                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('userId')]) },
+                        { name: 'type', value: ExpressionUtils.literal('Hash') },
+                    ],
+                },
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('scheduled_events') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" },
-                uid: { type: "String" }
-            }
+                id: { type: 'String' },
+                uid: { type: 'String' },
+            },
         },
         RescheduledEventDate: {
-            name: "RescheduledEventDate",
+            name: 'RescheduledEventDate',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("cuid") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('cuid') as FieldDefault,
                 },
                 scheduledEventId: {
-                    name: "scheduledEventId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("scheduled_event_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "scheduledEvent"
-                    ] as readonly string[]
+                    name: 'scheduledEventId',
+                    type: 'String',
+                    attributes: [
+                        {
+                            name: '@map',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('scheduled_event_id') }],
+                        },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['scheduledEvent'] as readonly string[],
                 },
                 start: {
-                    name: "start",
-                    type: "DateTime",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("start") }] }] as readonly AttributeApplication[]
+                    name: 'start',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('start') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 end: {
-                    name: "end",
-                    type: "DateTime",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("end") }] }] as readonly AttributeApplication[]
+                    name: 'end',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('end') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 allDay: {
-                    name: "allDay",
-                    type: "Boolean",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("all_day") }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'allDay',
+                    type: 'Boolean',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('all_day') }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("created_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('created_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 scheduledEvent: {
-                    name: "scheduledEvent",
-                    type: "ScheduledEvent",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("scheduledEventId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "rescheduledDates", fields: ["scheduledEventId"], references: ["id"], onDelete: "Cascade" }
-                }
+                    name: 'scheduledEvent',
+                    type: 'ScheduledEvent',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('scheduledEventId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: {
+                        opposite: 'rescheduledDates',
+                        fields: ['scheduledEventId'],
+                        references: ['id'],
+                        onDelete: 'Cascade',
+                    },
+                },
             },
             attributes: [
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("scheduledEventId")]) }] },
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("rescheduled_event_dates") }] }
+                {
+                    name: '@@index',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('String', [ExpressionUtils.field('scheduledEventId')]),
+                        },
+                    ],
+                },
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('rescheduled_event_dates') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" }
-            }
+                id: { type: 'String' },
+            },
         },
         ScheduledEventInvite: {
-            name: "ScheduledEventInvite",
+            name: 'ScheduledEventInvite',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("cuid") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('cuid') as FieldDefault,
                 },
                 scheduledEventId: {
-                    name: "scheduledEventId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("scheduled_event_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "scheduledEvent"
-                    ] as readonly string[]
+                    name: 'scheduledEventId',
+                    type: 'String',
+                    attributes: [
+                        {
+                            name: '@map',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('scheduled_event_id') }],
+                        },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['scheduledEvent'] as readonly string[],
                 },
                 inviteeName: {
-                    name: "inviteeName",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("invitee_name") }] }] as readonly AttributeApplication[]
+                    name: 'inviteeName',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('invitee_name') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 inviteeEmail: {
-                    name: "inviteeEmail",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("invitee_email") }] }] as readonly AttributeApplication[]
+                    name: 'inviteeEmail',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('invitee_email') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 inviteeId: {
-                    name: "inviteeId",
-                    type: "String",
+                    name: 'inviteeId',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("invitee_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('invitee_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['user'] as readonly string[],
                 },
                 inviteeTimeZone: {
-                    name: "inviteeTimeZone",
-                    type: "String",
+                    name: 'inviteeTimeZone',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("invitee_time_zone") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('invitee_time_zone') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 status: {
-                    name: "status",
-                    type: "ScheduledEventInviteStatus",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("pending") }] }] as readonly AttributeApplication[],
-                    default: "pending" as FieldDefault
+                    name: 'status',
+                    type: 'ScheduledEventInviteStatus',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('pending') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'pending' as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("created_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('created_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("updated_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@updatedAt' },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('updated_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 scheduledEvent: {
-                    name: "scheduledEvent",
-                    type: "ScheduledEvent",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("scheduledEventId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "invites", fields: ["scheduledEventId"], references: ["id"], onDelete: "Cascade" }
+                    name: 'scheduledEvent',
+                    type: 'ScheduledEvent',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('scheduledEventId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: {
+                        opposite: 'invites',
+                        fields: ['scheduledEventId'],
+                        references: ['id'],
+                        onDelete: 'Cascade',
+                    },
                 },
                 user: {
-                    name: "user",
-                    type: "User",
+                    name: 'user',
+                    type: 'User',
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("inviteeId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "scheduledEventInvites", fields: ["inviteeId"], references: ["id"], onDelete: "SetNull" }
-                }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('inviteeId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('SetNull') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: {
+                        opposite: 'scheduledEventInvites',
+                        fields: ['inviteeId'],
+                        references: ['id'],
+                        onDelete: 'SetNull',
+                    },
+                },
             },
             attributes: [
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("scheduledEventId")]) }] },
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("inviteeId")]) }] },
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("inviteeEmail")]) }] },
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("scheduled_event_invites") }] }
+                {
+                    name: '@@index',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('String', [ExpressionUtils.field('scheduledEventId')]),
+                        },
+                    ],
+                },
+                {
+                    name: '@@index',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('String', [ExpressionUtils.field('inviteeId')]),
+                        },
+                    ],
+                },
+                {
+                    name: '@@index',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('String', [ExpressionUtils.field('inviteeEmail')]),
+                        },
+                    ],
+                },
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('scheduled_event_invites') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" }
-            }
+                id: { type: 'String' },
+            },
         },
         Credential: {
-            name: "Credential",
+            name: 'Credential',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("cuid") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('cuid') as FieldDefault,
                 },
                 userId: {
-                    name: "userId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
+                    name: 'userId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('user_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['user'] as readonly string[],
                 },
                 provider: {
-                    name: "provider",
-                    type: "String"
+                    name: 'provider',
+                    type: 'String',
                 },
                 providerAccountId: {
-                    name: "providerAccountId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("provider_account_id") }] }] as readonly AttributeApplication[]
+                    name: 'providerAccountId',
+                    type: 'String',
+                    attributes: [
+                        {
+                            name: '@map',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('provider_account_id') }],
+                        },
+                    ] as readonly AttributeApplication[],
                 },
                 type: {
-                    name: "type",
-                    type: "CredentialType"
+                    name: 'type',
+                    type: 'CredentialType',
                 },
                 secret: {
-                    name: "secret",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("secret") }] }] as readonly AttributeApplication[]
+                    name: 'secret',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('secret') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 scopes: {
-                    name: "scopes",
-                    type: "String",
-                    array: true
+                    name: 'scopes',
+                    type: 'String',
+                    array: true,
                 },
                 expiresAt: {
-                    name: "expiresAt",
-                    type: "DateTime",
+                    name: 'expiresAt',
+                    type: 'DateTime',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("expires_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('expires_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("created_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('created_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("updated_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@updatedAt' },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('updated_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 calendarConnections: {
-                    name: "calendarConnections",
-                    type: "CalendarConnection",
+                    name: 'calendarConnections',
+                    type: 'CalendarConnection',
                     array: true,
-                    relation: { opposite: "credential" }
+                    relation: { opposite: 'credential' },
                 },
                 user: {
-                    name: "user",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "credentials", fields: ["userId"], references: ["id"], onDelete: "Cascade" }
-                }
+                    name: 'user',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'credentials', fields: ['userId'], references: ['id'], onDelete: 'Cascade' },
+                },
             },
             attributes: [
-                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId"), ExpressionUtils.field("provider"), ExpressionUtils.field("providerAccountId")]) }, { name: "name", value: ExpressionUtils.literal("user_provider_account_unique") }] },
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("DateTime", [ExpressionUtils.field("expiresAt")]) }, { name: "name", value: ExpressionUtils.literal("credential_expiry_idx") }] },
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("credentials") }] }
+                {
+                    name: '@@unique',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('String', [
+                                ExpressionUtils.field('userId'),
+                                ExpressionUtils.field('provider'),
+                                ExpressionUtils.field('providerAccountId'),
+                            ]),
+                        },
+                        { name: 'name', value: ExpressionUtils.literal('user_provider_account_unique') },
+                    ],
+                },
+                {
+                    name: '@@index',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('DateTime', [ExpressionUtils.field('expiresAt')]),
+                        },
+                        { name: 'name', value: ExpressionUtils.literal('credential_expiry_idx') },
+                    ],
+                },
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('credentials') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" },
-                user_provider_account_unique: { userId: { type: "String" }, provider: { type: "String" }, providerAccountId: { type: "String" } }
-            }
+                id: { type: 'String' },
+                user_provider_account_unique: {
+                    userId: { type: 'String' },
+                    provider: { type: 'String' },
+                    providerAccountId: { type: 'String' },
+                },
+            },
         },
         CalendarConnection: {
-            name: "CalendarConnection",
+            name: 'CalendarConnection',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("cuid") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('cuid') as FieldDefault,
                 },
                 userId: {
-                    name: "userId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
+                    name: 'userId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('user_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['user'] as readonly string[],
                 },
                 provider: {
-                    name: "provider",
-                    type: "String"
+                    name: 'provider',
+                    type: 'String',
                 },
                 integrationId: {
-                    name: "integrationId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("integration_id") }] }] as readonly AttributeApplication[]
+                    name: 'integrationId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('integration_id') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 providerAccountId: {
-                    name: "providerAccountId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("provider_account_id") }] }] as readonly AttributeApplication[]
+                    name: 'providerAccountId',
+                    type: 'String',
+                    attributes: [
+                        {
+                            name: '@map',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('provider_account_id') }],
+                        },
+                    ] as readonly AttributeApplication[],
                 },
                 email: {
-                    name: "email",
-                    type: "String"
+                    name: 'email',
+                    type: 'String',
                 },
                 displayName: {
-                    name: "displayName",
-                    type: "String",
+                    name: 'displayName',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("display_name") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('display_name') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("created_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('created_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("updated_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@updatedAt' },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('updated_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 credential: {
-                    name: "credential",
-                    type: "Credential",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("credentialId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "calendarConnections", fields: ["credentialId"], references: ["id"], onDelete: "Cascade" }
+                    name: 'credential',
+                    type: 'Credential',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('credentialId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: {
+                        opposite: 'calendarConnections',
+                        fields: ['credentialId'],
+                        references: ['id'],
+                        onDelete: 'Cascade',
+                    },
                 },
                 credentialId: {
-                    name: "credentialId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("credential_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "credential"
-                    ] as readonly string[]
+                    name: 'credentialId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('credential_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['credential'] as readonly string[],
                 },
                 user: {
-                    name: "user",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "calendarConnections", fields: ["userId"], references: ["id"], onDelete: "Cascade" }
+                    name: 'user',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: {
+                        opposite: 'calendarConnections',
+                        fields: ['userId'],
+                        references: ['id'],
+                        onDelete: 'Cascade',
+                    },
                 },
                 providerCalendars: {
-                    name: "providerCalendars",
-                    type: "ProviderCalendar",
+                    name: 'providerCalendars',
+                    type: 'ProviderCalendar',
                     array: true,
-                    relation: { opposite: "calendarConnection" }
-                }
+                    relation: { opposite: 'calendarConnection' },
+                },
             },
             attributes: [
-                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId"), ExpressionUtils.field("provider"), ExpressionUtils.field("providerAccountId")]) }, { name: "name", value: ExpressionUtils.literal("user_provider_account_unique") }] },
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("calendar_connections") }] }
+                {
+                    name: '@@unique',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('String', [
+                                ExpressionUtils.field('userId'),
+                                ExpressionUtils.field('provider'),
+                                ExpressionUtils.field('providerAccountId'),
+                            ]),
+                        },
+                        { name: 'name', value: ExpressionUtils.literal('user_provider_account_unique') },
+                    ],
+                },
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('calendar_connections') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" },
-                user_provider_account_unique: { userId: { type: "String" }, provider: { type: "String" }, providerAccountId: { type: "String" } }
-            }
+                id: { type: 'String' },
+                user_provider_account_unique: {
+                    userId: { type: 'String' },
+                    provider: { type: 'String' },
+                    providerAccountId: { type: 'String' },
+                },
+            },
         },
         ProviderCalendar: {
-            name: "ProviderCalendar",
+            name: 'ProviderCalendar',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("cuid") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('cuid') as FieldDefault,
                 },
                 calendarConnectionId: {
-                    name: "calendarConnectionId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("calendar_connection_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "calendarConnection"
-                    ] as readonly string[]
+                    name: 'calendarConnectionId',
+                    type: 'String',
+                    attributes: [
+                        {
+                            name: '@map',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('calendar_connection_id') }],
+                        },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['calendarConnection'] as readonly string[],
                 },
                 providerCalendarId: {
-                    name: "providerCalendarId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("provider_calendar_id") }] }] as readonly AttributeApplication[]
+                    name: 'providerCalendarId',
+                    type: 'String',
+                    attributes: [
+                        {
+                            name: '@map',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('provider_calendar_id') }],
+                        },
+                    ] as readonly AttributeApplication[],
                 },
                 name: {
-                    name: "name",
-                    type: "String"
+                    name: 'name',
+                    type: 'String',
                 },
                 isPrimary: {
-                    name: "isPrimary",
-                    type: "Boolean",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("primary") }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'isPrimary',
+                    type: 'Boolean',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('primary') }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 timeZone: {
-                    name: "timeZone",
-                    type: "String",
+                    name: 'timeZone',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("time_zone") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('time_zone') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 isSelected: {
-                    name: "isSelected",
-                    type: "Boolean",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("selected") }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'isSelected',
+                    type: 'Boolean',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('selected') }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 isDeleted: {
-                    name: "isDeleted",
-                    type: "Boolean",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("deleted") }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'isDeleted',
+                    type: 'Boolean',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('deleted') }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 isWritable: {
-                    name: "isWritable",
-                    type: "Boolean",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("writable") }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'isWritable',
+                    type: 'Boolean',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('writable') }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 providerData: {
-                    name: "providerData",
-                    type: "Json",
+                    name: 'providerData',
+                    type: 'Json',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("provider_data") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('provider_data') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 lastSyncedAt: {
-                    name: "lastSyncedAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("last_synced_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'lastSyncedAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('last_synced_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("created_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('created_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("updated_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@updatedAt' },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('updated_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 calendarConnection: {
-                    name: "calendarConnection",
-                    type: "CalendarConnection",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("calendarConnectionId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "providerCalendars", fields: ["calendarConnectionId"], references: ["id"], onDelete: "Cascade" }
+                    name: 'calendarConnection',
+                    type: 'CalendarConnection',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [
+                                        ExpressionUtils.field('calendarConnectionId'),
+                                    ]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: {
+                        opposite: 'providerCalendars',
+                        fields: ['calendarConnectionId'],
+                        references: ['id'],
+                        onDelete: 'Cascade',
+                    },
                 },
                 userDefaultDestination: {
-                    name: "userDefaultDestination",
-                    type: "User",
+                    name: 'userDefaultDestination',
+                    type: 'User',
                     array: true,
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("UserDefaultDestinationCalendar") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "defaultDestinationCalendar", name: "UserDefaultDestinationCalendar" }
-                }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('UserDefaultDestinationCalendar') }],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'defaultDestinationCalendar', name: 'UserDefaultDestinationCalendar' },
+                },
             },
             attributes: [
-                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("calendarConnectionId"), ExpressionUtils.field("providerCalendarId")]) }, { name: "name", value: ExpressionUtils.literal("connection_calendar_unique") }] },
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("calendarConnectionId"), ExpressionUtils.field("isSelected")]) }, { name: "name", value: ExpressionUtils.literal("connection_selected_idx") }] },
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("Boolean", [ExpressionUtils.field("isPrimary")]) }, { name: "name", value: ExpressionUtils.literal("primary_calendar_idx") }] },
-                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("DateTime", [ExpressionUtils.field("lastSyncedAt")]) }, { name: "name", value: ExpressionUtils.literal("sync_time_idx") }] },
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("provider_calendars") }] }
+                {
+                    name: '@@unique',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('String', [
+                                ExpressionUtils.field('calendarConnectionId'),
+                                ExpressionUtils.field('providerCalendarId'),
+                            ]),
+                        },
+                        { name: 'name', value: ExpressionUtils.literal('connection_calendar_unique') },
+                    ],
+                },
+                {
+                    name: '@@index',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('String', [
+                                ExpressionUtils.field('calendarConnectionId'),
+                                ExpressionUtils.field('isSelected'),
+                            ]),
+                        },
+                        { name: 'name', value: ExpressionUtils.literal('connection_selected_idx') },
+                    ],
+                },
+                {
+                    name: '@@index',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('Boolean', [ExpressionUtils.field('isPrimary')]),
+                        },
+                        { name: 'name', value: ExpressionUtils.literal('primary_calendar_idx') },
+                    ],
+                },
+                {
+                    name: '@@index',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('DateTime', [ExpressionUtils.field('lastSyncedAt')]),
+                        },
+                        { name: 'name', value: ExpressionUtils.literal('sync_time_idx') },
+                    ],
+                },
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('provider_calendars') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" },
-                connection_calendar_unique: { calendarConnectionId: { type: "String" }, providerCalendarId: { type: "String" } }
-            }
+                id: { type: 'String' },
+                connection_calendar_unique: {
+                    calendarConnectionId: { type: 'String' },
+                    providerCalendarId: { type: 'String' },
+                },
+            },
         },
         InstanceSettings: {
-            name: "InstanceSettings",
+            name: 'InstanceSettings',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(1) }] }] as readonly AttributeApplication[],
-                    default: 1 as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(1) }] },
+                    ] as readonly AttributeApplication[],
+                    default: 1 as FieldDefault,
                 },
                 disableUserRegistration: {
-                    name: "disableUserRegistration",
-                    type: "Boolean",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("disable_user_registration") }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'disableUserRegistration',
+                    type: 'Boolean',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                        {
+                            name: '@map',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('disable_user_registration') }],
+                        },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("created_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('created_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@updatedAt" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("updated_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
-                }
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@updatedAt' },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('updated_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
+                },
             },
             attributes: [
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("instance_settings") }] }
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('instance_settings') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         License: {
-            name: "License",
+            name: 'License',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("cuid") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('cuid') as FieldDefault,
                 },
                 licenseKey: {
-                    name: "licenseKey",
-                    type: "String",
+                    name: 'licenseKey',
+                    type: 'String',
                     unique: true,
-                    attributes: [{ name: "@unique" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("license_key") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@unique' },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('license_key') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 version: {
-                    name: "version",
-                    type: "Int",
+                    name: 'version',
+                    type: 'Int',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("version") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('version') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 type: {
-                    name: "type",
-                    type: "LicenseType"
+                    name: 'type',
+                    type: 'LicenseType',
                 },
                 seats: {
-                    name: "seats",
-                    type: "Int",
+                    name: 'seats',
+                    type: 'Int',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("seats") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('seats') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 issuedAt: {
-                    name: "issuedAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("issued_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'issuedAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('issued_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 expiresAt: {
-                    name: "expiresAt",
-                    type: "DateTime",
+                    name: 'expiresAt',
+                    type: 'DateTime',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("expires_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('expires_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 licenseeEmail: {
-                    name: "licenseeEmail",
-                    type: "String",
+                    name: 'licenseeEmail',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("licensee_email") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('licensee_email') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 licenseeName: {
-                    name: "licenseeName",
-                    type: "String",
+                    name: 'licenseeName',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("licensee_name") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('licensee_name') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 status: {
-                    name: "status",
-                    type: "LicenseStatus",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("ACTIVE") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("status") }] }] as readonly AttributeApplication[],
-                    default: "ACTIVE" as FieldDefault
+                    name: 'status',
+                    type: 'LicenseStatus',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('ACTIVE') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('status') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'ACTIVE' as FieldDefault,
                 },
                 validations: {
-                    name: "validations",
-                    type: "LicenseValidation",
+                    name: 'validations',
+                    type: 'LicenseValidation',
                     array: true,
-                    relation: { opposite: "license" }
-                }
+                    relation: { opposite: 'license' },
+                },
             },
             attributes: [
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("licenses") }] }
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('licenses') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" },
-                licenseKey: { type: "String" }
-            }
+                id: { type: 'String' },
+                licenseKey: { type: 'String' },
+            },
         },
         LicenseValidation: {
-            name: "LicenseValidation",
+            name: 'LicenseValidation',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("cuid") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('cuid') as FieldDefault,
                 },
                 licenseId: {
-                    name: "licenseId",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("license_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "license"
-                    ] as readonly string[]
+                    name: 'licenseId',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('license_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['license'] as readonly string[],
                 },
                 license: {
-                    name: "license",
-                    type: "License",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("licenseId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "validations", fields: ["licenseId"], references: ["id"], onDelete: "Cascade" }
+                    name: 'license',
+                    type: 'License',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('licenseId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: {
+                        opposite: 'validations',
+                        fields: ['licenseId'],
+                        references: ['id'],
+                        onDelete: 'Cascade',
+                    },
                 },
                 ipAddress: {
-                    name: "ipAddress",
-                    type: "String",
+                    name: 'ipAddress',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("ip_address") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('ip_address') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 fingerprint: {
-                    name: "fingerprint",
-                    type: "String",
+                    name: 'fingerprint',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("fingerprint") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('fingerprint') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 validatedAt: {
-                    name: "validatedAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("validated_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'validatedAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('validated_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 userAgent: {
-                    name: "userAgent",
-                    type: "String",
+                    name: 'userAgent',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_agent") }] }] as readonly AttributeApplication[]
-                }
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('user_agent') }] },
+                    ] as readonly AttributeApplication[],
+                },
             },
             attributes: [
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("license_validations") }] }
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('license_validations') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" }
-            }
+                id: { type: 'String' },
+            },
         },
         InstanceLicense: {
-            name: "InstanceLicense",
+            name: 'InstanceLicense',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("cuid") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('cuid') as FieldDefault,
                 },
                 licenseKey: {
-                    name: "licenseKey",
-                    type: "String",
+                    name: 'licenseKey',
+                    type: 'String',
                     unique: true,
-                    attributes: [{ name: "@unique" }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("license_key") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@unique' },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('license_key') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 version: {
-                    name: "version",
-                    type: "Int",
+                    name: 'version',
+                    type: 'Int',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("version") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('version') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 type: {
-                    name: "type",
-                    type: "LicenseType"
+                    name: 'type',
+                    type: 'LicenseType',
                 },
                 seats: {
-                    name: "seats",
-                    type: "Int",
+                    name: 'seats',
+                    type: 'Int',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("seats") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('seats') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 issuedAt: {
-                    name: "issuedAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("issued_at") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'issuedAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('issued_at') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 expiresAt: {
-                    name: "expiresAt",
-                    type: "DateTime",
+                    name: 'expiresAt',
+                    type: 'DateTime',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("expires_at") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('expires_at') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 licenseeEmail: {
-                    name: "licenseeEmail",
-                    type: "String",
+                    name: 'licenseeEmail',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("licensee_email") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('licensee_email') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 licenseeName: {
-                    name: "licenseeName",
-                    type: "String",
+                    name: 'licenseeName',
+                    type: 'String',
                     optional: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("licensee_name") }] }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('licensee_name') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 status: {
-                    name: "status",
-                    type: "LicenseStatus",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("ACTIVE") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("status") }] }] as readonly AttributeApplication[],
-                    default: "ACTIVE" as FieldDefault
-                }
+                    name: 'status',
+                    type: 'LicenseStatus',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('ACTIVE') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('status') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'ACTIVE' as FieldDefault,
+                },
             },
             attributes: [
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("instance_licenses") }] }
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('instance_licenses') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" },
-                licenseKey: { type: "String" }
-            }
-        }
+                id: { type: 'String' },
+                licenseKey: { type: 'String' },
+            },
+        },
     } as const;
     enums = {
         TimeFormat: {
-            name: "TimeFormat",
+            name: 'TimeFormat',
             values: {
-                hours12: "hours12",
-                hours24: "hours24"
+                hours12: 'hours12',
+                hours24: 'hours24',
             },
             attributes: [
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("time_format") }] }
-            ] as readonly AttributeApplication[]
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('time_format') }] },
+            ] as readonly AttributeApplication[],
         },
         UserRole: {
-            name: "UserRole",
+            name: 'UserRole',
             values: {
-                admin: "admin",
-                user: "user"
+                admin: 'admin',
+                user: 'user',
             },
             attributes: [
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("user_role") }] }
-            ] as readonly AttributeApplication[]
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('user_role') }] },
+            ] as readonly AttributeApplication[],
         },
         ParticipantVisibility: {
-            name: "ParticipantVisibility",
+            name: 'ParticipantVisibility',
             values: {
-                full: "full",
-                scoresOnly: "scoresOnly",
-                limited: "limited"
+                full: 'full',
+                scoresOnly: 'scoresOnly',
+                limited: 'limited',
             },
             attributes: [
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("participant_visibility") }] }
-            ] as readonly AttributeApplication[]
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('participant_visibility') }] },
+            ] as readonly AttributeApplication[],
         },
         PollStatus: {
-            name: "PollStatus",
+            name: 'PollStatus',
             values: {
-                live: "live",
-                paused: "paused",
-                finalized: "finalized"
+                live: 'live',
+                paused: 'paused',
+                finalized: 'finalized',
             },
             attributes: [
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("poll_status") }] }
-            ] as readonly AttributeApplication[]
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('poll_status') }] },
+            ] as readonly AttributeApplication[],
         },
         VoteType: {
-            name: "VoteType",
+            name: 'VoteType',
             values: {
-                yes: "yes",
-                no: "no",
-                ifNeedBe: "ifNeedBe"
+                yes: 'yes',
+                no: 'no',
+                ifNeedBe: 'ifNeedBe',
             },
             attributes: [
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("vote_type") }] }
-            ] as readonly AttributeApplication[]
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('vote_type') }] },
+            ] as readonly AttributeApplication[],
         },
         SpaceMemberRole: {
-            name: "SpaceMemberRole",
+            name: 'SpaceMemberRole',
             values: {
-                ADMIN: "ADMIN",
-                MEMBER: "MEMBER"
-            }
+                ADMIN: 'ADMIN',
+                MEMBER: 'MEMBER',
+            },
         },
         SpaceTier: {
-            name: "SpaceTier",
+            name: 'SpaceTier',
             values: {
-                hobby: "hobby",
-                pro: "pro"
+                hobby: 'hobby',
+                pro: 'pro',
             },
             attributes: [
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("space_tiers") }] }
-            ] as readonly AttributeApplication[]
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('space_tiers') }] },
+            ] as readonly AttributeApplication[],
         },
         SubscriptionStatus: {
-            name: "SubscriptionStatus",
+            name: 'SubscriptionStatus',
             values: {
-                incomplete: "incomplete",
-                incomplete_expired: "incomplete_expired",
-                active: "active",
-                paused: "paused",
-                trialing: "trialing",
-                past_due: "past_due",
-                canceled: "canceled",
-                unpaid: "unpaid"
+                incomplete: 'incomplete',
+                incomplete_expired: 'incomplete_expired',
+                active: 'active',
+                paused: 'paused',
+                trialing: 'trialing',
+                past_due: 'past_due',
+                canceled: 'canceled',
+                unpaid: 'unpaid',
             },
             attributes: [
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("subscription_status") }] }
-            ] as readonly AttributeApplication[]
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('subscription_status') }] },
+            ] as readonly AttributeApplication[],
         },
         SubscriptionInterval: {
-            name: "SubscriptionInterval",
+            name: 'SubscriptionInterval',
             values: {
-                month: "month",
-                year: "year"
+                month: 'month',
+                year: 'year',
             },
             attributes: [
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("subscription_interval") }] }
-            ] as readonly AttributeApplication[]
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('subscription_interval') }] },
+            ] as readonly AttributeApplication[],
         },
         ScheduledEventStatus: {
-            name: "ScheduledEventStatus",
+            name: 'ScheduledEventStatus',
             values: {
-                confirmed: "confirmed",
-                canceled: "canceled",
-                unconfirmed: "unconfirmed"
+                confirmed: 'confirmed',
+                canceled: 'canceled',
+                unconfirmed: 'unconfirmed',
             },
             attributes: [
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("scheduled_event_status") }] }
-            ] as readonly AttributeApplication[]
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('scheduled_event_status') }] },
+            ] as readonly AttributeApplication[],
         },
         ScheduledEventInviteStatus: {
-            name: "ScheduledEventInviteStatus",
+            name: 'ScheduledEventInviteStatus',
             values: {
-                pending: "pending",
-                accepted: "accepted",
-                declined: "declined",
-                tentative: "tentative"
+                pending: 'pending',
+                accepted: 'accepted',
+                declined: 'declined',
+                tentative: 'tentative',
             },
             attributes: [
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("scheduled_event_invite_status") }] }
-            ] as readonly AttributeApplication[]
+                {
+                    name: '@@map',
+                    args: [{ name: 'name', value: ExpressionUtils.literal('scheduled_event_invite_status') }],
+                },
+            ] as readonly AttributeApplication[],
         },
         CredentialType: {
-            name: "CredentialType",
+            name: 'CredentialType',
             values: {
-                OAUTH: "OAUTH"
-            }
+                OAUTH: 'OAUTH',
+            },
         },
         LicenseType: {
-            name: "LicenseType",
+            name: 'LicenseType',
             values: {
-                PLUS: "PLUS",
-                ORGANIZATION: "ORGANIZATION",
-                ENTERPRISE: "ENTERPRISE"
-            }
+                PLUS: 'PLUS',
+                ORGANIZATION: 'ORGANIZATION',
+                ENTERPRISE: 'ENTERPRISE',
+            },
         },
         LicenseStatus: {
-            name: "LicenseStatus",
+            name: 'LicenseStatus',
             values: {
-                ACTIVE: "ACTIVE",
-                REVOKED: "REVOKED"
-            }
-        }
+                ACTIVE: 'ACTIVE',
+                REVOKED: 'REVOKED',
+            },
+        },
     } as const;
-    authType = "User" as const;
+    authType = 'User' as const;
     plugins = {};
 }
 export const schema = new SchemaType();

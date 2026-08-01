@@ -1183,9 +1183,7 @@ export type FieldHasComputedArgs<
  * referenced by name, with no slot to carry `args` (groupBy `by`, `distinct`).
  */
 export type NonParamComputedNonRelationFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = keyof {
-    [Key in NonRelationFields<Schema, Model> as FieldHasComputedArgs<Schema, Model, Key> extends true
-        ? never
-        : Key]: 0;
+    [Key in NonRelationFields<Schema, Model> as FieldHasComputedArgs<Schema, Model, Key> extends true ? never : Key]: 0;
 };
 
 export type OrderBy<
@@ -2405,8 +2403,7 @@ type MinMaxInput<Schema extends SchemaDef, Model extends GetModels<Schema>, Valu
         ? never
         : FieldIsRelation<Schema, Model, Key> extends true
           ? never
-          : Key]?: // a parameterized computed field is aggregated by supplying its query-time `args`
-    FieldHasComputedArgs<Schema, Model, Key> extends true
+          : Key]?: FieldHasComputedArgs<Schema, Model, Key> extends true // a parameterized computed field is aggregated by supplying its query-time `args`
         ? { args: ComputedFieldArgs<Schema, Model, Key> }
         : ValueType;
 };
@@ -2476,12 +2473,15 @@ type GroupByHaving<
 // `args` (a plain field name can't carry args). The map is keyed by the parameterized computed
 // fields; indexing it yields the union of `{ field, args }` entries (or `never` when there are none).
 type ParamComputedByEntryMap<Schema extends SchemaDef, Model extends GetModels<Schema>> = {
-    [Key in NonRelationFields<Schema, Model> as FieldHasComputedArgs<Schema, Model, Key> extends true
-        ? Key
-        : never]: { field: Key; args: ComputedFieldArgs<Schema, Model, Key> };
+    [Key in NonRelationFields<Schema, Model> as FieldHasComputedArgs<Schema, Model, Key> extends true ? Key : never]: {
+        field: Key;
+        args: ComputedFieldArgs<Schema, Model, Key>;
+    };
 };
-type GroupByComputedByEntry<Schema extends SchemaDef, Model extends GetModels<Schema>> =
-    ParamComputedByEntryMap<Schema, Model>[keyof ParamComputedByEntryMap<Schema, Model>];
+type GroupByComputedByEntry<Schema extends SchemaDef, Model extends GetModels<Schema>> = ParamComputedByEntryMap<
+    Schema,
+    Model
+>[keyof ParamComputedByEntryMap<Schema, Model>];
 
 // Extracts the grouped field name from a `by` entry (a plain name or a `{ field, args }` object).
 type ByFieldName<By> = By extends { field: infer F } ? F : By;
@@ -2508,9 +2508,7 @@ export type GroupByArgs<
     by:
         | NonParamComputedNonRelationFields<Schema, Model>
         | GroupByComputedByEntry<Schema, Model>
-        | NonEmptyArray<
-              NonParamComputedNonRelationFields<Schema, Model> | GroupByComputedByEntry<Schema, Model>
-          >;
+        | NonEmptyArray<NonParamComputedNonRelationFields<Schema, Model> | GroupByComputedByEntry<Schema, Model>>;
 
     /**
      * Filter conditions for the grouped records

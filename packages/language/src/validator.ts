@@ -97,4 +97,3 @@ export class ZModelValidator {
         new ProcedureValidator().validate(node, accept);
     }
 }
-

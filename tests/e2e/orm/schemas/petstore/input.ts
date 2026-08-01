@@ -5,69 +5,100 @@
 
 /* eslint-disable */
 
-import { type SchemaType as $Schema } from "./schema";
-import type { FindManyArgs as $FindManyArgs, FindUniqueArgs as $FindUniqueArgs, FindFirstArgs as $FindFirstArgs, ExistsArgs as $ExistsArgs, CreateArgs as $CreateArgs, CreateManyArgs as $CreateManyArgs, CreateManyAndReturnArgs as $CreateManyAndReturnArgs, UpdateArgs as $UpdateArgs, UpdateManyArgs as $UpdateManyArgs, UpdateManyAndReturnArgs as $UpdateManyAndReturnArgs, UpsertArgs as $UpsertArgs, DeleteArgs as $DeleteArgs, DeleteManyArgs as $DeleteManyArgs, CountArgs as $CountArgs, AggregateArgs as $AggregateArgs, GroupByArgs as $GroupByArgs, WhereInput as $WhereInput, SelectInput as $SelectInput, IncludeInput as $IncludeInput, OmitInput as $OmitInput, QueryOptions as $QueryOptions } from "@zenstackhq/orm";
-import type { SimplifiedPlainResult as $Result, SelectIncludeOmit as $SelectIncludeOmit } from "@zenstackhq/orm";
-export type UserFindManyArgs = $FindManyArgs<$Schema, "User">;
-export type UserFindUniqueArgs = $FindUniqueArgs<$Schema, "User">;
-export type UserFindFirstArgs = $FindFirstArgs<$Schema, "User">;
-export type UserExistsArgs = $ExistsArgs<$Schema, "User">;
-export type UserCreateArgs = $CreateArgs<$Schema, "User">;
-export type UserCreateManyArgs = $CreateManyArgs<$Schema, "User">;
-export type UserCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, "User">;
-export type UserUpdateArgs = $UpdateArgs<$Schema, "User">;
-export type UserUpdateManyArgs = $UpdateManyArgs<$Schema, "User">;
-export type UserUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, "User">;
-export type UserUpsertArgs = $UpsertArgs<$Schema, "User">;
-export type UserDeleteArgs = $DeleteArgs<$Schema, "User">;
-export type UserDeleteManyArgs = $DeleteManyArgs<$Schema, "User">;
-export type UserCountArgs = $CountArgs<$Schema, "User">;
-export type UserAggregateArgs = $AggregateArgs<$Schema, "User">;
-export type UserGroupByArgs = $GroupByArgs<$Schema, "User">;
-export type UserWhereInput = $WhereInput<$Schema, "User">;
-export type UserSelect = $SelectInput<$Schema, "User">;
-export type UserInclude = $IncludeInput<$Schema, "User">;
-export type UserOmit = $OmitInput<$Schema, "User">;
-export type UserGetPayload<Args extends $SelectIncludeOmit<$Schema, "User", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "User", Args, Options>;
-export type PetFindManyArgs = $FindManyArgs<$Schema, "Pet">;
-export type PetFindUniqueArgs = $FindUniqueArgs<$Schema, "Pet">;
-export type PetFindFirstArgs = $FindFirstArgs<$Schema, "Pet">;
-export type PetExistsArgs = $ExistsArgs<$Schema, "Pet">;
-export type PetCreateArgs = $CreateArgs<$Schema, "Pet">;
-export type PetCreateManyArgs = $CreateManyArgs<$Schema, "Pet">;
-export type PetCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, "Pet">;
-export type PetUpdateArgs = $UpdateArgs<$Schema, "Pet">;
-export type PetUpdateManyArgs = $UpdateManyArgs<$Schema, "Pet">;
-export type PetUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, "Pet">;
-export type PetUpsertArgs = $UpsertArgs<$Schema, "Pet">;
-export type PetDeleteArgs = $DeleteArgs<$Schema, "Pet">;
-export type PetDeleteManyArgs = $DeleteManyArgs<$Schema, "Pet">;
-export type PetCountArgs = $CountArgs<$Schema, "Pet">;
-export type PetAggregateArgs = $AggregateArgs<$Schema, "Pet">;
-export type PetGroupByArgs = $GroupByArgs<$Schema, "Pet">;
-export type PetWhereInput = $WhereInput<$Schema, "Pet">;
-export type PetSelect = $SelectInput<$Schema, "Pet">;
-export type PetInclude = $IncludeInput<$Schema, "Pet">;
-export type PetOmit = $OmitInput<$Schema, "Pet">;
-export type PetGetPayload<Args extends $SelectIncludeOmit<$Schema, "Pet", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "Pet", Args, Options>;
-export type OrderFindManyArgs = $FindManyArgs<$Schema, "Order">;
-export type OrderFindUniqueArgs = $FindUniqueArgs<$Schema, "Order">;
-export type OrderFindFirstArgs = $FindFirstArgs<$Schema, "Order">;
-export type OrderExistsArgs = $ExistsArgs<$Schema, "Order">;
-export type OrderCreateArgs = $CreateArgs<$Schema, "Order">;
-export type OrderCreateManyArgs = $CreateManyArgs<$Schema, "Order">;
-export type OrderCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, "Order">;
-export type OrderUpdateArgs = $UpdateArgs<$Schema, "Order">;
-export type OrderUpdateManyArgs = $UpdateManyArgs<$Schema, "Order">;
-export type OrderUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, "Order">;
-export type OrderUpsertArgs = $UpsertArgs<$Schema, "Order">;
-export type OrderDeleteArgs = $DeleteArgs<$Schema, "Order">;
-export type OrderDeleteManyArgs = $DeleteManyArgs<$Schema, "Order">;
-export type OrderCountArgs = $CountArgs<$Schema, "Order">;
-export type OrderAggregateArgs = $AggregateArgs<$Schema, "Order">;
-export type OrderGroupByArgs = $GroupByArgs<$Schema, "Order">;
-export type OrderWhereInput = $WhereInput<$Schema, "Order">;
-export type OrderSelect = $SelectInput<$Schema, "Order">;
-export type OrderInclude = $IncludeInput<$Schema, "Order">;
-export type OrderOmit = $OmitInput<$Schema, "Order">;
-export type OrderGetPayload<Args extends $SelectIncludeOmit<$Schema, "Order", true>, Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>> = $Result<$Schema, "Order", Args, Options>;
+import { type SchemaType as $Schema } from './schema';
+import type {
+    FindManyArgs as $FindManyArgs,
+    FindUniqueArgs as $FindUniqueArgs,
+    FindFirstArgs as $FindFirstArgs,
+    ExistsArgs as $ExistsArgs,
+    CreateArgs as $CreateArgs,
+    CreateManyArgs as $CreateManyArgs,
+    CreateManyAndReturnArgs as $CreateManyAndReturnArgs,
+    UpdateArgs as $UpdateArgs,
+    UpdateManyArgs as $UpdateManyArgs,
+    UpdateManyAndReturnArgs as $UpdateManyAndReturnArgs,
+    UpsertArgs as $UpsertArgs,
+    DeleteArgs as $DeleteArgs,
+    DeleteManyArgs as $DeleteManyArgs,
+    CountArgs as $CountArgs,
+    AggregateArgs as $AggregateArgs,
+    GroupByArgs as $GroupByArgs,
+    WhereInput as $WhereInput,
+    SelectInput as $SelectInput,
+    IncludeInput as $IncludeInput,
+    OmitInput as $OmitInput,
+    QueryOptions as $QueryOptions,
+} from '@zenstackhq/orm';
+import type { SimplifiedPlainResult as $Result, SelectIncludeOmit as $SelectIncludeOmit } from '@zenstackhq/orm';
+export type UserFindManyArgs = $FindManyArgs<$Schema, 'User'>;
+export type UserFindUniqueArgs = $FindUniqueArgs<$Schema, 'User'>;
+export type UserFindFirstArgs = $FindFirstArgs<$Schema, 'User'>;
+export type UserExistsArgs = $ExistsArgs<$Schema, 'User'>;
+export type UserCreateArgs = $CreateArgs<$Schema, 'User'>;
+export type UserCreateManyArgs = $CreateManyArgs<$Schema, 'User'>;
+export type UserCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, 'User'>;
+export type UserUpdateArgs = $UpdateArgs<$Schema, 'User'>;
+export type UserUpdateManyArgs = $UpdateManyArgs<$Schema, 'User'>;
+export type UserUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, 'User'>;
+export type UserUpsertArgs = $UpsertArgs<$Schema, 'User'>;
+export type UserDeleteArgs = $DeleteArgs<$Schema, 'User'>;
+export type UserDeleteManyArgs = $DeleteManyArgs<$Schema, 'User'>;
+export type UserCountArgs = $CountArgs<$Schema, 'User'>;
+export type UserAggregateArgs = $AggregateArgs<$Schema, 'User'>;
+export type UserGroupByArgs = $GroupByArgs<$Schema, 'User'>;
+export type UserWhereInput = $WhereInput<$Schema, 'User'>;
+export type UserSelect = $SelectInput<$Schema, 'User'>;
+export type UserInclude = $IncludeInput<$Schema, 'User'>;
+export type UserOmit = $OmitInput<$Schema, 'User'>;
+export type UserGetPayload<
+    Args extends $SelectIncludeOmit<$Schema, 'User', true>,
+    Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>,
+> = $Result<$Schema, 'User', Args, Options>;
+export type PetFindManyArgs = $FindManyArgs<$Schema, 'Pet'>;
+export type PetFindUniqueArgs = $FindUniqueArgs<$Schema, 'Pet'>;
+export type PetFindFirstArgs = $FindFirstArgs<$Schema, 'Pet'>;
+export type PetExistsArgs = $ExistsArgs<$Schema, 'Pet'>;
+export type PetCreateArgs = $CreateArgs<$Schema, 'Pet'>;
+export type PetCreateManyArgs = $CreateManyArgs<$Schema, 'Pet'>;
+export type PetCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, 'Pet'>;
+export type PetUpdateArgs = $UpdateArgs<$Schema, 'Pet'>;
+export type PetUpdateManyArgs = $UpdateManyArgs<$Schema, 'Pet'>;
+export type PetUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, 'Pet'>;
+export type PetUpsertArgs = $UpsertArgs<$Schema, 'Pet'>;
+export type PetDeleteArgs = $DeleteArgs<$Schema, 'Pet'>;
+export type PetDeleteManyArgs = $DeleteManyArgs<$Schema, 'Pet'>;
+export type PetCountArgs = $CountArgs<$Schema, 'Pet'>;
+export type PetAggregateArgs = $AggregateArgs<$Schema, 'Pet'>;
+export type PetGroupByArgs = $GroupByArgs<$Schema, 'Pet'>;
+export type PetWhereInput = $WhereInput<$Schema, 'Pet'>;
+export type PetSelect = $SelectInput<$Schema, 'Pet'>;
+export type PetInclude = $IncludeInput<$Schema, 'Pet'>;
+export type PetOmit = $OmitInput<$Schema, 'Pet'>;
+export type PetGetPayload<
+    Args extends $SelectIncludeOmit<$Schema, 'Pet', true>,
+    Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>,
+> = $Result<$Schema, 'Pet', Args, Options>;
+export type OrderFindManyArgs = $FindManyArgs<$Schema, 'Order'>;
+export type OrderFindUniqueArgs = $FindUniqueArgs<$Schema, 'Order'>;
+export type OrderFindFirstArgs = $FindFirstArgs<$Schema, 'Order'>;
+export type OrderExistsArgs = $ExistsArgs<$Schema, 'Order'>;
+export type OrderCreateArgs = $CreateArgs<$Schema, 'Order'>;
+export type OrderCreateManyArgs = $CreateManyArgs<$Schema, 'Order'>;
+export type OrderCreateManyAndReturnArgs = $CreateManyAndReturnArgs<$Schema, 'Order'>;
+export type OrderUpdateArgs = $UpdateArgs<$Schema, 'Order'>;
+export type OrderUpdateManyArgs = $UpdateManyArgs<$Schema, 'Order'>;
+export type OrderUpdateManyAndReturnArgs = $UpdateManyAndReturnArgs<$Schema, 'Order'>;
+export type OrderUpsertArgs = $UpsertArgs<$Schema, 'Order'>;
+export type OrderDeleteArgs = $DeleteArgs<$Schema, 'Order'>;
+export type OrderDeleteManyArgs = $DeleteManyArgs<$Schema, 'Order'>;
+export type OrderCountArgs = $CountArgs<$Schema, 'Order'>;
+export type OrderAggregateArgs = $AggregateArgs<$Schema, 'Order'>;
+export type OrderGroupByArgs = $GroupByArgs<$Schema, 'Order'>;
+export type OrderWhereInput = $WhereInput<$Schema, 'Order'>;
+export type OrderSelect = $SelectInput<$Schema, 'Order'>;
+export type OrderInclude = $IncludeInput<$Schema, 'Order'>;
+export type OrderOmit = $OmitInput<$Schema, 'Order'>;
+export type OrderGetPayload<
+    Args extends $SelectIncludeOmit<$Schema, 'Order', true>,
+    Options extends $QueryOptions<$Schema> = $QueryOptions<$Schema>,
+> = $Result<$Schema, 'Order', Args, Options>;

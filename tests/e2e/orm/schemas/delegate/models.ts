@@ -5,12 +5,12 @@
 
 /* eslint-disable */
 
-import { type SchemaType as $Schema } from "./schema";
-import type { ModelResult as $ModelResult } from "@zenstackhq/orm";
-export type User = $ModelResult<$Schema, "User">;
-export type Comment = $ModelResult<$Schema, "Comment">;
-export type Asset = $ModelResult<$Schema, "Asset">;
-export type Video = $ModelResult<$Schema, "Video">;
-export type RatedVideo = $ModelResult<$Schema, "RatedVideo">;
-export type Image = $ModelResult<$Schema, "Image">;
-export type Gallery = $ModelResult<$Schema, "Gallery">;
+import { type SchemaType as $Schema } from './schema';
+import type { ModelResult as $ModelResult } from '@zenstackhq/orm';
+export type User = $ModelResult<$Schema, 'User'>;
+export type Comment = $ModelResult<$Schema, 'Comment'>;
+export type Asset = $ModelResult<$Schema, 'Asset'>;
+export type Video = $ModelResult<$Schema, 'Video'>;
+export type RatedVideo = $ModelResult<$Schema, 'RatedVideo'>;
+export type Image = $ModelResult<$Schema, 'Image'>;
+export type Gallery = $ModelResult<$Schema, 'Gallery'>;

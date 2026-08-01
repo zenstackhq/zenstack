@@ -5,120 +5,150 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
+import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from '@zenstackhq/schema';
 export class SchemaType implements SchemaDef {
     provider = {
-        type: "sqlite"
+        type: 'sqlite',
     } as const;
     models = {
         User: {
-            name: "User",
+            name: 'User',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_id") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('user_id') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 email: {
-                    name: "email",
-                    type: "String",
+                    name: 'email',
+                    type: 'String',
                     unique: true,
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_email") }] }, { name: "@unique" }] as readonly AttributeApplication[]
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('user_email') }] },
+                        { name: '@unique' },
+                    ] as readonly AttributeApplication[],
                 },
                 role: {
-                    name: "role",
-                    type: "Role",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("USER") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("user_role") }] }] as readonly AttributeApplication[],
-                    default: "USER" as FieldDefault
+                    name: 'role',
+                    type: 'Role',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('USER') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('user_role') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'USER' as FieldDefault,
                 },
                 posts: {
-                    name: "posts",
-                    type: "Post",
+                    name: 'posts',
+                    type: 'Post',
                     array: true,
-                    relation: { opposite: "author" }
-                }
+                    relation: { opposite: 'author' },
+                },
             },
             attributes: [
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("users") }] }
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('users') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" },
-                email: { type: "String" }
-            }
+                id: { type: 'Int' },
+                email: { type: 'String' },
+            },
         },
         Post: {
-            name: "Post",
+            name: 'Post',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("post_id") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('post_id') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 title: {
-                    name: "title",
-                    type: "String",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("post_title") }] }] as readonly AttributeApplication[]
+                    name: 'title',
+                    type: 'String',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('post_title') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 author: {
-                    name: "author",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("authorId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "posts", fields: ["authorId"], references: ["id"] }
+                    name: 'author',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('authorId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'posts', fields: ['authorId'], references: ['id'] },
                 },
                 authorId: {
-                    name: "authorId",
-                    type: "Int",
-                    attributes: [{ name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("author_id") }] }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "author"
-                    ] as readonly string[]
-                }
+                    name: 'authorId',
+                    type: 'Int',
+                    attributes: [
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('author_id') }] },
+                    ] as readonly AttributeApplication[],
+                    foreignKeyFor: ['author'] as readonly string[],
+                },
             },
             attributes: [
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("posts") }] }
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('posts') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
-        }
+                id: { type: 'Int' },
+            },
+        },
     } as const;
     enums = {
         Role: {
-            name: "Role",
+            name: 'Role',
             values: {
-                USER: "USER",
-                ADMIN: "ADMIN",
-                MODERATOR: "MODERATOR"
+                USER: 'USER',
+                ADMIN: 'ADMIN',
+                MODERATOR: 'MODERATOR',
             },
             fields: {
                 USER: {
-                    name: "USER",
+                    name: 'USER',
                     attributes: [
-                        { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("role_user") }] }
-                    ] as readonly AttributeApplication[]
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('role_user') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 ADMIN: {
-                    name: "ADMIN",
+                    name: 'ADMIN',
                     attributes: [
-                        { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("role_admin") }] }
-                    ] as readonly AttributeApplication[]
+                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('role_admin') }] },
+                    ] as readonly AttributeApplication[],
                 },
                 MODERATOR: {
-                    name: "MODERATOR"
-                }
+                    name: 'MODERATOR',
+                },
             },
             attributes: [
-                { name: "@@map", args: [{ name: "name", value: ExpressionUtils.literal("user_role") }] }
-            ] as readonly AttributeApplication[]
-        }
+                { name: '@@map', args: [{ name: 'name', value: ExpressionUtils.literal('user_role') }] },
+            ] as readonly AttributeApplication[],
+        },
     } as const;
-    authType = "User" as const;
+    authType = 'User' as const;
     plugins = {};
 }
 export const schema = new SchemaType();

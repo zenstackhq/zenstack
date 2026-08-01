@@ -79,13 +79,19 @@ async function create() {
     // @ts-expect-error
     client.asset.createMany({ data: [{ assetType: 'ASSET_KIND_VIDEO' }] });
     // @ts-expect-error
-    client.asset.upsert({ where: { id: 1 }, create: { assetType: 'ASSET_KIND_VIDEO' }, update: { assetType: 'ASSET_KIND_VIDEO' } });
+    client.asset.upsert({
+        where: { id: 1 },
+        create: { assetType: 'ASSET_KIND_VIDEO' },
+        update: { assetType: 'ASSET_KIND_VIDEO' },
+    });
 
     // nested creation is not allowed either
     // @ts-expect-error
     client.user.create({ data: { assets: { create: { assetType: 'ASSET_KIND_VIDEO' } } } });
     // @ts-expect-error
-    client.user.create({ data: { assets: { connectOrCreate: { where: { id: 1 }, create: { assetType: 'ASSET_KIND_VIDEO' } } } } });
+    client.user.create({
+        data: { assets: { connectOrCreate: { where: { id: 1 }, create: { assetType: 'ASSET_KIND_VIDEO' } } } },
+    });
     // @ts-expect-error
     client.user.update({ where: { id: 1 }, data: { assets: { create: { assetType: 'ASSET_KIND_VIDEO' } } } });
     client.user.update({
@@ -97,7 +103,13 @@ async function create() {
         where: { id: 1 },
         data: {
             // @ts-expect-error
-            assets: { upsert: { where: { id: 1 }, create: { assetType: 'ASSET_KIND_VIDEO' }, update: { assetType: 'ASSET_KIND_VIDEO' } } },
+            assets: {
+                upsert: {
+                    where: { id: 1 },
+                    create: { assetType: 'ASSET_KIND_VIDEO' },
+                    update: { assetType: 'ASSET_KIND_VIDEO' },
+                },
+            },
         },
     });
 

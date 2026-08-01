@@ -5,117 +5,122 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
+import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from '@zenstackhq/schema';
 export class SchemaType implements SchemaDef {
     provider = {
-        type: "sqlite"
+        type: 'sqlite',
     } as const;
     models = {
         User: {
-            name: "User",
+            name: 'User',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 name: {
-                    name: "name",
-                    type: "String",
+                    name: 'name',
+                    type: 'String',
                     unique: true,
-                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
                 },
                 role: {
-                    name: "role",
-                    type: "Role",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("USER") }] }] as readonly AttributeApplication[],
-                    default: "USER" as FieldDefault
-                }
+                    name: 'role',
+                    type: 'Role',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('USER') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'USER' as FieldDefault,
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" },
-                name: { type: "String" }
-            }
-        }
+                id: { type: 'Int' },
+                name: { type: 'String' },
+            },
+        },
     } as const;
     typeDefs = {
         Overview: {
-            name: "Overview",
+            name: 'Overview',
             fields: {
                 userIds: {
-                    name: "userIds",
-                    type: "Int",
-                    array: true
+                    name: 'userIds',
+                    type: 'Int',
+                    array: true,
                 },
                 total: {
-                    name: "total",
-                    type: "Int"
+                    name: 'total',
+                    type: 'Int',
                 },
                 roles: {
-                    name: "roles",
-                    type: "Role",
-                    array: true
+                    name: 'roles',
+                    type: 'Role',
+                    array: true,
                 },
                 meta: {
-                    name: "meta",
-                    type: "Json",
-                    optional: true
-                }
-            }
-        }
+                    name: 'meta',
+                    type: 'Json',
+                    optional: true,
+                },
+            },
+        },
     } as const;
     enums = {
         Role: {
-            name: "Role",
+            name: 'Role',
             values: {
-                ADMIN: "ADMIN",
-                USER: "USER"
-            }
-        }
+                ADMIN: 'ADMIN',
+                USER: 'USER',
+            },
+        },
     } as const;
-    authType = "User" as const;
+    authType = 'User' as const;
     procedures = {
         getUser: {
             params: {
-                id: { name: "id", type: "Int" }
+                id: { name: 'id', type: 'Int' },
             },
-            returnType: "User"
+            returnType: 'User',
         },
         listUsers: {
             params: {},
-            returnType: "User",
-            returnArray: true
+            returnType: 'User',
+            returnArray: true,
         },
         signUp: {
             params: {
-                name: { name: "name", type: "String" },
-                role: { name: "role", optional: true, type: "Role" }
+                name: { name: 'name', type: 'String' },
+                role: { name: 'role', optional: true, type: 'Role' },
             },
-            returnType: "User",
-            mutation: true
+            returnType: 'User',
+            mutation: true,
         },
         setAdmin: {
             params: {
-                userId: { name: "userId", type: "Int" }
+                userId: { name: 'userId', type: 'Int' },
             },
-            returnType: "Void",
-            mutation: true
+            returnType: 'Void',
+            mutation: true,
         },
         getOverview: {
             params: {},
-            returnType: "Overview"
+            returnType: 'Overview',
         },
         createMultiple: {
             params: {
-                names: { name: "names", array: true, type: "String" }
+                names: { name: 'names', array: true, type: 'String' },
             },
-            returnType: "User",
+            returnType: 'User',
             returnArray: true,
-            mutation: true
-        }
+            mutation: true,
+        },
     } as const;
     plugins = {};
 }

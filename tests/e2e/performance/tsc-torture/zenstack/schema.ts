@@ -5,3106 +5,4277 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
+import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from '@zenstackhq/schema';
 export class SchemaType implements SchemaDef {
     provider = {
-        type: "sqlite"
+        type: 'sqlite',
     } as const;
     models = {
         Organization: {
-            name: "Organization",
+            name: 'Organization',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
                 },
                 name: {
-                    name: "name",
-                    type: "String"
+                    name: 'name',
+                    type: 'String',
                 },
                 slug: {
-                    name: "slug",
-                    type: "String",
+                    name: 'slug',
+                    type: 'String',
                     unique: true,
-                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
                 },
                 logoUrl: {
-                    name: "logoUrl",
-                    type: "String",
-                    optional: true
+                    name: 'logoUrl',
+                    type: 'String',
+                    optional: true,
                 },
                 website: {
-                    name: "website",
-                    type: "String",
-                    optional: true
+                    name: 'website',
+                    type: 'String',
+                    optional: true,
                 },
                 teams: {
-                    name: "teams",
-                    type: "Team",
+                    name: 'teams',
+                    type: 'Team',
                     array: true,
-                    relation: { opposite: "organization" }
+                    relation: { opposite: 'organization' },
                 },
                 members: {
-                    name: "members",
-                    type: "OrganizationMember",
+                    name: 'members',
+                    type: 'OrganizationMember',
                     array: true,
-                    relation: { opposite: "organization" }
+                    relation: { opposite: 'organization' },
                 },
                 projects: {
-                    name: "projects",
-                    type: "Project",
+                    name: 'projects',
+                    type: 'Project',
                     array: true,
-                    relation: { opposite: "organization" }
+                    relation: { opposite: 'organization' },
                 },
                 billingInfo: {
-                    name: "billingInfo",
-                    type: "BillingInfo",
+                    name: 'billingInfo',
+                    type: 'BillingInfo',
                     optional: true,
-                    relation: { opposite: "organization" }
+                    relation: { opposite: 'organization' },
                 },
                 auditLogs: {
-                    name: "auditLogs",
-                    type: "AuditLog",
+                    name: 'auditLogs',
+                    type: 'AuditLog',
                     array: true,
-                    relation: { opposite: "organization" }
+                    relation: { opposite: 'organization' },
                 },
                 activityLog: {
-                    name: "activityLog",
-                    type: "ActivityLogEntry",
+                    name: 'activityLog',
+                    type: 'ActivityLogEntry',
                     array: true,
-                    relation: { opposite: "organization" }
+                    relation: { opposite: 'organization' },
                 },
                 integrations: {
-                    name: "integrations",
-                    type: "Integration",
+                    name: 'integrations',
+                    type: 'Integration',
                     array: true,
-                    relation: { opposite: "organization" }
+                    relation: { opposite: 'organization' },
                 },
                 customFields: {
-                    name: "customFields",
-                    type: "CustomFieldDefinition",
+                    name: 'customFields',
+                    type: 'CustomFieldDefinition',
                     array: true,
-                    relation: { opposite: "organization" }
-                }
+                    relation: { opposite: 'organization' },
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" },
-                slug: { type: "String" }
-            }
+                id: { type: 'Int' },
+                slug: { type: 'String' },
+            },
         },
         BillingInfo: {
-            name: "BillingInfo",
+            name: 'BillingInfo',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
                 },
                 planName: {
-                    name: "planName",
-                    type: "String"
+                    name: 'planName',
+                    type: 'String',
                 },
                 billingEmail: {
-                    name: "billingEmail",
-                    type: "String"
+                    name: 'billingEmail',
+                    type: 'String',
                 },
                 paymentMethod: {
-                    name: "paymentMethod",
-                    type: "PaymentMethod"
+                    name: 'paymentMethod',
+                    type: 'PaymentMethod',
                 },
                 stripeCustomerId: {
-                    name: "stripeCustomerId",
-                    type: "String",
-                    optional: true
+                    name: 'stripeCustomerId',
+                    type: 'String',
+                    optional: true,
                 },
                 organization: {
-                    name: "organization",
-                    type: "Organization",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "billingInfo", fields: ["organizationId"], references: ["id"] }
+                    name: 'organization',
+                    type: 'Organization',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('organizationId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'billingInfo', fields: ['organizationId'], references: ['id'] },
                 },
                 organizationId: {
-                    name: "organizationId",
-                    type: "Int",
+                    name: 'organizationId',
+                    type: 'Int',
                     unique: true,
-                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "organization"
-                    ] as readonly string[]
+                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    foreignKeyFor: ['organization'] as readonly string[],
                 },
                 invoices: {
-                    name: "invoices",
-                    type: "Invoice",
+                    name: 'invoices',
+                    type: 'Invoice',
                     array: true,
-                    relation: { opposite: "billingInfo" }
-                }
+                    relation: { opposite: 'billingInfo' },
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" },
-                organizationId: { type: "Int" }
-            }
+                id: { type: 'Int' },
+                organizationId: { type: 'Int' },
+            },
         },
         Invoice: {
-            name: "Invoice",
+            name: 'Invoice',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
                 },
                 number: {
-                    name: "number",
-                    type: "String",
+                    name: 'number',
+                    type: 'String',
                     unique: true,
-                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
                 },
                 amountCents: {
-                    name: "amountCents",
-                    type: "Int"
+                    name: 'amountCents',
+                    type: 'Int',
                 },
                 currency: {
-                    name: "currency",
-                    type: "String",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("USD") }] }] as readonly AttributeApplication[],
-                    default: "USD" as FieldDefault
+                    name: 'currency',
+                    type: 'String',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('USD') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'USD' as FieldDefault,
                 },
                 status: {
-                    name: "status",
-                    type: "InvoiceStatus",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("DRAFT") }] }] as readonly AttributeApplication[],
-                    default: "DRAFT" as FieldDefault
+                    name: 'status',
+                    type: 'InvoiceStatus',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('DRAFT') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'DRAFT' as FieldDefault,
                 },
                 dueDate: {
-                    name: "dueDate",
-                    type: "DateTime"
+                    name: 'dueDate',
+                    type: 'DateTime',
                 },
                 paidAt: {
-                    name: "paidAt",
-                    type: "DateTime",
-                    optional: true
+                    name: 'paidAt',
+                    type: 'DateTime',
+                    optional: true,
                 },
                 billingInfo: {
-                    name: "billingInfo",
-                    type: "BillingInfo",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("billingInfoId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "invoices", fields: ["billingInfoId"], references: ["id"] }
+                    name: 'billingInfo',
+                    type: 'BillingInfo',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('billingInfoId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'invoices', fields: ['billingInfoId'], references: ['id'] },
                 },
                 billingInfoId: {
-                    name: "billingInfoId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "billingInfo"
-                    ] as readonly string[]
+                    name: 'billingInfoId',
+                    type: 'Int',
+                    foreignKeyFor: ['billingInfo'] as readonly string[],
                 },
                 lineItems: {
-                    name: "lineItems",
-                    type: "InvoiceLineItem",
+                    name: 'lineItems',
+                    type: 'InvoiceLineItem',
                     array: true,
-                    relation: { opposite: "invoice" }
-                }
+                    relation: { opposite: 'invoice' },
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" },
-                number: { type: "String" }
-            }
+                id: { type: 'Int' },
+                number: { type: 'String' },
+            },
         },
         InvoiceLineItem: {
-            name: "InvoiceLineItem",
+            name: 'InvoiceLineItem',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 description: {
-                    name: "description",
-                    type: "String"
+                    name: 'description',
+                    type: 'String',
                 },
                 quantity: {
-                    name: "quantity",
-                    type: "Int",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(1) }] }] as readonly AttributeApplication[],
-                    default: 1 as FieldDefault
+                    name: 'quantity',
+                    type: 'Int',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(1) }] },
+                    ] as readonly AttributeApplication[],
+                    default: 1 as FieldDefault,
                 },
                 unitCents: {
-                    name: "unitCents",
-                    type: "Int"
+                    name: 'unitCents',
+                    type: 'Int',
                 },
                 invoice: {
-                    name: "invoice",
-                    type: "Invoice",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("invoiceId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "lineItems", fields: ["invoiceId"], references: ["id"] }
+                    name: 'invoice',
+                    type: 'Invoice',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('invoiceId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'lineItems', fields: ['invoiceId'], references: ['id'] },
                 },
                 invoiceId: {
-                    name: "invoiceId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "invoice"
-                    ] as readonly string[]
-                }
+                    name: 'invoiceId',
+                    type: 'Int',
+                    foreignKeyFor: ['invoice'] as readonly string[],
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         User: {
-            name: "User",
+            name: 'User',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
                 },
                 email: {
-                    name: "email",
-                    type: "String",
+                    name: 'email',
+                    type: 'String',
                     unique: true,
-                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
                 },
                 username: {
-                    name: "username",
-                    type: "String",
+                    name: 'username',
+                    type: 'String',
                     unique: true,
-                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
                 },
                 displayName: {
-                    name: "displayName",
-                    type: "String"
+                    name: 'displayName',
+                    type: 'String',
                 },
                 avatarUrl: {
-                    name: "avatarUrl",
-                    type: "String",
-                    optional: true
+                    name: 'avatarUrl',
+                    type: 'String',
+                    optional: true,
                 },
                 timezone: {
-                    name: "timezone",
-                    type: "String",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("UTC") }] }] as readonly AttributeApplication[],
-                    default: "UTC" as FieldDefault
+                    name: 'timezone',
+                    type: 'String',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('UTC') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'UTC' as FieldDefault,
                 },
                 locale: {
-                    name: "locale",
-                    type: "String",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("en") }] }] as readonly AttributeApplication[],
-                    default: "en" as FieldDefault
+                    name: 'locale',
+                    type: 'String',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('en') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'en' as FieldDefault,
                 },
                 orgMemberships: {
-                    name: "orgMemberships",
-                    type: "OrganizationMember",
+                    name: 'orgMemberships',
+                    type: 'OrganizationMember',
                     array: true,
-                    relation: { opposite: "user" }
+                    relation: { opposite: 'user' },
                 },
                 teamMemberships: {
-                    name: "teamMemberships",
-                    type: "TeamMember",
+                    name: 'teamMemberships',
+                    type: 'TeamMember',
                     array: true,
-                    relation: { opposite: "user" }
+                    relation: { opposite: 'user' },
                 },
                 ownedProjects: {
-                    name: "ownedProjects",
-                    type: "Project",
+                    name: 'ownedProjects',
+                    type: 'Project',
                     array: true,
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("ProjectOwner") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "owner", name: "ProjectOwner" }
+                    attributes: [
+                        { name: '@relation', args: [{ name: 'name', value: ExpressionUtils.literal('ProjectOwner') }] },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'owner', name: 'ProjectOwner' },
                 },
                 assignedTasks: {
-                    name: "assignedTasks",
-                    type: "Task",
+                    name: 'assignedTasks',
+                    type: 'Task',
                     array: true,
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("TaskAssignee") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "assignee", name: "TaskAssignee" }
+                    attributes: [
+                        { name: '@relation', args: [{ name: 'name', value: ExpressionUtils.literal('TaskAssignee') }] },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'assignee', name: 'TaskAssignee' },
                 },
                 reportedTasks: {
-                    name: "reportedTasks",
-                    type: "Task",
+                    name: 'reportedTasks',
+                    type: 'Task',
                     array: true,
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("TaskReporter") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "reporter", name: "TaskReporter" }
+                    attributes: [
+                        { name: '@relation', args: [{ name: 'name', value: ExpressionUtils.literal('TaskReporter') }] },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'reporter', name: 'TaskReporter' },
                 },
                 comments: {
-                    name: "comments",
-                    type: "Comment",
+                    name: 'comments',
+                    type: 'Comment',
                     array: true,
-                    relation: { opposite: "author" }
+                    relation: { opposite: 'author' },
                 },
                 notifications: {
-                    name: "notifications",
-                    type: "Notification",
+                    name: 'notifications',
+                    type: 'Notification',
                     array: true,
-                    relation: { opposite: "user" }
+                    relation: { opposite: 'user' },
                 },
                 reviews: {
-                    name: "reviews",
-                    type: "Review",
+                    name: 'reviews',
+                    type: 'Review',
                     array: true,
-                    relation: { opposite: "reviewer" }
+                    relation: { opposite: 'reviewer' },
                 },
                 auditLogs: {
-                    name: "auditLogs",
-                    type: "AuditLog",
+                    name: 'auditLogs',
+                    type: 'AuditLog',
                     array: true,
-                    relation: { opposite: "actor" }
+                    relation: { opposite: 'actor' },
                 },
                 userPreferences: {
-                    name: "userPreferences",
-                    type: "UserPreferences",
+                    name: 'userPreferences',
+                    type: 'UserPreferences',
                     optional: true,
-                    relation: { opposite: "user" }
+                    relation: { opposite: 'user' },
                 },
                 activityLog: {
-                    name: "activityLog",
-                    type: "ActivityLogEntry",
+                    name: 'activityLog',
+                    type: 'ActivityLogEntry',
                     array: true,
-                    relation: { opposite: "user" }
+                    relation: { opposite: 'user' },
                 },
                 timeEntries: {
-                    name: "timeEntries",
-                    type: "TimeEntry",
+                    name: 'timeEntries',
+                    type: 'TimeEntry',
                     array: true,
-                    relation: { opposite: "user" }
+                    relation: { opposite: 'user' },
                 },
                 apiTokens: {
-                    name: "apiTokens",
-                    type: "ApiToken",
+                    name: 'apiTokens',
+                    type: 'ApiToken',
                     array: true,
-                    relation: { opposite: "user" }
-                }
+                    relation: { opposite: 'user' },
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" },
-                email: { type: "String" },
-                username: { type: "String" }
-            }
+                id: { type: 'Int' },
+                email: { type: 'String' },
+                username: { type: 'String' },
+            },
         },
         UserPreferences: {
-            name: "UserPreferences",
+            name: 'UserPreferences',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 emailNotifications: {
-                    name: "emailNotifications",
-                    type: "Boolean",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(true) }] }] as readonly AttributeApplication[],
-                    default: true as FieldDefault
+                    name: 'emailNotifications',
+                    type: 'Boolean',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(true) }] },
+                    ] as readonly AttributeApplication[],
+                    default: true as FieldDefault,
                 },
                 slackNotifications: {
-                    name: "slackNotifications",
-                    type: "Boolean",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'slackNotifications',
+                    type: 'Boolean',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 theme: {
-                    name: "theme",
-                    type: "String",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("light") }] }] as readonly AttributeApplication[],
-                    default: "light" as FieldDefault
+                    name: 'theme',
+                    type: 'String',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('light') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'light' as FieldDefault,
                 },
                 defaultProjectId: {
-                    name: "defaultProjectId",
-                    type: "Int",
-                    optional: true
+                    name: 'defaultProjectId',
+                    type: 'Int',
+                    optional: true,
                 },
                 user: {
-                    name: "user",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "userPreferences", fields: ["userId"], references: ["id"] }
+                    name: 'user',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'userPreferences', fields: ['userId'], references: ['id'] },
                 },
                 userId: {
-                    name: "userId",
-                    type: "Int",
+                    name: 'userId',
+                    type: 'Int',
                     unique: true,
-                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[],
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
-                }
+                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    foreignKeyFor: ['user'] as readonly string[],
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" },
-                userId: { type: "Int" }
-            }
+                id: { type: 'Int' },
+                userId: { type: 'Int' },
+            },
         },
         ApiToken: {
-            name: "ApiToken",
+            name: 'ApiToken',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 lastUsedAt: {
-                    name: "lastUsedAt",
-                    type: "DateTime",
-                    optional: true
+                    name: 'lastUsedAt',
+                    type: 'DateTime',
+                    optional: true,
                 },
                 name: {
-                    name: "name",
-                    type: "String"
+                    name: 'name',
+                    type: 'String',
                 },
                 tokenHash: {
-                    name: "tokenHash",
-                    type: "String",
+                    name: 'tokenHash',
+                    type: 'String',
                     unique: true,
-                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
                 },
                 expiresAt: {
-                    name: "expiresAt",
-                    type: "DateTime",
-                    optional: true
+                    name: 'expiresAt',
+                    type: 'DateTime',
+                    optional: true,
                 },
                 user: {
-                    name: "user",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "apiTokens", fields: ["userId"], references: ["id"] }
+                    name: 'user',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'apiTokens', fields: ['userId'], references: ['id'] },
                 },
                 userId: {
-                    name: "userId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
-                }
+                    name: 'userId',
+                    type: 'Int',
+                    foreignKeyFor: ['user'] as readonly string[],
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" },
-                tokenHash: { type: "String" }
-            }
+                id: { type: 'Int' },
+                tokenHash: { type: 'String' },
+            },
         },
         OrganizationMember: {
-            name: "OrganizationMember",
+            name: 'OrganizationMember',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 joinedAt: {
-                    name: "joinedAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'joinedAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 role: {
-                    name: "role",
-                    type: "UserRole",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("MEMBER") }] }] as readonly AttributeApplication[],
-                    default: "MEMBER" as FieldDefault
+                    name: 'role',
+                    type: 'UserRole',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('MEMBER') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'MEMBER' as FieldDefault,
                 },
                 organization: {
-                    name: "organization",
-                    type: "Organization",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "members", fields: ["organizationId"], references: ["id"] }
+                    name: 'organization',
+                    type: 'Organization',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('organizationId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'members', fields: ['organizationId'], references: ['id'] },
                 },
                 organizationId: {
-                    name: "organizationId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "organization"
-                    ] as readonly string[]
+                    name: 'organizationId',
+                    type: 'Int',
+                    foreignKeyFor: ['organization'] as readonly string[],
                 },
                 user: {
-                    name: "user",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "orgMemberships", fields: ["userId"], references: ["id"] }
+                    name: 'user',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'orgMemberships', fields: ['userId'], references: ['id'] },
                 },
                 userId: {
-                    name: "userId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
-                }
+                    name: 'userId',
+                    type: 'Int',
+                    foreignKeyFor: ['user'] as readonly string[],
+                },
             },
             attributes: [
-                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("organizationId"), ExpressionUtils.field("userId")]) }] }
+                {
+                    name: '@@unique',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('Int', [
+                                ExpressionUtils.field('organizationId'),
+                                ExpressionUtils.field('userId'),
+                            ]),
+                        },
+                    ],
+                },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" },
-                organizationId_userId: { organizationId: { type: "Int" }, userId: { type: "Int" } }
-            }
+                id: { type: 'Int' },
+                organizationId_userId: { organizationId: { type: 'Int' }, userId: { type: 'Int' } },
+            },
         },
         Team: {
-            name: "Team",
+            name: 'Team',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
                 },
                 name: {
-                    name: "name",
-                    type: "String"
+                    name: 'name',
+                    type: 'String',
                 },
                 description: {
-                    name: "description",
-                    type: "String",
-                    optional: true
+                    name: 'description',
+                    type: 'String',
+                    optional: true,
                 },
                 color: {
-                    name: "color",
-                    type: "String",
-                    optional: true
+                    name: 'color',
+                    type: 'String',
+                    optional: true,
                 },
                 organization: {
-                    name: "organization",
-                    type: "Organization",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "teams", fields: ["organizationId"], references: ["id"] }
+                    name: 'organization',
+                    type: 'Organization',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('organizationId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'teams', fields: ['organizationId'], references: ['id'] },
                 },
                 organizationId: {
-                    name: "organizationId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "organization"
-                    ] as readonly string[]
+                    name: 'organizationId',
+                    type: 'Int',
+                    foreignKeyFor: ['organization'] as readonly string[],
                 },
                 members: {
-                    name: "members",
-                    type: "TeamMember",
+                    name: 'members',
+                    type: 'TeamMember',
                     array: true,
-                    relation: { opposite: "team" }
+                    relation: { opposite: 'team' },
                 },
                 projects: {
-                    name: "projects",
-                    type: "ProjectTeamAssignment",
+                    name: 'projects',
+                    type: 'ProjectTeamAssignment',
                     array: true,
-                    relation: { opposite: "team" }
-                }
+                    relation: { opposite: 'team' },
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         TeamMember: {
-            name: "TeamMember",
+            name: 'TeamMember',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 joinedAt: {
-                    name: "joinedAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'joinedAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 role: {
-                    name: "role",
-                    type: "UserRole",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("MEMBER") }] }] as readonly AttributeApplication[],
-                    default: "MEMBER" as FieldDefault
+                    name: 'role',
+                    type: 'UserRole',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('MEMBER') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'MEMBER' as FieldDefault,
                 },
                 team: {
-                    name: "team",
-                    type: "Team",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("teamId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "members", fields: ["teamId"], references: ["id"] }
+                    name: 'team',
+                    type: 'Team',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('teamId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'members', fields: ['teamId'], references: ['id'] },
                 },
                 teamId: {
-                    name: "teamId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "team"
-                    ] as readonly string[]
+                    name: 'teamId',
+                    type: 'Int',
+                    foreignKeyFor: ['team'] as readonly string[],
                 },
                 user: {
-                    name: "user",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "teamMemberships", fields: ["userId"], references: ["id"] }
+                    name: 'user',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'teamMemberships', fields: ['userId'], references: ['id'] },
                 },
                 userId: {
-                    name: "userId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
-                }
+                    name: 'userId',
+                    type: 'Int',
+                    foreignKeyFor: ['user'] as readonly string[],
+                },
             },
             attributes: [
-                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("teamId"), ExpressionUtils.field("userId")]) }] }
+                {
+                    name: '@@unique',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('Int', [
+                                ExpressionUtils.field('teamId'),
+                                ExpressionUtils.field('userId'),
+                            ]),
+                        },
+                    ],
+                },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" },
-                teamId_userId: { teamId: { type: "Int" }, userId: { type: "Int" } }
-            }
+                id: { type: 'Int' },
+                teamId_userId: { teamId: { type: 'Int' }, userId: { type: 'Int' } },
+            },
         },
         Project: {
-            name: "Project",
+            name: 'Project',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
                 },
                 name: {
-                    name: "name",
-                    type: "String"
+                    name: 'name',
+                    type: 'String',
                 },
                 slug: {
-                    name: "slug",
-                    type: "String"
+                    name: 'slug',
+                    type: 'String',
                 },
                 description: {
-                    name: "description",
-                    type: "String",
-                    optional: true
+                    name: 'description',
+                    type: 'String',
+                    optional: true,
                 },
                 status: {
-                    name: "status",
-                    type: "ProjectStatus",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("ACTIVE") }] }] as readonly AttributeApplication[],
-                    default: "ACTIVE" as FieldDefault
+                    name: 'status',
+                    type: 'ProjectStatus',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('ACTIVE') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'ACTIVE' as FieldDefault,
                 },
                 startDate: {
-                    name: "startDate",
-                    type: "DateTime",
-                    optional: true
+                    name: 'startDate',
+                    type: 'DateTime',
+                    optional: true,
                 },
                 endDate: {
-                    name: "endDate",
-                    type: "DateTime",
-                    optional: true
+                    name: 'endDate',
+                    type: 'DateTime',
+                    optional: true,
                 },
                 budget: {
-                    name: "budget",
-                    type: "Int",
-                    optional: true
+                    name: 'budget',
+                    type: 'Int',
+                    optional: true,
                 },
                 organization: {
-                    name: "organization",
-                    type: "Organization",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "projects", fields: ["organizationId"], references: ["id"] }
+                    name: 'organization',
+                    type: 'Organization',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('organizationId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'projects', fields: ['organizationId'], references: ['id'] },
                 },
                 organizationId: {
-                    name: "organizationId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "organization"
-                    ] as readonly string[]
+                    name: 'organizationId',
+                    type: 'Int',
+                    foreignKeyFor: ['organization'] as readonly string[],
                 },
                 owner: {
-                    name: "owner",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("ProjectOwner") }, { name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("ownerId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "ownedProjects", name: "ProjectOwner", fields: ["ownerId"], references: ["id"] }
+                    name: 'owner',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                { name: 'name', value: ExpressionUtils.literal('ProjectOwner') },
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('ownerId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: {
+                        opposite: 'ownedProjects',
+                        name: 'ProjectOwner',
+                        fields: ['ownerId'],
+                        references: ['id'],
+                    },
                 },
                 ownerId: {
-                    name: "ownerId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "owner"
-                    ] as readonly string[]
+                    name: 'ownerId',
+                    type: 'Int',
+                    foreignKeyFor: ['owner'] as readonly string[],
                 },
                 teamAssignments: {
-                    name: "teamAssignments",
-                    type: "ProjectTeamAssignment",
+                    name: 'teamAssignments',
+                    type: 'ProjectTeamAssignment',
                     array: true,
-                    relation: { opposite: "project" }
+                    relation: { opposite: 'project' },
                 },
                 milestones: {
-                    name: "milestones",
-                    type: "Milestone",
+                    name: 'milestones',
+                    type: 'Milestone',
                     array: true,
-                    relation: { opposite: "project" }
+                    relation: { opposite: 'project' },
                 },
                 tasks: {
-                    name: "tasks",
-                    type: "Task",
+                    name: 'tasks',
+                    type: 'Task',
                     array: true,
-                    relation: { opposite: "project" }
+                    relation: { opposite: 'project' },
                 },
                 labels: {
-                    name: "labels",
-                    type: "Label",
+                    name: 'labels',
+                    type: 'Label',
                     array: true,
-                    relation: { opposite: "project" }
+                    relation: { opposite: 'project' },
                 },
                 sprints: {
-                    name: "sprints",
-                    type: "Sprint",
+                    name: 'sprints',
+                    type: 'Sprint',
                     array: true,
-                    relation: { opposite: "project" }
+                    relation: { opposite: 'project' },
                 },
                 documents: {
-                    name: "documents",
-                    type: "Document",
+                    name: 'documents',
+                    type: 'Document',
                     array: true,
-                    relation: { opposite: "project" }
+                    relation: { opposite: 'project' },
                 },
                 customFieldValues: {
-                    name: "customFieldValues",
-                    type: "CustomFieldValue",
+                    name: 'customFieldValues',
+                    type: 'CustomFieldValue',
                     array: true,
-                    relation: { opposite: "project" }
+                    relation: { opposite: 'project' },
                 },
                 integrationLinks: {
-                    name: "integrationLinks",
-                    type: "IntegrationLink",
+                    name: 'integrationLinks',
+                    type: 'IntegrationLink',
                     array: true,
-                    relation: { opposite: "project" }
-                }
+                    relation: { opposite: 'project' },
+                },
             },
             attributes: [
-                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("organizationId"), ExpressionUtils.field("slug")]) }] }
+                {
+                    name: '@@unique',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('Int', [
+                                ExpressionUtils.field('organizationId'),
+                                ExpressionUtils.field('slug'),
+                            ]),
+                        },
+                    ],
+                },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" },
-                organizationId_slug: { organizationId: { type: "Int" }, slug: { type: "String" } }
-            }
+                id: { type: 'Int' },
+                organizationId_slug: { organizationId: { type: 'Int' }, slug: { type: 'String' } },
+            },
         },
         ProjectTeamAssignment: {
-            name: "ProjectTeamAssignment",
+            name: 'ProjectTeamAssignment',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 assignedAt: {
-                    name: "assignedAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'assignedAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 project: {
-                    name: "project",
-                    type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "teamAssignments", fields: ["projectId"], references: ["id"] }
+                    name: 'project',
+                    type: 'Project',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('projectId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'teamAssignments', fields: ['projectId'], references: ['id'] },
                 },
                 projectId: {
-                    name: "projectId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "project"
-                    ] as readonly string[]
+                    name: 'projectId',
+                    type: 'Int',
+                    foreignKeyFor: ['project'] as readonly string[],
                 },
                 team: {
-                    name: "team",
-                    type: "Team",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("teamId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "projects", fields: ["teamId"], references: ["id"] }
+                    name: 'team',
+                    type: 'Team',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('teamId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'projects', fields: ['teamId'], references: ['id'] },
                 },
                 teamId: {
-                    name: "teamId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "team"
-                    ] as readonly string[]
-                }
+                    name: 'teamId',
+                    type: 'Int',
+                    foreignKeyFor: ['team'] as readonly string[],
+                },
             },
             attributes: [
-                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("projectId"), ExpressionUtils.field("teamId")]) }] }
+                {
+                    name: '@@unique',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('Int', [
+                                ExpressionUtils.field('projectId'),
+                                ExpressionUtils.field('teamId'),
+                            ]),
+                        },
+                    ],
+                },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" },
-                projectId_teamId: { projectId: { type: "Int" }, teamId: { type: "Int" } }
-            }
+                id: { type: 'Int' },
+                projectId_teamId: { projectId: { type: 'Int' }, teamId: { type: 'Int' } },
+            },
         },
         Milestone: {
-            name: "Milestone",
+            name: 'Milestone',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
                 },
                 name: {
-                    name: "name",
-                    type: "String"
+                    name: 'name',
+                    type: 'String',
                 },
                 description: {
-                    name: "description",
-                    type: "String",
-                    optional: true
+                    name: 'description',
+                    type: 'String',
+                    optional: true,
                 },
                 dueDate: {
-                    name: "dueDate",
-                    type: "DateTime",
-                    optional: true
+                    name: 'dueDate',
+                    type: 'DateTime',
+                    optional: true,
                 },
                 completedAt: {
-                    name: "completedAt",
-                    type: "DateTime",
-                    optional: true
+                    name: 'completedAt',
+                    type: 'DateTime',
+                    optional: true,
                 },
                 project: {
-                    name: "project",
-                    type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "milestones", fields: ["projectId"], references: ["id"] }
+                    name: 'project',
+                    type: 'Project',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('projectId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'milestones', fields: ['projectId'], references: ['id'] },
                 },
                 projectId: {
-                    name: "projectId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "project"
-                    ] as readonly string[]
+                    name: 'projectId',
+                    type: 'Int',
+                    foreignKeyFor: ['project'] as readonly string[],
                 },
                 tasks: {
-                    name: "tasks",
-                    type: "Task",
+                    name: 'tasks',
+                    type: 'Task',
                     array: true,
-                    relation: { opposite: "milestone" }
-                }
+                    relation: { opposite: 'milestone' },
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         Sprint: {
-            name: "Sprint",
+            name: 'Sprint',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
                 },
                 name: {
-                    name: "name",
-                    type: "String"
+                    name: 'name',
+                    type: 'String',
                 },
                 goal: {
-                    name: "goal",
-                    type: "String",
-                    optional: true
+                    name: 'goal',
+                    type: 'String',
+                    optional: true,
                 },
                 startDate: {
-                    name: "startDate",
-                    type: "DateTime"
+                    name: 'startDate',
+                    type: 'DateTime',
                 },
                 endDate: {
-                    name: "endDate",
-                    type: "DateTime"
+                    name: 'endDate',
+                    type: 'DateTime',
                 },
                 closedAt: {
-                    name: "closedAt",
-                    type: "DateTime",
-                    optional: true
+                    name: 'closedAt',
+                    type: 'DateTime',
+                    optional: true,
                 },
                 project: {
-                    name: "project",
-                    type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "sprints", fields: ["projectId"], references: ["id"] }
+                    name: 'project',
+                    type: 'Project',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('projectId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'sprints', fields: ['projectId'], references: ['id'] },
                 },
                 projectId: {
-                    name: "projectId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "project"
-                    ] as readonly string[]
+                    name: 'projectId',
+                    type: 'Int',
+                    foreignKeyFor: ['project'] as readonly string[],
                 },
                 tasks: {
-                    name: "tasks",
-                    type: "Task",
+                    name: 'tasks',
+                    type: 'Task',
                     array: true,
-                    relation: { opposite: "sprint" }
-                }
+                    relation: { opposite: 'sprint' },
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         Task: {
-            name: "Task",
+            name: 'Task',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
                 },
                 title: {
-                    name: "title",
-                    type: "String"
+                    name: 'title',
+                    type: 'String',
                 },
                 description: {
-                    name: "description",
-                    type: "String",
-                    optional: true
+                    name: 'description',
+                    type: 'String',
+                    optional: true,
                 },
                 status: {
-                    name: "status",
-                    type: "TaskStatus",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("BACKLOG") }] }] as readonly AttributeApplication[],
-                    default: "BACKLOG" as FieldDefault
+                    name: 'status',
+                    type: 'TaskStatus',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('BACKLOG') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'BACKLOG' as FieldDefault,
                 },
                 priority: {
-                    name: "priority",
-                    type: "TaskPriority",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("MEDIUM") }] }] as readonly AttributeApplication[],
-                    default: "MEDIUM" as FieldDefault
+                    name: 'priority',
+                    type: 'TaskPriority',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('MEDIUM') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'MEDIUM' as FieldDefault,
                 },
                 storyPoints: {
-                    name: "storyPoints",
-                    type: "Int",
-                    optional: true
+                    name: 'storyPoints',
+                    type: 'Int',
+                    optional: true,
                 },
                 dueDate: {
-                    name: "dueDate",
-                    type: "DateTime",
-                    optional: true
+                    name: 'dueDate',
+                    type: 'DateTime',
+                    optional: true,
                 },
                 completedAt: {
-                    name: "completedAt",
-                    type: "DateTime",
-                    optional: true
+                    name: 'completedAt',
+                    type: 'DateTime',
+                    optional: true,
                 },
                 position: {
-                    name: "position",
-                    type: "Int",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault
+                    name: 'position',
+                    type: 'Int',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
+                    ] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault,
                 },
                 project: {
-                    name: "project",
-                    type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "tasks", fields: ["projectId"], references: ["id"] }
+                    name: 'project',
+                    type: 'Project',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('projectId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'tasks', fields: ['projectId'], references: ['id'] },
                 },
                 projectId: {
-                    name: "projectId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "project"
-                    ] as readonly string[]
+                    name: 'projectId',
+                    type: 'Int',
+                    foreignKeyFor: ['project'] as readonly string[],
                 },
                 assignee: {
-                    name: "assignee",
-                    type: "User",
+                    name: 'assignee',
+                    type: 'User',
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("TaskAssignee") }, { name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("assigneeId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "assignedTasks", name: "TaskAssignee", fields: ["assigneeId"], references: ["id"] }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                { name: 'name', value: ExpressionUtils.literal('TaskAssignee') },
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('assigneeId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: {
+                        opposite: 'assignedTasks',
+                        name: 'TaskAssignee',
+                        fields: ['assigneeId'],
+                        references: ['id'],
+                    },
                 },
                 assigneeId: {
-                    name: "assigneeId",
-                    type: "Int",
+                    name: 'assigneeId',
+                    type: 'Int',
                     optional: true,
-                    foreignKeyFor: [
-                        "assignee"
-                    ] as readonly string[]
+                    foreignKeyFor: ['assignee'] as readonly string[],
                 },
                 reporter: {
-                    name: "reporter",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("TaskReporter") }, { name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("reporterId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "reportedTasks", name: "TaskReporter", fields: ["reporterId"], references: ["id"] }
+                    name: 'reporter',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                { name: 'name', value: ExpressionUtils.literal('TaskReporter') },
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('reporterId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: {
+                        opposite: 'reportedTasks',
+                        name: 'TaskReporter',
+                        fields: ['reporterId'],
+                        references: ['id'],
+                    },
                 },
                 reporterId: {
-                    name: "reporterId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "reporter"
-                    ] as readonly string[]
+                    name: 'reporterId',
+                    type: 'Int',
+                    foreignKeyFor: ['reporter'] as readonly string[],
                 },
                 milestone: {
-                    name: "milestone",
-                    type: "Milestone",
+                    name: 'milestone',
+                    type: 'Milestone',
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("milestoneId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "tasks", fields: ["milestoneId"], references: ["id"] }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('milestoneId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'tasks', fields: ['milestoneId'], references: ['id'] },
                 },
                 milestoneId: {
-                    name: "milestoneId",
-                    type: "Int",
+                    name: 'milestoneId',
+                    type: 'Int',
                     optional: true,
-                    foreignKeyFor: [
-                        "milestone"
-                    ] as readonly string[]
+                    foreignKeyFor: ['milestone'] as readonly string[],
                 },
                 sprint: {
-                    name: "sprint",
-                    type: "Sprint",
+                    name: 'sprint',
+                    type: 'Sprint',
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("sprintId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "tasks", fields: ["sprintId"], references: ["id"] }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('sprintId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'tasks', fields: ['sprintId'], references: ['id'] },
                 },
                 sprintId: {
-                    name: "sprintId",
-                    type: "Int",
+                    name: 'sprintId',
+                    type: 'Int',
                     optional: true,
-                    foreignKeyFor: [
-                        "sprint"
-                    ] as readonly string[]
+                    foreignKeyFor: ['sprint'] as readonly string[],
                 },
                 parent: {
-                    name: "parent",
-                    type: "Task",
+                    name: 'parent',
+                    type: 'Task',
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("TaskSubtasks") }, { name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("parentId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "subtasks", name: "TaskSubtasks", fields: ["parentId"], references: ["id"] }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                { name: 'name', value: ExpressionUtils.literal('TaskSubtasks') },
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('parentId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'subtasks', name: 'TaskSubtasks', fields: ['parentId'], references: ['id'] },
                 },
                 parentId: {
-                    name: "parentId",
-                    type: "Int",
+                    name: 'parentId',
+                    type: 'Int',
                     optional: true,
-                    foreignKeyFor: [
-                        "parent"
-                    ] as readonly string[]
+                    foreignKeyFor: ['parent'] as readonly string[],
                 },
                 subtasks: {
-                    name: "subtasks",
-                    type: "Task",
+                    name: 'subtasks',
+                    type: 'Task',
                     array: true,
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("TaskSubtasks") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "parent", name: "TaskSubtasks" }
+                    attributes: [
+                        { name: '@relation', args: [{ name: 'name', value: ExpressionUtils.literal('TaskSubtasks') }] },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'parent', name: 'TaskSubtasks' },
                 },
                 labels: {
-                    name: "labels",
-                    type: "TaskLabel",
+                    name: 'labels',
+                    type: 'TaskLabel',
                     array: true,
-                    relation: { opposite: "task" }
+                    relation: { opposite: 'task' },
                 },
                 comments: {
-                    name: "comments",
-                    type: "Comment",
+                    name: 'comments',
+                    type: 'Comment',
                     array: true,
-                    relation: { opposite: "task" }
+                    relation: { opposite: 'task' },
                 },
                 attachments: {
-                    name: "attachments",
-                    type: "Attachment",
+                    name: 'attachments',
+                    type: 'Attachment',
                     array: true,
-                    relation: { opposite: "task" }
+                    relation: { opposite: 'task' },
                 },
                 reviews: {
-                    name: "reviews",
-                    type: "Review",
+                    name: 'reviews',
+                    type: 'Review',
                     array: true,
-                    relation: { opposite: "task" }
+                    relation: { opposite: 'task' },
                 },
                 timeEntries: {
-                    name: "timeEntries",
-                    type: "TimeEntry",
+                    name: 'timeEntries',
+                    type: 'TimeEntry',
                     array: true,
-                    relation: { opposite: "task" }
+                    relation: { opposite: 'task' },
                 },
                 customFieldValues: {
-                    name: "customFieldValues",
-                    type: "CustomFieldValue",
+                    name: 'customFieldValues',
+                    type: 'CustomFieldValue',
                     array: true,
-                    relation: { opposite: "task" }
+                    relation: { opposite: 'task' },
                 },
                 activityLog: {
-                    name: "activityLog",
-                    type: "ActivityLogEntry",
+                    name: 'activityLog',
+                    type: 'ActivityLogEntry',
                     array: true,
-                    relation: { opposite: "task" }
-                }
+                    relation: { opposite: 'task' },
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         Label: {
-            name: "Label",
+            name: 'Label',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 name: {
-                    name: "name",
-                    type: "String"
+                    name: 'name',
+                    type: 'String',
                 },
                 color: {
-                    name: "color",
-                    type: "String",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("#888888") }] }] as readonly AttributeApplication[],
-                    default: "#888888" as FieldDefault
+                    name: 'color',
+                    type: 'String',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('#888888') }] },
+                    ] as readonly AttributeApplication[],
+                    default: '#888888' as FieldDefault,
                 },
                 description: {
-                    name: "description",
-                    type: "String",
-                    optional: true
+                    name: 'description',
+                    type: 'String',
+                    optional: true,
                 },
                 project: {
-                    name: "project",
-                    type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "labels", fields: ["projectId"], references: ["id"] }
+                    name: 'project',
+                    type: 'Project',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('projectId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'labels', fields: ['projectId'], references: ['id'] },
                 },
                 projectId: {
-                    name: "projectId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "project"
-                    ] as readonly string[]
+                    name: 'projectId',
+                    type: 'Int',
+                    foreignKeyFor: ['project'] as readonly string[],
                 },
                 tasks: {
-                    name: "tasks",
-                    type: "TaskLabel",
+                    name: 'tasks',
+                    type: 'TaskLabel',
                     array: true,
-                    relation: { opposite: "label" }
-                }
+                    relation: { opposite: 'label' },
+                },
             },
             attributes: [
-                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("projectId"), ExpressionUtils.field("name")]) }] }
+                {
+                    name: '@@unique',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('Int', [
+                                ExpressionUtils.field('projectId'),
+                                ExpressionUtils.field('name'),
+                            ]),
+                        },
+                    ],
+                },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" },
-                projectId_name: { projectId: { type: "Int" }, name: { type: "String" } }
-            }
+                id: { type: 'Int' },
+                projectId_name: { projectId: { type: 'Int' }, name: { type: 'String' } },
+            },
         },
         TaskLabel: {
-            name: "TaskLabel",
+            name: 'TaskLabel',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 appliedAt: {
-                    name: "appliedAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'appliedAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 task: {
-                    name: "task",
-                    type: "Task",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("taskId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "labels", fields: ["taskId"], references: ["id"] }
+                    name: 'task',
+                    type: 'Task',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('taskId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'labels', fields: ['taskId'], references: ['id'] },
                 },
                 taskId: {
-                    name: "taskId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "task"
-                    ] as readonly string[]
+                    name: 'taskId',
+                    type: 'Int',
+                    foreignKeyFor: ['task'] as readonly string[],
                 },
                 label: {
-                    name: "label",
-                    type: "Label",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("labelId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "tasks", fields: ["labelId"], references: ["id"] }
+                    name: 'label',
+                    type: 'Label',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('labelId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'tasks', fields: ['labelId'], references: ['id'] },
                 },
                 labelId: {
-                    name: "labelId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "label"
-                    ] as readonly string[]
-                }
+                    name: 'labelId',
+                    type: 'Int',
+                    foreignKeyFor: ['label'] as readonly string[],
+                },
             },
             attributes: [
-                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("taskId"), ExpressionUtils.field("labelId")]) }] }
+                {
+                    name: '@@unique',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('Int', [
+                                ExpressionUtils.field('taskId'),
+                                ExpressionUtils.field('labelId'),
+                            ]),
+                        },
+                    ],
+                },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" },
-                taskId_labelId: { taskId: { type: "Int" }, labelId: { type: "Int" } }
-            }
+                id: { type: 'Int' },
+                taskId_labelId: { taskId: { type: 'Int' }, labelId: { type: 'Int' } },
+            },
         },
         Comment: {
-            name: "Comment",
+            name: 'Comment',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
                 },
                 body: {
-                    name: "body",
-                    type: "String"
+                    name: 'body',
+                    type: 'String',
                 },
                 kind: {
-                    name: "kind",
-                    type: "CommentKind",
-                    isDiscriminator: true
+                    name: 'kind',
+                    type: 'CommentKind',
+                    isDiscriminator: true,
                 },
                 edited: {
-                    name: "edited",
-                    type: "Boolean",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'edited',
+                    type: 'Boolean',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 resolved: {
-                    name: "resolved",
-                    type: "Boolean",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'resolved',
+                    type: 'Boolean',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 task: {
-                    name: "task",
-                    type: "Task",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("taskId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "comments", fields: ["taskId"], references: ["id"] }
+                    name: 'task',
+                    type: 'Task',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('taskId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'comments', fields: ['taskId'], references: ['id'] },
                 },
                 taskId: {
-                    name: "taskId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "task"
-                    ] as readonly string[]
+                    name: 'taskId',
+                    type: 'Int',
+                    foreignKeyFor: ['task'] as readonly string[],
                 },
                 author: {
-                    name: "author",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("authorId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "comments", fields: ["authorId"], references: ["id"] }
+                    name: 'author',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('authorId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'comments', fields: ['authorId'], references: ['id'] },
                 },
                 authorId: {
-                    name: "authorId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "author"
-                    ] as readonly string[]
+                    name: 'authorId',
+                    type: 'Int',
+                    foreignKeyFor: ['author'] as readonly string[],
                 },
                 parent: {
-                    name: "parent",
-                    type: "Comment",
+                    name: 'parent',
+                    type: 'Comment',
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("CommentReplies") }, { name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("parentId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "replies", name: "CommentReplies", fields: ["parentId"], references: ["id"] }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                { name: 'name', value: ExpressionUtils.literal('CommentReplies') },
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('parentId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'replies', name: 'CommentReplies', fields: ['parentId'], references: ['id'] },
                 },
                 parentId: {
-                    name: "parentId",
-                    type: "Int",
+                    name: 'parentId',
+                    type: 'Int',
                     optional: true,
-                    foreignKeyFor: [
-                        "parent"
-                    ] as readonly string[]
+                    foreignKeyFor: ['parent'] as readonly string[],
                 },
                 replies: {
-                    name: "replies",
-                    type: "Comment",
+                    name: 'replies',
+                    type: 'Comment',
                     array: true,
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("CommentReplies") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "parent", name: "CommentReplies" }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('CommentReplies') }],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'parent', name: 'CommentReplies' },
                 },
                 reactions: {
-                    name: "reactions",
-                    type: "CommentReaction",
+                    name: 'reactions',
+                    type: 'CommentReaction',
                     array: true,
-                    relation: { opposite: "comment" }
-                }
+                    relation: { opposite: 'comment' },
+                },
             },
             attributes: [
-                { name: "@@delegate", args: [{ name: "discriminator", value: ExpressionUtils.field("kind") }] }
+                { name: '@@delegate', args: [{ name: 'discriminator', value: ExpressionUtils.field('kind') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
+                id: { type: 'Int' },
             },
             isDelegate: true,
-            subModels: ["TextComment", "CodeSnippetComment", "AttachmentComment"]
+            subModels: ['TextComment', 'CodeSnippetComment', 'AttachmentComment'],
         },
         TextComment: {
-            name: "TextComment",
-            baseModel: "Comment",
+            name: 'TextComment',
+            baseModel: 'Comment',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    originModel: "Comment",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    originModel: 'Comment',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    originModel: "Comment",
-                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                    originModel: 'Comment',
+                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
                 },
                 body: {
-                    name: "body",
-                    type: "String",
-                    originModel: "Comment"
+                    name: 'body',
+                    type: 'String',
+                    originModel: 'Comment',
                 },
                 kind: {
-                    name: "kind",
-                    type: "CommentKind",
-                    originModel: "Comment",
-                    isDiscriminator: true
+                    name: 'kind',
+                    type: 'CommentKind',
+                    originModel: 'Comment',
+                    isDiscriminator: true,
                 },
                 edited: {
-                    name: "edited",
-                    type: "Boolean",
-                    originModel: "Comment",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'edited',
+                    type: 'Boolean',
+                    originModel: 'Comment',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 resolved: {
-                    name: "resolved",
-                    type: "Boolean",
-                    originModel: "Comment",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'resolved',
+                    type: 'Boolean',
+                    originModel: 'Comment',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 task: {
-                    name: "task",
-                    type: "Task",
-                    originModel: "Comment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("taskId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "comments", fields: ["taskId"], references: ["id"] }
+                    name: 'task',
+                    type: 'Task',
+                    originModel: 'Comment',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('taskId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'comments', fields: ['taskId'], references: ['id'] },
                 },
                 taskId: {
-                    name: "taskId",
-                    type: "Int",
-                    originModel: "Comment",
-                    foreignKeyFor: [
-                        "task"
-                    ] as readonly string[]
+                    name: 'taskId',
+                    type: 'Int',
+                    originModel: 'Comment',
+                    foreignKeyFor: ['task'] as readonly string[],
                 },
                 author: {
-                    name: "author",
-                    type: "User",
-                    originModel: "Comment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("authorId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "comments", fields: ["authorId"], references: ["id"] }
+                    name: 'author',
+                    type: 'User',
+                    originModel: 'Comment',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('authorId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'comments', fields: ['authorId'], references: ['id'] },
                 },
                 authorId: {
-                    name: "authorId",
-                    type: "Int",
-                    originModel: "Comment",
-                    foreignKeyFor: [
-                        "author"
-                    ] as readonly string[]
+                    name: 'authorId',
+                    type: 'Int',
+                    originModel: 'Comment',
+                    foreignKeyFor: ['author'] as readonly string[],
                 },
                 parent: {
-                    name: "parent",
-                    type: "Comment",
+                    name: 'parent',
+                    type: 'Comment',
                     optional: true,
-                    originModel: "Comment",
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("CommentReplies") }, { name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("parentId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "replies", name: "CommentReplies", fields: ["parentId"], references: ["id"] }
+                    originModel: 'Comment',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                { name: 'name', value: ExpressionUtils.literal('CommentReplies') },
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('parentId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'replies', name: 'CommentReplies', fields: ['parentId'], references: ['id'] },
                 },
                 parentId: {
-                    name: "parentId",
-                    type: "Int",
+                    name: 'parentId',
+                    type: 'Int',
                     optional: true,
-                    originModel: "Comment",
-                    foreignKeyFor: [
-                        "parent"
-                    ] as readonly string[]
+                    originModel: 'Comment',
+                    foreignKeyFor: ['parent'] as readonly string[],
                 },
                 replies: {
-                    name: "replies",
-                    type: "Comment",
+                    name: 'replies',
+                    type: 'Comment',
                     array: true,
-                    originModel: "Comment",
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("CommentReplies") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "parent", name: "CommentReplies" }
+                    originModel: 'Comment',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('CommentReplies') }],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'parent', name: 'CommentReplies' },
                 },
                 reactions: {
-                    name: "reactions",
-                    type: "CommentReaction",
+                    name: 'reactions',
+                    type: 'CommentReaction',
                     array: true,
-                    originModel: "Comment",
-                    relation: { opposite: "comment" }
-                }
+                    originModel: 'Comment',
+                    relation: { opposite: 'comment' },
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         CodeSnippetComment: {
-            name: "CodeSnippetComment",
-            baseModel: "Comment",
+            name: 'CodeSnippetComment',
+            baseModel: 'Comment',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    originModel: "Comment",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    originModel: 'Comment',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    originModel: "Comment",
-                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                    originModel: 'Comment',
+                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
                 },
                 body: {
-                    name: "body",
-                    type: "String",
-                    originModel: "Comment"
+                    name: 'body',
+                    type: 'String',
+                    originModel: 'Comment',
                 },
                 kind: {
-                    name: "kind",
-                    type: "CommentKind",
-                    originModel: "Comment",
-                    isDiscriminator: true
+                    name: 'kind',
+                    type: 'CommentKind',
+                    originModel: 'Comment',
+                    isDiscriminator: true,
                 },
                 edited: {
-                    name: "edited",
-                    type: "Boolean",
-                    originModel: "Comment",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'edited',
+                    type: 'Boolean',
+                    originModel: 'Comment',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 resolved: {
-                    name: "resolved",
-                    type: "Boolean",
-                    originModel: "Comment",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'resolved',
+                    type: 'Boolean',
+                    originModel: 'Comment',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 task: {
-                    name: "task",
-                    type: "Task",
-                    originModel: "Comment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("taskId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "comments", fields: ["taskId"], references: ["id"] }
+                    name: 'task',
+                    type: 'Task',
+                    originModel: 'Comment',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('taskId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'comments', fields: ['taskId'], references: ['id'] },
                 },
                 taskId: {
-                    name: "taskId",
-                    type: "Int",
-                    originModel: "Comment",
-                    foreignKeyFor: [
-                        "task"
-                    ] as readonly string[]
+                    name: 'taskId',
+                    type: 'Int',
+                    originModel: 'Comment',
+                    foreignKeyFor: ['task'] as readonly string[],
                 },
                 author: {
-                    name: "author",
-                    type: "User",
-                    originModel: "Comment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("authorId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "comments", fields: ["authorId"], references: ["id"] }
+                    name: 'author',
+                    type: 'User',
+                    originModel: 'Comment',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('authorId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'comments', fields: ['authorId'], references: ['id'] },
                 },
                 authorId: {
-                    name: "authorId",
-                    type: "Int",
-                    originModel: "Comment",
-                    foreignKeyFor: [
-                        "author"
-                    ] as readonly string[]
+                    name: 'authorId',
+                    type: 'Int',
+                    originModel: 'Comment',
+                    foreignKeyFor: ['author'] as readonly string[],
                 },
                 parent: {
-                    name: "parent",
-                    type: "Comment",
+                    name: 'parent',
+                    type: 'Comment',
                     optional: true,
-                    originModel: "Comment",
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("CommentReplies") }, { name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("parentId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "replies", name: "CommentReplies", fields: ["parentId"], references: ["id"] }
+                    originModel: 'Comment',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                { name: 'name', value: ExpressionUtils.literal('CommentReplies') },
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('parentId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'replies', name: 'CommentReplies', fields: ['parentId'], references: ['id'] },
                 },
                 parentId: {
-                    name: "parentId",
-                    type: "Int",
+                    name: 'parentId',
+                    type: 'Int',
                     optional: true,
-                    originModel: "Comment",
-                    foreignKeyFor: [
-                        "parent"
-                    ] as readonly string[]
+                    originModel: 'Comment',
+                    foreignKeyFor: ['parent'] as readonly string[],
                 },
                 replies: {
-                    name: "replies",
-                    type: "Comment",
+                    name: 'replies',
+                    type: 'Comment',
                     array: true,
-                    originModel: "Comment",
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("CommentReplies") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "parent", name: "CommentReplies" }
+                    originModel: 'Comment',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('CommentReplies') }],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'parent', name: 'CommentReplies' },
                 },
                 reactions: {
-                    name: "reactions",
-                    type: "CommentReaction",
+                    name: 'reactions',
+                    type: 'CommentReaction',
                     array: true,
-                    originModel: "Comment",
-                    relation: { opposite: "comment" }
+                    originModel: 'Comment',
+                    relation: { opposite: 'comment' },
                 },
                 language: {
-                    name: "language",
-                    type: "String",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("plaintext") }] }] as readonly AttributeApplication[],
-                    default: "plaintext" as FieldDefault
-                }
+                    name: 'language',
+                    type: 'String',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('plaintext') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'plaintext' as FieldDefault,
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         AttachmentComment: {
-            name: "AttachmentComment",
-            baseModel: "Comment",
+            name: 'AttachmentComment',
+            baseModel: 'Comment',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    originModel: "Comment",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    originModel: 'Comment',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    originModel: "Comment",
-                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                    originModel: 'Comment',
+                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
                 },
                 body: {
-                    name: "body",
-                    type: "String",
-                    originModel: "Comment"
+                    name: 'body',
+                    type: 'String',
+                    originModel: 'Comment',
                 },
                 kind: {
-                    name: "kind",
-                    type: "CommentKind",
-                    originModel: "Comment",
-                    isDiscriminator: true
+                    name: 'kind',
+                    type: 'CommentKind',
+                    originModel: 'Comment',
+                    isDiscriminator: true,
                 },
                 edited: {
-                    name: "edited",
-                    type: "Boolean",
-                    originModel: "Comment",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'edited',
+                    type: 'Boolean',
+                    originModel: 'Comment',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 resolved: {
-                    name: "resolved",
-                    type: "Boolean",
-                    originModel: "Comment",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'resolved',
+                    type: 'Boolean',
+                    originModel: 'Comment',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 task: {
-                    name: "task",
-                    type: "Task",
-                    originModel: "Comment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("taskId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "comments", fields: ["taskId"], references: ["id"] }
+                    name: 'task',
+                    type: 'Task',
+                    originModel: 'Comment',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('taskId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'comments', fields: ['taskId'], references: ['id'] },
                 },
                 taskId: {
-                    name: "taskId",
-                    type: "Int",
-                    originModel: "Comment",
-                    foreignKeyFor: [
-                        "task"
-                    ] as readonly string[]
+                    name: 'taskId',
+                    type: 'Int',
+                    originModel: 'Comment',
+                    foreignKeyFor: ['task'] as readonly string[],
                 },
                 author: {
-                    name: "author",
-                    type: "User",
-                    originModel: "Comment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("authorId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "comments", fields: ["authorId"], references: ["id"] }
+                    name: 'author',
+                    type: 'User',
+                    originModel: 'Comment',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('authorId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'comments', fields: ['authorId'], references: ['id'] },
                 },
                 authorId: {
-                    name: "authorId",
-                    type: "Int",
-                    originModel: "Comment",
-                    foreignKeyFor: [
-                        "author"
-                    ] as readonly string[]
+                    name: 'authorId',
+                    type: 'Int',
+                    originModel: 'Comment',
+                    foreignKeyFor: ['author'] as readonly string[],
                 },
                 parent: {
-                    name: "parent",
-                    type: "Comment",
+                    name: 'parent',
+                    type: 'Comment',
                     optional: true,
-                    originModel: "Comment",
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("CommentReplies") }, { name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("parentId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "replies", name: "CommentReplies", fields: ["parentId"], references: ["id"] }
+                    originModel: 'Comment',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                { name: 'name', value: ExpressionUtils.literal('CommentReplies') },
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('parentId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'replies', name: 'CommentReplies', fields: ['parentId'], references: ['id'] },
                 },
                 parentId: {
-                    name: "parentId",
-                    type: "Int",
+                    name: 'parentId',
+                    type: 'Int',
                     optional: true,
-                    originModel: "Comment",
-                    foreignKeyFor: [
-                        "parent"
-                    ] as readonly string[]
+                    originModel: 'Comment',
+                    foreignKeyFor: ['parent'] as readonly string[],
                 },
                 replies: {
-                    name: "replies",
-                    type: "Comment",
+                    name: 'replies',
+                    type: 'Comment',
                     array: true,
-                    originModel: "Comment",
-                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("CommentReplies") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "parent", name: "CommentReplies" }
+                    originModel: 'Comment',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [{ name: 'name', value: ExpressionUtils.literal('CommentReplies') }],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'parent', name: 'CommentReplies' },
                 },
                 reactions: {
-                    name: "reactions",
-                    type: "CommentReaction",
+                    name: 'reactions',
+                    type: 'CommentReaction',
                     array: true,
-                    originModel: "Comment",
-                    relation: { opposite: "comment" }
+                    originModel: 'Comment',
+                    relation: { opposite: 'comment' },
                 },
                 attachFilename: {
-                    name: "attachFilename",
-                    type: "String"
+                    name: 'attachFilename',
+                    type: 'String',
                 },
                 attachMimeType: {
-                    name: "attachMimeType",
-                    type: "String"
+                    name: 'attachMimeType',
+                    type: 'String',
                 },
                 attachSizeBytes: {
-                    name: "attachSizeBytes",
-                    type: "Int"
+                    name: 'attachSizeBytes',
+                    type: 'Int',
                 },
                 attachStorageKey: {
-                    name: "attachStorageKey",
-                    type: "String"
-                }
+                    name: 'attachStorageKey',
+                    type: 'String',
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         CommentReaction: {
-            name: "CommentReaction",
+            name: 'CommentReaction',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 emoji: {
-                    name: "emoji",
-                    type: "String"
+                    name: 'emoji',
+                    type: 'String',
                 },
                 comment: {
-                    name: "comment",
-                    type: "Comment",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("commentId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "reactions", fields: ["commentId"], references: ["id"] }
+                    name: 'comment',
+                    type: 'Comment',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('commentId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'reactions', fields: ['commentId'], references: ['id'] },
                 },
                 commentId: {
-                    name: "commentId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "comment"
-                    ] as readonly string[]
-                }
+                    name: 'commentId',
+                    type: 'Int',
+                    foreignKeyFor: ['comment'] as readonly string[],
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         Review: {
-            name: "Review",
+            name: 'Review',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
                 },
                 decision: {
-                    name: "decision",
-                    type: "ReviewDecision",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("PENDING") }] }] as readonly AttributeApplication[],
-                    default: "PENDING" as FieldDefault
+                    name: 'decision',
+                    type: 'ReviewDecision',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('PENDING') }] },
+                    ] as readonly AttributeApplication[],
+                    default: 'PENDING' as FieldDefault,
                 },
                 summary: {
-                    name: "summary",
-                    type: "String",
-                    optional: true
+                    name: 'summary',
+                    type: 'String',
+                    optional: true,
                 },
                 task: {
-                    name: "task",
-                    type: "Task",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("taskId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "reviews", fields: ["taskId"], references: ["id"] }
+                    name: 'task',
+                    type: 'Task',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('taskId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'reviews', fields: ['taskId'], references: ['id'] },
                 },
                 taskId: {
-                    name: "taskId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "task"
-                    ] as readonly string[]
+                    name: 'taskId',
+                    type: 'Int',
+                    foreignKeyFor: ['task'] as readonly string[],
                 },
                 reviewer: {
-                    name: "reviewer",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("reviewerId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "reviews", fields: ["reviewerId"], references: ["id"] }
+                    name: 'reviewer',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('reviewerId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'reviews', fields: ['reviewerId'], references: ['id'] },
                 },
                 reviewerId: {
-                    name: "reviewerId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "reviewer"
-                    ] as readonly string[]
+                    name: 'reviewerId',
+                    type: 'Int',
+                    foreignKeyFor: ['reviewer'] as readonly string[],
                 },
                 comments: {
-                    name: "comments",
-                    type: "ReviewComment",
+                    name: 'comments',
+                    type: 'ReviewComment',
                     array: true,
-                    relation: { opposite: "review" }
-                }
+                    relation: { opposite: 'review' },
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         ReviewComment: {
-            name: "ReviewComment",
+            name: 'ReviewComment',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 body: {
-                    name: "body",
-                    type: "String"
+                    name: 'body',
+                    type: 'String',
                 },
                 lineRef: {
-                    name: "lineRef",
-                    type: "String",
-                    optional: true
+                    name: 'lineRef',
+                    type: 'String',
+                    optional: true,
                 },
                 review: {
-                    name: "review",
-                    type: "Review",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("reviewId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "comments", fields: ["reviewId"], references: ["id"] }
+                    name: 'review',
+                    type: 'Review',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('reviewId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'comments', fields: ['reviewId'], references: ['id'] },
                 },
                 reviewId: {
-                    name: "reviewId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "review"
-                    ] as readonly string[]
-                }
+                    name: 'reviewId',
+                    type: 'Int',
+                    foreignKeyFor: ['review'] as readonly string[],
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         Attachment: {
-            name: "Attachment",
+            name: 'Attachment',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 filename: {
-                    name: "filename",
-                    type: "String"
+                    name: 'filename',
+                    type: 'String',
                 },
                 mimeType: {
-                    name: "mimeType",
-                    type: "String"
+                    name: 'mimeType',
+                    type: 'String',
                 },
                 sizeBytes: {
-                    name: "sizeBytes",
-                    type: "Int"
+                    name: 'sizeBytes',
+                    type: 'Int',
                 },
                 storageKey: {
-                    name: "storageKey",
-                    type: "String"
+                    name: 'storageKey',
+                    type: 'String',
                 },
                 task: {
-                    name: "task",
-                    type: "Task",
+                    name: 'task',
+                    type: 'Task',
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("taskId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "attachments", fields: ["taskId"], references: ["id"] }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('taskId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'attachments', fields: ['taskId'], references: ['id'] },
                 },
                 taskId: {
-                    name: "taskId",
-                    type: "Int",
+                    name: 'taskId',
+                    type: 'Int',
                     optional: true,
-                    foreignKeyFor: [
-                        "task"
-                    ] as readonly string[]
-                }
+                    foreignKeyFor: ['task'] as readonly string[],
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         Document: {
-            name: "Document",
+            name: 'Document',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
                 },
                 title: {
-                    name: "title",
-                    type: "String"
+                    name: 'title',
+                    type: 'String',
                 },
                 content: {
-                    name: "content",
-                    type: "String",
-                    optional: true
+                    name: 'content',
+                    type: 'String',
+                    optional: true,
                 },
                 published: {
-                    name: "published",
-                    type: "Boolean",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'published',
+                    type: 'Boolean',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 project: {
-                    name: "project",
-                    type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "documents", fields: ["projectId"], references: ["id"] }
+                    name: 'project',
+                    type: 'Project',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('projectId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'documents', fields: ['projectId'], references: ['id'] },
                 },
                 projectId: {
-                    name: "projectId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "project"
-                    ] as readonly string[]
+                    name: 'projectId',
+                    type: 'Int',
+                    foreignKeyFor: ['project'] as readonly string[],
                 },
                 sections: {
-                    name: "sections",
-                    type: "DocumentSection",
+                    name: 'sections',
+                    type: 'DocumentSection',
                     array: true,
-                    relation: { opposite: "document" }
-                }
+                    relation: { opposite: 'document' },
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         DocumentSection: {
-            name: "DocumentSection",
+            name: 'DocumentSection',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 order: {
-                    name: "order",
-                    type: "Int"
+                    name: 'order',
+                    type: 'Int',
                 },
                 heading: {
-                    name: "heading",
-                    type: "String"
+                    name: 'heading',
+                    type: 'String',
                 },
                 content: {
-                    name: "content",
-                    type: "String",
-                    optional: true
+                    name: 'content',
+                    type: 'String',
+                    optional: true,
                 },
                 document: {
-                    name: "document",
-                    type: "Document",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("documentId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "sections", fields: ["documentId"], references: ["id"] }
+                    name: 'document',
+                    type: 'Document',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('documentId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'sections', fields: ['documentId'], references: ['id'] },
                 },
                 documentId: {
-                    name: "documentId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "document"
-                    ] as readonly string[]
-                }
+                    name: 'documentId',
+                    type: 'Int',
+                    foreignKeyFor: ['document'] as readonly string[],
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         TimeEntry: {
-            name: "TimeEntry",
+            name: 'TimeEntry',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 startedAt: {
-                    name: "startedAt",
-                    type: "DateTime"
+                    name: 'startedAt',
+                    type: 'DateTime',
                 },
                 stoppedAt: {
-                    name: "stoppedAt",
-                    type: "DateTime",
-                    optional: true
+                    name: 'stoppedAt',
+                    type: 'DateTime',
+                    optional: true,
                 },
                 durationMin: {
-                    name: "durationMin",
-                    type: "Int",
-                    optional: true
+                    name: 'durationMin',
+                    type: 'Int',
+                    optional: true,
                 },
                 note: {
-                    name: "note",
-                    type: "String",
-                    optional: true
+                    name: 'note',
+                    type: 'String',
+                    optional: true,
                 },
                 task: {
-                    name: "task",
-                    type: "Task",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("taskId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "timeEntries", fields: ["taskId"], references: ["id"] }
+                    name: 'task',
+                    type: 'Task',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('taskId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'timeEntries', fields: ['taskId'], references: ['id'] },
                 },
                 taskId: {
-                    name: "taskId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "task"
-                    ] as readonly string[]
+                    name: 'taskId',
+                    type: 'Int',
+                    foreignKeyFor: ['task'] as readonly string[],
                 },
                 user: {
-                    name: "user",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "timeEntries", fields: ["userId"], references: ["id"] }
+                    name: 'user',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'timeEntries', fields: ['userId'], references: ['id'] },
                 },
                 userId: {
-                    name: "userId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
-                }
+                    name: 'userId',
+                    type: 'Int',
+                    foreignKeyFor: ['user'] as readonly string[],
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         Notification: {
-            name: "Notification",
+            name: 'Notification',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 readAt: {
-                    name: "readAt",
-                    type: "DateTime",
-                    optional: true
+                    name: 'readAt',
+                    type: 'DateTime',
+                    optional: true,
                 },
                 kind: {
-                    name: "kind",
-                    type: "NotificationType",
-                    isDiscriminator: true
+                    name: 'kind',
+                    type: 'NotificationType',
+                    isDiscriminator: true,
                 },
                 user: {
-                    name: "user",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "notifications", fields: ["userId"], references: ["id"] }
+                    name: 'user',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'notifications', fields: ['userId'], references: ['id'] },
                 },
                 userId: {
-                    name: "userId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
-                }
+                    name: 'userId',
+                    type: 'Int',
+                    foreignKeyFor: ['user'] as readonly string[],
+                },
             },
             attributes: [
-                { name: "@@delegate", args: [{ name: "discriminator", value: ExpressionUtils.field("kind") }] }
+                { name: '@@delegate', args: [{ name: 'discriminator', value: ExpressionUtils.field('kind') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
+                id: { type: 'Int' },
             },
             isDelegate: true,
-            subModels: ["MentionNotification", "AssignmentNotification", "StatusChangeNotification", "CommentNotification", "ReviewRequestNotification", "ApprovalNotification"]
+            subModels: [
+                'MentionNotification',
+                'AssignmentNotification',
+                'StatusChangeNotification',
+                'CommentNotification',
+                'ReviewRequestNotification',
+                'ApprovalNotification',
+            ],
         },
         MentionNotification: {
-            name: "MentionNotification",
-            baseModel: "Notification",
+            name: 'MentionNotification',
+            baseModel: 'Notification',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    originModel: "Notification",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    originModel: 'Notification',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 readAt: {
-                    name: "readAt",
-                    type: "DateTime",
+                    name: 'readAt',
+                    type: 'DateTime',
                     optional: true,
-                    originModel: "Notification"
+                    originModel: 'Notification',
                 },
                 kind: {
-                    name: "kind",
-                    type: "NotificationType",
-                    originModel: "Notification",
-                    isDiscriminator: true
+                    name: 'kind',
+                    type: 'NotificationType',
+                    originModel: 'Notification',
+                    isDiscriminator: true,
                 },
                 user: {
-                    name: "user",
-                    type: "User",
-                    originModel: "Notification",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "notifications", fields: ["userId"], references: ["id"] }
+                    name: 'user',
+                    type: 'User',
+                    originModel: 'Notification',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'notifications', fields: ['userId'], references: ['id'] },
                 },
                 userId: {
-                    name: "userId",
-                    type: "Int",
-                    originModel: "Notification",
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
+                    name: 'userId',
+                    type: 'Int',
+                    originModel: 'Notification',
+                    foreignKeyFor: ['user'] as readonly string[],
                 },
                 mentionedByUserId: {
-                    name: "mentionedByUserId",
-                    type: "Int"
+                    name: 'mentionedByUserId',
+                    type: 'Int',
                 },
                 taskId: {
-                    name: "taskId",
-                    type: "Int"
-                }
+                    name: 'taskId',
+                    type: 'Int',
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         AssignmentNotification: {
-            name: "AssignmentNotification",
-            baseModel: "Notification",
+            name: 'AssignmentNotification',
+            baseModel: 'Notification',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    originModel: "Notification",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    originModel: 'Notification',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 readAt: {
-                    name: "readAt",
-                    type: "DateTime",
+                    name: 'readAt',
+                    type: 'DateTime',
                     optional: true,
-                    originModel: "Notification"
+                    originModel: 'Notification',
                 },
                 kind: {
-                    name: "kind",
-                    type: "NotificationType",
-                    originModel: "Notification",
-                    isDiscriminator: true
+                    name: 'kind',
+                    type: 'NotificationType',
+                    originModel: 'Notification',
+                    isDiscriminator: true,
                 },
                 user: {
-                    name: "user",
-                    type: "User",
-                    originModel: "Notification",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "notifications", fields: ["userId"], references: ["id"] }
+                    name: 'user',
+                    type: 'User',
+                    originModel: 'Notification',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'notifications', fields: ['userId'], references: ['id'] },
                 },
                 userId: {
-                    name: "userId",
-                    type: "Int",
-                    originModel: "Notification",
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
+                    name: 'userId',
+                    type: 'Int',
+                    originModel: 'Notification',
+                    foreignKeyFor: ['user'] as readonly string[],
                 },
                 taskId: {
-                    name: "taskId",
-                    type: "Int"
+                    name: 'taskId',
+                    type: 'Int',
                 },
                 assignedByUserId: {
-                    name: "assignedByUserId",
-                    type: "Int"
-                }
+                    name: 'assignedByUserId',
+                    type: 'Int',
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         StatusChangeNotification: {
-            name: "StatusChangeNotification",
-            baseModel: "Notification",
+            name: 'StatusChangeNotification',
+            baseModel: 'Notification',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    originModel: "Notification",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    originModel: 'Notification',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 readAt: {
-                    name: "readAt",
-                    type: "DateTime",
+                    name: 'readAt',
+                    type: 'DateTime',
                     optional: true,
-                    originModel: "Notification"
+                    originModel: 'Notification',
                 },
                 kind: {
-                    name: "kind",
-                    type: "NotificationType",
-                    originModel: "Notification",
-                    isDiscriminator: true
+                    name: 'kind',
+                    type: 'NotificationType',
+                    originModel: 'Notification',
+                    isDiscriminator: true,
                 },
                 user: {
-                    name: "user",
-                    type: "User",
-                    originModel: "Notification",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "notifications", fields: ["userId"], references: ["id"] }
+                    name: 'user',
+                    type: 'User',
+                    originModel: 'Notification',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'notifications', fields: ['userId'], references: ['id'] },
                 },
                 userId: {
-                    name: "userId",
-                    type: "Int",
-                    originModel: "Notification",
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
+                    name: 'userId',
+                    type: 'Int',
+                    originModel: 'Notification',
+                    foreignKeyFor: ['user'] as readonly string[],
                 },
                 taskId: {
-                    name: "taskId",
-                    type: "Int"
+                    name: 'taskId',
+                    type: 'Int',
                 },
                 fromStatus: {
-                    name: "fromStatus",
-                    type: "String"
+                    name: 'fromStatus',
+                    type: 'String',
                 },
                 toStatus: {
-                    name: "toStatus",
-                    type: "String"
-                }
+                    name: 'toStatus',
+                    type: 'String',
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         CommentNotification: {
-            name: "CommentNotification",
-            baseModel: "Notification",
+            name: 'CommentNotification',
+            baseModel: 'Notification',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    originModel: "Notification",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    originModel: 'Notification',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 readAt: {
-                    name: "readAt",
-                    type: "DateTime",
+                    name: 'readAt',
+                    type: 'DateTime',
                     optional: true,
-                    originModel: "Notification"
+                    originModel: 'Notification',
                 },
                 kind: {
-                    name: "kind",
-                    type: "NotificationType",
-                    originModel: "Notification",
-                    isDiscriminator: true
+                    name: 'kind',
+                    type: 'NotificationType',
+                    originModel: 'Notification',
+                    isDiscriminator: true,
                 },
                 user: {
-                    name: "user",
-                    type: "User",
-                    originModel: "Notification",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "notifications", fields: ["userId"], references: ["id"] }
+                    name: 'user',
+                    type: 'User',
+                    originModel: 'Notification',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'notifications', fields: ['userId'], references: ['id'] },
                 },
                 userId: {
-                    name: "userId",
-                    type: "Int",
-                    originModel: "Notification",
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
+                    name: 'userId',
+                    type: 'Int',
+                    originModel: 'Notification',
+                    foreignKeyFor: ['user'] as readonly string[],
                 },
                 commentId: {
-                    name: "commentId",
-                    type: "Int"
-                }
+                    name: 'commentId',
+                    type: 'Int',
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         ReviewRequestNotification: {
-            name: "ReviewRequestNotification",
-            baseModel: "Notification",
+            name: 'ReviewRequestNotification',
+            baseModel: 'Notification',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    originModel: "Notification",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    originModel: 'Notification',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 readAt: {
-                    name: "readAt",
-                    type: "DateTime",
+                    name: 'readAt',
+                    type: 'DateTime',
                     optional: true,
-                    originModel: "Notification"
+                    originModel: 'Notification',
                 },
                 kind: {
-                    name: "kind",
-                    type: "NotificationType",
-                    originModel: "Notification",
-                    isDiscriminator: true
+                    name: 'kind',
+                    type: 'NotificationType',
+                    originModel: 'Notification',
+                    isDiscriminator: true,
                 },
                 user: {
-                    name: "user",
-                    type: "User",
-                    originModel: "Notification",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "notifications", fields: ["userId"], references: ["id"] }
+                    name: 'user',
+                    type: 'User',
+                    originModel: 'Notification',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'notifications', fields: ['userId'], references: ['id'] },
                 },
                 userId: {
-                    name: "userId",
-                    type: "Int",
-                    originModel: "Notification",
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
+                    name: 'userId',
+                    type: 'Int',
+                    originModel: 'Notification',
+                    foreignKeyFor: ['user'] as readonly string[],
                 },
                 reviewId: {
-                    name: "reviewId",
-                    type: "Int"
+                    name: 'reviewId',
+                    type: 'Int',
                 },
                 requestedByUserId: {
-                    name: "requestedByUserId",
-                    type: "Int"
-                }
+                    name: 'requestedByUserId',
+                    type: 'Int',
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         ApprovalNotification: {
-            name: "ApprovalNotification",
-            baseModel: "Notification",
+            name: 'ApprovalNotification',
+            baseModel: 'Notification',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    originModel: "Notification",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    originModel: 'Notification',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 readAt: {
-                    name: "readAt",
-                    type: "DateTime",
+                    name: 'readAt',
+                    type: 'DateTime',
                     optional: true,
-                    originModel: "Notification"
+                    originModel: 'Notification',
                 },
                 kind: {
-                    name: "kind",
-                    type: "NotificationType",
-                    originModel: "Notification",
-                    isDiscriminator: true
+                    name: 'kind',
+                    type: 'NotificationType',
+                    originModel: 'Notification',
+                    isDiscriminator: true,
                 },
                 user: {
-                    name: "user",
-                    type: "User",
-                    originModel: "Notification",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "notifications", fields: ["userId"], references: ["id"] }
+                    name: 'user',
+                    type: 'User',
+                    originModel: 'Notification',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'notifications', fields: ['userId'], references: ['id'] },
                 },
                 userId: {
-                    name: "userId",
-                    type: "Int",
-                    originModel: "Notification",
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
+                    name: 'userId',
+                    type: 'Int',
+                    originModel: 'Notification',
+                    foreignKeyFor: ['user'] as readonly string[],
                 },
                 targetType: {
-                    name: "targetType",
-                    type: "String"
+                    name: 'targetType',
+                    type: 'String',
                 },
                 targetId: {
-                    name: "targetId",
-                    type: "Int"
-                }
+                    name: 'targetId',
+                    type: 'Int',
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         ActivityLogEntry: {
-            name: "ActivityLogEntry",
+            name: 'ActivityLogEntry',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 action: {
-                    name: "action",
-                    type: "String"
+                    name: 'action',
+                    type: 'String',
                 },
                 meta: {
-                    name: "meta",
-                    type: "String",
-                    optional: true
+                    name: 'meta',
+                    type: 'String',
+                    optional: true,
                 },
                 organization: {
-                    name: "organization",
-                    type: "Organization",
+                    name: 'organization',
+                    type: 'Organization',
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "activityLog", fields: ["organizationId"], references: ["id"] }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('organizationId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'activityLog', fields: ['organizationId'], references: ['id'] },
                 },
                 organizationId: {
-                    name: "organizationId",
-                    type: "Int",
+                    name: 'organizationId',
+                    type: 'Int',
                     optional: true,
-                    foreignKeyFor: [
-                        "organization"
-                    ] as readonly string[]
+                    foreignKeyFor: ['organization'] as readonly string[],
                 },
                 user: {
-                    name: "user",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "activityLog", fields: ["userId"], references: ["id"] }
+                    name: 'user',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'activityLog', fields: ['userId'], references: ['id'] },
                 },
                 userId: {
-                    name: "userId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
+                    name: 'userId',
+                    type: 'Int',
+                    foreignKeyFor: ['user'] as readonly string[],
                 },
                 task: {
-                    name: "task",
-                    type: "Task",
+                    name: 'task',
+                    type: 'Task',
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("taskId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "activityLog", fields: ["taskId"], references: ["id"] }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('taskId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'activityLog', fields: ['taskId'], references: ['id'] },
                 },
                 taskId: {
-                    name: "taskId",
-                    type: "Int",
+                    name: 'taskId',
+                    type: 'Int',
                     optional: true,
-                    foreignKeyFor: [
-                        "task"
-                    ] as readonly string[]
-                }
+                    foreignKeyFor: ['task'] as readonly string[],
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         AuditLog: {
-            name: "AuditLog",
+            name: 'AuditLog',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 entityType: {
-                    name: "entityType",
-                    type: "String"
+                    name: 'entityType',
+                    type: 'String',
                 },
                 entityId: {
-                    name: "entityId",
-                    type: "Int"
+                    name: 'entityId',
+                    type: 'Int',
                 },
                 action: {
-                    name: "action",
-                    type: "String"
+                    name: 'action',
+                    type: 'String',
                 },
                 diff: {
-                    name: "diff",
-                    type: "String",
-                    optional: true
+                    name: 'diff',
+                    type: 'String',
+                    optional: true,
                 },
                 organization: {
-                    name: "organization",
-                    type: "Organization",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "auditLogs", fields: ["organizationId"], references: ["id"] }
+                    name: 'organization',
+                    type: 'Organization',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('organizationId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'auditLogs', fields: ['organizationId'], references: ['id'] },
                 },
                 organizationId: {
-                    name: "organizationId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "organization"
-                    ] as readonly string[]
+                    name: 'organizationId',
+                    type: 'Int',
+                    foreignKeyFor: ['organization'] as readonly string[],
                 },
                 actor: {
-                    name: "actor",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("actorId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "auditLogs", fields: ["actorId"], references: ["id"] }
+                    name: 'actor',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('actorId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'auditLogs', fields: ['actorId'], references: ['id'] },
                 },
                 actorId: {
-                    name: "actorId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "actor"
-                    ] as readonly string[]
-                }
+                    name: 'actorId',
+                    type: 'Int',
+                    foreignKeyFor: ['actor'] as readonly string[],
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         CustomFieldDefinition: {
-            name: "CustomFieldDefinition",
+            name: 'CustomFieldDefinition',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 name: {
-                    name: "name",
-                    type: "String"
+                    name: 'name',
+                    type: 'String',
                 },
                 fieldType: {
-                    name: "fieldType",
-                    type: "String"
+                    name: 'fieldType',
+                    type: 'String',
                 },
                 required: {
-                    name: "required",
-                    type: "Boolean",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
-                    default: false as FieldDefault
+                    name: 'required',
+                    type: 'Boolean',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
+                    ] as readonly AttributeApplication[],
+                    default: false as FieldDefault,
                 },
                 defaultValue: {
-                    name: "defaultValue",
-                    type: "String",
-                    optional: true
+                    name: 'defaultValue',
+                    type: 'String',
+                    optional: true,
                 },
                 organization: {
-                    name: "organization",
-                    type: "Organization",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "customFields", fields: ["organizationId"], references: ["id"] }
+                    name: 'organization',
+                    type: 'Organization',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('organizationId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'customFields', fields: ['organizationId'], references: ['id'] },
                 },
                 organizationId: {
-                    name: "organizationId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "organization"
-                    ] as readonly string[]
+                    name: 'organizationId',
+                    type: 'Int',
+                    foreignKeyFor: ['organization'] as readonly string[],
                 },
                 values: {
-                    name: "values",
-                    type: "CustomFieldValue",
+                    name: 'values',
+                    type: 'CustomFieldValue',
                     array: true,
-                    relation: { opposite: "field" }
-                }
+                    relation: { opposite: 'field' },
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         CustomFieldValue: {
-            name: "CustomFieldValue",
+            name: 'CustomFieldValue',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 value: {
-                    name: "value",
-                    type: "String"
+                    name: 'value',
+                    type: 'String',
                 },
                 field: {
-                    name: "field",
-                    type: "CustomFieldDefinition",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("fieldId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "values", fields: ["fieldId"], references: ["id"] }
+                    name: 'field',
+                    type: 'CustomFieldDefinition',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('fieldId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'values', fields: ['fieldId'], references: ['id'] },
                 },
                 fieldId: {
-                    name: "fieldId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "field"
-                    ] as readonly string[]
+                    name: 'fieldId',
+                    type: 'Int',
+                    foreignKeyFor: ['field'] as readonly string[],
                 },
                 project: {
-                    name: "project",
-                    type: "Project",
+                    name: 'project',
+                    type: 'Project',
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "customFieldValues", fields: ["projectId"], references: ["id"] }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('projectId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'customFieldValues', fields: ['projectId'], references: ['id'] },
                 },
                 projectId: {
-                    name: "projectId",
-                    type: "Int",
+                    name: 'projectId',
+                    type: 'Int',
                     optional: true,
-                    foreignKeyFor: [
-                        "project"
-                    ] as readonly string[]
+                    foreignKeyFor: ['project'] as readonly string[],
                 },
                 task: {
-                    name: "task",
-                    type: "Task",
+                    name: 'task',
+                    type: 'Task',
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("taskId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "customFieldValues", fields: ["taskId"], references: ["id"] }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('taskId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'customFieldValues', fields: ['taskId'], references: ['id'] },
                 },
                 taskId: {
-                    name: "taskId",
-                    type: "Int",
+                    name: 'taskId',
+                    type: 'Int',
                     optional: true,
-                    foreignKeyFor: [
-                        "task"
-                    ] as readonly string[]
-                }
+                    foreignKeyFor: ['task'] as readonly string[],
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         Integration: {
-            name: "Integration",
+            name: 'Integration',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
                 },
                 provider: {
-                    name: "provider",
-                    type: "String"
+                    name: 'provider',
+                    type: 'String',
                 },
                 accessToken: {
-                    name: "accessToken",
-                    type: "String",
-                    optional: true
+                    name: 'accessToken',
+                    type: 'String',
+                    optional: true,
                 },
                 config: {
-                    name: "config",
-                    type: "String",
-                    optional: true
+                    name: 'config',
+                    type: 'String',
+                    optional: true,
                 },
                 organization: {
-                    name: "organization",
-                    type: "Organization",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "integrations", fields: ["organizationId"], references: ["id"] }
+                    name: 'organization',
+                    type: 'Organization',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('organizationId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'integrations', fields: ['organizationId'], references: ['id'] },
                 },
                 organizationId: {
-                    name: "organizationId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "organization"
-                    ] as readonly string[]
+                    name: 'organizationId',
+                    type: 'Int',
+                    foreignKeyFor: ['organization'] as readonly string[],
                 },
                 links: {
-                    name: "links",
-                    type: "IntegrationLink",
+                    name: 'links',
+                    type: 'IntegrationLink',
                     array: true,
-                    relation: { opposite: "integration" }
-                }
+                    relation: { opposite: 'integration' },
+                },
             },
             attributes: [
-                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("organizationId"), ExpressionUtils.field("provider")]) }] }
+                {
+                    name: '@@unique',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('Int', [
+                                ExpressionUtils.field('organizationId'),
+                                ExpressionUtils.field('provider'),
+                            ]),
+                        },
+                    ],
+                },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" },
-                organizationId_provider: { organizationId: { type: "Int" }, provider: { type: "String" } }
-            }
+                id: { type: 'Int' },
+                organizationId_provider: { organizationId: { type: 'Int' }, provider: { type: 'String' } },
+            },
         },
         IntegrationLink: {
-            name: "IntegrationLink",
+            name: 'IntegrationLink',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 externalId: {
-                    name: "externalId",
-                    type: "String"
+                    name: 'externalId',
+                    type: 'String',
                 },
                 url: {
-                    name: "url",
-                    type: "String",
-                    optional: true
+                    name: 'url',
+                    type: 'String',
+                    optional: true,
                 },
                 integration: {
-                    name: "integration",
-                    type: "Integration",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("integrationId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "links", fields: ["integrationId"], references: ["id"] }
+                    name: 'integration',
+                    type: 'Integration',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('integrationId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'links', fields: ['integrationId'], references: ['id'] },
                 },
                 integrationId: {
-                    name: "integrationId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "integration"
-                    ] as readonly string[]
+                    name: 'integrationId',
+                    type: 'Int',
+                    foreignKeyFor: ['integration'] as readonly string[],
                 },
                 project: {
-                    name: "project",
-                    type: "Project",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "integrationLinks", fields: ["projectId"], references: ["id"] }
+                    name: 'project',
+                    type: 'Project',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('projectId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'integrationLinks', fields: ['projectId'], references: ['id'] },
                 },
                 projectId: {
-                    name: "projectId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "project"
-                    ] as readonly string[]
-                }
+                    name: 'projectId',
+                    type: 'Int',
+                    foreignKeyFor: ['project'] as readonly string[],
+                },
             },
             attributes: [
-                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("integrationId"), ExpressionUtils.field("externalId")]) }] }
+                {
+                    name: '@@unique',
+                    args: [
+                        {
+                            name: 'fields',
+                            value: ExpressionUtils.array('Int', [
+                                ExpressionUtils.field('integrationId'),
+                                ExpressionUtils.field('externalId'),
+                            ]),
+                        },
+                    ],
+                },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" },
-                integrationId_externalId: { integrationId: { type: "Int" }, externalId: { type: "String" } }
-            }
-        }
+                id: { type: 'Int' },
+                integrationId_externalId: { integrationId: { type: 'Int' }, externalId: { type: 'String' } },
+            },
+        },
     } as const;
     enums = {
         UserRole: {
-            name: "UserRole",
+            name: 'UserRole',
             values: {
-                SUPER_ADMIN: "SUPER_ADMIN",
-                ADMIN: "ADMIN",
-                MANAGER: "MANAGER",
-                MEMBER: "MEMBER",
-                GUEST: "GUEST"
-            }
+                SUPER_ADMIN: 'SUPER_ADMIN',
+                ADMIN: 'ADMIN',
+                MANAGER: 'MANAGER',
+                MEMBER: 'MEMBER',
+                GUEST: 'GUEST',
+            },
         },
         ProjectStatus: {
-            name: "ProjectStatus",
+            name: 'ProjectStatus',
             values: {
-                DRAFT: "DRAFT",
-                ACTIVE: "ACTIVE",
-                ARCHIVED: "ARCHIVED",
-                DELETED: "DELETED"
-            }
+                DRAFT: 'DRAFT',
+                ACTIVE: 'ACTIVE',
+                ARCHIVED: 'ARCHIVED',
+                DELETED: 'DELETED',
+            },
         },
         TaskStatus: {
-            name: "TaskStatus",
+            name: 'TaskStatus',
             values: {
-                BACKLOG: "BACKLOG",
-                TODO: "TODO",
-                IN_PROGRESS: "IN_PROGRESS",
-                IN_REVIEW: "IN_REVIEW",
-                DONE: "DONE",
-                CANCELLED: "CANCELLED"
-            }
+                BACKLOG: 'BACKLOG',
+                TODO: 'TODO',
+                IN_PROGRESS: 'IN_PROGRESS',
+                IN_REVIEW: 'IN_REVIEW',
+                DONE: 'DONE',
+                CANCELLED: 'CANCELLED',
+            },
         },
         TaskPriority: {
-            name: "TaskPriority",
+            name: 'TaskPriority',
             values: {
-                CRITICAL: "CRITICAL",
-                HIGH: "HIGH",
-                MEDIUM: "MEDIUM",
-                LOW: "LOW"
-            }
+                CRITICAL: 'CRITICAL',
+                HIGH: 'HIGH',
+                MEDIUM: 'MEDIUM',
+                LOW: 'LOW',
+            },
         },
         CommentKind: {
-            name: "CommentKind",
+            name: 'CommentKind',
             values: {
-                TEXT: "TEXT",
-                CODE_SNIPPET: "CODE_SNIPPET",
-                ATTACHMENT: "ATTACHMENT"
-            }
+                TEXT: 'TEXT',
+                CODE_SNIPPET: 'CODE_SNIPPET',
+                ATTACHMENT: 'ATTACHMENT',
+            },
         },
         NotificationType: {
-            name: "NotificationType",
+            name: 'NotificationType',
             values: {
-                MENTION: "MENTION",
-                ASSIGNMENT: "ASSIGNMENT",
-                STATUS_CHANGE: "STATUS_CHANGE",
-                COMMENT: "COMMENT",
-                REVIEW_REQUEST: "REVIEW_REQUEST",
-                APPROVAL_NEEDED: "APPROVAL_NEEDED"
-            }
+                MENTION: 'MENTION',
+                ASSIGNMENT: 'ASSIGNMENT',
+                STATUS_CHANGE: 'STATUS_CHANGE',
+                COMMENT: 'COMMENT',
+                REVIEW_REQUEST: 'REVIEW_REQUEST',
+                APPROVAL_NEEDED: 'APPROVAL_NEEDED',
+            },
         },
         ReviewDecision: {
-            name: "ReviewDecision",
+            name: 'ReviewDecision',
             values: {
-                PENDING: "PENDING",
-                APPROVED: "APPROVED",
-                REJECTED: "REJECTED",
-                CHANGES_REQUESTED: "CHANGES_REQUESTED"
-            }
+                PENDING: 'PENDING',
+                APPROVED: 'APPROVED',
+                REJECTED: 'REJECTED',
+                CHANGES_REQUESTED: 'CHANGES_REQUESTED',
+            },
         },
         InvoiceStatus: {
-            name: "InvoiceStatus",
+            name: 'InvoiceStatus',
             values: {
-                DRAFT: "DRAFT",
-                SENT: "SENT",
-                PAID: "PAID",
-                OVERDUE: "OVERDUE",
-                CANCELLED: "CANCELLED"
-            }
+                DRAFT: 'DRAFT',
+                SENT: 'SENT',
+                PAID: 'PAID',
+                OVERDUE: 'OVERDUE',
+                CANCELLED: 'CANCELLED',
+            },
         },
         PaymentMethod: {
-            name: "PaymentMethod",
+            name: 'PaymentMethod',
             values: {
-                CREDIT_CARD: "CREDIT_CARD",
-                BANK_TRANSFER: "BANK_TRANSFER",
-                PAYPAL: "PAYPAL",
-                CRYPTO: "CRYPTO"
-            }
-        }
+                CREDIT_CARD: 'CREDIT_CARD',
+                BANK_TRANSFER: 'BANK_TRANSFER',
+                PAYPAL: 'PAYPAL',
+                CRYPTO: 'CRYPTO',
+            },
+        },
     } as const;
-    authType = "User" as const;
+    authType = 'User' as const;
     plugins = {};
 }
 export const schema = new SchemaType();

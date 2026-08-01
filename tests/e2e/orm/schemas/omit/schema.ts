@@ -5,134 +5,147 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, type AttributeApplication, ExpressionUtils } from "@zenstackhq/schema";
+import { type SchemaDef, type AttributeApplication, ExpressionUtils } from '@zenstackhq/schema';
 export class SchemaType implements SchemaDef {
     provider = {
-        type: "sqlite"
+        type: 'sqlite',
     } as const;
     models = {
         User: {
-            name: "User",
+            name: 'User',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@id' }] as readonly AttributeApplication[],
                 },
                 name: {
-                    name: "name",
-                    type: "String"
+                    name: 'name',
+                    type: 'String',
                 },
                 password: {
-                    name: "password",
-                    type: "String",
+                    name: 'password',
+                    type: 'String',
                     omit: true,
-                    attributes: [{ name: "@omit" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@omit' }] as readonly AttributeApplication[],
                 },
                 posts: {
-                    name: "posts",
-                    type: "Post",
+                    name: 'posts',
+                    type: 'Post',
                     array: true,
-                    relation: { opposite: "author" }
-                }
+                    relation: { opposite: 'author' },
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         Post: {
-            name: "Post",
+            name: 'Post',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@id' }] as readonly AttributeApplication[],
                 },
                 title: {
-                    name: "title",
-                    type: "String"
+                    name: 'title',
+                    type: 'String',
                 },
                 author: {
-                    name: "author",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("authorId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "posts", fields: ["authorId"], references: ["id"], onDelete: "Cascade" }
+                    name: 'author',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('authorId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
+                                },
+                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'posts', fields: ['authorId'], references: ['id'], onDelete: 'Cascade' },
                 },
                 authorId: {
-                    name: "authorId",
-                    type: "Int",
-                    foreignKeyFor: [
-                        "author"
-                    ] as readonly string[]
-                }
+                    name: 'authorId',
+                    type: 'Int',
+                    foreignKeyFor: ['author'] as readonly string[],
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
+                id: { type: 'Int' },
+            },
         },
         Base: {
-            name: "Base",
+            name: 'Base',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@id' }] as readonly AttributeApplication[],
                 },
                 type: {
-                    name: "type",
-                    type: "String",
-                    isDiscriminator: true
-                }
+                    name: 'type',
+                    type: 'String',
+                    isDiscriminator: true,
+                },
             },
             attributes: [
-                { name: "@@delegate", args: [{ name: "discriminator", value: ExpressionUtils.field("type") }] }
+                { name: '@@delegate', args: [{ name: 'discriminator', value: ExpressionUtils.field('type') }] },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
+                id: { type: 'Int' },
             },
             isDelegate: true,
-            subModels: ["Sub"]
+            subModels: ['Sub'],
         },
         Sub: {
-            name: "Sub",
-            baseModel: "Base",
+            name: 'Sub',
+            baseModel: 'Base',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@id' }] as readonly AttributeApplication[],
                 },
                 type: {
-                    name: "type",
-                    type: "String",
-                    originModel: "Base",
-                    isDiscriminator: true
+                    name: 'type',
+                    type: 'String',
+                    originModel: 'Base',
+                    isDiscriminator: true,
                 },
                 title: {
-                    name: "title",
-                    type: "String"
+                    name: 'title',
+                    type: 'String',
                 },
                 content: {
-                    name: "content",
-                    type: "String",
+                    name: 'content',
+                    type: 'String',
                     omit: true,
-                    attributes: [{ name: "@omit" }] as readonly AttributeApplication[]
-                }
+                    attributes: [{ name: '@omit' }] as readonly AttributeApplication[],
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
-        }
+                id: { type: 'Int' },
+            },
+        },
     } as const;
-    authType = "User" as const;
+    authType = 'User' as const;
     plugins = {};
 }
 export const schema = new SchemaType();

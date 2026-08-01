@@ -71,7 +71,8 @@ export class GroupByOperationHandler<Schema extends SchemaDef> extends BaseOpera
                         query = query.select((eb) => this.dialect.castInt(eb.fn.countAll()).as('_count'));
                     } else {
                         Object.entries(value).forEach(([field, val]) => {
-                            const args = val && typeof val === 'object' && 'args' in val ? (val as any).args : undefined;
+                            const args =
+                                val && typeof val === 'object' && 'args' in val ? (val as any).args : undefined;
                             if (val === true || args !== undefined) {
                                 if (field === '_all') {
                                     query = query.select((eb) =>
@@ -95,7 +96,9 @@ export class GroupByOperationHandler<Schema extends SchemaDef> extends BaseOpera
                     Object.entries(value).forEach(([field, val]) => {
                         const args = val && typeof val === 'object' && 'args' in val ? (val as any).args : undefined;
                         if (val === true || args !== undefined) {
-                            query = query.select((eb) => aggregate(eb, fieldRef(field, args), key).as(`${key}.${field}`));
+                            query = query.select((eb) =>
+                                aggregate(eb, fieldRef(field, args), key).as(`${key}.${field}`),
+                            );
                         }
                     });
                     break;

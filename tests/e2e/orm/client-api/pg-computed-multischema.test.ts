@@ -32,14 +32,15 @@ describe('Postgres multi-schema with computed fields', () => {
                 usePrismaPush: true,
                 computedFields: {
                     Book: {
-                        authorName: (eb: any) => eb
-                            .selectFrom('mySchema1.Author')
-                            .select('Author.name')
-                            .whereRef('Author.id', '=', 'authorId')
-                            .limit(1)
+                        authorName: (eb: any) =>
+                            eb
+                                .selectFrom('mySchema1.Author')
+                                .select('Author.name')
+                                .whereRef('Author.id', '=', 'authorId')
+                                .limit(1),
                     },
                 },
-            } as any
+            } as any,
         );
 
         // Create author and book

@@ -5,153 +5,270 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
+import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from '@zenstackhq/schema';
 export class SchemaType implements SchemaDef {
     provider = {
-        type: "sqlite"
+        type: 'sqlite',
     } as const;
     models = {
         User: {
-            name: "User",
+            name: 'User',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("cuid") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('cuid') as FieldDefault,
                 },
                 email: {
-                    name: "email",
-                    type: "String",
+                    name: 'email',
+                    type: 'String',
                     unique: true,
-                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
                 },
                 orders: {
-                    name: "orders",
-                    type: "Order",
+                    name: 'orders',
+                    type: 'Order',
                     array: true,
-                    relation: { opposite: "user" }
-                }
+                    relation: { opposite: 'user' },
+                },
             },
             attributes: [
-                { name: "@@allow", args: [{ name: "operation", value: ExpressionUtils.literal("create") }, { name: "condition", value: ExpressionUtils.literal(true) }] },
-                { name: "@@allow", args: [{ name: "operation", value: ExpressionUtils.literal("read") }, { name: "condition", value: ExpressionUtils.literal(true) }] }
+                {
+                    name: '@@allow',
+                    args: [
+                        { name: 'operation', value: ExpressionUtils.literal('create') },
+                        { name: 'condition', value: ExpressionUtils.literal(true) },
+                    ],
+                },
+                {
+                    name: '@@allow',
+                    args: [
+                        { name: 'operation', value: ExpressionUtils.literal('read') },
+                        { name: 'condition', value: ExpressionUtils.literal(true) },
+                    ],
+                },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" },
-                email: { type: "String" }
-            }
+                id: { type: 'String' },
+                email: { type: 'String' },
+            },
         },
         Pet: {
-            name: "Pet",
+            name: 'Pet',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("cuid") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('cuid') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
                 },
                 name: {
-                    name: "name",
-                    type: "String"
+                    name: 'name',
+                    type: 'String',
                 },
                 category: {
-                    name: "category",
-                    type: "String"
+                    name: 'category',
+                    type: 'String',
                 },
                 order: {
-                    name: "order",
-                    type: "Order",
+                    name: 'order',
+                    type: 'Order',
                     optional: true,
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("orderId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "pets", fields: ["orderId"], references: ["id"] }
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('orderId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'pets', fields: ['orderId'], references: ['id'] },
                 },
                 orderId: {
-                    name: "orderId",
-                    type: "String",
+                    name: 'orderId',
+                    type: 'String',
                     optional: true,
-                    foreignKeyFor: [
-                        "order"
-                    ] as readonly string[]
-                }
+                    foreignKeyFor: ['order'] as readonly string[],
+                },
             },
             attributes: [
-                { name: "@@allow", args: [{ name: "operation", value: ExpressionUtils.literal("read") }, { name: "condition", value: ExpressionUtils.binary(ExpressionUtils.binary(ExpressionUtils.field("orderId"), "==", ExpressionUtils._null()), "||", ExpressionUtils.binary(ExpressionUtils.member(ExpressionUtils.field("order"), ["user"]), "==", ExpressionUtils.call("auth"))) }] },
-                { name: "@@allow", args: [{ name: "operation", value: ExpressionUtils.literal("update") }, { name: "condition", value: ExpressionUtils.binary(ExpressionUtils.call("auth"), "!=", ExpressionUtils._null()) }] },
-                { name: "@@allow", args: [{ name: "operation", value: ExpressionUtils.literal("post-update") }, { name: "condition", value: ExpressionUtils.binary(ExpressionUtils.binary(ExpressionUtils.binary(ExpressionUtils.member(ExpressionUtils.call("before"), ["name"]), "==", ExpressionUtils.field("name")), "&&", ExpressionUtils.binary(ExpressionUtils.member(ExpressionUtils.call("before"), ["category"]), "==", ExpressionUtils.field("category"))), "&&", ExpressionUtils.binary(ExpressionUtils.member(ExpressionUtils.call("before"), ["orderId"]), "==", ExpressionUtils._null())) }] }
+                {
+                    name: '@@allow',
+                    args: [
+                        { name: 'operation', value: ExpressionUtils.literal('read') },
+                        {
+                            name: 'condition',
+                            value: ExpressionUtils.binary(
+                                ExpressionUtils.binary(ExpressionUtils.field('orderId'), '==', ExpressionUtils._null()),
+                                '||',
+                                ExpressionUtils.binary(
+                                    ExpressionUtils.member(ExpressionUtils.field('order'), ['user']),
+                                    '==',
+                                    ExpressionUtils.call('auth'),
+                                ),
+                            ),
+                        },
+                    ],
+                },
+                {
+                    name: '@@allow',
+                    args: [
+                        { name: 'operation', value: ExpressionUtils.literal('update') },
+                        {
+                            name: 'condition',
+                            value: ExpressionUtils.binary(ExpressionUtils.call('auth'), '!=', ExpressionUtils._null()),
+                        },
+                    ],
+                },
+                {
+                    name: '@@allow',
+                    args: [
+                        { name: 'operation', value: ExpressionUtils.literal('post-update') },
+                        {
+                            name: 'condition',
+                            value: ExpressionUtils.binary(
+                                ExpressionUtils.binary(
+                                    ExpressionUtils.binary(
+                                        ExpressionUtils.member(ExpressionUtils.call('before'), ['name']),
+                                        '==',
+                                        ExpressionUtils.field('name'),
+                                    ),
+                                    '&&',
+                                    ExpressionUtils.binary(
+                                        ExpressionUtils.member(ExpressionUtils.call('before'), ['category']),
+                                        '==',
+                                        ExpressionUtils.field('category'),
+                                    ),
+                                ),
+                                '&&',
+                                ExpressionUtils.binary(
+                                    ExpressionUtils.member(ExpressionUtils.call('before'), ['orderId']),
+                                    '==',
+                                    ExpressionUtils._null(),
+                                ),
+                            ),
+                        },
+                    ],
+                },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" }
-            }
+                id: { type: 'String' },
+            },
         },
         Order: {
-            name: "Order",
+            name: 'Order',
             fields: {
                 id: {
-                    name: "id",
-                    type: "String",
+                    name: 'id',
+                    type: 'String',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("cuid") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('cuid') as FieldDefault,
                 },
                 createdAt: {
-                    name: "createdAt",
-                    type: "DateTime",
-                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("now") as FieldDefault
+                    name: 'createdAt',
+                    type: 'DateTime',
+                    attributes: [
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('now') as FieldDefault,
                 },
                 updatedAt: {
-                    name: "updatedAt",
-                    type: "DateTime",
+                    name: 'updatedAt',
+                    type: 'DateTime',
                     updatedAt: true,
-                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
                 },
                 pets: {
-                    name: "pets",
-                    type: "Pet",
+                    name: 'pets',
+                    type: 'Pet',
                     array: true,
-                    relation: { opposite: "order" }
+                    relation: { opposite: 'order' },
                 },
                 user: {
-                    name: "user",
-                    type: "User",
-                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
-                    relation: { opposite: "orders", fields: ["userId"], references: ["id"] }
+                    name: 'user',
+                    type: 'User',
+                    attributes: [
+                        {
+                            name: '@relation',
+                            args: [
+                                {
+                                    name: 'fields',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('userId')]),
+                                },
+                                {
+                                    name: 'references',
+                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
+                                },
+                            ],
+                        },
+                    ] as readonly AttributeApplication[],
+                    relation: { opposite: 'orders', fields: ['userId'], references: ['id'] },
                 },
                 userId: {
-                    name: "userId",
-                    type: "String",
-                    foreignKeyFor: [
-                        "user"
-                    ] as readonly string[]
-                }
+                    name: 'userId',
+                    type: 'String',
+                    foreignKeyFor: ['user'] as readonly string[],
+                },
             },
             attributes: [
-                { name: "@@allow", args: [{ name: "operation", value: ExpressionUtils.literal("read,create") }, { name: "condition", value: ExpressionUtils.binary(ExpressionUtils.call("auth"), "==", ExpressionUtils.field("user")) }] }
+                {
+                    name: '@@allow',
+                    args: [
+                        { name: 'operation', value: ExpressionUtils.literal('read,create') },
+                        {
+                            name: 'condition',
+                            value: ExpressionUtils.binary(
+                                ExpressionUtils.call('auth'),
+                                '==',
+                                ExpressionUtils.field('user'),
+                            ),
+                        },
+                    ],
+                },
             ] as readonly AttributeApplication[],
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "String" }
-            }
-        }
+                id: { type: 'String' },
+            },
+        },
     } as const;
-    authType = "User" as const;
+    authType = 'User' as const;
     plugins = {};
 }
 export const schema = new SchemaType();

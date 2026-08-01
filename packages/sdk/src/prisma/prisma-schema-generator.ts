@@ -396,19 +396,25 @@ export class PrismaSchemaGenerator {
             node.function.ref!.name,
 
             // strip format args from id functions
-            node.args.filter((_, i) => (
-                !(ID_FUNCTIONS.includes(node.function.ref!.name) && (node.function.ref!.name === 'ulid' && i === 0 || i === 1))
-            )).map((arg) => {
-                const val = match(arg.value)
-                    .when(isStringLiteral, (v) => `"${v.value}"`)
-                    .when(isLiteralExpr, (v) => v.value.toString())
-                    .when(isNullExpr, () => 'null')
-                    .otherwise(() => {
-                        throw new Error('Function call argument must be literal or null');
-                    });
+            node.args
+                .filter(
+                    (_, i) =>
+                        !(
+                            ID_FUNCTIONS.includes(node.function.ref!.name) &&
+                            ((node.function.ref!.name === 'ulid' && i === 0) || i === 1)
+                        ),
+                )
+                .map((arg) => {
+                    const val = match(arg.value)
+                        .when(isStringLiteral, (v) => `"${v.value}"`)
+                        .when(isLiteralExpr, (v) => v.value.toString())
+                        .when(isNullExpr, () => 'null')
+                        .otherwise(() => {
+                            throw new Error('Function call argument must be literal or null');
+                        });
 
-                return new PrismaFunctionCallArg(val);
-            }),
+                    return new PrismaFunctionCallArg(val);
+                }),
         );
     }
 

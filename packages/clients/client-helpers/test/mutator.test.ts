@@ -1242,7 +1242,16 @@ describe('applyMutation', () => {
             const logger = vi.fn() as Logger;
             const queryData = { id: '1', name: 'John' };
 
-            await applyMutation('User', 'findUnique', queryData, 'User', 'delete', { where: { id: '1' } }, schema, logger);
+            await applyMutation(
+                'User',
+                'findUnique',
+                queryData,
+                'User',
+                'delete',
+                { where: { id: '1' } },
+                schema,
+                logger,
+            );
 
             expect(logger).toHaveBeenCalledWith(expect.stringContaining('Applying optimistic delete'));
         });

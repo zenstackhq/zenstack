@@ -5,103 +5,106 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
+import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from '@zenstackhq/schema';
 export class SchemaType implements SchemaDef {
     provider = {
-        type: "sqlite"
+        type: 'sqlite',
     } as const;
     models = {
         User: {
-            name: "User",
+            name: 'User',
             fields: {
                 id: {
-                    name: "id",
-                    type: "Int",
+                    name: 'id',
+                    type: 'Int',
                     id: true,
-                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call("autoincrement") as FieldDefault
+                    attributes: [
+                        { name: '@id' },
+                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
+                    ] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
                 },
                 profile: {
-                    name: "profile",
-                    type: "Profile",
-                    attributes: [{ name: "@json" }] as readonly AttributeApplication[]
-                }
+                    name: 'profile',
+                    type: 'Profile',
+                    attributes: [{ name: '@json' }] as readonly AttributeApplication[],
+                },
             },
-            idFields: ["id"],
+            idFields: ['id'],
             uniqueFields: {
-                id: { type: "Int" }
-            }
-        }
+                id: { type: 'Int' },
+            },
+        },
     } as const;
     typeDefs = {
         Profile: {
-            name: "Profile",
+            name: 'Profile',
             fields: {
                 age: {
-                    name: "age",
-                    type: "Int"
+                    name: 'age',
+                    type: 'Int',
                 },
                 name: {
-                    name: "name",
-                    type: "String"
+                    name: 'name',
+                    type: 'String',
                 },
                 gender: {
-                    name: "gender",
-                    type: "Gender",
-                    optional: true
+                    name: 'gender',
+                    type: 'Gender',
+                    optional: true,
                 },
                 jobs: {
-                    name: "jobs",
-                    type: "Job",
-                    array: true
+                    name: 'jobs',
+                    type: 'Job',
+                    array: true,
                 },
                 address: {
-                    name: "address",
-                    type: "Address",
-                    optional: true
+                    name: 'address',
+                    type: 'Address',
+                    optional: true,
                 },
                 tags: {
-                    name: "tags",
-                    type: "String",
+                    name: 'tags',
+                    type: 'String',
                     optional: true,
-                    array: true
-                }
-            }
+                    array: true,
+                },
+            },
         },
         Address: {
-            name: "Address",
+            name: 'Address',
             fields: {
                 country: {
-                    name: "country",
-                    type: "String"
+                    name: 'country',
+                    type: 'String',
                 },
                 zip: {
-                    name: "zip",
-                    type: "String",
-                    optional: true
-                }
-            }
+                    name: 'zip',
+                    type: 'String',
+                    optional: true,
+                },
+            },
         },
         Job: {
-            name: "Job",
+            name: 'Job',
             fields: {
                 title: {
-                    name: "title",
-                    type: "String"
-                }
-            }
-        }
+                    name: 'title',
+                    type: 'String',
+                },
+            },
+        },
     } as const;
     enums = {
         Gender: {
-            name: "Gender",
+            name: 'Gender',
             values: {
-                MALE: "MALE",
-                FEMALE: "FEMALE"
-            }
-        }
+                MALE: 'MALE',
+                FEMALE: 'FEMALE',
+            },
+        },
     } as const;
-    authType = "User" as const;
+    authType = 'User' as const;
     plugins = {};
 }
 export const schema = new SchemaType();

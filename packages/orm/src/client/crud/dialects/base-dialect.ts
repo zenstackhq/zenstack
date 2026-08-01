@@ -240,7 +240,13 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                 // operators; pull them out so they reach the implementation, and filter on the rest
                 let computedArgs: unknown;
                 let filterPayload = payload;
-                if (fieldDef.computed && fieldDef.params && payload && typeof payload === 'object' && 'args' in payload) {
+                if (
+                    fieldDef.computed &&
+                    fieldDef.params &&
+                    payload &&
+                    typeof payload === 'object' &&
+                    'args' in payload
+                ) {
                     computedArgs = (payload as any).args;
                     const { args: _args, ...rest } = payload as any;
                     filterPayload = rest;

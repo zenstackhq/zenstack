@@ -491,7 +491,7 @@ model Post {
 
         expect(schema).toMatchObject({
             provider: {
-                type: 'sqlite'
+                type: 'sqlite',
             },
             models: {
                 User: {
@@ -503,7 +503,7 @@ model Post {
                             id: true,
                             attributes: [
                                 {
-                                    name: '@id'
+                                    name: '@id',
                                 },
                                 {
                                     name: '@default',
@@ -512,20 +512,20 @@ model Post {
                                             name: 'value',
                                             value: {
                                                 kind: 'call',
-                                                function: 'uuid'
-                                            }
-                                        }
-                                    ]
-                                }
+                                                function: 'uuid',
+                                            },
+                                        },
+                                    ],
+                                },
                             ],
                             default: {
                                 kind: 'call',
-                                function: 'uuid'
-                            }
+                                function: 'uuid',
+                            },
                         },
                         name: {
                             name: 'name',
-                            type: 'String'
+                            type: 'String',
                         },
                         email: {
                             name: 'email',
@@ -533,9 +533,9 @@ model Post {
                             unique: true,
                             attributes: [
                                 {
-                                    name: '@unique'
-                                }
-                            ]
+                                    name: '@unique',
+                                },
+                            ],
                         },
                         createdAt: {
                             name: 'createdAt',
@@ -548,24 +548,22 @@ model Post {
                                             name: 'value',
                                             value: {
                                                 kind: 'call',
-                                                function: 'now'
-                                            }
-                                        }
-                                    ]
-                                }
+                                                function: 'now',
+                                            },
+                                        },
+                                    ],
+                                },
                             ],
                             default: {
                                 kind: 'call',
-                                function: 'now'
-                            }
+                                function: 'now',
+                            },
                         },
                         updatedAt: {
                             name: 'updatedAt',
                             type: 'DateTime',
                             updatedAt: {
-                                ignore: [
-                                    'email'
-                                ]
+                                ignore: ['email'],
                             },
                             attributes: [
                                 {
@@ -578,23 +576,23 @@ model Post {
                                                 items: [
                                                     {
                                                         kind: 'field',
-                                                        field: 'email'
-                                                    }
-                                                ]
-                                            }
-                                        }
-                                    ]
-                                }
-                            ]
+                                                        field: 'email',
+                                                    },
+                                                ],
+                                            },
+                                        },
+                                    ],
+                                },
+                            ],
                         },
                         posts: {
                             name: 'posts',
                             type: 'Post',
                             array: true,
                             relation: {
-                                opposite: 'author'
-                            }
-                        }
+                                opposite: 'author',
+                            },
+                        },
                     },
                     attributes: [
                         {
@@ -604,23 +602,21 @@ model Post {
                                     name: 'name',
                                     value: {
                                         kind: 'literal',
-                                        value: 'users'
-                                    }
-                                }
-                            ]
-                        }
+                                        value: 'users',
+                                    },
+                                },
+                            ],
+                        },
                     ],
-                    idFields: [
-                        'id'
-                    ],
+                    idFields: ['id'],
                     uniqueFields: {
                         id: {
-                            type: 'String'
+                            type: 'String',
                         },
                         email: {
-                            type: 'String'
-                        }
-                    }
+                            type: 'String',
+                        },
+                    },
                 },
                 Post: {
                     name: 'Post',
@@ -631,7 +627,7 @@ model Post {
                             id: true,
                             attributes: [
                                 {
-                                    name: '@id'
+                                    name: '@id',
                                 },
                                 {
                                     name: '@default',
@@ -640,20 +636,20 @@ model Post {
                                             name: 'value',
                                             value: {
                                                 kind: 'call',
-                                                function: 'cuid'
-                                            }
-                                        }
-                                    ]
-                                }
+                                                function: 'cuid',
+                                            },
+                                        },
+                                    ],
+                                },
                             ],
                             default: {
                                 kind: 'call',
-                                function: 'cuid'
-                            }
+                                function: 'cuid',
+                            },
                         },
                         title: {
                             name: 'title',
-                            type: 'String'
+                            type: 'String',
                         },
                         published: {
                             name: 'published',
@@ -666,13 +662,13 @@ model Post {
                                             name: 'value',
                                             value: {
                                                 kind: 'literal',
-                                                value: false
-                                            }
-                                        }
-                                    ]
-                                }
+                                                value: false,
+                                            },
+                                        },
+                                    ],
+                                },
                             ],
-                            default: false
+                            default: false,
                         },
                         author: {
                             name: 'author',
@@ -688,10 +684,10 @@ model Post {
                                                 items: [
                                                     {
                                                         kind: 'field',
-                                                        field: 'authorId'
-                                                    }
-                                                ]
-                                            }
+                                                        field: 'authorId',
+                                                    },
+                                                ],
+                                            },
                                         },
                                         {
                                             name: 'references',
@@ -700,52 +696,44 @@ model Post {
                                                 items: [
                                                     {
                                                         kind: 'field',
-                                                        field: 'id'
-                                                    }
-                                                ]
-                                            }
+                                                        field: 'id',
+                                                    },
+                                                ],
+                                            },
                                         },
                                         {
                                             name: 'onDelete',
                                             value: {
                                                 kind: 'literal',
-                                                value: 'Cascade'
-                                            }
-                                        }
-                                    ]
-                                }
+                                                value: 'Cascade',
+                                            },
+                                        },
+                                    ],
+                                },
                             ],
                             relation: {
                                 opposite: 'posts',
-                                fields: [
-                                    'authorId'
-                                ],
-                                references: [
-                                    'id'
-                                ],
-                                onDelete: 'Cascade'
-                            }
+                                fields: ['authorId'],
+                                references: ['id'],
+                                onDelete: 'Cascade',
+                            },
                         },
                         authorId: {
                             name: 'authorId',
                             type: 'String',
-                            foreignKeyFor: [
-                                'author'
-                            ]
-                        }
+                            foreignKeyFor: ['author'],
+                        },
                     },
-                    idFields: [
-                        'id'
-                    ],
+                    idFields: ['id'],
                     uniqueFields: {
                         id: {
-                            type: 'String'
-                        }
-                    }
-                }
+                            type: 'String',
+                        },
+                    },
+                },
             },
             authType: 'User',
-            plugins: {}
+            plugins: {},
         });
-    })
+    });
 });

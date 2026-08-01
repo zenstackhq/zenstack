@@ -43,10 +43,7 @@ export function detectImportFileExtension(fromDir: string): string | undefined {
     }
 
     // node16/nodenext resolution requires explicit extensions on relative imports
-    if (
-        moduleResolution === ts.ModuleResolutionKind.Node16 ||
-        moduleResolution === ts.ModuleResolutionKind.NodeNext
-    ) {
+    if (moduleResolution === ts.ModuleResolutionKind.Node16 || moduleResolution === ts.ModuleResolutionKind.NodeNext) {
         return '.js';
     }
 
