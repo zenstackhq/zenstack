@@ -5,55 +5,52 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from '@zenstackhq/schema';
+import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
     provider = {
-        type: 'postgresql',
+        type: "postgresql"
     } as const;
     models = {
         Article: {
-            name: 'Article',
+            name: "Article",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'Int',
+                    name: "id",
+                    type: "Int",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("autoincrement") as FieldDefault
                 },
                 title: {
-                    name: 'title',
-                    type: 'String',
+                    name: "title",
+                    type: "String",
                     fullText: true,
-                    attributes: [{ name: '@fullText' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@fullText" }] as readonly AttributeApplication[]
                 },
                 body: {
-                    name: 'body',
-                    type: 'String',
+                    name: "body",
+                    type: "String",
                     fullText: true,
-                    attributes: [{ name: '@fullText' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@fullText" }] as readonly AttributeApplication[]
                 },
                 subtitle: {
-                    name: 'subtitle',
-                    type: 'String',
+                    name: "subtitle",
+                    type: "String",
                     optional: true,
                     fullText: true,
-                    attributes: [{ name: '@fullText' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@fullText" }] as readonly AttributeApplication[]
                 },
                 notes: {
-                    name: 'notes',
-                    type: 'String',
-                    optional: true,
-                },
+                    name: "notes",
+                    type: "String",
+                    optional: true
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'Int' },
-            },
-        },
+                id: { type: "Int" }
+            }
+        }
     } as const;
     plugins = {};
 }

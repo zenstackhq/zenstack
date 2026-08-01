@@ -5,64 +5,66 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, type AttributeApplication } from '@zenstackhq/schema';
+import { type SchemaDef, type AttributeApplication } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
     provider = {
-        type: 'sqlite',
+        type: "sqlite"
     } as const;
     models = {
         Foo: {
-            name: 'Foo',
+            name: "Foo",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'Int',
+                    name: "id",
+                    type: "Int",
                     id: true,
-                    attributes: [{ name: '@id' }] as readonly AttributeApplication[],
-                },
+                    attributes: [{ name: "@id" }] as readonly AttributeApplication[]
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'Int' },
-            },
-        },
+                id: { type: "Int" }
+            }
+        }
     } as const;
     typeDefs = {
         Permission: {
-            name: 'Permission',
+            name: "Permission",
             fields: {
                 actionCode: {
-                    name: 'actionCode',
-                    type: 'String',
-                },
-            },
+                    name: "actionCode",
+                    type: "String"
+                }
+            }
         },
         Auth: {
-            name: 'Auth',
+            name: "Auth",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'Int',
-                    attributes: [{ name: '@id' }] as readonly AttributeApplication[],
+                    name: "id",
+                    type: "Int",
+                    attributes: [{ name: "@id" }] as readonly AttributeApplication[]
                 },
                 name: {
-                    name: 'name',
-                    type: 'String',
+                    name: "name",
+                    type: "String"
                 },
                 permissions: {
-                    name: 'permissions',
-                    type: 'Permission',
-                    array: true,
+                    name: "permissions",
+                    type: "Permission",
+                    array: true
                 },
                 role: {
-                    name: 'role',
-                    type: 'String',
-                },
+                    name: "role",
+                    type: "String"
+                }
             },
-            attributes: [{ name: '@@auth' }] as readonly AttributeApplication[],
-        },
+            attributes: [
+                { name: "@@auth" }
+            ] as readonly AttributeApplication[]
+        }
     } as const;
-    authType = 'Auth' as const;
+    authType = "Auth" as const;
     plugins = {};
 }
 export const schema = new SchemaType();

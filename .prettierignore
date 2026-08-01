@@ -5,3 +5,6 @@ packages/language/src/generated/**
 samples/**/schema.ts
 samples/**/models.ts
 samples/**/input.ts
+tests/e2e/**/schema.ts
+tests/e2e/**/models.ts
+tests/e2e/**/input.ts

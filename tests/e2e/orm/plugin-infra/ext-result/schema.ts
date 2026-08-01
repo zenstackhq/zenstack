@@ -5,96 +5,78 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from '@zenstackhq/schema';
+import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
     provider = {
-        type: 'sqlite',
+        type: "sqlite"
     } as const;
     models = {
         User: {
-            name: 'User',
+            name: "User",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'Int',
+                    name: "id",
+                    type: "Int",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("autoincrement") as FieldDefault
                 },
                 name: {
-                    name: 'name',
-                    type: 'String',
+                    name: "name",
+                    type: "String"
                 },
                 posts: {
-                    name: 'posts',
-                    type: 'Post',
+                    name: "posts",
+                    type: "Post",
                     array: true,
-                    relation: { opposite: 'author' },
-                },
+                    relation: { opposite: "author" }
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'Int' },
-            },
+                id: { type: "Int" }
+            }
         },
         Post: {
-            name: 'Post',
+            name: "Post",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'Int',
+                    name: "id",
+                    type: "Int",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("autoincrement") as FieldDefault
                 },
                 title: {
-                    name: 'title',
-                    type: 'String',
+                    name: "title",
+                    type: "String"
                 },
                 content: {
-                    name: 'content',
-                    type: 'String',
-                    optional: true,
+                    name: "content",
+                    type: "String",
+                    optional: true
                 },
                 author: {
-                    name: 'author',
-                    type: 'User',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('authorId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
-                                },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'posts', fields: ['authorId'], references: ['id'] },
+                    name: "author",
+                    type: "User",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("authorId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "posts", fields: ["authorId"], references: ["id"] }
                 },
                 authorId: {
-                    name: 'authorId',
-                    type: 'Int',
-                    foreignKeyFor: ['author'] as readonly string[],
-                },
+                    name: "authorId",
+                    type: "Int",
+                    foreignKeyFor: [
+                        "author"
+                    ] as readonly string[]
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'Int' },
-            },
-        },
+                id: { type: "Int" }
+            }
+        }
     } as const;
-    authType = 'User' as const;
+    authType = "User" as const;
     plugins = {};
 }
 export const schema = new SchemaType();

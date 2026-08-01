@@ -5,9917 +5,6374 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from '@zenstackhq/schema';
+import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
     provider = {
-        type: 'postgresql',
+        type: "postgresql"
     } as const;
     models = {
         User: {
-            name: 'User',
+            name: "User",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 email: {
-                    name: 'email',
-                    type: 'String',
+                    name: "email",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 authenticationMethod: {
-                    name: 'authenticationMethod',
-                    type: 'AuthenticationMethod',
+                    name: "authenticationMethod",
+                    type: "AuthenticationMethod"
                 },
                 authenticationProfile: {
-                    name: 'authenticationProfile',
-                    type: 'Json',
-                    optional: true,
+                    name: "authenticationProfile",
+                    type: "Json",
+                    optional: true
                 },
                 authenticationExtraParams: {
-                    name: 'authenticationExtraParams',
-                    type: 'Json',
-                    optional: true,
+                    name: "authenticationExtraParams",
+                    type: "Json",
+                    optional: true
                 },
                 authIdentifier: {
-                    name: 'authIdentifier',
-                    type: 'String',
+                    name: "authIdentifier",
+                    type: "String",
                     unique: true,
                     optional: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 displayName: {
-                    name: 'displayName',
-                    type: 'String',
-                    optional: true,
+                    name: "displayName",
+                    type: "String",
+                    optional: true
                 },
                 name: {
-                    name: 'name',
-                    type: 'String',
-                    optional: true,
+                    name: "name",
+                    type: "String",
+                    optional: true
                 },
                 avatarUrl: {
-                    name: 'avatarUrl',
-                    type: 'String',
-                    optional: true,
+                    name: "avatarUrl",
+                    type: "String",
+                    optional: true
                 },
                 admin: {
-                    name: 'admin',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "admin",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 dashboardPreferences: {
-                    name: 'dashboardPreferences',
-                    type: 'Json',
-                    optional: true,
+                    name: "dashboardPreferences",
+                    type: "Json",
+                    optional: true
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 isOnCloudWaitlist: {
-                    name: 'isOnCloudWaitlist',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "isOnCloudWaitlist",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 featureCloud: {
-                    name: 'featureCloud',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "featureCloud",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 isOnHostedRepoWaitlist: {
-                    name: 'isOnHostedRepoWaitlist',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "isOnHostedRepoWaitlist",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 marketingEmails: {
-                    name: 'marketingEmails',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(true) }] },
-                    ] as readonly AttributeApplication[],
-                    default: true as FieldDefault,
+                    name: "marketingEmails",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(true) }] }] as readonly AttributeApplication[],
+                    default: true as FieldDefault
                 },
                 confirmedBasicDetails: {
-                    name: 'confirmedBasicDetails',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "confirmedBasicDetails",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 referralSource: {
-                    name: 'referralSource',
-                    type: 'String',
-                    optional: true,
+                    name: "referralSource",
+                    type: "String",
+                    optional: true
                 },
                 orgMemberships: {
-                    name: 'orgMemberships',
-                    type: 'OrgMember',
+                    name: "orgMemberships",
+                    type: "OrgMember",
                     array: true,
-                    relation: { opposite: 'user' },
+                    relation: { opposite: "user" }
                 },
                 sentInvites: {
-                    name: 'sentInvites',
-                    type: 'OrgMemberInvite',
+                    name: "sentInvites",
+                    type: "OrgMemberInvite",
                     array: true,
-                    relation: { opposite: 'inviter' },
+                    relation: { opposite: "inviter" }
                 },
                 invitationCode: {
-                    name: 'invitationCode',
-                    type: 'InvitationCode',
+                    name: "invitationCode",
+                    type: "InvitationCode",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('invitationCodeId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'users', fields: ['invitationCodeId'], references: ['id'] },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("invitationCodeId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "users", fields: ["invitationCodeId"], references: ["id"] }
                 },
                 invitationCodeId: {
-                    name: 'invitationCodeId',
-                    type: 'String',
+                    name: "invitationCodeId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['invitationCode'] as readonly string[],
+                    foreignKeyFor: [
+                        "invitationCode"
+                    ] as readonly string[]
                 },
                 personalAccessTokens: {
-                    name: 'personalAccessTokens',
-                    type: 'PersonalAccessToken',
+                    name: "personalAccessTokens",
+                    type: "PersonalAccessToken",
                     array: true,
-                    relation: { opposite: 'user' },
+                    relation: { opposite: "user" }
                 },
                 deployments: {
-                    name: 'deployments',
-                    type: 'WorkerDeployment',
+                    name: "deployments",
+                    type: "WorkerDeployment",
                     array: true,
-                    relation: { opposite: 'triggeredBy' },
-                },
+                    relation: { opposite: "triggeredBy" }
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                email: { type: 'String' },
-                authIdentifier: { type: 'String' },
-            },
+                id: { type: "String" },
+                email: { type: "String" },
+                authIdentifier: { type: "String" }
+            }
         },
         InvitationCode: {
-            name: 'InvitationCode',
+            name: "InvitationCode",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 code: {
-                    name: 'code',
-                    type: 'String',
+                    name: "code",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 users: {
-                    name: 'users',
-                    type: 'User',
+                    name: "users",
+                    type: "User",
                     array: true,
-                    relation: { opposite: 'invitationCode' },
+                    relation: { opposite: "invitationCode" }
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
-                },
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                code: { type: 'String' },
-            },
+                id: { type: "String" },
+                code: { type: "String" }
+            }
         },
         AuthorizationCode: {
-            name: 'AuthorizationCode',
+            name: "AuthorizationCode",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 code: {
-                    name: 'code',
-                    type: 'String',
+                    name: "code",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 personalAccessToken: {
-                    name: 'personalAccessToken',
-                    type: 'PersonalAccessToken',
+                    name: "personalAccessToken",
+                    type: "PersonalAccessToken",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('personalAccessTokenId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'authorizationCodes',
-                        fields: ['personalAccessTokenId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("personalAccessTokenId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "authorizationCodes", fields: ["personalAccessTokenId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 personalAccessTokenId: {
-                    name: 'personalAccessTokenId',
-                    type: 'String',
+                    name: "personalAccessTokenId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['personalAccessToken'] as readonly string[],
+                    foreignKeyFor: [
+                        "personalAccessToken"
+                    ] as readonly string[]
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
-                },
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                code: { type: 'String' },
-            },
+                id: { type: "String" },
+                code: { type: "String" }
+            }
         },
         PersonalAccessToken: {
-            name: 'PersonalAccessToken',
+            name: "PersonalAccessToken",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 name: {
-                    name: 'name',
-                    type: 'String',
+                    name: "name",
+                    type: "String"
                 },
                 encryptedToken: {
-                    name: 'encryptedToken',
-                    type: 'Json',
+                    name: "encryptedToken",
+                    type: "Json"
                 },
                 obfuscatedToken: {
-                    name: 'obfuscatedToken',
-                    type: 'String',
+                    name: "obfuscatedToken",
+                    type: "String"
                 },
                 hashedToken: {
-                    name: 'hashedToken',
-                    type: 'String',
+                    name: "hashedToken",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 user: {
-                    name: 'user',
-                    type: 'User',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('userId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'personalAccessTokens', fields: ['userId'], references: ['id'] },
+                    name: "user",
+                    type: "User",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "personalAccessTokens", fields: ["userId"], references: ["id"] }
                 },
                 userId: {
-                    name: 'userId',
-                    type: 'String',
-                    foreignKeyFor: ['user'] as readonly string[],
+                    name: "userId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "user"
+                    ] as readonly string[]
                 },
                 revokedAt: {
-                    name: 'revokedAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "revokedAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 lastAccessedAt: {
-                    name: 'lastAccessedAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "lastAccessedAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 authorizationCodes: {
-                    name: 'authorizationCodes',
-                    type: 'AuthorizationCode',
+                    name: "authorizationCodes",
+                    type: "AuthorizationCode",
                     array: true,
-                    relation: { opposite: 'personalAccessToken' },
-                },
+                    relation: { opposite: "personalAccessToken" }
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                hashedToken: { type: 'String' },
-            },
+                id: { type: "String" },
+                hashedToken: { type: "String" }
+            }
         },
         Organization: {
-            name: 'Organization',
+            name: "Organization",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 slug: {
-                    name: 'slug',
-                    type: 'String',
+                    name: "slug",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 title: {
-                    name: 'title',
-                    type: 'String',
+                    name: "title",
+                    type: "String"
                 },
                 maximumExecutionTimePerRunInMs: {
-                    name: 'maximumExecutionTimePerRunInMs',
-                    type: 'Int',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(900000) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 900000 as FieldDefault,
+                    name: "maximumExecutionTimePerRunInMs",
+                    type: "Int",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(900000) }] }] as readonly AttributeApplication[],
+                    default: 900000 as FieldDefault
                 },
                 maximumConcurrencyLimit: {
-                    name: 'maximumConcurrencyLimit',
-                    type: 'Int',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(10) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 10 as FieldDefault,
+                    name: "maximumConcurrencyLimit",
+                    type: "Int",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(10) }] }] as readonly AttributeApplication[],
+                    default: 10 as FieldDefault
                 },
                 maximumSchedulesLimit: {
-                    name: 'maximumSchedulesLimit',
-                    type: 'Int',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(5) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 5 as FieldDefault,
+                    name: "maximumSchedulesLimit",
+                    type: "Int",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(5) }] }] as readonly AttributeApplication[],
+                    default: 5 as FieldDefault
                 },
                 maximumDevQueueSize: {
-                    name: 'maximumDevQueueSize',
-                    type: 'Int',
-                    optional: true,
+                    name: "maximumDevQueueSize",
+                    type: "Int",
+                    optional: true
                 },
                 maximumDeployedQueueSize: {
-                    name: 'maximumDeployedQueueSize',
-                    type: 'Int',
-                    optional: true,
+                    name: "maximumDeployedQueueSize",
+                    type: "Int",
+                    optional: true
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 deletedAt: {
-                    name: 'deletedAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "deletedAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 companySize: {
-                    name: 'companySize',
-                    type: 'String',
-                    optional: true,
+                    name: "companySize",
+                    type: "String",
+                    optional: true
                 },
                 avatar: {
-                    name: 'avatar',
-                    type: 'Json',
-                    optional: true,
+                    name: "avatar",
+                    type: "Json",
+                    optional: true
                 },
                 runsEnabled: {
-                    name: 'runsEnabled',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(true) }] },
-                    ] as readonly AttributeApplication[],
-                    default: true as FieldDefault,
+                    name: "runsEnabled",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(true) }] }] as readonly AttributeApplication[],
+                    default: true as FieldDefault
                 },
                 v3Enabled: {
-                    name: 'v3Enabled',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "v3Enabled",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 v2Enabled: {
-                    name: 'v2Enabled',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "v2Enabled",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 v2MarqsEnabled: {
-                    name: 'v2MarqsEnabled',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "v2MarqsEnabled",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 hasRequestedV3: {
-                    name: 'hasRequestedV3',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "hasRequestedV3",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 environments: {
-                    name: 'environments',
-                    type: 'RuntimeEnvironment',
+                    name: "environments",
+                    type: "RuntimeEnvironment",
                     array: true,
-                    relation: { opposite: 'organization' },
+                    relation: { opposite: "organization" }
                 },
                 apiRateLimiterConfig: {
-                    name: 'apiRateLimiterConfig',
-                    type: 'Json',
-                    optional: true,
+                    name: "apiRateLimiterConfig",
+                    type: "Json",
+                    optional: true
                 },
                 realtimeRateLimiterConfig: {
-                    name: 'realtimeRateLimiterConfig',
-                    type: 'Json',
-                    optional: true,
+                    name: "realtimeRateLimiterConfig",
+                    type: "Json",
+                    optional: true
                 },
                 projects: {
-                    name: 'projects',
-                    type: 'Project',
+                    name: "projects",
+                    type: "Project",
                     array: true,
-                    relation: { opposite: 'organization' },
+                    relation: { opposite: "organization" }
                 },
                 members: {
-                    name: 'members',
-                    type: 'OrgMember',
+                    name: "members",
+                    type: "OrgMember",
                     array: true,
-                    relation: { opposite: 'organization' },
+                    relation: { opposite: "organization" }
                 },
                 invites: {
-                    name: 'invites',
-                    type: 'OrgMemberInvite',
+                    name: "invites",
+                    type: "OrgMemberInvite",
                     array: true,
-                    relation: { opposite: 'organization' },
+                    relation: { opposite: "organization" }
                 },
                 organizationIntegrations: {
-                    name: 'organizationIntegrations',
-                    type: 'OrganizationIntegration',
+                    name: "organizationIntegrations",
+                    type: "OrganizationIntegration",
                     array: true,
-                    relation: { opposite: 'organization' },
+                    relation: { opposite: "organization" }
                 },
                 workerGroups: {
-                    name: 'workerGroups',
-                    type: 'WorkerInstanceGroup',
+                    name: "workerGroups",
+                    type: "WorkerInstanceGroup",
                     array: true,
-                    relation: { opposite: 'organization' },
+                    relation: { opposite: "organization" }
                 },
                 workerInstances: {
-                    name: 'workerInstances',
-                    type: 'WorkerInstance',
+                    name: "workerInstances",
+                    type: "WorkerInstance",
                     array: true,
-                    relation: { opposite: 'organization' },
+                    relation: { opposite: "organization" }
                 },
                 executionSnapshots: {
-                    name: 'executionSnapshots',
-                    type: 'TaskRunExecutionSnapshot',
+                    name: "executionSnapshots",
+                    type: "TaskRunExecutionSnapshot",
                     array: true,
-                    relation: { opposite: 'organization' },
-                },
+                    relation: { opposite: "organization" }
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                slug: { type: 'String' },
-            },
+                id: { type: "String" },
+                slug: { type: "String" }
+            }
         },
         OrgMember: {
-            name: 'OrgMember',
+            name: "OrgMember",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 organization: {
-                    name: 'organization',
-                    type: 'Organization',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('organizationId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'members',
-                        fields: ['organizationId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "organization",
+                    type: "Organization",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "members", fields: ["organizationId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 organizationId: {
-                    name: 'organizationId',
-                    type: 'String',
-                    foreignKeyFor: ['organization'] as readonly string[],
+                    name: "organizationId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "organization"
+                    ] as readonly string[]
                 },
                 user: {
-                    name: 'user',
-                    type: 'User',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('userId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'orgMemberships',
-                        fields: ['userId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "user",
+                    type: "User",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("userId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "orgMemberships", fields: ["userId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 userId: {
-                    name: 'userId',
-                    type: 'String',
-                    foreignKeyFor: ['user'] as readonly string[],
+                    name: "userId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "user"
+                    ] as readonly string[]
                 },
                 role: {
-                    name: 'role',
-                    type: 'OrgMemberRole',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('MEMBER') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'MEMBER' as FieldDefault,
+                    name: "role",
+                    type: "OrgMemberRole",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("MEMBER") }] }] as readonly AttributeApplication[],
+                    default: "MEMBER" as FieldDefault
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 environments: {
-                    name: 'environments',
-                    type: 'RuntimeEnvironment',
+                    name: "environments",
+                    type: "RuntimeEnvironment",
                     array: true,
-                    relation: { opposite: 'orgMember' },
-                },
+                    relation: { opposite: "orgMember" }
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('organizationId'),
-                                ExpressionUtils.field('userId'),
-                            ]),
-                        },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId"), ExpressionUtils.field("userId")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                organizationId_userId: { organizationId: { type: 'String' }, userId: { type: 'String' } },
-            },
+                id: { type: "String" },
+                organizationId_userId: { organizationId: { type: "String" }, userId: { type: "String" } }
+            }
         },
         OrgMemberInvite: {
-            name: 'OrgMemberInvite',
+            name: "OrgMemberInvite",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 token: {
-                    name: 'token',
-                    type: 'String',
+                    name: "token",
+                    type: "String",
                     unique: true,
-                    attributes: [
-                        { name: '@unique' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@unique" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 email: {
-                    name: 'email',
-                    type: 'String',
+                    name: "email",
+                    type: "String"
                 },
                 role: {
-                    name: 'role',
-                    type: 'OrgMemberRole',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('MEMBER') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'MEMBER' as FieldDefault,
+                    name: "role",
+                    type: "OrgMemberRole",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("MEMBER") }] }] as readonly AttributeApplication[],
+                    default: "MEMBER" as FieldDefault
                 },
                 organization: {
-                    name: 'organization',
-                    type: 'Organization',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('organizationId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'invites',
-                        fields: ['organizationId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "organization",
+                    type: "Organization",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "invites", fields: ["organizationId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 organizationId: {
-                    name: 'organizationId',
-                    type: 'String',
-                    foreignKeyFor: ['organization'] as readonly string[],
+                    name: "organizationId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "organization"
+                    ] as readonly string[]
                 },
                 inviter: {
-                    name: 'inviter',
-                    type: 'User',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('inviterId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'sentInvites',
-                        fields: ['inviterId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "inviter",
+                    type: "User",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("inviterId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "sentInvites", fields: ["inviterId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 inviterId: {
-                    name: 'inviterId',
-                    type: 'String',
-                    foreignKeyFor: ['inviter'] as readonly string[],
+                    name: "inviterId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "inviter"
+                    ] as readonly string[]
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
-                },
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('organizationId'),
-                                ExpressionUtils.field('email'),
-                            ]),
-                        },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId"), ExpressionUtils.field("email")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                token: { type: 'String' },
-                organizationId_email: { organizationId: { type: 'String' }, email: { type: 'String' } },
-            },
+                id: { type: "String" },
+                token: { type: "String" },
+                organizationId_email: { organizationId: { type: "String" }, email: { type: "String" } }
+            }
         },
         RuntimeEnvironment: {
-            name: 'RuntimeEnvironment',
+            name: "RuntimeEnvironment",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 slug: {
-                    name: 'slug',
-                    type: 'String',
+                    name: "slug",
+                    type: "String"
                 },
                 apiKey: {
-                    name: 'apiKey',
-                    type: 'String',
+                    name: "apiKey",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 pkApiKey: {
-                    name: 'pkApiKey',
-                    type: 'String',
+                    name: "pkApiKey",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 type: {
-                    name: 'type',
-                    type: 'RuntimeEnvironmentType',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('DEVELOPMENT') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'DEVELOPMENT' as FieldDefault,
+                    name: "type",
+                    type: "RuntimeEnvironmentType",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("DEVELOPMENT") }] }] as readonly AttributeApplication[],
+                    default: "DEVELOPMENT" as FieldDefault
                 },
                 isBranchableEnvironment: {
-                    name: 'isBranchableEnvironment',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "isBranchableEnvironment",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 branchName: {
-                    name: 'branchName',
-                    type: 'String',
-                    optional: true,
+                    name: "branchName",
+                    type: "String",
+                    optional: true
                 },
                 parentEnvironment: {
-                    name: 'parentEnvironment',
-                    type: 'RuntimeEnvironment',
+                    name: "parentEnvironment",
+                    type: "RuntimeEnvironment",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                { name: 'name', value: ExpressionUtils.literal('parentEnvironment') },
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('parentEnvironmentId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'childEnvironments',
-                        name: 'parentEnvironment',
-                        fields: ['parentEnvironmentId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("parentEnvironment") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("parentEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "childEnvironments", name: "parentEnvironment", fields: ["parentEnvironmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 parentEnvironmentId: {
-                    name: 'parentEnvironmentId',
-                    type: 'String',
+                    name: "parentEnvironmentId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['parentEnvironment'] as readonly string[],
+                    foreignKeyFor: [
+                        "parentEnvironment"
+                    ] as readonly string[]
                 },
                 childEnvironments: {
-                    name: 'childEnvironments',
-                    type: 'RuntimeEnvironment',
+                    name: "childEnvironments",
+                    type: "RuntimeEnvironment",
                     array: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [{ name: 'name', value: ExpressionUtils.literal('parentEnvironment') }],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'parentEnvironment', name: 'parentEnvironment' },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("parentEnvironment") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "parentEnvironment", name: "parentEnvironment" }
                 },
                 git: {
-                    name: 'git',
-                    type: 'Json',
-                    optional: true,
+                    name: "git",
+                    type: "Json",
+                    optional: true
                 },
                 archivedAt: {
-                    name: 'archivedAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "archivedAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 shortcode: {
-                    name: 'shortcode',
-                    type: 'String',
+                    name: "shortcode",
+                    type: "String"
                 },
                 maximumConcurrencyLimit: {
-                    name: 'maximumConcurrencyLimit',
-                    type: 'Int',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(5) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 5 as FieldDefault,
+                    name: "maximumConcurrencyLimit",
+                    type: "Int",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(5) }] }] as readonly AttributeApplication[],
+                    default: 5 as FieldDefault
                 },
                 paused: {
-                    name: 'paused',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "paused",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 autoEnableInternalSources: {
-                    name: 'autoEnableInternalSources',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(true) }] },
-                    ] as readonly AttributeApplication[],
-                    default: true as FieldDefault,
+                    name: "autoEnableInternalSources",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(true) }] }] as readonly AttributeApplication[],
+                    default: true as FieldDefault
                 },
                 organization: {
-                    name: 'organization',
-                    type: 'Organization',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('organizationId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'environments',
-                        fields: ['organizationId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "organization",
+                    type: "Organization",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "environments", fields: ["organizationId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 organizationId: {
-                    name: 'organizationId',
-                    type: 'String',
-                    foreignKeyFor: ['organization'] as readonly string[],
+                    name: "organizationId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "organization"
+                    ] as readonly string[]
                 },
                 project: {
-                    name: 'project',
-                    type: 'Project',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'environments',
-                        fields: ['projectId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "project",
+                    type: "Project",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "environments", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
-                    foreignKeyFor: ['project'] as readonly string[],
+                    name: "projectId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
                 },
                 orgMember: {
-                    name: 'orgMember',
-                    type: 'OrgMember',
+                    name: "orgMember",
+                    type: "OrgMember",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('orgMemberId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('SetNull') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'environments',
-                        fields: ['orgMemberId'],
-                        references: ['id'],
-                        onDelete: 'SetNull',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("orgMemberId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "environments", fields: ["orgMemberId"], references: ["id"], onDelete: "SetNull", onUpdate: "Cascade" }
                 },
                 orgMemberId: {
-                    name: 'orgMemberId',
-                    type: 'String',
+                    name: "orgMemberId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['orgMember'] as readonly string[],
+                    foreignKeyFor: [
+                        "orgMember"
+                    ] as readonly string[]
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 tunnelId: {
-                    name: 'tunnelId',
-                    type: 'String',
-                    optional: true,
+                    name: "tunnelId",
+                    type: "String",
+                    optional: true
                 },
                 backgroundWorkers: {
-                    name: 'backgroundWorkers',
-                    type: 'BackgroundWorker',
+                    name: "backgroundWorkers",
+                    type: "BackgroundWorker",
                     array: true,
-                    relation: { opposite: 'runtimeEnvironment' },
+                    relation: { opposite: "runtimeEnvironment" }
                 },
                 backgroundWorkerTasks: {
-                    name: 'backgroundWorkerTasks',
-                    type: 'BackgroundWorkerTask',
+                    name: "backgroundWorkerTasks",
+                    type: "BackgroundWorkerTask",
                     array: true,
-                    relation: { opposite: 'runtimeEnvironment' },
+                    relation: { opposite: "runtimeEnvironment" }
                 },
                 taskRuns: {
-                    name: 'taskRuns',
-                    type: 'TaskRun',
+                    name: "taskRuns",
+                    type: "TaskRun",
                     array: true,
-                    relation: { opposite: 'runtimeEnvironment' },
+                    relation: { opposite: "runtimeEnvironment" }
                 },
                 taskQueues: {
-                    name: 'taskQueues',
-                    type: 'TaskQueue',
+                    name: "taskQueues",
+                    type: "TaskQueue",
                     array: true,
-                    relation: { opposite: 'runtimeEnvironment' },
+                    relation: { opposite: "runtimeEnvironment" }
                 },
                 batchTaskRuns: {
-                    name: 'batchTaskRuns',
-                    type: 'BatchTaskRun',
+                    name: "batchTaskRuns",
+                    type: "BatchTaskRun",
                     array: true,
-                    relation: { opposite: 'runtimeEnvironment' },
+                    relation: { opposite: "runtimeEnvironment" }
                 },
                 environmentVariableValues: {
-                    name: 'environmentVariableValues',
-                    type: 'EnvironmentVariableValue',
+                    name: "environmentVariableValues",
+                    type: "EnvironmentVariableValue",
                     array: true,
-                    relation: { opposite: 'environment' },
+                    relation: { opposite: "environment" }
                 },
                 checkpoints: {
-                    name: 'checkpoints',
-                    type: 'Checkpoint',
+                    name: "checkpoints",
+                    type: "Checkpoint",
                     array: true,
-                    relation: { opposite: 'runtimeEnvironment' },
+                    relation: { opposite: "runtimeEnvironment" }
                 },
                 workerDeployments: {
-                    name: 'workerDeployments',
-                    type: 'WorkerDeployment',
+                    name: "workerDeployments",
+                    type: "WorkerDeployment",
                     array: true,
-                    relation: { opposite: 'environment' },
+                    relation: { opposite: "environment" }
                 },
                 workerDeploymentPromotions: {
-                    name: 'workerDeploymentPromotions',
-                    type: 'WorkerDeploymentPromotion',
+                    name: "workerDeploymentPromotions",
+                    type: "WorkerDeploymentPromotion",
                     array: true,
-                    relation: { opposite: 'environment' },
+                    relation: { opposite: "environment" }
                 },
                 taskRunAttempts: {
-                    name: 'taskRunAttempts',
-                    type: 'TaskRunAttempt',
+                    name: "taskRunAttempts",
+                    type: "TaskRunAttempt",
                     array: true,
-                    relation: { opposite: 'runtimeEnvironment' },
+                    relation: { opposite: "runtimeEnvironment" }
                 },
                 CheckpointRestoreEvent: {
-                    name: 'CheckpointRestoreEvent',
-                    type: 'CheckpointRestoreEvent',
+                    name: "CheckpointRestoreEvent",
+                    type: "CheckpointRestoreEvent",
                     array: true,
-                    relation: { opposite: 'runtimeEnvironment' },
+                    relation: { opposite: "runtimeEnvironment" }
                 },
                 taskScheduleInstances: {
-                    name: 'taskScheduleInstances',
-                    type: 'TaskScheduleInstance',
+                    name: "taskScheduleInstances",
+                    type: "TaskScheduleInstance",
                     array: true,
-                    relation: { opposite: 'environment' },
+                    relation: { opposite: "environment" }
                 },
                 alerts: {
-                    name: 'alerts',
-                    type: 'ProjectAlert',
+                    name: "alerts",
+                    type: "ProjectAlert",
                     array: true,
-                    relation: { opposite: 'environment' },
+                    relation: { opposite: "environment" }
                 },
                 sessions: {
-                    name: 'sessions',
-                    type: 'RuntimeEnvironmentSession',
+                    name: "sessions",
+                    type: "RuntimeEnvironmentSession",
                     array: true,
-                    relation: { opposite: 'environment' },
+                    relation: { opposite: "environment" }
                 },
                 currentSession: {
-                    name: 'currentSession',
-                    type: 'RuntimeEnvironmentSession',
+                    name: "currentSession",
+                    type: "RuntimeEnvironmentSession",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                { name: 'name', value: ExpressionUtils.literal('currentSession') },
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('currentSessionId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('SetNull') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'currentEnvironments',
-                        name: 'currentSession',
-                        fields: ['currentSessionId'],
-                        references: ['id'],
-                        onDelete: 'SetNull',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("currentSession") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("currentSessionId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "currentEnvironments", name: "currentSession", fields: ["currentSessionId"], references: ["id"], onDelete: "SetNull", onUpdate: "Cascade" }
                 },
                 currentSessionId: {
-                    name: 'currentSessionId',
-                    type: 'String',
+                    name: "currentSessionId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['currentSession'] as readonly string[],
+                    foreignKeyFor: [
+                        "currentSession"
+                    ] as readonly string[]
                 },
                 taskRunNumberCounter: {
-                    name: 'taskRunNumberCounter',
-                    type: 'TaskRunNumberCounter',
+                    name: "taskRunNumberCounter",
+                    type: "TaskRunNumberCounter",
                     array: true,
-                    relation: { opposite: 'environment' },
+                    relation: { opposite: "environment" }
                 },
                 taskRunCheckpoints: {
-                    name: 'taskRunCheckpoints',
-                    type: 'TaskRunCheckpoint',
+                    name: "taskRunCheckpoints",
+                    type: "TaskRunCheckpoint",
                     array: true,
-                    relation: { opposite: 'runtimeEnvironment' },
+                    relation: { opposite: "runtimeEnvironment" }
                 },
                 waitpoints: {
-                    name: 'waitpoints',
-                    type: 'Waitpoint',
+                    name: "waitpoints",
+                    type: "Waitpoint",
                     array: true,
-                    relation: { opposite: 'environment' },
+                    relation: { opposite: "environment" }
                 },
                 workerInstances: {
-                    name: 'workerInstances',
-                    type: 'WorkerInstance',
+                    name: "workerInstances",
+                    type: "WorkerInstance",
                     array: true,
-                    relation: { opposite: 'environment' },
+                    relation: { opposite: "environment" }
                 },
                 executionSnapshots: {
-                    name: 'executionSnapshots',
-                    type: 'TaskRunExecutionSnapshot',
+                    name: "executionSnapshots",
+                    type: "TaskRunExecutionSnapshot",
                     array: true,
-                    relation: { opposite: 'environment' },
+                    relation: { opposite: "environment" }
                 },
                 waitpointTags: {
-                    name: 'waitpointTags',
-                    type: 'WaitpointTag',
+                    name: "waitpointTags",
+                    type: "WaitpointTag",
                     array: true,
-                    relation: { opposite: 'environment' },
-                },
+                    relation: { opposite: "environment" }
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('projectId'),
-                                ExpressionUtils.field('slug'),
-                                ExpressionUtils.field('orgMemberId'),
-                            ]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('projectId'),
-                                ExpressionUtils.field('shortcode'),
-                            ]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [ExpressionUtils.field('parentEnvironmentId')]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                        },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId"), ExpressionUtils.field("slug"), ExpressionUtils.field("orgMemberId")]) }] },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId"), ExpressionUtils.field("shortcode")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("parentEnvironmentId")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                apiKey: { type: 'String' },
-                pkApiKey: { type: 'String' },
-                projectId_slug_orgMemberId: {
-                    projectId: { type: 'String' },
-                    slug: { type: 'String' },
-                    orgMemberId: { type: 'String' },
-                },
-                projectId_shortcode: { projectId: { type: 'String' }, shortcode: { type: 'String' } },
-            },
+                id: { type: "String" },
+                apiKey: { type: "String" },
+                pkApiKey: { type: "String" },
+                projectId_slug_orgMemberId: { projectId: { type: "String" }, slug: { type: "String" }, orgMemberId: { type: "String" } },
+                projectId_shortcode: { projectId: { type: "String" }, shortcode: { type: "String" } }
+            }
         },
         Project: {
-            name: 'Project',
+            name: "Project",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 slug: {
-                    name: 'slug',
-                    type: 'String',
+                    name: "slug",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 name: {
-                    name: 'name',
-                    type: 'String',
+                    name: "name",
+                    type: "String"
                 },
                 externalRef: {
-                    name: 'externalRef',
-                    type: 'String',
+                    name: "externalRef",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 organization: {
-                    name: 'organization',
-                    type: 'Organization',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('organizationId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'projects',
-                        fields: ['organizationId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "organization",
+                    type: "Organization",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "projects", fields: ["organizationId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 organizationId: {
-                    name: 'organizationId',
-                    type: 'String',
-                    foreignKeyFor: ['organization'] as readonly string[],
+                    name: "organizationId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "organization"
+                    ] as readonly string[]
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 deletedAt: {
-                    name: 'deletedAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "deletedAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 version: {
-                    name: 'version',
-                    type: 'ProjectVersion',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('V2') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'V2' as FieldDefault,
+                    name: "version",
+                    type: "ProjectVersion",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("V2") }] }] as readonly AttributeApplication[],
+                    default: "V2" as FieldDefault
                 },
                 engine: {
-                    name: 'engine',
-                    type: 'RunEngineVersion',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('V1') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'V1' as FieldDefault,
+                    name: "engine",
+                    type: "RunEngineVersion",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("V1") }] }] as readonly AttributeApplication[],
+                    default: "V1" as FieldDefault
                 },
                 builderProjectId: {
-                    name: 'builderProjectId',
-                    type: 'String',
-                    optional: true,
+                    name: "builderProjectId",
+                    type: "String",
+                    optional: true
                 },
                 workerGroups: {
-                    name: 'workerGroups',
-                    type: 'WorkerInstanceGroup',
+                    name: "workerGroups",
+                    type: "WorkerInstanceGroup",
                     array: true,
-                    relation: { opposite: 'project' },
+                    relation: { opposite: "project" }
                 },
                 workers: {
-                    name: 'workers',
-                    type: 'WorkerInstance',
+                    name: "workers",
+                    type: "WorkerInstance",
                     array: true,
-                    relation: { opposite: 'project' },
+                    relation: { opposite: "project" }
                 },
                 defaultWorkerGroup: {
-                    name: 'defaultWorkerGroup',
-                    type: 'WorkerInstanceGroup',
+                    name: "defaultWorkerGroup",
+                    type: "WorkerInstanceGroup",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                { name: 'name', value: ExpressionUtils.literal('ProjectDefaultWorkerGroup') },
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('defaultWorkerGroupId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'defaultForProjects',
-                        name: 'ProjectDefaultWorkerGroup',
-                        fields: ['defaultWorkerGroupId'],
-                        references: ['id'],
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("ProjectDefaultWorkerGroup") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("defaultWorkerGroupId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "defaultForProjects", name: "ProjectDefaultWorkerGroup", fields: ["defaultWorkerGroupId"], references: ["id"] }
                 },
                 defaultWorkerGroupId: {
-                    name: 'defaultWorkerGroupId',
-                    type: 'String',
+                    name: "defaultWorkerGroupId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['defaultWorkerGroup'] as readonly string[],
+                    foreignKeyFor: [
+                        "defaultWorkerGroup"
+                    ] as readonly string[]
                 },
                 environments: {
-                    name: 'environments',
-                    type: 'RuntimeEnvironment',
+                    name: "environments",
+                    type: "RuntimeEnvironment",
                     array: true,
-                    relation: { opposite: 'project' },
+                    relation: { opposite: "project" }
                 },
                 backgroundWorkers: {
-                    name: 'backgroundWorkers',
-                    type: 'BackgroundWorker',
+                    name: "backgroundWorkers",
+                    type: "BackgroundWorker",
                     array: true,
-                    relation: { opposite: 'project' },
+                    relation: { opposite: "project" }
                 },
                 backgroundWorkerTasks: {
-                    name: 'backgroundWorkerTasks',
-                    type: 'BackgroundWorkerTask',
+                    name: "backgroundWorkerTasks",
+                    type: "BackgroundWorkerTask",
                     array: true,
-                    relation: { opposite: 'project' },
+                    relation: { opposite: "project" }
                 },
                 taskRuns: {
-                    name: 'taskRuns',
-                    type: 'TaskRun',
+                    name: "taskRuns",
+                    type: "TaskRun",
                     array: true,
-                    relation: { opposite: 'project' },
+                    relation: { opposite: "project" }
                 },
                 runTags: {
-                    name: 'runTags',
-                    type: 'TaskRunTag',
+                    name: "runTags",
+                    type: "TaskRunTag",
                     array: true,
-                    relation: { opposite: 'project' },
+                    relation: { opposite: "project" }
                 },
                 taskQueues: {
-                    name: 'taskQueues',
-                    type: 'TaskQueue',
+                    name: "taskQueues",
+                    type: "TaskQueue",
                     array: true,
-                    relation: { opposite: 'project' },
+                    relation: { opposite: "project" }
                 },
                 environmentVariables: {
-                    name: 'environmentVariables',
-                    type: 'EnvironmentVariable',
+                    name: "environmentVariables",
+                    type: "EnvironmentVariable",
                     array: true,
-                    relation: { opposite: 'project' },
+                    relation: { opposite: "project" }
                 },
                 checkpoints: {
-                    name: 'checkpoints',
-                    type: 'Checkpoint',
+                    name: "checkpoints",
+                    type: "Checkpoint",
                     array: true,
-                    relation: { opposite: 'project' },
+                    relation: { opposite: "project" }
                 },
                 WorkerDeployment: {
-                    name: 'WorkerDeployment',
-                    type: 'WorkerDeployment',
+                    name: "WorkerDeployment",
+                    type: "WorkerDeployment",
                     array: true,
-                    relation: { opposite: 'project' },
+                    relation: { opposite: "project" }
                 },
                 CheckpointRestoreEvent: {
-                    name: 'CheckpointRestoreEvent',
-                    type: 'CheckpointRestoreEvent',
+                    name: "CheckpointRestoreEvent",
+                    type: "CheckpointRestoreEvent",
                     array: true,
-                    relation: { opposite: 'project' },
+                    relation: { opposite: "project" }
                 },
                 taskSchedules: {
-                    name: 'taskSchedules',
-                    type: 'TaskSchedule',
+                    name: "taskSchedules",
+                    type: "TaskSchedule",
                     array: true,
-                    relation: { opposite: 'project' },
+                    relation: { opposite: "project" }
                 },
                 alertChannels: {
-                    name: 'alertChannels',
-                    type: 'ProjectAlertChannel',
+                    name: "alertChannels",
+                    type: "ProjectAlertChannel",
                     array: true,
-                    relation: { opposite: 'project' },
+                    relation: { opposite: "project" }
                 },
                 alerts: {
-                    name: 'alerts',
-                    type: 'ProjectAlert',
+                    name: "alerts",
+                    type: "ProjectAlert",
                     array: true,
-                    relation: { opposite: 'project' },
+                    relation: { opposite: "project" }
                 },
                 alertStorages: {
-                    name: 'alertStorages',
-                    type: 'ProjectAlertStorage',
+                    name: "alertStorages",
+                    type: "ProjectAlertStorage",
                     array: true,
-                    relation: { opposite: 'project' },
+                    relation: { opposite: "project" }
                 },
                 bulkActionGroups: {
-                    name: 'bulkActionGroups',
-                    type: 'BulkActionGroup',
+                    name: "bulkActionGroups",
+                    type: "BulkActionGroup",
                     array: true,
-                    relation: { opposite: 'project' },
+                    relation: { opposite: "project" }
                 },
                 BackgroundWorkerFile: {
-                    name: 'BackgroundWorkerFile',
-                    type: 'BackgroundWorkerFile',
+                    name: "BackgroundWorkerFile",
+                    type: "BackgroundWorkerFile",
                     array: true,
-                    relation: { opposite: 'project' },
+                    relation: { opposite: "project" }
                 },
                 waitpoints: {
-                    name: 'waitpoints',
-                    type: 'Waitpoint',
+                    name: "waitpoints",
+                    type: "Waitpoint",
                     array: true,
-                    relation: { opposite: 'project' },
+                    relation: { opposite: "project" }
                 },
                 taskRunWaitpoints: {
-                    name: 'taskRunWaitpoints',
-                    type: 'TaskRunWaitpoint',
+                    name: "taskRunWaitpoints",
+                    type: "TaskRunWaitpoint",
                     array: true,
-                    relation: { opposite: 'project' },
+                    relation: { opposite: "project" }
                 },
                 taskRunCheckpoints: {
-                    name: 'taskRunCheckpoints',
-                    type: 'TaskRunCheckpoint',
+                    name: "taskRunCheckpoints",
+                    type: "TaskRunCheckpoint",
                     array: true,
-                    relation: { opposite: 'project' },
+                    relation: { opposite: "project" }
                 },
                 executionSnapshots: {
-                    name: 'executionSnapshots',
-                    type: 'TaskRunExecutionSnapshot',
+                    name: "executionSnapshots",
+                    type: "TaskRunExecutionSnapshot",
                     array: true,
-                    relation: { opposite: 'project' },
+                    relation: { opposite: "project" }
                 },
                 waitpointTags: {
-                    name: 'waitpointTags',
-                    type: 'WaitpointTag',
+                    name: "waitpointTags",
+                    type: "WaitpointTag",
                     array: true,
-                    relation: { opposite: 'project' },
-                },
+                    relation: { opposite: "project" }
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                slug: { type: 'String' },
-                externalRef: { type: 'String' },
-            },
+                id: { type: "String" },
+                slug: { type: "String" },
+                externalRef: { type: "String" }
+            }
         },
         SecretReference: {
-            name: 'SecretReference',
+            name: "SecretReference",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 key: {
-                    name: 'key',
-                    type: 'String',
+                    name: "key",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 provider: {
-                    name: 'provider',
-                    type: 'SecretStoreProvider',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('DATABASE') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'DATABASE' as FieldDefault,
+                    name: "provider",
+                    type: "SecretStoreProvider",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("DATABASE") }] }] as readonly AttributeApplication[],
+                    default: "DATABASE" as FieldDefault
                 },
                 environmentVariableValues: {
-                    name: 'environmentVariableValues',
-                    type: 'EnvironmentVariableValue',
+                    name: "environmentVariableValues",
+                    type: "EnvironmentVariableValue",
                     array: true,
-                    relation: { opposite: 'valueReference' },
+                    relation: { opposite: "valueReference" }
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 OrganizationIntegration: {
-                    name: 'OrganizationIntegration',
-                    type: 'OrganizationIntegration',
+                    name: "OrganizationIntegration",
+                    type: "OrganizationIntegration",
                     array: true,
-                    relation: { opposite: 'tokenReference' },
-                },
+                    relation: { opposite: "tokenReference" }
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                key: { type: 'String' },
-            },
+                id: { type: "String" },
+                key: { type: "String" }
+            }
         },
         SecretStore: {
-            name: 'SecretStore',
+            name: "SecretStore",
             fields: {
                 key: {
-                    name: 'key',
-                    type: 'String',
+                    name: "key",
+                    type: "String",
                     id: true,
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 value: {
-                    name: 'value',
-                    type: 'Json',
+                    name: "value",
+                    type: "Json"
                 },
                 version: {
-                    name: 'version',
-                    type: 'String',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('1') }] },
-                    ] as readonly AttributeApplication[],
-                    default: '1' as FieldDefault,
+                    name: "version",
+                    type: "String",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("1") }] }] as readonly AttributeApplication[],
+                    default: "1" as FieldDefault
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
-                },
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                }
             },
             attributes: [
-                {
-                    name: '@@index',
-                    args: [
-                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('key')]) },
-                        { name: 'type', value: ExpressionUtils.literal('BTree') },
-                    ],
-                },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("key")]) }, { name: "type", value: ExpressionUtils.literal("BTree") }] }
             ] as readonly AttributeApplication[],
-            idFields: ['key'],
+            idFields: ["key"],
             uniqueFields: {
-                key: { type: 'String' },
-            },
+                key: { type: "String" }
+            }
         },
         DataMigration: {
-            name: 'DataMigration',
+            name: "DataMigration",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 name: {
-                    name: 'name',
-                    type: 'String',
+                    name: "name",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 completedAt: {
-                    name: 'completedAt',
-                    type: 'DateTime',
-                    optional: true,
-                },
+                    name: "completedAt",
+                    type: "DateTime",
+                    optional: true
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                name: { type: 'String' },
-            },
+                id: { type: "String" },
+                name: { type: "String" }
+            }
         },
         BackgroundWorker: {
-            name: 'BackgroundWorker',
+            name: "BackgroundWorker",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 friendlyId: {
-                    name: 'friendlyId',
-                    type: 'String',
+                    name: "friendlyId",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 engine: {
-                    name: 'engine',
-                    type: 'RunEngineVersion',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('V1') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'V1' as FieldDefault,
+                    name: "engine",
+                    type: "RunEngineVersion",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("V1") }] }] as readonly AttributeApplication[],
+                    default: "V1" as FieldDefault
                 },
                 contentHash: {
-                    name: 'contentHash',
-                    type: 'String',
+                    name: "contentHash",
+                    type: "String"
                 },
                 sdkVersion: {
-                    name: 'sdkVersion',
-                    type: 'String',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('unknown') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'unknown' as FieldDefault,
+                    name: "sdkVersion",
+                    type: "String",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("unknown") }] }] as readonly AttributeApplication[],
+                    default: "unknown" as FieldDefault
                 },
                 cliVersion: {
-                    name: 'cliVersion',
-                    type: 'String',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('unknown') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'unknown' as FieldDefault,
+                    name: "cliVersion",
+                    type: "String",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("unknown") }] }] as readonly AttributeApplication[],
+                    default: "unknown" as FieldDefault
                 },
                 project: {
-                    name: 'project',
-                    type: 'Project',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'backgroundWorkers',
-                        fields: ['projectId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "project",
+                    type: "Project",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "backgroundWorkers", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
-                    foreignKeyFor: ['project'] as readonly string[],
+                    name: "projectId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
                 },
                 runtimeEnvironment: {
-                    name: 'runtimeEnvironment',
-                    type: 'RuntimeEnvironment',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('runtimeEnvironmentId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'backgroundWorkers',
-                        fields: ['runtimeEnvironmentId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "runtimeEnvironment",
+                    type: "RuntimeEnvironment",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "backgroundWorkers", fields: ["runtimeEnvironmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 runtimeEnvironmentId: {
-                    name: 'runtimeEnvironmentId',
-                    type: 'String',
-                    foreignKeyFor: ['runtimeEnvironment'] as readonly string[],
+                    name: "runtimeEnvironmentId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "runtimeEnvironment"
+                    ] as readonly string[]
                 },
                 version: {
-                    name: 'version',
-                    type: 'String',
+                    name: "version",
+                    type: "String"
                 },
                 metadata: {
-                    name: 'metadata',
-                    type: 'Json',
+                    name: "metadata",
+                    type: "Json"
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 tasks: {
-                    name: 'tasks',
-                    type: 'BackgroundWorkerTask',
+                    name: "tasks",
+                    type: "BackgroundWorkerTask",
                     array: true,
-                    relation: { opposite: 'worker' },
+                    relation: { opposite: "worker" }
                 },
                 attempts: {
-                    name: 'attempts',
-                    type: 'TaskRunAttempt',
+                    name: "attempts",
+                    type: "TaskRunAttempt",
                     array: true,
-                    relation: { opposite: 'backgroundWorker' },
+                    relation: { opposite: "backgroundWorker" }
                 },
                 lockedRuns: {
-                    name: 'lockedRuns',
-                    type: 'TaskRun',
+                    name: "lockedRuns",
+                    type: "TaskRun",
                     array: true,
-                    relation: { opposite: 'lockedToVersion' },
+                    relation: { opposite: "lockedToVersion" }
                 },
                 files: {
-                    name: 'files',
-                    type: 'BackgroundWorkerFile',
+                    name: "files",
+                    type: "BackgroundWorkerFile",
                     array: true,
-                    relation: { opposite: 'backgroundWorkers' },
+                    relation: { opposite: "backgroundWorkers" }
                 },
                 queues: {
-                    name: 'queues',
-                    type: 'TaskQueue',
+                    name: "queues",
+                    type: "TaskQueue",
                     array: true,
-                    relation: { opposite: 'workers' },
+                    relation: { opposite: "workers" }
                 },
                 deployment: {
-                    name: 'deployment',
-                    type: 'WorkerDeployment',
+                    name: "deployment",
+                    type: "WorkerDeployment",
                     optional: true,
-                    relation: { opposite: 'worker' },
+                    relation: { opposite: "worker" }
                 },
                 workerGroup: {
-                    name: 'workerGroup',
-                    type: 'WorkerInstanceGroup',
+                    name: "workerGroup",
+                    type: "WorkerInstanceGroup",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('workerGroupId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('SetNull') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'backgroundWorkers',
-                        fields: ['workerGroupId'],
-                        references: ['id'],
-                        onDelete: 'SetNull',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("workerGroupId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "backgroundWorkers", fields: ["workerGroupId"], references: ["id"], onDelete: "SetNull", onUpdate: "Cascade" }
                 },
                 workerGroupId: {
-                    name: 'workerGroupId',
-                    type: 'String',
+                    name: "workerGroupId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['workerGroup'] as readonly string[],
+                    foreignKeyFor: [
+                        "workerGroup"
+                    ] as readonly string[]
                 },
                 supportsLazyAttempts: {
-                    name: 'supportsLazyAttempts',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
-                },
+                    name: "supportsLazyAttempts",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('projectId'),
-                                ExpressionUtils.field('runtimeEnvironmentId'),
-                                ExpressionUtils.field('version'),
-                            ]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [ExpressionUtils.field('runtimeEnvironmentId')]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('runtimeEnvironmentId'),
-                                ExpressionUtils.field('createdAt'),
-                            ]),
-                        },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId"), ExpressionUtils.field("runtimeEnvironmentId"), ExpressionUtils.field("version")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId"), ExpressionUtils.field("createdAt")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                friendlyId: { type: 'String' },
-                projectId_runtimeEnvironmentId_version: {
-                    projectId: { type: 'String' },
-                    runtimeEnvironmentId: { type: 'String' },
-                    version: { type: 'String' },
-                },
-            },
+                id: { type: "String" },
+                friendlyId: { type: "String" },
+                projectId_runtimeEnvironmentId_version: { projectId: { type: "String" }, runtimeEnvironmentId: { type: "String" }, version: { type: "String" } }
+            }
         },
         BackgroundWorkerFile: {
-            name: 'BackgroundWorkerFile',
+            name: "BackgroundWorkerFile",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 friendlyId: {
-                    name: 'friendlyId',
-                    type: 'String',
+                    name: "friendlyId",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 filePath: {
-                    name: 'filePath',
-                    type: 'String',
+                    name: "filePath",
+                    type: "String"
                 },
                 contentHash: {
-                    name: 'contentHash',
-                    type: 'String',
+                    name: "contentHash",
+                    type: "String"
                 },
                 contents: {
-                    name: 'contents',
-                    type: 'Bytes',
+                    name: "contents",
+                    type: "Bytes"
                 },
                 project: {
-                    name: 'project',
-                    type: 'Project',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'BackgroundWorkerFile',
-                        fields: ['projectId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "project",
+                    type: "Project",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "BackgroundWorkerFile", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
-                    foreignKeyFor: ['project'] as readonly string[],
+                    name: "projectId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
                 },
                 backgroundWorkers: {
-                    name: 'backgroundWorkers',
-                    type: 'BackgroundWorker',
+                    name: "backgroundWorkers",
+                    type: "BackgroundWorker",
                     array: true,
-                    relation: { opposite: 'files' },
+                    relation: { opposite: "files" }
                 },
                 tasks: {
-                    name: 'tasks',
-                    type: 'BackgroundWorkerTask',
+                    name: "tasks",
+                    type: "BackgroundWorkerTask",
                     array: true,
-                    relation: { opposite: 'file' },
+                    relation: { opposite: "file" }
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
-                },
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('projectId'),
-                                ExpressionUtils.field('contentHash'),
-                            ]),
-                        },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId"), ExpressionUtils.field("contentHash")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                friendlyId: { type: 'String' },
-                projectId_contentHash: { projectId: { type: 'String' }, contentHash: { type: 'String' } },
-            },
+                id: { type: "String" },
+                friendlyId: { type: "String" },
+                projectId_contentHash: { projectId: { type: "String" }, contentHash: { type: "String" } }
+            }
         },
         BackgroundWorkerTask: {
-            name: 'BackgroundWorkerTask',
+            name: "BackgroundWorkerTask",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 slug: {
-                    name: 'slug',
-                    type: 'String',
+                    name: "slug",
+                    type: "String"
                 },
                 description: {
-                    name: 'description',
-                    type: 'String',
-                    optional: true,
+                    name: "description",
+                    type: "String",
+                    optional: true
                 },
                 friendlyId: {
-                    name: 'friendlyId',
-                    type: 'String',
+                    name: "friendlyId",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 filePath: {
-                    name: 'filePath',
-                    type: 'String',
+                    name: "filePath",
+                    type: "String"
                 },
                 exportName: {
-                    name: 'exportName',
-                    type: 'String',
-                    optional: true,
+                    name: "exportName",
+                    type: "String",
+                    optional: true
                 },
                 worker: {
-                    name: 'worker',
-                    type: 'BackgroundWorker',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('workerId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'tasks',
-                        fields: ['workerId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "worker",
+                    type: "BackgroundWorker",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("workerId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "tasks", fields: ["workerId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 workerId: {
-                    name: 'workerId',
-                    type: 'String',
-                    foreignKeyFor: ['worker'] as readonly string[],
+                    name: "workerId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "worker"
+                    ] as readonly string[]
                 },
                 project: {
-                    name: 'project',
-                    type: 'Project',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'backgroundWorkerTasks',
-                        fields: ['projectId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "project",
+                    type: "Project",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "backgroundWorkerTasks", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
-                    foreignKeyFor: ['project'] as readonly string[],
+                    name: "projectId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
                 },
                 file: {
-                    name: 'file',
-                    type: 'BackgroundWorkerFile',
+                    name: "file",
+                    type: "BackgroundWorkerFile",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('fileId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'tasks',
-                        fields: ['fileId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("fileId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "tasks", fields: ["fileId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 fileId: {
-                    name: 'fileId',
-                    type: 'String',
+                    name: "fileId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['file'] as readonly string[],
+                    foreignKeyFor: [
+                        "file"
+                    ] as readonly string[]
                 },
                 runtimeEnvironment: {
-                    name: 'runtimeEnvironment',
-                    type: 'RuntimeEnvironment',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('runtimeEnvironmentId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'backgroundWorkerTasks',
-                        fields: ['runtimeEnvironmentId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "runtimeEnvironment",
+                    type: "RuntimeEnvironment",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "backgroundWorkerTasks", fields: ["runtimeEnvironmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 runtimeEnvironmentId: {
-                    name: 'runtimeEnvironmentId',
-                    type: 'String',
-                    foreignKeyFor: ['runtimeEnvironment'] as readonly string[],
+                    name: "runtimeEnvironmentId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "runtimeEnvironment"
+                    ] as readonly string[]
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 attempts: {
-                    name: 'attempts',
-                    type: 'TaskRunAttempt',
+                    name: "attempts",
+                    type: "TaskRunAttempt",
                     array: true,
-                    relation: { opposite: 'backgroundWorkerTask' },
+                    relation: { opposite: "backgroundWorkerTask" }
                 },
                 runs: {
-                    name: 'runs',
-                    type: 'TaskRun',
+                    name: "runs",
+                    type: "TaskRun",
                     array: true,
-                    relation: { opposite: 'lockedBy' },
+                    relation: { opposite: "lockedBy" }
                 },
                 queueConfig: {
-                    name: 'queueConfig',
-                    type: 'Json',
-                    optional: true,
+                    name: "queueConfig",
+                    type: "Json",
+                    optional: true
                 },
                 retryConfig: {
-                    name: 'retryConfig',
-                    type: 'Json',
-                    optional: true,
+                    name: "retryConfig",
+                    type: "Json",
+                    optional: true
                 },
                 machineConfig: {
-                    name: 'machineConfig',
-                    type: 'Json',
-                    optional: true,
+                    name: "machineConfig",
+                    type: "Json",
+                    optional: true
                 },
                 queueId: {
-                    name: 'queueId',
-                    type: 'String',
+                    name: "queueId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['queue'] as readonly string[],
+                    foreignKeyFor: [
+                        "queue"
+                    ] as readonly string[]
                 },
                 queue: {
-                    name: 'queue',
-                    type: 'TaskQueue',
+                    name: "queue",
+                    type: "TaskQueue",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('queueId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('SetNull') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'tasks',
-                        fields: ['queueId'],
-                        references: ['id'],
-                        onDelete: 'SetNull',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("queueId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "tasks", fields: ["queueId"], references: ["id"], onDelete: "SetNull", onUpdate: "Cascade" }
                 },
                 maxDurationInSeconds: {
-                    name: 'maxDurationInSeconds',
-                    type: 'Int',
-                    optional: true,
+                    name: "maxDurationInSeconds",
+                    type: "Int",
+                    optional: true
                 },
                 triggerSource: {
-                    name: 'triggerSource',
-                    type: 'TaskTriggerSource',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('STANDARD') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'STANDARD' as FieldDefault,
-                },
+                    name: "triggerSource",
+                    type: "TaskTriggerSource",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("STANDARD") }] }] as readonly AttributeApplication[],
+                    default: "STANDARD" as FieldDefault
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('workerId'),
-                                ExpressionUtils.field('slug'),
-                            ]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('projectId'),
-                                ExpressionUtils.field('slug'),
-                            ]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('runtimeEnvironmentId'),
-                                ExpressionUtils.field('projectId'),
-                            ]),
-                        },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("workerId"), ExpressionUtils.field("slug")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId"), ExpressionUtils.field("slug")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId"), ExpressionUtils.field("projectId")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                friendlyId: { type: 'String' },
-                workerId_slug: { workerId: { type: 'String' }, slug: { type: 'String' } },
-            },
+                id: { type: "String" },
+                friendlyId: { type: "String" },
+                workerId_slug: { workerId: { type: "String" }, slug: { type: "String" } }
+            }
         },
         TaskRun: {
-            name: 'TaskRun',
+            name: "TaskRun",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 number: {
-                    name: 'number',
-                    type: 'Int',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault,
+                    name: "number",
+                    type: "Int",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault
                 },
                 friendlyId: {
-                    name: 'friendlyId',
-                    type: 'String',
+                    name: "friendlyId",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 engine: {
-                    name: 'engine',
-                    type: 'RunEngineVersion',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('V1') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'V1' as FieldDefault,
+                    name: "engine",
+                    type: "RunEngineVersion",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("V1") }] }] as readonly AttributeApplication[],
+                    default: "V1" as FieldDefault
                 },
                 status: {
-                    name: 'status',
-                    type: 'TaskRunStatus',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('PENDING') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'PENDING' as FieldDefault,
+                    name: "status",
+                    type: "TaskRunStatus",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("PENDING") }] }] as readonly AttributeApplication[],
+                    default: "PENDING" as FieldDefault
                 },
                 statusReason: {
-                    name: 'statusReason',
-                    type: 'String',
-                    optional: true,
+                    name: "statusReason",
+                    type: "String",
+                    optional: true
                 },
                 idempotencyKey: {
-                    name: 'idempotencyKey',
-                    type: 'String',
-                    optional: true,
+                    name: "idempotencyKey",
+                    type: "String",
+                    optional: true
                 },
                 idempotencyKeyExpiresAt: {
-                    name: 'idempotencyKeyExpiresAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "idempotencyKeyExpiresAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 taskIdentifier: {
-                    name: 'taskIdentifier',
-                    type: 'String',
+                    name: "taskIdentifier",
+                    type: "String"
                 },
                 isTest: {
-                    name: 'isTest',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "isTest",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 payload: {
-                    name: 'payload',
-                    type: 'String',
+                    name: "payload",
+                    type: "String"
                 },
                 payloadType: {
-                    name: 'payloadType',
-                    type: 'String',
-                    attributes: [
-                        {
-                            name: '@default',
-                            args: [{ name: 'value', value: ExpressionUtils.literal('application/json') }],
-                        },
-                    ] as readonly AttributeApplication[],
-                    default: 'application/json' as FieldDefault,
+                    name: "payloadType",
+                    type: "String",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("application/json") }] }] as readonly AttributeApplication[],
+                    default: "application/json" as FieldDefault
                 },
                 context: {
-                    name: 'context',
-                    type: 'Json',
-                    optional: true,
+                    name: "context",
+                    type: "Json",
+                    optional: true
                 },
                 traceContext: {
-                    name: 'traceContext',
-                    type: 'Json',
-                    optional: true,
+                    name: "traceContext",
+                    type: "Json",
+                    optional: true
                 },
                 traceId: {
-                    name: 'traceId',
-                    type: 'String',
+                    name: "traceId",
+                    type: "String"
                 },
                 spanId: {
-                    name: 'spanId',
-                    type: 'String',
+                    name: "spanId",
+                    type: "String"
                 },
                 runtimeEnvironment: {
-                    name: 'runtimeEnvironment',
-                    type: 'RuntimeEnvironment',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('runtimeEnvironmentId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'taskRuns',
-                        fields: ['runtimeEnvironmentId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "runtimeEnvironment",
+                    type: "RuntimeEnvironment",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "taskRuns", fields: ["runtimeEnvironmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 runtimeEnvironmentId: {
-                    name: 'runtimeEnvironmentId',
-                    type: 'String',
-                    foreignKeyFor: ['runtimeEnvironment'] as readonly string[],
+                    name: "runtimeEnvironmentId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "runtimeEnvironment"
+                    ] as readonly string[]
                 },
                 environmentType: {
-                    name: 'environmentType',
-                    type: 'RuntimeEnvironmentType',
-                    optional: true,
+                    name: "environmentType",
+                    type: "RuntimeEnvironmentType",
+                    optional: true
                 },
                 project: {
-                    name: 'project',
-                    type: 'Project',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'taskRuns',
-                        fields: ['projectId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "project",
+                    type: "Project",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "taskRuns", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
-                    foreignKeyFor: ['project'] as readonly string[],
+                    name: "projectId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
                 },
                 organizationId: {
-                    name: 'organizationId',
-                    type: 'String',
-                    optional: true,
+                    name: "organizationId",
+                    type: "String",
+                    optional: true
                 },
                 queue: {
-                    name: 'queue',
-                    type: 'String',
+                    name: "queue",
+                    type: "String"
                 },
                 lockedQueueId: {
-                    name: 'lockedQueueId',
-                    type: 'String',
-                    optional: true,
+                    name: "lockedQueueId",
+                    type: "String",
+                    optional: true
                 },
                 workerQueue: {
-                    name: 'workerQueue',
-                    type: 'String',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('main') }] },
-                        { name: '@map', args: [{ name: 'name', value: ExpressionUtils.literal('masterQueue') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'main' as FieldDefault,
+                    name: "workerQueue",
+                    type: "String",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("main") }] }, { name: "@map", args: [{ name: "name", value: ExpressionUtils.literal("masterQueue") }] }] as readonly AttributeApplication[],
+                    default: "main" as FieldDefault
                 },
                 secondaryMasterQueue: {
-                    name: 'secondaryMasterQueue',
-                    type: 'String',
-                    optional: true,
+                    name: "secondaryMasterQueue",
+                    type: "String",
+                    optional: true
                 },
                 attemptNumber: {
-                    name: 'attemptNumber',
-                    type: 'Int',
-                    optional: true,
+                    name: "attemptNumber",
+                    type: "Int",
+                    optional: true
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 attempts: {
-                    name: 'attempts',
-                    type: 'TaskRunAttempt',
+                    name: "attempts",
+                    type: "TaskRunAttempt",
                     array: true,
-                    attributes: [
-                        { name: '@relation', args: [{ name: 'name', value: ExpressionUtils.literal('attempts') }] },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'taskRun', name: 'attempts' },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("attempts") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "taskRun", name: "attempts" }
                 },
                 tags: {
-                    name: 'tags',
-                    type: 'TaskRunTag',
+                    name: "tags",
+                    type: "TaskRunTag",
                     array: true,
-                    relation: { opposite: 'runs' },
+                    relation: { opposite: "runs" }
                 },
                 runTags: {
-                    name: 'runTags',
-                    type: 'String',
-                    array: true,
+                    name: "runTags",
+                    type: "String",
+                    array: true
                 },
                 taskVersion: {
-                    name: 'taskVersion',
-                    type: 'String',
-                    optional: true,
+                    name: "taskVersion",
+                    type: "String",
+                    optional: true
                 },
                 sdkVersion: {
-                    name: 'sdkVersion',
-                    type: 'String',
-                    optional: true,
+                    name: "sdkVersion",
+                    type: "String",
+                    optional: true
                 },
                 cliVersion: {
-                    name: 'cliVersion',
-                    type: 'String',
-                    optional: true,
+                    name: "cliVersion",
+                    type: "String",
+                    optional: true
                 },
                 checkpoints: {
-                    name: 'checkpoints',
-                    type: 'Checkpoint',
+                    name: "checkpoints",
+                    type: "Checkpoint",
                     array: true,
-                    relation: { opposite: 'run' },
+                    relation: { opposite: "run" }
                 },
                 startedAt: {
-                    name: 'startedAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "startedAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 executedAt: {
-                    name: 'executedAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "executedAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 completedAt: {
-                    name: 'completedAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "completedAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 machinePreset: {
-                    name: 'machinePreset',
-                    type: 'String',
-                    optional: true,
+                    name: "machinePreset",
+                    type: "String",
+                    optional: true
                 },
                 usageDurationMs: {
-                    name: 'usageDurationMs',
-                    type: 'Int',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault,
+                    name: "usageDurationMs",
+                    type: "Int",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault
                 },
                 costInCents: {
-                    name: 'costInCents',
-                    type: 'Float',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault,
+                    name: "costInCents",
+                    type: "Float",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault
                 },
                 baseCostInCents: {
-                    name: 'baseCostInCents',
-                    type: 'Float',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault,
+                    name: "baseCostInCents",
+                    type: "Float",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault
                 },
                 lockedAt: {
-                    name: 'lockedAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "lockedAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 lockedBy: {
-                    name: 'lockedBy',
-                    type: 'BackgroundWorkerTask',
+                    name: "lockedBy",
+                    type: "BackgroundWorkerTask",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('lockedById')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'runs', fields: ['lockedById'], references: ['id'] },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("lockedById")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "runs", fields: ["lockedById"], references: ["id"] }
                 },
                 lockedById: {
-                    name: 'lockedById',
-                    type: 'String',
+                    name: "lockedById",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['lockedBy'] as readonly string[],
+                    foreignKeyFor: [
+                        "lockedBy"
+                    ] as readonly string[]
                 },
                 lockedToVersion: {
-                    name: 'lockedToVersion',
-                    type: 'BackgroundWorker',
+                    name: "lockedToVersion",
+                    type: "BackgroundWorker",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('lockedToVersionId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'lockedRuns', fields: ['lockedToVersionId'], references: ['id'] },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("lockedToVersionId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "lockedRuns", fields: ["lockedToVersionId"], references: ["id"] }
                 },
                 lockedToVersionId: {
-                    name: 'lockedToVersionId',
-                    type: 'String',
+                    name: "lockedToVersionId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['lockedToVersion'] as readonly string[],
+                    foreignKeyFor: [
+                        "lockedToVersion"
+                    ] as readonly string[]
                 },
                 priorityMs: {
-                    name: 'priorityMs',
-                    type: 'Int',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault,
+                    name: "priorityMs",
+                    type: "Int",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault
                 },
                 concurrencyKey: {
-                    name: 'concurrencyKey',
-                    type: 'String',
-                    optional: true,
+                    name: "concurrencyKey",
+                    type: "String",
+                    optional: true
                 },
                 delayUntil: {
-                    name: 'delayUntil',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "delayUntil",
+                    type: "DateTime",
+                    optional: true
                 },
                 queuedAt: {
-                    name: 'queuedAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "queuedAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 ttl: {
-                    name: 'ttl',
-                    type: 'String',
-                    optional: true,
+                    name: "ttl",
+                    type: "String",
+                    optional: true
                 },
                 expiredAt: {
-                    name: 'expiredAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "expiredAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 maxAttempts: {
-                    name: 'maxAttempts',
-                    type: 'Int',
-                    optional: true,
+                    name: "maxAttempts",
+                    type: "Int",
+                    optional: true
                 },
                 oneTimeUseToken: {
-                    name: 'oneTimeUseToken',
-                    type: 'String',
-                    optional: true,
+                    name: "oneTimeUseToken",
+                    type: "String",
+                    optional: true
                 },
                 associatedWaitpoint: {
-                    name: 'associatedWaitpoint',
-                    type: 'Waitpoint',
+                    name: "associatedWaitpoint",
+                    type: "Waitpoint",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [{ name: 'name', value: ExpressionUtils.literal('CompletingRun') }],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'completedByTaskRun', name: 'CompletingRun' },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("CompletingRun") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "completedByTaskRun", name: "CompletingRun" }
                 },
                 blockedByWaitpoints: {
-                    name: 'blockedByWaitpoints',
-                    type: 'TaskRunWaitpoint',
+                    name: "blockedByWaitpoints",
+                    type: "TaskRunWaitpoint",
                     array: true,
-                    relation: { opposite: 'taskRun' },
+                    relation: { opposite: "taskRun" }
                 },
                 connectedWaitpoints: {
-                    name: 'connectedWaitpoints',
-                    type: 'Waitpoint',
+                    name: "connectedWaitpoints",
+                    type: "Waitpoint",
                     array: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [{ name: 'name', value: ExpressionUtils.literal('WaitpointRunConnections') }],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'connectedRuns', name: 'WaitpointRunConnections' },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("WaitpointRunConnections") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "connectedRuns", name: "WaitpointRunConnections" }
                 },
                 taskEventStore: {
-                    name: 'taskEventStore',
-                    type: 'String',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('taskEvent') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'taskEvent' as FieldDefault,
+                    name: "taskEventStore",
+                    type: "String",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("taskEvent") }] }] as readonly AttributeApplication[],
+                    default: "taskEvent" as FieldDefault
                 },
                 queueTimestamp: {
-                    name: 'queueTimestamp',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "queueTimestamp",
+                    type: "DateTime",
+                    optional: true
                 },
                 batchItems: {
-                    name: 'batchItems',
-                    type: 'BatchTaskRunItem',
+                    name: "batchItems",
+                    type: "BatchTaskRunItem",
                     array: true,
-                    relation: { opposite: 'taskRun' },
+                    relation: { opposite: "taskRun" }
                 },
                 dependency: {
-                    name: 'dependency',
-                    type: 'TaskRunDependency',
+                    name: "dependency",
+                    type: "TaskRunDependency",
                     optional: true,
-                    relation: { opposite: 'taskRun' },
+                    relation: { opposite: "taskRun" }
                 },
                 CheckpointRestoreEvent: {
-                    name: 'CheckpointRestoreEvent',
-                    type: 'CheckpointRestoreEvent',
+                    name: "CheckpointRestoreEvent",
+                    type: "CheckpointRestoreEvent",
                     array: true,
-                    relation: { opposite: 'run' },
+                    relation: { opposite: "run" }
                 },
                 executionSnapshots: {
-                    name: 'executionSnapshots',
-                    type: 'TaskRunExecutionSnapshot',
+                    name: "executionSnapshots",
+                    type: "TaskRunExecutionSnapshot",
                     array: true,
-                    relation: { opposite: 'run' },
+                    relation: { opposite: "run" }
                 },
                 alerts: {
-                    name: 'alerts',
-                    type: 'ProjectAlert',
+                    name: "alerts",
+                    type: "ProjectAlert",
                     array: true,
-                    relation: { opposite: 'taskRun' },
+                    relation: { opposite: "taskRun" }
                 },
                 scheduleInstanceId: {
-                    name: 'scheduleInstanceId',
-                    type: 'String',
-                    optional: true,
+                    name: "scheduleInstanceId",
+                    type: "String",
+                    optional: true
                 },
                 scheduleId: {
-                    name: 'scheduleId',
-                    type: 'String',
-                    optional: true,
+                    name: "scheduleId",
+                    type: "String",
+                    optional: true
                 },
                 sourceBulkActionItems: {
-                    name: 'sourceBulkActionItems',
-                    type: 'BulkActionItem',
+                    name: "sourceBulkActionItems",
+                    type: "BulkActionItem",
                     array: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [{ name: 'name', value: ExpressionUtils.literal('SourceActionItemRun') }],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'sourceRun', name: 'SourceActionItemRun' },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("SourceActionItemRun") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "sourceRun", name: "SourceActionItemRun" }
                 },
                 destinationBulkActionItems: {
-                    name: 'destinationBulkActionItems',
-                    type: 'BulkActionItem',
+                    name: "destinationBulkActionItems",
+                    type: "BulkActionItem",
                     array: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [{ name: 'name', value: ExpressionUtils.literal('DestinationActionItemRun') }],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'destinationRun', name: 'DestinationActionItemRun' },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("DestinationActionItemRun") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "destinationRun", name: "DestinationActionItemRun" }
                 },
                 logsDeletedAt: {
-                    name: 'logsDeletedAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "logsDeletedAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 rootTaskRun: {
-                    name: 'rootTaskRun',
-                    type: 'TaskRun',
+                    name: "rootTaskRun",
+                    type: "TaskRun",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                { name: 'name', value: ExpressionUtils.literal('TaskRootRun') },
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('rootTaskRunId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('SetNull') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('NoAction') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'descendantRuns',
-                        name: 'TaskRootRun',
-                        fields: ['rootTaskRunId'],
-                        references: ['id'],
-                        onDelete: 'SetNull',
-                        onUpdate: 'NoAction',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("TaskRootRun") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("rootTaskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("NoAction") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "descendantRuns", name: "TaskRootRun", fields: ["rootTaskRunId"], references: ["id"], onDelete: "SetNull", onUpdate: "NoAction" }
                 },
                 rootTaskRunId: {
-                    name: 'rootTaskRunId',
-                    type: 'String',
+                    name: "rootTaskRunId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['rootTaskRun'] as readonly string[],
+                    foreignKeyFor: [
+                        "rootTaskRun"
+                    ] as readonly string[]
                 },
                 descendantRuns: {
-                    name: 'descendantRuns',
-                    type: 'TaskRun',
+                    name: "descendantRuns",
+                    type: "TaskRun",
                     array: true,
-                    attributes: [
-                        { name: '@relation', args: [{ name: 'name', value: ExpressionUtils.literal('TaskRootRun') }] },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'rootTaskRun', name: 'TaskRootRun' },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("TaskRootRun") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "rootTaskRun", name: "TaskRootRun" }
                 },
                 parentTaskRun: {
-                    name: 'parentTaskRun',
-                    type: 'TaskRun',
+                    name: "parentTaskRun",
+                    type: "TaskRun",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                { name: 'name', value: ExpressionUtils.literal('TaskParentRun') },
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('parentTaskRunId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('SetNull') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('NoAction') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'childRuns',
-                        name: 'TaskParentRun',
-                        fields: ['parentTaskRunId'],
-                        references: ['id'],
-                        onDelete: 'SetNull',
-                        onUpdate: 'NoAction',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("TaskParentRun") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("parentTaskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("NoAction") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "childRuns", name: "TaskParentRun", fields: ["parentTaskRunId"], references: ["id"], onDelete: "SetNull", onUpdate: "NoAction" }
                 },
                 parentTaskRunId: {
-                    name: 'parentTaskRunId',
-                    type: 'String',
+                    name: "parentTaskRunId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['parentTaskRun'] as readonly string[],
+                    foreignKeyFor: [
+                        "parentTaskRun"
+                    ] as readonly string[]
                 },
                 childRuns: {
-                    name: 'childRuns',
-                    type: 'TaskRun',
+                    name: "childRuns",
+                    type: "TaskRun",
                     array: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [{ name: 'name', value: ExpressionUtils.literal('TaskParentRun') }],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'parentTaskRun', name: 'TaskParentRun' },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("TaskParentRun") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "parentTaskRun", name: "TaskParentRun" }
                 },
                 parentTaskRunAttempt: {
-                    name: 'parentTaskRunAttempt',
-                    type: 'TaskRunAttempt',
+                    name: "parentTaskRunAttempt",
+                    type: "TaskRunAttempt",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                { name: 'name', value: ExpressionUtils.literal('TaskParentRunAttempt') },
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('parentTaskRunAttemptId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('SetNull') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('NoAction') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'childRuns',
-                        name: 'TaskParentRunAttempt',
-                        fields: ['parentTaskRunAttemptId'],
-                        references: ['id'],
-                        onDelete: 'SetNull',
-                        onUpdate: 'NoAction',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("TaskParentRunAttempt") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("parentTaskRunAttemptId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("NoAction") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "childRuns", name: "TaskParentRunAttempt", fields: ["parentTaskRunAttemptId"], references: ["id"], onDelete: "SetNull", onUpdate: "NoAction" }
                 },
                 parentTaskRunAttemptId: {
-                    name: 'parentTaskRunAttemptId',
-                    type: 'String',
+                    name: "parentTaskRunAttemptId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['parentTaskRunAttempt'] as readonly string[],
+                    foreignKeyFor: [
+                        "parentTaskRunAttempt"
+                    ] as readonly string[]
                 },
                 batch: {
-                    name: 'batch',
-                    type: 'BatchTaskRun',
+                    name: "batch",
+                    type: "BatchTaskRun",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('batchId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('SetNull') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('NoAction') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'runs',
-                        fields: ['batchId'],
-                        references: ['id'],
-                        onDelete: 'SetNull',
-                        onUpdate: 'NoAction',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("batchId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("NoAction") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "runs", fields: ["batchId"], references: ["id"], onDelete: "SetNull", onUpdate: "NoAction" }
                 },
                 batchId: {
-                    name: 'batchId',
-                    type: 'String',
+                    name: "batchId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['batch'] as readonly string[],
+                    foreignKeyFor: [
+                        "batch"
+                    ] as readonly string[]
                 },
                 resumeParentOnCompletion: {
-                    name: 'resumeParentOnCompletion',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "resumeParentOnCompletion",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 depth: {
-                    name: 'depth',
-                    type: 'Int',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault,
+                    name: "depth",
+                    type: "Int",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault
                 },
                 parentSpanId: {
-                    name: 'parentSpanId',
-                    type: 'String',
-                    optional: true,
+                    name: "parentSpanId",
+                    type: "String",
+                    optional: true
                 },
                 runChainState: {
-                    name: 'runChainState',
-                    type: 'Json',
-                    optional: true,
+                    name: "runChainState",
+                    type: "Json",
+                    optional: true
                 },
                 seedMetadata: {
-                    name: 'seedMetadata',
-                    type: 'String',
-                    optional: true,
+                    name: "seedMetadata",
+                    type: "String",
+                    optional: true
                 },
                 seedMetadataType: {
-                    name: 'seedMetadataType',
-                    type: 'String',
-                    attributes: [
-                        {
-                            name: '@default',
-                            args: [{ name: 'value', value: ExpressionUtils.literal('application/json') }],
-                        },
-                    ] as readonly AttributeApplication[],
-                    default: 'application/json' as FieldDefault,
+                    name: "seedMetadataType",
+                    type: "String",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("application/json") }] }] as readonly AttributeApplication[],
+                    default: "application/json" as FieldDefault
                 },
                 metadata: {
-                    name: 'metadata',
-                    type: 'String',
-                    optional: true,
+                    name: "metadata",
+                    type: "String",
+                    optional: true
                 },
                 metadataType: {
-                    name: 'metadataType',
-                    type: 'String',
-                    attributes: [
-                        {
-                            name: '@default',
-                            args: [{ name: 'value', value: ExpressionUtils.literal('application/json') }],
-                        },
-                    ] as readonly AttributeApplication[],
-                    default: 'application/json' as FieldDefault,
+                    name: "metadataType",
+                    type: "String",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("application/json") }] }] as readonly AttributeApplication[],
+                    default: "application/json" as FieldDefault
                 },
                 metadataVersion: {
-                    name: 'metadataVersion',
-                    type: 'Int',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(1) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 1 as FieldDefault,
+                    name: "metadataVersion",
+                    type: "Int",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(1) }] }] as readonly AttributeApplication[],
+                    default: 1 as FieldDefault
                 },
                 output: {
-                    name: 'output',
-                    type: 'String',
-                    optional: true,
+                    name: "output",
+                    type: "String",
+                    optional: true
                 },
                 outputType: {
-                    name: 'outputType',
-                    type: 'String',
-                    attributes: [
-                        {
-                            name: '@default',
-                            args: [{ name: 'value', value: ExpressionUtils.literal('application/json') }],
-                        },
-                    ] as readonly AttributeApplication[],
-                    default: 'application/json' as FieldDefault,
+                    name: "outputType",
+                    type: "String",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("application/json") }] }] as readonly AttributeApplication[],
+                    default: "application/json" as FieldDefault
                 },
                 error: {
-                    name: 'error',
-                    type: 'Json',
-                    optional: true,
+                    name: "error",
+                    type: "Json",
+                    optional: true
                 },
                 maxDurationInSeconds: {
-                    name: 'maxDurationInSeconds',
-                    type: 'Int',
-                    optional: true,
-                },
+                    name: "maxDurationInSeconds",
+                    type: "Int",
+                    optional: true
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [ExpressionUtils.field('oneTimeUseToken')]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('runtimeEnvironmentId'),
-                                ExpressionUtils.field('taskIdentifier'),
-                                ExpressionUtils.field('idempotencyKey'),
-                            ]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [ExpressionUtils.field('parentTaskRunId')]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [ExpressionUtils.field('rootTaskRunId')]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [ExpressionUtils.field('scheduleId')]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('spanId')]) },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [ExpressionUtils.field('parentSpanId')]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('scheduleId'),
-                                ExpressionUtils.field('createdAt'),
-                            ]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('runTags')]) },
-                        { name: 'type', value: ExpressionUtils.literal('Gin') },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('runtimeEnvironmentId'),
-                                ExpressionUtils.field('batchId'),
-                            ]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('runtimeEnvironmentId'),
-                                ExpressionUtils.field('id'),
-                            ]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('runtimeEnvironmentId'),
-                                ExpressionUtils.field('createdAt'),
-                            ]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('DateTime', [ExpressionUtils.field('createdAt')]),
-                        },
-                        { name: 'type', value: ExpressionUtils.literal('Brin') },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('TaskRunStatus', [
-                                ExpressionUtils.field('status'),
-                                ExpressionUtils.field('runtimeEnvironmentId'),
-                                ExpressionUtils.field('createdAt'),
-                                ExpressionUtils.field('id'),
-                            ]),
-                        },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("oneTimeUseToken")]) }] },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId"), ExpressionUtils.field("taskIdentifier"), ExpressionUtils.field("idempotencyKey")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("parentTaskRunId")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("rootTaskRunId")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("scheduleId")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("spanId")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("parentSpanId")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("scheduleId"), ExpressionUtils.field("createdAt")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runTags")]) }, { name: "type", value: ExpressionUtils.literal("Gin") }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId"), ExpressionUtils.field("batchId")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId"), ExpressionUtils.field("id")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId"), ExpressionUtils.field("createdAt")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("DateTime", [ExpressionUtils.field("createdAt")]) }, { name: "type", value: ExpressionUtils.literal("Brin") }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("TaskRunStatus", [ExpressionUtils.field("status"), ExpressionUtils.field("runtimeEnvironmentId"), ExpressionUtils.field("createdAt"), ExpressionUtils.field("id")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                friendlyId: { type: 'String' },
-                oneTimeUseToken: { type: 'String' },
-                runtimeEnvironmentId_taskIdentifier_idempotencyKey: {
-                    runtimeEnvironmentId: { type: 'String' },
-                    taskIdentifier: { type: 'String' },
-                    idempotencyKey: { type: 'String' },
-                },
-            },
+                id: { type: "String" },
+                friendlyId: { type: "String" },
+                oneTimeUseToken: { type: "String" },
+                runtimeEnvironmentId_taskIdentifier_idempotencyKey: { runtimeEnvironmentId: { type: "String" }, taskIdentifier: { type: "String" }, idempotencyKey: { type: "String" } }
+            }
         },
         TaskRunExecutionSnapshot: {
-            name: 'TaskRunExecutionSnapshot',
+            name: "TaskRunExecutionSnapshot",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 engine: {
-                    name: 'engine',
-                    type: 'RunEngineVersion',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('V2') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'V2' as FieldDefault,
+                    name: "engine",
+                    type: "RunEngineVersion",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("V2") }] }] as readonly AttributeApplication[],
+                    default: "V2" as FieldDefault
                 },
                 executionStatus: {
-                    name: 'executionStatus',
-                    type: 'TaskRunExecutionStatus',
+                    name: "executionStatus",
+                    type: "TaskRunExecutionStatus"
                 },
                 description: {
-                    name: 'description',
-                    type: 'String',
+                    name: "description",
+                    type: "String"
                 },
                 isValid: {
-                    name: 'isValid',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(true) }] },
-                    ] as readonly AttributeApplication[],
-                    default: true as FieldDefault,
+                    name: "isValid",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(true) }] }] as readonly AttributeApplication[],
+                    default: true as FieldDefault
                 },
                 error: {
-                    name: 'error',
-                    type: 'String',
-                    optional: true,
+                    name: "error",
+                    type: "String",
+                    optional: true
                 },
                 previousSnapshotId: {
-                    name: 'previousSnapshotId',
-                    type: 'String',
-                    optional: true,
+                    name: "previousSnapshotId",
+                    type: "String",
+                    optional: true
                 },
                 runId: {
-                    name: 'runId',
-                    type: 'String',
-                    foreignKeyFor: ['run'] as readonly string[],
+                    name: "runId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "run"
+                    ] as readonly string[]
                 },
                 run: {
-                    name: 'run',
-                    type: 'TaskRun',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('runId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'executionSnapshots', fields: ['runId'], references: ['id'] },
+                    name: "run",
+                    type: "TaskRun",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "executionSnapshots", fields: ["runId"], references: ["id"] }
                 },
                 runStatus: {
-                    name: 'runStatus',
-                    type: 'TaskRunStatus',
+                    name: "runStatus",
+                    type: "TaskRunStatus"
                 },
                 batchId: {
-                    name: 'batchId',
-                    type: 'String',
+                    name: "batchId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['batch'] as readonly string[],
+                    foreignKeyFor: [
+                        "batch"
+                    ] as readonly string[]
                 },
                 batch: {
-                    name: 'batch',
-                    type: 'BatchTaskRun',
+                    name: "batch",
+                    type: "BatchTaskRun",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('batchId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'executionSnapshots', fields: ['batchId'], references: ['id'] },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("batchId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "executionSnapshots", fields: ["batchId"], references: ["id"] }
                 },
                 attemptNumber: {
-                    name: 'attemptNumber',
-                    type: 'Int',
-                    optional: true,
+                    name: "attemptNumber",
+                    type: "Int",
+                    optional: true
                 },
                 environmentId: {
-                    name: 'environmentId',
-                    type: 'String',
-                    foreignKeyFor: ['environment'] as readonly string[],
+                    name: "environmentId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "environment"
+                    ] as readonly string[]
                 },
                 environment: {
-                    name: 'environment',
-                    type: 'RuntimeEnvironment',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('environmentId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'executionSnapshots', fields: ['environmentId'], references: ['id'] },
+                    name: "environment",
+                    type: "RuntimeEnvironment",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "executionSnapshots", fields: ["environmentId"], references: ["id"] }
                 },
                 environmentType: {
-                    name: 'environmentType',
-                    type: 'RuntimeEnvironmentType',
+                    name: "environmentType",
+                    type: "RuntimeEnvironmentType"
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
-                    foreignKeyFor: ['project'] as readonly string[],
+                    name: "projectId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
                 },
                 project: {
-                    name: 'project',
-                    type: 'Project',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'executionSnapshots', fields: ['projectId'], references: ['id'] },
+                    name: "project",
+                    type: "Project",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "executionSnapshots", fields: ["projectId"], references: ["id"] }
                 },
                 organizationId: {
-                    name: 'organizationId',
-                    type: 'String',
-                    foreignKeyFor: ['organization'] as readonly string[],
+                    name: "organizationId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "organization"
+                    ] as readonly string[]
                 },
                 organization: {
-                    name: 'organization',
-                    type: 'Organization',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('organizationId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'executionSnapshots', fields: ['organizationId'], references: ['id'] },
+                    name: "organization",
+                    type: "Organization",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "executionSnapshots", fields: ["organizationId"], references: ["id"] }
                 },
                 completedWaitpoints: {
-                    name: 'completedWaitpoints',
-                    type: 'Waitpoint',
+                    name: "completedWaitpoints",
+                    type: "Waitpoint",
                     array: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [{ name: 'name', value: ExpressionUtils.literal('completedWaitpoints') }],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'completedExecutionSnapshots', name: 'completedWaitpoints' },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("completedWaitpoints") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "completedExecutionSnapshots", name: "completedWaitpoints" }
                 },
                 completedWaitpointOrder: {
-                    name: 'completedWaitpointOrder',
-                    type: 'String',
-                    array: true,
+                    name: "completedWaitpointOrder",
+                    type: "String",
+                    array: true
                 },
                 checkpointId: {
-                    name: 'checkpointId',
-                    type: 'String',
+                    name: "checkpointId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['checkpoint'] as readonly string[],
+                    foreignKeyFor: [
+                        "checkpoint"
+                    ] as readonly string[]
                 },
                 checkpoint: {
-                    name: 'checkpoint',
-                    type: 'TaskRunCheckpoint',
+                    name: "checkpoint",
+                    type: "TaskRunCheckpoint",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('checkpointId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'executionSnapshot', fields: ['checkpointId'], references: ['id'] },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("checkpointId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "executionSnapshot", fields: ["checkpointId"], references: ["id"] }
                 },
                 workerId: {
-                    name: 'workerId',
-                    type: 'String',
+                    name: "workerId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['worker'] as readonly string[],
+                    foreignKeyFor: [
+                        "worker"
+                    ] as readonly string[]
                 },
                 worker: {
-                    name: 'worker',
-                    type: 'WorkerInstance',
+                    name: "worker",
+                    type: "WorkerInstance",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('workerId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'TaskRunExecutionSnapshot', fields: ['workerId'], references: ['id'] },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("workerId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "TaskRunExecutionSnapshot", fields: ["workerId"], references: ["id"] }
                 },
                 runnerId: {
-                    name: 'runnerId',
-                    type: 'String',
-                    optional: true,
+                    name: "runnerId",
+                    type: "String",
+                    optional: true
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 lastHeartbeatAt: {
-                    name: 'lastHeartbeatAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "lastHeartbeatAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 metadata: {
-                    name: 'metadata',
-                    type: 'Json',
-                    optional: true,
-                },
+                    name: "metadata",
+                    type: "Json",
+                    optional: true
+                }
             },
             attributes: [
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('runId'),
-                                ExpressionUtils.field('isValid'),
-                                ExpressionUtils.field('createdAt'),
-                            ]),
-                        },
-                    ],
-                },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runId"), ExpressionUtils.field("isValid"), ExpressionUtils.field("createdAt")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-            },
+                id: { type: "String" }
+            }
         },
         TaskRunCheckpoint: {
-            name: 'TaskRunCheckpoint',
+            name: "TaskRunCheckpoint",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 friendlyId: {
-                    name: 'friendlyId',
-                    type: 'String',
+                    name: "friendlyId",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 type: {
-                    name: 'type',
-                    type: 'TaskRunCheckpointType',
+                    name: "type",
+                    type: "TaskRunCheckpointType"
                 },
                 location: {
-                    name: 'location',
-                    type: 'String',
+                    name: "location",
+                    type: "String"
                 },
                 imageRef: {
-                    name: 'imageRef',
-                    type: 'String',
-                    optional: true,
+                    name: "imageRef",
+                    type: "String",
+                    optional: true
                 },
                 reason: {
-                    name: 'reason',
-                    type: 'String',
-                    optional: true,
+                    name: "reason",
+                    type: "String",
+                    optional: true
                 },
                 metadata: {
-                    name: 'metadata',
-                    type: 'String',
-                    optional: true,
+                    name: "metadata",
+                    type: "String",
+                    optional: true
                 },
                 project: {
-                    name: 'project',
-                    type: 'Project',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'taskRunCheckpoints',
-                        fields: ['projectId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "project",
+                    type: "Project",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "taskRunCheckpoints", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
-                    foreignKeyFor: ['project'] as readonly string[],
+                    name: "projectId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
                 },
                 runtimeEnvironment: {
-                    name: 'runtimeEnvironment',
-                    type: 'RuntimeEnvironment',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('runtimeEnvironmentId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'taskRunCheckpoints',
-                        fields: ['runtimeEnvironmentId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "runtimeEnvironment",
+                    type: "RuntimeEnvironment",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "taskRunCheckpoints", fields: ["runtimeEnvironmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 runtimeEnvironmentId: {
-                    name: 'runtimeEnvironmentId',
-                    type: 'String',
-                    foreignKeyFor: ['runtimeEnvironment'] as readonly string[],
+                    name: "runtimeEnvironmentId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "runtimeEnvironment"
+                    ] as readonly string[]
                 },
                 executionSnapshot: {
-                    name: 'executionSnapshot',
-                    type: 'TaskRunExecutionSnapshot',
+                    name: "executionSnapshot",
+                    type: "TaskRunExecutionSnapshot",
                     array: true,
-                    relation: { opposite: 'checkpoint' },
+                    relation: { opposite: "checkpoint" }
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
-                },
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                friendlyId: { type: 'String' },
-            },
+                id: { type: "String" },
+                friendlyId: { type: "String" }
+            }
         },
         Waitpoint: {
-            name: 'Waitpoint',
+            name: "Waitpoint",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 friendlyId: {
-                    name: 'friendlyId',
-                    type: 'String',
+                    name: "friendlyId",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 type: {
-                    name: 'type',
-                    type: 'WaitpointType',
+                    name: "type",
+                    type: "WaitpointType"
                 },
                 status: {
-                    name: 'status',
-                    type: 'WaitpointStatus',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('PENDING') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'PENDING' as FieldDefault,
+                    name: "status",
+                    type: "WaitpointStatus",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("PENDING") }] }] as readonly AttributeApplication[],
+                    default: "PENDING" as FieldDefault
                 },
                 completedAt: {
-                    name: 'completedAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "completedAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 idempotencyKey: {
-                    name: 'idempotencyKey',
-                    type: 'String',
+                    name: "idempotencyKey",
+                    type: "String"
                 },
                 userProvidedIdempotencyKey: {
-                    name: 'userProvidedIdempotencyKey',
-                    type: 'Boolean',
+                    name: "userProvidedIdempotencyKey",
+                    type: "Boolean"
                 },
                 idempotencyKeyExpiresAt: {
-                    name: 'idempotencyKeyExpiresAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "idempotencyKeyExpiresAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 inactiveIdempotencyKey: {
-                    name: 'inactiveIdempotencyKey',
-                    type: 'String',
-                    optional: true,
+                    name: "inactiveIdempotencyKey",
+                    type: "String",
+                    optional: true
                 },
                 completedByTaskRunId: {
-                    name: 'completedByTaskRunId',
-                    type: 'String',
+                    name: "completedByTaskRunId",
+                    type: "String",
                     unique: true,
                     optional: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
-                    foreignKeyFor: ['completedByTaskRun'] as readonly string[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[],
+                    foreignKeyFor: [
+                        "completedByTaskRun"
+                    ] as readonly string[]
                 },
                 completedByTaskRun: {
-                    name: 'completedByTaskRun',
-                    type: 'TaskRun',
+                    name: "completedByTaskRun",
+                    type: "TaskRun",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                { name: 'name', value: ExpressionUtils.literal('CompletingRun') },
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('completedByTaskRunId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('SetNull') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'associatedWaitpoint',
-                        name: 'CompletingRun',
-                        fields: ['completedByTaskRunId'],
-                        references: ['id'],
-                        onDelete: 'SetNull',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("CompletingRun") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("completedByTaskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "associatedWaitpoint", name: "CompletingRun", fields: ["completedByTaskRunId"], references: ["id"], onDelete: "SetNull" }
                 },
                 completedAfter: {
-                    name: 'completedAfter',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "completedAfter",
+                    type: "DateTime",
+                    optional: true
                 },
                 completedByBatchId: {
-                    name: 'completedByBatchId',
-                    type: 'String',
+                    name: "completedByBatchId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['completedByBatch'] as readonly string[],
+                    foreignKeyFor: [
+                        "completedByBatch"
+                    ] as readonly string[]
                 },
                 completedByBatch: {
-                    name: 'completedByBatch',
-                    type: 'BatchTaskRun',
+                    name: "completedByBatch",
+                    type: "BatchTaskRun",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('completedByBatchId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('SetNull') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'waitpoints',
-                        fields: ['completedByBatchId'],
-                        references: ['id'],
-                        onDelete: 'SetNull',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("completedByBatchId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "waitpoints", fields: ["completedByBatchId"], references: ["id"], onDelete: "SetNull" }
                 },
                 blockingTaskRuns: {
-                    name: 'blockingTaskRuns',
-                    type: 'TaskRunWaitpoint',
+                    name: "blockingTaskRuns",
+                    type: "TaskRunWaitpoint",
                     array: true,
-                    relation: { opposite: 'waitpoint' },
+                    relation: { opposite: "waitpoint" }
                 },
                 connectedRuns: {
-                    name: 'connectedRuns',
-                    type: 'TaskRun',
+                    name: "connectedRuns",
+                    type: "TaskRun",
                     array: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [{ name: 'name', value: ExpressionUtils.literal('WaitpointRunConnections') }],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'connectedWaitpoints', name: 'WaitpointRunConnections' },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("WaitpointRunConnections") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "connectedWaitpoints", name: "WaitpointRunConnections" }
                 },
                 completedExecutionSnapshots: {
-                    name: 'completedExecutionSnapshots',
-                    type: 'TaskRunExecutionSnapshot',
+                    name: "completedExecutionSnapshots",
+                    type: "TaskRunExecutionSnapshot",
                     array: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [{ name: 'name', value: ExpressionUtils.literal('completedWaitpoints') }],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'completedWaitpoints', name: 'completedWaitpoints' },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("completedWaitpoints") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "completedWaitpoints", name: "completedWaitpoints" }
                 },
                 output: {
-                    name: 'output',
-                    type: 'String',
-                    optional: true,
+                    name: "output",
+                    type: "String",
+                    optional: true
                 },
                 outputType: {
-                    name: 'outputType',
-                    type: 'String',
-                    attributes: [
-                        {
-                            name: '@default',
-                            args: [{ name: 'value', value: ExpressionUtils.literal('application/json') }],
-                        },
-                    ] as readonly AttributeApplication[],
-                    default: 'application/json' as FieldDefault,
+                    name: "outputType",
+                    type: "String",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("application/json") }] }] as readonly AttributeApplication[],
+                    default: "application/json" as FieldDefault
                 },
                 outputIsError: {
-                    name: 'outputIsError',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "outputIsError",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 project: {
-                    name: 'project',
-                    type: 'Project',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'waitpoints',
-                        fields: ['projectId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "project",
+                    type: "Project",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "waitpoints", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
-                    foreignKeyFor: ['project'] as readonly string[],
+                    name: "projectId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
                 },
                 environment: {
-                    name: 'environment',
-                    type: 'RuntimeEnvironment',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('environmentId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'waitpoints',
-                        fields: ['environmentId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "environment",
+                    type: "RuntimeEnvironment",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "waitpoints", fields: ["environmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 environmentId: {
-                    name: 'environmentId',
-                    type: 'String',
-                    foreignKeyFor: ['environment'] as readonly string[],
+                    name: "environmentId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "environment"
+                    ] as readonly string[]
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 tags: {
-                    name: 'tags',
-                    type: 'String',
-                    array: true,
-                },
+                    name: "tags",
+                    type: "String",
+                    array: true
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('environmentId'),
-                                ExpressionUtils.field('idempotencyKey'),
-                            ]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [ExpressionUtils.field('completedByBatchId')]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('environmentId'),
-                                ExpressionUtils.field('type'),
-                                ExpressionUtils.field('createdAt'),
-                            ]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('environmentId'),
-                                ExpressionUtils.field('type'),
-                                ExpressionUtils.field('status'),
-                            ]),
-                        },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId"), ExpressionUtils.field("idempotencyKey")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("completedByBatchId")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId"), ExpressionUtils.field("type"), ExpressionUtils.field("createdAt")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId"), ExpressionUtils.field("type"), ExpressionUtils.field("status")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                friendlyId: { type: 'String' },
-                completedByTaskRunId: { type: 'String' },
-                environmentId_idempotencyKey: { environmentId: { type: 'String' }, idempotencyKey: { type: 'String' } },
-            },
+                id: { type: "String" },
+                friendlyId: { type: "String" },
+                completedByTaskRunId: { type: "String" },
+                environmentId_idempotencyKey: { environmentId: { type: "String" }, idempotencyKey: { type: "String" } }
+            }
         },
         TaskRunWaitpoint: {
-            name: 'TaskRunWaitpoint',
+            name: "TaskRunWaitpoint",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 taskRun: {
-                    name: 'taskRun',
-                    type: 'TaskRun',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('taskRunId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'blockedByWaitpoints', fields: ['taskRunId'], references: ['id'] },
+                    name: "taskRun",
+                    type: "TaskRun",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "blockedByWaitpoints", fields: ["taskRunId"], references: ["id"] }
                 },
                 taskRunId: {
-                    name: 'taskRunId',
-                    type: 'String',
-                    foreignKeyFor: ['taskRun'] as readonly string[],
+                    name: "taskRunId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "taskRun"
+                    ] as readonly string[]
                 },
                 waitpoint: {
-                    name: 'waitpoint',
-                    type: 'Waitpoint',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('waitpointId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'blockingTaskRuns', fields: ['waitpointId'], references: ['id'] },
+                    name: "waitpoint",
+                    type: "Waitpoint",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("waitpointId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "blockingTaskRuns", fields: ["waitpointId"], references: ["id"] }
                 },
                 waitpointId: {
-                    name: 'waitpointId',
-                    type: 'String',
-                    foreignKeyFor: ['waitpoint'] as readonly string[],
+                    name: "waitpointId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "waitpoint"
+                    ] as readonly string[]
                 },
                 project: {
-                    name: 'project',
-                    type: 'Project',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'taskRunWaitpoints',
-                        fields: ['projectId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "project",
+                    type: "Project",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "taskRunWaitpoints", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
-                    foreignKeyFor: ['project'] as readonly string[],
+                    name: "projectId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
                 },
                 spanIdToComplete: {
-                    name: 'spanIdToComplete',
-                    type: 'String',
-                    optional: true,
+                    name: "spanIdToComplete",
+                    type: "String",
+                    optional: true
                 },
                 batchId: {
-                    name: 'batchId',
-                    type: 'String',
+                    name: "batchId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['batch'] as readonly string[],
+                    foreignKeyFor: [
+                        "batch"
+                    ] as readonly string[]
                 },
                 batch: {
-                    name: 'batch',
-                    type: 'BatchTaskRun',
+                    name: "batch",
+                    type: "BatchTaskRun",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('batchId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'runsBlocked', fields: ['batchId'], references: ['id'] },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("batchId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "runsBlocked", fields: ["batchId"], references: ["id"] }
                 },
                 batchIndex: {
-                    name: 'batchIndex',
-                    type: 'Int',
-                    optional: true,
+                    name: "batchIndex",
+                    type: "Int",
+                    optional: true
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
-                },
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('taskRunId'),
-                                ExpressionUtils.field('waitpointId'),
-                                ExpressionUtils.field('batchIndex'),
-                            ]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [ExpressionUtils.field('taskRunId')]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [ExpressionUtils.field('waitpointId')]),
-                        },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunId"), ExpressionUtils.field("waitpointId"), ExpressionUtils.field("batchIndex")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunId")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("waitpointId")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                taskRunId_waitpointId_batchIndex: {
-                    taskRunId: { type: 'String' },
-                    waitpointId: { type: 'String' },
-                    batchIndex: { type: 'Int' },
-                },
-            },
+                id: { type: "String" },
+                taskRunId_waitpointId_batchIndex: { taskRunId: { type: "String" }, waitpointId: { type: "String" }, batchIndex: { type: "Int" } }
+            }
         },
         WaitpointTag: {
-            name: 'WaitpointTag',
+            name: "WaitpointTag",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 name: {
-                    name: 'name',
-                    type: 'String',
+                    name: "name",
+                    type: "String"
                 },
                 environment: {
-                    name: 'environment',
-                    type: 'RuntimeEnvironment',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('environmentId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'waitpointTags',
-                        fields: ['environmentId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "environment",
+                    type: "RuntimeEnvironment",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "waitpointTags", fields: ["environmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 environmentId: {
-                    name: 'environmentId',
-                    type: 'String',
-                    foreignKeyFor: ['environment'] as readonly string[],
+                    name: "environmentId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "environment"
+                    ] as readonly string[]
                 },
                 project: {
-                    name: 'project',
-                    type: 'Project',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'waitpointTags',
-                        fields: ['projectId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "project",
+                    type: "Project",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "waitpointTags", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
-                    foreignKeyFor: ['project'] as readonly string[],
+                    name: "projectId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
-                },
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('environmentId'),
-                                ExpressionUtils.field('name'),
-                            ]),
-                        },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId"), ExpressionUtils.field("name")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                environmentId_name: { environmentId: { type: 'String' }, name: { type: 'String' } },
-            },
+                id: { type: "String" },
+                environmentId_name: { environmentId: { type: "String" }, name: { type: "String" } }
+            }
         },
         FeatureFlag: {
-            name: 'FeatureFlag',
+            name: "FeatureFlag",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 key: {
-                    name: 'key',
-                    type: 'String',
+                    name: "key",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 value: {
-                    name: 'value',
-                    type: 'Json',
-                    optional: true,
-                },
+                    name: "value",
+                    type: "Json",
+                    optional: true
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                key: { type: 'String' },
-            },
+                id: { type: "String" },
+                key: { type: "String" }
+            }
         },
         WorkerInstance: {
-            name: 'WorkerInstance',
+            name: "WorkerInstance",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 name: {
-                    name: 'name',
-                    type: 'String',
+                    name: "name",
+                    type: "String"
                 },
                 resourceIdentifier: {
-                    name: 'resourceIdentifier',
-                    type: 'String',
+                    name: "resourceIdentifier",
+                    type: "String"
                 },
                 metadata: {
-                    name: 'metadata',
-                    type: 'Json',
-                    optional: true,
+                    name: "metadata",
+                    type: "Json",
+                    optional: true
                 },
                 workerGroup: {
-                    name: 'workerGroup',
-                    type: 'WorkerInstanceGroup',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('workerGroupId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'workers', fields: ['workerGroupId'], references: ['id'] },
+                    name: "workerGroup",
+                    type: "WorkerInstanceGroup",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("workerGroupId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "workers", fields: ["workerGroupId"], references: ["id"] }
                 },
                 workerGroupId: {
-                    name: 'workerGroupId',
-                    type: 'String',
-                    foreignKeyFor: ['workerGroup'] as readonly string[],
+                    name: "workerGroupId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "workerGroup"
+                    ] as readonly string[]
                 },
                 TaskRunExecutionSnapshot: {
-                    name: 'TaskRunExecutionSnapshot',
-                    type: 'TaskRunExecutionSnapshot',
+                    name: "TaskRunExecutionSnapshot",
+                    type: "TaskRunExecutionSnapshot",
                     array: true,
-                    relation: { opposite: 'worker' },
+                    relation: { opposite: "worker" }
                 },
                 organization: {
-                    name: 'organization',
-                    type: 'Organization',
+                    name: "organization",
+                    type: "Organization",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('organizationId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'workerInstances',
-                        fields: ['organizationId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "workerInstances", fields: ["organizationId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 organizationId: {
-                    name: 'organizationId',
-                    type: 'String',
+                    name: "organizationId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['organization'] as readonly string[],
+                    foreignKeyFor: [
+                        "organization"
+                    ] as readonly string[]
                 },
                 project: {
-                    name: 'project',
-                    type: 'Project',
+                    name: "project",
+                    type: "Project",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'workers',
-                        fields: ['projectId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "workers", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
+                    name: "projectId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['project'] as readonly string[],
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
                 },
                 environment: {
-                    name: 'environment',
-                    type: 'RuntimeEnvironment',
+                    name: "environment",
+                    type: "RuntimeEnvironment",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('environmentId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'workerInstances',
-                        fields: ['environmentId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "workerInstances", fields: ["environmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 environmentId: {
-                    name: 'environmentId',
-                    type: 'String',
+                    name: "environmentId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['environment'] as readonly string[],
+                    foreignKeyFor: [
+                        "environment"
+                    ] as readonly string[]
                 },
                 deployment: {
-                    name: 'deployment',
-                    type: 'WorkerDeployment',
+                    name: "deployment",
+                    type: "WorkerDeployment",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('deploymentId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('SetNull') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'workerInstance',
-                        fields: ['deploymentId'],
-                        references: ['id'],
-                        onDelete: 'SetNull',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("deploymentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "workerInstance", fields: ["deploymentId"], references: ["id"], onDelete: "SetNull", onUpdate: "Cascade" }
                 },
                 deploymentId: {
-                    name: 'deploymentId',
-                    type: 'String',
+                    name: "deploymentId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['deployment'] as readonly string[],
+                    foreignKeyFor: [
+                        "deployment"
+                    ] as readonly string[]
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 lastDequeueAt: {
-                    name: 'lastDequeueAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "lastDequeueAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 lastHeartbeatAt: {
-                    name: 'lastHeartbeatAt',
-                    type: 'DateTime',
-                    optional: true,
-                },
+                    name: "lastHeartbeatAt",
+                    type: "DateTime",
+                    optional: true
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('workerGroupId'),
-                                ExpressionUtils.field('resourceIdentifier'),
-                            ]),
-                        },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("workerGroupId"), ExpressionUtils.field("resourceIdentifier")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                workerGroupId_resourceIdentifier: {
-                    workerGroupId: { type: 'String' },
-                    resourceIdentifier: { type: 'String' },
-                },
-            },
+                id: { type: "String" },
+                workerGroupId_resourceIdentifier: { workerGroupId: { type: "String" }, resourceIdentifier: { type: "String" } }
+            }
         },
         WorkerInstanceGroup: {
-            name: 'WorkerInstanceGroup',
+            name: "WorkerInstanceGroup",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 type: {
-                    name: 'type',
-                    type: 'WorkerInstanceGroupType',
+                    name: "type",
+                    type: "WorkerInstanceGroupType"
                 },
                 name: {
-                    name: 'name',
-                    type: 'String',
+                    name: "name",
+                    type: "String"
                 },
                 masterQueue: {
-                    name: 'masterQueue',
-                    type: 'String',
+                    name: "masterQueue",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 description: {
-                    name: 'description',
-                    type: 'String',
-                    optional: true,
+                    name: "description",
+                    type: "String",
+                    optional: true
                 },
                 hidden: {
-                    name: 'hidden',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "hidden",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 token: {
-                    name: 'token',
-                    type: 'WorkerGroupToken',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('tokenId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'workerGroup',
-                        fields: ['tokenId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "token",
+                    type: "WorkerGroupToken",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("tokenId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "workerGroup", fields: ["tokenId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 tokenId: {
-                    name: 'tokenId',
-                    type: 'String',
+                    name: "tokenId",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
-                    foreignKeyFor: ['token'] as readonly string[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[],
+                    foreignKeyFor: [
+                        "token"
+                    ] as readonly string[]
                 },
                 workers: {
-                    name: 'workers',
-                    type: 'WorkerInstance',
+                    name: "workers",
+                    type: "WorkerInstance",
                     array: true,
-                    relation: { opposite: 'workerGroup' },
+                    relation: { opposite: "workerGroup" }
                 },
                 backgroundWorkers: {
-                    name: 'backgroundWorkers',
-                    type: 'BackgroundWorker',
+                    name: "backgroundWorkers",
+                    type: "BackgroundWorker",
                     array: true,
-                    relation: { opposite: 'workerGroup' },
+                    relation: { opposite: "workerGroup" }
                 },
                 defaultForProjects: {
-                    name: 'defaultForProjects',
-                    type: 'Project',
+                    name: "defaultForProjects",
+                    type: "Project",
                     array: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [{ name: 'name', value: ExpressionUtils.literal('ProjectDefaultWorkerGroup') }],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'defaultWorkerGroup', name: 'ProjectDefaultWorkerGroup' },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("ProjectDefaultWorkerGroup") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "defaultWorkerGroup", name: "ProjectDefaultWorkerGroup" }
                 },
                 organization: {
-                    name: 'organization',
-                    type: 'Organization',
+                    name: "organization",
+                    type: "Organization",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('organizationId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'workerGroups',
-                        fields: ['organizationId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "workerGroups", fields: ["organizationId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 organizationId: {
-                    name: 'organizationId',
-                    type: 'String',
+                    name: "organizationId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['organization'] as readonly string[],
+                    foreignKeyFor: [
+                        "organization"
+                    ] as readonly string[]
                 },
                 project: {
-                    name: 'project',
-                    type: 'Project',
+                    name: "project",
+                    type: "Project",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'workerGroups',
-                        fields: ['projectId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "workerGroups", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
+                    name: "projectId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['project'] as readonly string[],
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
-                },
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                masterQueue: { type: 'String' },
-                tokenId: { type: 'String' },
-            },
+                id: { type: "String" },
+                masterQueue: { type: "String" },
+                tokenId: { type: "String" }
+            }
         },
         WorkerGroupToken: {
-            name: 'WorkerGroupToken',
+            name: "WorkerGroupToken",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 tokenHash: {
-                    name: 'tokenHash',
-                    type: 'String',
+                    name: "tokenHash",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 workerGroup: {
-                    name: 'workerGroup',
-                    type: 'WorkerInstanceGroup',
+                    name: "workerGroup",
+                    type: "WorkerInstanceGroup",
                     optional: true,
-                    relation: { opposite: 'token' },
-                },
+                    relation: { opposite: "token" }
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                tokenHash: { type: 'String' },
-            },
+                id: { type: "String" },
+                tokenHash: { type: "String" }
+            }
         },
         TaskRunTag: {
-            name: 'TaskRunTag',
+            name: "TaskRunTag",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 name: {
-                    name: 'name',
-                    type: 'String',
+                    name: "name",
+                    type: "String"
                 },
                 friendlyId: {
-                    name: 'friendlyId',
-                    type: 'String',
+                    name: "friendlyId",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 runs: {
-                    name: 'runs',
-                    type: 'TaskRun',
+                    name: "runs",
+                    type: "TaskRun",
                     array: true,
-                    relation: { opposite: 'tags' },
+                    relation: { opposite: "tags" }
                 },
                 project: {
-                    name: 'project',
-                    type: 'Project',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'runTags',
-                        fields: ['projectId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "project",
+                    type: "Project",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "runTags", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
-                    foreignKeyFor: ['project'] as readonly string[],
+                    name: "projectId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
-                },
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('projectId'),
-                                ExpressionUtils.field('name'),
-                            ]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('name'),
-                                ExpressionUtils.field('id'),
-                            ]),
-                        },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId"), ExpressionUtils.field("name")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("name"), ExpressionUtils.field("id")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                friendlyId: { type: 'String' },
-                projectId_name: { projectId: { type: 'String' }, name: { type: 'String' } },
-            },
+                id: { type: "String" },
+                friendlyId: { type: "String" },
+                projectId_name: { projectId: { type: "String" }, name: { type: "String" } }
+            }
         },
         TaskRunDependency: {
-            name: 'TaskRunDependency',
+            name: "TaskRunDependency",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 taskRun: {
-                    name: 'taskRun',
-                    type: 'TaskRun',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('taskRunId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'dependency',
-                        fields: ['taskRunId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "taskRun",
+                    type: "TaskRun",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "dependency", fields: ["taskRunId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 taskRunId: {
-                    name: 'taskRunId',
-                    type: 'String',
+                    name: "taskRunId",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
-                    foreignKeyFor: ['taskRun'] as readonly string[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[],
+                    foreignKeyFor: [
+                        "taskRun"
+                    ] as readonly string[]
                 },
                 checkpointEvent: {
-                    name: 'checkpointEvent',
-                    type: 'CheckpointRestoreEvent',
+                    name: "checkpointEvent",
+                    type: "CheckpointRestoreEvent",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('checkpointEventId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'taskRunDependency',
-                        fields: ['checkpointEventId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("checkpointEventId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "taskRunDependency", fields: ["checkpointEventId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 checkpointEventId: {
-                    name: 'checkpointEventId',
-                    type: 'String',
+                    name: "checkpointEventId",
+                    type: "String",
                     unique: true,
                     optional: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
-                    foreignKeyFor: ['checkpointEvent'] as readonly string[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[],
+                    foreignKeyFor: [
+                        "checkpointEvent"
+                    ] as readonly string[]
                 },
                 dependentAttempt: {
-                    name: 'dependentAttempt',
-                    type: 'TaskRunAttempt',
+                    name: "dependentAttempt",
+                    type: "TaskRunAttempt",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('dependentAttemptId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'dependencies', fields: ['dependentAttemptId'], references: ['id'] },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("dependentAttemptId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "dependencies", fields: ["dependentAttemptId"], references: ["id"] }
                 },
                 dependentAttemptId: {
-                    name: 'dependentAttemptId',
-                    type: 'String',
+                    name: "dependentAttemptId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['dependentAttempt'] as readonly string[],
+                    foreignKeyFor: [
+                        "dependentAttempt"
+                    ] as readonly string[]
                 },
                 dependentBatchRun: {
-                    name: 'dependentBatchRun',
-                    type: 'BatchTaskRun',
+                    name: "dependentBatchRun",
+                    type: "BatchTaskRun",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                { name: 'name', value: ExpressionUtils.literal('dependentBatchRun') },
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('dependentBatchRunId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'runDependencies',
-                        name: 'dependentBatchRun',
-                        fields: ['dependentBatchRunId'],
-                        references: ['id'],
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("dependentBatchRun") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("dependentBatchRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "runDependencies", name: "dependentBatchRun", fields: ["dependentBatchRunId"], references: ["id"] }
                 },
                 dependentBatchRunId: {
-                    name: 'dependentBatchRunId',
-                    type: 'String',
+                    name: "dependentBatchRunId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['dependentBatchRun'] as readonly string[],
+                    foreignKeyFor: [
+                        "dependentBatchRun"
+                    ] as readonly string[]
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 resumedAt: {
-                    name: 'resumedAt',
-                    type: 'DateTime',
-                    optional: true,
-                },
+                    name: "resumedAt",
+                    type: "DateTime",
+                    optional: true
+                }
             },
             attributes: [
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [ExpressionUtils.field('dependentAttemptId')]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [ExpressionUtils.field('dependentBatchRunId')]),
-                        },
-                    ],
-                },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("dependentAttemptId")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("dependentBatchRunId")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                taskRunId: { type: 'String' },
-                checkpointEventId: { type: 'String' },
-            },
+                id: { type: "String" },
+                taskRunId: { type: "String" },
+                checkpointEventId: { type: "String" }
+            }
         },
         TaskRunCounter: {
-            name: 'TaskRunCounter',
+            name: "TaskRunCounter",
             fields: {
                 taskIdentifier: {
-                    name: 'taskIdentifier',
-                    type: 'String',
+                    name: "taskIdentifier",
+                    type: "String",
                     id: true,
-                    attributes: [{ name: '@id' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@id" }] as readonly AttributeApplication[]
                 },
                 lastNumber: {
-                    name: 'lastNumber',
-                    type: 'Int',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault,
-                },
+                    name: "lastNumber",
+                    type: "Int",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault
+                }
             },
-            idFields: ['taskIdentifier'],
+            idFields: ["taskIdentifier"],
             uniqueFields: {
-                taskIdentifier: { type: 'String' },
-            },
+                taskIdentifier: { type: "String" }
+            }
         },
         TaskRunNumberCounter: {
-            name: 'TaskRunNumberCounter',
+            name: "TaskRunNumberCounter",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 taskIdentifier: {
-                    name: 'taskIdentifier',
-                    type: 'String',
+                    name: "taskIdentifier",
+                    type: "String"
                 },
                 environment: {
-                    name: 'environment',
-                    type: 'RuntimeEnvironment',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('environmentId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'taskRunNumberCounter',
-                        fields: ['environmentId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "environment",
+                    type: "RuntimeEnvironment",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "taskRunNumberCounter", fields: ["environmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 environmentId: {
-                    name: 'environmentId',
-                    type: 'String',
-                    foreignKeyFor: ['environment'] as readonly string[],
+                    name: "environmentId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "environment"
+                    ] as readonly string[]
                 },
                 lastNumber: {
-                    name: 'lastNumber',
-                    type: 'Int',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault,
-                },
+                    name: "lastNumber",
+                    type: "Int",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('taskIdentifier'),
-                                ExpressionUtils.field('environmentId'),
-                            ]),
-                        },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskIdentifier"), ExpressionUtils.field("environmentId")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                taskIdentifier_environmentId: { taskIdentifier: { type: 'String' }, environmentId: { type: 'String' } },
-            },
+                id: { type: "String" },
+                taskIdentifier_environmentId: { taskIdentifier: { type: "String" }, environmentId: { type: "String" } }
+            }
         },
         TaskRunAttempt: {
-            name: 'TaskRunAttempt',
+            name: "TaskRunAttempt",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 number: {
-                    name: 'number',
-                    type: 'Int',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault,
+                    name: "number",
+                    type: "Int",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault
                 },
                 friendlyId: {
-                    name: 'friendlyId',
-                    type: 'String',
+                    name: "friendlyId",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 taskRun: {
-                    name: 'taskRun',
-                    type: 'TaskRun',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                { name: 'name', value: ExpressionUtils.literal('attempts') },
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('taskRunId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'attempts',
-                        name: 'attempts',
-                        fields: ['taskRunId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "taskRun",
+                    type: "TaskRun",
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("attempts") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "attempts", name: "attempts", fields: ["taskRunId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 taskRunId: {
-                    name: 'taskRunId',
-                    type: 'String',
-                    foreignKeyFor: ['taskRun'] as readonly string[],
+                    name: "taskRunId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "taskRun"
+                    ] as readonly string[]
                 },
                 backgroundWorker: {
-                    name: 'backgroundWorker',
-                    type: 'BackgroundWorker',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('backgroundWorkerId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'attempts',
-                        fields: ['backgroundWorkerId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "backgroundWorker",
+                    type: "BackgroundWorker",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("backgroundWorkerId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "attempts", fields: ["backgroundWorkerId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 backgroundWorkerId: {
-                    name: 'backgroundWorkerId',
-                    type: 'String',
-                    foreignKeyFor: ['backgroundWorker'] as readonly string[],
+                    name: "backgroundWorkerId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "backgroundWorker"
+                    ] as readonly string[]
                 },
                 backgroundWorkerTask: {
-                    name: 'backgroundWorkerTask',
-                    type: 'BackgroundWorkerTask',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('backgroundWorkerTaskId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'attempts',
-                        fields: ['backgroundWorkerTaskId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "backgroundWorkerTask",
+                    type: "BackgroundWorkerTask",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("backgroundWorkerTaskId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "attempts", fields: ["backgroundWorkerTaskId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 backgroundWorkerTaskId: {
-                    name: 'backgroundWorkerTaskId',
-                    type: 'String',
-                    foreignKeyFor: ['backgroundWorkerTask'] as readonly string[],
+                    name: "backgroundWorkerTaskId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "backgroundWorkerTask"
+                    ] as readonly string[]
                 },
                 runtimeEnvironment: {
-                    name: 'runtimeEnvironment',
-                    type: 'RuntimeEnvironment',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('runtimeEnvironmentId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'taskRunAttempts',
-                        fields: ['runtimeEnvironmentId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "runtimeEnvironment",
+                    type: "RuntimeEnvironment",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "taskRunAttempts", fields: ["runtimeEnvironmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 runtimeEnvironmentId: {
-                    name: 'runtimeEnvironmentId',
-                    type: 'String',
-                    foreignKeyFor: ['runtimeEnvironment'] as readonly string[],
+                    name: "runtimeEnvironmentId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "runtimeEnvironment"
+                    ] as readonly string[]
                 },
                 queue: {
-                    name: 'queue',
-                    type: 'TaskQueue',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('queueId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'attempts',
-                        fields: ['queueId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "queue",
+                    type: "TaskQueue",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("queueId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "attempts", fields: ["queueId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 queueId: {
-                    name: 'queueId',
-                    type: 'String',
-                    foreignKeyFor: ['queue'] as readonly string[],
+                    name: "queueId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "queue"
+                    ] as readonly string[]
                 },
                 status: {
-                    name: 'status',
-                    type: 'TaskRunAttemptStatus',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('PENDING') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'PENDING' as FieldDefault,
+                    name: "status",
+                    type: "TaskRunAttemptStatus",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("PENDING") }] }] as readonly AttributeApplication[],
+                    default: "PENDING" as FieldDefault
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 startedAt: {
-                    name: 'startedAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "startedAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 completedAt: {
-                    name: 'completedAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "completedAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 usageDurationMs: {
-                    name: 'usageDurationMs',
-                    type: 'Int',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault,
+                    name: "usageDurationMs",
+                    type: "Int",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault
                 },
                 error: {
-                    name: 'error',
-                    type: 'Json',
-                    optional: true,
+                    name: "error",
+                    type: "Json",
+                    optional: true
                 },
                 output: {
-                    name: 'output',
-                    type: 'String',
-                    optional: true,
+                    name: "output",
+                    type: "String",
+                    optional: true
                 },
                 outputType: {
-                    name: 'outputType',
-                    type: 'String',
-                    attributes: [
-                        {
-                            name: '@default',
-                            args: [{ name: 'value', value: ExpressionUtils.literal('application/json') }],
-                        },
-                    ] as readonly AttributeApplication[],
-                    default: 'application/json' as FieldDefault,
+                    name: "outputType",
+                    type: "String",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("application/json") }] }] as readonly AttributeApplication[],
+                    default: "application/json" as FieldDefault
                 },
                 dependencies: {
-                    name: 'dependencies',
-                    type: 'TaskRunDependency',
+                    name: "dependencies",
+                    type: "TaskRunDependency",
                     array: true,
-                    relation: { opposite: 'dependentAttempt' },
+                    relation: { opposite: "dependentAttempt" }
                 },
                 batchDependencies: {
-                    name: 'batchDependencies',
-                    type: 'BatchTaskRun',
+                    name: "batchDependencies",
+                    type: "BatchTaskRun",
                     array: true,
-                    relation: { opposite: 'dependentTaskAttempt' },
+                    relation: { opposite: "dependentTaskAttempt" }
                 },
                 checkpoints: {
-                    name: 'checkpoints',
-                    type: 'Checkpoint',
+                    name: "checkpoints",
+                    type: "Checkpoint",
                     array: true,
-                    relation: { opposite: 'attempt' },
+                    relation: { opposite: "attempt" }
                 },
                 batchTaskRunItems: {
-                    name: 'batchTaskRunItems',
-                    type: 'BatchTaskRunItem',
+                    name: "batchTaskRunItems",
+                    type: "BatchTaskRunItem",
                     array: true,
-                    relation: { opposite: 'taskRunAttempt' },
+                    relation: { opposite: "taskRunAttempt" }
                 },
                 CheckpointRestoreEvent: {
-                    name: 'CheckpointRestoreEvent',
-                    type: 'CheckpointRestoreEvent',
+                    name: "CheckpointRestoreEvent",
+                    type: "CheckpointRestoreEvent",
                     array: true,
-                    relation: { opposite: 'attempt' },
+                    relation: { opposite: "attempt" }
                 },
                 alerts: {
-                    name: 'alerts',
-                    type: 'ProjectAlert',
+                    name: "alerts",
+                    type: "ProjectAlert",
                     array: true,
-                    relation: { opposite: 'taskRunAttempt' },
+                    relation: { opposite: "taskRunAttempt" }
                 },
                 childRuns: {
-                    name: 'childRuns',
-                    type: 'TaskRun',
+                    name: "childRuns",
+                    type: "TaskRun",
                     array: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [{ name: 'name', value: ExpressionUtils.literal('TaskParentRunAttempt') }],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'parentTaskRunAttempt', name: 'TaskParentRunAttempt' },
-                },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("TaskParentRunAttempt") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "parentTaskRunAttempt", name: "TaskParentRunAttempt" }
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('taskRunId'),
-                                ExpressionUtils.field('number'),
-                            ]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [ExpressionUtils.field('taskRunId')]),
-                        },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunId"), ExpressionUtils.field("number")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunId")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                friendlyId: { type: 'String' },
-                taskRunId_number: { taskRunId: { type: 'String' }, number: { type: 'Int' } },
-            },
+                id: { type: "String" },
+                friendlyId: { type: "String" },
+                taskRunId_number: { taskRunId: { type: "String" }, number: { type: "Int" } }
+            }
         },
         TaskEvent: {
-            name: 'TaskEvent',
+            name: "TaskEvent",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 message: {
-                    name: 'message',
-                    type: 'String',
+                    name: "message",
+                    type: "String"
                 },
                 traceId: {
-                    name: 'traceId',
-                    type: 'String',
+                    name: "traceId",
+                    type: "String"
                 },
                 spanId: {
-                    name: 'spanId',
-                    type: 'String',
+                    name: "spanId",
+                    type: "String"
                 },
                 parentId: {
-                    name: 'parentId',
-                    type: 'String',
-                    optional: true,
+                    name: "parentId",
+                    type: "String",
+                    optional: true
                 },
                 tracestate: {
-                    name: 'tracestate',
-                    type: 'String',
-                    optional: true,
+                    name: "tracestate",
+                    type: "String",
+                    optional: true
                 },
                 isError: {
-                    name: 'isError',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "isError",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 isPartial: {
-                    name: 'isPartial',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "isPartial",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 isCancelled: {
-                    name: 'isCancelled',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "isCancelled",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 isDebug: {
-                    name: 'isDebug',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "isDebug",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 serviceName: {
-                    name: 'serviceName',
-                    type: 'String',
+                    name: "serviceName",
+                    type: "String"
                 },
                 serviceNamespace: {
-                    name: 'serviceNamespace',
-                    type: 'String',
+                    name: "serviceNamespace",
+                    type: "String"
                 },
                 level: {
-                    name: 'level',
-                    type: 'TaskEventLevel',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('TRACE') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'TRACE' as FieldDefault,
+                    name: "level",
+                    type: "TaskEventLevel",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("TRACE") }] }] as readonly AttributeApplication[],
+                    default: "TRACE" as FieldDefault
                 },
                 kind: {
-                    name: 'kind',
-                    type: 'TaskEventKind',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('INTERNAL') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'INTERNAL' as FieldDefault,
+                    name: "kind",
+                    type: "TaskEventKind",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("INTERNAL") }] }] as readonly AttributeApplication[],
+                    default: "INTERNAL" as FieldDefault
                 },
                 status: {
-                    name: 'status',
-                    type: 'TaskEventStatus',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('UNSET') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'UNSET' as FieldDefault,
+                    name: "status",
+                    type: "TaskEventStatus",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("UNSET") }] }] as readonly AttributeApplication[],
+                    default: "UNSET" as FieldDefault
                 },
                 links: {
-                    name: 'links',
-                    type: 'Json',
-                    optional: true,
+                    name: "links",
+                    type: "Json",
+                    optional: true
                 },
                 events: {
-                    name: 'events',
-                    type: 'Json',
-                    optional: true,
+                    name: "events",
+                    type: "Json",
+                    optional: true
                 },
                 startTime: {
-                    name: 'startTime',
-                    type: 'BigInt',
+                    name: "startTime",
+                    type: "BigInt"
                 },
                 duration: {
-                    name: 'duration',
-                    type: 'BigInt',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault,
+                    name: "duration",
+                    type: "BigInt",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault
                 },
                 attemptId: {
-                    name: 'attemptId',
-                    type: 'String',
-                    optional: true,
+                    name: "attemptId",
+                    type: "String",
+                    optional: true
                 },
                 attemptNumber: {
-                    name: 'attemptNumber',
-                    type: 'Int',
-                    optional: true,
+                    name: "attemptNumber",
+                    type: "Int",
+                    optional: true
                 },
                 environmentId: {
-                    name: 'environmentId',
-                    type: 'String',
+                    name: "environmentId",
+                    type: "String"
                 },
                 environmentType: {
-                    name: 'environmentType',
-                    type: 'RuntimeEnvironmentType',
+                    name: "environmentType",
+                    type: "RuntimeEnvironmentType"
                 },
                 organizationId: {
-                    name: 'organizationId',
-                    type: 'String',
+                    name: "organizationId",
+                    type: "String"
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
+                    name: "projectId",
+                    type: "String"
                 },
                 projectRef: {
-                    name: 'projectRef',
-                    type: 'String',
+                    name: "projectRef",
+                    type: "String"
                 },
                 runId: {
-                    name: 'runId',
-                    type: 'String',
+                    name: "runId",
+                    type: "String"
                 },
                 runIsTest: {
-                    name: 'runIsTest',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "runIsTest",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 idempotencyKey: {
-                    name: 'idempotencyKey',
-                    type: 'String',
-                    optional: true,
+                    name: "idempotencyKey",
+                    type: "String",
+                    optional: true
                 },
                 taskSlug: {
-                    name: 'taskSlug',
-                    type: 'String',
+                    name: "taskSlug",
+                    type: "String"
                 },
                 taskPath: {
-                    name: 'taskPath',
-                    type: 'String',
-                    optional: true,
+                    name: "taskPath",
+                    type: "String",
+                    optional: true
                 },
                 taskExportName: {
-                    name: 'taskExportName',
-                    type: 'String',
-                    optional: true,
+                    name: "taskExportName",
+                    type: "String",
+                    optional: true
                 },
                 workerId: {
-                    name: 'workerId',
-                    type: 'String',
-                    optional: true,
+                    name: "workerId",
+                    type: "String",
+                    optional: true
                 },
                 workerVersion: {
-                    name: 'workerVersion',
-                    type: 'String',
-                    optional: true,
+                    name: "workerVersion",
+                    type: "String",
+                    optional: true
                 },
                 queueId: {
-                    name: 'queueId',
-                    type: 'String',
-                    optional: true,
+                    name: "queueId",
+                    type: "String",
+                    optional: true
                 },
                 queueName: {
-                    name: 'queueName',
-                    type: 'String',
-                    optional: true,
+                    name: "queueName",
+                    type: "String",
+                    optional: true
                 },
                 batchId: {
-                    name: 'batchId',
-                    type: 'String',
-                    optional: true,
+                    name: "batchId",
+                    type: "String",
+                    optional: true
                 },
                 properties: {
-                    name: 'properties',
-                    type: 'Json',
+                    name: "properties",
+                    type: "Json"
                 },
                 metadata: {
-                    name: 'metadata',
-                    type: 'Json',
-                    optional: true,
+                    name: "metadata",
+                    type: "Json",
+                    optional: true
                 },
                 style: {
-                    name: 'style',
-                    type: 'Json',
-                    optional: true,
+                    name: "style",
+                    type: "Json",
+                    optional: true
                 },
                 output: {
-                    name: 'output',
-                    type: 'Json',
-                    optional: true,
+                    name: "output",
+                    type: "Json",
+                    optional: true
                 },
                 outputType: {
-                    name: 'outputType',
-                    type: 'String',
-                    optional: true,
+                    name: "outputType",
+                    type: "String",
+                    optional: true
                 },
                 payload: {
-                    name: 'payload',
-                    type: 'Json',
-                    optional: true,
+                    name: "payload",
+                    type: "Json",
+                    optional: true
                 },
                 payloadType: {
-                    name: 'payloadType',
-                    type: 'String',
-                    optional: true,
+                    name: "payloadType",
+                    type: "String",
+                    optional: true
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 usageDurationMs: {
-                    name: 'usageDurationMs',
-                    type: 'Int',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault,
+                    name: "usageDurationMs",
+                    type: "Int",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault
                 },
                 usageCostInCents: {
-                    name: 'usageCostInCents',
-                    type: 'Float',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault,
+                    name: "usageCostInCents",
+                    type: "Float",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault
                 },
                 machinePreset: {
-                    name: 'machinePreset',
-                    type: 'String',
-                    optional: true,
+                    name: "machinePreset",
+                    type: "String",
+                    optional: true
                 },
                 machinePresetCpu: {
-                    name: 'machinePresetCpu',
-                    type: 'Float',
-                    optional: true,
+                    name: "machinePresetCpu",
+                    type: "Float",
+                    optional: true
                 },
                 machinePresetMemory: {
-                    name: 'machinePresetMemory',
-                    type: 'Float',
-                    optional: true,
+                    name: "machinePresetMemory",
+                    type: "Float",
+                    optional: true
                 },
                 machinePresetCentsPerMs: {
-                    name: 'machinePresetCentsPerMs',
-                    type: 'Float',
-                    optional: true,
-                },
+                    name: "machinePresetCentsPerMs",
+                    type: "Float",
+                    optional: true
+                }
             },
             attributes: [
-                {
-                    name: '@@index',
-                    args: [
-                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('traceId')]) },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('spanId')]) },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('runId')]) },
-                    ],
-                },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("traceId")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("spanId")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runId")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-            },
+                id: { type: "String" }
+            }
         },
         TaskQueue: {
-            name: 'TaskQueue',
+            name: "TaskQueue",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 friendlyId: {
-                    name: 'friendlyId',
-                    type: 'String',
+                    name: "friendlyId",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 name: {
-                    name: 'name',
-                    type: 'String',
+                    name: "name",
+                    type: "String"
                 },
                 type: {
-                    name: 'type',
-                    type: 'TaskQueueType',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('VIRTUAL') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'VIRTUAL' as FieldDefault,
+                    name: "type",
+                    type: "TaskQueueType",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("VIRTUAL") }] }] as readonly AttributeApplication[],
+                    default: "VIRTUAL" as FieldDefault
                 },
                 version: {
-                    name: 'version',
-                    type: 'TaskQueueVersion',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('V1') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'V1' as FieldDefault,
+                    name: "version",
+                    type: "TaskQueueVersion",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("V1") }] }] as readonly AttributeApplication[],
+                    default: "V1" as FieldDefault
                 },
                 orderableName: {
-                    name: 'orderableName',
-                    type: 'String',
-                    optional: true,
+                    name: "orderableName",
+                    type: "String",
+                    optional: true
                 },
                 project: {
-                    name: 'project',
-                    type: 'Project',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'taskQueues',
-                        fields: ['projectId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "project",
+                    type: "Project",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "taskQueues", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
-                    foreignKeyFor: ['project'] as readonly string[],
+                    name: "projectId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
                 },
                 runtimeEnvironment: {
-                    name: 'runtimeEnvironment',
-                    type: 'RuntimeEnvironment',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('runtimeEnvironmentId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'taskQueues',
-                        fields: ['runtimeEnvironmentId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "runtimeEnvironment",
+                    type: "RuntimeEnvironment",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "taskQueues", fields: ["runtimeEnvironmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 runtimeEnvironmentId: {
-                    name: 'runtimeEnvironmentId',
-                    type: 'String',
-                    foreignKeyFor: ['runtimeEnvironment'] as readonly string[],
+                    name: "runtimeEnvironmentId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "runtimeEnvironment"
+                    ] as readonly string[]
                 },
                 concurrencyLimit: {
-                    name: 'concurrencyLimit',
-                    type: 'Int',
-                    optional: true,
+                    name: "concurrencyLimit",
+                    type: "Int",
+                    optional: true
                 },
                 rateLimit: {
-                    name: 'rateLimit',
-                    type: 'Json',
-                    optional: true,
+                    name: "rateLimit",
+                    type: "Json",
+                    optional: true
                 },
                 paused: {
-                    name: 'paused',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "paused",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 releaseConcurrencyOnWaitpoint: {
-                    name: 'releaseConcurrencyOnWaitpoint',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "releaseConcurrencyOnWaitpoint",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 attempts: {
-                    name: 'attempts',
-                    type: 'TaskRunAttempt',
+                    name: "attempts",
+                    type: "TaskRunAttempt",
                     array: true,
-                    relation: { opposite: 'queue' },
+                    relation: { opposite: "queue" }
                 },
                 tasks: {
-                    name: 'tasks',
-                    type: 'BackgroundWorkerTask',
+                    name: "tasks",
+                    type: "BackgroundWorkerTask",
                     array: true,
-                    relation: { opposite: 'queue' },
+                    relation: { opposite: "queue" }
                 },
                 workers: {
-                    name: 'workers',
-                    type: 'BackgroundWorker',
+                    name: "workers",
+                    type: "BackgroundWorker",
                     array: true,
-                    relation: { opposite: 'queues' },
-                },
+                    relation: { opposite: "queues" }
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('runtimeEnvironmentId'),
-                                ExpressionUtils.field('name'),
-                            ]),
-                        },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId"), ExpressionUtils.field("name")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                friendlyId: { type: 'String' },
-                runtimeEnvironmentId_name: { runtimeEnvironmentId: { type: 'String' }, name: { type: 'String' } },
-            },
+                id: { type: "String" },
+                friendlyId: { type: "String" },
+                runtimeEnvironmentId_name: { runtimeEnvironmentId: { type: "String" }, name: { type: "String" } }
+            }
         },
         BatchTaskRun: {
-            name: 'BatchTaskRun',
+            name: "BatchTaskRun",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 friendlyId: {
-                    name: 'friendlyId',
-                    type: 'String',
+                    name: "friendlyId",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 idempotencyKey: {
-                    name: 'idempotencyKey',
-                    type: 'String',
-                    optional: true,
+                    name: "idempotencyKey",
+                    type: "String",
+                    optional: true
                 },
                 idempotencyKeyExpiresAt: {
-                    name: 'idempotencyKeyExpiresAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "idempotencyKeyExpiresAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 runtimeEnvironment: {
-                    name: 'runtimeEnvironment',
-                    type: 'RuntimeEnvironment',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('runtimeEnvironmentId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'batchTaskRuns',
-                        fields: ['runtimeEnvironmentId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "runtimeEnvironment",
+                    type: "RuntimeEnvironment",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "batchTaskRuns", fields: ["runtimeEnvironmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 status: {
-                    name: 'status',
-                    type: 'BatchTaskRunStatus',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('PENDING') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'PENDING' as FieldDefault,
+                    name: "status",
+                    type: "BatchTaskRunStatus",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("PENDING") }] }] as readonly AttributeApplication[],
+                    default: "PENDING" as FieldDefault
                 },
                 runtimeEnvironmentId: {
-                    name: 'runtimeEnvironmentId',
-                    type: 'String',
-                    foreignKeyFor: ['runtimeEnvironment'] as readonly string[],
+                    name: "runtimeEnvironmentId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "runtimeEnvironment"
+                    ] as readonly string[]
                 },
                 runs: {
-                    name: 'runs',
-                    type: 'TaskRun',
+                    name: "runs",
+                    type: "TaskRun",
                     array: true,
-                    relation: { opposite: 'batch' },
+                    relation: { opposite: "batch" }
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 runIds: {
-                    name: 'runIds',
-                    type: 'String',
+                    name: "runIds",
+                    type: "String",
                     array: true,
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.array('Any', []) }] },
-                    ] as readonly AttributeApplication[],
-                    default: [] as FieldDefault,
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.array("Any", []) }] }] as readonly AttributeApplication[],
+                    default: [] as FieldDefault
                 },
                 runCount: {
-                    name: 'runCount',
-                    type: 'Int',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault,
+                    name: "runCount",
+                    type: "Int",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault
                 },
                 payload: {
-                    name: 'payload',
-                    type: 'String',
-                    optional: true,
+                    name: "payload",
+                    type: "String",
+                    optional: true
                 },
                 payloadType: {
-                    name: 'payloadType',
-                    type: 'String',
-                    attributes: [
-                        {
-                            name: '@default',
-                            args: [{ name: 'value', value: ExpressionUtils.literal('application/json') }],
-                        },
-                    ] as readonly AttributeApplication[],
-                    default: 'application/json' as FieldDefault,
+                    name: "payloadType",
+                    type: "String",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("application/json") }] }] as readonly AttributeApplication[],
+                    default: "application/json" as FieldDefault
                 },
                 options: {
-                    name: 'options',
-                    type: 'Json',
-                    optional: true,
+                    name: "options",
+                    type: "Json",
+                    optional: true
                 },
                 batchVersion: {
-                    name: 'batchVersion',
-                    type: 'String',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('v1') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'v1' as FieldDefault,
+                    name: "batchVersion",
+                    type: "String",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("v1") }] }] as readonly AttributeApplication[],
+                    default: "v1" as FieldDefault
                 },
                 executionSnapshots: {
-                    name: 'executionSnapshots',
-                    type: 'TaskRunExecutionSnapshot',
+                    name: "executionSnapshots",
+                    type: "TaskRunExecutionSnapshot",
                     array: true,
-                    relation: { opposite: 'batch' },
+                    relation: { opposite: "batch" }
                 },
                 runsBlocked: {
-                    name: 'runsBlocked',
-                    type: 'TaskRunWaitpoint',
+                    name: "runsBlocked",
+                    type: "TaskRunWaitpoint",
                     array: true,
-                    relation: { opposite: 'batch' },
+                    relation: { opposite: "batch" }
                 },
                 waitpoints: {
-                    name: 'waitpoints',
-                    type: 'Waitpoint',
+                    name: "waitpoints",
+                    type: "Waitpoint",
                     array: true,
-                    relation: { opposite: 'completedByBatch' },
+                    relation: { opposite: "completedByBatch" }
                 },
                 sealed: {
-                    name: 'sealed',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "sealed",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 sealedAt: {
-                    name: 'sealedAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "sealedAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 expectedCount: {
-                    name: 'expectedCount',
-                    type: 'Int',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault,
+                    name: "expectedCount",
+                    type: "Int",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault
                 },
                 completedCount: {
-                    name: 'completedCount',
-                    type: 'Int',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault,
+                    name: "completedCount",
+                    type: "Int",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault
                 },
                 completedAt: {
-                    name: 'completedAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "completedAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 resumedAt: {
-                    name: 'resumedAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "resumedAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 processingJobsCount: {
-                    name: 'processingJobsCount',
-                    type: 'Int',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault,
+                    name: "processingJobsCount",
+                    type: "Int",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault
                 },
                 processingJobsExpectedCount: {
-                    name: 'processingJobsExpectedCount',
-                    type: 'Int',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault,
+                    name: "processingJobsExpectedCount",
+                    type: "Int",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault
                 },
                 oneTimeUseToken: {
-                    name: 'oneTimeUseToken',
-                    type: 'String',
-                    optional: true,
+                    name: "oneTimeUseToken",
+                    type: "String",
+                    optional: true
                 },
                 items: {
-                    name: 'items',
-                    type: 'BatchTaskRunItem',
+                    name: "items",
+                    type: "BatchTaskRunItem",
                     array: true,
-                    relation: { opposite: 'batchTaskRun' },
+                    relation: { opposite: "batchTaskRun" }
                 },
                 taskIdentifier: {
-                    name: 'taskIdentifier',
-                    type: 'String',
-                    optional: true,
+                    name: "taskIdentifier",
+                    type: "String",
+                    optional: true
                 },
                 checkpointEvent: {
-                    name: 'checkpointEvent',
-                    type: 'CheckpointRestoreEvent',
+                    name: "checkpointEvent",
+                    type: "CheckpointRestoreEvent",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('checkpointEventId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'batchTaskRunDependency',
-                        fields: ['checkpointEventId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("checkpointEventId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "batchTaskRunDependency", fields: ["checkpointEventId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 checkpointEventId: {
-                    name: 'checkpointEventId',
-                    type: 'String',
+                    name: "checkpointEventId",
+                    type: "String",
                     unique: true,
                     optional: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
-                    foreignKeyFor: ['checkpointEvent'] as readonly string[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[],
+                    foreignKeyFor: [
+                        "checkpointEvent"
+                    ] as readonly string[]
                 },
                 dependentTaskAttempt: {
-                    name: 'dependentTaskAttempt',
-                    type: 'TaskRunAttempt',
+                    name: "dependentTaskAttempt",
+                    type: "TaskRunAttempt",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('dependentTaskAttemptId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'batchDependencies',
-                        fields: ['dependentTaskAttemptId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("dependentTaskAttemptId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "batchDependencies", fields: ["dependentTaskAttemptId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 dependentTaskAttemptId: {
-                    name: 'dependentTaskAttemptId',
-                    type: 'String',
+                    name: "dependentTaskAttemptId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['dependentTaskAttempt'] as readonly string[],
+                    foreignKeyFor: [
+                        "dependentTaskAttempt"
+                    ] as readonly string[]
                 },
                 runDependencies: {
-                    name: 'runDependencies',
-                    type: 'TaskRunDependency',
+                    name: "runDependencies",
+                    type: "TaskRunDependency",
                     array: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [{ name: 'name', value: ExpressionUtils.literal('dependentBatchRun') }],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'dependentBatchRun', name: 'dependentBatchRun' },
-                },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("dependentBatchRun") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "dependentBatchRun", name: "dependentBatchRun" }
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [ExpressionUtils.field('oneTimeUseToken')]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('runtimeEnvironmentId'),
-                                ExpressionUtils.field('idempotencyKey'),
-                            ]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [ExpressionUtils.field('dependentTaskAttemptId')]),
-                        },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("oneTimeUseToken")]) }] },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId"), ExpressionUtils.field("idempotencyKey")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("dependentTaskAttemptId")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                friendlyId: { type: 'String' },
-                checkpointEventId: { type: 'String' },
-                oneTimeUseToken: { type: 'String' },
-                runtimeEnvironmentId_idempotencyKey: {
-                    runtimeEnvironmentId: { type: 'String' },
-                    idempotencyKey: { type: 'String' },
-                },
-            },
+                id: { type: "String" },
+                friendlyId: { type: "String" },
+                checkpointEventId: { type: "String" },
+                oneTimeUseToken: { type: "String" },
+                runtimeEnvironmentId_idempotencyKey: { runtimeEnvironmentId: { type: "String" }, idempotencyKey: { type: "String" } }
+            }
         },
         BatchTaskRunItem: {
-            name: 'BatchTaskRunItem',
+            name: "BatchTaskRunItem",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 status: {
-                    name: 'status',
-                    type: 'BatchTaskRunItemStatus',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('PENDING') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'PENDING' as FieldDefault,
+                    name: "status",
+                    type: "BatchTaskRunItemStatus",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("PENDING") }] }] as readonly AttributeApplication[],
+                    default: "PENDING" as FieldDefault
                 },
                 batchTaskRun: {
-                    name: 'batchTaskRun',
-                    type: 'BatchTaskRun',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('batchTaskRunId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'items',
-                        fields: ['batchTaskRunId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "batchTaskRun",
+                    type: "BatchTaskRun",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("batchTaskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "items", fields: ["batchTaskRunId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 batchTaskRunId: {
-                    name: 'batchTaskRunId',
-                    type: 'String',
-                    foreignKeyFor: ['batchTaskRun'] as readonly string[],
+                    name: "batchTaskRunId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "batchTaskRun"
+                    ] as readonly string[]
                 },
                 taskRun: {
-                    name: 'taskRun',
-                    type: 'TaskRun',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('taskRunId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'batchItems',
-                        fields: ['taskRunId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "taskRun",
+                    type: "TaskRun",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "batchItems", fields: ["taskRunId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 taskRunId: {
-                    name: 'taskRunId',
-                    type: 'String',
-                    foreignKeyFor: ['taskRun'] as readonly string[],
+                    name: "taskRunId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "taskRun"
+                    ] as readonly string[]
                 },
                 taskRunAttempt: {
-                    name: 'taskRunAttempt',
-                    type: 'TaskRunAttempt',
+                    name: "taskRunAttempt",
+                    type: "TaskRunAttempt",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('taskRunAttemptId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('SetNull') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'batchTaskRunItems',
-                        fields: ['taskRunAttemptId'],
-                        references: ['id'],
-                        onDelete: 'SetNull',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunAttemptId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "batchTaskRunItems", fields: ["taskRunAttemptId"], references: ["id"], onDelete: "SetNull", onUpdate: "Cascade" }
                 },
                 taskRunAttemptId: {
-                    name: 'taskRunAttemptId',
-                    type: 'String',
+                    name: "taskRunAttemptId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['taskRunAttempt'] as readonly string[],
+                    foreignKeyFor: [
+                        "taskRunAttempt"
+                    ] as readonly string[]
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 completedAt: {
-                    name: 'completedAt',
-                    type: 'DateTime',
-                    optional: true,
-                },
+                    name: "completedAt",
+                    type: "DateTime",
+                    optional: true
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('batchTaskRunId'),
-                                ExpressionUtils.field('taskRunId'),
-                            ]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [ExpressionUtils.field('taskRunAttemptId')]),
-                        },
-                        { name: 'map', value: ExpressionUtils.literal('idx_batchtaskrunitem_taskrunattempt') },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [ExpressionUtils.field('taskRunId')]),
-                        },
-                        { name: 'map', value: ExpressionUtils.literal('idx_batchtaskrunitem_taskrun') },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("batchTaskRunId"), ExpressionUtils.field("taskRunId")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunAttemptId")]) }, { name: "map", value: ExpressionUtils.literal("idx_batchtaskrunitem_taskrunattempt") }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunId")]) }, { name: "map", value: ExpressionUtils.literal("idx_batchtaskrunitem_taskrun") }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                batchTaskRunId_taskRunId: { batchTaskRunId: { type: 'String' }, taskRunId: { type: 'String' } },
-            },
+                id: { type: "String" },
+                batchTaskRunId_taskRunId: { batchTaskRunId: { type: "String" }, taskRunId: { type: "String" } }
+            }
         },
         EnvironmentVariable: {
-            name: 'EnvironmentVariable',
+            name: "EnvironmentVariable",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 friendlyId: {
-                    name: 'friendlyId',
-                    type: 'String',
+                    name: "friendlyId",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 key: {
-                    name: 'key',
-                    type: 'String',
+                    name: "key",
+                    type: "String"
                 },
                 project: {
-                    name: 'project',
-                    type: 'Project',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'environmentVariables',
-                        fields: ['projectId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "project",
+                    type: "Project",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "environmentVariables", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
-                    foreignKeyFor: ['project'] as readonly string[],
+                    name: "projectId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 values: {
-                    name: 'values',
-                    type: 'EnvironmentVariableValue',
+                    name: "values",
+                    type: "EnvironmentVariableValue",
                     array: true,
-                    relation: { opposite: 'variable' },
-                },
+                    relation: { opposite: "variable" }
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('projectId'),
-                                ExpressionUtils.field('key'),
-                            ]),
-                        },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId"), ExpressionUtils.field("key")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                friendlyId: { type: 'String' },
-                projectId_key: { projectId: { type: 'String' }, key: { type: 'String' } },
-            },
+                id: { type: "String" },
+                friendlyId: { type: "String" },
+                projectId_key: { projectId: { type: "String" }, key: { type: "String" } }
+            }
         },
         EnvironmentVariableValue: {
-            name: 'EnvironmentVariableValue',
+            name: "EnvironmentVariableValue",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 valueReference: {
-                    name: 'valueReference',
-                    type: 'SecretReference',
+                    name: "valueReference",
+                    type: "SecretReference",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('valueReferenceId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('SetNull') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'environmentVariableValues',
-                        fields: ['valueReferenceId'],
-                        references: ['id'],
-                        onDelete: 'SetNull',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("valueReferenceId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "environmentVariableValues", fields: ["valueReferenceId"], references: ["id"], onDelete: "SetNull", onUpdate: "Cascade" }
                 },
                 valueReferenceId: {
-                    name: 'valueReferenceId',
-                    type: 'String',
+                    name: "valueReferenceId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['valueReference'] as readonly string[],
+                    foreignKeyFor: [
+                        "valueReference"
+                    ] as readonly string[]
                 },
                 variable: {
-                    name: 'variable',
-                    type: 'EnvironmentVariable',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('variableId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'values',
-                        fields: ['variableId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "variable",
+                    type: "EnvironmentVariable",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("variableId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "values", fields: ["variableId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 variableId: {
-                    name: 'variableId',
-                    type: 'String',
-                    foreignKeyFor: ['variable'] as readonly string[],
+                    name: "variableId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "variable"
+                    ] as readonly string[]
                 },
                 environment: {
-                    name: 'environment',
-                    type: 'RuntimeEnvironment',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('environmentId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'environmentVariableValues',
-                        fields: ['environmentId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "environment",
+                    type: "RuntimeEnvironment",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "environmentVariableValues", fields: ["environmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 environmentId: {
-                    name: 'environmentId',
-                    type: 'String',
-                    foreignKeyFor: ['environment'] as readonly string[],
+                    name: "environmentId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "environment"
+                    ] as readonly string[]
                 },
                 isSecret: {
-                    name: 'isSecret',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "isSecret",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
-                },
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('variableId'),
-                                ExpressionUtils.field('environmentId'),
-                            ]),
-                        },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("variableId"), ExpressionUtils.field("environmentId")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                variableId_environmentId: { variableId: { type: 'String' }, environmentId: { type: 'String' } },
-            },
+                id: { type: "String" },
+                variableId_environmentId: { variableId: { type: "String" }, environmentId: { type: "String" } }
+            }
         },
         Checkpoint: {
-            name: 'Checkpoint',
+            name: "Checkpoint",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 friendlyId: {
-                    name: 'friendlyId',
-                    type: 'String',
+                    name: "friendlyId",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 type: {
-                    name: 'type',
-                    type: 'CheckpointType',
+                    name: "type",
+                    type: "CheckpointType"
                 },
                 location: {
-                    name: 'location',
-                    type: 'String',
+                    name: "location",
+                    type: "String"
                 },
                 imageRef: {
-                    name: 'imageRef',
-                    type: 'String',
+                    name: "imageRef",
+                    type: "String"
                 },
                 reason: {
-                    name: 'reason',
-                    type: 'String',
-                    optional: true,
+                    name: "reason",
+                    type: "String",
+                    optional: true
                 },
                 metadata: {
-                    name: 'metadata',
-                    type: 'String',
-                    optional: true,
+                    name: "metadata",
+                    type: "String",
+                    optional: true
                 },
                 events: {
-                    name: 'events',
-                    type: 'CheckpointRestoreEvent',
+                    name: "events",
+                    type: "CheckpointRestoreEvent",
                     array: true,
-                    relation: { opposite: 'checkpoint' },
+                    relation: { opposite: "checkpoint" }
                 },
                 run: {
-                    name: 'run',
-                    type: 'TaskRun',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('runId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'checkpoints',
-                        fields: ['runId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "run",
+                    type: "TaskRun",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "checkpoints", fields: ["runId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 runId: {
-                    name: 'runId',
-                    type: 'String',
-                    foreignKeyFor: ['run'] as readonly string[],
+                    name: "runId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "run"
+                    ] as readonly string[]
                 },
                 attempt: {
-                    name: 'attempt',
-                    type: 'TaskRunAttempt',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('attemptId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'checkpoints',
-                        fields: ['attemptId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "attempt",
+                    type: "TaskRunAttempt",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("attemptId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "checkpoints", fields: ["attemptId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 attemptId: {
-                    name: 'attemptId',
-                    type: 'String',
-                    foreignKeyFor: ['attempt'] as readonly string[],
+                    name: "attemptId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "attempt"
+                    ] as readonly string[]
                 },
                 attemptNumber: {
-                    name: 'attemptNumber',
-                    type: 'Int',
-                    optional: true,
+                    name: "attemptNumber",
+                    type: "Int",
+                    optional: true
                 },
                 project: {
-                    name: 'project',
-                    type: 'Project',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'checkpoints',
-                        fields: ['projectId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "project",
+                    type: "Project",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "checkpoints", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
-                    foreignKeyFor: ['project'] as readonly string[],
+                    name: "projectId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
                 },
                 runtimeEnvironment: {
-                    name: 'runtimeEnvironment',
-                    type: 'RuntimeEnvironment',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('runtimeEnvironmentId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'checkpoints',
-                        fields: ['runtimeEnvironmentId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "runtimeEnvironment",
+                    type: "RuntimeEnvironment",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "checkpoints", fields: ["runtimeEnvironmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 runtimeEnvironmentId: {
-                    name: 'runtimeEnvironmentId',
-                    type: 'String',
-                    foreignKeyFor: ['runtimeEnvironment'] as readonly string[],
+                    name: "runtimeEnvironmentId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "runtimeEnvironment"
+                    ] as readonly string[]
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
-                },
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                }
             },
             attributes: [
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [ExpressionUtils.field('attemptId')]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('runId')]) },
-                    ],
-                },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("attemptId")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runId")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                friendlyId: { type: 'String' },
-            },
+                id: { type: "String" },
+                friendlyId: { type: "String" }
+            }
         },
         CheckpointRestoreEvent: {
-            name: 'CheckpointRestoreEvent',
+            name: "CheckpointRestoreEvent",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 type: {
-                    name: 'type',
-                    type: 'CheckpointRestoreEventType',
+                    name: "type",
+                    type: "CheckpointRestoreEventType"
                 },
                 reason: {
-                    name: 'reason',
-                    type: 'String',
-                    optional: true,
+                    name: "reason",
+                    type: "String",
+                    optional: true
                 },
                 metadata: {
-                    name: 'metadata',
-                    type: 'String',
-                    optional: true,
+                    name: "metadata",
+                    type: "String",
+                    optional: true
                 },
                 checkpoint: {
-                    name: 'checkpoint',
-                    type: 'Checkpoint',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('checkpointId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'events',
-                        fields: ['checkpointId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "checkpoint",
+                    type: "Checkpoint",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("checkpointId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "events", fields: ["checkpointId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 checkpointId: {
-                    name: 'checkpointId',
-                    type: 'String',
-                    foreignKeyFor: ['checkpoint'] as readonly string[],
+                    name: "checkpointId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "checkpoint"
+                    ] as readonly string[]
                 },
                 run: {
-                    name: 'run',
-                    type: 'TaskRun',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('runId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'CheckpointRestoreEvent',
-                        fields: ['runId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "run",
+                    type: "TaskRun",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "CheckpointRestoreEvent", fields: ["runId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 runId: {
-                    name: 'runId',
-                    type: 'String',
-                    foreignKeyFor: ['run'] as readonly string[],
+                    name: "runId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "run"
+                    ] as readonly string[]
                 },
                 attempt: {
-                    name: 'attempt',
-                    type: 'TaskRunAttempt',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('attemptId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'CheckpointRestoreEvent',
-                        fields: ['attemptId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "attempt",
+                    type: "TaskRunAttempt",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("attemptId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "CheckpointRestoreEvent", fields: ["attemptId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 attemptId: {
-                    name: 'attemptId',
-                    type: 'String',
-                    foreignKeyFor: ['attempt'] as readonly string[],
+                    name: "attemptId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "attempt"
+                    ] as readonly string[]
                 },
                 project: {
-                    name: 'project',
-                    type: 'Project',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'CheckpointRestoreEvent',
-                        fields: ['projectId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "project",
+                    type: "Project",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "CheckpointRestoreEvent", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
-                    foreignKeyFor: ['project'] as readonly string[],
+                    name: "projectId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
                 },
                 runtimeEnvironment: {
-                    name: 'runtimeEnvironment',
-                    type: 'RuntimeEnvironment',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('runtimeEnvironmentId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'CheckpointRestoreEvent',
-                        fields: ['runtimeEnvironmentId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "runtimeEnvironment",
+                    type: "RuntimeEnvironment",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runtimeEnvironmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "CheckpointRestoreEvent", fields: ["runtimeEnvironmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 runtimeEnvironmentId: {
-                    name: 'runtimeEnvironmentId',
-                    type: 'String',
-                    foreignKeyFor: ['runtimeEnvironment'] as readonly string[],
+                    name: "runtimeEnvironmentId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "runtimeEnvironment"
+                    ] as readonly string[]
                 },
                 taskRunDependency: {
-                    name: 'taskRunDependency',
-                    type: 'TaskRunDependency',
+                    name: "taskRunDependency",
+                    type: "TaskRunDependency",
                     optional: true,
-                    relation: { opposite: 'checkpointEvent' },
+                    relation: { opposite: "checkpointEvent" }
                 },
                 batchTaskRunDependency: {
-                    name: 'batchTaskRunDependency',
-                    type: 'BatchTaskRun',
+                    name: "batchTaskRunDependency",
+                    type: "BatchTaskRun",
                     optional: true,
-                    relation: { opposite: 'checkpointEvent' },
+                    relation: { opposite: "checkpointEvent" }
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
-                },
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                }
             },
             attributes: [
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [ExpressionUtils.field('checkpointId')]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('runId')]) },
-                    ],
-                },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("checkpointId")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runId")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-            },
+                id: { type: "String" }
+            }
         },
         WorkerDeployment: {
-            name: 'WorkerDeployment',
+            name: "WorkerDeployment",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 contentHash: {
-                    name: 'contentHash',
-                    type: 'String',
+                    name: "contentHash",
+                    type: "String"
                 },
                 friendlyId: {
-                    name: 'friendlyId',
-                    type: 'String',
+                    name: "friendlyId",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 shortCode: {
-                    name: 'shortCode',
-                    type: 'String',
+                    name: "shortCode",
+                    type: "String"
                 },
                 version: {
-                    name: 'version',
-                    type: 'String',
+                    name: "version",
+                    type: "String"
                 },
                 imageReference: {
-                    name: 'imageReference',
-                    type: 'String',
-                    optional: true,
+                    name: "imageReference",
+                    type: "String",
+                    optional: true
                 },
                 imagePlatform: {
-                    name: 'imagePlatform',
-                    type: 'String',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('linux/amd64') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'linux/amd64' as FieldDefault,
+                    name: "imagePlatform",
+                    type: "String",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("linux/amd64") }] }] as readonly AttributeApplication[],
+                    default: "linux/amd64" as FieldDefault
                 },
                 externalBuildData: {
-                    name: 'externalBuildData',
-                    type: 'Json',
-                    optional: true,
+                    name: "externalBuildData",
+                    type: "Json",
+                    optional: true
                 },
                 status: {
-                    name: 'status',
-                    type: 'WorkerDeploymentStatus',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('PENDING') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'PENDING' as FieldDefault,
+                    name: "status",
+                    type: "WorkerDeploymentStatus",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("PENDING") }] }] as readonly AttributeApplication[],
+                    default: "PENDING" as FieldDefault
                 },
                 type: {
-                    name: 'type',
-                    type: 'WorkerDeploymentType',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('V1') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'V1' as FieldDefault,
+                    name: "type",
+                    type: "WorkerDeploymentType",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("V1") }] }] as readonly AttributeApplication[],
+                    default: "V1" as FieldDefault
                 },
                 project: {
-                    name: 'project',
-                    type: 'Project',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'WorkerDeployment',
-                        fields: ['projectId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "project",
+                    type: "Project",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "WorkerDeployment", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
-                    foreignKeyFor: ['project'] as readonly string[],
+                    name: "projectId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
                 },
                 environment: {
-                    name: 'environment',
-                    type: 'RuntimeEnvironment',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('environmentId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'workerDeployments',
-                        fields: ['environmentId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "environment",
+                    type: "RuntimeEnvironment",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "workerDeployments", fields: ["environmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 environmentId: {
-                    name: 'environmentId',
-                    type: 'String',
-                    foreignKeyFor: ['environment'] as readonly string[],
+                    name: "environmentId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "environment"
+                    ] as readonly string[]
                 },
                 worker: {
-                    name: 'worker',
-                    type: 'BackgroundWorker',
+                    name: "worker",
+                    type: "BackgroundWorker",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('workerId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'deployment',
-                        fields: ['workerId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("workerId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "deployment", fields: ["workerId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 workerId: {
-                    name: 'workerId',
-                    type: 'String',
+                    name: "workerId",
+                    type: "String",
                     unique: true,
                     optional: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
-                    foreignKeyFor: ['worker'] as readonly string[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[],
+                    foreignKeyFor: [
+                        "worker"
+                    ] as readonly string[]
                 },
                 triggeredBy: {
-                    name: 'triggeredBy',
-                    type: 'User',
+                    name: "triggeredBy",
+                    type: "User",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('triggeredById')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('SetNull') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'deployments',
-                        fields: ['triggeredById'],
-                        references: ['id'],
-                        onDelete: 'SetNull',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("triggeredById")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "deployments", fields: ["triggeredById"], references: ["id"], onDelete: "SetNull", onUpdate: "Cascade" }
                 },
                 triggeredById: {
-                    name: 'triggeredById',
-                    type: 'String',
+                    name: "triggeredById",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['triggeredBy'] as readonly string[],
+                    foreignKeyFor: [
+                        "triggeredBy"
+                    ] as readonly string[]
                 },
                 builtAt: {
-                    name: 'builtAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "builtAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 deployedAt: {
-                    name: 'deployedAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "deployedAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 failedAt: {
-                    name: 'failedAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "failedAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 errorData: {
-                    name: 'errorData',
-                    type: 'Json',
-                    optional: true,
+                    name: "errorData",
+                    type: "Json",
+                    optional: true
                 },
                 git: {
-                    name: 'git',
-                    type: 'Json',
-                    optional: true,
+                    name: "git",
+                    type: "Json",
+                    optional: true
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 promotions: {
-                    name: 'promotions',
-                    type: 'WorkerDeploymentPromotion',
+                    name: "promotions",
+                    type: "WorkerDeploymentPromotion",
                     array: true,
-                    relation: { opposite: 'deployment' },
+                    relation: { opposite: "deployment" }
                 },
                 alerts: {
-                    name: 'alerts',
-                    type: 'ProjectAlert',
+                    name: "alerts",
+                    type: "ProjectAlert",
                     array: true,
-                    relation: { opposite: 'workerDeployment' },
+                    relation: { opposite: "workerDeployment" }
                 },
                 workerInstance: {
-                    name: 'workerInstance',
-                    type: 'WorkerInstance',
+                    name: "workerInstance",
+                    type: "WorkerInstance",
                     array: true,
-                    relation: { opposite: 'deployment' },
-                },
+                    relation: { opposite: "deployment" }
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('projectId'),
-                                ExpressionUtils.field('shortCode'),
-                            ]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('environmentId'),
-                                ExpressionUtils.field('version'),
-                            ]),
-                        },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId"), ExpressionUtils.field("shortCode")]) }] },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId"), ExpressionUtils.field("version")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                friendlyId: { type: 'String' },
-                workerId: { type: 'String' },
-                projectId_shortCode: { projectId: { type: 'String' }, shortCode: { type: 'String' } },
-                environmentId_version: { environmentId: { type: 'String' }, version: { type: 'String' } },
-            },
+                id: { type: "String" },
+                friendlyId: { type: "String" },
+                workerId: { type: "String" },
+                projectId_shortCode: { projectId: { type: "String" }, shortCode: { type: "String" } },
+                environmentId_version: { environmentId: { type: "String" }, version: { type: "String" } }
+            }
         },
         WorkerDeploymentPromotion: {
-            name: 'WorkerDeploymentPromotion',
+            name: "WorkerDeploymentPromotion",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 label: {
-                    name: 'label',
-                    type: 'String',
+                    name: "label",
+                    type: "String"
                 },
                 deployment: {
-                    name: 'deployment',
-                    type: 'WorkerDeployment',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('deploymentId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'promotions',
-                        fields: ['deploymentId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "deployment",
+                    type: "WorkerDeployment",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("deploymentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "promotions", fields: ["deploymentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 deploymentId: {
-                    name: 'deploymentId',
-                    type: 'String',
-                    foreignKeyFor: ['deployment'] as readonly string[],
+                    name: "deploymentId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "deployment"
+                    ] as readonly string[]
                 },
                 environment: {
-                    name: 'environment',
-                    type: 'RuntimeEnvironment',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('environmentId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'workerDeploymentPromotions',
-                        fields: ['environmentId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "environment",
+                    type: "RuntimeEnvironment",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "workerDeploymentPromotions", fields: ["environmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 environmentId: {
-                    name: 'environmentId',
-                    type: 'String',
-                    foreignKeyFor: ['environment'] as readonly string[],
-                },
+                    name: "environmentId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "environment"
+                    ] as readonly string[]
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('environmentId'),
-                                ExpressionUtils.field('label'),
-                            ]),
-                        },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId"), ExpressionUtils.field("label")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                environmentId_label: { environmentId: { type: 'String' }, label: { type: 'String' } },
-            },
+                id: { type: "String" },
+                environmentId_label: { environmentId: { type: "String" }, label: { type: "String" } }
+            }
         },
         TaskSchedule: {
-            name: 'TaskSchedule',
+            name: "TaskSchedule",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 type: {
-                    name: 'type',
-                    type: 'ScheduleType',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('IMPERATIVE') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'IMPERATIVE' as FieldDefault,
+                    name: "type",
+                    type: "ScheduleType",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("IMPERATIVE") }] }] as readonly AttributeApplication[],
+                    default: "IMPERATIVE" as FieldDefault
                 },
                 friendlyId: {
-                    name: 'friendlyId',
-                    type: 'String',
+                    name: "friendlyId",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 taskIdentifier: {
-                    name: 'taskIdentifier',
-                    type: 'String',
+                    name: "taskIdentifier",
+                    type: "String"
                 },
                 deduplicationKey: {
-                    name: 'deduplicationKey',
-                    type: 'String',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    name: "deduplicationKey",
+                    type: "String",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 userProvidedDeduplicationKey: {
-                    name: 'userProvidedDeduplicationKey',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "userProvidedDeduplicationKey",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 generatorExpression: {
-                    name: 'generatorExpression',
-                    type: 'String',
+                    name: "generatorExpression",
+                    type: "String"
                 },
                 generatorDescription: {
-                    name: 'generatorDescription',
-                    type: 'String',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('') }] },
-                    ] as readonly AttributeApplication[],
-                    default: '' as FieldDefault,
+                    name: "generatorDescription",
+                    type: "String",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("") }] }] as readonly AttributeApplication[],
+                    default: "" as FieldDefault
                 },
                 generatorType: {
-                    name: 'generatorType',
-                    type: 'ScheduleGeneratorType',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('CRON') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'CRON' as FieldDefault,
+                    name: "generatorType",
+                    type: "ScheduleGeneratorType",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("CRON") }] }] as readonly AttributeApplication[],
+                    default: "CRON" as FieldDefault
                 },
                 timezone: {
-                    name: 'timezone',
-                    type: 'String',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('UTC') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'UTC' as FieldDefault,
+                    name: "timezone",
+                    type: "String",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("UTC") }] }] as readonly AttributeApplication[],
+                    default: "UTC" as FieldDefault
                 },
                 externalId: {
-                    name: 'externalId',
-                    type: 'String',
-                    optional: true,
+                    name: "externalId",
+                    type: "String",
+                    optional: true
                 },
                 instances: {
-                    name: 'instances',
-                    type: 'TaskScheduleInstance',
+                    name: "instances",
+                    type: "TaskScheduleInstance",
                     array: true,
-                    relation: { opposite: 'taskSchedule' },
+                    relation: { opposite: "taskSchedule" }
                 },
                 lastRunTriggeredAt: {
-                    name: 'lastRunTriggeredAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "lastRunTriggeredAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 project: {
-                    name: 'project',
-                    type: 'Project',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'taskSchedules',
-                        fields: ['projectId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "project",
+                    type: "Project",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "taskSchedules", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
-                    foreignKeyFor: ['project'] as readonly string[],
+                    name: "projectId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 active: {
-                    name: 'active',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(true) }] },
-                    ] as readonly AttributeApplication[],
-                    default: true as FieldDefault,
-                },
+                    name: "active",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(true) }] }] as readonly AttributeApplication[],
+                    default: true as FieldDefault
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('projectId'),
-                                ExpressionUtils.field('deduplicationKey'),
-                            ]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('projectId'),
-                                ExpressionUtils.field('createdAt'),
-                            ]),
-                        },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId"), ExpressionUtils.field("deduplicationKey")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId"), ExpressionUtils.field("createdAt")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                friendlyId: { type: 'String' },
-                projectId_deduplicationKey: { projectId: { type: 'String' }, deduplicationKey: { type: 'String' } },
-            },
+                id: { type: "String" },
+                friendlyId: { type: "String" },
+                projectId_deduplicationKey: { projectId: { type: "String" }, deduplicationKey: { type: "String" } }
+            }
         },
         TaskScheduleInstance: {
-            name: 'TaskScheduleInstance',
+            name: "TaskScheduleInstance",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 taskSchedule: {
-                    name: 'taskSchedule',
-                    type: 'TaskSchedule',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('taskScheduleId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'instances',
-                        fields: ['taskScheduleId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "taskSchedule",
+                    type: "TaskSchedule",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskScheduleId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "instances", fields: ["taskScheduleId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 taskScheduleId: {
-                    name: 'taskScheduleId',
-                    type: 'String',
-                    foreignKeyFor: ['taskSchedule'] as readonly string[],
+                    name: "taskScheduleId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "taskSchedule"
+                    ] as readonly string[]
                 },
                 environment: {
-                    name: 'environment',
-                    type: 'RuntimeEnvironment',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('environmentId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'taskScheduleInstances',
-                        fields: ['environmentId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "environment",
+                    type: "RuntimeEnvironment",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "taskScheduleInstances", fields: ["environmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 environmentId: {
-                    name: 'environmentId',
-                    type: 'String',
-                    foreignKeyFor: ['environment'] as readonly string[],
+                    name: "environmentId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "environment"
+                    ] as readonly string[]
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 active: {
-                    name: 'active',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(true) }] },
-                    ] as readonly AttributeApplication[],
-                    default: true as FieldDefault,
+                    name: "active",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(true) }] }] as readonly AttributeApplication[],
+                    default: true as FieldDefault
                 },
                 lastScheduledTimestamp: {
-                    name: 'lastScheduledTimestamp',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "lastScheduledTimestamp",
+                    type: "DateTime",
+                    optional: true
                 },
                 nextScheduledTimestamp: {
-                    name: 'nextScheduledTimestamp',
-                    type: 'DateTime',
-                    optional: true,
-                },
+                    name: "nextScheduledTimestamp",
+                    type: "DateTime",
+                    optional: true
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('taskScheduleId'),
-                                ExpressionUtils.field('environmentId'),
-                            ]),
-                        },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskScheduleId"), ExpressionUtils.field("environmentId")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                taskScheduleId_environmentId: { taskScheduleId: { type: 'String' }, environmentId: { type: 'String' } },
-            },
+                id: { type: "String" },
+                taskScheduleId_environmentId: { taskScheduleId: { type: "String" }, environmentId: { type: "String" } }
+            }
         },
         RuntimeEnvironmentSession: {
-            name: 'RuntimeEnvironmentSession',
+            name: "RuntimeEnvironmentSession",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 ipAddress: {
-                    name: 'ipAddress',
-                    type: 'String',
+                    name: "ipAddress",
+                    type: "String"
                 },
                 environment: {
-                    name: 'environment',
-                    type: 'RuntimeEnvironment',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('environmentId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'sessions',
-                        fields: ['environmentId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "environment",
+                    type: "RuntimeEnvironment",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "sessions", fields: ["environmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 environmentId: {
-                    name: 'environmentId',
-                    type: 'String',
-                    foreignKeyFor: ['environment'] as readonly string[],
+                    name: "environmentId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "environment"
+                    ] as readonly string[]
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 disconnectedAt: {
-                    name: 'disconnectedAt',
-                    type: 'DateTime',
-                    optional: true,
+                    name: "disconnectedAt",
+                    type: "DateTime",
+                    optional: true
                 },
                 currentEnvironments: {
-                    name: 'currentEnvironments',
-                    type: 'RuntimeEnvironment',
+                    name: "currentEnvironments",
+                    type: "RuntimeEnvironment",
                     array: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [{ name: 'name', value: ExpressionUtils.literal('currentSession') }],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'currentSession', name: 'currentSession' },
-                },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("currentSession") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "currentSession", name: "currentSession" }
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-            },
+                id: { type: "String" }
+            }
         },
         ProjectAlertChannel: {
-            name: 'ProjectAlertChannel',
+            name: "ProjectAlertChannel",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 friendlyId: {
-                    name: 'friendlyId',
-                    type: 'String',
+                    name: "friendlyId",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 deduplicationKey: {
-                    name: 'deduplicationKey',
-                    type: 'String',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    name: "deduplicationKey",
+                    type: "String",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 userProvidedDeduplicationKey: {
-                    name: 'userProvidedDeduplicationKey',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "userProvidedDeduplicationKey",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 integration: {
-                    name: 'integration',
-                    type: 'OrganizationIntegration',
+                    name: "integration",
+                    type: "OrganizationIntegration",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('integrationId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('SetNull') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'alertChannels',
-                        fields: ['integrationId'],
-                        references: ['id'],
-                        onDelete: 'SetNull',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("integrationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("SetNull") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "alertChannels", fields: ["integrationId"], references: ["id"], onDelete: "SetNull", onUpdate: "Cascade" }
                 },
                 integrationId: {
-                    name: 'integrationId',
-                    type: 'String',
+                    name: "integrationId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['integration'] as readonly string[],
+                    foreignKeyFor: [
+                        "integration"
+                    ] as readonly string[]
                 },
                 enabled: {
-                    name: 'enabled',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(true) }] },
-                    ] as readonly AttributeApplication[],
-                    default: true as FieldDefault,
+                    name: "enabled",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(true) }] }] as readonly AttributeApplication[],
+                    default: true as FieldDefault
                 },
                 type: {
-                    name: 'type',
-                    type: 'ProjectAlertChannelType',
+                    name: "type",
+                    type: "ProjectAlertChannelType"
                 },
                 name: {
-                    name: 'name',
-                    type: 'String',
+                    name: "name",
+                    type: "String"
                 },
                 properties: {
-                    name: 'properties',
-                    type: 'Json',
+                    name: "properties",
+                    type: "Json"
                 },
                 alertTypes: {
-                    name: 'alertTypes',
-                    type: 'ProjectAlertType',
-                    array: true,
+                    name: "alertTypes",
+                    type: "ProjectAlertType",
+                    array: true
                 },
                 environmentTypes: {
-                    name: 'environmentTypes',
-                    type: 'RuntimeEnvironmentType',
+                    name: "environmentTypes",
+                    type: "RuntimeEnvironmentType",
                     array: true,
-                    attributes: [
-                        {
-                            name: '@default',
-                            args: [
-                                {
-                                    name: 'value',
-                                    value: ExpressionUtils.array('RuntimeEnvironmentType', [
-                                        ExpressionUtils.literal('STAGING'),
-                                        ExpressionUtils.literal('PRODUCTION'),
-                                    ]),
-                                },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    default: ['STAGING', 'PRODUCTION'] as FieldDefault,
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.array("RuntimeEnvironmentType", [ExpressionUtils.literal("STAGING"), ExpressionUtils.literal("PRODUCTION")]) }] }] as readonly AttributeApplication[],
+                    default: ["STAGING", "PRODUCTION"] as FieldDefault
                 },
                 project: {
-                    name: 'project',
-                    type: 'Project',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'alertChannels',
-                        fields: ['projectId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "project",
+                    type: "Project",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "alertChannels", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
-                    foreignKeyFor: ['project'] as readonly string[],
+                    name: "projectId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 alerts: {
-                    name: 'alerts',
-                    type: 'ProjectAlert',
+                    name: "alerts",
+                    type: "ProjectAlert",
                     array: true,
-                    relation: { opposite: 'channel' },
+                    relation: { opposite: "channel" }
                 },
                 alertStorages: {
-                    name: 'alertStorages',
-                    type: 'ProjectAlertStorage',
+                    name: "alertStorages",
+                    type: "ProjectAlertStorage",
                     array: true,
-                    relation: { opposite: 'alertChannel' },
-                },
+                    relation: { opposite: "alertChannel" }
+                }
             },
             attributes: [
-                {
-                    name: '@@unique',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('projectId'),
-                                ExpressionUtils.field('deduplicationKey'),
-                            ]),
-                        },
-                    ],
-                },
+                { name: "@@unique", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId"), ExpressionUtils.field("deduplicationKey")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                friendlyId: { type: 'String' },
-                projectId_deduplicationKey: { projectId: { type: 'String' }, deduplicationKey: { type: 'String' } },
-            },
+                id: { type: "String" },
+                friendlyId: { type: "String" },
+                projectId_deduplicationKey: { projectId: { type: "String" }, deduplicationKey: { type: "String" } }
+            }
         },
         ProjectAlert: {
-            name: 'ProjectAlert',
+            name: "ProjectAlert",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 friendlyId: {
-                    name: 'friendlyId',
-                    type: 'String',
+                    name: "friendlyId",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 project: {
-                    name: 'project',
-                    type: 'Project',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'alerts',
-                        fields: ['projectId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "project",
+                    type: "Project",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "alerts", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
-                    foreignKeyFor: ['project'] as readonly string[],
+                    name: "projectId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
                 },
                 environment: {
-                    name: 'environment',
-                    type: 'RuntimeEnvironment',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('environmentId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'alerts',
-                        fields: ['environmentId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "environment",
+                    type: "RuntimeEnvironment",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("environmentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "alerts", fields: ["environmentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 environmentId: {
-                    name: 'environmentId',
-                    type: 'String',
-                    foreignKeyFor: ['environment'] as readonly string[],
+                    name: "environmentId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "environment"
+                    ] as readonly string[]
                 },
                 channel: {
-                    name: 'channel',
-                    type: 'ProjectAlertChannel',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('channelId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'alerts',
-                        fields: ['channelId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "channel",
+                    type: "ProjectAlertChannel",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("channelId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "alerts", fields: ["channelId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 channelId: {
-                    name: 'channelId',
-                    type: 'String',
-                    foreignKeyFor: ['channel'] as readonly string[],
+                    name: "channelId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "channel"
+                    ] as readonly string[]
                 },
                 status: {
-                    name: 'status',
-                    type: 'ProjectAlertStatus',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('PENDING') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'PENDING' as FieldDefault,
+                    name: "status",
+                    type: "ProjectAlertStatus",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("PENDING") }] }] as readonly AttributeApplication[],
+                    default: "PENDING" as FieldDefault
                 },
                 type: {
-                    name: 'type',
-                    type: 'ProjectAlertType',
+                    name: "type",
+                    type: "ProjectAlertType"
                 },
                 taskRunAttempt: {
-                    name: 'taskRunAttempt',
-                    type: 'TaskRunAttempt',
+                    name: "taskRunAttempt",
+                    type: "TaskRunAttempt",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('taskRunAttemptId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'alerts',
-                        fields: ['taskRunAttemptId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunAttemptId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "alerts", fields: ["taskRunAttemptId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 taskRunAttemptId: {
-                    name: 'taskRunAttemptId',
-                    type: 'String',
+                    name: "taskRunAttemptId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['taskRunAttempt'] as readonly string[],
+                    foreignKeyFor: [
+                        "taskRunAttempt"
+                    ] as readonly string[]
                 },
                 taskRun: {
-                    name: 'taskRun',
-                    type: 'TaskRun',
+                    name: "taskRun",
+                    type: "TaskRun",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('taskRunId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'alerts',
-                        fields: ['taskRunId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("taskRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "alerts", fields: ["taskRunId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 taskRunId: {
-                    name: 'taskRunId',
-                    type: 'String',
+                    name: "taskRunId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['taskRun'] as readonly string[],
+                    foreignKeyFor: [
+                        "taskRun"
+                    ] as readonly string[]
                 },
                 workerDeployment: {
-                    name: 'workerDeployment',
-                    type: 'WorkerDeployment',
+                    name: "workerDeployment",
+                    type: "WorkerDeployment",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [
-                                        ExpressionUtils.field('workerDeploymentId'),
-                                    ]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'alerts',
-                        fields: ['workerDeploymentId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("workerDeploymentId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "alerts", fields: ["workerDeploymentId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 workerDeploymentId: {
-                    name: 'workerDeploymentId',
-                    type: 'String',
+                    name: "workerDeploymentId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['workerDeployment'] as readonly string[],
+                    foreignKeyFor: [
+                        "workerDeployment"
+                    ] as readonly string[]
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
-                },
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                friendlyId: { type: 'String' },
-            },
+                id: { type: "String" },
+                friendlyId: { type: "String" }
+            }
         },
         ProjectAlertStorage: {
-            name: 'ProjectAlertStorage',
+            name: "ProjectAlertStorage",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 project: {
-                    name: 'project',
-                    type: 'Project',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'alertStorages',
-                        fields: ['projectId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "project",
+                    type: "Project",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "alertStorages", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
-                    foreignKeyFor: ['project'] as readonly string[],
+                    name: "projectId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
                 },
                 alertChannel: {
-                    name: 'alertChannel',
-                    type: 'ProjectAlertChannel',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('alertChannelId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'alertStorages',
-                        fields: ['alertChannelId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "alertChannel",
+                    type: "ProjectAlertChannel",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("alertChannelId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "alertStorages", fields: ["alertChannelId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 alertChannelId: {
-                    name: 'alertChannelId',
-                    type: 'String',
-                    foreignKeyFor: ['alertChannel'] as readonly string[],
+                    name: "alertChannelId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "alertChannel"
+                    ] as readonly string[]
                 },
                 alertType: {
-                    name: 'alertType',
-                    type: 'ProjectAlertType',
+                    name: "alertType",
+                    type: "ProjectAlertType"
                 },
                 storageId: {
-                    name: 'storageId',
-                    type: 'String',
+                    name: "storageId",
+                    type: "String"
                 },
                 storageData: {
-                    name: 'storageData',
-                    type: 'Json',
+                    name: "storageData",
+                    type: "Json"
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
-                },
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-            },
+                id: { type: "String" }
+            }
         },
         OrganizationIntegration: {
-            name: 'OrganizationIntegration',
+            name: "OrganizationIntegration",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 friendlyId: {
-                    name: 'friendlyId',
-                    type: 'String',
+                    name: "friendlyId",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 service: {
-                    name: 'service',
-                    type: 'IntegrationService',
+                    name: "service",
+                    type: "IntegrationService"
                 },
                 integrationData: {
-                    name: 'integrationData',
-                    type: 'Json',
+                    name: "integrationData",
+                    type: "Json"
                 },
                 tokenReference: {
-                    name: 'tokenReference',
-                    type: 'SecretReference',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('tokenReferenceId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'OrganizationIntegration',
-                        fields: ['tokenReferenceId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "tokenReference",
+                    type: "SecretReference",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("tokenReferenceId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "OrganizationIntegration", fields: ["tokenReferenceId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 tokenReferenceId: {
-                    name: 'tokenReferenceId',
-                    type: 'String',
-                    foreignKeyFor: ['tokenReference'] as readonly string[],
+                    name: "tokenReferenceId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "tokenReference"
+                    ] as readonly string[]
                 },
                 organization: {
-                    name: 'organization',
-                    type: 'Organization',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('organizationId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'organizationIntegrations',
-                        fields: ['organizationId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "organization",
+                    type: "Organization",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("organizationId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "organizationIntegrations", fields: ["organizationId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 organizationId: {
-                    name: 'organizationId',
-                    type: 'String',
-                    foreignKeyFor: ['organization'] as readonly string[],
+                    name: "organizationId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "organization"
+                    ] as readonly string[]
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
                 },
                 alertChannels: {
-                    name: 'alertChannels',
-                    type: 'ProjectAlertChannel',
+                    name: "alertChannels",
+                    type: "ProjectAlertChannel",
                     array: true,
-                    relation: { opposite: 'integration' },
-                },
+                    relation: { opposite: "integration" }
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                friendlyId: { type: 'String' },
-            },
+                id: { type: "String" },
+                friendlyId: { type: "String" }
+            }
         },
         BulkActionGroup: {
-            name: 'BulkActionGroup',
+            name: "BulkActionGroup",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 friendlyId: {
-                    name: 'friendlyId',
-                    type: 'String',
+                    name: "friendlyId",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 project: {
-                    name: 'project',
-                    type: 'Project',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('projectId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'bulkActionGroups',
-                        fields: ['projectId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "project",
+                    type: "Project",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("projectId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "bulkActionGroups", fields: ["projectId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
-                    foreignKeyFor: ['project'] as readonly string[],
+                    name: "projectId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "project"
+                    ] as readonly string[]
                 },
                 type: {
-                    name: 'type',
-                    type: 'BulkActionType',
+                    name: "type",
+                    type: "BulkActionType"
                 },
                 items: {
-                    name: 'items',
-                    type: 'BulkActionItem',
+                    name: "items",
+                    type: "BulkActionItem",
                     array: true,
-                    relation: { opposite: 'group' },
+                    relation: { opposite: "group" }
                 },
                 status: {
-                    name: 'status',
-                    type: 'BulkActionStatus',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('PENDING') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'PENDING' as FieldDefault,
+                    name: "status",
+                    type: "BulkActionStatus",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("PENDING") }] }] as readonly AttributeApplication[],
+                    default: "PENDING" as FieldDefault
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
-                },
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                friendlyId: { type: 'String' },
-            },
+                id: { type: "String" },
+                friendlyId: { type: "String" }
+            }
         },
         BulkActionItem: {
-            name: 'BulkActionItem',
+            name: "BulkActionItem",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 friendlyId: {
-                    name: 'friendlyId',
-                    type: 'String',
+                    name: "friendlyId",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 group: {
-                    name: 'group',
-                    type: 'BulkActionGroup',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('groupId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'items',
-                        fields: ['groupId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "group",
+                    type: "BulkActionGroup",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("groupId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "items", fields: ["groupId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 groupId: {
-                    name: 'groupId',
-                    type: 'String',
-                    foreignKeyFor: ['group'] as readonly string[],
+                    name: "groupId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "group"
+                    ] as readonly string[]
                 },
                 type: {
-                    name: 'type',
-                    type: 'BulkActionType',
+                    name: "type",
+                    type: "BulkActionType"
                 },
                 status: {
-                    name: 'status',
-                    type: 'BulkActionItemStatus',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('PENDING') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'PENDING' as FieldDefault,
+                    name: "status",
+                    type: "BulkActionItemStatus",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("PENDING") }] }] as readonly AttributeApplication[],
+                    default: "PENDING" as FieldDefault
                 },
                 sourceRun: {
-                    name: 'sourceRun',
-                    type: 'TaskRun',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                { name: 'name', value: ExpressionUtils.literal('SourceActionItemRun') },
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('sourceRunId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'sourceBulkActionItems',
-                        name: 'SourceActionItemRun',
-                        fields: ['sourceRunId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    name: "sourceRun",
+                    type: "TaskRun",
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("SourceActionItemRun") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("sourceRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "sourceBulkActionItems", name: "SourceActionItemRun", fields: ["sourceRunId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 sourceRunId: {
-                    name: 'sourceRunId',
-                    type: 'String',
-                    foreignKeyFor: ['sourceRun'] as readonly string[],
+                    name: "sourceRunId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "sourceRun"
+                    ] as readonly string[]
                 },
                 destinationRun: {
-                    name: 'destinationRun',
-                    type: 'TaskRun',
+                    name: "destinationRun",
+                    type: "TaskRun",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                { name: 'name', value: ExpressionUtils.literal('DestinationActionItemRun') },
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('destinationRunId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'destinationBulkActionItems',
-                        name: 'DestinationActionItemRun',
-                        fields: ['destinationRunId'],
-                        references: ['id'],
-                        onDelete: 'Cascade',
-                        onUpdate: 'Cascade',
-                    },
+                    attributes: [{ name: "@relation", args: [{ name: "name", value: ExpressionUtils.literal("DestinationActionItemRun") }, { name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("destinationRunId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "destinationBulkActionItems", name: "DestinationActionItemRun", fields: ["destinationRunId"], references: ["id"], onDelete: "Cascade", onUpdate: "Cascade" }
                 },
                 destinationRunId: {
-                    name: 'destinationRunId',
-                    type: 'String',
+                    name: "destinationRunId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['destinationRun'] as readonly string[],
+                    foreignKeyFor: [
+                        "destinationRun"
+                    ] as readonly string[]
                 },
                 error: {
-                    name: 'error',
-                    type: 'String',
-                    optional: true,
+                    name: "error",
+                    type: "String",
+                    optional: true
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 updatedAt: {
-                    name: 'updatedAt',
-                    type: 'DateTime',
+                    name: "updatedAt",
+                    type: "DateTime",
                     updatedAt: true,
-                    attributes: [{ name: '@updatedAt' }] as readonly AttributeApplication[],
-                },
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                friendlyId: { type: 'String' },
-            },
+                id: { type: "String" },
+                friendlyId: { type: "String" }
+            }
         },
         RealtimeStreamChunk: {
-            name: 'RealtimeStreamChunk',
+            name: "RealtimeStreamChunk",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 key: {
-                    name: 'key',
-                    type: 'String',
+                    name: "key",
+                    type: "String"
                 },
                 value: {
-                    name: 'value',
-                    type: 'String',
+                    name: "value",
+                    type: "String"
                 },
                 sequence: {
-                    name: 'sequence',
-                    type: 'Int',
+                    name: "sequence",
+                    type: "Int"
                 },
                 runId: {
-                    name: 'runId',
-                    type: 'String',
+                    name: "runId",
+                    type: "String"
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
-                },
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
+                }
             },
             attributes: [
-                {
-                    name: '@@index',
-                    args: [
-                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('runId')]) },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('DateTime', [ExpressionUtils.field('createdAt')]),
-                        },
-                    ],
-                },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runId")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("DateTime", [ExpressionUtils.field("createdAt")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-            },
+                id: { type: "String" }
+            }
         },
         TaskEventPartitioned: {
-            name: 'TaskEventPartitioned',
+            name: "TaskEventPartitioned",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 message: {
-                    name: 'message',
-                    type: 'String',
+                    name: "message",
+                    type: "String"
                 },
                 traceId: {
-                    name: 'traceId',
-                    type: 'String',
+                    name: "traceId",
+                    type: "String"
                 },
                 spanId: {
-                    name: 'spanId',
-                    type: 'String',
+                    name: "spanId",
+                    type: "String"
                 },
                 parentId: {
-                    name: 'parentId',
-                    type: 'String',
-                    optional: true,
+                    name: "parentId",
+                    type: "String",
+                    optional: true
                 },
                 tracestate: {
-                    name: 'tracestate',
-                    type: 'String',
-                    optional: true,
+                    name: "tracestate",
+                    type: "String",
+                    optional: true
                 },
                 isError: {
-                    name: 'isError',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "isError",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 isPartial: {
-                    name: 'isPartial',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "isPartial",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 isCancelled: {
-                    name: 'isCancelled',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "isCancelled",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 serviceName: {
-                    name: 'serviceName',
-                    type: 'String',
+                    name: "serviceName",
+                    type: "String"
                 },
                 serviceNamespace: {
-                    name: 'serviceNamespace',
-                    type: 'String',
+                    name: "serviceNamespace",
+                    type: "String"
                 },
                 level: {
-                    name: 'level',
-                    type: 'TaskEventLevel',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('TRACE') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'TRACE' as FieldDefault,
+                    name: "level",
+                    type: "TaskEventLevel",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("TRACE") }] }] as readonly AttributeApplication[],
+                    default: "TRACE" as FieldDefault
                 },
                 kind: {
-                    name: 'kind',
-                    type: 'TaskEventKind',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('INTERNAL') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'INTERNAL' as FieldDefault,
+                    name: "kind",
+                    type: "TaskEventKind",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("INTERNAL") }] }] as readonly AttributeApplication[],
+                    default: "INTERNAL" as FieldDefault
                 },
                 status: {
-                    name: 'status',
-                    type: 'TaskEventStatus',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal('UNSET') }] },
-                    ] as readonly AttributeApplication[],
-                    default: 'UNSET' as FieldDefault,
+                    name: "status",
+                    type: "TaskEventStatus",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal("UNSET") }] }] as readonly AttributeApplication[],
+                    default: "UNSET" as FieldDefault
                 },
                 links: {
-                    name: 'links',
-                    type: 'Json',
-                    optional: true,
+                    name: "links",
+                    type: "Json",
+                    optional: true
                 },
                 events: {
-                    name: 'events',
-                    type: 'Json',
-                    optional: true,
+                    name: "events",
+                    type: "Json",
+                    optional: true
                 },
                 startTime: {
-                    name: 'startTime',
-                    type: 'BigInt',
+                    name: "startTime",
+                    type: "BigInt"
                 },
                 duration: {
-                    name: 'duration',
-                    type: 'BigInt',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault,
+                    name: "duration",
+                    type: "BigInt",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault
                 },
                 attemptId: {
-                    name: 'attemptId',
-                    type: 'String',
-                    optional: true,
+                    name: "attemptId",
+                    type: "String",
+                    optional: true
                 },
                 attemptNumber: {
-                    name: 'attemptNumber',
-                    type: 'Int',
-                    optional: true,
+                    name: "attemptNumber",
+                    type: "Int",
+                    optional: true
                 },
                 environmentId: {
-                    name: 'environmentId',
-                    type: 'String',
+                    name: "environmentId",
+                    type: "String"
                 },
                 environmentType: {
-                    name: 'environmentType',
-                    type: 'RuntimeEnvironmentType',
+                    name: "environmentType",
+                    type: "RuntimeEnvironmentType"
                 },
                 organizationId: {
-                    name: 'organizationId',
-                    type: 'String',
+                    name: "organizationId",
+                    type: "String"
                 },
                 projectId: {
-                    name: 'projectId',
-                    type: 'String',
+                    name: "projectId",
+                    type: "String"
                 },
                 projectRef: {
-                    name: 'projectRef',
-                    type: 'String',
+                    name: "projectRef",
+                    type: "String"
                 },
                 runId: {
-                    name: 'runId',
-                    type: 'String',
+                    name: "runId",
+                    type: "String"
                 },
                 runIsTest: {
-                    name: 'runIsTest',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "runIsTest",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 idempotencyKey: {
-                    name: 'idempotencyKey',
-                    type: 'String',
-                    optional: true,
+                    name: "idempotencyKey",
+                    type: "String",
+                    optional: true
                 },
                 taskSlug: {
-                    name: 'taskSlug',
-                    type: 'String',
+                    name: "taskSlug",
+                    type: "String"
                 },
                 taskPath: {
-                    name: 'taskPath',
-                    type: 'String',
-                    optional: true,
+                    name: "taskPath",
+                    type: "String",
+                    optional: true
                 },
                 taskExportName: {
-                    name: 'taskExportName',
-                    type: 'String',
-                    optional: true,
+                    name: "taskExportName",
+                    type: "String",
+                    optional: true
                 },
                 workerId: {
-                    name: 'workerId',
-                    type: 'String',
-                    optional: true,
+                    name: "workerId",
+                    type: "String",
+                    optional: true
                 },
                 workerVersion: {
-                    name: 'workerVersion',
-                    type: 'String',
-                    optional: true,
+                    name: "workerVersion",
+                    type: "String",
+                    optional: true
                 },
                 queueId: {
-                    name: 'queueId',
-                    type: 'String',
-                    optional: true,
+                    name: "queueId",
+                    type: "String",
+                    optional: true
                 },
                 queueName: {
-                    name: 'queueName',
-                    type: 'String',
-                    optional: true,
+                    name: "queueName",
+                    type: "String",
+                    optional: true
                 },
                 batchId: {
-                    name: 'batchId',
-                    type: 'String',
-                    optional: true,
+                    name: "batchId",
+                    type: "String",
+                    optional: true
                 },
                 properties: {
-                    name: 'properties',
-                    type: 'Json',
+                    name: "properties",
+                    type: "Json"
                 },
                 metadata: {
-                    name: 'metadata',
-                    type: 'Json',
-                    optional: true,
+                    name: "metadata",
+                    type: "Json",
+                    optional: true
                 },
                 style: {
-                    name: 'style',
-                    type: 'Json',
-                    optional: true,
+                    name: "style",
+                    type: "Json",
+                    optional: true
                 },
                 output: {
-                    name: 'output',
-                    type: 'Json',
-                    optional: true,
+                    name: "output",
+                    type: "Json",
+                    optional: true
                 },
                 outputType: {
-                    name: 'outputType',
-                    type: 'String',
-                    optional: true,
+                    name: "outputType",
+                    type: "String",
+                    optional: true
                 },
                 payload: {
-                    name: 'payload',
-                    type: 'Json',
-                    optional: true,
+                    name: "payload",
+                    type: "Json",
+                    optional: true
                 },
                 payloadType: {
-                    name: 'payloadType',
-                    type: 'String',
-                    optional: true,
+                    name: "payloadType",
+                    type: "String",
+                    optional: true
                 },
                 createdAt: {
-                    name: 'createdAt',
-                    type: 'DateTime',
+                    name: "createdAt",
+                    type: "DateTime",
                     id: true,
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('now') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('now') as FieldDefault,
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
                 usageDurationMs: {
-                    name: 'usageDurationMs',
-                    type: 'Int',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault,
+                    name: "usageDurationMs",
+                    type: "Int",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault
                 },
                 usageCostInCents: {
-                    name: 'usageCostInCents',
-                    type: 'Float',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(0) }] },
-                    ] as readonly AttributeApplication[],
-                    default: 0 as FieldDefault,
+                    name: "usageCostInCents",
+                    type: "Float",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    default: 0 as FieldDefault
                 },
                 machinePreset: {
-                    name: 'machinePreset',
-                    type: 'String',
-                    optional: true,
+                    name: "machinePreset",
+                    type: "String",
+                    optional: true
                 },
                 machinePresetCpu: {
-                    name: 'machinePresetCpu',
-                    type: 'Float',
-                    optional: true,
+                    name: "machinePresetCpu",
+                    type: "Float",
+                    optional: true
                 },
                 machinePresetMemory: {
-                    name: 'machinePresetMemory',
-                    type: 'Float',
-                    optional: true,
+                    name: "machinePresetMemory",
+                    type: "Float",
+                    optional: true
                 },
                 machinePresetCentsPerMs: {
-                    name: 'machinePresetCentsPerMs',
-                    type: 'Float',
-                    optional: true,
-                },
+                    name: "machinePresetCentsPerMs",
+                    type: "Float",
+                    optional: true
+                }
             },
             attributes: [
-                {
-                    name: '@@id',
-                    args: [
-                        {
-                            name: 'fields',
-                            value: ExpressionUtils.array('String', [
-                                ExpressionUtils.field('id'),
-                                ExpressionUtils.field('createdAt'),
-                            ]),
-                        },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('traceId')]) },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('spanId')]) },
-                    ],
-                },
-                {
-                    name: '@@index',
-                    args: [
-                        { name: 'fields', value: ExpressionUtils.array('String', [ExpressionUtils.field('runId')]) },
-                    ],
-                },
+                { name: "@@id", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("id"), ExpressionUtils.field("createdAt")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("traceId")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("spanId")]) }] },
+                { name: "@@index", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("runId")]) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id', 'createdAt'],
+            idFields: ["id", "createdAt"],
             uniqueFields: {
-                id_createdAt: { id: { type: 'String' }, createdAt: { type: 'DateTime' } },
-            },
-        },
+                id_createdAt: { id: { type: "String" }, createdAt: { type: "DateTime" } }
+            }
+        }
     } as const;
     enums = {
         AuthenticationMethod: {
-            name: 'AuthenticationMethod',
+            name: "AuthenticationMethod",
             values: {
-                GITHUB: 'GITHUB',
-                MAGIC_LINK: 'MAGIC_LINK',
-            },
+                GITHUB: "GITHUB",
+                MAGIC_LINK: "MAGIC_LINK"
+            }
         },
         OrgMemberRole: {
-            name: 'OrgMemberRole',
+            name: "OrgMemberRole",
             values: {
-                ADMIN: 'ADMIN',
-                MEMBER: 'MEMBER',
-            },
+                ADMIN: "ADMIN",
+                MEMBER: "MEMBER"
+            }
         },
         RuntimeEnvironmentType: {
-            name: 'RuntimeEnvironmentType',
+            name: "RuntimeEnvironmentType",
             values: {
-                PRODUCTION: 'PRODUCTION',
-                STAGING: 'STAGING',
-                DEVELOPMENT: 'DEVELOPMENT',
-                PREVIEW: 'PREVIEW',
-            },
+                PRODUCTION: "PRODUCTION",
+                STAGING: "STAGING",
+                DEVELOPMENT: "DEVELOPMENT",
+                PREVIEW: "PREVIEW"
+            }
         },
         ProjectVersion: {
-            name: 'ProjectVersion',
+            name: "ProjectVersion",
             values: {
-                V2: 'V2',
-                V3: 'V3',
-            },
+                V2: "V2",
+                V3: "V3"
+            }
         },
         SecretStoreProvider: {
-            name: 'SecretStoreProvider',
+            name: "SecretStoreProvider",
             values: {
-                DATABASE: 'DATABASE',
-                AWS_PARAM_STORE: 'AWS_PARAM_STORE',
-            },
+                DATABASE: "DATABASE",
+                AWS_PARAM_STORE: "AWS_PARAM_STORE"
+            }
         },
         TaskTriggerSource: {
-            name: 'TaskTriggerSource',
+            name: "TaskTriggerSource",
             values: {
-                STANDARD: 'STANDARD',
-                SCHEDULED: 'SCHEDULED',
-            },
+                STANDARD: "STANDARD",
+                SCHEDULED: "SCHEDULED"
+            }
         },
         TaskRunStatus: {
-            name: 'TaskRunStatus',
+            name: "TaskRunStatus",
             values: {
-                DELAYED: 'DELAYED',
-                PENDING: 'PENDING',
-                PENDING_VERSION: 'PENDING_VERSION',
-                WAITING_FOR_DEPLOY: 'WAITING_FOR_DEPLOY',
-                EXECUTING: 'EXECUTING',
-                WAITING_TO_RESUME: 'WAITING_TO_RESUME',
-                RETRYING_AFTER_FAILURE: 'RETRYING_AFTER_FAILURE',
-                PAUSED: 'PAUSED',
-                CANCELED: 'CANCELED',
-                INTERRUPTED: 'INTERRUPTED',
-                COMPLETED_SUCCESSFULLY: 'COMPLETED_SUCCESSFULLY',
-                COMPLETED_WITH_ERRORS: 'COMPLETED_WITH_ERRORS',
-                SYSTEM_FAILURE: 'SYSTEM_FAILURE',
-                CRASHED: 'CRASHED',
-                EXPIRED: 'EXPIRED',
-                TIMED_OUT: 'TIMED_OUT',
-            },
+                DELAYED: "DELAYED",
+                PENDING: "PENDING",
+                PENDING_VERSION: "PENDING_VERSION",
+                WAITING_FOR_DEPLOY: "WAITING_FOR_DEPLOY",
+                EXECUTING: "EXECUTING",
+                WAITING_TO_RESUME: "WAITING_TO_RESUME",
+                RETRYING_AFTER_FAILURE: "RETRYING_AFTER_FAILURE",
+                PAUSED: "PAUSED",
+                CANCELED: "CANCELED",
+                INTERRUPTED: "INTERRUPTED",
+                COMPLETED_SUCCESSFULLY: "COMPLETED_SUCCESSFULLY",
+                COMPLETED_WITH_ERRORS: "COMPLETED_WITH_ERRORS",
+                SYSTEM_FAILURE: "SYSTEM_FAILURE",
+                CRASHED: "CRASHED",
+                EXPIRED: "EXPIRED",
+                TIMED_OUT: "TIMED_OUT"
+            }
         },
         RunEngineVersion: {
-            name: 'RunEngineVersion',
+            name: "RunEngineVersion",
             values: {
-                V1: 'V1',
-                V2: 'V2',
-            },
+                V1: "V1",
+                V2: "V2"
+            }
         },
         TaskRunExecutionStatus: {
-            name: 'TaskRunExecutionStatus',
+            name: "TaskRunExecutionStatus",
             values: {
-                RUN_CREATED: 'RUN_CREATED',
-                QUEUED: 'QUEUED',
-                QUEUED_EXECUTING: 'QUEUED_EXECUTING',
-                PENDING_EXECUTING: 'PENDING_EXECUTING',
-                EXECUTING: 'EXECUTING',
-                EXECUTING_WITH_WAITPOINTS: 'EXECUTING_WITH_WAITPOINTS',
-                SUSPENDED: 'SUSPENDED',
-                PENDING_CANCEL: 'PENDING_CANCEL',
-                FINISHED: 'FINISHED',
-            },
+                RUN_CREATED: "RUN_CREATED",
+                QUEUED: "QUEUED",
+                QUEUED_EXECUTING: "QUEUED_EXECUTING",
+                PENDING_EXECUTING: "PENDING_EXECUTING",
+                EXECUTING: "EXECUTING",
+                EXECUTING_WITH_WAITPOINTS: "EXECUTING_WITH_WAITPOINTS",
+                SUSPENDED: "SUSPENDED",
+                PENDING_CANCEL: "PENDING_CANCEL",
+                FINISHED: "FINISHED"
+            }
         },
         TaskRunCheckpointType: {
-            name: 'TaskRunCheckpointType',
+            name: "TaskRunCheckpointType",
             values: {
-                DOCKER: 'DOCKER',
-                KUBERNETES: 'KUBERNETES',
-            },
+                DOCKER: "DOCKER",
+                KUBERNETES: "KUBERNETES"
+            }
         },
         WaitpointType: {
-            name: 'WaitpointType',
+            name: "WaitpointType",
             values: {
-                RUN: 'RUN',
-                DATETIME: 'DATETIME',
-                MANUAL: 'MANUAL',
-                BATCH: 'BATCH',
-            },
+                RUN: "RUN",
+                DATETIME: "DATETIME",
+                MANUAL: "MANUAL",
+                BATCH: "BATCH"
+            }
         },
         WaitpointStatus: {
-            name: 'WaitpointStatus',
+            name: "WaitpointStatus",
             values: {
-                PENDING: 'PENDING',
-                COMPLETED: 'COMPLETED',
-            },
+                PENDING: "PENDING",
+                COMPLETED: "COMPLETED"
+            }
         },
         WorkerInstanceGroupType: {
-            name: 'WorkerInstanceGroupType',
+            name: "WorkerInstanceGroupType",
             values: {
-                MANAGED: 'MANAGED',
-                UNMANAGED: 'UNMANAGED',
-            },
+                MANAGED: "MANAGED",
+                UNMANAGED: "UNMANAGED"
+            }
         },
         TaskRunAttemptStatus: {
-            name: 'TaskRunAttemptStatus',
+            name: "TaskRunAttemptStatus",
             values: {
-                PENDING: 'PENDING',
-                EXECUTING: 'EXECUTING',
-                PAUSED: 'PAUSED',
-                FAILED: 'FAILED',
-                CANCELED: 'CANCELED',
-                COMPLETED: 'COMPLETED',
-            },
+                PENDING: "PENDING",
+                EXECUTING: "EXECUTING",
+                PAUSED: "PAUSED",
+                FAILED: "FAILED",
+                CANCELED: "CANCELED",
+                COMPLETED: "COMPLETED"
+            }
         },
         TaskEventLevel: {
-            name: 'TaskEventLevel',
+            name: "TaskEventLevel",
             values: {
-                TRACE: 'TRACE',
-                DEBUG: 'DEBUG',
-                LOG: 'LOG',
-                INFO: 'INFO',
-                WARN: 'WARN',
-                ERROR: 'ERROR',
-            },
+                TRACE: "TRACE",
+                DEBUG: "DEBUG",
+                LOG: "LOG",
+                INFO: "INFO",
+                WARN: "WARN",
+                ERROR: "ERROR"
+            }
         },
         TaskEventKind: {
-            name: 'TaskEventKind',
+            name: "TaskEventKind",
             values: {
-                UNSPECIFIED: 'UNSPECIFIED',
-                INTERNAL: 'INTERNAL',
-                SERVER: 'SERVER',
-                CLIENT: 'CLIENT',
-                PRODUCER: 'PRODUCER',
-                CONSUMER: 'CONSUMER',
-                UNRECOGNIZED: 'UNRECOGNIZED',
-                LOG: 'LOG',
-            },
+                UNSPECIFIED: "UNSPECIFIED",
+                INTERNAL: "INTERNAL",
+                SERVER: "SERVER",
+                CLIENT: "CLIENT",
+                PRODUCER: "PRODUCER",
+                CONSUMER: "CONSUMER",
+                UNRECOGNIZED: "UNRECOGNIZED",
+                LOG: "LOG"
+            }
         },
         TaskEventStatus: {
-            name: 'TaskEventStatus',
+            name: "TaskEventStatus",
             values: {
-                UNSET: 'UNSET',
-                OK: 'OK',
-                ERROR: 'ERROR',
-                UNRECOGNIZED: 'UNRECOGNIZED',
-            },
+                UNSET: "UNSET",
+                OK: "OK",
+                ERROR: "ERROR",
+                UNRECOGNIZED: "UNRECOGNIZED"
+            }
         },
         TaskQueueType: {
-            name: 'TaskQueueType',
+            name: "TaskQueueType",
             values: {
-                VIRTUAL: 'VIRTUAL',
-                NAMED: 'NAMED',
-            },
+                VIRTUAL: "VIRTUAL",
+                NAMED: "NAMED"
+            }
         },
         TaskQueueVersion: {
-            name: 'TaskQueueVersion',
+            name: "TaskQueueVersion",
             values: {
-                V1: 'V1',
-                V2: 'V2',
-            },
+                V1: "V1",
+                V2: "V2"
+            }
         },
         BatchTaskRunStatus: {
-            name: 'BatchTaskRunStatus',
+            name: "BatchTaskRunStatus",
             values: {
-                PENDING: 'PENDING',
-                COMPLETED: 'COMPLETED',
-                ABORTED: 'ABORTED',
-            },
+                PENDING: "PENDING",
+                COMPLETED: "COMPLETED",
+                ABORTED: "ABORTED"
+            }
         },
         BatchTaskRunItemStatus: {
-            name: 'BatchTaskRunItemStatus',
+            name: "BatchTaskRunItemStatus",
             values: {
-                PENDING: 'PENDING',
-                FAILED: 'FAILED',
-                CANCELED: 'CANCELED',
-                COMPLETED: 'COMPLETED',
-            },
+                PENDING: "PENDING",
+                FAILED: "FAILED",
+                CANCELED: "CANCELED",
+                COMPLETED: "COMPLETED"
+            }
         },
         CheckpointType: {
-            name: 'CheckpointType',
+            name: "CheckpointType",
             values: {
-                DOCKER: 'DOCKER',
-                KUBERNETES: 'KUBERNETES',
-            },
+                DOCKER: "DOCKER",
+                KUBERNETES: "KUBERNETES"
+            }
         },
         CheckpointRestoreEventType: {
-            name: 'CheckpointRestoreEventType',
+            name: "CheckpointRestoreEventType",
             values: {
-                CHECKPOINT: 'CHECKPOINT',
-                RESTORE: 'RESTORE',
-            },
+                CHECKPOINT: "CHECKPOINT",
+                RESTORE: "RESTORE"
+            }
         },
         WorkerDeploymentType: {
-            name: 'WorkerDeploymentType',
+            name: "WorkerDeploymentType",
             values: {
-                MANAGED: 'MANAGED',
-                UNMANAGED: 'UNMANAGED',
-                V1: 'V1',
-            },
+                MANAGED: "MANAGED",
+                UNMANAGED: "UNMANAGED",
+                V1: "V1"
+            }
         },
         WorkerDeploymentStatus: {
-            name: 'WorkerDeploymentStatus',
+            name: "WorkerDeploymentStatus",
             values: {
-                PENDING: 'PENDING',
-                BUILDING: 'BUILDING',
-                DEPLOYING: 'DEPLOYING',
-                DEPLOYED: 'DEPLOYED',
-                FAILED: 'FAILED',
-                CANCELED: 'CANCELED',
-                TIMED_OUT: 'TIMED_OUT',
-            },
+                PENDING: "PENDING",
+                BUILDING: "BUILDING",
+                DEPLOYING: "DEPLOYING",
+                DEPLOYED: "DEPLOYED",
+                FAILED: "FAILED",
+                CANCELED: "CANCELED",
+                TIMED_OUT: "TIMED_OUT"
+            }
         },
         ScheduleType: {
-            name: 'ScheduleType',
+            name: "ScheduleType",
             values: {
-                DECLARATIVE: 'DECLARATIVE',
-                IMPERATIVE: 'IMPERATIVE',
-            },
+                DECLARATIVE: "DECLARATIVE",
+                IMPERATIVE: "IMPERATIVE"
+            }
         },
         ScheduleGeneratorType: {
-            name: 'ScheduleGeneratorType',
+            name: "ScheduleGeneratorType",
             values: {
-                CRON: 'CRON',
-            },
+                CRON: "CRON"
+            }
         },
         ProjectAlertChannelType: {
-            name: 'ProjectAlertChannelType',
+            name: "ProjectAlertChannelType",
             values: {
-                EMAIL: 'EMAIL',
-                SLACK: 'SLACK',
-                WEBHOOK: 'WEBHOOK',
-            },
+                EMAIL: "EMAIL",
+                SLACK: "SLACK",
+                WEBHOOK: "WEBHOOK"
+            }
         },
         ProjectAlertType: {
-            name: 'ProjectAlertType',
+            name: "ProjectAlertType",
             values: {
-                TASK_RUN: 'TASK_RUN',
-                TASK_RUN_ATTEMPT: 'TASK_RUN_ATTEMPT',
-                DEPLOYMENT_FAILURE: 'DEPLOYMENT_FAILURE',
-                DEPLOYMENT_SUCCESS: 'DEPLOYMENT_SUCCESS',
-            },
+                TASK_RUN: "TASK_RUN",
+                TASK_RUN_ATTEMPT: "TASK_RUN_ATTEMPT",
+                DEPLOYMENT_FAILURE: "DEPLOYMENT_FAILURE",
+                DEPLOYMENT_SUCCESS: "DEPLOYMENT_SUCCESS"
+            }
         },
         ProjectAlertStatus: {
-            name: 'ProjectAlertStatus',
+            name: "ProjectAlertStatus",
             values: {
-                PENDING: 'PENDING',
-                SENT: 'SENT',
-                FAILED: 'FAILED',
-            },
+                PENDING: "PENDING",
+                SENT: "SENT",
+                FAILED: "FAILED"
+            }
         },
         IntegrationService: {
-            name: 'IntegrationService',
+            name: "IntegrationService",
             values: {
-                SLACK: 'SLACK',
-            },
+                SLACK: "SLACK"
+            }
         },
         BulkActionType: {
-            name: 'BulkActionType',
+            name: "BulkActionType",
             values: {
-                CANCEL: 'CANCEL',
-                REPLAY: 'REPLAY',
-            },
+                CANCEL: "CANCEL",
+                REPLAY: "REPLAY"
+            }
         },
         BulkActionStatus: {
-            name: 'BulkActionStatus',
+            name: "BulkActionStatus",
             values: {
-                PENDING: 'PENDING',
-                COMPLETED: 'COMPLETED',
-            },
+                PENDING: "PENDING",
+                COMPLETED: "COMPLETED"
+            }
         },
         BulkActionItemStatus: {
-            name: 'BulkActionItemStatus',
+            name: "BulkActionItemStatus",
             values: {
-                PENDING: 'PENDING',
-                COMPLETED: 'COMPLETED',
-                FAILED: 'FAILED',
-            },
-        },
+                PENDING: "PENDING",
+                COMPLETED: "COMPLETED",
+                FAILED: "FAILED"
+            }
+        }
     } as const;
-    authType = 'User' as const;
+    authType = "User" as const;
     plugins = {};
 }
 export const schema = new SchemaType();

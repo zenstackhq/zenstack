@@ -5,166 +5,128 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from '@zenstackhq/schema';
+import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
     provider = {
-        type: 'postgresql',
+        type: "postgresql"
     } as const;
     models = {
         Item: {
-            name: 'Item',
+            name: "Item",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'Int',
+                    name: "id",
+                    type: "Int",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("autoincrement") as FieldDefault
                 },
                 name: {
-                    name: 'name',
-                    type: 'String',
+                    name: "name",
+                    type: "String"
                 },
                 data: {
-                    name: 'data',
-                    type: 'Unsupported',
-                    optional: true,
-                },
+                    name: "data",
+                    type: "Unsupported",
+                    optional: true
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'Int' },
-            },
+                id: { type: "Int" }
+            }
         },
         GeoRecord: {
-            name: 'GeoRecord',
+            name: "GeoRecord",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'Int',
+                    name: "id",
+                    type: "Int",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("autoincrement") as FieldDefault
                 },
                 title: {
-                    name: 'title',
-                    type: 'String',
+                    name: "title",
+                    type: "String"
                 },
                 extra: {
-                    name: 'extra',
-                    type: 'Unsupported',
+                    name: "extra",
+                    type: "Unsupported"
                 },
                 parent: {
-                    name: 'parent',
-                    type: 'GeoParent',
+                    name: "parent",
+                    type: "GeoParent",
                     optional: true,
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('parentId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('Int', [ExpressionUtils.field('id')]),
-                                },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: { opposite: 'records', fields: ['parentId'], references: ['id'] },
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("Int", [ExpressionUtils.field("parentId")]) }, { name: "references", value: ExpressionUtils.array("Int", [ExpressionUtils.field("id")]) }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "records", fields: ["parentId"], references: ["id"] }
                 },
                 parentId: {
-                    name: 'parentId',
-                    type: 'Int',
+                    name: "parentId",
+                    type: "Int",
                     optional: true,
-                    foreignKeyFor: ['parent'] as readonly string[],
-                },
+                    foreignKeyFor: [
+                        "parent"
+                    ] as readonly string[]
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'Int' },
-            },
+                id: { type: "Int" }
+            }
         },
         GeoParent: {
-            name: 'GeoParent',
+            name: "GeoParent",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'Int',
+                    name: "id",
+                    type: "Int",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("autoincrement") as FieldDefault
                 },
                 name: {
-                    name: 'name',
-                    type: 'String',
+                    name: "name",
+                    type: "String"
                 },
                 records: {
-                    name: 'records',
-                    type: 'GeoRecord',
+                    name: "records",
+                    type: "GeoRecord",
                     array: true,
-                    relation: { opposite: 'parent' },
-                },
+                    relation: { opposite: "parent" }
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'Int' },
-            },
+                id: { type: "Int" }
+            }
         },
         GeoRecordWithDefault: {
-            name: 'GeoRecordWithDefault',
+            name: "GeoRecordWithDefault",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'Int',
+                    name: "id",
+                    type: "Int",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("autoincrement") as FieldDefault
                 },
                 label: {
-                    name: 'label',
-                    type: 'String',
+                    name: "label",
+                    type: "String"
                 },
                 area: {
-                    name: 'area',
-                    type: 'Unsupported',
-                    attributes: [
-                        {
-                            name: '@default',
-                            args: [
-                                {
-                                    name: 'value',
-                                    value: ExpressionUtils.call('dbgenerated', [
-                                        ExpressionUtils.literal("'<root/>'::xml"),
-                                    ]),
-                                },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('dbgenerated', [
-                        ExpressionUtils.literal("'<root/>'::xml"),
-                    ]) as FieldDefault,
-                },
+                    name: "area",
+                    type: "Unsupported",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("dbgenerated", [ExpressionUtils.literal("'<root/>'::xml")]) }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("dbgenerated", [ExpressionUtils.literal("'<root/>'::xml")]) as FieldDefault
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'Int' },
-            },
-        },
+                id: { type: "Int" }
+            }
+        }
     } as const;
     plugins = {};
 }

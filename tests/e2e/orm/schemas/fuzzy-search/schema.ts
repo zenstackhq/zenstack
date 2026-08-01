@@ -5,49 +5,46 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from '@zenstackhq/schema';
+import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
     provider = {
-        type: 'postgresql',
+        type: "postgresql"
     } as const;
     models = {
         Flavor: {
-            name: 'Flavor',
+            name: "Flavor",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'Int',
+                    name: "id",
+                    type: "Int",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('autoincrement') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('autoincrement') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("autoincrement") as FieldDefault
                 },
                 name: {
-                    name: 'name',
-                    type: 'String',
+                    name: "name",
+                    type: "String",
                     optional: true,
                     fuzzy: true,
-                    attributes: [{ name: '@fuzzy' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@fuzzy" }] as readonly AttributeApplication[]
                 },
                 description: {
-                    name: 'description',
-                    type: 'String',
+                    name: "description",
+                    type: "String",
                     fuzzy: true,
-                    attributes: [{ name: '@fuzzy' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@fuzzy" }] as readonly AttributeApplication[]
                 },
                 notes: {
-                    name: 'notes',
-                    type: 'String',
-                    optional: true,
-                },
+                    name: "notes",
+                    type: "String",
+                    optional: true
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'Int' },
-            },
-        },
+                id: { type: "Int" }
+            }
+        }
     } as const;
     plugins = {};
 }

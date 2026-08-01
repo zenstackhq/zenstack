@@ -88,8 +88,9 @@ async function create() {
     // nested creation is not allowed either
     // @ts-expect-error
     client.user.create({ data: { assets: { create: { assetType: 'ASSET_KIND_VIDEO' } } } });
-    // @ts-expect-error
+
     client.user.create({
+        // @ts-expect-error
         data: { assets: { connectOrCreate: { where: { id: 1 }, create: { assetType: 'ASSET_KIND_VIDEO' } } } },
     });
     // @ts-expect-error
@@ -102,8 +103,8 @@ async function create() {
     client.user.update({
         where: { id: 1 },
         data: {
-            // @ts-expect-error
             assets: {
+                // @ts-expect-error
                 upsert: {
                     where: { id: 1 },
                     create: { assetType: 'ASSET_KIND_VIDEO' },
