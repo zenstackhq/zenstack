@@ -25,7 +25,9 @@ model Association {
 
     @@allow("read", auth().id == userId)
 }
-            `,
+            `, {
+                provider: 'postgresql',
+            },
         );
 
         const rawDb = db.$unuseAll();
