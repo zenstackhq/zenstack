@@ -399,14 +399,14 @@ export async function loadPackage(pkgName: string) {
     } catch (importErr) {
         // If zenstack CLI is running directly using npx/pnpm in a temp folder,
         // dynamic package import will fail. Also check the current project folder.
+        let projectRequire: NodeJS.Require | undefined;
         try {
-            const projectRequire = createRequire(path.resolve(process.cwd(), 'package.json'));
+            projectRequire = createRequire(path.resolve(process.cwd(), 'package.json'));
             const resolvedPath = projectRequire.resolve(pkgName);
             return await import(pathToFileURL(resolvedPath).href);
         } catch (resolvedImportErr) {
             try {
-                const projectRequire = createRequire(path.resolve(process.cwd(), 'package.json'));
-                return projectRequire(pkgName);
+                return projectRequire!(pkgName);
             } catch (requireErr) {
                 if (process.env['DEBUG']) {
                     console.error(importErr, resolvedImportErr, requireErr);

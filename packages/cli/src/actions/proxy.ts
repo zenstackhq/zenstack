@@ -34,6 +34,7 @@ import { getOutputPath, getSchemaFile, isPackageInstalled, loadPackage, loadSche
 import type { DataSourceProviderType } from '@zenstackhq/schema';
 import { runPull } from './db';
 import { z } from 'zod';
+import { run as runGenerate } from './generate';
 
 type Options = {
     output?: string;
@@ -528,7 +529,6 @@ export async function resolveSchema(options: Options): Promise<string> {
         const schemaFile = await introspectAndGenerateSchema(databaseUrl, providerType, urlFromEnv);
 
         // Run code generation from the generated schema
-        const { run: runGenerate } = await import('./generate');
         await runGenerate({ schema: schemaFile, silent: false, watch: false });
 
         console.log(
