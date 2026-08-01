@@ -155,7 +155,7 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
                 const provider = getDataSourceProvider(zmodel);
                 if (provider) {
                     const supportedNativeTypes = datasourceProviderSupportedNativeTypes[provider];
-                    if (supportedNativeTypes && !supportedNativeTypes.has(decl.name)) {
+                    if (!supportedNativeTypes?.has(decl.name)) {
                         accept('error', `attribute "${decl.name}" cannot be used with the "${provider}" provider`, { node: attr });
                     }
                 }
