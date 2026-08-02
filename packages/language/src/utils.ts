@@ -7,6 +7,7 @@ import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME, type ExpressionContext } from 
 import {
     InternalAttribute,
     isArrayExpr,
+    isAttribute,
     isBinaryExpr,
     isConfigArrayExpr,
     isDataField,
@@ -169,6 +170,20 @@ export function isComputedField(field: DataField) {
  */
 export function isDelegateModel(node: AstNode) {
     return isDataModel(node) && hasAttribute(node, '@@delegate');
+}
+
+/**
+ * Returns if the given node is a Prisma attribute.
+ */
+export function isPrismaAttribute(node: AstNode): node is Attribute {
+    return isAttribute(node) && hasAttribute(node, '@@@prisma');
+}
+
+/**
+ * Returns if the given node is a native type mapping attribute.
+ */
+export function isNativeTypeMappingAttribute(node: AstNode): node is Attribute {
+    return isPrismaAttribute(node) && node.name.startsWith('@db.');
 }
 
 /**
