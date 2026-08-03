@@ -1,7 +1,8 @@
+import { serve } from '@hono/node-server';
 import { PolicyPlugin } from '@zenstackhq/plugin-policy';
 import { createTestClient } from '@zenstackhq/testtools';
 import { sign } from 'node:crypto';
-import http from 'node:http';
+import type http from 'node:http';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createProxyApp, getProviderFromUrl, resolveSchema } from '../src/actions/proxy';
 
@@ -89,10 +90,9 @@ describe('CLI proxy tests', () => {
 
     async function startAt(app: ReturnType<typeof createProxyApp>): Promise<string> {
         return new Promise((resolve) => {
-            server = app.listen(0, () => {
-                const addr = server!.address() as { port: number };
-                resolve(`http://localhost:${addr.port}`);
-            });
+            server = serve({ fetch: app.fetch, port: 0 }, (info) => {
+                resolve(`http://localhost:${info.port}`);
+            }) as http.Server;
         });
     }
 
@@ -123,6 +123,30 @@ describe('CLI proxy tests', () => {
         if ('zenstackVersion' in body) {
             expect(typeof body.zenstackVersion).toBe('string');
         }
+    });
+
+    it('should support createProxyApp with options object signature', async () => {
+        const zmodel = `
+            model User {
+                id    String @id @default(cuid())
+                email String @unique
+            }
+        `;
+
+        const client = await createTestClient(zmodel);
+        const authDb = client.$use(new PolicyPlugin());
+        const app = createProxyApp({
+            client,
+            schema: client.$schema,
+            authDb,
+        });
+        const baseUrl = await startAt(app);
+
+        const r = await fetch(`${baseUrl}/api/schema`);
+        expect(r.status).toBe(200);
+
+        const body = await r.json();
+        expect(body.models).toHaveProperty('User');
     });
 
     it('should omit computed fields from default query responses', async () => {

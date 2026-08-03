@@ -215,6 +215,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@hono/node-server':
+        specifier: ^1.13.8
+        version: 1.19.17(hono@4.12.2)
       '@zenstackhq/common-helpers':
         specifier: workspace:*
         version: link:../common-helpers
@@ -257,9 +260,9 @@ importers:
       execa:
         specifier: ^9.6.0
         version: 9.6.0
-      express:
-        specifier: ^5.0.0
-        version: 5.1.0
+      hono:
+        specifier: ^4.11.10
+        version: 4.12.2
       jiti:
         specifier: ^2.6.1
         version: 2.6.1
@@ -2514,6 +2517,12 @@ packages:
 
   '@fastify/proxy-addr@5.1.0':
     resolution: {integrity: sha512-INS+6gh91cLUjB+PVHfu1UqcB76Sqtpyp7bnL+FYojhjygvOPA9ctiD/JDKsyD9Xgu4hUhCSJBPig/w7duNajw==}
+
+  '@hono/node-server@1.19.17':
+    resolution: {integrity: sha512-dSneS5qhiauZWGDCeK4o695Xd9nUNjviSZCMQrj10eetr8Uln1ucn6bbphOM6UynAMMtNIzZNSpL9vnASJwrPQ==}
+    engines: {node: '>=18.14.1'}
+    peerDependencies:
+      hono: ^4
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -10794,6 +10803,10 @@ snapshots:
     dependencies:
       '@fastify/forwarded': 3.0.1
       ipaddr.js: 2.2.0
+
+  '@hono/node-server@1.19.17(hono@4.12.2)':
+    dependencies:
+      hono: 4.12.2
 
   '@humanfs/core@0.19.1': {}
 
