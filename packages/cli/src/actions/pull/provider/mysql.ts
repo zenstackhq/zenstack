@@ -4,6 +4,7 @@ import { getAttributeRef, getDbName, getFunctionRef, normalizeDecimalDefault, no
 import type { IntrospectedEnum, IntrospectedSchema, IntrospectedTable, IntrospectionProvider } from './provider';
 import { CliError } from '../../../cli-error';
 import { resolveNameCasing } from '../casing';
+import { loadPackage } from '../../action-utils';
 
 // Note: We dynamically import mysql2 inside the async function to avoid
 // requiring it at module load time for environments that don't use MySQL.
@@ -131,7 +132,11 @@ export const mysql: IntrospectionProvider = {
         }
     },
     async introspect(connectionString: string, options: { schemas: string[]; modelCasing: 'pascal' | 'camel' | 'snake' | 'none' }): Promise<IntrospectedSchema> {
-        const mysql = await import('mysql2/promise');
+        const mod = await loadPackage('mysql2/promise');
+        if (!mod) {
+            throw new CliError('Package "mysql2" is required for MySQL support. Please install it with: npm install mysql2');
+        }
+        const mysql = mod.createConnection ? mod : (mod.default ?? mod);
         const connection = await mysql.createConnection(connectionString);
 
         try {

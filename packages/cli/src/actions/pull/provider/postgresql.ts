@@ -1,7 +1,9 @@
 import type { ZModelServices } from '@zenstackhq/language';
 import type { Attribute, BuiltinType, Enum, Expression } from '@zenstackhq/language/ast';
 import { AstFactory, DataFieldAttributeFactory, ExpressionBuilder } from '@zenstackhq/language/factory';
+import type { Client as PgClient } from 'pg';
 import { CliError } from '../../../cli-error';
+import { loadPackage } from '../../action-utils';
 import { getAttributeRef, getDbName, getFunctionRef, normalizeDecimalDefault, normalizeFloatDefault } from '../utils';
 import type { IntrospectedEnum, IntrospectedSchema, IntrospectedTable, IntrospectionProvider } from './provider';
 
@@ -179,8 +181,12 @@ export const postgresql: IntrospectionProvider = {
         connectionString: string,
         options: { schemas: string[]; modelCasing: 'pascal' | 'camel' | 'snake' | 'none' },
     ): Promise<IntrospectedSchema> {
-        const { Client } = await import('pg');
-        const client = new Client({ connectionString });
+        const pg = await loadPackage('pg');
+        const ClientClass: typeof PgClient = pg?.Client || pg?.default?.Client;
+        if (!ClientClass) {
+            throw new CliError('Package "pg" is required for PostgreSQL support. Please install it with: npm install pg');
+        }
+        const client = new ClientClass({ connectionString });
         await client.connect();
 
         try {

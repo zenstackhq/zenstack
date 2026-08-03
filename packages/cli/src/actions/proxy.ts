@@ -22,12 +22,19 @@ import express from 'express';
 import { createJiti } from 'jiti';
 import type { createPool as MysqlCreatePool } from 'mysql2';
 import { verify } from 'node:crypto';
+import fs from 'node:fs';
 import path from 'node:path';
+import ora from 'ora';
+import { detect, resolveCommand } from 'package-manager-detector';
 import type { Pool as PgPoolType } from 'pg';
 import { CliError } from '../cli-error';
+import { execSync } from '../utils/exec-utils';
 import { getVersion } from '../utils/version-utils';
-import { getOutputPath, getSchemaFile, loadSchemaDocument } from './action-utils';
+import { getOutputPath, getSchemaFile, isPackageInstalled, loadPackage, loadSchemaDocument } from './action-utils';
+import type { DataSourceProviderType } from '@zenstackhq/schema';
+import { runPull } from './db';
 import { z } from 'zod';
+import { run as runGenerate } from './generate';
 
 type Options = {
     output?: string;
@@ -37,6 +44,7 @@ type Options = {
     databaseUrl?: string;
     studioAuthKey?: string;
     signatureToleranceSecs: number;
+    introspect?: boolean;
 };
 
 export const ProxyAuthError = {
@@ -78,20 +86,12 @@ function normalizePublicKey(key: string): string {
 export async function run(options: Options) {
     // Resolve public key: CLI arg takes precedence, then ZENSTACK_STUDIO_AUTH_KEY env var.
     options = { ...options, studioAuthKey: options.studioAuthKey ?? process.env['ZENSTACK_STUDIO_AUTH_KEY'] };
-    if (!options.studioAuthKey) {
-        console.warn(
-            colors.yellow(
-                'Warning: This proxy has no authentication. Do not expose it to the public network.\n' +
-                    'To secure it, get an API key from ZenStack Studio and set it via the ZENSTACK_STUDIO_AUTH_KEY environment variable.',
-            ),
-        );
-    }
 
     const allowedLogLevels = ['error', 'query'] as const;
     const log = options.logLevel?.filter((level): level is (typeof allowedLogLevels)[number] =>
         allowedLogLevels.includes(level as any),
     );
-    const schemaFile = getSchemaFile(options.schema);
+    const schemaFile = await resolveSchema(options);
     console.log(colors.gray(`Loading ZModel schema from: ${schemaFile}`));
 
     let outputPath = getOutputPath(options, schemaFile);
@@ -163,6 +163,15 @@ export async function run(options: Options) {
     }
 
     startServer(db, schemaModule.schema, options, authDb);
+
+    if (!options.studioAuthKey) {
+        console.warn(
+            colors.yellow(
+                'Warning: This proxy has no authentication. Do not expose it to the public network.\n' +
+                    'To secure it, get an API key from ZenStack Studio and set it via the ZENSTACK_STUDIO_AUTH_KEY environment variable.',
+            ),
+        );
+    }
 }
 
 function evaluateUrl(schemaUrl: ConfigExpr) {
@@ -198,23 +207,22 @@ function redactDatabaseUrl(url: string): string {
     }
 }
 
-async function createDialect(provider: string, databaseUrl: string, outputPath: string) {
+export async function createDialect(provider: string, databaseUrl: string, outputPath: string) {
     switch (provider) {
         case 'sqlite': {
             let SQLite: typeof BetterSqlite3;
-            try {
-                SQLite = (await import('better-sqlite3')).default;
-            } catch {
+            const mod = await loadPackage('better-sqlite3');
+            if (mod) {
+                SQLite = mod.default || mod;
+            } else {
                 throw new CliError(
                     `Package "better-sqlite3" is required for SQLite support. Please install it with: npm install better-sqlite3`,
                 );
             }
             let resolvedUrl = databaseUrl.trim();
             if (resolvedUrl.startsWith('file:')) {
-                const filePath = resolvedUrl.substring('file:'.length);
-                if (!path.isAbsolute(filePath)) {
-                    resolvedUrl = path.join(outputPath, filePath);
-                }
+                resolvedUrl = new URL(resolvedUrl, `file:${outputPath}`).pathname;
+                if (process.platform === 'win32' && resolvedUrl[0] === '/') resolvedUrl = resolvedUrl.slice(1);
             }
             console.log(colors.gray(`Connecting to SQLite database at: ${resolvedUrl}`));
             return new SqliteDialect({
@@ -223,9 +231,10 @@ async function createDialect(provider: string, databaseUrl: string, outputPath: 
         }
         case 'postgresql': {
             let PgPool: typeof PgPoolType;
-            try {
-                PgPool = (await import('pg')).Pool;
-            } catch {
+            const mod = await loadPackage('pg');
+            if (mod) {
+                PgPool = mod.Pool || mod.default?.Pool;
+            } else {
                 throw new CliError(
                     `Package "pg" is required for PostgreSQL support. Please install it with: npm install pg`,
                 );
@@ -239,9 +248,10 @@ async function createDialect(provider: string, databaseUrl: string, outputPath: 
         }
         case 'mysql': {
             let createMysqlPool: typeof MysqlCreatePool;
-            try {
-                createMysqlPool = (await import('mysql2')).createPool;
-            } catch {
+            const mod = await loadPackage('mysql2');
+            if (mod) {
+                createMysqlPool = mod.createPool || mod.default?.createPool;
+            } else {
                 throw new CliError(
                     `Package "mysql2" is required for MySQL support. Please install it with: npm install mysql2`,
                 );
@@ -478,4 +488,188 @@ function startServer(
         await client.$disconnect();
         process.exit(0);
     });
+}
+
+// ---------------------------------------------------------------------------
+// --introspect helpers
+// ---------------------------------------------------------------------------
+
+export async function resolveSchema(options: Options): Promise<string> {
+    if (!options.introspect) {
+        try {
+            return getSchemaFile(options.schema);
+        } catch (err) {
+            if (!(err instanceof CliError)) throw err;
+
+            // Provide a helpful error depending on whether DATABASE_URL is set
+            const hasEnvUrl = !!process.env['DATABASE_URL'];
+            const dbFlag = hasEnvUrl ? '' : '-d <databaseUrl>';
+
+            throw new CliError(
+                'No ZModel schema file found in default locations.\n' +
+                    `  • If you have an existing schema file, specify it explicitly:\n    npx @zenstackhq/cli studio --schema <path> ${dbFlag}\n` +
+                    `  • Otherwise, auto-generate from the database:\n    npx @zenstackhq/cli studio --introspect ${dbFlag}`,
+            );
+        }
+    } else {
+        // Resolve database URL
+        const databaseUrl = options.databaseUrl ?? process.env['DATABASE_URL'];
+        if (!databaseUrl) {
+            throw new CliError('--introspect requires a database connection — pass -d <url> or set DATABASE_URL.');
+        }
+
+        // Determine DB provider type from URL
+        const providerType = getProviderFromUrl(databaseUrl);
+
+        // Install required packages
+        await installDbDriverPackage(providerType);
+
+        // Introspect and generate schema
+        const urlFromEnv = !options.databaseUrl;
+        const schemaFile = await introspectAndGenerateSchema(databaseUrl, providerType, urlFromEnv);
+
+        // Run code generation from the generated schema
+        await runGenerate({ schema: schemaFile, silent: false, watch: false });
+
+        console.log(
+            colors.yellow(
+                '\n⚠  The generated schema has no access policies.\n' +
+                    '   All data is accessible without restriction.\n' +
+                    '   Edit ' +
+                    colors.cyan(schemaFile) +
+                    ' to add access policies.\n',
+            ),
+        );
+
+        return schemaFile;
+    }
+}
+
+export function getProviderFromUrl(url: string): DataSourceProviderType {
+    if (url.startsWith('postgres://') || url.startsWith('postgresql://')) {
+        return 'postgresql';
+    }
+    if (url.startsWith('mysql://')) {
+        return 'mysql';
+    }
+    if (url.startsWith('file:') || url.startsWith('sqlite:')) {
+        return 'sqlite';
+    }
+    throw new CliError(`Unable to determine database type from URL: ${url}`);
+}
+
+export async function installDbDriverPackage(providerType: DataSourceProviderType) {
+    // Add the appropriate DB driver
+    const driverPackage: { name: string; dev: false } = (() => {
+        switch (providerType) {
+            case 'postgresql':
+                return { name: 'pg', dev: false as const };
+            case 'mysql':
+                return { name: 'mysql2', dev: false as const };
+            case 'sqlite':
+                return { name: 'better-sqlite3', dev: false as const };
+        }
+    })();
+
+    if (isPackageInstalled(driverPackage.name)) {
+        return;
+    }
+
+    let pm = await detect();
+    if (!pm) {
+        pm = { agent: 'npm', name: 'npm' };
+    }
+
+    console.log(colors.gray(`Using package manager: ${pm.agent}`));
+
+    const resolved = resolveCommand(pm.agent, 'add', [
+        driverPackage.name,
+        ...(driverPackage.dev ? [pm.agent.startsWith('yarn') || pm.agent === 'bun' ? '--dev' : '--save-dev'] : []),
+    ]);
+    if (!resolved) {
+        throw new CliError(
+            `Unable to determine how to install package "${driverPackage.name}". Please install it manually.`,
+        );
+    }
+
+    const spinner = ora(`Installing "${driverPackage.name}"`).start();
+    try {
+        execSync(`${resolved.command} ${resolved.args.join(' ')}`, {
+            cwd: process.cwd(),
+        });
+        spinner.succeed();
+    } catch (e) {
+        spinner.fail();
+        throw e;
+    }
+}
+
+function adjustSqliteUrlForSchema(url: string): { isRelative: boolean; adjustedUrl: string } {
+    let prefix = '';
+    let filePath = url;
+
+    if (url.startsWith('file:')) {
+        prefix = 'file:';
+        filePath = url.substring('file:'.length);
+    } else if (url.startsWith('sqlite:')) {
+        prefix = 'sqlite:';
+        filePath = url.substring('sqlite:'.length);
+    }
+
+    if (!path.isAbsolute(filePath)) {
+        const adjustedPath = path.join('..', filePath).replace(/\\/g, '/');
+        return {
+            isRelative: true,
+            adjustedUrl: `${prefix}${adjustedPath}`,
+        };
+    }
+
+    return {
+        isRelative: false,
+        adjustedUrl: url,
+    };
+}
+
+async function introspectAndGenerateSchema(
+    databaseUrl: string,
+    providerType: DataSourceProviderType,
+    urlFromEnv: boolean,
+): Promise<string> {
+    // Write a minimal datasource-only schema so runPull has something to load
+    let urlExpr: string;
+    if (providerType === 'sqlite') {
+        const { isRelative, adjustedUrl } = adjustSqliteUrlForSchema(databaseUrl);
+        if (isRelative) {
+            urlExpr = `'${adjustedUrl}'`;
+            databaseUrl = adjustedUrl; // Update databaseUrl to the adjusted relative path for runPull
+        } else {
+            urlExpr = urlFromEnv ? 'env("DATABASE_URL")' : `'${databaseUrl}'`;
+        }
+    } else {
+        urlExpr = urlFromEnv ? 'env("DATABASE_URL")' : `'${databaseUrl}'`;
+    }
+
+    const minimalSchema = `datasource db {\n    provider = '${providerType}'\n    url = ${urlExpr}\n}\n`;
+
+    const schemaDir = path.resolve('zenstack');
+    const schemaFile = path.join(schemaDir, 'schema.zmodel');
+    fs.mkdirSync(schemaDir, { recursive: true });
+    fs.writeFileSync(schemaFile, minimalSchema, 'utf-8');
+
+    // Delegate to runPull with provider/URL overrides
+    await runPull({
+        schema: schemaFile,
+        output: schemaFile,
+        databaseUrl,
+        provider: providerType,
+        modelCasing: 'pascal',
+        fieldCasing: 'none',
+        alwaysMap: false,
+        quote: 'single',
+        indent: 4,
+    });
+
+    console.log(colors.green(`\n✅ Schema generated: ${colors.cyan(schemaFile)}`));
+
+    return schemaFile;
 }

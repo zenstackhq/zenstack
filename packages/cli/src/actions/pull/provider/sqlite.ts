@@ -1,4 +1,6 @@
 import { DataFieldAttributeFactory } from '@zenstackhq/language/factory';
+import { CliError } from '../../../cli-error';
+import { loadPackage } from '../../action-utils';
 import { getAttributeRef, getDbName, getFunctionRef, normalizeDecimalDefault, normalizeFloatDefault } from '../utils';
 import type { IntrospectedEnum, IntrospectedSchema, IntrospectedTable, IntrospectionProvider } from './provider';
 
@@ -21,7 +23,11 @@ export const sqlite: IntrospectionProvider = {
     },
     getBuiltinType(type) {
         // Strip parenthesized constraints (e.g., VARCHAR(255) → varchar, DECIMAL(10,2) → decimal)
-        const t = (type || '').toLowerCase().trim().replace(/\(.*\)$/, '').trim();
+        const t = (type || '')
+            .toLowerCase()
+            .trim()
+            .replace(/\(.*\)$/, '')
+            .trim();
         // SQLite has no array types
         const isArray = false;
 
@@ -122,8 +128,18 @@ export const sqlite: IntrospectionProvider = {
         return undefined;
     },
 
-    async introspect(connectionString: string, _options: { schemas: string[]; modelCasing: 'pascal' | 'camel' | 'snake' | 'none' }): Promise<IntrospectedSchema> {
-        const SQLite = (await import('better-sqlite3')).default;
+    async introspect(
+        connectionString: string,
+        _options: { schemas: string[]; modelCasing: 'pascal' | 'camel' | 'snake' | 'none' },
+    ): Promise<IntrospectedSchema> {
+        const mod = await loadPackage('better-sqlite3');
+        const SQLite = mod?.default || mod;
+        if (!SQLite) {
+            throw new CliError(
+                'Package "better-sqlite3" is required for SQLite support. Please install it with: npm install better-sqlite3',
+            );
+        }
+
         const db = new SQLite(connectionString, { readonly: true });
 
         try {
@@ -256,7 +272,9 @@ export const sqlite: IntrospectionProvider = {
                         if (constraintName && columnList) {
                             // Split the column list on commas and strip quotes/whitespace
                             // to extract each individual column name.
-                            const columns = columnList.split(',').map((col) => col.trim().replace(/^["'`]|["'`]$/g, ''));
+                            const columns = columnList
+                                .split(',')
+                                .map((col) => col.trim().replace(/^["'`]|["'`]$/g, ''));
                             for (const col of columns) {
                                 if (col) {
                                     fkConstraintNames.set(col, constraintName);
@@ -358,7 +376,8 @@ export const sqlite: IntrospectionProvider = {
         }
     },
 
-    getDefaultValue({ defaultValue, fieldType, services, enums }) { // datatype and datatype_name not used for SQLite
+    getDefaultValue({ defaultValue, fieldType, services, enums }) {
+        // datatype and datatype_name not used for SQLite
         const val = defaultValue.trim();
 
         switch (fieldType) {
@@ -401,7 +420,9 @@ export const sqlite: IntrospectionProvider = {
                 return (ab) => ab.StringLiteral.setValue(val);
         }
 
-        console.warn(`Unsupported default value type: "${defaultValue}" for field type "${fieldType}". Skipping default value.`);
+        console.warn(
+            `Unsupported default value type: "${defaultValue}" for field type "${fieldType}". Skipping default value.`,
+        );
         return null;
     },
 
@@ -409,7 +430,10 @@ export const sqlite: IntrospectionProvider = {
         const factories: DataFieldAttributeFactory[] = [];
 
         // Add @updatedAt for DateTime fields named updatedAt or updated_at
-        if (fieldType === 'DateTime' && (fieldName.toLowerCase() === 'updatedat' || fieldName.toLowerCase() === 'updated_at')) {
+        if (
+            fieldType === 'DateTime' &&
+            (fieldName.toLowerCase() === 'updatedat' || fieldName.toLowerCase() === 'updated_at')
+        ) {
             factories.push(new DataFieldAttributeFactory().setDecl(getAttributeRef('@updatedAt', services)));
         }
 
