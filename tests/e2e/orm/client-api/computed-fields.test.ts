@@ -215,10 +215,18 @@ model Post {
         // Alice: posts [300, 50, 50]  → (>=100)=1, (>=250)=1
         // Bob:   posts [120, 120, 10] → (>=100)=2, (>=250)=0
         await db.user.create({
-            data: { id: 1, name: 'Alice', posts: { create: [{ viewCount: 300 }, { viewCount: 50 }, { viewCount: 50 }] } },
+            data: {
+                id: 1,
+                name: 'Alice',
+                posts: { create: [{ viewCount: 300 }, { viewCount: 50 }, { viewCount: 50 }] },
+            },
         });
         await db.user.create({
-            data: { id: 2, name: 'Bob', posts: { create: [{ viewCount: 120 }, { viewCount: 120 }, { viewCount: 10 }] } },
+            data: {
+                id: 2,
+                name: 'Bob',
+                posts: { create: [{ viewCount: 120 }, { viewCount: 120 }, { viewCount: 10 }] },
+            },
         });
 
         // minViews=100: Alice=1, Bob=2 → desc ⇒ [Bob, Alice]
@@ -311,14 +319,20 @@ model Post {
         // since 2024-01-01: Alice=3, Bob=1 → desc ⇒ [Alice, Bob]
         await expect(
             db.user.findMany({
-                orderBy: [{ recentPostCount: { args: { since: new Date('2024-01-01') }, sort: 'desc' } }, { id: 'asc' }],
+                orderBy: [
+                    { recentPostCount: { args: { since: new Date('2024-01-01') }, sort: 'desc' } },
+                    { id: 'asc' },
+                ],
             }),
         ).resolves.toMatchObject([{ id: 1 }, { id: 2 }]);
 
         // since 2024-07-01: Alice=0, Bob=1 → desc ⇒ [Bob, Alice] (later `since` flips the order)
         await expect(
             db.user.findMany({
-                orderBy: [{ recentPostCount: { args: { since: new Date('2024-07-01') }, sort: 'desc' } }, { id: 'asc' }],
+                orderBy: [
+                    { recentPostCount: { args: { since: new Date('2024-07-01') }, sort: 'desc' } },
+                    { id: 'asc' },
+                ],
             }),
         ).resolves.toMatchObject([{ id: 2 }, { id: 1 }]);
     });
@@ -357,10 +371,18 @@ model Post {
         // Alice: posts [300, 50, 50]  → (>=100)=1, (>=40)=3
         // Bob:   posts [120, 120, 10] → (>=100)=2, (>=40)=2
         await db.user.create({
-            data: { id: 1, name: 'Alice', posts: { create: [{ viewCount: 300 }, { viewCount: 50 }, { viewCount: 50 }] } },
+            data: {
+                id: 1,
+                name: 'Alice',
+                posts: { create: [{ viewCount: 300 }, { viewCount: 50 }, { viewCount: 50 }] },
+            },
         });
         await db.user.create({
-            data: { id: 2, name: 'Bob', posts: { create: [{ viewCount: 120 }, { viewCount: 120 }, { viewCount: 10 }] } },
+            data: {
+                id: 2,
+                name: 'Bob',
+                posts: { create: [{ viewCount: 120 }, { viewCount: 120 }, { viewCount: 10 }] },
+            },
         });
 
         // minViews=100, count >= 2 ⇒ only Bob (Alice=1, Bob=2)
@@ -479,10 +501,18 @@ model Post {
 
         // Alice: [300, 50, 50] → (>=100)=1, (>=40)=3 ; Bob: [120, 120, 10] → (>=100)=2, (>=40)=2
         await db.user.create({
-            data: { id: 1, name: 'Alice', posts: { create: [{ viewCount: 300 }, { viewCount: 50 }, { viewCount: 50 }] } },
+            data: {
+                id: 1,
+                name: 'Alice',
+                posts: { create: [{ viewCount: 300 }, { viewCount: 50 }, { viewCount: 50 }] },
+            },
         });
         await db.user.create({
-            data: { id: 2, name: 'Bob', posts: { create: [{ viewCount: 120 }, { viewCount: 120 }, { viewCount: 10 }] } },
+            data: {
+                id: 2,
+                name: 'Bob',
+                posts: { create: [{ viewCount: 120 }, { viewCount: 120 }, { viewCount: 10 }] },
+            },
         });
 
         // minViews=100 ⇒ Alice=1, Bob=2 ⇒ sum=3, max=2, count(non-null)=2
@@ -504,9 +534,7 @@ model Post {
         ).resolves.toMatchObject({ _sum: { popularPostCount: 5 } });
 
         // the bare-`true` shorthand is rejected — args must be supplied
-        await expect(
-            db.user.aggregate({ _sum: { popularPostCount: true } as any }),
-        ).toBeRejectedByValidation();
+        await expect(db.user.aggregate({ _sum: { popularPostCount: true } as any })).toBeRejectedByValidation();
 
         // the field is materialized once, so aggregating it with conflicting args is rejected
         await expect(
@@ -590,7 +618,12 @@ model Post {
             data: {
                 id: 1,
                 name: 'Alice',
-                posts: { create: [{ id: 1, viewCount: 300 }, { id: 2, viewCount: 50 }] },
+                posts: {
+                    create: [
+                        { id: 1, viewCount: 300 },
+                        { id: 2, viewCount: 50 },
+                    ],
+                },
             },
         });
 
@@ -611,7 +644,9 @@ model Post {
         // nested `select` narrows to the computed value
         const u3 = await db.user.findFirstOrThrow({
             where: { id: 1 },
-            include: { posts: { select: { id: true, weightedViews: { args: { factor: 2 } } }, orderBy: { id: 'asc' } } },
+            include: {
+                posts: { select: { id: true, weightedViews: { args: { factor: 2 } } }, orderBy: { id: 'asc' } },
+            },
         });
         expect(u3.posts).toEqual([
             { id: 1, weightedViews: 600 },
@@ -658,9 +693,7 @@ model Post {
         await expect(db.user.findMany({ distinct: ['popularPostCount'] as any })).toBeRejectedByValidation();
         await expect(db.user.findMany({ omit: { popularPostCount: true } as any })).toBeRejectedByValidation();
         // groupBy `by` requires the keyed `{ field, args }` entry — the bare name is rejected
-        await expect(
-            db.user.groupBy({ by: ['popularPostCount'], _count: true } as any),
-        ).toBeRejectedByValidation();
+        await expect(db.user.groupBy({ by: ['popularPostCount'], _count: true } as any)).toBeRejectedByValidation();
     });
 
     it('is typed correctly for non-optional fields', async () => {

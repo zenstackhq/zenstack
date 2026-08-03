@@ -444,7 +444,12 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                     Array.isArray(value.set)
                 ) {
                     // deal with nested "set" for scalar lists
-                    createFields[field] = this.dialect.transformInput(value.set, fieldDef.type as BuiltinType, true, fieldDef);
+                    createFields[field] = this.dialect.transformInput(
+                        value.set,
+                        fieldDef.type as BuiltinType,
+                        true,
+                        fieldDef,
+                    );
                 } else {
                     createFields[field] = this.dialect.transformInput(
                         value,
@@ -893,7 +898,12 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             for (const [name, value] of Object.entries(item)) {
                 const fieldDef = this.requireField(model, name);
                 invariant(!fieldDef.relation, 'createMany does not support relations');
-                newItem[name] = this.dialect.transformInput(value, fieldDef.type as BuiltinType, !!fieldDef.array, fieldDef);
+                newItem[name] = this.dialect.transformInput(
+                    value,
+                    fieldDef.type as BuiltinType,
+                    !!fieldDef.array,
+                    fieldDef,
+                );
             }
             if (fromRelation) {
                 for (const { fk, pk } of relationKeyPairs) {
@@ -1080,7 +1090,12 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                             value = JSON.parse(value);
                         }
                     }
-                    values[field] = this.dialect.transformInput(value, fieldDef.type as BuiltinType, !!fieldDef.array, fieldDef);
+                    values[field] = this.dialect.transformInput(
+                        value,
+                        fieldDef.type as BuiltinType,
+                        !!fieldDef.array,
+                        fieldDef,
+                    );
                 }
             }
         }

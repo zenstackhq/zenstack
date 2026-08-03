@@ -33,7 +33,8 @@ export class AggregateOperationHandler<Schema extends SchemaDef> extends BaseOpe
                     Object.entries(value)
                         .filter(([field]) => field !== '_all')
                         .forEach(([field, val]) => {
-                            const args = val && typeof val === 'object' && 'args' in val ? (val as any).args : undefined;
+                            const args =
+                                val && typeof val === 'object' && 'args' in val ? (val as any).args : undefined;
                             if (val !== true && args === undefined) {
                                 return;
                             }

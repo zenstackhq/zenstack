@@ -19,12 +19,15 @@ export function validateDuplicatedDeclarations(
     decls: Array<AstNode & { name: string }>,
     accept: ValidationAcceptor,
 ): void {
-    const groupByName = decls.reduce<Record<string, Array<AstNode & { name: string }>>>((group, decl) => {
-        // Use a null-prototype map to avoid issues with names like "__proto__"/"constructor".
-        group[decl.name] = group[decl.name] ?? [];
-        group[decl.name]!.push(decl);
-        return group;
-    }, Object.create(null) as Record<string, Array<AstNode & { name: string }>>);
+    const groupByName = decls.reduce<Record<string, Array<AstNode & { name: string }>>>(
+        (group, decl) => {
+            // Use a null-prototype map to avoid issues with names like "__proto__"/"constructor".
+            group[decl.name] = group[decl.name] ?? [];
+            group[decl.name]!.push(decl);
+            return group;
+        },
+        Object.create(null) as Record<string, Array<AstNode & { name: string }>>,
+    );
 
     for (const [name, decls] of Object.entries<AstNode[]>(groupByName)) {
         if (decls.length > 1) {

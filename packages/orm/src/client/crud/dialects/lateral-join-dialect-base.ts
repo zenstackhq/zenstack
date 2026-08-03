@@ -322,7 +322,13 @@ export abstract class LateralJoinDialectBase<Schema extends SchemaDef> extends B
                         if (fieldDef.computed && fieldDef.params) {
                             // parameterized computed field included on the relation: inline with args
                             return {
-                                [field]: this.fieldRef(relationModel, field, relationModelAlias, true, (value as any).args),
+                                [field]: this.fieldRef(
+                                    relationModel,
+                                    field,
+                                    relationModelAlias,
+                                    true,
+                                    (value as any).args,
+                                ),
                             };
                         }
                         return { [field]: eb.ref(`${parentResultName}$${field}.$data`) };

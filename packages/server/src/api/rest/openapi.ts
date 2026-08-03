@@ -132,12 +132,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 if (relIdFields.length === 0) continue;
 
                 // GET /{model}/{id}/{field} — fetch related (+ nested create/update when nestedRoutes enabled)
-                paths[`/${modelPath}/{id}/${fieldName}`] = this.buildRelatedPath(
-                    modelName,
-                    fieldName,
-                    fieldDef,
-                    tag,
-                );
+                paths[`/${modelPath}/{id}/${fieldName}`] = this.buildRelatedPath(modelName, fieldName, fieldDef, tag);
 
                 // Nested single resource path: /{model}/{id}/{field}/{childId}
                 if (this.nestedRoutes && fieldDef.array) {
@@ -296,7 +291,9 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                         },
                     },
                     '400': ERROR_400,
-                    ...(mayDenyAccess(modelDef, 'update', this.specOptions?.respectAccessPolicies) && { '403': ERROR_403 }),
+                    ...(mayDenyAccess(modelDef, 'update', this.specOptions?.respectAccessPolicies) && {
+                        '403': ERROR_403,
+                    }),
                     '404': ERROR_404,
                     '422': ERROR_422,
                 },
@@ -311,7 +308,9 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 parameters: [idParam],
                 responses: {
                     '200': { description: 'Deleted successfully' },
-                    ...(mayDenyAccess(modelDef, 'delete', this.specOptions?.respectAccessPolicies) && { '403': ERROR_403 }),
+                    ...(mayDenyAccess(modelDef, 'delete', this.specOptions?.respectAccessPolicies) && {
+                        '403': ERROR_403,
+                    }),
                     '404': ERROR_404,
                 },
             };
@@ -362,7 +361,11 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         };
 
         if (this.nestedRoutes && relModelDef) {
-            const mayDeny = mayDenyAccess(relModelDef, isCollection ? 'create' : 'update', this.specOptions?.respectAccessPolicies);
+            const mayDeny = mayDenyAccess(
+                relModelDef,
+                isCollection ? 'create' : 'update',
+                this.specOptions?.respectAccessPolicies,
+            );
             if (isCollection && isOperationIncluded(fieldDef.type, 'create', this.queryOptions)) {
                 // POST /{model}/{id}/{field} — nested create
                 pathItem['post'] = {
@@ -1206,5 +1209,4 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
     private getIdFields(modelDef: ModelDef): FieldDef[] {
         return modelDef.idFields.map((name) => modelDef.fields[name]).filter((f): f is FieldDef => f !== undefined);
     }
-
 }

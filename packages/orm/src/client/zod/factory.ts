@@ -103,16 +103,19 @@ export function coercedDateTimeSchema(): ZodType {
     // parses — including non-ISO formats like `"2024/01/15"` for Prisma
     // compatibility (rejected with the standard error if `new Date(...)`
     // returns Invalid Date).
-    return z.preprocess((val) => {
-        if (typeof val !== 'string') return val;
-        if (/^\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d\d(?::\d\d)?)?$/.test(val)) {
-            const hasTz = val.endsWith('Z') || /[+-]\d\d(?::\d\d)?$/.test(val);
-            const d = new Date(`1970-01-01T${val}${hasTz ? '' : 'Z'}`);
+    return z.preprocess(
+        (val) => {
+            if (typeof val !== 'string') return val;
+            if (/^\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d\d(?::\d\d)?)?$/.test(val)) {
+                const hasTz = val.endsWith('Z') || /[+-]\d\d(?::\d\d)?$/.test(val);
+                const d = new Date(`1970-01-01T${val}${hasTz ? '' : 'Z'}`);
+                return isNaN(d.getTime()) ? val : d;
+            }
+            const d = new Date(val);
             return isNaN(d.getTime()) ? val : d;
-        }
-        const d = new Date(val);
-        return isNaN(d.getTime()) ? val : d;
-    }, z.union([z.iso.datetime(), z.iso.date(), z.date()]));
+        },
+        z.union([z.iso.datetime(), z.iso.date(), z.date()]),
+    );
 }
 
 /**

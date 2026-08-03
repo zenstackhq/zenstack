@@ -84,7 +84,8 @@ export default class DataSourceValidator implements AstValidator<DataSource> {
                     // if no explicit default schema is specified, and there are models or enums without '@@schema',
                     // "public" is implicitly used, so it must be included in the "schemas" array
                     const hasImplicitPublicSchema = ds.$container.declarations.some(
-                        (d) => (isDataModel(d) || isEnum(d)) && !d.attributes.some((a) => a.decl.$refText === '@@schema'),
+                        (d) =>
+                            (isDataModel(d) || isEnum(d)) && !d.attributes.some((a) => a.decl.$refText === '@@schema'),
                     );
                     if (hasImplicitPublicSchema && !schemasArray.includes('public')) {
                         accept('error', `"public" must be included in the "schemas" array`, {

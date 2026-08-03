@@ -609,7 +609,8 @@ export default class DataModelValidator implements AstValidator<DataModel> {
 
         const delegateAttr = getAttribute(baseModel, '@@delegate');
         const discriminatorArg = delegateAttr && getAttributeArg(delegateAttr, 'discriminator');
-        const discriminatorRef = discriminatorArg && isReferenceExpr(discriminatorArg) ? discriminatorArg.target.ref : undefined;
+        const discriminatorRef =
+            discriminatorArg && isReferenceExpr(discriminatorArg) ? discriminatorArg.target.ref : undefined;
 
         if (!discriminatorRef || !isDataField(discriminatorRef)) {
             return;

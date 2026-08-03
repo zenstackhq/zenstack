@@ -30,18 +30,18 @@ model Product {
         });
 
         // nested read traverses the right column
-        await expect(db.category.findUnique({ where: { id: c1.id }, include: { products: true } })).resolves.toMatchObject(
-            { products: [expect.objectContaining({ id: 'p1' })] },
-        );
-        await expect(db.category.findUnique({ where: { id: c1.id }, include: { featured: true } })).resolves.toMatchObject(
-            { featured: [] },
-        );
-        await expect(db.category.findUnique({ where: { id: c2.id }, include: { products: true } })).resolves.toMatchObject(
-            { products: [] },
-        );
-        await expect(db.category.findUnique({ where: { id: c2.id }, include: { featured: true } })).resolves.toMatchObject(
-            { featured: [expect.objectContaining({ id: 'p1' })] },
-        );
+        await expect(
+            db.category.findUnique({ where: { id: c1.id }, include: { products: true } }),
+        ).resolves.toMatchObject({ products: [expect.objectContaining({ id: 'p1' })] });
+        await expect(
+            db.category.findUnique({ where: { id: c1.id }, include: { featured: true } }),
+        ).resolves.toMatchObject({ featured: [] });
+        await expect(
+            db.category.findUnique({ where: { id: c2.id }, include: { products: true } }),
+        ).resolves.toMatchObject({ products: [] });
+        await expect(
+            db.category.findUnique({ where: { id: c2.id }, include: { featured: true } }),
+        ).resolves.toMatchObject({ featured: [expect.objectContaining({ id: 'p1' })] });
 
         // relation filters traverse the right column
         await expect(db.category.findMany({ where: { products: { none: {} } } })).resolves.toEqual([

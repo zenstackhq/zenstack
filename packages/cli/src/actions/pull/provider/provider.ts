@@ -61,7 +61,10 @@ export type IntrospectedSchema = {
 export type DatabaseFeature = 'Schema' | 'NativeEnum';
 
 export interface IntrospectionProvider {
-    introspect(connectionString: string, options: { schemas: string[]; modelCasing: 'pascal' | 'camel' | 'snake' | 'none' }): Promise<IntrospectedSchema>;
+    introspect(
+        connectionString: string,
+        options: { schemas: string[]; modelCasing: 'pascal' | 'camel' | 'snake' | 'none' },
+    ): Promise<IntrospectedSchema>;
     getBuiltinType(type: string): {
         type: BuiltinType | 'Unsupported';
         isArray: boolean;

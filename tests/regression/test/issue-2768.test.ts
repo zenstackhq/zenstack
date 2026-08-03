@@ -83,12 +83,12 @@ describe('Regression for issue 2768', () => {
 
         await db.employeeDeskSession.create({ data: { id: 's1', deskId: desk1.id } });
 
-        await expect(
-            db.location.findMany({ where: { resources: { some: { name: 'desk1' } } } }),
-        ).resolves.toEqual([expect.objectContaining({ id: l1.id })]);
+        await expect(db.location.findMany({ where: { resources: { some: { name: 'desk1' } } } })).resolves.toEqual([
+            expect.objectContaining({ id: l1.id }),
+        ]);
 
-        await expect(
-            db.location.findMany({ where: { resources: { none: { name: 'desk1' } } } }),
-        ).resolves.toEqual([expect.objectContaining({ id: l2.id })]);
+        await expect(db.location.findMany({ where: { resources: { none: { name: 'desk1' } } } })).resolves.toEqual([
+            expect.objectContaining({ id: l2.id }),
+        ]);
     });
 });

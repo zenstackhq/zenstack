@@ -131,10 +131,15 @@ export const mysql: IntrospectionProvider = {
                 return { type: 'longblob' };
         }
     },
-    async introspect(connectionString: string, options: { schemas: string[]; modelCasing: 'pascal' | 'camel' | 'snake' | 'none' }): Promise<IntrospectedSchema> {
+    async introspect(
+        connectionString: string,
+        options: { schemas: string[]; modelCasing: 'pascal' | 'camel' | 'snake' | 'none' },
+    ): Promise<IntrospectedSchema> {
         const mod = await loadPackage('mysql2/promise');
         if (!mod) {
-            throw new CliError('Package "mysql2" is required for MySQL support. Please install it with: npm install mysql2');
+            throw new CliError(
+                'Package "mysql2" is required for MySQL support. Please install it with: npm install mysql2',
+            );
         }
         const mysql = mod.createConnection ? mod : (mod.default ?? mod);
         const connection = await mysql.createConnection(connectionString);
@@ -160,29 +165,32 @@ export const mysql: IntrospectionProvider = {
                 const indexes = typeof row.indexes === 'string' ? JSON.parse(row.indexes) : row.indexes;
 
                 // Sort columns by ordinal_position to preserve database column order
-              const sortedColumns = (columns || [])
-                .sort(
-                  (a: { ordinal_position?: number }, b: { ordinal_position?: number }) =>
-                    (a.ordinal_position ?? 0) - (b.ordinal_position ?? 0)
-                )
-                .map((col: any) => {
-                    // MySQL enum datatype_name is synthetic (TableName_ColumnName).
-                    // Apply model casing so it matches the cased enum_type.
-                    if (col.datatype === 'enum' && col.datatype_name) {
-                        return { ...col, datatype_name: resolveNameCasing(options.modelCasing, col.datatype_name).name };
-                    }
-                    // Normalize generated column expressions for stable output.
-                    if (col.computed && typeof col.datatype === 'string') {
-                        return { ...col, datatype: normalizeGenerationExpression(col.datatype) };
-                    }
-                    return col;
-                });
+                const sortedColumns = (columns || [])
+                    .sort(
+                        (a: { ordinal_position?: number }, b: { ordinal_position?: number }) =>
+                            (a.ordinal_position ?? 0) - (b.ordinal_position ?? 0),
+                    )
+                    .map((col: any) => {
+                        // MySQL enum datatype_name is synthetic (TableName_ColumnName).
+                        // Apply model casing so it matches the cased enum_type.
+                        if (col.datatype === 'enum' && col.datatype_name) {
+                            return {
+                                ...col,
+                                datatype_name: resolveNameCasing(options.modelCasing, col.datatype_name).name,
+                            };
+                        }
+                        // Normalize generated column expressions for stable output.
+                        if (col.computed && typeof col.datatype === 'string') {
+                            return { ...col, datatype: normalizeGenerationExpression(col.datatype) };
+                        }
+                        return col;
+                    });
 
                 // Filter out auto-generated FK indexes (MySQL creates these automatically)
                 // Pattern: {Table}_{column}_fkey for single-column FK indexes
                 const filteredIndexes = (indexes || []).filter(
                     (idx: { name: string; columns: { name: string }[] }) =>
-                        !(idx.columns.length === 1 && idx.name === `${row.name}_${idx.columns[0]?.name}_fkey`)
+                        !(idx.columns.length === 1 && idx.name === `${row.name}_${idx.columns[0]?.name}_fkey`),
                 );
 
                 tables.push({
@@ -244,7 +252,11 @@ export const mysql: IntrospectionProvider = {
 
         switch (fieldType) {
             case 'DateTime':
-                if (/^CURRENT_TIMESTAMP(\(\d*\))?$/i.test(val) || val.toLowerCase() === 'current_timestamp()' || val.toLowerCase() === 'now()') {
+                if (
+                    /^CURRENT_TIMESTAMP(\(\d*\))?$/i.test(val) ||
+                    val.toLowerCase() === 'current_timestamp()' ||
+                    val.toLowerCase() === 'now()'
+                ) {
                     return (ab) => ab.InvocationExpr.setFunction(getFunctionRef('now', services));
                 }
                 // Fallback to string literal for other DateTime defaults
@@ -264,7 +276,8 @@ export const mysql: IntrospectionProvider = {
                 return normalizeDecimalDefault(val);
 
             case 'Boolean':
-                return (ab) => ab.BooleanLiteral.setValue(val.toLowerCase() === 'true' || val === '1' || val === "b'1'");
+                return (ab) =>
+                    ab.BooleanLiteral.setValue(val.toLowerCase() === 'true' || val === '1' || val === "b'1'");
 
             case 'String':
                 if (val.toLowerCase() === 'uuid()') {
@@ -285,7 +298,9 @@ export const mysql: IntrospectionProvider = {
                 );
         }
 
-        console.warn(`Unsupported default value type: "${defaultValue}" for field type "${fieldType}". Skipping default value.`);
+        console.warn(
+            `Unsupported default value type: "${defaultValue}" for field type "${fieldType}". Skipping default value.`,
+        );
         return null;
     },
 
@@ -293,7 +308,10 @@ export const mysql: IntrospectionProvider = {
         const factories: DataFieldAttributeFactory[] = [];
 
         // Add @updatedAt for DateTime fields named updatedAt or updated_at
-        if (fieldType === 'DateTime' && (fieldName.toLowerCase() === 'updatedat' || fieldName.toLowerCase() === 'updated_at')) {
+        if (
+            fieldType === 'DateTime' &&
+            (fieldName.toLowerCase() === 'updatedat' || fieldName.toLowerCase() === 'updated_at')
+        ) {
             factories.push(new DataFieldAttributeFactory().setDecl(getAttributeRef('@updatedAt', services)));
         }
 
@@ -308,8 +326,7 @@ export const mysql: IntrospectionProvider = {
             dbAttr &&
             defaultDatabaseType &&
             (defaultDatabaseType.type !== datatype ||
-                (defaultDatabaseType.precision &&
-                    defaultDatabaseType.precision !== (length ?? precision)))
+                (defaultDatabaseType.precision && defaultDatabaseType.precision !== (length ?? precision)))
         ) {
             const dbAttrFactory = new DataFieldAttributeFactory().setDecl(dbAttr);
             const sizeValue = length ?? precision;

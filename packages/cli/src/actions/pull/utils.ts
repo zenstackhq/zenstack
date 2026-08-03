@@ -71,14 +71,9 @@ export function getDatasource(model: Model) {
 
     const schemasField = datasource.fields.find((f) => f.name === 'schemas');
     const schemas =
-    (schemasField &&
-        getLiteralArray(schemasField.value)
-        ?.filter((s) => s !== undefined)) as string[] ||
-        [];
+        ((schemasField && getLiteralArray(schemasField.value)?.filter((s) => s !== undefined)) as string[]) || [];
 
-    const provider = getStringLiteral(
-        datasource.fields.find((f) => f.name === 'provider')?.value,
-    );
+    const provider = getStringLiteral(datasource.fields.find((f) => f.name === 'provider')?.value);
     if (!provider) {
         throw new CliError(`Datasource "${datasource.name}" is missing a "provider" field.`);
     }

@@ -3,11 +3,7 @@ import type { Procedure } from '../generated/ast';
 import { validateAttributeApplication } from './attribute-application-validator';
 import type { AstValidator } from './common';
 
-const RESERVED_PROCEDURE_NAMES = new Set([
-    '__proto__',
-    'prototype',
-    'constructor',
-]);
+const RESERVED_PROCEDURE_NAMES = new Set(['__proto__', 'prototype', 'constructor']);
 
 /**
  * Validates procedure declarations.
