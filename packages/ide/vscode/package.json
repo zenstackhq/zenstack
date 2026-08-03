@@ -29,7 +29,7 @@
         "name": "ZenStack Team"
     },
     "license": "MIT",
-    "packageManager": "pnpm@10.12.1",
+    "packageManager": "pnpm@10.33.0",
     "dependencies": {
         "@zenstackhq/language": "workspace:*",
         "langium": "catalog:",
