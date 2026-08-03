@@ -5,89 +5,91 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, type FieldDefault, ExpressionUtils } from '@zenstackhq/schema';
+import { type SchemaDef, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
     provider = {
-        type: 'sqlite',
+        type: "sqlite"
     } as const;
     models = {
         User: {
-            name: 'User',
+            name: "User",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 email: {
-                    name: 'email',
-                    type: 'String',
-                    unique: true,
+                    name: "email",
+                    type: "String",
+                    unique: true
                 },
                 name: {
-                    name: 'name',
-                    type: 'String',
-                    optional: true,
+                    name: "name",
+                    type: "String",
+                    optional: true
                 },
                 posts: {
-                    name: 'posts',
-                    type: 'Post',
+                    name: "posts",
+                    type: "Post",
                     array: true,
-                    relation: { opposite: 'author' },
-                },
+                    relation: { opposite: "author" }
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                email: { type: 'String' },
-            },
+                id: { type: "String" },
+                email: { type: "String" }
+            }
         },
         Post: {
-            name: 'Post',
+            name: "Post",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 title: {
-                    name: 'title',
-                    type: 'String',
+                    name: "title",
+                    type: "String"
                 },
                 author: {
-                    name: 'author',
-                    type: 'User',
+                    name: "author",
+                    type: "User",
                     optional: true,
-                    relation: { opposite: 'posts', fields: ['authorId'], references: ['id'] },
+                    relation: { opposite: "posts", fields: ["authorId"], references: ["id"] }
                 },
                 authorId: {
-                    name: 'authorId',
-                    type: 'String',
+                    name: "authorId",
+                    type: "String",
                     optional: true,
-                    foreignKeyFor: ['author'] as readonly string[],
-                },
+                    foreignKeyFor: [
+                        "author"
+                    ] as readonly string[]
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-            },
-        },
+                id: { type: "String" }
+            }
+        }
     } as const;
-    authType = 'User' as const;
+    authType = "User" as const;
     procedures = {
         getStats: {
             params: {},
-            returnType: 'Int',
+            returnType: "Int"
         },
         sendNotification: {
             params: {
-                message: { name: 'message', type: 'String' },
+                message: { name: "message", type: "String" }
             },
-            returnType: 'Boolean',
-            mutation: true,
-        },
+            returnType: "Boolean",
+            mutation: true
+        }
     } as const;
     plugins = {};
 }

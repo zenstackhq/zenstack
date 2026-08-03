@@ -5,174 +5,96 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from '@zenstackhq/schema';
+import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
     provider = {
-        type: 'postgresql',
+        type: "postgresql"
     } as const;
     models = {
         User: {
-            name: 'User',
+            name: "User",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 email: {
-                    name: 'email',
-                    type: 'String',
+                    name: "email",
+                    type: "String",
                     unique: true,
-                    attributes: [{ name: '@unique' }] as readonly AttributeApplication[],
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
                 },
                 name: {
-                    name: 'name',
-                    type: 'String',
-                    optional: true,
+                    name: "name",
+                    type: "String",
+                    optional: true
                 },
                 posts: {
-                    name: 'posts',
-                    type: 'Post',
+                    name: "posts",
+                    type: "Post",
                     array: true,
-                    relation: { opposite: 'author' },
-                },
+                    relation: { opposite: "author" }
+                }
             },
             attributes: [
-                {
-                    name: '@@allow',
-                    args: [
-                        { name: 'operation', value: ExpressionUtils.literal('all') },
-                        {
-                            name: 'condition',
-                            value: ExpressionUtils.binary(
-                                ExpressionUtils.member(ExpressionUtils.call('auth'), ['id']),
-                                '==',
-                                ExpressionUtils.field('id'),
-                            ),
-                        },
-                    ],
-                },
-                {
-                    name: '@@allow',
-                    args: [
-                        { name: 'operation', value: ExpressionUtils.literal('read') },
-                        {
-                            name: 'condition',
-                            value: ExpressionUtils.binary(ExpressionUtils.call('auth'), '!=', ExpressionUtils._null()),
-                        },
-                    ],
-                },
+                { name: "@@allow", args: [{ name: "operation", value: ExpressionUtils.literal("all") }, { name: "condition", value: ExpressionUtils.binary(ExpressionUtils.member(ExpressionUtils.call("auth"), ["id"]), "==", ExpressionUtils.field("id")) }] },
+                { name: "@@allow", args: [{ name: "operation", value: ExpressionUtils.literal("read") }, { name: "condition", value: ExpressionUtils.binary(ExpressionUtils.call("auth"), "!=", ExpressionUtils._null()) }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-                email: { type: 'String' },
-            },
+                id: { type: "String" },
+                email: { type: "String" }
+            }
         },
         Post: {
-            name: 'Post',
+            name: "Post",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    attributes: [
-                        { name: '@id' },
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.call('cuid') }] },
-                    ] as readonly AttributeApplication[],
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 title: {
-                    name: 'title',
-                    type: 'String',
+                    name: "title",
+                    type: "String"
                 },
                 published: {
-                    name: 'published',
-                    type: 'Boolean',
-                    attributes: [
-                        { name: '@default', args: [{ name: 'value', value: ExpressionUtils.literal(false) }] },
-                    ] as readonly AttributeApplication[],
-                    default: false as FieldDefault,
+                    name: "published",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
                 },
                 author: {
-                    name: 'author',
-                    type: 'User',
-                    attributes: [
-                        {
-                            name: '@relation',
-                            args: [
-                                {
-                                    name: 'fields',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('authorId')]),
-                                },
-                                {
-                                    name: 'references',
-                                    value: ExpressionUtils.array('String', [ExpressionUtils.field('id')]),
-                                },
-                                { name: 'onUpdate', value: ExpressionUtils.literal('Cascade') },
-                                { name: 'onDelete', value: ExpressionUtils.literal('Cascade') },
-                            ],
-                        },
-                    ] as readonly AttributeApplication[],
-                    relation: {
-                        opposite: 'posts',
-                        fields: ['authorId'],
-                        references: ['id'],
-                        onUpdate: 'Cascade',
-                        onDelete: 'Cascade',
-                    },
+                    name: "author",
+                    type: "User",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("authorId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "posts", fields: ["authorId"], references: ["id"], onUpdate: "Cascade", onDelete: "Cascade" }
                 },
                 authorId: {
-                    name: 'authorId',
-                    type: 'String',
-                    foreignKeyFor: ['author'] as readonly string[],
-                },
+                    name: "authorId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "author"
+                    ] as readonly string[]
+                }
             },
             attributes: [
-                {
-                    name: '@@deny',
-                    args: [
-                        { name: 'operation', value: ExpressionUtils.literal('all') },
-                        {
-                            name: 'condition',
-                            value: ExpressionUtils.binary(ExpressionUtils.call('auth'), '==', ExpressionUtils._null()),
-                        },
-                    ],
-                },
-                {
-                    name: '@@allow',
-                    args: [
-                        { name: 'operation', value: ExpressionUtils.literal('all') },
-                        {
-                            name: 'condition',
-                            value: ExpressionUtils.binary(
-                                ExpressionUtils.member(ExpressionUtils.call('auth'), ['id']),
-                                '==',
-                                ExpressionUtils.field('authorId'),
-                            ),
-                        },
-                    ],
-                },
-                {
-                    name: '@@allow',
-                    args: [
-                        { name: 'operation', value: ExpressionUtils.literal('read') },
-                        { name: 'condition', value: ExpressionUtils.field('published') },
-                    ],
-                },
+                { name: "@@deny", args: [{ name: "operation", value: ExpressionUtils.literal("all") }, { name: "condition", value: ExpressionUtils.binary(ExpressionUtils.call("auth"), "==", ExpressionUtils._null()) }] },
+                { name: "@@allow", args: [{ name: "operation", value: ExpressionUtils.literal("all") }, { name: "condition", value: ExpressionUtils.binary(ExpressionUtils.member(ExpressionUtils.call("auth"), ["id"]), "==", ExpressionUtils.field("authorId")) }] },
+                { name: "@@allow", args: [{ name: "operation", value: ExpressionUtils.literal("read") }, { name: "condition", value: ExpressionUtils.field("published") }] }
             ] as readonly AttributeApplication[],
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-            },
-        },
+                id: { type: "String" }
+            }
+        }
     } as const;
-    authType = 'User' as const;
+    authType = "User" as const;
     plugins = {};
 }
 export const schema = new SchemaType();

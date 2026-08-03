@@ -5,27 +5,27 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, type FieldDefault, ExpressionUtils } from '@zenstackhq/schema';
+import { type SchemaDef, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
     provider = {
-        type: 'sqlite',
+        type: "sqlite"
     } as const;
     models = {
         Item: {
-            name: 'Item',
+            name: "Item",
             fields: {
                 id: {
-                    name: 'id',
-                    type: 'String',
+                    name: "id",
+                    type: "String",
                     id: true,
-                    default: ExpressionUtils.call('cuid') as FieldDefault,
-                },
+                    default: ExpressionUtils.call("cuid") as FieldDefault
+                }
             },
-            idFields: ['id'],
+            idFields: ["id"],
             uniqueFields: {
-                id: { type: 'String' },
-            },
-        },
+                id: { type: "String" }
+            }
+        }
     } as const;
     plugins = {};
 }
