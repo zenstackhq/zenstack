@@ -10,6 +10,7 @@ import {
 } from '@zenstackhq/orm/schema';
 import {
     AliasNode,
+    AndNode,
     BinaryOperationNode,
     ColumnNode,
     DeleteQueryNode,
@@ -112,6 +113,11 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         // update
         if (UpdateQueryNode.is(node)) {
             await this.preUpdateCheck(mutationModel, node, proceed);
+        }
+
+        // delete
+        if (DeleteQueryNode.is(node)) {
+            await this.preDeleteCheck(mutationModel, node, proceed);
         }
 
         // post-update: load before-update entities if needed
@@ -238,6 +244,100 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
                 'some rows cannot be updated due to field policies',
             );
         }
+    }
+
+    /**
+     * Deleting rows from an implicit many-to-many join table requires both participant sides to be
+     * updatable. Unlike inserts (which are explicitly rejected by {@link enforcePreCreatePolicyForManyToManyJoinTable}),
+     * a delete would otherwise just be silently filtered down to zero rows and report success. See issue #2752.
+     */
+    private async preDeleteCheck(mutationModel: string, node: DeleteQueryNode, proceed: ProceedKyselyQueryFunction) {
+        const m2m = this.resolveManyToManyJoinTable(mutationModel);
+        if (!m2m) {
+            return;
+        }
+
+        // the join table's fk columns are constrained by literal values for the sides that the
+        // delete explicitly targets; only those sides can be checked upfront
+        const sides = [
+            { column: 'A', model: m2m.firstModel, idField: m2m.firstIdField },
+            { column: 'B', model: m2m.secondModel, idField: m2m.secondIdField },
+        ]
+            .map((side) => ({ ...side, value: this.extractEqualityValue(node.where?.where, side.column) }))
+            .filter((side) => side.value !== undefined);
+
+        if (sides.length === 0) {
+            return;
+        }
+
+        const result = await proceed({
+            kind: 'SelectQueryNode',
+            selections: sides.map((side, index) =>
+                SelectionNode.create(
+                    AliasNode.create(
+                        this.eb
+                            .selectFrom(side.model)
+                            .where(this.eb(this.eb.ref(`${side.model}.${side.idField}`), '=', side.value))
+                            .select(() =>
+                                new ExpressionWrapper(this.buildPolicyFilter(side.model, undefined, 'update')).as('_'),
+                            )
+                            .toOperationNode(),
+                        IdentifierNode.create(`$condition${index}`),
+                    ),
+                ),
+            ),
+        } satisfies SelectQueryNode);
+
+        for (const [index, side] of sides.entries()) {
+            if (!result.rows[0]?.[`$condition${index}`]) {
+                throw createRejectedByPolicyError(
+                    side.model,
+                    RejectedByPolicyReason.NO_ACCESS,
+                    `many-to-many relation participant model "${side.model}" not updatable`,
+                );
+            }
+        }
+    }
+
+    /**
+     * Finds the literal value that `column` is constrained to by a top-level conjunction of the given
+     * where clause, or `undefined` if there's no such constraint.
+     *
+     * E.g., given the where clause `("A" = 1 AND "B" IN (2, 3))`, extracting column "A" returns `1`,
+     * while extracting column "B" returns `undefined` since it's not an equality constraint.
+     */
+    private extractEqualityValue(node: OperationNode | undefined, column: string): unknown {
+        if (!node) {
+            return undefined;
+        }
+
+        if (ParensNode.is(node)) {
+            return this.extractEqualityValue(node.node, column);
+        }
+
+        if (AndNode.is(node)) {
+            return this.extractEqualityValue(node.left, column) ?? this.extractEqualityValue(node.right, column);
+        }
+
+        if (!BinaryOperationNode.is(node)) {
+            return undefined;
+        }
+
+        if (!OperatorNode.is(node.operator) || node.operator.operator !== '=') {
+            return undefined;
+        }
+
+        const { leftOperand, rightOperand } = node;
+        if (!ReferenceNode.is(leftOperand) || !ColumnNode.is(leftOperand.column)) {
+            return undefined;
+        }
+        if (leftOperand.column.column.name !== column) {
+            return undefined;
+        }
+        if (!ValueNode.is(rightOperand) || rightOperand.value === null || rightOperand.value === undefined) {
+            return undefined;
+        }
+        return rightOperand.value;
     }
 
     private async postUpdateCheck(
