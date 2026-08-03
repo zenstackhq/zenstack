@@ -35,6 +35,8 @@ type PushOptions = {
 export type PullOptions = {
     schema?: string;
     output?: string;
+    databaseUrl?: string;
+    provider?: DataSourceProviderType;
     modelCasing: 'pascal' | 'camel' | 'snake' | 'none';
     fieldCasing: 'pascal' | 'camel' | 'snake' | 'none';
     alwaysMap: boolean;
@@ -108,7 +110,7 @@ async function runPush(options: PushOptions) {
     }
 }
 
-async function runPull(options: PullOptions) {
+export async function runPull(options: PullOptions) {
     const spinner = ora();
     try {
         const schemaFile = getSchemaFile(options.schema);
@@ -123,8 +125,33 @@ async function runPull(options: PullOptions) {
             mergeImports: treatAsFile,
         });
 
+        // When provider/databaseUrl are passed explicitly (e.g. from --introspect),
+        // use those directly instead of reading from the parsed datasource declaration.
+        let datasource: {
+            provider: DataSourceProviderType;
+            url: string;
+            defaultSchema: string;
+            allSchemas: string[];
+        };
+
+        if (options.provider && options.databaseUrl) {
+            let databaseUrl = options.databaseUrl;
+            // Handle SQLite file URLs for local files
+            if (options.provider === 'sqlite' && databaseUrl.startsWith('file:')) {
+                databaseUrl = new URL(databaseUrl, `file:${model.$document!.uri.path}`).pathname;
+                if (process.platform === 'win32' && databaseUrl[0] === '/') databaseUrl = databaseUrl.slice(1);
+            }
+            datasource = {
+                provider: options.provider,
+                url: databaseUrl,
+                defaultSchema: 'public',
+                allSchemas: ['public'],
+            };
+        } else {
+            datasource = getDatasource(model);
+        }
+
         const SUPPORTED_PROVIDERS = Object.keys(pullProviders) as DataSourceProviderType[];
-        const datasource = getDatasource(model);
 
         if (!SUPPORTED_PROVIDERS.includes(datasource.provider)) {
             throw new CliError(`Unsupported datasource provider: ${datasource.provider}`);

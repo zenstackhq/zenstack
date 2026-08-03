@@ -3,7 +3,7 @@ import { createTestClient } from '@zenstackhq/testtools';
 import { sign } from 'node:crypto';
 import http from 'node:http';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createProxyApp } from '../src/actions/proxy';
+import { createProxyApp, getProviderFromUrl, resolveSchema } from '../src/actions/proxy';
 
 // ─── Ed25519 key pair for tests ───────────────────────────────────────────────
 const TEST_PRIVATE_KEY = `-----BEGIN PRIVATE KEY-----
@@ -798,6 +798,161 @@ describe('CLI proxy tests', () => {
             // findMany respects policy — u1 sees only their posts
             expect(body.data[1]).toHaveLength(1);
             expect(body.data[1][0]).toMatchObject({ id: 'p1' });
+        });
+    });
+
+    // ─── --introspect helpers ─────────────────────────────────────────────────────
+
+    describe('--introspect helpers', () => {
+        describe('getProviderFromUrl', () => {
+            it('should return postgresql for postgres:// URLs', () => {
+                expect(getProviderFromUrl('postgres://user:pass@localhost:5432/mydb')).toBe('postgresql');
+            });
+
+            it('should return postgresql for postgresql:// URLs', () => {
+                expect(getProviderFromUrl('postgresql://user:pass@localhost:5432/mydb')).toBe('postgresql');
+            });
+
+            it('should return mysql for mysql:// URLs', () => {
+                expect(getProviderFromUrl('mysql://user:pass@localhost:3306/mydb')).toBe('mysql');
+            });
+
+            it('should return sqlite for file: URLs', () => {
+                expect(getProviderFromUrl('file:./test.db')).toBe('sqlite');
+            });
+
+            it('should return sqlite for sqlite: URLs', () => {
+                expect(getProviderFromUrl('sqlite:./test.db')).toBe('sqlite');
+            });
+
+            it('should throw for an unrecognizable URL', () => {
+                expect(() => getProviderFromUrl('mongodb://localhost/mydb')).toThrow(
+                    'Unable to determine database type from URL',
+                );
+            });
+        });
+
+        describe('resolveSchema', () => {
+            it('should throw helpful error without --introspect when DATABASE_URL is not set', async () => {
+                const originalEnv = process.env['DATABASE_URL'];
+                delete process.env['DATABASE_URL'];
+                try {
+                    await expect(
+                        resolveSchema({
+                            schema: '/nonexistent/path/schema.zmodel',
+                            port: 3000,
+                            signatureToleranceSecs: 60,
+                        }),
+                    ).rejects.toThrow('npx @zenstackhq/cli studio --introspect -d <databaseUrl>');
+                } finally {
+                    if (originalEnv !== undefined) process.env['DATABASE_URL'] = originalEnv;
+                }
+            });
+
+            it('should throw helpful error without --introspect when DATABASE_URL is set', async () => {
+                const originalEnv = process.env['DATABASE_URL'];
+                process.env['DATABASE_URL'] = 'postgres://localhost/testdb';
+                try {
+                    await expect(
+                        resolveSchema({
+                            schema: '/nonexistent/path/schema.zmodel',
+                            port: 3000,
+                            signatureToleranceSecs: 60,
+                        }),
+                    ).rejects.toThrow('npx @zenstackhq/cli studio --introspect');
+                } finally {
+                    if (originalEnv !== undefined) {
+                        process.env['DATABASE_URL'] = originalEnv;
+                    } else {
+                        delete process.env['DATABASE_URL'];
+                    }
+                }
+            });
+
+            it('should throw when --introspect is used without a database URL', async () => {
+                const originalEnv = process.env['DATABASE_URL'];
+                delete process.env['DATABASE_URL'];
+                try {
+                    await expect(
+                        resolveSchema({
+                            schema: '/nonexistent/path/schema.zmodel',
+                            port: 3000,
+                            signatureToleranceSecs: 60,
+                            introspect: true,
+                        }),
+                    ).rejects.toThrow('pass -d <url> or set DATABASE_URL');
+                } finally {
+                    if (originalEnv !== undefined) process.env['DATABASE_URL'] = originalEnv;
+                }
+            });
+
+            it('should return existing schema path when default schema file exists', async () => {
+                const fs = await import('node:fs');
+                const path = await import('node:path');
+                const os = await import('node:os');
+
+                // Create a temporary directory to act as cwd
+                const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zenstack-test-'));
+                const schemaDir = path.join(tmpDir, 'zenstack');
+                fs.mkdirSync(schemaDir, { recursive: true });
+                const schemaFile = path.join(schemaDir, 'schema.zmodel');
+                fs.writeFileSync(schemaFile, 'datasource db { provider = "sqlite" url = "file:./test.db" }');
+
+                const SQLite = (await import('better-sqlite3')).default;
+                const db = new SQLite(path.join(tmpDir, 'test.db'));
+                db.exec('CREATE TABLE test (id INTEGER NOT NULL PRIMARY KEY);');
+                db.close();
+
+                const originalCwd = process.cwd();
+                process.chdir(tmpDir);
+                try {
+                    const result = await resolveSchema({
+                        // no schema path — force the "not found" path
+                        schema: '/nonexistent/path/schema.zmodel',
+                        port: 3000,
+                        signatureToleranceSecs: 60,
+                        introspect: true,
+                        databaseUrl: 'file:./test.db',
+                    });
+                    expect(result).toBe(path.resolve('zenstack', 'schema.zmodel'));
+                } finally {
+                    process.chdir(originalCwd);
+                    fs.rmSync(tmpDir, { recursive: true, force: true });
+                }
+            });
+
+            it('should adjust relative sqlite database url when introspecting schema', async () => {
+                const fs = await import('node:fs');
+                const path = await import('node:path');
+                const os = await import('node:os');
+
+                const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zenstack-test-introspect-'));
+                const dbFile = path.join(tmpDir, 'test.db');
+
+                // Create dummy sqlite db
+                const SQLite = (await import('better-sqlite3')).default;
+                const db = new SQLite(dbFile);
+                db.exec('CREATE TABLE test (id INTEGER NOT NULL PRIMARY KEY);');
+                db.close();
+
+                const originalCwd = process.cwd();
+                process.chdir(tmpDir);
+                try {
+                    const result = await resolveSchema({
+                        schema: '/nonexistent/path/schema.zmodel',
+                        port: 3000,
+                        signatureToleranceSecs: 60,
+                        introspect: true,
+                        databaseUrl: 'file:./test.db',
+                    });
+                    expect(result).toBe(path.resolve('zenstack', 'schema.zmodel'));
+                    const content = fs.readFileSync(result, 'utf-8');
+                    expect(content).toContain("url = 'file:../test.db'");
+                } finally {
+                    process.chdir(originalCwd);
+                    fs.rmSync(tmpDir, { recursive: true, force: true });
+                }
+            });
         });
     });
 });

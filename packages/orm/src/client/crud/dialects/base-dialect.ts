@@ -44,7 +44,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         protected readonly options: ClientOptions<Schema>,
     ) {}
 
-    // #region capability flags
+    // #region capability flags1
 
     /**
      * Whether the dialect supports updating with a limit on the number of updated rows.

@@ -1,4 +1,6 @@
 import { DataFieldAttributeFactory } from '@zenstackhq/language/factory';
+import { CliError } from '../../../cli-error';
+import { loadPackage } from '../../action-utils';
 import { getAttributeRef, getDbName, getFunctionRef, normalizeDecimalDefault, normalizeFloatDefault } from '../utils';
 import type { IntrospectedEnum, IntrospectedSchema, IntrospectedTable, IntrospectionProvider } from './provider';
 
@@ -130,7 +132,14 @@ export const sqlite: IntrospectionProvider = {
         connectionString: string,
         _options: { schemas: string[]; modelCasing: 'pascal' | 'camel' | 'snake' | 'none' },
     ): Promise<IntrospectedSchema> {
-        const SQLite = (await import('better-sqlite3')).default;
+        const mod = await loadPackage('better-sqlite3');
+        const SQLite = mod?.default || mod;
+        if (!SQLite) {
+            throw new CliError(
+                'Package "better-sqlite3" is required for SQLite support. Please install it with: npm install better-sqlite3',
+            );
+        }
+
         const db = new SQLite(connectionString, { readonly: true });
 
         try {
