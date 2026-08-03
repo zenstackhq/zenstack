@@ -184,7 +184,9 @@ export const postgresql: IntrospectionProvider = {
         const pg = await loadPackage('pg');
         const ClientClass: typeof PgClient = pg?.Client || pg?.default?.Client;
         if (!ClientClass) {
-            throw new CliError('Package "pg" is required for PostgreSQL support. Please install it with: npm install pg');
+            throw new CliError(
+                'Package "pg" is required for PostgreSQL support. Please install it with: npm install pg',
+            );
         }
         const client = new ClientClass({ connectionString });
         await client.connect();

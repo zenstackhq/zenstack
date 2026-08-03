@@ -115,7 +115,7 @@ const datasourceProviderSupportedNativeTypes: Record<string, Set<string>> = {
         '@db.Binary',
         '@db.VarBinary',
     ]),
-}
+};
 
 // function handler decorator
 function check(name: string) {
@@ -156,7 +156,9 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
                 if (provider) {
                     const supportedNativeTypes = datasourceProviderSupportedNativeTypes[provider];
                     if (!supportedNativeTypes?.has(decl.name)) {
-                        accept('error', `attribute "${decl.name}" cannot be used with the "${provider}" provider`, { node: attr });
+                        accept('error', `attribute "${decl.name}" cannot be used with the "${provider}" provider`, {
+                            node: attr,
+                        });
                     }
                 }
             }

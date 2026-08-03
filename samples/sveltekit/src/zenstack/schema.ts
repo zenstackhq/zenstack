@@ -5,185 +5,125 @@
 
 /* eslint-disable */
 
-import {
-  type SchemaDef,
-  type AttributeApplication,
-  type FieldDefault,
-  ExpressionUtils,
-} from "@zenstackhq/schema";
+import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
-  provider = {
-    type: "sqlite",
-  } as const;
-  models = {
-    User: {
-      name: "User",
-      fields: {
-        id: {
-          name: "id",
-          type: "String",
-          id: true,
-          attributes: [
-            { name: "@id" },
-            {
-              name: "@default",
-              args: [{ name: "value", value: ExpressionUtils.call("cuid") }],
-            },
-          ] as readonly AttributeApplication[],
-          default: ExpressionUtils.call("cuid") as FieldDefault,
-        },
-        createdAt: {
-          name: "createdAt",
-          type: "DateTime",
-          attributes: [
-            {
-              name: "@default",
-              args: [{ name: "value", value: ExpressionUtils.call("now") }],
-            },
-          ] as readonly AttributeApplication[],
-          default: ExpressionUtils.call("now") as FieldDefault,
-        },
-        updatedAt: {
-          name: "updatedAt",
-          type: "DateTime",
-          updatedAt: true,
-          attributes: [
-            { name: "@updatedAt" },
-          ] as readonly AttributeApplication[],
-        },
-        email: {
-          name: "email",
-          type: "String",
-          unique: true,
-          attributes: [{ name: "@unique" }] as readonly AttributeApplication[],
-        },
-        name: {
-          name: "name",
-          type: "String",
-          optional: true,
-        },
-        posts: {
-          name: "posts",
-          type: "Post",
-          array: true,
-          relation: { opposite: "author" },
-        },
-      },
-      idFields: ["id"],
-      uniqueFields: {
-        id: { type: "String" },
-        email: { type: "String" },
-      },
-    },
-    Post: {
-      name: "Post",
-      fields: {
-        id: {
-          name: "id",
-          type: "String",
-          id: true,
-          attributes: [
-            { name: "@id" },
-            {
-              name: "@default",
-              args: [{ name: "value", value: ExpressionUtils.call("cuid") }],
-            },
-          ] as readonly AttributeApplication[],
-          default: ExpressionUtils.call("cuid") as FieldDefault,
-        },
-        createdAt: {
-          name: "createdAt",
-          type: "DateTime",
-          attributes: [
-            {
-              name: "@default",
-              args: [{ name: "value", value: ExpressionUtils.call("now") }],
-            },
-          ] as readonly AttributeApplication[],
-          default: ExpressionUtils.call("now") as FieldDefault,
-        },
-        updatedAt: {
-          name: "updatedAt",
-          type: "DateTime",
-          updatedAt: true,
-          attributes: [
-            { name: "@updatedAt" },
-          ] as readonly AttributeApplication[],
-        },
-        title: {
-          name: "title",
-          type: "String",
-        },
-        published: {
-          name: "published",
-          type: "Boolean",
-          attributes: [
-            {
-              name: "@default",
-              args: [{ name: "value", value: ExpressionUtils.literal(false) }],
-            },
-          ] as readonly AttributeApplication[],
-          default: false as FieldDefault,
-        },
-        author: {
-          name: "author",
-          type: "User",
-          attributes: [
-            {
-              name: "@relation",
-              args: [
-                {
-                  name: "fields",
-                  value: ExpressionUtils.array("String", [
-                    ExpressionUtils.field("authorId"),
-                  ]),
+    provider = {
+        type: "sqlite"
+    } as const;
+    models = {
+        User: {
+            name: "User",
+            fields: {
+                id: {
+                    name: "id",
+                    type: "String",
+                    id: true,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
                 },
-                {
-                  name: "references",
-                  value: ExpressionUtils.array("String", [
-                    ExpressionUtils.field("id"),
-                  ]),
+                createdAt: {
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 },
-                { name: "onUpdate", value: ExpressionUtils.literal("Cascade") },
-                { name: "onDelete", value: ExpressionUtils.literal("Cascade") },
-              ],
+                updatedAt: {
+                    name: "updatedAt",
+                    type: "DateTime",
+                    updatedAt: true,
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                },
+                email: {
+                    name: "email",
+                    type: "String",
+                    unique: true,
+                    attributes: [{ name: "@unique" }] as readonly AttributeApplication[]
+                },
+                name: {
+                    name: "name",
+                    type: "String",
+                    optional: true
+                },
+                posts: {
+                    name: "posts",
+                    type: "Post",
+                    array: true,
+                    relation: { opposite: "author" }
+                }
             },
-          ] as readonly AttributeApplication[],
-          relation: {
-            opposite: "posts",
-            fields: ["authorId"],
-            references: ["id"],
-            onUpdate: "Cascade",
-            onDelete: "Cascade",
-          },
+            idFields: ["id"],
+            uniqueFields: {
+                id: { type: "String" },
+                email: { type: "String" }
+            }
         },
-        authorId: {
-          name: "authorId",
-          type: "String",
-          foreignKeyFor: ["author"] as readonly string[],
+        Post: {
+            name: "Post",
+            fields: {
+                id: {
+                    name: "id",
+                    type: "String",
+                    id: true,
+                    attributes: [{ name: "@id" }, { name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("cuid") as FieldDefault
+                },
+                createdAt: {
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
+                },
+                updatedAt: {
+                    name: "updatedAt",
+                    type: "DateTime",
+                    updatedAt: true,
+                    attributes: [{ name: "@updatedAt" }] as readonly AttributeApplication[]
+                },
+                title: {
+                    name: "title",
+                    type: "String"
+                },
+                published: {
+                    name: "published",
+                    type: "Boolean",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(false) }] }] as readonly AttributeApplication[],
+                    default: false as FieldDefault
+                },
+                author: {
+                    name: "author",
+                    type: "User",
+                    attributes: [{ name: "@relation", args: [{ name: "fields", value: ExpressionUtils.array("String", [ExpressionUtils.field("authorId")]) }, { name: "references", value: ExpressionUtils.array("String", [ExpressionUtils.field("id")]) }, { name: "onUpdate", value: ExpressionUtils.literal("Cascade") }, { name: "onDelete", value: ExpressionUtils.literal("Cascade") }] }] as readonly AttributeApplication[],
+                    relation: { opposite: "posts", fields: ["authorId"], references: ["id"], onUpdate: "Cascade", onDelete: "Cascade" }
+                },
+                authorId: {
+                    name: "authorId",
+                    type: "String",
+                    foreignKeyFor: [
+                        "author"
+                    ] as readonly string[]
+                }
+            },
+            idFields: ["id"],
+            uniqueFields: {
+                id: { type: "String" }
+            }
+        }
+    } as const;
+    authType = "User" as const;
+    procedures = {
+        signUp: {
+            params: {
+                email: { name: "email", type: "String" }
+            },
+            returnType: "User",
+            mutation: true
         },
-      },
-      idFields: ["id"],
-      uniqueFields: {
-        id: { type: "String" },
-      },
-    },
-  } as const;
-  authType = "User" as const;
-  procedures = {
-    signUp: {
-      params: {
-        email: { name: "email", type: "String" },
-      },
-      returnType: "User",
-      mutation: true,
-    },
-    listPublicPosts: {
-      params: {},
-      returnType: "Post",
-      returnArray: true,
-    },
-  } as const;
-  plugins = {};
+        listPublicPosts: {
+            params: {},
+            returnType: "Post",
+            returnArray: true
+        }
+    } as const;
+    plugins = {};
 }
 export const schema = new SchemaType();

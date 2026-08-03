@@ -1,10 +1,15 @@
 packages/language/src/generated/**
+
+# ZenStack CLI generated files (schema.ts, schema-lite.ts, models.ts, input.ts)
 **/test/**/schema.ts
+**/test/**/schema-lite.ts
 **/test/**/models.ts
 **/test/**/input.ts
 samples/**/schema.ts
+samples/**/schema-lite.ts
 samples/**/models.ts
 samples/**/input.ts
-tests/e2e/**/schema.ts
-tests/e2e/**/models.ts
-tests/e2e/**/input.ts
+tests/**/schema.ts
+tests/**/schema-lite.ts
+tests/**/models.ts
+tests/**/input.ts

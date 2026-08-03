@@ -692,7 +692,8 @@ describe('Attribute application validation tests', () => {
 
                     bytea                  Bytes    @db.ByteA
                 }
-                `);
+                `,
+                );
             });
 
             it('rejects mysql attributes', async () => {
@@ -769,7 +770,8 @@ describe('Attribute application validation tests', () => {
                     binary            Bytes    @db.Binary(16)
                     varBinary         Bytes    @db.VarBinary(255)
                 }
-                `);
+                `,
+                );
             });
 
             it('rejects postgresql attributes', async () => {
