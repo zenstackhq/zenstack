@@ -1287,7 +1287,9 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         negated: boolean,
         buildFieldRef: (model: string, field: string, modelAlias: string, computedArgs?: unknown) => Expression<any>,
     ): SelectQueryBuilder<any, any, any> {
-        invariant(typeof value === 'object', `invalid orderBy value for field "${field}"`);
+        if (!isPlainObject(value)) {
+            throw createInvalidInputError(`invalid orderBy value for field "${field}"`);
+        }
         let result = query;
         for (const [k, v] of Object.entries<any>(value)) {
             // entry value is either a plain sort order, or an object carrying `sort`/`nulls` and
