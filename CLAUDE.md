@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Package Management
 
 - Uses `pnpm` with workspaces
-- Package manager is pinned to `pnpm@10.12.1`
+- Package manager is pinned to `pnpm@10.33.0`
 - Packages are located in `packages/`, `samples/`, and `tests/`
 
 ### Testing
