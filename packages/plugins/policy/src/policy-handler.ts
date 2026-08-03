@@ -990,7 +990,7 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         if (!result.rows[0]?.$conditionA) {
             throw createRejectedByPolicyError(
                 m2m.firstModel,
-                RejectedByPolicyReason.CANNOT_READ_BACK,
+                RejectedByPolicyReason.NO_ACCESS,
                 `many-to-many relation participant model "${m2m.firstModel}" not updatable`,
             );
         }
