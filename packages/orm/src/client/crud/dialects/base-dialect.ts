@@ -1285,16 +1285,24 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         field: AggregateOperators,
         value: any,
         negated: boolean,
-        buildFieldRef: (model: string, field: string, modelAlias: string) => Expression<any>,
+        buildFieldRef: (model: string, field: string, modelAlias: string, computedArgs?: unknown) => Expression<any>,
     ): SelectQueryBuilder<any, any, any> {
         invariant(typeof value === 'object', `invalid orderBy value for field "${field}"`);
         let result = query;
-        for (const [k, v] of Object.entries<SortOrder>(value)) {
-            invariant(v === 'asc' || v === 'desc', `invalid orderBy value for field "${field}"`);
-            result = result.orderBy(
-                (eb) => aggregate(eb, buildFieldRef(model, k, modelAlias), field),
-                this.negateSort(v, negated),
-            );
+        for (const [k, v] of Object.entries<any>(value)) {
+            // entry value is either a plain sort order, or an object carrying `sort`/`nulls` and
+            // the query-time `args` of a parameterized computed field
+            const sort = isPlainObject(v) ? v['sort'] : v;
+            if (sort !== 'asc' && sort !== 'desc') {
+                throw createInvalidInputError(`invalid orderBy value for field "${field}"`);
+            }
+            const computedArgs = isPlainObject(v) && 'args' in v ? v['args'] : undefined;
+            const aggExpr = aggregate(this.eb, buildFieldRef(model, k, modelAlias, computedArgs), field);
+            const nulls = isPlainObject(v) ? v['nulls'] : undefined;
+            result =
+                nulls === 'first' || nulls === 'last'
+                    ? this.buildOrderByField(result, aggExpr, this.negateSort(sort, negated), nulls)
+                    : result.orderBy(aggExpr, this.negateSort(sort, negated));
         }
         return result;
     }

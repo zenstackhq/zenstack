@@ -586,6 +586,69 @@ model Product {
         ]);
     });
 
+    it('works with parameterized computed fields in groupBy orderBy aggregations', async () => {
+        const db = await createTestClient(
+            `
+model Product {
+    id Int @id @default(autoincrement())
+    category String
+    price Int
+    discounted(off: Int) Int @computed
+}
+`,
+            {
+                computedFields: {
+                    Product: {
+                        // price minus a query-time discount, as a row-local expression
+                        discounted: (_eb: any, ctx: any, args: any) =>
+                            sql<number>`${sql.ref(`${ctx.modelAlias}.price`)} - ${args.off}`,
+                    },
+                },
+            } as any,
+        );
+
+        // A: prices [30, 30]; B: prices [50]
+        await db.product.createMany({
+            data: [
+                { category: 'A', price: 30 },
+                { category: 'A', price: 30 },
+                { category: 'B', price: 50 },
+            ],
+        });
+
+        // off=0 ⇒ sum A=60, B=50 ⇒ desc [A, B]
+        await expect(
+            db.product.groupBy({
+                by: ['category'],
+                orderBy: { _sum: { discounted: { args: { off: 0 }, sort: 'desc' } } },
+            }),
+        ).resolves.toMatchObject([{ category: 'A' }, { category: 'B' }]);
+
+        // off=25 ⇒ sum A=10, B=25 ⇒ desc [B, A] (a different arg produces a different order)
+        await expect(
+            db.product.groupBy({
+                by: ['category'],
+                orderBy: { _sum: { discounted: { args: { off: 25 }, sort: 'desc' } } },
+            }),
+        ).resolves.toMatchObject([{ category: 'B' }, { category: 'A' }]);
+
+        // _min with asc: min A=30, B=50 ⇒ [A, B]
+        await expect(
+            db.product.groupBy({
+                by: ['category'],
+                orderBy: { _min: { discounted: { args: { off: 0 }, sort: 'asc' } } },
+            }),
+        ).resolves.toMatchObject([{ category: 'A' }, { category: 'B' }]);
+
+        // omitting `sort` is rejected by input validation
+        await expect(
+            db.product.groupBy({
+                by: ['category'],
+                orderBy: { _sum: { discounted: { args: { off: 0 } } } } as any,
+            }),
+        ).toBeRejectedByValidation();
+    });
+
     it('works with parameterized computed fields in a nested include/select', async () => {
         const db = await createTestClient(
             `

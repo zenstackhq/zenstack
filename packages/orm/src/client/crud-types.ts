@@ -2389,11 +2389,15 @@ type NumericFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = 
         : never]: GetModelField<Schema, Model, Key>;
 };
 
+// in orderBy position (ValueType = SortOrder) a parameterized computed field entry also
+// carries the sort spec alongside its `args`
+type AggComputedFieldSortPart<ValueType> = ValueType extends SortOrder ? { sort: SortOrder; nulls?: NullsOrder } : {};
+
 type SumAvgInput<Schema extends SchemaDef, Model extends GetModels<Schema>, ValueType> = {
     // a parameterized computed field is aggregated by supplying its query-time `args`
     [Key in NumericFields<Schema, Model>]?: Key extends GetModelFields<Schema, Model>
         ? FieldHasComputedArgs<Schema, Model, Key> extends true
-            ? { args: ComputedFieldArgs<Schema, Model, Key> }
+            ? { args: ComputedFieldArgs<Schema, Model, Key> } & AggComputedFieldSortPart<ValueType>
             : ValueType
         : ValueType;
 };
@@ -2404,7 +2408,7 @@ type MinMaxInput<Schema extends SchemaDef, Model extends GetModels<Schema>, Valu
         : FieldIsRelation<Schema, Model, Key> extends true
           ? never
           : Key]?: FieldHasComputedArgs<Schema, Model, Key> extends true // a parameterized computed field is aggregated by supplying its query-time `args`
-        ? { args: ComputedFieldArgs<Schema, Model, Key> }
+        ? { args: ComputedFieldArgs<Schema, Model, Key> } & AggComputedFieldSortPart<ValueType>
         : ValueType;
 };
 
