@@ -14,11 +14,12 @@ import { SqliteDialect } from '@zenstackhq/orm/dialects/sqlite';
 import type { SchemaDef } from '@zenstackhq/orm/schema';
 import { PolicyPlugin } from '@zenstackhq/plugin-policy';
 import { RPCApiHandler } from '@zenstackhq/server/api';
-import { ZenStackMiddleware } from '@zenstackhq/server/express';
+import { createHonoHandler } from '@zenstackhq/server/hono';
+import { serve } from '@hono/node-server';
+import { Hono, type Context, type MiddlewareHandler } from 'hono';
+import { cors } from 'hono/cors';
 import type BetterSqlite3 from 'better-sqlite3';
 import colors from 'colors';
-import cors from 'cors';
-import express from 'express';
 import { createJiti } from 'jiti';
 import type { createPool as MysqlCreatePool } from 'mysql2';
 import { verify } from 'node:crypto';
@@ -53,15 +54,12 @@ export const ProxyAuthError = {
     INVALID_SIGNATURE_FORMAT: 'Invalid x-zenstack-signature format',
 } as const;
 
-type ProxyAuthErrorCode = keyof typeof ProxyAuthError;
+export type ProxyAuthErrorCode = keyof typeof ProxyAuthError;
 
-function rejectAuth(res: express.Response, code: ProxyAuthErrorCode) {
-    return res.status(401).json({ code, message: ProxyAuthError[code] });
+function rejectAuth(c: Context, code: ProxyAuthErrorCode) {
+    return c.json({ code, message: ProxyAuthError[code] }, 401);
 }
-/**
- * Represents the identity claim embedded in the Authorization header.
- * The bearer token is a plain base64-encoded JSON string.
- */
+
 const UserClaimSchema = z.discriminatedUnion('type', [
     z.object({ type: z.literal('superUser') }),
     z.object({ type: z.literal('user'), data: z.record(z.string(), z.unknown()) }),
@@ -69,16 +67,11 @@ const UserClaimSchema = z.discriminatedUnion('type', [
 
 type UserClaim = z.infer<typeof UserClaimSchema>;
 
-/**
- * Accepts a public key in either PEM format or as a raw base64 / base64url DER string
- * (without the `-----BEGIN PUBLIC KEY-----` markers) and always returns a PEM string.
- */
 function normalizePublicKey(key: string): string {
     key = key.trim();
     if (key.startsWith('-----BEGIN PUBLIC KEY-----')) {
         return key;
     }
-    // Convert base64url → standard base64, then wrap in PEM markers.
     const b64 = key.replace(/-/g, '+').replace(/_/g, '/');
     return `-----BEGIN PUBLIC KEY-----\n${b64}\n-----END PUBLIC KEY-----`;
 }
@@ -265,65 +258,77 @@ export async function createDialect(provider: string, databaseUrl: string, outpu
             throw new CliError(`Unsupported database provider: ${provider}`);
     }
 }
-
-export function createProxyApp(
-    client: ClientContract<SchemaDef>,
-    schema: SchemaDef,
-    authDb: ClientContract<SchemaDef>,
+export interface CreateProxyAppOptions {
+    client: ClientContract<SchemaDef>;
+    schema: SchemaDef;
+    authDb?: ClientContract<SchemaDef>;
     auth?: {
         studioAuthKey: string;
         /** Seconds within which a signed request is considered valid. Defaults to 60. */
         signatureToleranceSecs: number;
-    },
-): express.Application {
-    const app = express();
-    app.use(cors());
-    app.use(
-        express.json({
-            limit: '5mb',
-            verify: (req, _res, buf) => {
-                // Capture the raw body string for use in signature verification.
-                (req as express.Request & { rawBody?: string }).rawBody = buf.toString('utf8');
-            },
-        }),
-    );
-    app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+    };
+    cors?: Parameters<typeof cors>[0];
+}
 
-    if (auth?.studioAuthKey) {
-        // Apply signature-verification middleware to all authenticated endpoints.
-        const toleranceSecs = auth.signatureToleranceSecs;
-        const normalizedKey = normalizePublicKey(auth.studioAuthKey);
-        app.use(['/api/model', '/api/schema'], createSignatureMiddleware(normalizedKey, toleranceSecs));
+export function createProxyApp(options: CreateProxyAppOptions): Hono;
+export function createProxyApp(
+    client: ClientContract<SchemaDef>,
+    schema: SchemaDef,
+    authDb?: ClientContract<SchemaDef>,
+    auth?: {
+        studioAuthKey: string;
+        signatureToleranceSecs: number;
+    },
+): Hono;
+export function createProxyApp(
+    optionsOrClient: CreateProxyAppOptions | ClientContract<SchemaDef>,
+    schema?: SchemaDef,
+    authDb?: ClientContract<SchemaDef>,
+    auth?: {
+        studioAuthKey: string;
+        signatureToleranceSecs: number;
+    },
+): Hono {
+    let options: CreateProxyAppOptions;
+    if ('client' in optionsOrClient && 'schema' in optionsOrClient) {
+        options = optionsOrClient as CreateProxyAppOptions;
+    } else {
+        options = {
+            client: optionsOrClient as ClientContract<SchemaDef>,
+            schema: schema!,
+            authDb,
+            auth,
+        };
+    }
+
+    const app = new Hono();
+    app.use('*', cors(options.cors));
+
+    if (options.auth?.studioAuthKey) {
+        const toleranceSecs = options.auth.signatureToleranceSecs;
+        const normalizedKey = normalizePublicKey(options.auth.studioAuthKey);
+        const sigMiddleware = createSignatureMiddleware(normalizedKey, toleranceSecs);
+        app.use('/api/model/*', sigMiddleware);
+        app.use('/api/schema', sigMiddleware);
     }
 
     app.use(
-        '/api/model',
-        ZenStackMiddleware({
-            apiHandler: new RPCApiHandler({ schema }),
-            getClient: (req) => resolveClient(client, authDb, req, !!auth?.studioAuthKey),
+        '/api/model/*',
+        createHonoHandler({
+            apiHandler: new RPCApiHandler({ schema: options.schema }),
+            getClient: (c) =>
+                resolveClient(options.client, options.authDb ?? options.client, c, !!options.auth?.studioAuthKey),
         }),
     );
 
-    app.get('/api/schema', (_req, res: express.Response) => {
-        res.json({ ...schema, zenstackVersion: getVersion() });
+    app.get('/api/schema', (c) => {
+        return c.json({ ...options.schema, zenstackVersion: getVersion() });
     });
 
     return app;
 }
 
-/**
- * Creates an Express middleware that verifies the ed25519 signature on every request.
- *
- * The signature header format is: `t=<unix-timestamp>,v1=<base64url-signature>`
- *
- * The signed message is constructed as:
- *   - GET requests:  `<raw-query-string><timestamp>[<authorizationToken>]`
- *   - Other methods: `<raw-body><timestamp>[<authorizationToken>]`
- *
- * `authorizationToken` is the bearer token value from the `Authorization` header (if present).
- */
-function createSignatureMiddleware(publicKey: string, toleranceSeconds: number) {
-    // Throttle invalid-signature warnings to at most once per 60 seconds.
+function createSignatureMiddleware(publicKey: string, toleranceSeconds: number): MiddlewareHandler {
     let lastInvalidSigWarnAt = 0;
     const WARN_THROTTLE_SECS = 60;
 
@@ -340,40 +345,37 @@ function createSignatureMiddleware(publicKey: string, toleranceSeconds: number) 
         }
     }
 
-    return (req: express.Request, res: express.Response, next: express.NextFunction) => {
-        const signatureHeader = req.headers['x-zenstack-signature'];
-        if (!signatureHeader || typeof signatureHeader !== 'string') {
-            return rejectAuth(res, 'MISSING_SIGNATURE_HEADER');
+    return async (c, next) => {
+        const signatureHeader = c.req.header('x-zenstack-signature');
+        if (!signatureHeader) {
+            return rejectAuth(c, 'MISSING_SIGNATURE_HEADER');
         }
 
         const parts = signatureHeader.split(',');
         const timestampPart = parts.find((p) => p.startsWith('t='));
         const sigPart = parts.find((p) => p.startsWith('v1='));
         if (!timestampPart || !sigPart) {
-            return rejectAuth(res, 'INVALID_SIGNATURE_FORMAT');
+            return rejectAuth(c, 'INVALID_SIGNATURE_FORMAT');
         }
         const timestamp = timestampPart.substring(2);
         const sig = sigPart.substring(3);
 
-        // Replay-attack prevention: reject requests whose timestamp deviates
-        // from server time by more than the configured tolerance.
         const requestTime = parseInt(timestamp, 10);
         const now = Math.floor(Date.now() / 1000);
         if (isNaN(requestTime) || Math.abs(now - requestTime) > toleranceSeconds) {
-            return rejectAuth(res, 'INVALID_TIMESTAMP');
+            return rejectAuth(c, 'INVALID_TIMESTAMP');
         }
 
-        // Payload: raw query string for GET/DELETE, raw body for other methods.
         let payload: string;
-        if (req.method === 'GET' || req.method === 'DELETE') {
-            const qMark = req.originalUrl.indexOf('?');
-            payload = qMark >= 0 ? req.originalUrl.substring(qMark + 1) : '';
+        if (c.req.method === 'GET' || c.req.method === 'DELETE') {
+            const rawUrl = c.req.url;
+            const qMark = rawUrl.indexOf('?');
+            payload = qMark >= 0 ? rawUrl.substring(qMark + 1) : '';
         } else {
-            payload = (req as express.Request & { rawBody?: string }).rawBody ?? '';
+            payload = await c.req.text();
         }
 
-        // authorizationToken is the bearer token value (if present).
-        const authHeader = req.headers['authorization'];
+        const authHeader = c.req.header('authorization');
         const authorizationToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : undefined;
 
         const message = authorizationToken ? `${payload}${timestamp}${authorizationToken}` : `${payload}${timestamp}`;
@@ -382,34 +384,25 @@ function createSignatureMiddleware(publicKey: string, toleranceSeconds: number) 
             const isValid = verify(null, Buffer.from(message, 'utf8'), publicKey, Buffer.from(sig, 'base64url'));
             if (!isValid) {
                 warnInvalidSignature();
-                return rejectAuth(res, 'INVALID_SIGNATURE_FORMAT');
+                return rejectAuth(c, 'INVALID_SIGNATURE_FORMAT');
             }
         } catch {
             warnInvalidSignature();
-            return rejectAuth(res, 'INVALID_SIGNATURE_FORMAT');
+            return rejectAuth(c, 'INVALID_SIGNATURE_FORMAT');
         }
 
         return next();
     };
 }
 
-/**
- * Resolves the appropriate client for a request based on the Authorization header.
- *
- * - No studioAuthKey configured (authDb is undefined): always return the base client.
- * - SuperUser claim: return the base client (full access, no policy enforcement).
- * - Regular user claim: return authDb with the user identity set via $setAuth.
- * - No / invalid token: return the base client.
- */
 function resolveClient(
     client: ClientContract<SchemaDef>,
     authDb: ClientContract<SchemaDef>,
-    req: express.Request,
+    c: Context,
     isAuthKeyEnabled: boolean,
 ): ClientContract<SchemaDef> {
-    const authHeader = req.headers['authorization'];
+    const authHeader = c.req.header('authorization');
 
-    // If AuthKey is not enabled, and Authorization header is not present, then it is the basic access without auth.
     if (!isAuthKeyEnabled && !authHeader) {
         return client;
     }
@@ -430,10 +423,9 @@ function resolveClient(
     }
 
     if (claim.type === 'superUser') {
-        // SuperUser has full access without policy enforcement, so we return the base client directly.
         return client;
     } else {
-        return authDb.$setAuth(claim.data) as ClientContract<SchemaDef>;
+        return authDb.$setAuth(claim.data as any) as ClientContract<SchemaDef>;
     }
 }
 
@@ -443,22 +435,28 @@ function startServer(
     options: Options,
     authDb: ClientContract<SchemaDef>,
 ) {
-    const app = createProxyApp(
+    const app = createProxyApp({
         client,
         schema,
         authDb,
-        options.studioAuthKey
+        auth: options.studioAuthKey
             ? {
                   studioAuthKey: options.studioAuthKey,
                   signatureToleranceSecs: options.signatureToleranceSecs,
               }
             : undefined,
-    );
-
-    const server = app.listen(options.port, () => {
-        console.log(`ZenStack proxy server is running on port: ${options.port}`);
-        console.log(`You can visit ZenStack Studio at: ${colors.blue('https://studio.zenstack.dev')}`);
     });
+
+    const server = serve(
+        {
+            fetch: app.fetch,
+            port: options.port,
+        },
+        () => {
+            console.log(`ZenStack proxy server is running on port: ${options.port}`);
+            console.log(`You can visit ZenStack Studio at: ${colors.blue('https://studio.zenstack.dev')}`);
+        },
+    );
 
     server.on('error', (err: NodeJS.ErrnoException) => {
         if (err.code === 'EADDRINUSE') {
