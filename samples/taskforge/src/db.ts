@@ -11,9 +11,7 @@ import { schema, type SchemaType } from '../zenstack/schema';
  * Resolve it as an absolute path so the runtime opens the same file regardless
  * of the current working directory.
  */
-const databaseFile = fileURLToPath(
-    new URL('../zenstack/taskforge.db', import.meta.url),
-);
+const databaseFile = fileURLToPath(new URL('../zenstack/taskforge.db', import.meta.url));
 
 /** Explicit, fully-inferred client type for use in function signatures. */
 export type DB = ClientContract<SchemaType>;
@@ -30,11 +28,7 @@ export function createClient(): DB {
                 openIssueCount: (eb, { modelAlias }) =>
                     eb
                         .selectFrom('Issue')
-                        .whereRef(
-                            'Issue.projectId',
-                            '=',
-                            sql.ref(`${modelAlias}.id`),
-                        )
+                        .whereRef('Issue.projectId', '=', sql.ref(`${modelAlias}.id`))
                         .where('Issue.status', 'not in', ['DONE', 'CANCELED'])
                         .select(({ fn }) => fn.countAll<number>().as('c')),
             },
@@ -42,11 +36,7 @@ export function createClient(): DB {
                 commentCount: (eb, { modelAlias }) =>
                     eb
                         .selectFrom('Comment')
-                        .whereRef(
-                            'Comment.issueId',
-                            '=',
-                            sql.ref(`${modelAlias}.id`),
-                        )
+                        .whereRef('Comment.issueId', '=', sql.ref(`${modelAlias}.id`))
                         .select(({ fn }) => fn.countAll<number>().as('c')),
             },
         },

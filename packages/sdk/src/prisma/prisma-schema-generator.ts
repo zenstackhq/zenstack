@@ -260,6 +260,10 @@ export class PrismaSchemaGenerator {
         return attr.decl.ref.attributes.some((a) => a.decl.ref?.name === '@@@prisma');
     }
 
+    private isNativeTypeMappingAttribute(attr: DataFieldAttribute) {
+        return attr.decl.$refText.startsWith('@db.') && this.isPrismaAttribute(attr);
+    }
+
     private getUnsupportedFieldType(fieldType: DataFieldType) {
         if (fieldType.unsupported) {
             const value = getStringLiteral(fieldType.unsupported.value);
@@ -337,7 +341,13 @@ export class PrismaSchemaGenerator {
     }
 
     private makeFieldAttribute(attr: DataFieldAttribute) {
-        const attrName = attr.decl.ref!.name;
+        let attrName = attr.decl.ref!.name;
+        if (this.isNativeTypeMappingAttribute(attr)) {
+            const dataSource = this.zmodel.declarations.find(isDataSource);
+            if (dataSource) {
+                attrName = attrName.replace('@db', `@${dataSource.name}`);
+            }
+        }
         return new PrismaFieldAttribute(
             attrName,
             attr.args.map((arg) => this.makeAttributeArg(arg)),
@@ -386,19 +396,25 @@ export class PrismaSchemaGenerator {
             node.function.ref!.name,
 
             // strip format args from id functions
-            node.args.filter((_, i) => (
-                !(ID_FUNCTIONS.includes(node.function.ref!.name) && (node.function.ref!.name === 'ulid' && i === 0 || i === 1))
-            )).map((arg) => {
-                const val = match(arg.value)
-                    .when(isStringLiteral, (v) => `"${v.value}"`)
-                    .when(isLiteralExpr, (v) => v.value.toString())
-                    .when(isNullExpr, () => 'null')
-                    .otherwise(() => {
-                        throw new Error('Function call argument must be literal or null');
-                    });
+            node.args
+                .filter(
+                    (_, i) =>
+                        !(
+                            ID_FUNCTIONS.includes(node.function.ref!.name) &&
+                            ((node.function.ref!.name === 'ulid' && i === 0) || i === 1)
+                        ),
+                )
+                .map((arg) => {
+                    const val = match(arg.value)
+                        .when(isStringLiteral, (v) => `"${v.value}"`)
+                        .when(isLiteralExpr, (v) => v.value.toString())
+                        .when(isNullExpr, () => 'null')
+                        .otherwise(() => {
+                            throw new Error('Function call argument must be literal or null');
+                        });
 
-                return new PrismaFunctionCallArg(val);
-            }),
+                    return new PrismaFunctionCallArg(val);
+                }),
         );
     }
 

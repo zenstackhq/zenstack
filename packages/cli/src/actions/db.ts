@@ -14,7 +14,14 @@ import {
 } from './action-utils';
 import { consolidateEnums, syncEnums, syncRelation, syncTable, type Relation } from './pull';
 import { providers as pullProviders } from './pull/provider';
-import { getDatasource, getDbName, getRelationFieldsKey, getRelationFkName, getRelationName, isDatabaseManagedAttribute } from './pull/utils';
+import {
+    getDatasource,
+    getDbName,
+    getRelationFieldsKey,
+    getRelationFkName,
+    getRelationName,
+    isDatabaseManagedAttribute,
+} from './pull/utils';
 import type { DataSourceProviderType } from '@zenstackhq/schema';
 import { CliError } from '../cli-error';
 
@@ -28,6 +35,8 @@ type PushOptions = {
 export type PullOptions = {
     schema?: string;
     output?: string;
+    databaseUrl?: string;
+    provider?: DataSourceProviderType;
     modelCasing: 'pascal' | 'camel' | 'snake' | 'none';
     fieldCasing: 'pascal' | 'camel' | 'snake' | 'none';
     alwaysMap: boolean;
@@ -101,7 +110,7 @@ async function runPush(options: PushOptions) {
     }
 }
 
-async function runPull(options: PullOptions) {
+export async function runPull(options: PullOptions) {
     const spinner = ora();
     try {
         const schemaFile = getSchemaFile(options.schema);
@@ -109,16 +118,40 @@ async function runPull(options: PullOptions) {
         // Determine early if `--out` is a single file output (combined schema) or a directory export.
         const outPath = options.output ? path.resolve(options.output) : undefined;
         const treatAsFile =
-            !!outPath &&
-            ((fs.existsSync(outPath) && fs.lstatSync(outPath).isFile()) || path.extname(outPath) !== '');
+            !!outPath && ((fs.existsSync(outPath) && fs.lstatSync(outPath).isFile()) || path.extname(outPath) !== '');
 
         const { model, services } = await loadSchemaDocument(schemaFile, {
             returnServices: true,
             mergeImports: treatAsFile,
         });
 
+        // When provider/databaseUrl are passed explicitly (e.g. from --introspect),
+        // use those directly instead of reading from the parsed datasource declaration.
+        let datasource: {
+            provider: DataSourceProviderType;
+            url: string;
+            defaultSchema: string;
+            allSchemas: string[];
+        };
+
+        if (options.provider && options.databaseUrl) {
+            let databaseUrl = options.databaseUrl;
+            // Handle SQLite file URLs for local files
+            if (options.provider === 'sqlite' && databaseUrl.startsWith('file:')) {
+                databaseUrl = new URL(databaseUrl, `file:${model.$document!.uri.path}`).pathname;
+                if (process.platform === 'win32' && databaseUrl[0] === '/') databaseUrl = databaseUrl.slice(1);
+            }
+            datasource = {
+                provider: options.provider,
+                url: databaseUrl,
+                defaultSchema: 'public',
+                allSchemas: ['public'],
+            };
+        } else {
+            datasource = getDatasource(model);
+        }
+
         const SUPPORTED_PROVIDERS = Object.keys(pullProviders) as DataSourceProviderType[];
-        const datasource = getDatasource(model);
 
         if (!SUPPORTED_PROVIDERS.includes(datasource.provider)) {
             throw new CliError(`Unsupported datasource provider: ${datasource.provider}`);
@@ -131,7 +164,10 @@ async function runPull(options: PullOptions) {
         }
 
         spinner.start('Introspecting database...');
-        const { enums, tables } = await provider.introspect(datasource.url, { schemas: datasource.allSchemas, modelCasing: options.modelCasing });
+        const { enums, tables } = await provider.introspect(datasource.url, {
+            schemas: datasource.allSchemas,
+            modelCasing: options.modelCasing,
+        });
         spinner.succeed('Database introspected');
 
         console.log(colors.blue('Syncing schema...'));
@@ -168,23 +204,28 @@ async function runPull(options: PullOptions) {
             });
             resolvedRelations.push(...relations);
         }
+        // Normalize schema values: MySQL uses null for references.schema but '' for table.schema;
+        // treat null, undefined, and '' as equivalent when comparing schemas.
+        const schemasMatch = (a: string | null | undefined, b: string | null | undefined) => (a ?? '') === (b ?? '');
+
         // sync relation fields
         for (const relation of resolvedRelations) {
             const similarRelations = resolvedRelations.filter((rr) => {
                 return (
                     rr !== relation &&
-                    ((rr.schema === relation.schema &&
+                    ((schemasMatch(rr.schema, relation.schema) &&
                         rr.table === relation.table &&
-                        rr.references.schema === relation.references.schema &&
+                        schemasMatch(rr.references.schema, relation.references.schema) &&
                         rr.references.table === relation.references.table) ||
-                        (rr.schema === relation.references.schema &&
-                            rr.columns[0] === relation.references.columns[0] &&
-                            rr.references.schema === relation.schema &&
+                        (schemasMatch(rr.schema, relation.references.schema) &&
+                            rr.table === relation.references.table &&
+                            schemasMatch(rr.references.schema, relation.schema) &&
                             rr.references.table === relation.table))
                 );
             }).length;
             const selfRelation =
-                relation.references.schema === relation.schema && relation.references.table === relation.table;
+                schemasMatch(relation.references.schema, relation.schema) &&
+                relation.references.table === relation.table;
             syncRelation({
                 model: newModel,
                 relation,
@@ -270,11 +311,13 @@ async function runPull(options: PullOptions) {
             .filter((d) => d.$type === DataModel.$type || d.$type === Enum.$type)
             .forEach((_declaration) => {
                 const newDataModel = _declaration as DataModel | Enum;
-                const declarations = services.shared.workspace.IndexManager.allElements(newDataModel.$type, docsSet).toArray();
+                const declarations = services.shared.workspace.IndexManager.allElements(
+                    newDataModel.$type,
+                    docsSet,
+                ).toArray();
                 const originalDataModel = declarations.find((d) => getDbName(d.node as any) === getDbName(newDataModel))
                     ?.node as DataModel | Enum | undefined;
                 if (!originalDataModel) {
-
                     if (newDataModel.$type === 'DataModel') {
                         addedModels.push(colors.green(`+ Model ${newDataModel.name} added`));
                     } else if (newDataModel.$type === 'Enum') {
@@ -333,9 +376,7 @@ async function runPull(options: PullOptions) {
                         if (newRelName) {
                             originalFields = originalDataModel.fields.filter(
                                 (d) =>
-                                    isDataField(d) &&
-                                    isDataField(f) &&
-                                    matchesRelationNameFallback(f, newRelName, d),
+                                    isDataField(d) && isDataField(f) && matchesRelationNameFallback(f, newRelName, d),
                             );
                         }
                     }
@@ -389,7 +430,9 @@ async function runPull(options: PullOptions) {
                             const newRefName = getDbName(newType.reference.ref);
                             const oldRefName = getDbName(oldType.reference.ref);
                             if (newRefName !== oldRefName) {
-                                fieldUpdates.push(`reference: ${oldType.reference.$refText} -> ${newType.reference.$refText}`);
+                                fieldUpdates.push(
+                                    `reference: ${oldType.reference.$refText} -> ${newType.reference.$refText}`,
+                                );
                                 // Replace the entire reference object — Langium References
                                 // from parsed documents expose `ref` as a getter-only property.
                                 (oldType as any).reference = {
@@ -438,21 +481,28 @@ async function runPull(options: PullOptions) {
                         if (newDefaultAttr && oldDefaultAttr) {
                             // Compare attribute arguments by serializing them (avoid circular refs with $type fallback)
                             const serializeArgs = (args: any[]) =>
-                                args.map((arg) => {
-                                    if (arg.value?.$type === 'StringLiteral') return `"${arg.value.value}"`;
-                                    if (arg.value?.$type === 'NumberLiteral') return String(arg.value.value);
-                                    if (arg.value?.$type === 'BooleanLiteral') return String(arg.value.value);
-                                    if (arg.value?.$type === 'InvocationExpr') return arg.value.function?.$refText ?? '';
-                                    if (arg.value?.$type === 'ReferenceExpr') return arg.value.target?.$refText ?? '';
-                                    if (arg.value?.$type === 'ArrayExpr') {
-                                        return `[${(arg.value.items ?? []).map((item: any) => {
-                                            if (item.$type === 'ReferenceExpr') return item.target?.$refText ?? '';
-                                            return item.$type ?? 'unknown';
-                                        }).join(',')}]`;
-                                    }
-                                    // Fallback: use $type to avoid circular reference issues
-                                    return arg.value?.$type ?? 'unknown';
-                                }).join(',');
+                                args
+                                    .map((arg) => {
+                                        if (arg.value?.$type === 'StringLiteral') return `"${arg.value.value}"`;
+                                        if (arg.value?.$type === 'NumberLiteral') return String(arg.value.value);
+                                        if (arg.value?.$type === 'BooleanLiteral') return String(arg.value.value);
+                                        if (arg.value?.$type === 'InvocationExpr')
+                                            return arg.value.function?.$refText ?? '';
+                                        if (arg.value?.$type === 'ReferenceExpr')
+                                            return arg.value.target?.$refText ?? '';
+                                        if (arg.value?.$type === 'ArrayExpr') {
+                                            return `[${(arg.value.items ?? [])
+                                                .map((item: any) => {
+                                                    if (item.$type === 'ReferenceExpr')
+                                                        return item.target?.$refText ?? '';
+                                                    return item.$type ?? 'unknown';
+                                                })
+                                                .join(',')}]`;
+                                        }
+                                        // Fallback: use $type to avoid circular reference issues
+                                        return arg.value?.$type ?? 'unknown';
+                                    })
+                                    .join(',');
 
                             const newArgsStr = serializeArgs(newDefaultAttr.args ?? []);
                             const oldArgsStr = serializeArgs(oldDefaultAttr.args ?? []);
@@ -494,7 +544,7 @@ async function runPull(options: PullOptions) {
                     originalField.attributes
                         .filter(
                             (attr) =>
-                                !f.attributes.find((d) => d.decl.$refText === attr.decl.$refText) && 
+                                !f.attributes.find((d) => d.decl.$refText === attr.decl.$refText) &&
                                 isDatabaseManagedAttribute(attr.decl.$refText),
                         )
                         .forEach((attr) => {
@@ -502,7 +552,9 @@ async function runPull(options: PullOptions) {
                             const index = field.attributes.findIndex((d) => d === attr);
                             field.attributes.splice(index, 1);
                             getModelChanges(originalDataModel.name).deletedAttributes.push(
-                                colors.yellow(`- ${attr.decl.$refText} from field: ${originalDataModel.name}.${field.name}`),
+                                colors.yellow(
+                                    `- ${attr.decl.$refText} from field: ${originalDataModel.name}.${field.name}`,
+                                ),
                             );
                         });
 
@@ -514,7 +566,7 @@ async function runPull(options: PullOptions) {
                                 isDatabaseManagedAttribute(attr.decl.$refText),
                         )
                         .forEach((attr) => {
-                          // attach the new attribute to the original field
+                            // attach the new attribute to the original field
                             const cloned = { ...attr, $container: originalField } as typeof attr;
                             originalField.attributes.push(cloned);
                             getModelChanges(originalDataModel.name).addedAttributes.push(

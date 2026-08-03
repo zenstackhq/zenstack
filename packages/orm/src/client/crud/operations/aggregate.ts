@@ -1,7 +1,11 @@
 import type { SchemaDef } from '@zenstackhq/schema';
 import { match } from 'ts-pattern';
+import { createInvalidInputError } from '../../errors';
 import { getField } from '../../query-utils';
 import { BaseOperationHandler } from './base';
+
+// stable key for comparing two `args` payloads (bigint-safe)
+const argsKey = (v: unknown) => JSON.stringify(v, (_k, val) => (typeof val === 'bigint' ? `${val}n` : val));
 
 export class AggregateOperationHandler<Schema extends SchemaDef> extends BaseOperationHandler<Schema> {
     async handle(_operation: 'aggregate', args: unknown | undefined) {
@@ -19,22 +23,47 @@ export class AggregateOperationHandler<Schema extends SchemaDef> extends BaseOpe
                 .buildSelectModel(this.model, this.model)
                 .where(() => this.dialect.buildFilter(this.model, this.model, parsedArgs?.where));
 
-            // select fields: collect fields from aggregation body
+            // select fields: collect fields (and any parameterized-computed `args`) from the
+            // aggregation bodies. The field is materialized once into `$sub`; a parameterized
+            // computed field carries a `{ args }` value instead of `true`.
             const selectedFields: string[] = [];
+            const computedArgsByField: Record<string, unknown> = {};
             for (const [key, value] of Object.entries(parsedArgs)) {
                 if (key.startsWith('_') && value && typeof value === 'object') {
-                    // select fields
                     Object.entries(value)
                         .filter(([field]) => field !== '_all')
-                        .filter(([, val]) => val === true)
-                        .forEach(([field]) => {
+                        .forEach(([field, val]) => {
+                            const args =
+                                val && typeof val === 'object' && 'args' in val ? (val as any).args : undefined;
+                            if (val !== true && args === undefined) {
+                                return;
+                            }
                             if (!selectedFields.includes(field)) selectedFields.push(field);
+                            if (args !== undefined) {
+                                // the field is materialized once into `$sub`, so every aggregation
+                                // of it must agree on `args` — otherwise the result would silently
+                                // use whichever `args` was seen last
+                                const prev = computedArgsByField[field];
+                                if (prev !== undefined && argsKey(prev) !== argsKey(args)) {
+                                    throw createInvalidInputError(
+                                        `computed field "${field}" is aggregated with conflicting "args"; ` +
+                                            `the same field can only be aggregated with one set of arguments per query`,
+                                    );
+                                }
+                                computedArgsByField[field] = args;
+                            }
                         });
                 }
             }
             if (selectedFields.length > 0) {
                 for (const field of selectedFields) {
-                    subQuery = this.dialect.buildSelectField(subQuery, this.model, this.model, field);
+                    subQuery = this.dialect.buildSelectField(
+                        subQuery,
+                        this.model,
+                        this.model,
+                        field,
+                        computedArgsByField[field],
+                    );
                 }
             } else {
                 // if no field is explicitly selected, just do a `select 1` so `_count` works
@@ -72,7 +101,7 @@ export class AggregateOperationHandler<Schema extends SchemaDef> extends BaseOpe
                         query = query.select((eb) => this.dialect.castInt(eb.fn.countAll()).as('_count'));
                     } else {
                         Object.entries(value).forEach(([field, val]) => {
-                            if (val === true) {
+                            if (val === true || (val && typeof val === 'object' && 'args' in val)) {
                                 if (field === '_all') {
                                     query = query.select((eb) =>
                                         this.dialect.castInt(eb.fn.countAll()).as(`_count._all`),
@@ -95,7 +124,7 @@ export class AggregateOperationHandler<Schema extends SchemaDef> extends BaseOpe
                 case '_max':
                 case '_min': {
                     Object.entries(value).forEach(([field, val]) => {
-                        if (val === true) {
+                        if (val === true || (val && typeof val === 'object' && 'args' in val)) {
                             query = query.select((eb) => {
                                 const fn = match(key)
                                     .with('_sum', () => eb.fn.sum)

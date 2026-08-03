@@ -126,9 +126,7 @@ async function seedDeep(db: Client) {
                                 dueDate: new Date('2026-05-01'),
                                 status: 'SENT',
                                 lineItems: {
-                                    create: [
-                                        { description: 'Pro plan — April 2026', quantity: 1, unitCents: 9900 },
-                                    ],
+                                    create: [{ description: 'Pro plan — April 2026', quantity: 1, unitCents: 9900 }],
                                 },
                             },
                         ],

@@ -109,6 +109,12 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             accept('error', 'Optional lists are not supported. Use either `Type[]` or `Type?`', { node: field.type });
         }
 
+        // Only computed fields may declare parameters; the arguments are supplied at
+        // query time and forwarded to the computed-field implementation.
+        if (field.params.length > 0 && !hasAttribute(field, '@computed')) {
+            accept('error', 'Only `@computed` fields can declare parameters', { node: field });
+        }
+
         if (field.type.unsupported && !isStringLiteral(field.type.unsupported.value)) {
             accept('error', 'Unsupported type argument must be a string literal', { node: field.type.unsupported });
         }
@@ -603,7 +609,8 @@ export default class DataModelValidator implements AstValidator<DataModel> {
 
         const delegateAttr = getAttribute(baseModel, '@@delegate');
         const discriminatorArg = delegateAttr && getAttributeArg(delegateAttr, 'discriminator');
-        const discriminatorRef = discriminatorArg && isReferenceExpr(discriminatorArg) ? discriminatorArg.target.ref : undefined;
+        const discriminatorRef =
+            discriminatorArg && isReferenceExpr(discriminatorArg) ? discriminatorArg.target.ref : undefined;
 
         if (!discriminatorRef || !isDataField(discriminatorRef)) {
             return;

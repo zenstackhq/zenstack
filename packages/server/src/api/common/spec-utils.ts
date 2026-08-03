@@ -108,9 +108,7 @@ export function isFilterKindIncluded(
 export function mayDenyAccess(modelDef: ModelDef, operation: string, respectAccessPolicies?: boolean): boolean {
     if (!respectAccessPolicies) return false;
 
-    const policyAttrs = (modelDef.attributes ?? []).filter(
-        (attr) => attr.name === '@@allow' || attr.name === '@@deny',
-    );
+    const policyAttrs = (modelDef.attributes ?? []).filter((attr) => attr.name === '@@allow' || attr.name === '@@deny');
 
     // No policy rules at all means default-deny
     if (policyAttrs.length === 0) return true;

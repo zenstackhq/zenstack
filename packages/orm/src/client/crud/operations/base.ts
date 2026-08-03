@@ -344,8 +344,12 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
 
             const fieldDef = this.requireField(model, field);
             if (!fieldDef.relation) {
-                // scalar field
-                result = this.dialect.buildSelectField(result, model, parentAlias, field);
+                // scalar field — a parameterized computed field carries its query-time `args`
+                const computedArgs =
+                    fieldDef.computed && fieldDef.params && typeof payload === 'object' && 'args' in payload
+                        ? payload.args
+                        : undefined;
+                result = this.dialect.buildSelectField(result, model, parentAlias, field, computedArgs);
             } else {
                 if (!fieldDef.array && !fieldDef.optional && payload.where) {
                     throw createInternalError(`Field "${field}" does not support filtering`, model);
@@ -440,7 +444,12 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                     Array.isArray(value.set)
                 ) {
                     // deal with nested "set" for scalar lists
-                    createFields[field] = this.dialect.transformInput(value.set, fieldDef.type as BuiltinType, true, fieldDef);
+                    createFields[field] = this.dialect.transformInput(
+                        value.set,
+                        fieldDef.type as BuiltinType,
+                        true,
+                        fieldDef,
+                    );
                 } else {
                     createFields[field] = this.dialect.transformInput(
                         value,
@@ -889,7 +898,12 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
             for (const [name, value] of Object.entries(item)) {
                 const fieldDef = this.requireField(model, name);
                 invariant(!fieldDef.relation, 'createMany does not support relations');
-                newItem[name] = this.dialect.transformInput(value, fieldDef.type as BuiltinType, !!fieldDef.array, fieldDef);
+                newItem[name] = this.dialect.transformInput(
+                    value,
+                    fieldDef.type as BuiltinType,
+                    !!fieldDef.array,
+                    fieldDef,
+                );
             }
             if (fromRelation) {
                 for (const { fk, pk } of relationKeyPairs) {
@@ -1076,7 +1090,12 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                             value = JSON.parse(value);
                         }
                     }
-                    values[field] = this.dialect.transformInput(value, fieldDef.type as BuiltinType, !!fieldDef.array, fieldDef);
+                    values[field] = this.dialect.transformInput(
+                        value,
+                        fieldDef.type as BuiltinType,
+                        !!fieldDef.array,
+                        fieldDef,
+                    );
                 }
             }
         }
@@ -2091,7 +2110,7 @@ export abstract class BaseOperationHandler<Schema extends SchemaDef> {
                     // read parent's fk
                     const fromEntity = await this.readUnique(kysely, fromRelation.model, {
                         where: fromRelation.ids,
-                        select: fieldsToSelectObject(keyPairs.map(({ fk }) => fk)),
+                        select: fieldsToSelectObject(keyPairs.map(({ fk }) => fk)) as any,
                     });
                     if (!fromEntity || keyPairs.some(({ fk }) => fromEntity[fk] == null)) {
                         return;

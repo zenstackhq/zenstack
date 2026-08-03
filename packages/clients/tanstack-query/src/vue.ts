@@ -323,7 +323,10 @@ export type ModelQueryHooks<
             >,
         ): ModelQueryResult<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[]>;
 
-        useInfiniteFindMany<T extends FindManyArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>, TPageParam = unknown>(
+        useInfiniteFindMany<
+            T extends FindManyArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>,
+            TPageParam = unknown,
+        >(
             args?: MaybeRefOrGetter<SelectSubset<T, FindManyArgs<Schema, Model, Options, ExtQueryArgs, ExtResult>>>,
             options?: MaybeRefOrGetter<
                 ModelInfiniteQueryOptions<SimplifiedPlainResult<Schema, Model, T, Options, ExtResult>[], TPageParam>

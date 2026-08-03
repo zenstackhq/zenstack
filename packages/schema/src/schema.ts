@@ -82,6 +82,12 @@ export type FieldDef = {
     relation?: RelationInfo;
     foreignKeyFor?: readonly string[];
     computed?: boolean;
+    /**
+     * For a parameterized computed field, the parameters it declares (keyed by name). The
+     * corresponding arguments are supplied at query time wherever the field is used — `orderBy`,
+     * `where`/`having`, `select`/`include`, the aggregate inputs, and `groupBy`.
+     */
+    params?: Record<string, ProcedureParam>;
     originModel?: string;
     isDiscriminator?: boolean;
 };

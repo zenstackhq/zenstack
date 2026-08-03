@@ -464,7 +464,7 @@ attribute @db.UnsignedInt() @@@targetField([IntField]) @@@prisma
 attribute @db.UnsignedSmallInt() @@@targetField([IntField]) @@@prisma
 attribute @db.MediumInt() @@@targetField([IntField]) @@@prisma
 attribute @db.UnsignedMediumInt() @@@targetField([IntField]) @@@prisma
-attribute @db.TinyInt(_ length: Int?) @@@targetField([IntField]) @@@prisma
+attribute @db.TinyInt(_ length: Int?) @@@targetField([IntField, BooleanField]) @@@prisma
 attribute @db.UnsignedTinyInt(_ length: Int?) @@@targetField([IntField]) @@@prisma
 attribute @db.Year() @@@targetField([IntField]) @@@prisma
 

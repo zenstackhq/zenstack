@@ -588,6 +588,208 @@ describe('Attribute application validation tests', () => {
         });
     });
 
+    describe('Native type mapping attributes', () => {
+        describe('sqlite', () => {
+            it('rejects when any native type mapping attribute is used', async () => {
+                // postgresql attribute
+                await loadSchemaWithError(
+                    `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @db.Uuid
+                }
+                `,
+                    `attribute "@db.Uuid" cannot be used with the "sqlite" provider`,
+                );
+
+                // mysql attribute
+                await loadSchemaWithError(
+                    `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id Int @id @db.TinyInt
+                }
+                `,
+                    `attribute "@db.TinyInt" cannot be used with the "sqlite" provider`,
+                );
+
+                // postgres/mysql attribute
+                await loadSchemaWithError(
+                    `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @db.Text
+                }
+                `,
+                    `attribute "@db.Text" cannot be used with the "sqlite" provider`,
+                );
+            });
+        });
+
+        describe('postgresql', () => {
+            it('allows all postgresql attributes', async () => {
+                await loadSchema(
+                    `
+                datasource db {
+                    provider = 'postgresql'
+                    url      = env('DATABASE_URL')
+                }
+
+                model User {
+                    id                     Int      @id @default(autoincrement())
+
+                    text                   String   @db.Text
+                    char                   String   @db.Char(10)
+                    varchar                String   @db.VarChar(255)
+                    bitString              String   @db.Bit(8)
+                    varBit                 String   @db.VarBit
+                    uuid                   String   @db.Uuid
+                    xml                    String   @db.Xml
+                    inet                   String   @db.Inet
+                    citext                 String   @db.Citext
+
+                    boolean                Boolean  @db.Boolean
+
+                    int                    Int      @db.Int
+                    integer                Int      @db.Integer
+                    smallInt               Int      @db.SmallInt
+                    oid                    Int      @db.Oid
+
+                    bigInt                 BigInt   @db.BigInt
+
+                    doublePrecisionFloat   Float    @db.DoublePrecision
+                    doublePrecisionDecimal Decimal  @db.DoublePrecision
+
+                    realFloat              Float    @db.Real
+                    realDecimal            Decimal  @db.Real
+
+                    decimalFloat           Float    @db.Decimal(10, 2)
+                    decimalDecimal         Decimal  @db.Decimal(10, 2)
+
+                    moneyFloat             Float    @db.Money
+                    moneyDecimal           Decimal  @db.Money
+
+                    timestamp              DateTime @db.Timestamp(6)
+                    timestamptz            DateTime @db.Timestamptz(6)
+                    date                   DateTime @db.Date
+                    time                   DateTime @db.Time(6)
+                    timetz                 DateTime @db.Timetz(6)
+
+                    json                   Json     @db.Json
+                    jsonb                  Json     @db.JsonB
+
+                    bytea                  Bytes    @db.ByteA
+                }
+                `);
+            });
+
+            it('rejects mysql attributes', async () => {
+                await loadSchemaWithError(
+                    `
+                datasource db {
+                    provider = 'postgresql'
+                    url      = env('DATABASE_URL')
+                }
+
+                model User {
+                    id Int @id @db.TinyInt
+                }
+                `,
+                    `attribute "@db.TinyInt" cannot be used with the "postgresql" provider`,
+                );
+            });
+        });
+
+        describe('mysql', () => {
+            it('allows all mysql attributes', async () => {
+                await loadSchema(
+                    `
+                datasource db {
+                    provider = 'mysql'
+                    url      = env('DATABASE_URL')
+                }
+
+                model User {
+                    id                Int      @id @default(autoincrement())
+
+                    text              String   @db.Text
+                    char              String   @db.Char(10)
+                    varchar           String   @db.VarChar(255)
+                    tinyText          String   @db.TinyText
+                    mediumText        String   @db.MediumText
+                    longText          String   @db.LongText
+
+                    bitString         String   @db.Bit(8)
+                    bitBool           Boolean  @db.Bit(1)
+                    bitBytes          Bytes    @db.Bit(64)
+
+                    tinyIntBool       Boolean  @db.TinyInt(1)
+
+                    int               Int      @db.Int
+                    smallInt          Int      @db.SmallInt
+                    mediumInt         Int      @db.MediumInt
+                    tinyInt           Int      @db.TinyInt
+                    year              Int      @db.Year
+                    unsignedInt       Int      @db.UnsignedInt
+                    unsignedSmallInt  Int      @db.UnsignedSmallInt
+                    unsignedMediumInt Int      @db.UnsignedMediumInt
+                    unsignedTinyInt   Int      @db.UnsignedTinyInt
+
+                    bigInt            BigInt   @db.BigInt
+                    unsignedBigInt    BigInt   @db.UnsignedBigInt
+
+                    float             Float    @db.Float
+                    double            Float    @db.Double
+                    decimalFloat      Float    @db.Decimal(10, 2)
+                    decimal           Decimal  @db.Decimal(10, 2)
+
+                    timestamp         DateTime @db.Timestamp(6)
+                    datetime          DateTime @db.DateTime(6)
+                    date              DateTime @db.Date
+                    time              DateTime @db.Time(6)
+
+                    json              Json     @db.Json
+
+                    longBlob          Bytes    @db.LongBlob
+                    blob              Bytes    @db.Blob
+                    mediumBlob        Bytes    @db.MediumBlob
+                    tinyBlob          Bytes    @db.TinyBlob
+                    binary            Bytes    @db.Binary(16)
+                    varBinary         Bytes    @db.VarBinary(255)
+                }
+                `);
+            });
+
+            it('rejects postgresql attributes', async () => {
+                await loadSchemaWithError(
+                    `
+                datasource db {
+                    provider = 'mysql'
+                    url      = env('DATABASE_URL')
+                }
+
+                model User {
+                    id String @id @db.Uuid
+                }
+                `,
+                    `attribute "@db.Uuid" cannot be used with the "mysql" provider`,
+                );
+            });
+        });
+    });
+
     it('requires relation and fk to have consistent optionality', async () => {
         await loadSchemaWithError(
             `

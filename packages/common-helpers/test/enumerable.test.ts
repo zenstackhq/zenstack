@@ -35,9 +35,15 @@ describe('enumerate tests', () => {
     });
 
     it('should handle nested arrays', () => {
-        const arr = [[1, 2], [3, 4]];
+        const arr = [
+            [1, 2],
+            [3, 4],
+        ];
         expect(enumerate(arr)).toBe(arr);
-        expect(enumerate(arr)).toEqual([[1, 2], [3, 4]]);
+        expect(enumerate(arr)).toEqual([
+            [1, 2],
+            [3, 4],
+        ]);
     });
 
     it('should handle functions', () => {

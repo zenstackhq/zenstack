@@ -188,9 +188,9 @@ describe('Extended result fields (ExtResult)', () => {
     it('adds the computed field to read results', () => {
         const client = createClient<DbType>(schema, { endpoint: ENDPOINT });
 
-        expectTypeOf(client.user.findUnique({ where: { id: '1' } })).resolves.toMatchTypeOf<
-            { displayName: string } | null
-        >();
+        expectTypeOf(client.user.findUnique({ where: { id: '1' } })).resolves.toMatchTypeOf<{
+            displayName: string;
+        } | null>();
 
         expectTypeOf(client.user.findMany()).resolves.toMatchTypeOf<Array<{ displayName: string }>>();
     });

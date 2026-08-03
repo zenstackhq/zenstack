@@ -37,6 +37,7 @@ import {
     isComputedField,
     isDataFieldReference,
     isDelegateModel,
+    isNativeTypeMappingAttribute,
     isRelationshipField,
     mapBuiltinTypeToExpressionType,
     resolved,
@@ -46,6 +47,75 @@ import type { AstValidator } from './common';
 
 // a registry of function handlers marked with @check
 const attributeCheckers = new Map<string, PropertyDescriptor>();
+
+const datasourceProviderSupportedNativeTypes: Record<string, Set<string>> = {
+    sqlite: new Set(),
+
+    postgresql: new Set([
+        '@db.Text',
+        '@db.Char',
+        '@db.VarChar',
+        '@db.Bit',
+        '@db.VarBit',
+        '@db.Uuid',
+        '@db.Xml',
+        '@db.Inet',
+        '@db.Citext',
+        '@db.Boolean',
+        '@db.Int',
+        '@db.Integer',
+        '@db.SmallInt',
+        '@db.Oid',
+        '@db.BigInt',
+        '@db.DoublePrecision',
+        '@db.Real',
+        '@db.Decimal',
+        '@db.Money',
+        '@db.Timestamp',
+        '@db.Timestamptz',
+        '@db.Date',
+        '@db.Time',
+        '@db.Timetz',
+        '@db.Json',
+        '@db.JsonB',
+        '@db.ByteA',
+    ]),
+
+    mysql: new Set([
+        '@db.Text',
+        '@db.Char',
+        '@db.VarChar',
+        '@db.TinyText',
+        '@db.MediumText',
+        '@db.LongText',
+        '@db.Bit',
+        '@db.TinyInt',
+        '@db.Int',
+        '@db.SmallInt',
+        '@db.MediumInt',
+        '@db.Year',
+        '@db.UnsignedInt',
+        '@db.UnsignedSmallInt',
+        '@db.UnsignedMediumInt',
+        '@db.UnsignedTinyInt',
+        '@db.BigInt',
+        '@db.UnsignedBigInt',
+        '@db.Float',
+        '@db.Double',
+        '@db.Decimal',
+        '@db.Timestamp',
+        '@db.DateTime',
+        '@db.Date',
+        '@db.Time',
+        '@db.Json',
+        '@db.LongBlob',
+        '@db.Blob',
+        '@db.MediumBlob',
+        '@db.TinyBlob',
+        '@db.Binary',
+        '@db.VarBinary',
+    ]),
+}
 
 // function handler decorator
 function check(name: string) {
@@ -77,6 +147,19 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
 
         if (isDataField(targetDecl) && !isValidAttributeTarget(decl, targetDecl)) {
             accept('error', `attribute "${decl.name}" cannot be used on this type of field`, { node: attr });
+        }
+
+        if (isNativeTypeMappingAttribute(decl)) {
+            const zmodel = AstUtils.getContainerOfType(attr, isModel);
+            if (zmodel) {
+                const provider = getDataSourceProvider(zmodel);
+                if (provider) {
+                    const supportedNativeTypes = datasourceProviderSupportedNativeTypes[provider];
+                    if (!supportedNativeTypes?.has(decl.name)) {
+                        accept('error', `attribute "${decl.name}" cannot be used with the "${provider}" provider`, { node: attr });
+                    }
+                }
+            }
         }
 
         this.checkDeprecation(attr, accept);

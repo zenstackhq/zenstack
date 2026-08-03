@@ -140,6 +140,17 @@ type FieldSlicingOptions = {
  */
 export type QueryOptions<Schema extends SchemaDef> = {
     /**
+     * Type-checking options for query arguments.
+     */
+    typing?: {
+        /**
+         * Recursively rejects unknown properties in query arguments. This is opt-in because the
+         * additional precision requires more work from the TypeScript checker.
+         */
+        exactQueryArgs?: boolean;
+    };
+
+    /**
      * Options for omitting fields in ORM query results.
      */
     omit?: OmitConfig<Schema>;
@@ -158,7 +169,7 @@ export type QueryOptions<Schema extends SchemaDef> = {
 
 /**
  * Projects a (typically inferred) client options type down to only the members that influence
- * ORM typing - the {@link QueryOptions} fields (`omit`, `allowQueryTimeOmitOverride`, `slicing`).
+ * ORM typing - the {@link QueryOptions} fields (`typing`, `omit`, `allowQueryTimeOmitOverride`, `slicing`).
  *
  * The full options object inferred at `new ZenStackClient(...)` carries heavy function types for
  * `computedFields` and `procedures`. Those are never read by the model/operation types, but if the

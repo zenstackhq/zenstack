@@ -1,7 +1,7 @@
 {
     "name": "zenstack-v3",
     "publisher": "zenstack",
-    "version": "3.8.3",
+    "version": "3.9.0",
     "displayName": "ZenStack V3 Language Tools",
     "description": "VSCode extension for ZenStack (v3) ZModel language",
     "private": true,
@@ -17,7 +17,7 @@
         "vscode:package": "pnpm build && vsce package --no-dependencies --follow-symlinks"
     },
     "homepage": "https://zenstack.dev",
-    "icon": "asset/logo-256-bg.png",
+    "icon": "asset/new-logo.png",
     "keywords": [
         "fullstack",
         "react",
@@ -74,8 +74,8 @@
                 ],
                 "configuration": "./language-configuration.json",
                 "icon": {
-                    "light": "./asset/logo-light-256.png",
-                    "dark": "./asset/logo-dark-256.png"
+                    "light": "./asset/new-logo.png",
+                    "dark": "./asset/new-logo.png"
                 }
             }
         ],

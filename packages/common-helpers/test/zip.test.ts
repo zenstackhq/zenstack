@@ -60,11 +60,23 @@ describe('zip tests', () => {
     });
 
     it('should handle nested arrays', () => {
-        const arr1 = [[1, 2], [3, 4]];
-        const arr2 = [['a', 'b'], ['c', 'd']];
+        const arr1 = [
+            [1, 2],
+            [3, 4],
+        ];
+        const arr2 = [
+            ['a', 'b'],
+            ['c', 'd'],
+        ];
         expect(zip(arr1, arr2)).toEqual([
-            [[1, 2], ['a', 'b']],
-            [[3, 4], ['c', 'd']],
+            [
+                [1, 2],
+                ['a', 'b'],
+            ],
+            [
+                [3, 4],
+                ['c', 'd'],
+            ],
         ]);
     });
 

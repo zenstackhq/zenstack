@@ -44,7 +44,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         protected readonly options: ClientOptions<Schema>,
     ) {}
 
-    // #region capability flags
+    // #region capability flags1
 
     /**
      * Whether the dialect supports updating with a limit on the number of updated rows.
@@ -177,6 +177,12 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                         if (typeof ob !== 'object' || ob === null) return undefined;
                         if ('_fuzzyRelevance' in ob) return '_fuzzyRelevance';
                         if ('_ftsRelevance' in ob) return '_ftsRelevance';
+                        // a parameterized computed field orders by `{ args, sort }`; its sort
+                        // key is not a real column, so it can't participate in a cursor compare
+                        const argsEntry = Object.entries(ob).find(
+                            ([, v]) => v !== null && typeof v === 'object' && 'args' in (v as object),
+                        );
+                        if (argsEntry) return argsEntry[0];
                         return undefined;
                     })
                     .find((k) => k !== undefined);
@@ -230,12 +236,33 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             if (fieldDef.relation) {
                 result = this.and(result, this.buildRelationFilter(model, modelAlias, key, fieldDef, payload));
             } else {
+                // a parameterized computed field carries its query-time `args` alongside the filter
+                // operators; pull them out so they reach the implementation, and filter on the rest
+                let computedArgs: unknown;
+                let filterPayload = payload;
+                if (
+                    fieldDef.computed &&
+                    fieldDef.params &&
+                    payload &&
+                    typeof payload === 'object' &&
+                    'args' in payload
+                ) {
+                    computedArgs = (payload as any).args;
+                    const { args: _args, ...rest } = payload as any;
+                    filterPayload = rest;
+                }
                 // if the field is from a base model, build a reference from that model
-                const fieldRef = this.fieldRef(fieldDef.originModel ?? model, key, fieldDef.originModel ?? modelAlias);
+                const fieldRef = this.fieldRef(
+                    fieldDef.originModel ?? model,
+                    key,
+                    fieldDef.originModel ?? modelAlias,
+                    true,
+                    computedArgs,
+                );
                 if (fieldDef.array) {
-                    result = this.and(result, this.buildArrayFilter(fieldRef, fieldDef, payload));
+                    result = this.and(result, this.buildArrayFilter(fieldRef, fieldDef, filterPayload));
                 } else {
-                    result = this.and(result, this.buildPrimitiveFilter(fieldRef, fieldDef, payload));
+                    result = this.and(result, this.buildPrimitiveFilter(fieldRef, fieldDef, filterPayload));
                 }
             }
         }
@@ -381,8 +408,9 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             field,
             joinAlias,
         );
-        const baseJoin = this.eb
-            .selectFrom(`${fieldDef.type} as ${joinAlias}`)
+        // use `buildSelectModel` so that delegate base tables are joined - the filter may
+        // reference fields inherited from a base, which live on the base table
+        const baseJoin = this.buildSelectModel(fieldDef.type, joinAlias)
             .select(this.eb.lit(1).as('_'))
             .where(() =>
                 this.and(...joinPairs.map(([left, right]) => this.eb(this.eb.ref(left), '=', this.eb.ref(right)))),
@@ -792,8 +820,8 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                         clauses.push(this.buildArrayFilter(fieldReceiver, fieldDef, value));
                     } else {
                         let _receiver = fieldReceiver;
-                        if (fieldDef.type === 'String') {
-                            // trim quotes for string fields
+                        if (fieldDef.type === 'String' || isEnum(this.schema, fieldDef.type)) {
+                            // trim quotes for string and enum fields (enums are stored as JSON strings)
                             _receiver = this.trimTextQuotes(this.castText(fieldReceiver));
                         }
                         clauses.push(this.buildPrimitiveFilter(_receiver, fieldDef, value));
@@ -1113,11 +1141,11 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
 
         let result = query;
 
-        const buildFieldRef = (model: string, field: string, modelAlias: string) => {
+        const buildFieldRef = (model: string, field: string, modelAlias: string, computedArgs?: unknown) => {
             const fieldDef = requireField(this.schema, model, field);
             return fieldDef.originModel
-                ? this.fieldRef(fieldDef.originModel, field, fieldDef.originModel)
-                : this.fieldRef(model, field, modelAlias);
+                ? this.fieldRef(fieldDef.originModel, field, fieldDef.originModel, true, computedArgs)
+                : this.fieldRef(model, field, modelAlias, true, computedArgs);
         };
 
         enumerate(orderBy).forEach((orderBy, index) => {
@@ -1231,9 +1259,11 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         field: string,
         value: any,
         negated: boolean,
-        buildFieldRef: (model: string, field: string, modelAlias: string) => Expression<any>,
+        buildFieldRef: (model: string, field: string, modelAlias: string, computedArgs?: unknown) => Expression<any>,
     ): SelectQueryBuilder<any, any, any> {
-        const fieldRef = buildFieldRef(model, field, modelAlias);
+        // a parameterized computed field carries its query-time args alongside `sort`/`nulls`
+        const computedArgs = value && typeof value === 'object' && 'args' in value ? value.args : undefined;
+        const fieldRef = buildFieldRef(model, field, modelAlias, computedArgs);
         if (value === 'asc' || value === 'desc') {
             return query.orderBy(fieldRef, this.negateSort(value, negated));
         }
@@ -1255,16 +1285,26 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         field: AggregateOperators,
         value: any,
         negated: boolean,
-        buildFieldRef: (model: string, field: string, modelAlias: string) => Expression<any>,
+        buildFieldRef: (model: string, field: string, modelAlias: string, computedArgs?: unknown) => Expression<any>,
     ): SelectQueryBuilder<any, any, any> {
-        invariant(typeof value === 'object', `invalid orderBy value for field "${field}"`);
+        if (!isPlainObject(value)) {
+            throw createInvalidInputError(`invalid orderBy value for field "${field}"`);
+        }
         let result = query;
-        for (const [k, v] of Object.entries<SortOrder>(value)) {
-            invariant(v === 'asc' || v === 'desc', `invalid orderBy value for field "${field}"`);
-            result = result.orderBy(
-                (eb) => aggregate(eb, buildFieldRef(model, k, modelAlias), field),
-                this.negateSort(v, negated),
-            );
+        for (const [k, v] of Object.entries<any>(value)) {
+            // entry value is either a plain sort order, or an object carrying `sort`/`nulls` and
+            // the query-time `args` of a parameterized computed field
+            const sort = isPlainObject(v) ? v['sort'] : v;
+            if (sort !== 'asc' && sort !== 'desc') {
+                throw createInvalidInputError(`invalid orderBy value for field "${field}"`);
+            }
+            const computedArgs = isPlainObject(v) && 'args' in v ? v['args'] : undefined;
+            const aggExpr = aggregate(this.eb, buildFieldRef(model, k, modelAlias, computedArgs), field);
+            const nulls = isPlainObject(v) ? v['nulls'] : undefined;
+            result =
+                nulls === 'first' || nulls === 'last'
+                    ? this.buildOrderByField(result, aggExpr, this.negateSort(sort, negated), nulls)
+                    : result.orderBy(aggExpr, this.negateSort(sort, negated));
         }
         return result;
     }
@@ -1372,6 +1412,11 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             if (this.shouldOmitField(omit, model, fieldDef.name)) {
                 continue;
             }
+            // parameterized computed fields can't be auto-selected — they require
+            // query-time args, so they're only usable in `orderBy`
+            if (fieldDef.computed && fieldDef.params) {
+                continue;
+            }
             result = this.buildSelectField(result, model, modelAlias, fieldDef.name);
         }
 
@@ -1383,6 +1428,10 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
                 const jsonObject: Record<string, Expression<any>> = {};
                 for (const fieldDef of getModelFields(this.schema, subModel.name, { computed: true })) {
                     if (this.shouldOmitField(omit, subModel.name, fieldDef.name)) {
+                        continue;
+                    }
+                    // parameterized computed fields require query-time args; not auto-selected
+                    if (fieldDef.computed && fieldDef.params) {
                         continue;
                     }
                     jsonObject[fieldDef.name] = this.fieldRef(subModel.name, fieldDef.name, subModel.name);
@@ -1443,6 +1492,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         model: string,
         modelAlias: string,
         field: string,
+        computedArgs?: unknown,
     ): SelectQueryBuilder<any, any, any> {
         const fieldDef = requireField(this.schema, model, field);
 
@@ -1451,7 +1501,8 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         const fieldModel = fieldDef.originModel ?? model;
         const alias = fieldDef.originModel ?? modelAlias;
 
-        return query.select(() => this.fieldRef(fieldModel, field, alias).as(field));
+        // `computedArgs` is set for a parameterized computed field selected via `select`/`include`
+        return query.select(() => this.fieldRef(fieldModel, field, alias, true, computedArgs).as(field));
     }
 
     buildDelegateJoin(
@@ -1586,7 +1637,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         return this.eb.not(this.and(...args));
     }
 
-    fieldRef(model: string, field: string, modelAlias?: string, inlineComputedField = true) {
+    fieldRef(model: string, field: string, modelAlias?: string, inlineComputedField = true, computedArgs?: unknown) {
         const fieldDef = requireField(this.schema, model, field);
 
         if (!fieldDef.computed) {
@@ -1609,7 +1660,9 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             if (!computer) {
                 throw createConfigError(`Computed field "${field}" implementation not provided for model "${model}"`);
             }
-            return computer(this.eb, { modelAlias });
+            // `computedArgs` is the query-time args object for a parameterized computed
+            // field (undefined otherwise); forwarded as the implementation's 3rd argument.
+            return computer(this.eb, { modelAlias }, computedArgs);
         }
     }
 

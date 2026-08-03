@@ -355,6 +355,7 @@ export interface DataField extends langium.AstNode {
     attributes: Array<DataFieldAttribute>;
     comments: Array<string>;
     name: RegularIDWithTypeNames;
+    params: Array<DataFieldParam>;
     type: DataFieldType;
 }
 
@@ -363,6 +364,7 @@ export const DataField = {
     attributes: 'attributes',
     comments: 'comments',
     name: 'name',
+    params: 'params',
     type: 'type'
 } as const;
 
@@ -385,6 +387,25 @@ export const DataFieldAttribute = {
 
 export function isDataFieldAttribute(item: unknown): item is DataFieldAttribute {
     return reflection.isInstance(item, DataFieldAttribute.$type);
+}
+
+export interface DataFieldParam extends langium.AstNode {
+    readonly $container: DataField;
+    readonly $type: 'DataFieldParam';
+    name: RegularID;
+    optional: boolean;
+    type: FunctionParamType;
+}
+
+export const DataFieldParam = {
+    $type: 'DataFieldParam',
+    name: 'name',
+    optional: 'optional',
+    type: 'type'
+} as const;
+
+export function isDataFieldParam(item: unknown): item is DataFieldParam {
+    return reflection.isInstance(item, DataFieldParam.$type);
 }
 
 export interface DataFieldType extends langium.AstNode {
@@ -589,7 +610,7 @@ export function isFunctionParam(item: unknown): item is FunctionParam {
 }
 
 export interface FunctionParamType extends langium.AstNode {
-    readonly $container: FunctionDecl | FunctionParam | Procedure | ProcedureParam;
+    readonly $container: DataFieldParam | FunctionDecl | FunctionParam | Procedure | ProcedureParam;
     readonly $type: 'FunctionParamType';
     array: boolean;
     reference?: langium.Reference<TypeDeclaration>;
@@ -1016,6 +1037,7 @@ export type ZModelAstType = {
     ConfigInvocationExpr: ConfigInvocationExpr
     DataField: DataField
     DataFieldAttribute: DataFieldAttribute
+    DataFieldParam: DataFieldParam
     DataFieldType: DataFieldType
     DataModel: DataModel
     DataModelAttribute: DataModelAttribute
@@ -1261,6 +1283,10 @@ export class ZModelAstReflection extends langium.AbstractAstReflection {
                 name: {
                     name: DataField.name
                 },
+                params: {
+                    name: DataField.params,
+                    defaultValue: []
+                },
                 type: {
                     name: DataField.type
                 }
@@ -1277,6 +1303,22 @@ export class ZModelAstReflection extends langium.AbstractAstReflection {
                 decl: {
                     name: DataFieldAttribute.decl,
                     referenceType: Attribute.$type
+                }
+            },
+            superTypes: []
+        },
+        DataFieldParam: {
+            name: DataFieldParam.$type,
+            properties: {
+                name: {
+                    name: DataFieldParam.name
+                },
+                optional: {
+                    name: DataFieldParam.optional,
+                    defaultValue: false
+                },
+                type: {
+                    name: DataFieldParam.type
                 }
             },
             superTypes: []
