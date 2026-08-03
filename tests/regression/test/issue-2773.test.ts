@@ -75,7 +75,7 @@ model Item {
 }
             `,
             { provider: 'sqlite' },
-        )
+        );
         expect(nameMapperOf(db)).toBeUndefined();
 
         await db.item.create({ data: { name: 'a' } });
@@ -86,6 +86,57 @@ model Item {
             expect(nameMapperOf(tx)).toBeUndefined();
             expect(await tx.item.findMany()).toHaveLength(1);
         });
+    });
+
+    // Enums carry name mapping too, and `schemaHasMappedNames` originally checked only models
+    // and type defs. On postgres the mapper is built unconditionally, which masked it; on any
+    // other provider a schema whose ONLY mapped name is on an enum got no mapper at all.
+    it('builds a mapper for a schema whose only mapped name is on an enum', async () => {
+        const db = await createTestClient(
+            `
+enum Status {
+    ACTIVE
+    ARCHIVED
+
+    @@map('status_enum')
+}
+
+model Item {
+    id     Int    @id @default(autoincrement())
+    name   String
+    status Status @default(ACTIVE)
+}
+            `,
+            { provider: 'sqlite' },
+        );
+
+        expect(nameMapperOf(db)).toBeDefined();
+
+        await db.item.create({ data: { name: 'a' } });
+        expect(await db.item.findMany()).toHaveLength(1);
+    });
+
+    it('builds a mapper for a schema whose only mapped name is on an enum MEMBER', async () => {
+        const db = await createTestClient(
+            `
+enum Status {
+    ACTIVE   @map('is_active')
+    ARCHIVED
+}
+
+model Item {
+    id     Int    @id @default(autoincrement())
+    name   String
+    status Status @default(ACTIVE)
+}
+            `,
+            { provider: 'sqlite' },
+        );
+
+        expect(nameMapperOf(db)).toBeDefined();
+
+        await db.item.create({ data: { name: 'a' } });
+        expect(await db.item.findMany()).toHaveLength(1);
     });
 
     it('applies @@map and @map identically inside and outside a transaction', async () => {

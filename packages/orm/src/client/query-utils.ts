@@ -1,5 +1,6 @@
 import { invariant } from '@zenstackhq/common-helpers';
 import {
+    type EnumDef,
     ExpressionUtils,
     type FieldDef,
     type GetModels,
@@ -74,14 +75,20 @@ export function getTypeDef(schema: SchemaDef, type: string) {
 export function schemaHasMappedNames(schema: SchemaDef) {
     const cache = getSchemaLookupCache(schema);
     if (cache.hasMappedNames === undefined) {
-        const hasMapAttr = (decl: ModelDef | TypeDefDef) => {
+        // `fields` is optional on `EnumDef` (required on the other two), hence the `?? {}`.
+        const hasMapAttr = (decl: ModelDef | TypeDefDef | EnumDef) => {
             if (decl.attributes?.some((attr) => attr.name === '@@map')) {
                 return true;
             }
-            return Object.values(decl.fields).some((field) => field.attributes?.some((attr) => attr.name === '@map'));
+            return Object.values(decl.fields ?? {}).some((field) =>
+                field.attributes?.some((attr) => attr.name === '@map'),
+            );
         };
         cache.hasMappedNames =
-            Object.values(schema.models).some(hasMapAttr) || Object.values(schema.typeDefs ?? []).some(hasMapAttr);
+            Object.values(schema.models).some(hasMapAttr) ||
+            Object.values(schema.typeDefs ?? {}).some(hasMapAttr) ||
+            // Enums carry name mapping too — `@@map` on the enum and `@map` on its members.
+            Object.values(schema.enums ?? {}).some(hasMapAttr);
     }
     return cache.hasMappedNames;
 }
