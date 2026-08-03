@@ -112,7 +112,7 @@ export async function run(options: Options) {
 
     const provider = getStringLiteral(dataSource?.fields.find((f) => f.name === 'provider')?.value)!;
 
-    const dialect = await createDialect(provider, databaseUrl!, outputPath);
+    const dialect = await createDialect(provider, databaseUrl!, model.$document!.uri.path);
 
     const fileUrl = typeof __filename !== 'undefined' ? __filename : import.meta.url;
 
@@ -200,7 +200,7 @@ function redactDatabaseUrl(url: string): string {
     }
 }
 
-export async function createDialect(provider: string, databaseUrl: string, outputPath: string) {
+export async function createDialect(provider: string, databaseUrl: string, schemaFilePath: string) {
     switch (provider) {
         case 'sqlite': {
             let SQLite: typeof BetterSqlite3;
@@ -214,7 +214,7 @@ export async function createDialect(provider: string, databaseUrl: string, outpu
             }
             let resolvedUrl = databaseUrl.trim();
             if (resolvedUrl.startsWith('file:')) {
-                resolvedUrl = new URL(resolvedUrl, `file:${outputPath}`).pathname;
+                resolvedUrl = new URL(resolvedUrl, `file:${schemaFilePath}`).pathname;
                 if (process.platform === 'win32' && resolvedUrl[0] === '/') resolvedUrl = resolvedUrl.slice(1);
             }
             console.log(colors.gray(`Connecting to SQLite database at: ${resolvedUrl}`));
