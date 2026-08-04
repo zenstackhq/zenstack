@@ -1002,7 +1002,10 @@ model Post {
             {
                 computedFields: {
                     Post: {
-                        isMine: (eb: any, { client }: any) => eb('authorId', '=', client?.$auth?.id ?? -1),
+                        // parenthesized: the expression gets embedded into larger ones
+                        // (e.g. `where: { isMine: true }` wraps it with `= true`), and an
+                        // unparenthesized chained comparison is a syntax error on postgres
+                        isMine: (eb: any, { client }: any) => eb.parens(eb('authorId', '=', client?.$auth?.id ?? -1)),
                     },
                 },
             } as any,
