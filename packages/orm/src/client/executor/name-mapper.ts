@@ -62,7 +62,7 @@ export class QueryNameMapper extends OperationNodeTransformer {
 
     constructor(private readonly client: ClientContract<SchemaDef>) {
         super();
-        this.dialect = getCrudDialect(client.$schema, client.$options);
+        this.dialect = getCrudDialect(client.$schema, client.$options, client);
         for (const [modelName, modelDef] of Object.entries(client.$schema.models)) {
             const mappedName = this.getMappedName(modelDef);
             if (mappedName) {

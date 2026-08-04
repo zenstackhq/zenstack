@@ -15,6 +15,7 @@ import type {
     SortOrder,
     StringFilter,
 } from '../../crud-types';
+import type { ClientContract } from '../../contract';
 import { createConfigError, createInvalidInputError, createNotSupportedError } from '../../errors';
 import type { ClientOptions } from '../../options';
 import {
@@ -42,6 +43,9 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
     constructor(
         protected readonly schema: Schema,
         protected readonly options: ClientOptions<Schema>,
+        // the client executing the query; optional so the dialect can still be
+        // constructed standalone (e.g. for output transformation only)
+        protected readonly client?: ClientContract<Schema>,
     ) {}
 
     // #region capability flags1
@@ -1662,7 +1666,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             }
             // `computedArgs` is the query-time args object for a parameterized computed
             // field (undefined otherwise); forwarded as the implementation's 3rd argument.
-            return computer(this.eb, { modelAlias }, computedArgs);
+            return computer(this.eb, { modelAlias, client: this.client }, computedArgs);
         }
     }
 

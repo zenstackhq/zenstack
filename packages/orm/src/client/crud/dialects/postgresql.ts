@@ -11,6 +11,7 @@ import {
 } from 'kysely';
 import { parse as parsePostgresArray } from 'postgres-array';
 import { AnyNullClass, DbNullClass, JsonNullClass } from '../../../common-types';
+import type { ClientContract } from '../../contract';
 import type { NullsOrder, SortOrder } from '../../crud-types';
 import { createInvalidInputError } from '../../errors';
 import type { ClientOptions } from '../../options';
@@ -73,8 +74,8 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         '@db.Boolean': 'boolean',
     };
 
-    constructor(schema: Schema, options: ClientOptions<Schema>) {
-        super(schema, options);
+    constructor(schema: Schema, options: ClientOptions<Schema>, client?: ClientContract<Schema>) {
+        super(schema, options, client);
         this.overrideTypeParsers();
     }
 
