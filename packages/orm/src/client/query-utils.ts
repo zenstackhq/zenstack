@@ -1,5 +1,13 @@
 import { invariant } from '@zenstackhq/common-helpers';
-import { ExpressionUtils, type FieldDef, type GetModels, type ModelDef, type SchemaDef } from '@zenstackhq/schema';
+import {
+    type EnumDef,
+    ExpressionUtils,
+    type FieldDef,
+    type GetModels,
+    type ModelDef,
+    type SchemaDef,
+    type TypeDefDef,
+} from '@zenstackhq/schema';
 import {
     AliasNode,
     ColumnNode,
@@ -30,6 +38,7 @@ interface SchemaLookupCache {
     model: Map<string, ModelDef | undefined>;
     m2mRelation: Map<string, ReturnType<typeof computeManyToManyRelation>>;
     m2mJoinTable?: Map<string, ManyToManyJoinTableEndpoints | undefined>;
+    hasMappedNames?: boolean;
 }
 
 const schemaLookupCache = new WeakMap<SchemaDef, SchemaLookupCache>();
@@ -56,6 +65,32 @@ export function getModel(schema: SchemaDef, model: string) {
 
 export function getTypeDef(schema: SchemaDef, type: string) {
     return schema.typeDefs?.[type];
+}
+
+/**
+ * Whether any model, type def, or field in the schema carries `@@map`/`@map`. Answering it walks
+ * every model and field, and it is asked once per query-executor construction, so the (immutable)
+ * answer is memoized per schema alongside the other structural lookups. See issue #2773.
+ */
+export function schemaHasMappedNames(schema: SchemaDef) {
+    const cache = getSchemaLookupCache(schema);
+    if (cache.hasMappedNames === undefined) {
+        // `fields` is optional on `EnumDef` (required on the other two), hence the `?? {}`.
+        const hasMapAttr = (decl: ModelDef | TypeDefDef | EnumDef) => {
+            if (decl.attributes?.some((attr) => attr.name === '@@map')) {
+                return true;
+            }
+            return Object.values(decl.fields ?? {}).some((field) =>
+                field.attributes?.some((attr) => attr.name === '@map'),
+            );
+        };
+        cache.hasMappedNames =
+            Object.values(schema.models).some(hasMapAttr) ||
+            Object.values(schema.typeDefs ?? {}).some(hasMapAttr) ||
+            // Enums carry name mapping too — `@@map` on the enum and `@map` on its members.
+            Object.values(schema.enums ?? {}).some(hasMapAttr);
+    }
+    return cache.hasMappedNames;
 }
 
 export function requireModel(schema: SchemaDef, model: string) {
