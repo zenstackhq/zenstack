@@ -538,6 +538,10 @@ export class TsSchemaGenerator {
                 : []),
         ];
 
+        if (hasAttribute(td, '@@strict')) {
+            fields.push(ts.factory.createPropertyAssignment('strict', ts.factory.createTrue()));
+        }
+
         return ts.factory.createObjectLiteralExpression(fields, true);
     }
 
