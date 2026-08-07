@@ -68,8 +68,10 @@ client.user
 
 client.user.useCreate().mutate({ data: { email: 'test@example.com', profile: { bio: 'Programmer' } } });
 
-// @ts-expect-error known properties
-client.user.useCreate().mutate({ data: { email: 'test@example.com', profile: { bio: 'Programmer', unknown: true } } });
+client.user
+    .useCreate()
+    // @ts-expect-error known properties
+    .mutate({ data: { email: 'test@example.com', profile: { bio: 'Programmer', unknown: true } } });
 
 client.user
     .useCreateMany()
