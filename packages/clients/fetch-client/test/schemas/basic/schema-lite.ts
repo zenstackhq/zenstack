@@ -5,7 +5,7 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
+import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
     provider = {
         type: "sqlite"
@@ -77,6 +77,21 @@ export class SchemaType implements SchemaDef {
             }
         }
     } as const;
+    typeDefs = {
+        Notification: {
+            name: "Notification",
+            fields: {
+                message: {
+                    name: "message",
+                    type: "String"
+                }
+            },
+            attributes: [
+                { name: "@@strict" }
+            ] as readonly AttributeApplication[],
+            strict: true
+        }
+    } as const;
     authType = "User" as const;
     procedures = {
         getStats: {
@@ -85,7 +100,7 @@ export class SchemaType implements SchemaDef {
         },
         sendNotification: {
             params: {
-                message: { name: "message", type: "String" }
+                notification: { name: "notification", type: "Notification" }
             },
             returnType: "Boolean",
             mutation: true

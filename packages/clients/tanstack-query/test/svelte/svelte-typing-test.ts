@@ -68,6 +68,11 @@ client.user
         data: { email: 'test@example.com' },
     });
 
+client.user.useCreate().mutate({ data: { email: 'test@example.com', profile: { bio: 'Programmer' } } });
+
+// @ts-expect-error known properties
+client.user.useCreate().mutate({ data: { email: 'test@example.com', profile: { bio: 'Programmer', unknown: true } } });
+
 client.user
     .useCreate()
     .mutateAsync({ data: { email: 'test@example.com' }, include: { posts: true } })

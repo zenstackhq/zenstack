@@ -217,3 +217,19 @@ describe('Extended result fields (ExtResult)', () => {
         };
     });
 });
+
+describe('Custom types', () => {
+    it('supports @@strict', () => {
+        const client = createClient(schema, { endpoint: ENDPOINT });
+
+        client.$procs.sendNotification.mutate({
+            args: {
+                notification: {
+                    message: 'test',
+                    // @ts-expect-error known properties
+                    unknown: true,
+                },
+            },
+        });
+    });
+});
