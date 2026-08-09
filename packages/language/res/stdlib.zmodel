@@ -731,6 +731,6 @@ attribute @meta(_ name: String, _ value: Any)
 attribute @@@deprecated(_ message: String)
 
 /**
- * Specifies a type def should not allow unknown fields.
+ * Specifies a type def should reject unknown fields.
  */
-attribute @@strict() @@@once
+attribute @@strict() @@@once @@@validation
