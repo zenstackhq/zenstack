@@ -445,7 +445,7 @@ model User {
         });
     });
 
-    it('supports lite schema generation', async () => {
+    it('strips lite-incompatible attributes from lite schemas', async () => {
         const { schemaLite } = await generateTsSchema(
             `
 model User {
@@ -454,6 +454,10 @@ model User {
     email String @unique
 
     @@map('users')
+}
+
+type Profile {
+    id String @id
 }
         `,
             undefined,
@@ -465,6 +469,101 @@ model User {
         expect(schemaLite!.models['User']!.attributes).toBeUndefined();
         expect(schemaLite!.models['User']!.fields['id']!.attributes).toBeUndefined();
         expect(schemaLite!.models['User']!.fields['email']!.attributes).toBeUndefined();
+        expect(schemaLite!.typeDefs!['Profile']!.fields['id']!.attributes).toBeUndefined();
+    });
+
+    it('does not strip lite-compatible attributes from lite schemas', async () => {
+        const { schemaLite } = await generateTsSchema(
+            `
+model User {
+    id String @id @default(uuid())
+    name String
+    email String @unique @email @meta('description', 'HTML email address.')
+
+    @@map('users')
+    @@meta('description', 'A registered user.')
+}
+
+type Profile {
+    bio String
+
+    @@meta('description', 'The profile of a user.')
+}
+        `,
+            undefined,
+            undefined,
+            undefined,
+            true,
+        );
+
+        expect(schemaLite!.models['User']!.fields['email']?.attributes).toMatchObject([
+            {
+                name: '@email',
+            },
+            {
+                name: '@meta',
+                args: [
+                    {
+                        name: 'name',
+                        value: {
+                            kind: 'literal',
+                            value: 'description',
+                        },
+                    },
+                    {
+                        name: 'value',
+                        value: {
+                            kind: 'literal',
+                            value: 'HTML email address.',
+                        },
+                    },
+                ],
+            },
+        ]);
+
+        expect(schemaLite!.models['User']!.attributes).toMatchObject([
+            {
+                name: '@@meta',
+                args: [
+                    {
+                        name: 'name',
+                        value: {
+                            kind: 'literal',
+                            value: 'description',
+                        },
+                    },
+                    {
+                        name: 'value',
+                        value: {
+                            kind: 'literal',
+                            value: 'A registered user.',
+                        },
+                    },
+                ],
+            },
+        ]);
+
+        expect(schemaLite!.typeDefs!['Profile']!.attributes).toMatchObject([
+            {
+                name: '@@meta',
+                args: [
+                    {
+                        name: 'name',
+                        value: {
+                            kind: 'literal',
+                            value: 'description',
+                        },
+                    },
+                    {
+                        name: 'value',
+                        value: {
+                            kind: 'literal',
+                            value: 'The profile of a user.',
+                        },
+                    },
+                ],
+            },
+        ]);
     });
 
     it('supports ignorable fields for @updatedAt', async () => {
