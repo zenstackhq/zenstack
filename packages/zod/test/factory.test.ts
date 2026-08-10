@@ -2,10 +2,14 @@ import Decimal from 'decimal.js';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import { createSchemaFactory } from '../src/index';
 import { schema } from './schema/schema';
+import { schema as schemaLite } from './schema/schema-lite';
 import z from 'zod';
 import type { JsonValue } from '../src/index';
 
-const factory = createSchemaFactory(schema);
+const factory =
+    process.env['ZENSTACK_TEST_SCHEMA_TARGET'] === 'lite'
+        ? createSchemaFactory(schemaLite)
+        : createSchemaFactory(schema);
 
 // A fully valid User object (without relations)
 const validUser = {
