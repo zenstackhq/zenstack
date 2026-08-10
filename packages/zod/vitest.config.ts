@@ -1,25 +1,5 @@
 import base from '@zenstackhq/vitest-config/base';
-import { defineConfig, mergeConfig, TestProjectConfiguration } from 'vitest/config';
-
-const fullSchemaConfig: TestProjectConfiguration = {
-    test: {
-        name: 'full',
-        include: ['test/**/*.test.ts'],
-        env: {
-            ZENSTACK_TEST_SCHEMA_TARGET: 'full',
-        },
-    },
-};
-
-const liteSchemaConfig: TestProjectConfiguration = {
-    test: {
-        name: 'lite',
-        include: ['test/**/*.test.ts'],
-        env: {
-            ZENSTACK_TEST_SCHEMA_TARGET: 'lite',
-        },
-    },
-};
+import { defineConfig, mergeConfig } from 'vitest/config';
 
 export default mergeConfig(
     base,
@@ -30,7 +10,27 @@ export default mergeConfig(
                 include: ['test/**/*.ts'],
             },
 
-            projects: [fullSchemaConfig, liteSchemaConfig],
+            projects: [
+                {
+                    test: {
+                        name: 'full',
+                        include: ['test/**/*.test.ts'],
+                        env: {
+                            ZENSTACK_TEST_SCHEMA_TARGET: 'full',
+                        },
+                    },
+                },
+
+                {
+                    test: {
+                        name: 'lite',
+                        include: ['test/**/*.test.ts'],
+                        env: {
+                            ZENSTACK_TEST_SCHEMA_TARGET: 'lite',
+                        },
+                    },
+                },
+            ],
         },
     }),
 );
