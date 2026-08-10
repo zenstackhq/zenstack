@@ -467,7 +467,23 @@ type Profile {
         );
 
         expect(schemaLite!.models['User']!.attributes).toBeUndefined();
-        expect(schemaLite!.models['User']!.fields['id']!.attributes).toBeUndefined();
+
+        expect(schemaLite!.models['User']!.fields['id']!.attributes).toMatchObject([
+            {
+                name: '@default',
+                args: [
+                    {
+                        name: 'value',
+                        value: {
+                            kind: 'call',
+                            function: 'uuid',
+                            args: undefined,
+                        },
+                    },
+                ],
+            },
+        ]);
+
         expect(schemaLite!.models['User']!.fields['email']!.attributes).toBeUndefined();
         expect(schemaLite!.typeDefs!['Profile']!.fields['id']!.attributes).toBeUndefined();
     });
