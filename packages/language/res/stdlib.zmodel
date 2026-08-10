@@ -224,7 +224,7 @@ attribute @id(map: String?, length: Int?, sort: SortOrder?, clustered: Boolean?)
  * Defines a default value for a field.
  * @param value: An expression (e.g. 5, true, now(), auth()).
  */
-attribute @default(_ value: ContextType, map: String?) @@@prisma @@@once
+attribute @default(_ value: ContextType, map: String?) @@@prisma @@@once @@@lite
 
 /**
  * Defines a unique constraint for this field.
@@ -427,7 +427,7 @@ attribute @fullText() @@@targetField([StringField]) @@@once
  * updates have been made to a record. An update that only contains ignored fields does not change the
  * timestamp.
  */
-attribute @updatedAt(ignore: FieldReference[]?) @@@targetField([DateTimeField]) @@@prisma
+attribute @updatedAt(ignore: FieldReference[]?) @@@targetField([DateTimeField]) @@@prisma @@@lite
 
 /**
  * Add full text index (MySQL only).
