@@ -187,7 +187,7 @@ export function isNativeTypeMappingAttribute(node: AstNode): node is Attribute {
 }
 
 /**
- * Returns if the given node is a lite-compatible attribute.
+ * Returns if the given node is a lite attribute.
  */
 export function isLiteAttribute(node: AstNode): node is Attribute {
     return isAttribute(node) && hasAttribute(node, '@@@lite');

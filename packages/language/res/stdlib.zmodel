@@ -731,6 +731,6 @@ attribute @meta(_ name: String, _ value: Any) @@@lite
 attribute @@@deprecated(_ message: String)
 
 /**
- * Marks an attribute as being compatible with lite schemas.
+ * Specifies an attribute should not be stripped when generating lite schemas.
  */
 attribute @@@lite()

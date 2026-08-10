@@ -445,7 +445,7 @@ model User {
         });
     });
 
-    it('strips lite-incompatible attributes from lite schemas', async () => {
+    it('strips non-lite attributes from lite schemas', async () => {
         const { schemaLite } = await generateTsSchema(
             `
 model User {
@@ -472,7 +472,7 @@ type Profile {
         expect(schemaLite!.typeDefs!['Profile']!.fields['id']!.attributes).toBeUndefined();
     });
 
-    it('does not strip lite-compatible attributes from lite schemas', async () => {
+    it('does not strip lite attributes from lite schemas', async () => {
         const { schemaLite } = await generateTsSchema(
             `
 model User {
