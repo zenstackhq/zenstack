@@ -187,6 +187,13 @@ export function isNativeTypeMappingAttribute(node: AstNode): node is Attribute {
 }
 
 /**
+ * Returns if the given node is a lite-compatible attribute.
+ */
+export function isLiteAttribute(node: AstNode): node is Attribute {
+    return isAttribute(node) && hasAttribute(node, '@@@lite');
+}
+
+/**
  * Returns the datasource provider literal (e.g. `'postgresql'`) declared in the schema, or undefined
  * if no datasource is found or its provider is not a literal.
  */
