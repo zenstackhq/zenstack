@@ -270,7 +270,7 @@ export class ClientImpl {
     ): Promise<any> {
         if (this.kysely.isTransaction) {
             // proceed directly if already in a transaction
-            return callback(this as unknown as ClientContract<SchemaDef>);
+            return callback(this.$contract);
         } else {
             // otherwise, create a new transaction, clone the client, and execute the callback
             let txBuilder = this.kysely.transaction();
@@ -280,7 +280,7 @@ export class ClientImpl {
             return txBuilder.execute((tx) => {
                 const txClient = new ClientImpl(this.schema, this.$options, this);
                 txClient.kysely = tx;
-                return callback(txClient as unknown as ClientContract<SchemaDef>);
+                return callback(txClient.$contract);
             });
         }
     }
@@ -302,7 +302,7 @@ export class ClientImpl {
             const result: any[] = [];
             for (const promise of arg) {
                 const cb = this.getPromiseCallback(promise);
-                result.push(await cb(txClient as unknown as ClientContract<SchemaDef>));
+                result.push(await cb(txClient.$contract));
             }
             return result;
         };
@@ -461,6 +461,17 @@ export class ClientImpl {
 
     get $auth() {
         return this.auth;
+    }
+
+    /**
+     * This client viewed through its public typed contract. `ClientImpl` is intentionally
+     * untyped internally — the model accessors are added by the runtime proxy — so this
+     * getter is the single sanctioned bridge to `ClientContract`. The proxy invokes it
+     * with the proxy as `this` (`Reflect.get` with receiver), so the returned reference
+     * keeps the model accessors.
+     */
+    get $contract(): ClientContract<SchemaDef> {
+        return this as unknown as ClientContract<SchemaDef>;
     }
 
     $setOptions<Options extends ClientOptions<SchemaDef>>(options: Options): ClientContract<SchemaDef, Options> {

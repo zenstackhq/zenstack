@@ -62,7 +62,7 @@ class SoftDeleteHandler<Schema extends SchemaDef> extends OperationNodeTransform
 
     constructor(private readonly client: ClientContract<Schema>) {
         super();
-        this.dialect = getCrudDialect(client.$schema, client.$options);
+        this.dialect = getCrudDialect(client);
     }
 
     async handle(node: RootOperationNode, proceed: ProceedKyselyQueryFunction) {

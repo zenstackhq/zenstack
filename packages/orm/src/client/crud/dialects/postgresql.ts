@@ -13,9 +13,8 @@ import { parse as parsePostgresArray } from 'postgres-array';
 import { AnyNullClass, DbNullClass, JsonNullClass } from '../../../common-types';
 import type { NullsOrder, SortOrder } from '../../crud-types';
 import { createInvalidInputError } from '../../errors';
-import type { ClientOptions } from '../../options';
 import { isEnum, isTypeDef } from '../../query-utils';
-import type { FuzzyFilterOptions } from './base-dialect';
+import type { CrudDialectArgs, FuzzyFilterOptions } from './base-dialect';
 import { LateralJoinDialectBase } from './lateral-join-dialect-base';
 
 /**
@@ -73,8 +72,8 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
         '@db.Boolean': 'boolean',
     };
 
-    constructor(schema: Schema, options: ClientOptions<Schema>) {
-        super(schema, options);
+    constructor(...args: CrudDialectArgs<Schema>) {
+        super(...args);
         this.overrideTypeParsers();
     }
 

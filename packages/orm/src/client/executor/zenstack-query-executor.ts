@@ -98,10 +98,10 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
             nameMapper ??
             (client.$schema.provider.type === 'postgresql' || // postgres queries need to be schema-qualified
             schemaHasMappedNames(client.$schema)
-                ? new QueryNameMapper(client as unknown as ClientContract<SchemaDef>)
+                ? new QueryNameMapper(client.$contract)
                 : undefined);
 
-        this.dialect = getCrudDialect(client.$schema, client.$options);
+        this.dialect = getCrudDialect(client.$contract);
     }
 
     /**
@@ -212,7 +212,7 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
             proceed = async (query: RootOperationNode) => {
                 const _p = (q: RootOperationNode) => _proceed(q);
                 const hookResult = await hook!({
-                    client: this.client as unknown as ClientContract<SchemaDef>,
+                    client: this.client.$contract,
                     schema: this.client.$schema,
                     query,
                     proceed: _p,
@@ -662,7 +662,7 @@ In such cases, ZenStack cannot reliably determine the IDs of the mutated entitie
         if (inTx) {
             innerClient.forceTransaction();
         }
-        return innerClient as unknown as ClientContract<SchemaDef>;
+        return innerClient.$contract;
     }
 
     private andNodes(condition1: WhereNode | undefined, condition2: WhereNode | undefined) {
