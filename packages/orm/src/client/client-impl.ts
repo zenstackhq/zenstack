@@ -51,6 +51,13 @@ type ExtResultFieldDef = {
 };
 
 /**
+ * Returns the name mapper held by a ZenStack executor, or undefined for a plain kysely one.
+ */
+function getExecutorNameMapper(executor: QueryExecutor | undefined) {
+    return executor instanceof ZenStackQueryExecutor ? executor.getNameMapper() : undefined;
+}
+
+/**
  * ZenStack ORM client.
  */
 export const ZenStackClient = function <Schema extends SchemaDef>(
@@ -99,6 +106,16 @@ export class ClientImpl {
                         baseClient.kyselyProps.dialect.createQueryCompiler(),
                         baseClient.kyselyProps.dialect.createAdapter(),
                         new DefaultConnectionProvider(baseClient.kyselyProps.driver),
+                        [],
+                        false,
+                        // A name mapper is derived purely from `$schema` and `$options`, so it can be
+                        // reused when neither changed - which is the case for derived clients like the
+                        // one `$transaction` creates. Rebuilding it is O(models x fields). See #2773.
+                        // Deliberately an identity check: `$use`/`$setOptions` and friends pass a new
+                        // options object, and the mapper's dialect is built from those options.
+                        baseClient.$schema === schema && baseClient.$options === options
+                            ? getExecutorNameMapper(baseClient.kyselyProps.executor)
+                            : undefined,
                     ),
             };
             this.kyselyRaw = baseClient.kyselyRaw;
