@@ -1,5 +1,6 @@
 import { createTestClient, getTestDbProvider } from '@zenstackhq/testtools';
 import { describe, expect, it } from 'vitest';
+import Decimal from 'decimal.js';
 
 const provider = getTestDbProvider();
 
@@ -14,10 +15,34 @@ model User {
 `,
         );
 
+        const user = await db.user.create({
+            data: {
+                balance: null,
+            },
+        });
+
+        expect(user).toMatchObject({
+            balance: null,
+        });
+
+        await db.user.update({
+            data: {
+                balance: Decimal(1),
+            },
+
+            where: {
+                id: user.id,
+            },
+        });
+
         await expect(
-            db.user.create({
+            db.user.update({
                 data: {
                     balance: null,
+                },
+
+                where: {
+                    id: user.id,
                 },
             }),
         ).resolves.toMatchObject({
