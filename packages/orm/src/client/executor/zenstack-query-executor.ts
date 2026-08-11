@@ -96,7 +96,7 @@ export class ZenStackQueryExecutor extends DefaultQueryExecutor {
             this.nameMapper = new QueryNameMapper(client.$contract);
         }
 
-        this.dialect = getCrudDialect(client.$schema, client.$options, client.$contract);
+        this.dialect = getCrudDialect(client.$contract);
     }
 
     private schemaHasMappedNames(schema: SchemaDef) {

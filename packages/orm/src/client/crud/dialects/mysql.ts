@@ -12,19 +12,13 @@ import {
     type SqlBool,
 } from 'kysely';
 import { AnyNullClass, DbNullClass, JsonNullClass } from '../../../common-types';
-import type { ClientContract } from '../../contract';
 import type { NullsOrder, SortOrder } from '../../crud-types';
 import { createInvalidInputError, createNotSupportedError } from '../../errors';
-import type { ClientOptions } from '../../options';
 import { isTypeDef } from '../../query-utils';
 import type { FuzzyFilterOptions } from './base-dialect';
 import { LateralJoinDialectBase } from './lateral-join-dialect-base';
 
 export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDialectBase<Schema> {
-    constructor(schema: Schema, options: ClientOptions<Schema>, client?: ClientContract<Schema>) {
-        super(schema, options, client);
-    }
-
     override get provider() {
         return 'mysql' as const;
     }

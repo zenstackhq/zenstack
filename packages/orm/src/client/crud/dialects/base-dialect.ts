@@ -6,6 +6,7 @@ import { match, P } from 'ts-pattern';
 import { AnyNullClass, DbNullClass, JsonNullClass } from '../../../common-types';
 import type { OrArray } from '../../../utils/type-utils';
 import { AggregateOperators, DELEGATE_JOINED_FIELD_PREFIX, LOGICAL_COMBINATORS } from '../../constants';
+import type { ClientContract } from '../../contract';
 import type {
     BooleanFilter,
     BytesFilter,
@@ -15,7 +16,6 @@ import type {
     SortOrder,
     StringFilter,
 } from '../../crud-types';
-import type { ClientContract } from '../../contract';
 import { createConfigError, createInvalidInputError, createNotSupportedError } from '../../errors';
 import type { ClientOptions } from '../../options';
 import {
@@ -37,16 +37,38 @@ import {
     tmpAlias,
 } from '../../query-utils';
 
+/**
+ * Arguments for constructing a CRUD dialect: either the client executing the queries — schema
+ * and options are derived from it, and it's handed to computed field implementations — or a
+ * standalone schema/options pair for uses that have no client (e.g. output transformation).
+ */
+export type CrudDialectArgs<Schema extends SchemaDef> =
+    | [client: ClientContract<Schema>]
+    | [schema: Schema, options: ClientOptions<Schema>];
+
 export abstract class BaseCrudDialect<Schema extends SchemaDef> {
     protected eb = expressionBuilder<any, any>();
 
-    constructor(
-        protected readonly schema: Schema,
-        protected readonly options: ClientOptions<Schema>,
-        // the client executing the query; optional so the dialect can still be
-        // constructed standalone (e.g. for output transformation only)
-        protected readonly client?: ClientContract<Schema>,
-    ) {}
+    protected readonly schema: Schema;
+    protected readonly options: ClientOptions<Schema>;
+
+    /**
+     * The client executing the query. Unset only when the dialect was constructed from a
+     * standalone schema/options pair, in which case it cannot evaluate computed fields.
+     */
+    protected readonly client: ClientContract<Schema> | undefined;
+
+    constructor(...args: CrudDialectArgs<Schema>) {
+        if (args.length === 1) {
+            const [client] = args;
+            this.client = client;
+            this.schema = client.$schema;
+            this.options = client.$options;
+        } else {
+            [this.schema, this.options] = args;
+            this.client = undefined;
+        }
+    }
 
     // #region capability flags1
 
@@ -1664,6 +1686,9 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             if (!computer) {
                 throw createConfigError(`Computed field "${field}" implementation not provided for model "${model}"`);
             }
+            // every query issued through the ORM builds the dialect from a client, and a dialect
+            // built from a standalone schema/options pair never inlines computed fields
+            invariant(this.client, `computed field "${field}" of model "${model}" needs a client to be evaluated`);
             // `computedArgs` is the query-time args object for a parameterized computed
             // field (undefined otherwise); forwarded as the implementation's 3rd argument.
             return computer(this.eb, { modelAlias, client: this.client }, computedArgs);

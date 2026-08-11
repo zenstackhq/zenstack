@@ -294,11 +294,9 @@ export type ComputedFieldContext<Schema extends SchemaDef> = {
 
     /**
      * The ZenStack client executing the query. Useful for reading per-client state,
-     * e.g. the auth context set via `$setAuth`. Undefined only when the CRUD dialect
-     * is constructed standalone rather than by the ORM runtime — queries issued
-     * through the client API always have it.
+     * e.g. the auth context set via `$setAuth`.
      */
-    client?: ClientContract<Schema>;
+    client: ClientContract<Schema>;
 };
 
 export type ComputedFieldsOptions<Schema extends SchemaDef> = {
