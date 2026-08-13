@@ -34,6 +34,7 @@ model User {
     active    Boolean
     birthdate String?   @date
     localTime String?   @time
+    extId     String?   @uuid
     createdAt DateTime?
     avatar    Bytes?
     metadata  Json?
