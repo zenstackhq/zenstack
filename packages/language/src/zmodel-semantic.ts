@@ -21,6 +21,8 @@ import {
     isPluginField,
     isReferenceExpr,
     isTypeDef,
+    isProcedure,
+    isFunctionParamType,
     type AstNode,
 } from './ast';
 
@@ -62,7 +64,7 @@ export class ZModelSemanticTokenProvider extends AbstractSemanticTokenProvider {
                 property: 'name',
                 type: SemanticTokenTypes.variable,
             });
-        } else if (isDataFieldType(node)) {
+        } else if (isDataFieldType(node) || isFunctionParamType(node)) {
             if (node.type) {
                 acceptor({
                     node,
@@ -88,7 +90,7 @@ export class ZModelSemanticTokenProvider extends AbstractSemanticTokenProvider {
                 property: 'function',
                 type: SemanticTokenTypes.function,
             });
-        } else if (isFunctionDecl(node) || isAttribute(node)) {
+        } else if (isFunctionDecl(node) || isAttribute(node) || isProcedure(node)) {
             acceptor({
                 node,
                 property: 'name',
