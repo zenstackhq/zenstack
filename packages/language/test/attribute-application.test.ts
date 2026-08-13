@@ -588,6 +588,81 @@ describe('Attribute application validation tests', () => {
         });
     });
 
+    describe('Field-level @uuid attribute', () => {
+        it('does not require a version arg', async () => {
+            await loadSchema(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid
+                }
+                `,
+            );
+        });
+
+        it('accepts supported version args', async () => {
+            await loadSchema(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid(4)
+                }
+                `,
+            );
+
+            await loadSchema(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid(7)
+                }
+                `,
+            );
+        });
+
+        it('rejects unsupported version args', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid(1)
+                }
+                `,
+                /`@uuid` version must be `4` or `7`/,
+            );
+
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid(2)
+                }
+                `,
+                /`@uuid` version must be `4` or `7`/,
+            );
+        });
+    });
+
     describe('Native type mapping attributes', () => {
         describe('sqlite', () => {
             it('rejects when any native type mapping attribute is used', async () => {
