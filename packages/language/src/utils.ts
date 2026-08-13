@@ -19,6 +19,7 @@ import {
     isLiteralExpr,
     isMemberAccessExpr,
     isModel,
+    isNumberLiteral,
     isObjectExpr,
     isPlugin,
     isReferenceExpr,
@@ -76,6 +77,13 @@ export function isAuthInvocation(node: AstNode) {
  */
 export function getStringLiteral(node: AstNode | undefined): string | undefined {
     return isStringLiteral(node) ? node.value : undefined;
+}
+
+/**
+ * Try getting number value from a potential number literal expression
+ */
+export function getNumberLiteral(node: AstNode | undefined): number | undefined {
+    return isNumberLiteral(node) ? Number(node.value) : undefined;
 }
 
 const isoDateTimeRegex = /^\d{4}(-\d\d(-\d\d(T\d\d:\d\d(:\d\d)?(\.\d+)?(([+-]\d\d:\d\d)|Z)?)?)?)?$/i;

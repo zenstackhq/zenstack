@@ -29,6 +29,7 @@ import {
     getAttributeArg,
     getContainingDataModel,
     getDataSourceProvider,
+    getNumberLiteral,
     getStringLiteral,
     hasAttribute,
     isAuthOrAuthMemberAccess,
@@ -457,6 +458,14 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
         const provider = getDataSourceProvider(zmodel);
         if (provider && provider !== 'postgresql') {
             accept('error', `\`@fullText\` is only supported for the \`postgresql\` provider`, { node: attr });
+        }
+    }
+
+    @check('@uuid')
+    private _checkUuid(attr: AttributeApplication, accept: ValidationAcceptor) {
+        const version = getNumberLiteral(attr.args[0]?.value);
+        if (version !== undefined && version !== 4 && version !== 7) {
+            accept('error', `\`@uuid\` version must be \`4\` or \`7\``, { node: attr.args[0]! });
         }
     }
 
