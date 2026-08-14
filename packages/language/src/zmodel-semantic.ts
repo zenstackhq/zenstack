@@ -34,6 +34,7 @@ import {
     isAttributeParam,
     isProcedureParam,
     type AstNode,
+    isDataFieldParam,
 } from './ast';
 
 export class ZModelSemanticTokenProvider extends AbstractSemanticTokenProvider {
@@ -192,7 +193,13 @@ export class ZModelSemanticTokenProvider extends AbstractSemanticTokenProvider {
                 property: 'name',
                 type: SemanticTokenTypes.enum,
             });
-        } else if (isFunctionParam(node) || isAttributeArg(node) || isAttributeParam(node) || isProcedureParam(node)) {
+        } else if (
+            isFunctionParam(node) ||
+            isAttributeArg(node) ||
+            isAttributeParam(node) ||
+            isProcedureParam(node) ||
+            isDataFieldParam(node)
+        ) {
             acceptor({
                 node,
                 property: 'name',
