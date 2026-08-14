@@ -26,9 +26,7 @@ import {
     isAttributeParamType,
     isUnaryExpr,
     isBinaryExpr,
-    isBooleanLiteral,
     isNumberLiteral,
-    isNullExpr,
     isCollectionPredicateBinding,
     isFunctionParam,
     isAttributeParam,
@@ -161,20 +159,8 @@ export class ZModelSemanticTokenProvider extends AbstractSemanticTokenProvider {
                 property: 'value',
                 type: SemanticTokenTypes.number,
             });
-        } else if (isBooleanLiteral(node) || isNullExpr(node)) {
-            acceptor({
-                node,
-                property: 'value',
-                type: SemanticTokenTypes.keyword,
-            });
         } else if (isUnaryExpr(node) || isBinaryExpr(node)) {
-            if (node.operator === 'in') {
-                acceptor({
-                    node,
-                    property: 'operator',
-                    type: SemanticTokenTypes.keyword,
-                });
-            } else {
+            if (node.operator !== 'in') {
                 acceptor({
                     node,
                     property: 'operator',
