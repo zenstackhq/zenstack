@@ -283,16 +283,36 @@ export type OmitConfig<Schema extends SchemaDef> = {
     };
 };
 
+/**
+ * Context object passed to computed field implementations.
+ */
+export type ComputedFieldContext<Schema extends SchemaDef> = {
+    /**
+     * The alias name that can be used to refer to the containing model
+     */
+    modelAlias: string;
+
+    /**
+     * The ZenStack client executing the query. Useful for reading per-client state,
+     * e.g. the auth context set via `$setAuth`.
+     */
+    client: ClientContract<Schema>;
+};
+
 export type ComputedFieldsOptions<Schema extends SchemaDef> = {
     [Model in GetModels<Schema> as 'computedFields' extends keyof GetModel<Schema, Model>
         ? Uncapitalize<Model>
         : never]: {
         [Field in keyof Schema['models'][Model]['computedFields']]: Schema['models'][Model]['computedFields'][Field] extends infer Func
-            ? Func extends (...args: any[]) => infer R
+            ? Func extends (...args: infer Params) => infer R
                 ? (
                       // inject a first parameter for expression builder
                       p: ExpressionBuilder<ToKyselySchema<Schema>, Model>,
-                      ...args: Parameters<Func>
+                      // runtime-provided context (the generated stub only declares
+                      // `modelAlias`; the runtime passes the full context)
+                      context: ComputedFieldContext<Schema>,
+                      // query-time args of a parameterized field, from the stub
+                      ...args: Params extends [any, ...infer Rest] ? Rest : []
                   ) => OperandExpression<R> // wrap the return type with Kysely `OperandExpression`
                 : never
             : never;

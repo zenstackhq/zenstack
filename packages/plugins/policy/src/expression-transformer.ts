@@ -133,7 +133,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
     private readonly eb = expressionBuilder<any, any>();
 
     constructor(private readonly client: ClientContract<Schema>) {
-        this.dialect = getCrudDialect(this.schema, this.clientOptions);
+        this.dialect = getCrudDialect(this.client);
     }
 
     get schema() {

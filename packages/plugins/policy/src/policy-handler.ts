@@ -75,7 +75,7 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         private readonly options: PolicyPluginOptions = {},
     ) {
         super();
-        this.dialect = getCrudDialect(this.client.$schema, this.client.$options);
+        this.dialect = getCrudDialect(this.client);
     }
 
     // #region main entry point

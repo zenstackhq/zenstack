@@ -989,4 +989,82 @@ model User {
             }),
         ).toBeRejectedByValidation(['upperName']);
     });
+
+    it('provides the client in the computed field context', async () => {
+        const db = await createTestClient(
+            `
+model Post {
+    id Int @id @default(autoincrement())
+    authorId Int
+    isMine Boolean @computed
+}
+`,
+            {
+                computedFields: {
+                    Post: {
+                        // the dialect parenthesizes an inlined implementation itself; the explicit
+                        // `eb.parens` here guards that an already-parenthesized one isn't wrapped twice
+                        isMine: (eb: any, { client }: any) => eb.parens(eb('authorId', '=', client.$auth?.id ?? -1)),
+                    },
+                },
+            } as any,
+        );
+
+        await db.post.create({ data: { id: 1, authorId: 1 } });
+        await db.post.create({ data: { id: 2, authorId: 2 } });
+
+        // no auth set: nothing is mine
+        await expect(db.post.findUnique({ where: { id: 1 } })).resolves.toMatchObject({ isMine: false });
+
+        // the client derived with $setAuth carries its auth into the computed field
+        const authedDb = db.$setAuth({ id: 1 });
+        await expect(authedDb.post.findUnique({ where: { id: 1 } })).resolves.toMatchObject({ isMine: true });
+        await expect(authedDb.post.findUnique({ where: { id: 2 } })).resolves.toMatchObject({ isMine: false });
+        await expect(authedDb.post.findMany({ where: { isMine: true } })).resolves.toHaveLength(1);
+
+        // the original client is unaffected
+        await expect(db.post.findUnique({ where: { id: 1 } })).resolves.toMatchObject({ isMine: false });
+    });
+
+    it('contains the precedence of an inlined computed field expression', async () => {
+        const db = await createTestClient(
+            `
+model Post {
+    id Int @id @default(autoincrement())
+    authorId Int
+    isMine Boolean @computed
+    isSpecial Boolean @computed
+}
+`,
+            {
+                computedFields: {
+                    Post: {
+                        // top-level node is a binary operation, which is embedded into
+                        // `<expr> = $n` when the field is used as a boolean filter
+                        isMine: (eb: any) => eb('authorId', '=', 1),
+                        // top-level node is a logical combinator
+                        isSpecial: (eb: any) => eb.or([eb('authorId', '=', 1), eb('id', '=', 2)]),
+                    },
+                },
+            } as any,
+        );
+
+        await db.post.create({ data: { id: 1, authorId: 1 } });
+        await db.post.create({ data: { id: 2, authorId: 2 } });
+        await db.post.create({ data: { id: 3, authorId: 3 } });
+
+        const findIds = async (where: any) =>
+            (await db.post.findMany({ where, orderBy: { id: 'asc' } })).map((r: any) => r.id);
+
+        expect(await findIds({ isMine: true })).toEqual([1]);
+        expect(await findIds({ isMine: false })).toEqual([2, 3]);
+        expect(await findIds({ NOT: { isMine: true } })).toEqual([2, 3]);
+        expect(await findIds({ isSpecial: true })).toEqual([1, 2]);
+
+        // reading the fields is unaffected
+        await expect(db.post.findUnique({ where: { id: 1 } })).resolves.toMatchObject({
+            isMine: true,
+            isSpecial: true,
+        });
+    });
 });

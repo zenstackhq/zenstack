@@ -51,6 +51,13 @@ type ExtResultFieldDef = {
 };
 
 /**
+ * Returns the name mapper held by a ZenStack executor, or undefined for a plain kysely one.
+ */
+function getExecutorNameMapper(executor: QueryExecutor | undefined) {
+    return executor instanceof ZenStackQueryExecutor ? executor.getNameMapper() : undefined;
+}
+
+/**
  * ZenStack ORM client.
  */
 export const ZenStackClient = function <Schema extends SchemaDef>(
@@ -99,6 +106,16 @@ export class ClientImpl {
                         baseClient.kyselyProps.dialect.createQueryCompiler(),
                         baseClient.kyselyProps.dialect.createAdapter(),
                         new DefaultConnectionProvider(baseClient.kyselyProps.driver),
+                        [],
+                        false,
+                        // A name mapper is derived purely from `$schema` and `$options`, so it can be
+                        // reused when neither changed - which is the case for derived clients like the
+                        // one `$transaction` creates. Rebuilding it is O(models x fields). See #2773.
+                        // Deliberately an identity check: `$use`/`$setOptions` and friends pass a new
+                        // options object, and the mapper's dialect is built from those options.
+                        baseClient.$schema === schema && baseClient.$options === options
+                            ? getExecutorNameMapper(baseClient.kyselyProps.executor)
+                            : undefined,
                     ),
             };
             this.kyselyRaw = baseClient.kyselyRaw;
@@ -253,7 +270,7 @@ export class ClientImpl {
     ): Promise<any> {
         if (this.kysely.isTransaction) {
             // proceed directly if already in a transaction
-            return callback(this as unknown as ClientContract<SchemaDef>);
+            return callback(this.$contract);
         } else {
             // otherwise, create a new transaction, clone the client, and execute the callback
             let txBuilder = this.kysely.transaction();
@@ -263,7 +280,7 @@ export class ClientImpl {
             return txBuilder.execute((tx) => {
                 const txClient = new ClientImpl(this.schema, this.$options, this);
                 txClient.kysely = tx;
-                return callback(txClient as unknown as ClientContract<SchemaDef>);
+                return callback(txClient.$contract);
             });
         }
     }
@@ -285,7 +302,7 @@ export class ClientImpl {
             const result: any[] = [];
             for (const promise of arg) {
                 const cb = this.getPromiseCallback(promise);
-                result.push(await cb(txClient as unknown as ClientContract<SchemaDef>));
+                result.push(await cb(txClient.$contract));
             }
             return result;
         };
@@ -444,6 +461,17 @@ export class ClientImpl {
 
     get $auth() {
         return this.auth;
+    }
+
+    /**
+     * This client viewed through its public typed contract. `ClientImpl` is intentionally
+     * untyped internally — the model accessors are added by the runtime proxy — so this
+     * getter is the single sanctioned bridge to `ClientContract`. The proxy invokes it
+     * with the proxy as `this` (`Reflect.get` with receiver), so the returned reference
+     * keeps the model accessors.
+     */
+    get $contract(): ClientContract<SchemaDef> {
+        return this as unknown as ClientContract<SchemaDef>;
     }
 
     $setOptions<Options extends ClientOptions<SchemaDef>>(options: Options): ClientContract<SchemaDef, Options> {
