@@ -167,11 +167,19 @@ export class ZModelSemanticTokenProvider extends AbstractSemanticTokenProvider {
                 type: SemanticTokenTypes.keyword,
             });
         } else if (isUnaryExpr(node) || isBinaryExpr(node)) {
-            acceptor({
-                node,
-                property: 'operator',
-                type: SemanticTokenTypes.operator,
-            });
+            if (node.operator === 'in') {
+                acceptor({
+                    node,
+                    property: 'operator',
+                    type: SemanticTokenTypes.keyword,
+                });
+            } else {
+                acceptor({
+                    node,
+                    property: 'operator',
+                    type: SemanticTokenTypes.operator,
+                });
+            }
         } else if (isEnumField(node)) {
             acceptor({
                 node,
