@@ -123,11 +123,31 @@ export class ZModelSemanticTokenProvider extends AbstractSemanticTokenProvider {
                 });
             }
         } else if (isReferenceExpr(node)) {
-            acceptor({
-                node,
-                property: 'target',
-                type: SemanticTokenTypes.property,
-            });
+            if (isEnumField(node.target.ref)) {
+                acceptor({
+                    node,
+                    property: 'target',
+                    type: SemanticTokenTypes.enumMember,
+                });
+            } else if (isFunctionParam(node.target.ref)) {
+                acceptor({
+                    node,
+                    property: 'target',
+                    type: SemanticTokenTypes.parameter,
+                });
+            } else if (isCollectionPredicateBinding(node.target.ref)) {
+                acceptor({
+                    node,
+                    property: 'target',
+                    type: SemanticTokenTypes.variable,
+                });
+            } else {
+                acceptor({
+                    node,
+                    property: 'target',
+                    type: SemanticTokenTypes.property,
+                });
+            }
         } else if (isMemberAccessExpr(node)) {
             acceptor({
                 node,
