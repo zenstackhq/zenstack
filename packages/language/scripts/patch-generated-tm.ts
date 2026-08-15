@@ -1,3 +1,8 @@
+/**
+ * Post-processes syntaxes/zmodel.tmLanguage.json after `langium generate` to correct
+ * highlighting for some keywords.
+ */
+
 import tm from '../syntaxes/zmodel.tmLanguage.json';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
