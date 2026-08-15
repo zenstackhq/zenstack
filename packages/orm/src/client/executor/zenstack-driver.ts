@@ -63,22 +63,31 @@ export class ZenStackDriver implements Driver {
         }
 
         await this.#connectionMutex?.obtainLock();
-        const connection = await this.#driver.acquireConnection();
 
-        if (!this.#connections.has(connection)) {
-            if (this.#needsLogging()) {
-                this.#addLogging(connection);
+        try {
+            const connection = await this.#driver.acquireConnection();
+            if (!this.#connections.has(connection)) {
+                if (this.#needsLogging()) {
+                    this.#addLogging(connection);
+                }
+
+                this.#connections.add(connection);
             }
-
-            this.#connections.add(connection);
+            return connection;
+        } catch (error) {
+            this.#connectionMutex?.releaseLock();
+            throw error;
         }
-
-        return connection;
     }
 
     async releaseConnection(connection: DatabaseConnection): Promise<void> {
         await this.#driver.releaseConnection(connection);
-        this.#connectionMutex?.releaseLock();
+
+        try {
+            await this.#driver.releaseConnection(connection);
+        } finally {
+            this.#connectionMutex?.releaseLock();
+        }
     }
 
     async beginTransaction(connection: DatabaseConnection, settings: TransactionSettings): Promise<void> {
