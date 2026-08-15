@@ -81,8 +81,6 @@ export class ZenStackDriver implements Driver {
     }
 
     async releaseConnection(connection: DatabaseConnection): Promise<void> {
-        await this.#driver.releaseConnection(connection);
-
         try {
             await this.#driver.releaseConnection(connection);
         } finally {
