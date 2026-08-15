@@ -17,11 +17,15 @@ import {
 } from 'langium';
 import { match } from 'ts-pattern';
 import {
+    AttributeArg,
     BinaryExpr,
+    DataModel,
     Expression,
     MemberAccessExpr,
+    isAttributeArg,
     isCollectionPredicateBinding,
     isDataField,
+    isDataFieldAttribute,
     isDataModel,
     isEnumField,
     isInvocationExpr,
@@ -131,6 +135,13 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
             const containerCollectionPredicate = getCollectionPredicateContext(context.container);
             if (containerCollectionPredicate) {
                 return this.getCollectionPredicateScope(context, containerCollectionPredicate);
+            }
+
+            // @relation(fields: [], references: [])
+            // `references` should include the target model's fields instead of the current model's
+            const targetModel = this.getTransitiveFieldReferenceTargetModel(context);
+            if (targetModel) {
+                return this.getTransitiveFieldReferenceScope(targetModel);
             }
         }
 
@@ -262,6 +273,44 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
                 return this.createScopeForAuth(expr, globalScope);
             })
             .otherwise(() => EMPTY_SCOPE);
+    }
+
+    private getTransitiveFieldReferenceScope(dm: DataModel) {
+        return this.createScope(dm.fields.map((field) => this.descriptions.createDescription(field, field.name)));
+    }
+
+    private getTransitiveFieldReferenceTargetModel(context: ReferenceInfo) {
+        let current: AstNode | undefined = context.container;
+        while (current) {
+            if (isAttributeArg(current)) {
+                const attr = current.$container;
+                if (!isDataFieldAttribute(attr)) {
+                    return undefined;
+                }
+
+                const decl = attr.decl.ref;
+                if (!decl) {
+                    return undefined;
+                }
+
+                const param = current.name
+                    ? decl.params.find((p) => p.name === (current as AttributeArg).name)
+                    : decl.params[attr.args.indexOf(current)];
+                if (param?.type?.type !== 'TransitiveFieldReference') {
+                    return undefined;
+                }
+
+                const field = attr.$container;
+                if (!isDataField(field)) {
+                    return undefined;
+                }
+
+                const targetType = field.type?.reference?.ref;
+                return isDataModel(targetType) ? targetType : undefined;
+            }
+            current = current.$container;
+        }
+        return undefined;
     }
 
     private createScopeForContainingModel(node: AstNode, globalScope: Scope) {
