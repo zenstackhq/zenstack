@@ -276,7 +276,9 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
     }
 
     private getTransitiveFieldReferenceScope(dm: DataModel) {
-        return this.createScope(dm.fields.map((field) => this.descriptions.createDescription(field, field.name)));
+        return this.createScope(
+            getAllFields(dm).map((field) => this.descriptions.createDescription(field, field.name)),
+        );
     }
 
     private getTransitiveFieldReferenceTargetModel(context: ReferenceInfo) {
