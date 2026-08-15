@@ -1,4 +1,13 @@
-import type { CompiledQuery, DatabaseConnection, Driver, Log, QueryResult, TransactionSettings } from 'kysely';
+import type {
+    CompiledQuery,
+    DatabaseConnection,
+    DialectAdapter,
+    Driver,
+    Log,
+    QueryResult,
+    TransactionSettings,
+} from 'kysely';
+import { ConnectionMutex } from './connection-mutex';
 
 /**
  * Copied from kysely's RuntimeDriver
@@ -6,6 +15,7 @@ import type { CompiledQuery, DatabaseConnection, Driver, Log, QueryResult, Trans
 export class ZenStackDriver implements Driver {
     readonly #driver: Driver;
     readonly #log: Log;
+    readonly #connectionMutex?: ConnectionMutex;
 
     #initPromise?: Promise<void>;
     #initDone: boolean;
@@ -13,10 +23,14 @@ export class ZenStackDriver implements Driver {
     #connections = new WeakSet<DatabaseConnection>();
     #txConnections = new WeakMap<DatabaseConnection, Array<() => Promise<unknown>>>();
 
-    constructor(driver: Driver, log: Log) {
+    constructor(driver: Driver, log: Log, adapter: DialectAdapter) {
         this.#initDone = false;
         this.#driver = driver;
         this.#log = log;
+
+        if (!adapter.supportsMultipleConnections) {
+            this.#connectionMutex = new ConnectionMutex();
+        }
     }
 
     async init(): Promise<void> {
@@ -48,6 +62,7 @@ export class ZenStackDriver implements Driver {
             await this.init();
         }
 
+        await this.#connectionMutex?.obtainLock();
         const connection = await this.#driver.acquireConnection();
 
         if (!this.#connections.has(connection)) {
@@ -63,6 +78,7 @@ export class ZenStackDriver implements Driver {
 
     async releaseConnection(connection: DatabaseConnection): Promise<void> {
         await this.#driver.releaseConnection(connection);
+        this.#connectionMutex?.releaseLock();
     }
 
     async beginTransaction(connection: DatabaseConnection, settings: TransactionSettings): Promise<void> {
