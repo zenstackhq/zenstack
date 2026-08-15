@@ -3,7 +3,6 @@ import { writeFileSync } from 'fs';
 import { join } from 'path';
 
 const tmPath = join(import.meta.dirname, '../syntaxes/zmodel.tmLanguage.json');
-
 const control = tm.patterns.find((pattern) => pattern.name === 'keyword.control.zmodel-v3');
 
 if (!control?.match) {
@@ -11,10 +10,8 @@ if (!control?.match) {
 }
 
 const keywordsToRemove = new Set(['this', 'null', 'true', 'false', 'in']);
-
-const pattern = /\((.+)\)/g;
-
-const [, keywordsMatch] = pattern.exec(control.match) as RegExpExecArray;
+const matchPattern = /\((.+)\)/g;
+const [, keywordsMatch] = matchPattern.exec(control.match) as RegExpExecArray;
 const keywordsArray = keywordsMatch.split('|').filter((keyword) => !keywordsToRemove.has(keyword));
 
 control.match = control.match.replace(keywordsMatch, keywordsArray.join('|'));
@@ -35,3 +32,4 @@ tm.patterns.push({
 });
 
 writeFileSync(tmPath, JSON.stringify(tm, null, 2));
+console.log('Patched syntaxes/zmodel.tmLanguage.json');
