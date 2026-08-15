@@ -183,7 +183,7 @@ export class ZModelCompletionProvider extends DefaultCompletionProvider {
         } else if (isDataModelAttribute(context.node) || isDataFieldAttribute(context.node)) {
             const exprContext = this.getAttributeContextType(context.node);
             if (exprContext === 'DefaultValue') {
-                return ['true', 'false', 'null'].includes(keyword);
+                return ['true', 'false'].includes(keyword);
             } else {
                 return ['true', 'false', 'null', 'this'].includes(keyword);
             }
