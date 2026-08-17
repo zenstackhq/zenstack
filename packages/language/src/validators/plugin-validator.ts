@@ -23,7 +23,7 @@ export default class PluginValidator implements AstValidator<Plugin> {
 
         const providerValue = getStringLiteral(provider.value);
         if (!providerValue) {
-            accept('error', '"provider" must be set to a string literal', {
+            accept('error', '"provider" must be set to a non-empty string literal', {
                 node: provider.value,
             });
         }
