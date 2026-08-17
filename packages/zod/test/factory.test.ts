@@ -86,6 +86,7 @@ describe('SchemaFactory - makeModelSchema', () => {
             expectTypeOf<Address['street']>().toEqualTypeOf<string>();
             expectTypeOf<Address['city']>().toEqualTypeOf<string>();
             expectTypeOf<Address['zip']>().toEqualTypeOf<string | null | undefined>();
+            expectTypeOf<Address['type']>().toEqualTypeOf<string>();
             expectTypeOf<User['address']>().toEqualTypeOf<Address | null | undefined>();
 
             // relation fields are NOT present by default — use include/select to opt in
@@ -439,7 +440,7 @@ describe('SchemaFactory - makeModelSchema', () => {
             const userSchema = factory.makeModelSchema('User');
             const result = userSchema.safeParse({
                 ...validUser,
-                address: { residents: [], street: '123 Main St', city: 'Springfield', zip: null },
+                address: { residents: [], street: '123 Main St', city: 'Springfield', zip: null, type: 'RESIDENTIAL' },
             });
             expect(result.success).toBe(true);
         });
@@ -448,7 +449,13 @@ describe('SchemaFactory - makeModelSchema', () => {
             const userSchema = factory.makeModelSchema('User');
             const result = userSchema.safeParse({
                 ...validUser,
-                address: { residents: [], street: '123 Main St', city: 'Springfield', zip: '12345' },
+                address: {
+                    residents: [],
+                    street: '123 Main St',
+                    city: 'Springfield',
+                    zip: '12345',
+                    type: 'RESIDENTIAL',
+                },
             });
             expect(result.success).toBe(true);
         });
@@ -577,6 +584,39 @@ describe('SchemaFactory - makeTypeSchema', () => {
             ).toBe(true);
         });
 
+        it('passes when field value matches implicitly converted enum', () => {
+            const addressSchema = factory.makeTypeSchema('Address');
+            let result = addressSchema.safeParse({
+                residents: [],
+                street: '123 Main',
+                city: 'Springfield',
+                zip: '12345',
+                type: 'RESIDENTIAL',
+            });
+            expect(result.success).toBe(true);
+
+            result = addressSchema.safeParse({
+                residents: [],
+                street: '123 Main',
+                city: 'Springfield',
+                zip: '12345',
+                type: 'COMMERCIAL',
+            });
+            expect(result.success).toBe(true);
+        });
+
+        it('fails when field value does not match implicitly converted enum', () => {
+            const addressSchema = factory.makeTypeSchema('Address');
+            const result = addressSchema.safeParse({
+                residents: [],
+                street: '123 Main',
+                city: 'Springfield',
+                zip: '123',
+                type: 'UNKNOWN',
+            });
+            expect(result.success).toBe(false);
+        });
+
         it('fails when zip is fewer than 5 characters', () => {
             const addressSchema = factory.makeTypeSchema('Address');
             const result = addressSchema.safeParse({
@@ -620,6 +660,7 @@ describe('SchemaFactory - makeTypeSchema', () => {
                 street: '123 Main',
                 city: 'Springfield',
                 zip: '123',
+                type: 'RESIDENTIAL',
             });
             expect(result.success).toBe(false);
             if (!result.success) {

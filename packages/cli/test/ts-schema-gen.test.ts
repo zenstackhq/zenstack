@@ -736,4 +736,63 @@ model Post {
             plugins: {},
         });
     });
+
+    it('supports implicit conversions from enums to arrays', async () => {
+        const { schema } = await generateTsSchema(`
+enum PostStatus {
+    DRAFT
+    ACTIVE
+    CANCELLED
+}
+
+model User {
+    id Int @id @default(autoincrement())
+}
+
+model Post {
+    id     String @id
+    status String
+
+    @@validate(status in PostStatus)
+}
+            `);
+
+        expect(schema.models['Post']?.attributes).toMatchObject([
+            {
+                name: '@@validate',
+                args: [
+                    {
+                        name: 'value',
+                        value: {
+                            kind: 'binary',
+                            op: 'in',
+                            left: {
+                                kind: 'field',
+                                field: 'status',
+                            },
+                            right: {
+                                kind: 'array',
+                                type: 'PostStatus',
+                                items: [
+                                    {
+                                        kind: 'literal',
+                                        value: 'DRAFT',
+                                    },
+                                    {
+                                        kind: 'literal',
+                                        value: 'ACTIVE',
+                                    },
+                                    {
+                                        kind: 'literal',
+                                        value: 'CANCELLED',
+                                    },
+                                ],
+                            },
+                            binding: undefined,
+                        },
+                    },
+                ],
+            },
+        ]);
+    });
 });
