@@ -10,12 +10,19 @@ enum Status {
     @@meta("description", "User account status")
 }
 
+enum AddressType {
+    RESIDENTIAL
+    COMMERCIAL
+}
+
 type Address {
     residents String[]
     street    String   @meta("description", "Street address line")
     city      String   @length(2)
     zip       String?
+    type      String
 
+    @@validate(type in AddressType)
     @@validate(zip == null || length(zip) == 5, "Zip code must be exactly 5 characters", ["zip"])
     @@meta("description", "A mailing address")
 }
