@@ -611,7 +611,7 @@ describe('SchemaFactory - makeTypeSchema', () => {
                 residents: [],
                 street: '123 Main',
                 city: 'Springfield',
-                zip: '123',
+                zip: '12345',
                 type: 'UNKNOWN',
             });
             expect(result.success).toBe(false);
