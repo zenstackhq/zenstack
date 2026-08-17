@@ -738,7 +738,7 @@ export function getPluginDocuments(model: Model, schemaPath: string): string[] {
         }
 
         const provider = getLiteral<string>(providerField.value);
-        if (!provider) {
+        if (!provider || typeof provider !== 'string') {
             continue;
         }
 
