@@ -14,7 +14,27 @@ if (!control?.match) {
     throw new Error('Could not find control pattern/match');
 }
 
-const keywordsToRemove = new Set(['this', 'null', 'true', 'false', 'in']);
+const keywordsToRemove = new Set([
+    'this',
+    'null',
+    'true',
+    'false',
+    'in',
+    'type',
+    'datasource',
+    'model',
+    'enum',
+    'generator',
+    'attribute',
+    'view',
+    'function',
+    'mutation',
+    'procedure',
+    'plugin',
+    'abstract',
+    'extends',
+    'with',
+]);
 const matchPattern = /\((.+)\)/g;
 const [, keywordsMatch] = matchPattern.exec(control.match) as RegExpExecArray;
 const keywordsArray = keywordsMatch.split('|').filter((keyword) => !keywordsToRemove.has(keyword));
@@ -29,6 +49,16 @@ tm.patterns.push({
 tm.patterns.push({
     name: 'variable.language.this',
     match: '\\b(this)\\b',
+});
+
+tm.patterns.push({
+    name: 'storage.modifier',
+    match: '\\b(mutation|abstract|extends|with)\\b',
+});
+
+tm.patterns.push({
+    name: 'storage.type',
+    match: '\\b(type|datasource|model|enum|generator|attribute|view|function|procedure|plugin)\\b',
 });
 
 tm.patterns.push({
