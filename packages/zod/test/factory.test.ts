@@ -464,7 +464,14 @@ describe('SchemaFactory - makeModelSchema', () => {
             const userSchema = factory.makeModelSchema('User');
             const result = userSchema.safeParse({
                 ...validUser,
-                address: { residents: [], street: '123 Main St', city: 'Springfield', zip: null, extra: 'field' },
+                address: {
+                    residents: [],
+                    street: '123 Main St',
+                    city: 'Springfield',
+                    zip: null,
+                    extra: 'field',
+                    type: 'RESIDENTIAL',
+                },
             });
             expect(result.success).toBe(false);
         });
@@ -525,7 +532,13 @@ describe('SchemaFactory - makeTypeSchema', () => {
     it('generates schema for Address typedef', () => {
         const addressSchema = factory.makeTypeSchema('Address');
         expect(
-            addressSchema.safeParse({ residents: [], street: '123 Main', city: 'Springfield', zip: null }).success,
+            addressSchema.safeParse({
+                residents: [],
+                street: '123 Main',
+                city: 'Springfield',
+                zip: null,
+                type: 'RESIDENTIAL',
+            }).success,
         ).toBe(true);
     });
 
@@ -543,6 +556,7 @@ describe('SchemaFactory - makeTypeSchema', () => {
             city: 'Springfield',
             zip: null,
             extra: 'field',
+            type: 'RESIDENTIAL',
         });
         expect(result.success).toBe(false);
     });
@@ -550,14 +564,26 @@ describe('SchemaFactory - makeTypeSchema', () => {
     it('accepts Address with optional zip as null', () => {
         const addressSchema = factory.makeTypeSchema('Address');
         expect(
-            addressSchema.safeParse({ residents: [], street: '123 Main', city: 'Springfield', zip: null }).success,
+            addressSchema.safeParse({
+                residents: [],
+                street: '123 Main',
+                city: 'Springfield',
+                zip: null,
+                type: 'RESIDENTIAL',
+            }).success,
         ).toBe(true);
     });
 
     it('accepts Address with optional zip as a string', () => {
         const addressSchema = factory.makeTypeSchema('Address');
         expect(
-            addressSchema.safeParse({ residents: [], street: '123 Main', city: 'Springfield', zip: '12345' }).success,
+            addressSchema.safeParse({
+                residents: [],
+                street: '123 Main',
+                city: 'Springfield',
+                zip: '12345',
+                type: 'RESIDENTIAL',
+            }).success,
         ).toBe(true);
     });
 
@@ -565,22 +591,34 @@ describe('SchemaFactory - makeTypeSchema', () => {
         it('passes when zip is null', () => {
             const addressSchema = factory.makeTypeSchema('Address');
             expect(
-                addressSchema.safeParse({ residents: [], street: '123 Main', city: 'Springfield', zip: null }).success,
+                addressSchema.safeParse({
+                    residents: [],
+                    street: '123 Main',
+                    city: 'Springfield',
+                    zip: null,
+                    type: 'RESIDENTIAL',
+                }).success,
             ).toBe(true);
         });
 
         it('passes when zip is omitted', () => {
             const addressSchema = factory.makeTypeSchema('Address');
-            expect(addressSchema.safeParse({ residents: [], street: '123 Main', city: 'Springfield' }).success).toBe(
-                true,
-            );
+            expect(
+                addressSchema.safeParse({ residents: [], street: '123 Main', city: 'Springfield', type: 'RESIDENTIAL' })
+                    .success,
+            ).toBe(true);
         });
 
         it('passes when zip is exactly 5 characters', () => {
             const addressSchema = factory.makeTypeSchema('Address');
             expect(
-                addressSchema.safeParse({ residents: [], street: '123 Main', city: 'Springfield', zip: '90210' })
-                    .success,
+                addressSchema.safeParse({
+                    residents: [],
+                    street: '123 Main',
+                    city: 'Springfield',
+                    zip: '90210',
+                    type: 'RESIDENTIAL',
+                }).success,
             ).toBe(true);
         });
 
@@ -624,6 +662,7 @@ describe('SchemaFactory - makeTypeSchema', () => {
                 street: '123 Main',
                 city: 'Springfield',
                 zip: '123',
+                type: 'RESIDENTIAL',
             });
             expect(result.success).toBe(false);
         });
@@ -635,6 +674,7 @@ describe('SchemaFactory - makeTypeSchema', () => {
                 street: '123 Main',
                 city: 'Springfield',
                 zip: '123456',
+                type: 'RESIDENTIAL',
             });
             expect(result.success).toBe(false);
         });
@@ -646,6 +686,7 @@ describe('SchemaFactory - makeTypeSchema', () => {
                 street: '123 Main',
                 city: 'Springfield',
                 zip: '123',
+                type: 'RESIDENTIAL',
             });
             expect(result.success).toBe(false);
             if (!result.success) {
@@ -670,7 +711,13 @@ describe('SchemaFactory - makeTypeSchema', () => {
 
         it('fails when city is too short', () => {
             const addressSchema = factory.makeTypeSchema('Address');
-            const result = addressSchema.safeParse({ residents: [], street: '123 Main', city: '', zip: '12345' });
+            const result = addressSchema.safeParse({
+                residents: [],
+                street: '123 Main',
+                city: '',
+                zip: '12345',
+                type: 'RESIDENTIAL',
+            });
             expect(result.success).toBe(false);
         });
 
@@ -694,13 +741,19 @@ describe('SchemaFactory - makeTypeSchema', () => {
                 avatar: null,
                 metadata: null,
                 status: 'ACTIVE',
-                address: { residents: [], street: '123 Main', city: 'Springfield', zip: '90210' },
+                address: { residents: [], street: '123 Main', city: 'Springfield', zip: '90210', type: 'RESIDENTIAL' },
             };
             expect(userSchema.safeParse(validUser).success).toBe(true);
             expect(
                 userSchema.safeParse({
                     ...validUser,
-                    address: { residents: ['Alice'], street: '123 Main', city: 'Springfield', zip: '123' },
+                    address: {
+                        residents: ['Alice'],
+                        street: '123 Main',
+                        city: 'Springfield',
+                        zip: '123',
+                        type: 'RESIDENTIAL',
+                    },
                 }).success,
             ).toBe(false);
         });
