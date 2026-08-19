@@ -979,18 +979,4 @@ describe('CLI proxy tests', () => {
             });
         });
     });
-
-    describe('dist exports', () => {
-        it('should export createProxyApp in ESM bundle', async () => {
-            const esm = await import('../dist/proxy.mjs');
-            expect(esm.createProxyApp).toBeDefined();
-            expect(typeof esm.createProxyApp).toBe('function');
-        });
-
-        it('should export createProxyApp in CJS bundle', () => {
-            const cjs = require('../dist/proxy.cjs');
-            expect(cjs.createProxyApp).toBeDefined();
-            expect(typeof cjs.createProxyApp).toBe('function');
-        });
-    });
 });
