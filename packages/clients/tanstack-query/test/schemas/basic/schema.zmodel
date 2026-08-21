@@ -3,33 +3,39 @@ datasource db {
 }
 
 model User {
-    id        String   @id @default(cuid())
-    email     String   @unique
-    name      String?
-    posts     Post[]
+    id      String   @id @default(cuid())
+    email   String   @unique
+    name    String?
+    posts   Post[]
+    profile Profile? @json
 }
 
 model Post {
-    id        String    @id @default(cuid())
-    title     String
-    owner     User?     @relation(fields: [ownerId], references: [id])
-    ownerId   String?
-    category  Category? @relation(fields: [categoryId], references: [id])
+    id         String    @id @default(cuid())
+    title      String
+    owner      User?     @relation(fields: [ownerId], references: [id])
+    ownerId    String?
+    category   Category? @relation(fields: [categoryId], references: [id])
     categoryId String?
 }
 
 model Category {
-    id    String   @id @default(cuid())
-    name  String   @unique
+    id    String @id @default(cuid())
+    name  String @unique
     posts Post[]
 }
 
 model Foo {
-    id String @id @default(cuid())
+    id   String @id @default(cuid())
     type String
     @@delegate(type)
 }
 
 model Bar extends Foo {
     title String
+}
+
+type Profile {
+    bio String
+    @@strict
 }

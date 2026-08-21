@@ -729,3 +729,8 @@ attribute @meta(_ name: String, _ value: Any)
  * Marks an attribute as deprecated.
  */
 attribute @@@deprecated(_ message: String)
+
+/**
+ * Indicates a type def should reject unknown fields.
+ */
+attribute @@strict() @@@once @@@validation

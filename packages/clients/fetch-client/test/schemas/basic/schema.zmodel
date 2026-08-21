@@ -16,6 +16,12 @@ model Post {
     authorId String?
 }
 
+type Notification {
+    message String
+
+    @@strict
+}
+
 procedure getStats(): Int
 
-mutation procedure sendNotification(message: String): Boolean
+mutation procedure sendNotification(notification: Notification): Boolean

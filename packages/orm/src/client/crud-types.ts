@@ -338,7 +338,14 @@ export type TypeDefResult<
     >,
     Partial
 > &
-    Record<string, unknown>;
+    (IsTypeDefStrict<Schema, TypeDef> extends true ? {} : Record<string, unknown>);
+
+export type IsTypeDefStrict<Schema extends SchemaDef, TypeDef extends GetTypeDefs<Schema>> =
+    Schema['typeDefs'] extends Record<string, unknown>
+        ? Schema['typeDefs'][TypeDef]['strict'] extends true
+            ? true
+            : false
+        : never;
 
 export type BatchResult = { count: number };
 
@@ -1480,7 +1487,8 @@ type MapFieldDefType<
     T['type'] extends GetEnums<Schema>
         ? keyof GetEnum<Schema, T['type']>
         : T['type'] extends GetTypeDefs<Schema>
-          ? TypeDefResult<Schema, T['type'], Partial> & Record<string, unknown>
+          ? TypeDefResult<Schema, T['type'], Partial> &
+                (IsTypeDefStrict<Schema, T['type']> extends true ? {} : Record<string, unknown>)
           : MapBaseType<T['type']>,
     T['optional'],
     T['array']

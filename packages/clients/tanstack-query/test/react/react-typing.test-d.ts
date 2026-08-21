@@ -127,6 +127,13 @@ describe('React client typing test', () => {
 
         client.foo.useUpdate();
         client.bar.useCreate();
+
+        client.user.useCreate().mutate({ data: { email: 'test@example.com', profile: { bio: 'Programmer' } } });
+
+        client.user
+            .useCreate()
+            // @ts-expect-error known properties
+            .mutate({ data: { email: 'test@example.com', profile: { bio: 'Programmer', unknown: true } } });
     });
 
     it('reflects ExtQueryArgs and ExtResult inferred from a ClientContract type', () => {
