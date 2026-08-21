@@ -851,4 +851,25 @@ model Post {
             plugins: {},
         });
     });
+
+    it('supports @@strict for type defs', async () => {
+        const { schema } = await generateTsSchema(`
+model User {
+    id      String   @id @default(uuid())
+    profile Profile? @json
+}
+
+type Profile {
+    bio String
+
+    @@strict
+}
+            `);
+
+        expect(schema.typeDefs).toMatchObject({
+            Profile: {
+                strict: true,
+            },
+        });
+    });
 });

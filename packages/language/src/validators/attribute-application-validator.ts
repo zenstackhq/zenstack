@@ -482,6 +482,15 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
         }
     }
 
+    @check('@@strict')
+    private _checkStrict(attr: AttributeApplication, accept: ValidationAcceptor) {
+        if (!isTypeDef(attr.$container)) {
+            accept('error', `attribute "@@strict" can only be used on type definitions`, {
+                node: attr,
+            });
+        }
+    }
+
     private validatePolicyKinds(
         kind: string,
         candidates: string[],

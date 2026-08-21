@@ -15,10 +15,17 @@ type Overview {
     meta Json?
 }
 
+type Profile {
+    bio String
+
+    @@strict
+}
+
 model User {
     id Int @id @default(autoincrement())
     name String @unique
     role Role @default(USER)
+    profile Profile? @json
 }
 
 procedure getUser(id: Int): User
@@ -27,3 +34,4 @@ mutation procedure signUp(name: String, role: Role?): User
 mutation procedure setAdmin(userId: Int): Void
 procedure getOverview(): Overview
 mutation procedure createMultiple(names: String[]): User[]
+mutation procedure updateProfile(userId: Int, profile: Profile): Void

@@ -734,3 +734,8 @@ attribute @@@deprecated(_ message: String)
  * Indicates an attribute should not be stripped when generating lite schemas.
  */
 attribute @@@lite()
+
+/**
+ * Indicates a type def should reject unknown fields.
+ */
+attribute @@strict() @@@once @@@validation
