@@ -64,6 +64,18 @@ describe('Procedures tests', () => {
                         return createdUsers;
                     });
                 },
+
+                updateProfile: async ({ client, args: { userId, profile } }) => {
+                    await client.user.update({
+                        data: {
+                            profile,
+                        },
+
+                        where: {
+                            id: userId,
+                        },
+                    });
+                },
             },
         });
     });
@@ -213,5 +225,21 @@ describe('Procedures tests', () => {
         await client.$procs.signUp({ args: { name: 'Alice' } });
         await expect(client.$procs.signUp({ args: { name: 'Alice' } })).rejects.toThrow();
         await expect(client.user.count()).resolves.toBe(1);
+    });
+
+    it('respects strict json', async () => {
+        const user = await client.$procs.signUp({ args: { name: 'Alice' } });
+        await expect(
+            client.$procs.updateProfile({
+                args: {
+                    userId: user.id,
+                    profile: {
+                        bio: 'Programmer',
+                        // @ts-expect-error
+                        unknown: true,
+                    },
+                },
+            }),
+        ).rejects.toThrow(/Unrecognized key: "unknown"/);
     });
 });

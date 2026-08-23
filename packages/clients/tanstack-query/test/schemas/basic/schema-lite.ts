@@ -5,7 +5,7 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
+import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
     provider = {
         type: "sqlite"
@@ -35,6 +35,11 @@ export class SchemaType implements SchemaDef {
                     type: "Post",
                     array: true,
                     relation: { opposite: "owner" }
+                },
+                profile: {
+                    name: "profile",
+                    type: "Profile",
+                    optional: true
                 }
             },
             idFields: ["id"],
@@ -164,6 +169,21 @@ export class SchemaType implements SchemaDef {
             uniqueFields: {
                 id: { type: "String" }
             }
+        }
+    } as const;
+    typeDefs = {
+        Profile: {
+            name: "Profile",
+            fields: {
+                bio: {
+                    name: "bio",
+                    type: "String"
+                }
+            },
+            attributes: [
+                { name: "@@strict" }
+            ] as readonly AttributeApplication[],
+            strict: true
         }
     } as const;
     authType = "User" as const;
