@@ -546,7 +546,7 @@ export class TsSchemaGenerator {
                 : []),
         ];
 
-        if (hasAttribute(td, '@@strict')) {
+        if (getAllAttributes(td).some((attr) => attr.decl.$refText === '@@strict')) {
             fields.push(ts.factory.createPropertyAssignment('strict', ts.factory.createTrue()));
         }
 
