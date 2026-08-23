@@ -18,6 +18,7 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "String",
                     id: true,
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
                     default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 email: {
@@ -50,6 +51,7 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "String",
                     id: true,
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
                     default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 title: {
@@ -86,9 +88,6 @@ export class SchemaType implements SchemaDef {
                     type: "String"
                 }
             },
-            attributes: [
-                { name: "@@strict" }
-            ] as readonly AttributeApplication[],
             strict: true
         }
     } as const;
