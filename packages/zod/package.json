@@ -20,7 +20,7 @@
         "lint": "eslint src --ext ts",
         "test": "vitest run",
         "pack": "pnpm pack",
-        "test:generate": "tsx ../../scripts/test-generate.ts ."
+        "test:generate": "tsx ../../scripts/test-generate.ts . --lite"
     },
     "keywords": [
         "zenstack",
@@ -50,6 +50,7 @@
         "@zenstackhq/tsdown-config": "workspace:*",
         "@zenstackhq/typescript-config": "workspace:*",
         "@zenstackhq/vitest-config": "workspace:*",
+        "@types/node": "catalog:",
         "zod": "^4.1.0"
     },
     "peerDependencies": {
