@@ -872,4 +872,27 @@ type Profile {
             },
         });
     });
+
+    it('supports @@strict inherited from mixins', async () => {
+        const { schema } = await generateTsSchema(`
+model User {
+    id      String   @id @default(uuid())
+    profile Profile? @json
+}
+
+type Strict {
+    @@strict
+}
+
+type Profile with Strict {
+    bio String
+}
+            `);
+
+        expect(schema.typeDefs).toMatchObject({
+            Profile: {
+                strict: true,
+            },
+        });
+    });
 });
