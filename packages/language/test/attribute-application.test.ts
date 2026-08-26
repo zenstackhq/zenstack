@@ -842,4 +842,60 @@ describe('Attribute application validation tests', () => {
             }
             `);
     });
+
+    describe('@@strict attribute', () => {
+        it('accepts type defs', async () => {
+            await loadSchema(`
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                type Profile {
+                    name String
+                    
+                    @@strict
+                }
+            `);
+        });
+
+        it('rejects non-type defs', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id   String @id
+                    name String
+                    
+                    @@strict
+                }
+            `,
+                /attribute "@@strict" can only be used on type definitions/,
+            );
+
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id   String @id
+                }
+                
+                enum Enum {
+                    TEST
+                    
+                    @@strict
+                }
+            `,
+                /attribute "@@strict" can only be used on type definitions/,
+            );
+        });
+    });
 });

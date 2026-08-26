@@ -38,7 +38,13 @@ import {
     UnaryExpr,
     type Model,
 } from '@zenstackhq/language/ast';
-import { getAllAttributes, getAllFields, getAttributeArg, isDataFieldReference } from '@zenstackhq/language/utils';
+import {
+    getAllAttributes,
+    getAllFields,
+    getAttributeArg,
+    isDataFieldReference,
+    isLiteAttribute,
+} from '@zenstackhq/language/utils';
 import fs from 'node:fs';
 import path from 'node:path';
 import { match } from 'ts-pattern';
@@ -374,7 +380,7 @@ export class TsSchemaGenerator {
     private createDataModelObject(dm: DataModel, lite: boolean) {
         const allFields = getAllFields(dm);
         const allAttributes = lite
-            ? [] // in lite mode, skip all model-level attributes
+            ? getAllAttributes(dm).filter((attr) => isLiteAttribute(attr.decl.ref!))
             : getAllAttributes(dm).filter((attr) => {
                   // exclude `@@delegate` attribute from base model
                   if (attr.decl.$refText === '@@delegate' && attr.$container !== dm) {
@@ -502,7 +508,9 @@ export class TsSchemaGenerator {
 
     private createTypeDefObject(td: TypeDef, lite: boolean): ts.Expression {
         const allFields = getAllFields(td);
-        const allAttributes = getAllAttributes(td);
+        const attributes = lite
+            ? getAllAttributes(td).filter((attr) => isLiteAttribute(attr.decl.ref!))
+            : getAllAttributes(td);
 
         const fields: ts.PropertyAssignment[] = [
             // name
@@ -523,13 +531,13 @@ export class TsSchemaGenerator {
             ),
 
             // attributes
-            ...(allAttributes.length > 0
+            ...(attributes.length > 0
                 ? [
                       ts.factory.createPropertyAssignment(
                           'attributes',
                           this.createAttributesTypeAssertion(
                               ts.factory.createArrayLiteralExpression(
-                                  allAttributes.map((attr) => this.createAttributeObject(attr)),
+                                  attributes.map((attr) => this.createAttributeObject(attr)),
                                   true,
                               ),
                           ),
@@ -537,6 +545,10 @@ export class TsSchemaGenerator {
                   ]
                 : []),
         ];
+
+        if (getAllAttributes(td).some((attr) => attr.decl.$refText === '@@strict')) {
+            fields.push(ts.factory.createPropertyAssignment('strict', ts.factory.createTrue()));
+        }
 
         return ts.factory.createObjectLiteralExpression(fields, true);
     }
@@ -760,14 +772,15 @@ export class TsSchemaGenerator {
             objectFields.push(ts.factory.createPropertyAssignment('isDiscriminator', ts.factory.createTrue()));
         }
 
-        // attributes, only when not in lite mode
-        if (!lite && field.attributes.length > 0) {
+        const attributes = lite ? field.attributes.filter((attr) => isLiteAttribute(attr.decl.ref!)) : field.attributes;
+
+        if (attributes.length > 0) {
             objectFields.push(
                 ts.factory.createPropertyAssignment(
                     'attributes',
                     this.createAttributesTypeAssertion(
                         ts.factory.createArrayLiteralExpression(
-                            field.attributes.map((attr) => this.createAttributeObject(attr)),
+                            attributes.map((attr) => this.createAttributeObject(attr)),
                         ),
                     ),
                 ),

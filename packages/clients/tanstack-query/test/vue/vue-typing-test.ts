@@ -66,6 +66,13 @@ client.user
     .mutateAsync({ data: { email: 'test@example.com' }, include: { posts: true } })
     .then((d) => check(d.posts[0]?.title));
 
+client.user.useCreate().mutate({ data: { email: 'test@example.com', profile: { bio: 'Programmer' } } });
+
+client.user
+    .useCreate()
+    // @ts-expect-error known properties
+    .mutate({ data: { email: 'test@example.com', profile: { bio: 'Programmer', unknown: true } } });
+
 client.user
     .useCreateMany()
     .mutateAsync({

@@ -462,7 +462,8 @@ export class ZodSchemaFactory<
     private makeTypeDefSchema(type: string): ZodType {
         const typeDef = getTypeDef(this.schema, type);
         invariant(typeDef, `Type definition "${type}" not found in schema`);
-        const schema = z.looseObject(
+        const func = typeDef.strict ? z.strictObject : z.looseObject;
+        const schema = func(
             Object.fromEntries(
                 Object.entries(typeDef.fields).map(([field, def]) => {
                     // Wrap nested typedef references in z.lazy() so cyclic or self-referencing
