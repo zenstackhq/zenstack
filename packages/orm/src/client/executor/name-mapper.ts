@@ -14,6 +14,7 @@ import {
     InsertQueryNode,
     type OperationNode,
     OperationNodeTransformer,
+    type OrderByItemNode,
     PrimitiveValueListNode,
     type QueryId,
     ReferenceNode,
@@ -47,6 +48,7 @@ type Scope = {
     model?: string;
     alias?: OperationNode;
     namesMapped?: boolean; // true means fields referring to this scope have their names already mapped
+    orderBy?: boolean;
 };
 
 type SelectionNodeChild = SimpleReferenceExpressionNode | AliasNode | SelectAllNode;
@@ -185,6 +187,10 @@ export class QueryNameMapper extends OperationNodeTransformer {
         };
     }
 
+    protected override transformOrderByItem(node: OrderByItemNode, queryId?: QueryId) {
+        return this.withScope({ orderBy: true }, () => super.transformOrderByItem(node, queryId));
+    }
+
     protected override transformReference(node: ReferenceNode, queryId?: QueryId) {
         if (!ColumnNode.is(node.column)) {
             return super.transformReference(node, queryId);
@@ -192,7 +198,8 @@ export class QueryNameMapper extends OperationNodeTransformer {
 
         // resolve the reference to a field from outer scopes
         const scope = this.resolveFieldFromScopes(node.column.column.name, node.table?.table.identifier.name);
-        if (scope && !scope.namesMapped && scope.model) {
+        const inOrderBy = this.scopes.some((s) => s.orderBy);
+        if (scope?.model && (!scope.namesMapped || (inOrderBy && !node.table))) {
             // map column name and table name as needed
             const mappedFieldName = this.mapFieldName(scope.model, node.column.column.name);
 
@@ -205,6 +212,11 @@ export class QueryNameMapper extends OperationNodeTransformer {
                     // table name is resolved to a model, map the name as needed
                     mappedTableName = this.mapTableName(scope.model);
                 }
+            } else if (inOrderBy && scope.alias && IdentifierNode.is(scope.alias)) {
+                // inside "order by", qualify an otherwise-unqualified reference with its resolved
+                // table/alias, so it can't be shadowed by a same-named computed selection (e.g. a
+                // `CASE WHEN ... END AS field` produced for enum value mapping)
+                mappedTableName = scope.alias.name;
             }
             return ReferenceNode.create(
                 ColumnNode.create(mappedFieldName),
