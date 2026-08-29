@@ -782,7 +782,10 @@ export class QueryNameMapper extends OperationNodeTransformer {
 
     private processEnumSelection(selection: SelectionNodeChild, fieldName: string) {
         const { alias, node } = stripAlias(selection);
-        const fieldScope = this.resolveFieldFromScopes(fieldName);
+        const fieldScope = this.resolveFieldFromScopes(
+            fieldName,
+            ReferenceNode.is(node) ? node.table?.table?.identifier.name : undefined,
+        );
         if (!fieldScope || !fieldScope.model) {
             return selection;
         }
