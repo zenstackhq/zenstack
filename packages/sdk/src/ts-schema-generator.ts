@@ -1489,6 +1489,16 @@ export class TsSchemaGenerator {
             .when(isCollectionPredicateBinding, () =>
                 this.createExpressionUtilsCall('binding', [this.createLiteralNode(expr.target.$refText)]),
             )
+            .when(isEnum, () =>
+                this.createExpressionUtilsCall('array', [
+                    this.createLiteralNode(expr.target.$refText),
+                    ts.factory.createArrayLiteralExpression(
+                        (target as Enum).fields.map((field) =>
+                            this.createLiteralExpression('StringLiteral', field.name),
+                        ),
+                    ),
+                ]),
+            )
             .otherwise(() => {
                 throw Error(`Unsupported reference type: ${expr.target.$refText}`);
             });

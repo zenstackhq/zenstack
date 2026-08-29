@@ -817,6 +817,32 @@ describe('Attribute application validation tests', () => {
         );
     });
 
+    it('@@validate accepts implicit array conversions from enum references', async () => {
+        await loadSchema(`
+            datasource db {
+                provider = 'sqlite'
+                url      = 'file:./dev.db'
+            }
+
+            enum PostStatus {
+                DRAFT
+                ACTIVE
+                CANCELLED
+            }
+
+            model User {
+                id Int @id @default(autoincrement())
+            }
+
+            model Post {
+                id     String @id
+                status String
+
+                @@validate(status in PostStatus)
+            }
+            `);
+    });
+
     describe('@@strict attribute', () => {
         it('accepts type defs', async () => {
             await loadSchema(`
