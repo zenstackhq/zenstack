@@ -48,7 +48,6 @@ type Scope = {
     model?: string;
     alias?: OperationNode;
     namesMapped?: boolean; // true means fields referring to this scope have their names already mapped
-    orderBy?: boolean;
 };
 
 type SelectionNodeChild = SimpleReferenceExpressionNode | AliasNode | SelectAllNode;
@@ -188,7 +187,49 @@ export class QueryNameMapper extends OperationNodeTransformer {
     }
 
     protected override transformOrderByItem(node: OrderByItemNode, queryId?: QueryId) {
-        return this.withScope({ orderBy: true }, () => super.transformOrderByItem(node, queryId));
+        const result = super.transformOrderByItem(node, queryId);
+        return { ...result, orderBy: this.qualifyShadowedOrderByRef(result.orderBy) };
+    }
+
+    // When a column's enum type has `@map`-ed values, selecting it emits a computed
+    // `CASE ... END AS "column"` projection. In SQL, an unqualified `ORDER BY column` resolves
+    // to that output alias rather than the underlying column, silently switching the sort from
+    // native enum order to alphabetical order of the mapped-back labels. Re-qualify such
+    // references with their resolved table/alias so they keep pointing at the real column.
+    private qualifyShadowedOrderByRef(node: OperationNode): OperationNode {
+        let columnName: string | undefined;
+        if (ReferenceNode.is(node) && ColumnNode.is(node.column) && !node.table) {
+            columnName = node.column.column.name;
+        } else if (ColumnNode.is(node)) {
+            columnName = node.column.name;
+        }
+        if (!columnName) {
+            return node;
+        }
+
+        const scope = this.resolveFieldFromScopes(columnName);
+        if (!scope?.model) {
+            return node;
+        }
+
+        // we're inspecting a post-transform name: a renamed field's reference has already been
+        // rewritten to its column name, so if the resolved field's column differs from the name
+        // we're holding, the resolution is a name collision with an unrelated (renamed) field —
+        // qualifying based on it could point at the wrong table
+        if (this.mapFieldName(scope.model, columnName) !== columnName) {
+            return node;
+        }
+
+        // and only when the enum-value mapping actually rewrites the projection
+        const fieldDef = getField(this.schema, scope.model, columnName);
+        const enumDef = fieldDef && getEnum(this.schema, fieldDef.type);
+        if (!enumDef || Object.keys(this.getEnumValueMapping(enumDef)).length === 0) {
+            return node;
+        }
+
+        const tableName =
+            scope.alias && IdentifierNode.is(scope.alias) ? scope.alias.name : this.mapTableName(scope.model);
+        return ReferenceNode.create(ColumnNode.create(columnName), TableNode.create(tableName));
     }
 
     protected override transformReference(node: ReferenceNode, queryId?: QueryId) {
@@ -198,8 +239,7 @@ export class QueryNameMapper extends OperationNodeTransformer {
 
         // resolve the reference to a field from outer scopes
         const scope = this.resolveFieldFromScopes(node.column.column.name, node.table?.table.identifier.name);
-        const inOrderBy = this.scopes.some((s) => s.orderBy);
-        if (scope?.model && (!scope.namesMapped || (inOrderBy && !node.table))) {
+        if (scope && !scope.namesMapped && scope.model) {
             // map column name and table name as needed
             const mappedFieldName = this.mapFieldName(scope.model, node.column.column.name);
 
@@ -212,11 +252,6 @@ export class QueryNameMapper extends OperationNodeTransformer {
                     // table name is resolved to a model, map the name as needed
                     mappedTableName = this.mapTableName(scope.model);
                 }
-            } else if (inOrderBy && scope.alias && IdentifierNode.is(scope.alias)) {
-                // inside "order by", qualify an otherwise-unqualified reference with its resolved
-                // table/alias, so it can't be shadowed by a same-named computed selection (e.g. a
-                // `CASE WHEN ... END AS field` produced for enum value mapping)
-                mappedTableName = scope.alias.name;
             }
             return ReferenceNode.create(
                 ColumnNode.create(mappedFieldName),
@@ -782,10 +817,7 @@ export class QueryNameMapper extends OperationNodeTransformer {
 
     private processEnumSelection(selection: SelectionNodeChild, fieldName: string) {
         const { alias, node } = stripAlias(selection);
-        const fieldScope = this.resolveFieldFromScopes(
-            fieldName,
-            ReferenceNode.is(node) ? node.table?.table?.identifier.name : undefined,
-        );
+        const fieldScope = this.resolveFieldFromScopes(fieldName);
         if (!fieldScope || !fieldScope.model) {
             return selection;
         }
