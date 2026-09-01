@@ -8,7 +8,7 @@ import {
     type TransactionOperation,
     type TransactionResults,
 } from '@zenstackhq/client-helpers';
-import { fetcher, makeUrl, marshal, type FetchFn } from '@zenstackhq/client-helpers/fetch';
+import { fetcher, makeUrl, marshal, type FetchFn, serialize } from '@zenstackhq/client-helpers/fetch';
 import { lowerCaseFirst } from '@zenstackhq/common-helpers';
 import type {
     AllModelOperations,
