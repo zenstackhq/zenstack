@@ -301,7 +301,20 @@ export function createClient<SchemaOrClient extends SchemaDef | ClientContract<a
             {
                 method: 'POST',
                 headers: { 'content-type': 'application/json' },
-                body: marshal(operations),
+                body: JSON.stringify({
+                    data: operations.map((op) => {
+                        const { data: serializedOp, meta } = serialize(op);
+                        if (!meta) {
+                            return serializedOp;
+                        }
+                        return {
+                            ...(serializedOp as any),
+                            meta: {
+                                serialization: meta,
+                            },
+                        };
+                    }),
+                }),
             },
             customFetch,
         );
