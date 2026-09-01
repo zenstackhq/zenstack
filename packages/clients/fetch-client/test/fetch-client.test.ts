@@ -597,6 +597,44 @@ describe('createClient', () => {
                 client.$transaction([{ model: 'User', op: 'create', args: { data: { email: 'x@test.com' } } }]),
             ).rejects.toMatchObject({ status: 400 });
         });
+
+        it('works with superjson serialization', async () => {
+            const createdAt = new Date();
+            const results = [{ id: '1', email: 'alice@example.com', createdAt: createdAt.toISOString() }];
+            mockFetch.mockResolvedValue({ ok: true, text: async () => makeResponseText(results) });
+
+            const client = createClient(schema, { endpoint: ENDPOINT });
+            const [user] = await client.$transaction([
+                { model: 'User', op: 'create', args: { data: { email: 'alice@example.com', createdAt } } },
+            ]);
+
+            const [url, init] = mockFetch.mock.calls[0] ?? [];
+            expect(url).toBe(`${ENDPOINT}/$transaction/sequential`);
+            expect(init.method).toBe('POST');
+            expect(init.headers['content-type']).toBe('application/json');
+
+            const body = JSON.parse(init.body);
+            expect(body).toMatchObject({
+                data: [
+                    {
+                        model: 'User',
+                        op: 'create',
+                        args: {
+                            data: { email: 'alice@example.com', createdAt: createdAt.toISOString() },
+                        },
+                        meta: {
+                            serialization: {
+                                values: {
+                                    'args.data.createdAt': ['Date'],
+                                },
+                            },
+                        },
+                    },
+                ],
+            });
+
+            expect(user).toEqual(results[0]);
+        });
     });
 
     describe('$procs absent when schema has no procedures', () => {
