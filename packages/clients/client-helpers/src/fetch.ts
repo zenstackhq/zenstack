@@ -30,7 +30,7 @@ export async function fetcher<R>(url: string, options?: RequestInit, customFetch
 
     const textResult = await res.text();
     try {
-        return unmarshal(textResult).data as R;
+        return unmarshal(textResult) as R;
     } catch (err) {
         console.error(`Unable to deserialize data:`, textResult);
         throw err;
@@ -47,7 +47,7 @@ export function makeUrl(endpoint: string, model: string, operation: string, args
     }
 
     const { data, meta } = serialize(args);
-    let result = `${baseUrl}?q=${encodeURIComponent(JSON.stringify(data))}`;
+    let result = `${baseUrl}?data=${encodeURIComponent(JSON.stringify(data))}`;
     if (meta) {
         result += `&meta=${encodeURIComponent(JSON.stringify({ serialization: meta }))}`;
     }
@@ -113,11 +113,10 @@ export function deserialize(value: unknown, meta: any): unknown {
  */
 export function marshal(value: unknown) {
     const { data, meta } = serialize(value);
-    if (meta) {
-        return JSON.stringify({ ...(data as any), meta: { serialization: meta } });
-    } else {
-        return JSON.stringify(data);
+    if (!meta) {
+        return JSON.stringify({ data });
     }
+    return JSON.stringify({ data, meta: { serialization: meta } });
 }
 
 /**
@@ -126,10 +125,8 @@ export function marshal(value: unknown) {
  */
 export function unmarshal(value: string) {
     const parsed = JSON.parse(value);
-    if (typeof parsed === 'object' && parsed?.data && parsed?.meta?.serialization) {
-        const deserializedData = deserialize(parsed.data, parsed.meta.serialization);
-        return { ...parsed, data: deserializedData };
-    } else {
-        return parsed;
+    if (!parsed.meta?.serialization) {
+        return parsed.data;
     }
+    return deserialize(parsed.data, parsed.meta.serialization);
 }
