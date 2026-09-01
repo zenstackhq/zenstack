@@ -29,7 +29,7 @@ const TEST_PUBLIC_KEY_DER = 'MCowBQYDK2VwAyEAFSJV7wjdFuDz2CqYX7hGnITQvcmJYy7OJQq
 function buildSignatureHeader(options: {
     privateKey: string;
     method: string;
-    /** Path + optional query string, e.g. `/api/model/user/findMany?q=%7B%7D` */
+    /** Path + optional query string, e.g. `/api/model/user/findMany?data=%7B%7D` */
     pathWithQuery: string;
     body?: unknown;
     authorizationToken?: string;
@@ -259,7 +259,7 @@ describe('CLI proxy tests', () => {
 
         // Confirm persisted outside transaction too.
         const userRes = await fetch(
-            `${baseUrl}/api/model/user/findUnique?q=${encodeURIComponent(JSON.stringify({ where: { id: 'u1' } }))}`,
+            `${baseUrl}/api/model/user/findUnique?data=${encodeURIComponent(JSON.stringify({ where: { id: 'u1' } }))}`,
         );
         expect(userRes.status).toBe(200);
         const user = await userRes.json();
@@ -317,8 +317,8 @@ describe('CLI proxy tests', () => {
             // Pre-seed a record directly via client
             await client.user.create({ data: { id: 'u1', email: 'alice@example.com' } });
 
-            const q = encodeURIComponent(JSON.stringify({ where: { id: 'u1' } }));
-            const pathWithQuery = `/api/model/user/findUnique?q=${q}`;
+            const data = encodeURIComponent(JSON.stringify({ where: { id: 'u1' } }));
+            const pathWithQuery = `/api/model/user/findUnique?data=${data}`;
             const sig = buildSignatureHeader({
                 privateKey: TEST_PRIVATE_KEY,
                 method: 'GET',
