@@ -34,9 +34,9 @@ describe('JSON null value serialization', () => {
         const url = new URL(capturedUri, BASE_URL);
         expect(url.searchParams.has('meta')).toBe(true);
 
-        const q = JSON.parse(decodeURIComponent(url.searchParams.get('q')!));
+        const data = JSON.parse(decodeURIComponent(url.searchParams.get('data')!));
         const meta = JSON.parse(decodeURIComponent(url.searchParams.get('meta')!));
-        const reconstructed = deserialize(q, meta.serialization) as any;
+        const reconstructed = deserialize(data, meta.serialization) as any;
         expect(reconstructed.where.name.__brand).toBe('DbNull');
     });
 
@@ -61,9 +61,9 @@ describe('JSON null value serialization', () => {
         const url = new URL(capturedUri, BASE_URL);
         expect(url.searchParams.has('meta')).toBe(true);
 
-        const q = JSON.parse(decodeURIComponent(url.searchParams.get('q')!));
+        const data = JSON.parse(decodeURIComponent(url.searchParams.get('data')!));
         const meta = JSON.parse(decodeURIComponent(url.searchParams.get('meta')!));
-        const reconstructed = deserialize(q, meta.serialization) as any;
+        const reconstructed = deserialize(data, meta.serialization) as any;
         expect(reconstructed.where.name.__brand).toBe('JsonNull');
     });
 
@@ -88,9 +88,9 @@ describe('JSON null value serialization', () => {
         const url = new URL(capturedUri, BASE_URL);
         expect(url.searchParams.has('meta')).toBe(true);
 
-        const q = JSON.parse(decodeURIComponent(url.searchParams.get('q')!));
+        const data = JSON.parse(decodeURIComponent(url.searchParams.get('data')!));
         const meta = JSON.parse(decodeURIComponent(url.searchParams.get('meta')!));
-        const reconstructed = deserialize(q, meta.serialization) as any;
+        const reconstructed = deserialize(data, meta.serialization) as any;
         expect(reconstructed.where.name.__brand).toBe('AnyNull');
     });
 
