@@ -616,7 +616,7 @@ export class RestApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
         if (method === 'get') {
             op['parameters'] = [
                 {
-                    name: 'q',
+                    name: 'data',
                     in: 'query',
                     description: 'Procedure arguments as JSON',
                     schema: { type: 'string' },

@@ -19,7 +19,7 @@ import type { OpenApiSpecOptions } from '../common/types';
 type SchemaObject = OpenAPIV3_1.SchemaObject;
 type ReferenceObject = OpenAPIV3_1.ReferenceObject;
 
-// Operations that use GET with args in ?q= query parameter
+// Operations that use GET with args in ?data= query parameter
 const GET_OPERATIONS = new Set<string>([
     'findFirst',
     'findUnique',
@@ -33,7 +33,7 @@ const GET_OPERATIONS = new Set<string>([
 const POST_OPERATIONS = new Set<string>(['create', 'createMany', 'createManyAndReturn', 'upsert']);
 // Operations that use PUT with request body
 const PUT_OPERATIONS = new Set<string>(['update', 'updateMany', 'updateManyAndReturn']);
-// Operations that use DELETE with args in ?q= query parameter
+// Operations that use DELETE with args in ?data= query parameter
 const DELETE_OPERATIONS = new Set<string>(['delete', 'deleteMany']);
 
 const JSON_CT = 'application/json';
@@ -364,7 +364,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                 const qRequired = Array.isArray(inputSchema?.required) && inputSchema.required.length > 0;
                 operation['parameters'] = [
                     {
-                        name: 'q',
+                        name: 'data',
                         in: 'query',
                         ...(qRequired && { required: true }),
                         description: `JSON-encoded arguments for ${modelName}.${op}`,
@@ -375,7 +375,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                     {
                         name: 'meta',
                         in: 'query',
-                        description: 'JSON-encoded SuperJSON serialization metadata for the "q" parameter',
+                        description: 'JSON-encoded SuperJSON serialization metadata for the "data" parameter',
                         schema: { type: 'string' },
                     },
                 ];
@@ -450,7 +450,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
             if (hasParams) {
                 op['parameters'] = [
                     {
-                        name: 'q',
+                        name: 'data',
                         in: 'query',
                         ...(hasRequiredParams && { required: true }),
                         description: `JSON-encoded arguments for procedure ${procName}`,
@@ -461,7 +461,7 @@ export class RPCApiSpecGenerator<Schema extends SchemaDef = SchemaDef> {
                     {
                         name: 'meta',
                         in: 'query',
-                        description: 'JSON-encoded SuperJSON serialization metadata for the "q" parameter',
+                        description: 'JSON-encoded SuperJSON serialization metadata for the "data" parameter',
                         schema: { type: 'string' },
                     },
                 ];
