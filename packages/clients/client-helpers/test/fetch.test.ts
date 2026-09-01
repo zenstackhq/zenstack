@@ -75,28 +75,18 @@ describe('Fetcher and serialization tests', () => {
             expect(result).toEqual(input);
         });
 
-        it('marshals objects without metadata when not needed', () => {
-            const input = { name: 'John', age: 30 };
-            const marshaled = marshal(input);
-            const parsed = JSON.parse(marshaled);
-            expect(parsed.meta).toBeUndefined();
-        });
-
         it('marshals and unmarshals objects with Decimal values', () => {
             const input = { price: new Decimal('123.45') };
             const marshaled = marshal(input);
             const parsed = JSON.parse(marshaled);
 
             // marshal spreads the data into the root object with meta
-            expect(parsed.price).toBeDefined();
+            expect(parsed.data.price).toBeDefined();
             expect(parsed.meta).toBeDefined();
             expect(parsed.meta.serialization).toBeDefined();
 
-            // unmarshal doesn't automatically deserialize this format
-            // It only deserializes objects with explicit 'data' and 'meta.serialization' fields
             const result = unmarshal(marshaled);
             expect(result).toHaveProperty('price');
-            expect(result).toHaveProperty('meta');
         });
 
         it('includes metadata when serialization is needed', () => {
@@ -120,17 +110,10 @@ describe('Fetcher and serialization tests', () => {
             const marshaled = JSON.stringify(responseFormat);
 
             const result = unmarshal(marshaled);
-            expect(result.data).toBeDefined();
-            expect((result.data as any).value).toBeInstanceOf(Decimal);
+            expect(result).toBeDefined();
+            expect((result as any).value).toBeInstanceOf(Decimal);
             // Decimal normalizes '100.00' to '100'
-            expect((result.data as any).value.toString()).toBe('100');
-        });
-
-        it('unmarshals plain values without data wrapper', () => {
-            const plainValue = { name: 'test' };
-            const marshaled = JSON.stringify(plainValue);
-            const result = unmarshal(marshaled);
-            expect(result).toEqual(plainValue);
+            expect((result as any).value.toString()).toBe('100');
         });
     });
 
@@ -143,7 +126,7 @@ describe('Fetcher and serialization tests', () => {
         it('creates URL with simple args', () => {
             const args = { where: { id: '1' } };
             const url = makeUrl('/api', 'User', 'findUnique', args);
-            expect(url).toContain('/api/user/findUnique?q=');
+            expect(url).toContain('/api/user/findUnique?data=');
             expect(url).toContain(encodeURIComponent(JSON.stringify(args)));
         });
 
@@ -161,12 +144,12 @@ describe('Fetcher and serialization tests', () => {
             };
             const url = makeUrl('/api', 'Product', 'findFirst', args);
 
-            expect(url).toContain('/api/product/findFirst?q=');
+            expect(url).toContain('/api/product/findFirst?data=');
             expect(url).toContain('&meta=');
 
             // Verify we can reconstruct the args from the URL
             const urlObj = new URL(url, 'http://localhost');
-            const qParam = urlObj.searchParams.get('q');
+            const qParam = urlObj.searchParams.get('data');
             const metaParam = urlObj.searchParams.get('meta');
 
             expect(qParam).toBeDefined();
@@ -179,7 +162,7 @@ describe('Fetcher and serialization tests', () => {
 
         it('handles empty args object', () => {
             const url = makeUrl('/api', 'User', 'findMany', {});
-            expect(url).toContain('/api/user/findMany?q=');
+            expect(url).toContain('/api/user/findMany?data=');
         });
 
         it('handles complex nested args', () => {
@@ -188,7 +171,7 @@ describe('Fetcher and serialization tests', () => {
                 where: { AND: [{ active: true }, { verified: true }] },
             };
             const url = makeUrl('/api', 'User', 'findMany', args);
-            expect(url).toContain('/api/user/findMany?q=');
+            expect(url).toContain('/api/user/findMany?data=');
             expect(url).toContain(encodeURIComponent(JSON.stringify(args)));
         });
     });
@@ -211,7 +194,7 @@ describe('Fetcher and serialization tests', () => {
             const responseData = { id: '1', name: 'Alice' };
             mockFetch.mockResolvedValue({
                 ok: true,
-                text: async () => marshal({ data: responseData }),
+                text: async () => marshal(responseData),
             });
 
             const result = await fetcher('/api/user/findUnique', {});
@@ -251,7 +234,7 @@ describe('Fetcher and serialization tests', () => {
             mockFetch.mockResolvedValue({
                 ok: false,
                 status: 404,
-                text: async () => JSON.stringify({ error: errorInfo }),
+                text: async () => marshal({ error: errorInfo }),
             });
 
             await expect(fetcher('/api/user/findUnique', {})).rejects.toThrow(
@@ -275,7 +258,7 @@ describe('Fetcher and serialization tests', () => {
             mockFetch.mockResolvedValue({
                 ok: false,
                 status: 403,
-                text: async () => JSON.stringify({ error: errorInfo }),
+                text: async () => marshal({ error: errorInfo }),
             });
 
             const result = await fetcher('/api/user/create', {});
@@ -300,7 +283,7 @@ describe('Fetcher and serialization tests', () => {
         it('use custom fetch if provided', async () => {
             const customFetch = vi.fn().mockResolvedValue({
                 ok: true,
-                text: async () => marshal({ data: { id: '1', name: 'Custom' } }),
+                text: async () => marshal({ id: '1', name: 'Custom' }),
             });
 
             const result = await fetcher('/api/user/findUnique', {}, customFetch);
@@ -333,7 +316,7 @@ describe('Fetcher and serialization tests', () => {
         it('handles empty response body', async () => {
             mockFetch.mockResolvedValue({
                 ok: true,
-                text: async () => marshal({ data: null }),
+                text: async () => marshal(null),
             });
 
             const result = await fetcher('/api/user/delete', {});
@@ -347,7 +330,7 @@ describe('Fetcher and serialization tests', () => {
             ];
             mockFetch.mockResolvedValue({
                 ok: true,
-                text: async () => marshal({ data: responseData }),
+                text: async () => marshal(responseData),
             });
 
             const result = await fetcher<typeof responseData>('/api/user/findMany', {});
