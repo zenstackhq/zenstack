@@ -575,16 +575,18 @@ export class TsSchemaGenerator {
                     ),
                 ];
 
-                // For a parameterized computed field, add `args: { <param>: <type> }`.
-                // The field's params flow into this stub's signature so that
-                // `Parameters<typeof stub>` carries the args type for both the
-                // implementation (ComputedFieldsOptions) and the query input types.
+                // For a parameterized computed field, add `_args: { <param>: <type> }` so the
+                // stub documents the query-time args. The authoritative typing is the field's
+                // `params` metadata (see `createFieldParamsObject`), which the ORM maps to the
+                // args type for both the implementation (`ComputedFieldsOptions`) and the query
+                // input types. The underscore prefix keeps `noUnusedParameters` quiet in
+                // consuming projects.
                 if (field.params.length > 0) {
                     params.push(
                         ts.factory.createParameterDeclaration(
                             undefined,
                             undefined,
-                            'args',
+                            '_args',
                             undefined,
                             ts.factory.createTypeLiteralNode(
                                 field.params.map((param) =>
@@ -594,9 +596,7 @@ export class TsSchemaGenerator {
                                         param.optional
                                             ? ts.factory.createToken(ts.SyntaxKind.QuestionToken)
                                             : undefined,
-                                        ts.factory.createTypeReferenceNode(
-                                            this.mapFunctionParamTypeToTSType(param.type),
-                                        ),
+                                        this.createFunctionParamTypeNode(param.type),
                                     ),
                                 ),
                             ),
@@ -656,23 +656,51 @@ export class TsSchemaGenerator {
         );
     }
 
-    private mapFunctionParamTypeToTSType(type: FunctionParamType): string {
-        let result = match(type.type)
-            .with('String', () => 'string')
-            .with('Boolean', () => 'boolean')
-            .with('Int', () => 'number')
-            .with('Float', () => 'number')
-            .with('BigInt', () => 'bigint')
-            .with('Decimal', () => 'number')
-            .with('DateTime', () => 'Date')
-            // non-scalar references (enums/type defs/models) aren't in scope in the generated
-            // schema file, so fall back to `unknown` — same convention as computed-field return
-            // types (`mapFieldTypeToTSType`). Runtime zod still validates these precisely.
-            .otherwise(() => 'unknown');
+    // Builds the TS type node of a param in the computed-field stub signature. Scalars map to
+    // their TS types; an enum maps to its value union, read off the schema's own `enums` member
+    // so it can't drift from the emitted enum. Type defs and models have no TS type in scope in
+    // the generated schema file, so they fall back to `unknown` — same convention as
+    // computed-field return types (`mapFieldTypeToTSType`). The ORM's `ComputedFieldArgs`
+    // resolves all of them precisely from the `params` metadata, and runtime zod validates them.
+    private createFunctionParamTypeNode(type: FunctionParamType): ts.TypeNode {
+        let result: ts.TypeNode;
+        if (type.reference?.ref && isEnum(type.reference.ref)) {
+            result = this.createEnumValuesTypeNode(type.reference.ref.name);
+        } else {
+            const tsType = match(type.type)
+                .with('String', () => 'string')
+                .with('Boolean', () => 'boolean')
+                .with('Int', () => 'number')
+                .with('Float', () => 'number')
+                .with('BigInt', () => 'bigint')
+                .with('Decimal', () => 'number')
+                .with('DateTime', () => 'Date')
+                .otherwise(() => 'unknown');
+            result = ts.factory.createTypeReferenceNode(tsType);
+        }
         if (type.array) {
-            result = `${result}[]`;
+            result = ts.factory.createArrayTypeNode(result);
         }
         return result;
+    }
+
+    // `SchemaType["enums"]["<Enum>"]["values"][keyof SchemaType["enums"]["<Enum>"]["values"]]`
+    private createEnumValuesTypeNode(enumName: string): ts.TypeNode {
+        const literal = (text: string) => ts.factory.createLiteralTypeNode(ts.factory.createStringLiteral(text));
+        const values = ts.factory.createIndexedAccessTypeNode(
+            ts.factory.createIndexedAccessTypeNode(
+                ts.factory.createIndexedAccessTypeNode(
+                    ts.factory.createTypeReferenceNode('SchemaType'),
+                    literal('enums'),
+                ),
+                literal(enumName),
+            ),
+            literal('values'),
+        );
+        return ts.factory.createIndexedAccessTypeNode(
+            values,
+            ts.factory.createTypeOperatorNode(ts.SyntaxKind.KeyOfKeyword, values),
+        );
     }
 
     private createUpdatedAtObject(ignoreArg: AttributeArg) {

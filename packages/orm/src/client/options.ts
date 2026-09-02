@@ -2,7 +2,7 @@ import type { GetModel, GetModelFields, GetModels, ProcedureDef, ScalarFields, S
 import type { Dialect, Expression, ExpressionBuilder, KyselyConfig, OperandExpression } from 'kysely';
 import type { FilterPropertyToKind } from './constants';
 import type { ClientContract, CRUD_EXT } from './contract';
-import type { GetProcedureNames, ProcedureHandlerFunc } from './crud-types';
+import type { ComputedFieldArgs, FieldHasComputedArgs, GetProcedureNames, ProcedureHandlerFunc } from './crud-types';
 import type { BaseCrudDialect } from './crud/dialects/base-dialect';
 import type { AllCrudOperations } from './crud/operations/base';
 import type { AnyPlugin } from './plugin';
@@ -304,20 +304,32 @@ export type ComputedFieldsOptions<Schema extends SchemaDef> = {
         ? Uncapitalize<Model>
         : never]: {
         [Field in keyof Schema['models'][Model]['computedFields']]: Schema['models'][Model]['computedFields'][Field] extends infer Func
-            ? Func extends (...args: infer Params) => infer R
+            ? Func extends (...args: any[]) => infer R
                 ? (
                       // inject a first parameter for expression builder
                       p: ExpressionBuilder<ToKyselySchema<Schema>, Model>,
                       // runtime-provided context (the generated stub only declares
                       // `modelAlias`; the runtime passes the full context)
                       context: ComputedFieldContext<Schema>,
-                      // query-time args of a parameterized field, from the stub
-                      ...args: Params extends [any, ...infer Rest] ? Rest : []
+                      // query-time args of a parameterized field, typed from the field's
+                      // `params` metadata — the same source as the query input types
+                      ...args: ComputedFieldImplArgs<Schema, Model, Field>
                   ) => OperandExpression<R> // wrap the return type with Kysely `OperandExpression`
                 : never
             : never;
     };
 };
+
+/**
+ * The trailing parameter list of a computed field implementation: `[args]` for a parameterized
+ * field, empty otherwise.
+ */
+type ComputedFieldImplArgs<Schema extends SchemaDef, Model extends GetModels<Schema>, Field> =
+    Field extends GetModelFields<Schema, Model>
+        ? FieldHasComputedArgs<Schema, Model, Field> extends true
+            ? [args: ComputedFieldArgs<Schema, Model, Field>]
+            : []
+        : [];
 
 export type HasComputedFields<Schema extends SchemaDef> =
     string extends GetModels<Schema> ? false : keyof ComputedFieldsOptions<Schema> extends never ? false : true;
