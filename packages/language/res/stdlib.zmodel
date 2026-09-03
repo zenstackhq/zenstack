@@ -224,7 +224,7 @@ attribute @id(map: String?, length: Int?, sort: SortOrder?, clustered: Boolean?)
  * Defines a default value for a field.
  * @param value: An expression (e.g. 5, true, now(), auth()).
  */
-attribute @default(_ value: ContextType, map: String?) @@@prisma @@@once
+attribute @default(_ value: ContextType, map: String?) @@@prisma @@@once @@@lite
 
 /**
  * Defines a unique constraint for this field.
@@ -427,7 +427,7 @@ attribute @fullText() @@@targetField([StringField]) @@@once
  * updates have been made to a record. An update that only contains ignored fields does not change the
  * timestamp.
  */
-attribute @updatedAt(ignore: FieldReference[]?) @@@targetField([DateTimeField]) @@@prisma
+attribute @updatedAt(ignore: FieldReference[]?) @@@targetField([DateTimeField]) @@@prisma @@@lite
 
 /**
  * Add full text index (MySQL only).
@@ -520,102 +520,102 @@ attribute @@schema(_ map: String) @@@prisma
 /**
  * Validates length of a string field or list field.
  */
-attribute @length(_ min: Int?, _ max: Int?, _ message: String?) @@@targetField([StringField, ListField]) @@@validation
+attribute @length(_ min: Int?, _ max: Int?, _ message: String?) @@@targetField([StringField, ListField]) @@@validation @@@lite
 
 /**
  * Validates a string field value starts with the given text.
  */
-attribute @startsWith(_ text: String, _ message: String?) @@@targetField([StringField]) @@@validation
+attribute @startsWith(_ text: String, _ message: String?) @@@targetField([StringField]) @@@validation @@@lite
 
 /**
  * Validates a string field value ends with the given text.
  */
-attribute @endsWith(_ text: String, _ message: String?) @@@targetField([StringField]) @@@validation
+attribute @endsWith(_ text: String, _ message: String?) @@@targetField([StringField]) @@@validation @@@lite
 
 /**
  * Validates a string field value contains the given text.
  */
-attribute @contains(_ text: String, _ message: String?) @@@targetField([StringField]) @@@validation
+attribute @contains(_ text: String, _ message: String?) @@@targetField([StringField]) @@@validation @@@lite
 
 /**
  * Validates a string field value matches a regex.
  */
-attribute @regex(_ regex: String, _ message: String?) @@@targetField([StringField]) @@@validation
+attribute @regex(_ regex: String, _ message: String?) @@@targetField([StringField]) @@@validation @@@lite
 
 /**
  * Validates a string field value is a valid UUID.
  */
-attribute @uuid(_ version: Int?, _ message: String?) @@@targetField([StringField]) @@@validation
+attribute @uuid(_ version: Int?, _ message: String?) @@@targetField([StringField]) @@@validation @@@lite
 
 /**
  * Validates a string field value is a valid email address.
  */
-attribute @email(_ message: String?) @@@targetField([StringField]) @@@validation
+attribute @email(_ message: String?) @@@targetField([StringField]) @@@validation @@@lite
 
 /**
  * Validates a string field value is a valid ISO datetime.
  */
-attribute @datetime(_ message: String?) @@@targetField([StringField]) @@@validation
+attribute @datetime(_ message: String?) @@@targetField([StringField]) @@@validation @@@lite
 
 /**
  * Validates a string field value is a valid ISO date.
  */
-attribute @date(_ message: String?) @@@targetField([StringField]) @@@validation
+attribute @date(_ message: String?) @@@targetField([StringField]) @@@validation @@@lite
 
 /**
  * Validates a string field value is a valid ISO time.
  */
-attribute @time(_ precision: Int?, _ message: String?) @@@targetField([StringField]) @@@validation
+attribute @time(_ precision: Int?, _ message: String?) @@@targetField([StringField]) @@@validation @@@lite
 
 /**
  * Validates a string field value is a valid url.
  */
-attribute @url(_ message: String?) @@@targetField([StringField]) @@@validation
+attribute @url(_ message: String?) @@@targetField([StringField]) @@@validation @@@lite
 
 /**
  * Validates a string field value is a valid E.164 phone number.
  */
-attribute @phone(_ message: String?) @@@targetField([StringField]) @@@validation
+attribute @phone(_ message: String?) @@@targetField([StringField]) @@@validation @@@lite
 
 /**
  * Trims whitespaces from the start and end of the string.
  */
-attribute @trim() @@@targetField([StringField]) @@@validation
+attribute @trim() @@@targetField([StringField]) @@@validation @@@lite
 
 /**
  * Transform entire string toLowerCase.
  */
-attribute @lower() @@@targetField([StringField]) @@@validation
+attribute @lower() @@@targetField([StringField]) @@@validation @@@lite
 
 /**
  * Transform entire string toUpperCase.
  */
-attribute @upper() @@@targetField([StringField]) @@@validation
+attribute @upper() @@@targetField([StringField]) @@@validation @@@lite
 
 /**
  * Validates a number field is greater than the given value.
  */
-attribute @gt(_ value: Any, _ message: String?) @@@targetField([IntField, FloatField, DecimalField, BigIntField]) @@@validation
+attribute @gt(_ value: Any, _ message: String?) @@@targetField([IntField, FloatField, DecimalField, BigIntField]) @@@validation @@@lite
 
 /**
  * Validates a number field is greater than or equal to the given value.
  */
-attribute @gte(_ value: Any, _ message: String?) @@@targetField([IntField, FloatField, DecimalField, BigIntField]) @@@validation
+attribute @gte(_ value: Any, _ message: String?) @@@targetField([IntField, FloatField, DecimalField, BigIntField]) @@@validation @@@lite
 
 /**
  * Validates a number field is less than the given value.
  */
-attribute @lt(_ value: Any, _ message: String?) @@@targetField([IntField, FloatField, DecimalField, BigIntField]) @@@validation
+attribute @lt(_ value: Any, _ message: String?) @@@targetField([IntField, FloatField, DecimalField, BigIntField]) @@@validation @@@lite
 
 /**
  * Validates a number field is less than or equal to the given value.
  */
-attribute @lte(_ value: Any, _ message: String?) @@@targetField([IntField, FloatField, DecimalField, BigIntField]) @@@validation
+attribute @lte(_ value: Any, _ message: String?) @@@targetField([IntField, FloatField, DecimalField, BigIntField]) @@@validation @@@lite
 
 /**
  * Validates the entity with a complex condition.
  */
-attribute @@validate(_ value: Boolean, _ message: String?, _ path: String[]?) @@@validation
+attribute @@validate(_ value: Boolean, _ message: String?, _ path: String[]?) @@@validation @@@lite
 
 /**
  * Returns the length of a string field or a list field.
@@ -729,14 +729,24 @@ attribute @@auth()
 /**
  * Attaches arbitrary metadata to a model or type def.
  */
-attribute @@meta(_ name: String, _ value: Any)
+attribute @@meta(_ name: String, _ value: Any) @@@lite
 
 /**
  * Attaches arbitrary metadata to a field.
  */
-attribute @meta(_ name: String, _ value: Any)
+attribute @meta(_ name: String, _ value: Any) @@@lite
 
 /**
  * Marks an attribute as deprecated.
  */
 attribute @@@deprecated(_ message: String)
+
+/**
+ * Indicates an attribute should not be stripped when generating lite schemas.
+ */
+attribute @@@lite()
+
+/**
+ * Indicates a type def should reject unknown fields.
+ */
+attribute @@strict() @@@once @@@validation

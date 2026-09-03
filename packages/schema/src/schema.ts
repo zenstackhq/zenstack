@@ -129,6 +129,7 @@ export type EnumDef = {
 
 export type TypeDefDef = {
     name: string;
+    strict?: boolean;
     fields: Record<string, FieldDef>;
     attributes?: readonly AttributeApplication[];
 };

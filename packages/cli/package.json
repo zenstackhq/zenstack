@@ -2,7 +2,7 @@
     "name": "@zenstackhq/cli",
     "displayName": "ZenStack CLI",
     "description": "FullStack database toolkit with built-in access control and automatic API generation.",
-    "version": "3.9.1",
+    "version": "3.9.4",
     "type": "module",
     "author": {
         "name": "ZenStack Team",
@@ -37,7 +37,20 @@
         "pack": "pnpm pack"
     },
     "exports": {
-        "./package.json": "./package.json"
+        "./package.json": {
+            "import": "./package.json",
+            "require": "./package.json"
+        },
+        "./proxy": {
+            "import": {
+                "types": "./dist/proxy.d.mts",
+                "default": "./dist/proxy.mjs"
+            },
+            "require": {
+                "types": "./dist/proxy.d.cts",
+                "default": "./dist/proxy.cjs"
+            }
+        }
     },
     "dependencies": {
         "@zenstackhq/common-helpers": "workspace:*",

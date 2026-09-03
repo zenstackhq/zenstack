@@ -5,7 +5,7 @@
 
 /* eslint-disable */
 
-import { type SchemaDef, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
+import { type SchemaDef, type AttributeApplication, type FieldDefault, ExpressionUtils } from "@zenstackhq/schema";
 export class SchemaType implements SchemaDef {
     provider = {
         type: "sqlite"
@@ -18,6 +18,7 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "String",
                     id: true,
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
                     default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 email: {
@@ -35,6 +36,11 @@ export class SchemaType implements SchemaDef {
                     type: "Post",
                     array: true,
                     relation: { opposite: "owner" }
+                },
+                profile: {
+                    name: "profile",
+                    type: "Profile",
+                    optional: true
                 }
             },
             idFields: ["id"],
@@ -50,6 +56,7 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "String",
                     id: true,
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
                     default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 title: {
@@ -97,6 +104,7 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "String",
                     id: true,
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
                     default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 name: {
@@ -124,6 +132,7 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "String",
                     id: true,
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
                     default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 type: {
@@ -147,6 +156,7 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "String",
                     id: true,
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
                     default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 type: {
@@ -164,6 +174,18 @@ export class SchemaType implements SchemaDef {
             uniqueFields: {
                 id: { type: "String" }
             }
+        }
+    } as const;
+    typeDefs = {
+        Profile: {
+            name: "Profile",
+            fields: {
+                bio: {
+                    name: "bio",
+                    type: "String"
+                }
+            },
+            strict: true
         }
     } as const;
     authType = "User" as const;

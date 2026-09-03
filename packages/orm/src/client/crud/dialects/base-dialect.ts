@@ -1689,9 +1689,10 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             // every query issued through the ORM builds the dialect from a client, and a dialect
             // built from a standalone schema/options pair never inlines computed fields
             invariant(this.client, `computed field "${field}" of model "${model}" needs a client to be evaluated`);
-            // `computedArgs` is the query-time args object for a parameterized computed
-            // field (undefined otherwise); forwarded as the implementation's 3rd argument.
-            return computer(this.eb, { modelAlias, client: this.client }, computedArgs);
+            // `computedArgs` is the query-time args of a parameterized computed field (undefined
+            // otherwise), forwarded as the implementation's 3rd argument. The result is parenthesized
+            // as it gets embedded into larger expressions: `where: { isMine: true }` → `(<expr>) = $n`.
+            return this.eb.parens(computer(this.eb, { modelAlias, client: this.client }, computedArgs));
         }
     }
 
