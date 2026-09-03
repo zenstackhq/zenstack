@@ -1131,14 +1131,17 @@ model Post {
             },
         });
 
-        await expect(
-            db.user.findFirst({
-                select: {
-                    postCountByStatus: { args: { status: 'INACTIVE' } },
-                    popularPostCount: { args: { filter: { minViews: 100 } } },
-                },
-            }),
-        ).resolves.toEqual({ postCountByStatus: 2, popularPostCount: 2 });
+        // `count(*)` is a bigint on Postgres, which the `pg` driver returns as a string, so
+        // normalize before comparing
+        const counts = await db.user.findFirst({
+            select: {
+                postCountByStatus: { args: { status: 'INACTIVE' } },
+                popularPostCount: { args: { filter: { minViews: 100 } } },
+            },
+        });
+        expect(Object.keys(counts!).sort()).toEqual(['popularPostCount', 'postCountByStatus']);
+        expect(Number(counts!.postCountByStatus)).toBe(2);
+        expect(Number(counts!.popularPostCount)).toBe(2);
 
         await expect(
             db.user.findFirst({ where: { postCountByStatus: { args: { status: 'ACTIVE' }, equals: 1 } } }),
