@@ -17,6 +17,7 @@ const stringFuncZodMap = {
     isEmail: 'email',
     isUrl: 'url',
     isPhone: 'e164',
+    isUuid: 'uuid',
     isDate: 'date',
     isTime: 'time',
     isDateTime: 'datetime',
@@ -76,6 +77,15 @@ export function addStringValidation(
                 const pattern = getArgValue<string>(attr.args?.[0]?.value);
                 if (pattern !== undefined) {
                     result = result.regex(new RegExp(pattern));
+                }
+                break;
+            }
+            case '@uuid': {
+                const version = getArgValue<number>(attr.args?.[0]?.value);
+                if (version === 7) {
+                    result = result.uuidv7();
+                } else {
+                    result = result.uuidv4();
                 }
                 break;
             }
@@ -555,6 +565,7 @@ function evalCall(data: any, expr: CallExpression) {
         case 'isEmail':
         case 'isUrl':
         case 'isPhone':
+        case 'isUuid':
         case 'isDate':
         case 'isTime':
         case 'isDateTime': {
@@ -569,6 +580,13 @@ function evalCall(data: any, expr: CallExpression) {
                     `"isTime" optional second argument must be a number`,
                 );
                 return z.iso.time({ precision }).safeParse(fieldArg).success;
+            } else if (f === 'isUuid') {
+                const version = getArgValue<number>(expr.args?.[1]);
+                invariant(
+                    version === null || version == undefined || version === 4 || version === 7,
+                    `"isUuid" optional second argument must 4 or 7`,
+                );
+                return z.uuid({ version: version ? `v${version}` : undefined }).safeParse(fieldArg).success;
             }
             const fn = stringFuncZodMap[f];
             return z.string()[fn]().safeParse(fieldArg).success;
