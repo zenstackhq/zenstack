@@ -72,6 +72,15 @@ export class SchemaType implements SchemaDef {
                     attributes: [{ name: "@computed" }] as readonly AttributeApplication[],
                     computed: true
                 },
+                hasStatus: {
+                    name: "hasStatus",
+                    type: "Boolean",
+                    attributes: [{ name: "@computed" }] as readonly AttributeApplication[],
+                    computed: true,
+                    params: {
+                        status: { name: "status", type: "Status" }
+                    }
+                },
                 identity: {
                     name: "identity",
                     type: "Identity",
@@ -88,6 +97,13 @@ export class SchemaType implements SchemaDef {
                 postCount(_context: {
                     modelAlias: string;
                 }): number {
+                    throw new Error("This is a stub for computed field");
+                },
+                hasStatus(_context: {
+                    modelAlias: string;
+                }, _args: {
+                    status: SchemaType["enums"]["Status"]["values"][keyof SchemaType["enums"]["Status"]["values"]];
+                }): boolean {
                     throw new Error("This is a stub for computed field");
                 }
             }

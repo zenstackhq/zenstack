@@ -1067,4 +1067,200 @@ model Post {
             isSpecial: true,
         });
     });
+    it('works with enum and type-def parameters on parameterized computed fields', async () => {
+        const db = await createTestClient(
+            `
+enum Status {
+    ACTIVE
+    INACTIVE
+}
+
+type ViewFilter {
+    minViews Int
+}
+
+model User {
+    id Int @id @default(autoincrement())
+    name String
+    posts Post[]
+    postCountByStatus(status: Status) Int @computed
+    popularPostCount(filter: ViewFilter) Int @computed
+}
+
+model Post {
+    id Int @id @default(autoincrement())
+    status Status @default(ACTIVE)
+    viewCount Int @default(0)
+    author User @relation(fields: [authorId], references: [id])
+    authorId Int
+}
+`,
+            {
+                computedFields: {
+                    User: {
+                        // counts the user's posts in the query-time `status`
+                        postCountByStatus: (eb: any, ctx: any, args: any) =>
+                            eb
+                                .selectFrom('Post')
+                                .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
+                                .where('Post.status', '=', args.status)
+                                .select(({ fn }: any) => fn.countAll().as('cnt')),
+                        // counts the user's posts whose viewCount >= the query-time `filter.minViews`
+                        popularPostCount: (eb: any, ctx: any, args: any) =>
+                            eb
+                                .selectFrom('Post')
+                                .whereRef('Post.authorId', '=', sql.ref(`${ctx.modelAlias}.id`))
+                                .where('Post.viewCount', '>=', args.filter.minViews)
+                                .select(({ fn }: any) => fn.countAll().as('cnt')),
+                    },
+                },
+            } as any,
+        );
+
+        await db.user.create({
+            data: {
+                id: 1,
+                name: 'Alice',
+                posts: {
+                    create: [
+                        { status: 'ACTIVE', viewCount: 300 },
+                        { status: 'INACTIVE', viewCount: 50 },
+                        { status: 'INACTIVE', viewCount: 120 },
+                    ],
+                },
+            },
+        });
+
+        // `count(*)` is a bigint on Postgres, which the `pg` driver returns as a string, so
+        // normalize before comparing
+        const counts = await db.user.findFirst({
+            select: {
+                postCountByStatus: { args: { status: 'INACTIVE' } },
+                popularPostCount: { args: { filter: { minViews: 100 } } },
+            },
+        });
+        expect(Object.keys(counts!).sort()).toEqual(['popularPostCount', 'postCountByStatus']);
+        expect(Number(counts!.postCountByStatus)).toBe(2);
+        expect(Number(counts!.popularPostCount)).toBe(2);
+
+        await expect(
+            db.user.findFirst({ where: { postCountByStatus: { args: { status: 'ACTIVE' }, equals: 1 } } }),
+        ).resolves.toMatchObject({ id: 1 });
+        await expect(
+            db.user.findFirst({ where: { postCountByStatus: { args: { status: 'ACTIVE' }, gt: 1 } } }),
+        ).toResolveNull();
+
+        // `args` are validated against the declared param types: an unknown enum value and a
+        // type-def payload of the wrong shape are rejected as invalid input (`as any` bypasses
+        // the matching compile-time checks)
+        await expect(
+            db.user.findFirst({ select: { postCountByStatus: { args: { status: 'WRONG' } } } } as any),
+        ).toBeRejectedByValidation();
+        await expect(
+            db.user.findFirst({ where: { postCountByStatus: { args: { status: 'WRONG' }, gt: 0 } } } as any),
+        ).toBeRejectedByValidation();
+        await expect(
+            db.user.findFirst({ select: { popularPostCount: { args: { filter: { minViews: 'x' } } } } } as any),
+        ).toBeRejectedByValidation();
+        await expect(
+            db.user.findFirst({ select: { popularPostCount: { args: { filter: {} } } } } as any),
+        ).toBeRejectedByValidation();
+    });
+
+    it('is typed correctly for parameterized computed fields with enum and type-def params', async () => {
+        await createTestClient(
+            `
+enum Status {
+    ACTIVE
+    INACTIVE
+}
+
+type ViewFilter {
+    minViews Int
+}
+
+model User {
+    id Int @id @default(autoincrement())
+    name String
+    postCountByStatus(status: Status) Int @computed
+    popularPostCount(filter: ViewFilter, factor: Int?) Int @computed
+}
+`,
+            {
+                computedFields: {
+                    user: {
+                        postCountByStatus: (eb: any) => eb.lit(0),
+                        popularPostCount: (eb: any) => eb.lit(0),
+                    },
+                },
+                extraSourceFiles: {
+                    main: `
+import { ZenStackClient } from '@zenstackhq/orm';
+import { schema } from './schema';
+import type { UserSelect, UserWhereInput } from './input';
+
+const client = new ZenStackClient(schema, {
+    dialect: {} as any,
+    computedFields: {
+        user: {
+            postCountByStatus: (eb, _ctx, args) => {
+                // an enum param is typed as the enum's value union
+                const status: 'ACTIVE' | 'INACTIVE' = args.status;
+                // @ts-expect-error not a Status value
+                const wrong: 'WRONG' = args.status;
+                void status;
+                void wrong;
+                return eb.lit(0);
+            },
+            popularPostCount: (eb, _ctx, args) => {
+                // a type-def param is typed as its object shape; an optional param is optional
+                const minViews: number = args.filter.minViews;
+                const factor: number | undefined = args.factor;
+                void minViews;
+                void factor;
+                return eb.lit(0);
+            },
+        },
+    },
+});
+
+async function main() {
+    // valid args compile everywhere the field can be used
+    await client.user.findMany({
+        select: {
+            postCountByStatus: { args: { status: 'ACTIVE' } },
+            popularPostCount: { args: { filter: { minViews: 1 } } },
+        },
+        where: { postCountByStatus: { args: { status: 'INACTIVE' }, gt: 0 } },
+        orderBy: { popularPostCount: { args: { filter: { minViews: 1 }, factor: 2 }, sort: 'desc' } },
+    });
+
+    // @ts-expect-error not a Status value
+    await client.user.findMany({ select: { postCountByStatus: { args: { status: 'WRONG' } } } });
+    // @ts-expect-error not a Status value
+    await client.user.findMany({ where: { postCountByStatus: { args: { status: 'WRONG' }, gt: 0 } } });
+    // @ts-expect-error not a Status value
+    await client.user.findMany({ orderBy: { postCountByStatus: { args: { status: 'WRONG' }, sort: 'asc' } } });
+    // @ts-expect-error wrong type-def field type
+    await client.user.findMany({ select: { popularPostCount: { args: { filter: { minViews: 'x' } } } } });
+    // @ts-expect-error missing required type-def field
+    await client.user.findMany({ select: { popularPostCount: { args: { filter: {} } } } });
+    // @ts-expect-error missing required arg
+    await client.user.findMany({ select: { popularPostCount: { args: { factor: 1 } } } });
+
+    // the generated input types carry the same typing
+    // @ts-expect-error not a Status value
+    const select: UserSelect = { postCountByStatus: { args: { status: 'WRONG' } } };
+    // @ts-expect-error not a Status value
+    const where: UserWhereInput = { postCountByStatus: { args: { status: 'WRONG' }, gt: 0 } };
+    void select;
+    void where;
+}
+
+void main;
+`,
+                },
+            },
+        );
+    });
 });
