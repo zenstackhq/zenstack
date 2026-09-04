@@ -18,6 +18,8 @@ describe('Toplevel field validation tests', () => {
             str8  String? @date
             str9  String? @time
             str10 String? @time(-1)
+            str11 String? @uuid
+            str12 String? @uuid(7)
         }
         `,
         );
@@ -111,6 +113,18 @@ describe('Toplevel field validation tests', () => {
 
             // satisfies @time(-1)
             await expect(_t({ str10: '03:15' })).toResolveTruthy();
+
+            // violates @uuid
+            await expect(_t({ str11: 'not-a-uuid' })).toBeRejectedByValidation(['Invalid UUID']);
+
+            // satisfies @uuid
+            await expect(_t({ str11: '20ef31c8-a2c6-4dca-b87b-838e364ab4b3' })).toResolveTruthy();
+
+            // violates @uuid(7)
+            await expect(_t({ str12: 'not-a-uuid' })).toBeRejectedByValidation(['Invalid UUID']);
+
+            // satisfies @uuid(7)
+            await expect(_t({ str12: '019ff964-2f1d-7668-9a76-8648f2af9146' })).toResolveTruthy();
         }
     });
 
