@@ -625,7 +625,7 @@ describe('createClient', () => {
                         meta: {
                             serialization: {
                                 values: {
-                                    'args.data.createdAt': ['Date'],
+                                    'data.createdAt': ['Date'],
                                 },
                             },
                         },
