@@ -17,13 +17,13 @@ export async function fetcher<R>(url: string, options?: RequestInit, customFetch
     const _fetch = customFetch ?? fetch;
     const res = await _fetch(url, options);
     if (!res.ok) {
-        const errData = unmarshal(await res.text());
-        if (errData.error?.rejectedByPolicy && errData.error?.rejectReason === 'cannot-read-back') {
+        const json = await res.json();
+        if (json.error?.rejectedByPolicy && json.error?.rejectReason === 'cannot-read-back') {
             // policy doesn't allow mutation result to be read back, just return undefined
             return undefined as any;
         }
         const error: QueryError = new Error('An error occurred while fetching the data.');
-        error.info = errData.error;
+        error.info = json.error;
         error.status = res.status;
         throw error;
     }
