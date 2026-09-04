@@ -17,7 +17,7 @@ export async function fetcher<R>(url: string, options?: RequestInit, customFetch
     const _fetch = customFetch ?? fetch;
     const res = await _fetch(url, options);
     if (!res.ok) {
-        const json = await res.json();
+        const json = JSON.parse(await res.text());
         if (json.error?.rejectedByPolicy && json.error?.rejectReason === 'cannot-read-back') {
             // policy doesn't allow mutation result to be read back, just return undefined
             return undefined as any;
