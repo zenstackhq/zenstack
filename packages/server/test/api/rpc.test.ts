@@ -1,4 +1,4 @@
-import { ClientContract } from '@zenstackhq/orm';
+import { ClientContract, definePlugin } from '@zenstackhq/orm';
 import { SchemaDef } from '@zenstackhq/orm/schema';
 import { createPolicyTestClient, createTestClient } from '@zenstackhq/testtools';
 import Decimal from 'decimal.js';
@@ -6,6 +6,7 @@ import SuperJSON from 'superjson';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { RPCApiHandler } from '../../src/api';
 import { schema } from '../utils';
+import z from 'zod';
 
 describe('RPC API Handler Tests', () => {
     let client: ClientContract<SchemaDef>;
@@ -145,6 +146,50 @@ describe('RPC API Handler Tests', () => {
         });
         expect(r.status).toBe(200);
         expect(r.data.count).toBe(1);
+    });
+
+    it('supports ext query args named meta', async () => {
+        let meta: any;
+        const metaClient = (await createPolicyTestClient(schema)).$use(
+            definePlugin({
+                id: 'meta',
+
+                queryArgs: {
+                    $create: z.object({
+                        meta: z.object({
+                            bio: z.string(),
+                        }),
+                    }),
+                },
+
+                onQuery: ({ args, proceed }) => {
+                    meta = args?.meta;
+                    return proceed(args);
+                },
+            }),
+        );
+
+        const handleRequest = makeHandler();
+
+        const r = await handleRequest({
+            method: 'post',
+            path: '/user/create',
+            requestBody: {
+                data: {
+                    data: {
+                        email: 'johndoe@email.com',
+                    },
+
+                    meta: {
+                        bio: 'Programmer',
+                    },
+                },
+            },
+            client: metaClient,
+        });
+
+        expect(r.status).toBe(201);
+        expect(meta).toMatchObject({ bio: 'Programmer' });
     });
 
     it('procedures', async () => {
