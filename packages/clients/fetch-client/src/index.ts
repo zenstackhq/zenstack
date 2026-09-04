@@ -303,12 +303,13 @@ export function createClient<SchemaOrClient extends SchemaDef | ClientContract<a
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify({
                     data: operations.map((op) => {
-                        const { data: serializedOp, meta } = serialize(op);
+                        const { data: serializedArgs, meta } = serialize(op.args);
                         if (!meta) {
-                            return serializedOp;
+                            return op;
                         }
                         return {
-                            ...(serializedOp as any),
+                            ...op,
+                            args: serializedArgs,
                             meta: {
                                 serialization: meta,
                             },
