@@ -40,7 +40,7 @@ describe('createClient', () => {
 
             expect(mockFetch).toHaveBeenCalledOnce();
             const [url, init] = mockFetch.mock.calls[0] ?? [];
-            expect(url).toContain(`${ENDPOINT}/user/findUnique?q=`);
+            expect(url).toContain(`${ENDPOINT}/user/findUnique?data=`);
             expect(init).toBeUndefined();
             expect(result).toEqual(data);
         });
@@ -53,7 +53,7 @@ describe('createClient', () => {
             await client.user.findFirst({ where: { name: 'Bob' } });
 
             const [url] = mockFetch.mock.calls[0] ?? [];
-            expect(url).toContain(`${ENDPOINT}/user/findFirst?q=`);
+            expect(url).toContain(`${ENDPOINT}/user/findFirst?data=`);
         });
 
         it('findFirst - can be called with no args', async () => {
@@ -88,7 +88,7 @@ describe('createClient', () => {
             const result = await client.user.exists({ where: { id: '1' } });
 
             const [url] = mockFetch.mock.calls[0] ?? [];
-            expect(url).toContain(`${ENDPOINT}/user/exists?q=`);
+            expect(url).toContain(`${ENDPOINT}/user/exists?data=`);
             expect(result).toBe(true);
         });
 
@@ -111,7 +111,7 @@ describe('createClient', () => {
             const result = await client.user.aggregate({ _count: { id: true } });
 
             const [url] = mockFetch.mock.calls[0] ?? [];
-            expect(url).toContain(`${ENDPOINT}/user/aggregate?q=`);
+            expect(url).toContain(`${ENDPOINT}/user/aggregate?data=`);
             expect(result).toEqual(aggResult);
         });
 
@@ -123,7 +123,7 @@ describe('createClient', () => {
             const result = await client.user.groupBy({ by: ['name'], _count: { id: true } });
 
             const [url] = mockFetch.mock.calls[0] ?? [];
-            expect(url).toContain(`${ENDPOINT}/user/groupBy?q=`);
+            expect(url).toContain(`${ENDPOINT}/user/groupBy?data=`);
             expect(result).toEqual(groupResult);
         });
     });
@@ -137,7 +137,7 @@ describe('createClient', () => {
             const result = await client.user.findUniqueOrThrow({ where: { id: '1' } });
 
             const [url] = mockFetch.mock.calls[0] ?? [];
-            expect(url).toContain(`${ENDPOINT}/user/findUnique?q=`);
+            expect(url).toContain(`${ENDPOINT}/user/findUnique?data=`);
             expect(result).toEqual(data);
         });
 
@@ -184,7 +184,7 @@ describe('createClient', () => {
             expect(url).toBe(`${ENDPOINT}/user/create`);
             expect(init.method).toBe('POST');
             expect(init.headers['content-type']).toBe('application/json');
-            expect(JSON.parse(init.body)).toMatchObject({ data: { email: 'new@example.com' } });
+            expect(JSON.parse(init.body)).toMatchObject({ data: { data: { email: 'new@example.com' } } });
             expect(result).toEqual(created);
         });
 
@@ -269,7 +269,7 @@ describe('createClient', () => {
             await client.user.delete({ where: { id: '1' } });
 
             const [url, init] = mockFetch.mock.calls[0] ?? [];
-            expect(url).toContain(`${ENDPOINT}/user/delete?q=`);
+            expect(url).toContain(`${ENDPOINT}/user/delete?data=`);
             expect(init.method).toBe('DELETE');
             expect(init.body).toBeUndefined();
         });
@@ -281,7 +281,7 @@ describe('createClient', () => {
             await client.user.deleteMany({ where: { name: null } });
 
             const [url, init] = mockFetch.mock.calls[0] ?? [];
-            expect(url).toContain(`${ENDPOINT}/user/deleteMany?q=`);
+            expect(url).toContain(`${ENDPOINT}/user/deleteMany?data=`);
             expect(init.method).toBe('DELETE');
         });
 
@@ -406,7 +406,7 @@ describe('createClient', () => {
             mockFetch.mockResolvedValue({
                 ok: false,
                 status: 500,
-                text: async () => JSON.stringify({ error: { message: 'Internal server error' } }),
+                text: async () => makeResponseText({ error: { message: 'Internal server error' } }),
             });
 
             const client = createClient(schema, { endpoint: ENDPOINT });
@@ -450,7 +450,7 @@ describe('createClient', () => {
             await client.user.findMany({ where: { id: '1' } });
 
             const [url] = mockFetch.mock.calls[0] ?? [];
-            expect(url).toContain('?q=');
+            expect(url).toContain('?data=');
         });
 
         it('marshals args with Decimal into POST body', async () => {
@@ -461,7 +461,7 @@ describe('createClient', () => {
 
             const [, init] = mockFetch.mock.calls[0] ?? [];
             const body = JSON.parse(init.body);
-            expect(body).toMatchObject({ data: [{ email: 'x@test.com' }] });
+            expect(body).toMatchObject({ data: { data: [{ email: 'x@test.com' }] } });
         });
     });
 
@@ -521,10 +521,12 @@ describe('createClient', () => {
             expect(init.headers['content-type']).toBe('application/json');
 
             const body = JSON.parse(init.body);
-            expect(body).toEqual([
-                { model: 'User', op: 'create', args: { data: { email: 'alice@example.com' } } },
-                { model: 'Post', op: 'create', args: { data: { title: 'Hello' } } },
-            ]);
+            expect(body).toEqual({
+                data: [
+                    { model: 'User', op: 'create', args: { data: { email: 'alice@example.com' } } },
+                    { model: 'Post', op: 'create', args: { data: { title: 'Hello' } } },
+                ],
+            });
 
             expect(user).toEqual(results[0]);
             expect(post).toEqual(results[1]);
@@ -555,8 +557,8 @@ describe('createClient', () => {
             ]);
 
             const body = JSON.parse((mockFetch.mock.calls[0] ?? [])[1].body);
-            expect(body[0]).toMatchObject({ model: 'User', op: 'updateMany' });
-            expect(body[1]).toMatchObject({ model: 'Post', op: 'delete' });
+            expect(body.data[0]).toMatchObject({ model: 'User', op: 'updateMany' });
+            expect(body.data[1]).toMatchObject({ model: 'Post', op: 'delete' });
         });
 
         it('marshals args with SuperJSON when special types are present', async () => {
@@ -567,7 +569,7 @@ describe('createClient', () => {
 
             // Plain args – no meta expected
             const body = JSON.parse((mockFetch.mock.calls[0] ?? [])[1].body);
-            expect(body[0].args).toEqual({ where: { id: '1' } });
+            expect(body.data[0].args).toEqual({ where: { id: '1' } });
         });
 
         it('uses custom fetch in transaction', async () => {
@@ -587,13 +589,51 @@ describe('createClient', () => {
             mockFetch.mockResolvedValue({
                 ok: false,
                 status: 400,
-                text: async () => JSON.stringify({ error: { message: 'Bad request' } }),
+                text: async () => makeResponseText({ error: { message: 'Bad request' } }),
             });
 
             const client = createClient(schema, { endpoint: ENDPOINT });
             await expect(
                 client.$transaction([{ model: 'User', op: 'create', args: { data: { email: 'x@test.com' } } }]),
             ).rejects.toMatchObject({ status: 400 });
+        });
+
+        it('works with superjson serialization', async () => {
+            const createdAt = new Date();
+            const results = [{ id: '1', email: 'alice@example.com', createdAt: createdAt.toISOString() }];
+            mockFetch.mockResolvedValue({ ok: true, text: async () => makeResponseText(results) });
+
+            const client = createClient(schema, { endpoint: ENDPOINT });
+            const [user] = await client.$transaction([
+                { model: 'User', op: 'create', args: { data: { email: 'alice@example.com', createdAt } } },
+            ]);
+
+            const [url, init] = mockFetch.mock.calls[0] ?? [];
+            expect(url).toBe(`${ENDPOINT}/$transaction/sequential`);
+            expect(init.method).toBe('POST');
+            expect(init.headers['content-type']).toBe('application/json');
+
+            const body = JSON.parse(init.body);
+            expect(body).toMatchObject({
+                data: [
+                    {
+                        model: 'User',
+                        op: 'create',
+                        args: {
+                            data: { email: 'alice@example.com', createdAt: createdAt.toISOString() },
+                        },
+                        meta: {
+                            serialization: {
+                                values: {
+                                    'data.createdAt': ['Date'],
+                                },
+                            },
+                        },
+                    },
+                ],
+            });
+
+            expect(user).toEqual(results[0]);
         });
     });
 
