@@ -83,6 +83,12 @@ export class SchemaType implements SchemaDef {
                     optional: true,
                     attributes: [{ name: "@time" }] as readonly AttributeApplication[]
                 },
+                extId: {
+                    name: "extId",
+                    type: "String",
+                    optional: true,
+                    attributes: [{ name: "@uuid" }] as readonly AttributeApplication[]
+                },
                 createdAt: {
                     name: "createdAt",
                     type: "DateTime",

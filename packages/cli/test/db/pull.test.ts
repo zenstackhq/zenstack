@@ -652,6 +652,7 @@ enum Status {
     score     Float   @gte(0.0)
     rating    Decimal @lt(10)
     rank      BigInt  @lte(999)
+    extId     String  @uuid
 }`,
             );
             runCli('db push', workDir);

@@ -543,6 +543,11 @@ attribute @contains(_ text: String, _ message: String?) @@@targetField([StringFi
 attribute @regex(_ regex: String, _ message: String?) @@@targetField([StringField]) @@@validation @@@lite
 
 /**
+ * Validates a string field value is a valid UUID.
+ */
+attribute @uuid(_ version: Int?, _ message: String?) @@@targetField([StringField]) @@@validation @@@lite
+
+/**
  * Validates a string field value is a valid email address.
  */
 attribute @email(_ message: String?) @@@targetField([StringField]) @@@validation @@@lite
@@ -647,6 +652,12 @@ function isDate(field: String): Boolean {
  * Validates a string field value is a valid ISO time.
  */
 function isTime(field: String, precision: Int?): Boolean {
+} @@@expressionContext([ValidationRule])
+
+/**
+ * Validates a string field value is a valid UUID.
+ */
+function isUuid(field: String, version: Int?): Boolean {
 } @@@expressionContext([ValidationRule])
 
 /**

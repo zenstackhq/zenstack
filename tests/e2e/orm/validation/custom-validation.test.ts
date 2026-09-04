@@ -15,6 +15,7 @@ describe('Custom validation tests', () => {
             str6 String?
             str7 String?
             str8 String?
+            str9 String?
             int1 Int?
             list1 Int[]
             list2 Int[]
@@ -40,6 +41,8 @@ describe('Custom validation tests', () => {
             @@validate(str7 == null || isDate(str7), 'invalid str7')
 
             @@validate(str8 == null || isTime(str8), 'invalid str8')
+
+            @@validate(str9 == null || isUuid(str9), 'invalid str9')
 
             @@validate(list1 == null || (has(list1, 1) && hasSome(list1, [2, 3]) && hasEvery(list1, [4, 5])), 'invalid list1')
 
@@ -95,6 +98,9 @@ describe('Custom validation tests', () => {
             // violates time
             await expect(_t({ str8: 'not-a-time' })).toBeRejectedByValidation(['invalid str8']);
 
+            // violates uuid
+            await expect(_t({ str9: 'not-a-uuid' })).toBeRejectedByValidation(['invalid str9']);
+
             // violates has
             await expect(_t({ list1: [2, 3, 4, 5] })).toBeRejectedByValidation(['invalid list1']);
 
@@ -128,6 +134,7 @@ describe('Custom validation tests', () => {
                     str6: '+15555555555',
                     str7: '2000-01-01',
                     str8: '03:15:00',
+                    str9: '20ef31c8-a2c6-4dca-b87b-838e364ab4b3',
                     int1: 2,
                     list1: [1, 2, 4, 5],
                     list2: [],

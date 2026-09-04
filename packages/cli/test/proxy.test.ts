@@ -65,9 +65,14 @@ async function createPolicyApp(zmodel: string) {
     const authDb = client.$use(new PolicyPlugin());
     return {
         client,
-        app: createProxyApp(client, client.$schema, authDb, {
-            studioAuthKey: TEST_PUBLIC_KEY,
-            signatureToleranceSecs: 60,
+        app: createProxyApp({
+            client,
+            schema: client.$schema,
+            authDb,
+            auth: {
+                studioAuthKey: TEST_PUBLIC_KEY,
+                signatureToleranceSecs: 60,
+            },
         }),
     };
 }
@@ -106,7 +111,11 @@ describe('CLI proxy tests', () => {
 
         const client = await createTestClient(zmodel);
         const authDb = client.$use(new PolicyPlugin());
-        const app = createProxyApp(client, client.$schema, authDb);
+        const app = createProxyApp({
+            client,
+            schema: client.$schema,
+            authDb,
+        });
         const baseUrl = await startAt(app);
 
         const r = await fetch(`${baseUrl}/api/schema`);
@@ -169,7 +178,11 @@ describe('CLI proxy tests', () => {
         });
 
         const authDb = client.$use(new PolicyPlugin());
-        const app = createProxyApp(client, client.$schema, authDb);
+        const app = createProxyApp({
+            client,
+            schema: client.$schema,
+            authDb,
+        });
         const baseUrl = await startAt(app);
 
         // Create a user via the proxy API.
@@ -217,7 +230,11 @@ describe('CLI proxy tests', () => {
 
         const client = await createTestClient(zmodel);
         const authDb = client.$use(new PolicyPlugin());
-        const app = createProxyApp(client, client.$schema, authDb);
+        const app = createProxyApp({
+            client,
+            schema: client.$schema,
+            authDb,
+        });
         const baseUrl = await startAt(app);
 
         const txRes = await fetch(`${baseUrl}/api/model/$transaction/sequential`, {
@@ -397,7 +414,11 @@ describe('CLI proxy tests', () => {
             // No studioAuthKey — backwards-compatible mode
             const client = await createTestClient(zmodel);
             const authDb = client.$use(new PolicyPlugin());
-            const app = createProxyApp(client, client.$schema, authDb);
+            const app = createProxyApp({
+                client,
+                schema: client.$schema,
+                authDb,
+            });
             const baseUrl = await startAt(app);
 
             // No signature header — should still work
@@ -426,9 +447,14 @@ describe('CLI proxy tests', () => {
             const client = await createTestClient(zmodel);
             const authDb = client.$use(new PolicyPlugin());
             // Pass the key as raw base64 DER — no PEM markers
-            const app = createProxyApp(client, client.$schema, authDb, {
-                studioAuthKey: TEST_PUBLIC_KEY_DER,
-                signatureToleranceSecs: 60,
+            const app = createProxyApp({
+                client,
+                schema: client.$schema,
+                authDb,
+                auth: {
+                    studioAuthKey: TEST_PUBLIC_KEY_DER,
+                    signatureToleranceSecs: 60,
+                },
             });
             const baseUrl = await startAt(app);
 
@@ -449,9 +475,14 @@ describe('CLI proxy tests', () => {
                 // No studioAuthKey option — would normally fall back to env var via run();
                 // here we verify the middleware still works when the resolved key is provided.
                 const authDb = client.$use(new PolicyPlugin());
-                const app = createProxyApp(client, client.$schema, authDb, {
-                    studioAuthKey: process.env['ZENSTACK_STUDIO_AUTH_KEY'],
-                    signatureToleranceSecs: 60,
+                const app = createProxyApp({
+                    client,
+                    schema: client.$schema,
+                    authDb,
+                    auth: {
+                        studioAuthKey: process.env['ZENSTACK_STUDIO_AUTH_KEY'],
+                        signatureToleranceSecs: 60,
+                    },
                 });
                 const baseUrl = await startAt(app);
 
@@ -480,9 +511,14 @@ describe('CLI proxy tests', () => {
         it('should reject a request whose timestamp is older than the tolerance window', async () => {
             const client = await createTestClient(zmodel);
             const authDb = client.$use(new PolicyPlugin());
-            const app = createProxyApp(client, client.$schema, authDb, {
-                studioAuthKey: TEST_PUBLIC_KEY,
-                signatureToleranceSecs: 60,
+            const app = createProxyApp({
+                client,
+                schema: client.$schema,
+                authDb,
+                auth: {
+                    studioAuthKey: TEST_PUBLIC_KEY,
+                    signatureToleranceSecs: 60,
+                },
             });
             const baseUrl = await startAt(app);
 
@@ -507,9 +543,14 @@ describe('CLI proxy tests', () => {
         it('should reject a request whose timestamp is too far in the future', async () => {
             const client = await createTestClient(zmodel);
             const authDb = client.$use(new PolicyPlugin());
-            const app = createProxyApp(client, client.$schema, authDb, {
-                studioAuthKey: TEST_PUBLIC_KEY,
-                signatureToleranceSecs: 60,
+            const app = createProxyApp({
+                client,
+                schema: client.$schema,
+                authDb,
+                auth: {
+                    studioAuthKey: TEST_PUBLIC_KEY,
+                    signatureToleranceSecs: 60,
+                },
             });
             const baseUrl = await startAt(app);
 
@@ -535,9 +576,14 @@ describe('CLI proxy tests', () => {
             const client = await createTestClient(zmodel);
             // Custom tolerance of 300 seconds
             const authDb = client.$use(new PolicyPlugin());
-            const app = createProxyApp(client, client.$schema, authDb, {
-                studioAuthKey: TEST_PUBLIC_KEY,
-                signatureToleranceSecs: 300,
+            const app = createProxyApp({
+                client,
+                schema: client.$schema,
+                authDb,
+                auth: {
+                    studioAuthKey: TEST_PUBLIC_KEY,
+                    signatureToleranceSecs: 300,
+                },
             });
             const baseUrl = await startAt(app);
 
@@ -561,9 +607,14 @@ describe('CLI proxy tests', () => {
             const client = await createTestClient(zmodel);
             const authDb = client.$use(new PolicyPlugin());
             // Very tight tolerance of 5 seconds
-            const app = createProxyApp(client, client.$schema, authDb, {
-                studioAuthKey: TEST_PUBLIC_KEY,
-                signatureToleranceSecs: 5,
+            const app = createProxyApp({
+                client,
+                schema: client.$schema,
+                authDb,
+                auth: {
+                    studioAuthKey: TEST_PUBLIC_KEY,
+                    signatureToleranceSecs: 5,
+                },
             });
             const baseUrl = await startAt(app);
 
@@ -597,9 +648,14 @@ describe('CLI proxy tests', () => {
         it('should reject a valid signature if it was produced without the Authorization token', async () => {
             const client = await createTestClient(zmodel);
             const authDb = client.$use(new PolicyPlugin());
-            const app = createProxyApp(client, client.$schema, authDb, {
-                studioAuthKey: TEST_PUBLIC_KEY,
-                signatureToleranceSecs: 60,
+            const app = createProxyApp({
+                client,
+                schema: client.$schema,
+                authDb,
+                auth: {
+                    studioAuthKey: TEST_PUBLIC_KEY,
+                    signatureToleranceSecs: 60,
+                },
             });
             const baseUrl = await startAt(app);
 
@@ -627,9 +683,14 @@ describe('CLI proxy tests', () => {
         it('should accept a request where the signature covers the Authorization token', async () => {
             const client = await createTestClient(zmodel);
             const authDb = client.$use(new PolicyPlugin());
-            const app = createProxyApp(client, client.$schema, authDb, {
-                studioAuthKey: TEST_PUBLIC_KEY,
-                signatureToleranceSecs: 60,
+            const app = createProxyApp({
+                client,
+                schema: client.$schema,
+                authDb,
+                auth: {
+                    studioAuthKey: TEST_PUBLIC_KEY,
+                    signatureToleranceSecs: 60,
+                },
             });
             const baseUrl = await startAt(app);
 
