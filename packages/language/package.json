@@ -23,8 +23,8 @@
         "watch": "tsdown --watch",
         "lint": "eslint src --ext ts",
         "test": "vitest run",
-        "langium:generate": "langium generate",
-        "langium:generate:production": "langium generate --mode=production",
+        "langium:generate": "langium generate && tsx scripts/patch-generated-tm.ts",
+        "langium:generate:production": "langium generate --mode=production && tsx scripts/patch-generated-tm.ts",
         "pack": "pnpm pack"
     },
     "exports": {
