@@ -234,7 +234,7 @@ describe('Fetcher and serialization tests', () => {
             mockFetch.mockResolvedValue({
                 ok: false,
                 status: 404,
-                text: async () => marshal({ error: errorInfo }),
+                text: async () => JSON.stringify({ error: errorInfo }),
             });
 
             await expect(fetcher('/api/user/findUnique', {})).rejects.toThrow(
@@ -258,7 +258,7 @@ describe('Fetcher and serialization tests', () => {
             mockFetch.mockResolvedValue({
                 ok: false,
                 status: 403,
-                text: async () => marshal({ error: errorInfo }),
+                text: async () => JSON.stringify({ error: errorInfo }),
             });
 
             const result = await fetcher('/api/user/create', {});
