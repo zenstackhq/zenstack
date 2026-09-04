@@ -3376,7 +3376,7 @@ mutation procedure sum(a: Int, b: Int): Int
             const r = await handler({
                 method: 'get',
                 path: '/$procs/echoDecimal',
-                query: { ...(json as object), meta: { serialization: meta } } as any,
+                query: { data: json, meta: { serialization: meta } } as any,
                 client,
             });
 
@@ -3432,7 +3432,7 @@ mutation procedure sum(a: Int, b: Int): Int
             const r = await handler({
                 method: 'get',
                 path: '/$procs/sumIds',
-                query: { args: { ids: [1, 2, 3] } } as any,
+                query: { data: { args: { ids: [1, 2, 3] } } } as any,
                 client,
             });
 
@@ -3444,7 +3444,7 @@ mutation procedure sum(a: Int, b: Int): Int
             const r = await handler({
                 method: 'get',
                 path: '/$procs/echoRole',
-                query: { args: { r: 'ADMIN' } } as any,
+                query: { data: { args: { r: 'ADMIN' } } } as any,
                 client,
             });
 
@@ -3456,7 +3456,7 @@ mutation procedure sum(a: Int, b: Int): Int
             const r = await handler({
                 method: 'get',
                 path: '/$procs/echoOverview',
-                query: { args: { o: { total: 123 } } } as any,
+                query: { data: { args: { o: { total: 123 } } } } as any,
                 client,
             });
 
@@ -3468,7 +3468,7 @@ mutation procedure sum(a: Int, b: Int): Int
             const r = await handler({
                 method: 'get',
                 path: '/$procs/echoInt',
-                query: { args: { x: 'not-an-int' } } as any,
+                query: { data: { args: { x: 'not-an-int' } } } as any,
                 client,
             });
 
@@ -3489,7 +3489,7 @@ mutation procedure sum(a: Int, b: Int): Int
             const r = await handler({
                 method: 'post',
                 path: '/$procs/sum',
-                requestBody: { ...(json as object), meta: { serialization: meta } } as any,
+                requestBody: { data: json, meta: { serialization: meta } } as any,
                 client,
             });
 
@@ -3501,7 +3501,7 @@ mutation procedure sum(a: Int, b: Int): Int
             const r = await handler({
                 method: 'post',
                 path: '/$procs/sum',
-                requestBody: { args: [1, 2, 3] } as any,
+                requestBody: { data: { args: [1, 2, 3] } } as any,
                 client,
             });
 
@@ -3521,7 +3521,7 @@ mutation procedure sum(a: Int, b: Int): Int
             const r = await handler({
                 method: 'post',
                 path: '/$procs/sum',
-                requestBody: { args: { a: 1, b: 2, c: 3 } } as any,
+                requestBody: { data: { args: { a: 1, b: 2, c: 3 } } } as any,
                 client,
             });
 
@@ -3541,7 +3541,7 @@ mutation procedure sum(a: Int, b: Int): Int
             const r = await handler({
                 method: 'post',
                 path: '/$procs/sum',
-                requestBody: { args: { a: 1, b: 2 } } as any,
+                requestBody: { data: { args: { a: 1, b: 2 } } } as any,
                 client,
             });
 
