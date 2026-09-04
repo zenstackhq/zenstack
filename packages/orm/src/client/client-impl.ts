@@ -122,9 +122,13 @@ export class ClientImpl {
             this.auth = baseClient.auth;
             this.slowQueries = baseClient.slowQueries;
         } else {
-            const driver = new ZenStackDriver(options.dialect.createDriver(), new Log(this.$options.log ?? []));
-            const compiler = options.dialect.createQueryCompiler();
             const adapter = options.dialect.createAdapter();
+            const driver = new ZenStackDriver(
+                options.dialect.createDriver(),
+                new Log(this.$options.log ?? []),
+                adapter,
+            );
+            const compiler = options.dialect.createQueryCompiler();
             const connectionProvider = new DefaultConnectionProvider(driver);
 
             this.kyselyProps = {
