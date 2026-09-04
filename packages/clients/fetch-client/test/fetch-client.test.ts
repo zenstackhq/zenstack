@@ -365,7 +365,7 @@ describe('createClient', () => {
             mockFetch.mockResolvedValue({
                 ok: false,
                 status: 404,
-                text: async () => makeResponseText({ error: errorInfo }),
+                text: async () => JSON.stringify({ error: errorInfo }),
             });
 
             const client = createClient(schema, { endpoint: ENDPOINT });
@@ -394,7 +394,7 @@ describe('createClient', () => {
                 ok: false,
                 status: 403,
                 text: async () =>
-                    makeResponseText({ error: { rejectedByPolicy: true, rejectReason: 'cannot-read-back' } }),
+                    JSON.stringify({ error: { rejectedByPolicy: true, rejectReason: 'cannot-read-back' } }),
             });
 
             const client = createClient(schema, { endpoint: ENDPOINT });
