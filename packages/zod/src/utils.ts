@@ -82,10 +82,12 @@ export function addStringValidation(
             }
             case '@uuid': {
                 const version = getArgValue<number>(attr.args?.[0]?.value);
-                if (version === 7) {
+                if (version === 4) {
+                    result = result.uuidv4();
+                } else if (version === 7) {
                     result = result.uuidv7();
                 } else {
-                    result = result.uuidv4();
+                    result = result.uuid();
                 }
                 break;
             }
