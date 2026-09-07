@@ -11,7 +11,6 @@ import {
     DataModelAttribute,
     Enum,
     Expression,
-    FunctionParamType,
     InvocationExpr,
     isArrayExpr,
     isBinaryExpr,
@@ -469,14 +468,6 @@ export class TsSchemaGenerator {
             ...(dm.isView ? [ts.factory.createPropertyAssignment('isView', ts.factory.createTrue())] : []),
         ];
 
-        const computedFields = allFields.filter((f) => hasAttribute(f, '@computed') && !getDelegateOriginModel(f, dm));
-
-        if (computedFields.length > 0) {
-            fields.push(
-                ts.factory.createPropertyAssignment('computedFields', this.createComputedFieldsObject(computedFields)),
-            );
-        }
-
         return ts.factory.createObjectLiteralExpression(fields, true);
     }
 
@@ -553,85 +544,10 @@ export class TsSchemaGenerator {
         return ts.factory.createObjectLiteralExpression(fields, true);
     }
 
-    private createComputedFieldsObject(fields: DataField[]) {
-        return ts.factory.createObjectLiteralExpression(
-            fields.map((field) => {
-                const params: ts.ParameterDeclaration[] = [
-                    // parameter: `_context: { modelAlias: string }`
-                    ts.factory.createParameterDeclaration(
-                        undefined,
-                        undefined,
-                        '_context',
-                        undefined,
-                        ts.factory.createTypeLiteralNode([
-                            ts.factory.createPropertySignature(
-                                undefined,
-                                'modelAlias',
-                                undefined,
-                                ts.factory.createKeywordTypeNode(ts.SyntaxKind.StringKeyword),
-                            ),
-                        ]),
-                        undefined,
-                    ),
-                ];
-
-                // For a parameterized computed field, add `_args: { <param>: <type> }` so the
-                // stub documents the query-time args. The authoritative typing is the field's
-                // `params` metadata (see `createFieldParamsObject`), which the ORM maps to the
-                // args type for both the implementation (`ComputedFieldsOptions`) and the query
-                // input types. The underscore prefix keeps `noUnusedParameters` quiet in
-                // consuming projects.
-                if (field.params.length > 0) {
-                    params.push(
-                        ts.factory.createParameterDeclaration(
-                            undefined,
-                            undefined,
-                            '_args',
-                            undefined,
-                            ts.factory.createTypeLiteralNode(
-                                field.params.map((param) =>
-                                    ts.factory.createPropertySignature(
-                                        undefined,
-                                        param.name,
-                                        param.optional
-                                            ? ts.factory.createToken(ts.SyntaxKind.QuestionToken)
-                                            : undefined,
-                                        this.createFunctionParamTypeNode(param.type),
-                                    ),
-                                ),
-                            ),
-                            undefined,
-                        ),
-                    );
-                }
-
-                return ts.factory.createMethodDeclaration(
-                    undefined,
-                    undefined,
-                    field.name,
-                    undefined,
-                    undefined,
-                    params,
-                    ts.factory.createTypeReferenceNode(this.mapFieldTypeToTSType(field.type)),
-                    ts.factory.createBlock(
-                        [
-                            ts.factory.createThrowStatement(
-                                ts.factory.createNewExpression(ts.factory.createIdentifier('Error'), undefined, [
-                                    ts.factory.createStringLiteral('This is a stub for computed field'),
-                                ]),
-                            ),
-                        ],
-                        true,
-                    ),
-                );
-            }),
-            true,
-        );
-    }
-
     // Emits the `params` metadata for a parameterized computed field. Shape mirrors
-    // `ProcedureParam` (`Record<string, { name; type; array?; optional? }>`) and is
-    // read at runtime (to forward args) and by the zod input-validation factory.
+    // `ProcedureParam` (`Record<string, { name; type; array?; optional? }>`). It is read at
+    // runtime (to forward args), by the zod input-validation factory, and by the ORM types that
+    // derive the query-time `args` and the implementation signature from it.
     private createFieldParamsObject(params: DataFieldParam[]) {
         return ts.factory.createObjectLiteralExpression(
             params.map((param) =>
@@ -656,53 +572,6 @@ export class TsSchemaGenerator {
         );
     }
 
-    // Builds the TS type node of a param in the computed-field stub signature. Scalars map to
-    // their TS types; an enum maps to its value union, read off the schema's own `enums` member
-    // so it can't drift from the emitted enum. Type defs and models have no TS type in scope in
-    // the generated schema file, so they fall back to `unknown` — same convention as
-    // computed-field return types (`mapFieldTypeToTSType`). The ORM's `ComputedFieldArgs`
-    // resolves all of them precisely from the `params` metadata, and runtime zod validates them.
-    private createFunctionParamTypeNode(type: FunctionParamType): ts.TypeNode {
-        let result: ts.TypeNode;
-        if (type.reference?.ref && isEnum(type.reference.ref)) {
-            result = this.createEnumValuesTypeNode(type.reference.ref.name);
-        } else {
-            const tsType = match(type.type)
-                .with('String', () => 'string')
-                .with('Boolean', () => 'boolean')
-                .with('Int', () => 'number')
-                .with('Float', () => 'number')
-                .with('BigInt', () => 'bigint')
-                .with('Decimal', () => 'number')
-                .with('DateTime', () => 'Date')
-                .otherwise(() => 'unknown');
-            result = ts.factory.createTypeReferenceNode(tsType);
-        }
-        if (type.array) {
-            result = ts.factory.createArrayTypeNode(result);
-        }
-        return result;
-    }
-
-    // `SchemaType["enums"]["<Enum>"]["values"][keyof SchemaType["enums"]["<Enum>"]["values"]]`
-    private createEnumValuesTypeNode(enumName: string): ts.TypeNode {
-        const literal = (text: string) => ts.factory.createLiteralTypeNode(ts.factory.createStringLiteral(text));
-        const values = ts.factory.createIndexedAccessTypeNode(
-            ts.factory.createIndexedAccessTypeNode(
-                ts.factory.createIndexedAccessTypeNode(
-                    ts.factory.createTypeReferenceNode('SchemaType'),
-                    literal('enums'),
-                ),
-                literal(enumName),
-            ),
-            literal('values'),
-        );
-        return ts.factory.createIndexedAccessTypeNode(
-            values,
-            ts.factory.createTypeOperatorNode(ts.SyntaxKind.KeyOfKeyword, values),
-        );
-    }
-
     private createUpdatedAtObject(ignoreArg: AttributeArg) {
         return ts.factory.createObjectLiteralExpression([
             ts.factory.createPropertyAssignment(
@@ -714,24 +583,6 @@ export class TsSchemaGenerator {
                 ),
             ),
         ]);
-    }
-
-    private mapFieldTypeToTSType(type: DataFieldType) {
-        let result = match(type.type)
-            .with('String', () => 'string')
-            .with('Boolean', () => 'boolean')
-            .with('Int', () => 'number')
-            .with('Float', () => 'number')
-            .with('BigInt', () => 'bigint')
-            .with('Decimal', () => 'number')
-            .otherwise(() => 'unknown');
-        if (type.array) {
-            result = `${result}[]`;
-        }
-        if (type.optional) {
-            result = `${result} | null`;
-        }
-        return result;
     }
 
     private createDataFieldObject(field: DataField, contextModel: DataModel | undefined, lite: boolean) {

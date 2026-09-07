@@ -1224,6 +1224,18 @@ const client = new ZenStackClient(schema, {
     },
 });
 
+// the expression must produce the field's declared type
+new ZenStackClient(schema, {
+    dialect: {} as any,
+    computedFields: {
+        user: {
+            // @ts-expect-error an Int field needs a number expression
+            postCountByStatus: (eb) => eb.val('not a number'),
+            popularPostCount: (eb) => eb.lit(0),
+        },
+    },
+});
+
 async function main() {
     // valid args compile everywhere the field can be used
     await client.user.findMany({

@@ -1,4 +1,14 @@
-import type { GetModel, GetModelFields, GetModels, ProcedureDef, ScalarFields, SchemaDef } from '@zenstackhq/schema';
+import type {
+    FieldIsArray,
+    GetModelField,
+    GetModelFields,
+    GetModelFieldType,
+    GetModels,
+    ModelFieldIsOptional,
+    ProcedureDef,
+    ScalarFields,
+    SchemaDef,
+} from '@zenstackhq/schema';
 import type { Dialect, Expression, ExpressionBuilder, KyselyConfig, OperandExpression } from 'kysely';
 import type { FilterPropertyToKind } from './constants';
 import type { ClientContract, CRUD_EXT } from './contract';
@@ -7,6 +17,7 @@ import type { BaseCrudDialect } from './crud/dialects/base-dialect';
 import type { AllCrudOperations } from './crud/operations/base';
 import type { AnyPlugin } from './plugin';
 import type { ToKyselySchema } from './query-builder';
+import type { WrapType } from '../utils/type-utils';
 
 export type ZModelFunctionContext<Schema extends SchemaDef> = {
     /**
@@ -299,24 +310,34 @@ export type ComputedFieldContext<Schema extends SchemaDef> = {
     client: ClientContract<Schema>;
 };
 
+/**
+ * The computed fields a model declares itself, keyed by name. A computed field inherited from a
+ * delegate base is excluded: it's configured once, on the base model.
+ */
+type OwnComputedFields<Schema extends SchemaDef, Model extends GetModels<Schema>> = keyof {
+    [Field in GetModelFields<Schema, Model> as GetModelField<Schema, Model, Field> extends { computed: true }
+        ? GetModelField<Schema, Model, Field> extends { originModel: string }
+            ? never
+            : Field
+        : never]: Field;
+};
+
+/**
+ * Implementations of the schema's computed fields, keyed by (uncapitalized) model name and then
+ * by field name. Everything is derived from the field definitions: which fields need an
+ * implementation, the query-time `args` of a parameterized field (from its `params` metadata,
+ * the same source the query input types use), and the value type the expression must produce.
+ */
 export type ComputedFieldsOptions<Schema extends SchemaDef> = {
-    [Model in GetModels<Schema> as 'computedFields' extends keyof GetModel<Schema, Model>
-        ? Uncapitalize<Model>
-        : never]: {
-        [Field in keyof Schema['models'][Model]['computedFields']]: Schema['models'][Model]['computedFields'][Field] extends infer Func
-            ? Func extends (...args: any[]) => infer R
-                ? (
-                      // inject a first parameter for expression builder
-                      p: ExpressionBuilder<ToKyselySchema<Schema>, Model>,
-                      // runtime-provided context (the generated stub only declares
-                      // `modelAlias`; the runtime passes the full context)
-                      context: ComputedFieldContext<Schema>,
-                      // query-time args of a parameterized field, typed from the field's
-                      // `params` metadata — the same source as the query input types
-                      ...args: ComputedFieldImplArgs<Schema, Model, Field>
-                  ) => OperandExpression<R> // wrap the return type with Kysely `OperandExpression`
-                : never
-            : never;
+    [Model in GetModels<Schema> as [OwnComputedFields<Schema, Model>] extends [never] ? never : Uncapitalize<Model>]: {
+        [Field in OwnComputedFields<Schema, Model>]: (
+            // inject a first parameter for expression builder
+            p: ExpressionBuilder<ToKyselySchema<Schema>, Model>,
+            // runtime-provided context
+            context: ComputedFieldContext<Schema>,
+            // query-time args of a parameterized field
+            ...args: ComputedFieldImplArgs<Schema, Model, Field>
+        ) => OperandExpression<ComputedFieldResultType<Schema, Model, Field>>;
     };
 };
 
@@ -324,12 +345,37 @@ export type ComputedFieldsOptions<Schema extends SchemaDef> = {
  * The trailing parameter list of a computed field implementation: `[args]` for a parameterized
  * field, empty otherwise.
  */
-type ComputedFieldImplArgs<Schema extends SchemaDef, Model extends GetModels<Schema>, Field> =
-    Field extends GetModelFields<Schema, Model>
-        ? FieldHasComputedArgs<Schema, Model, Field> extends true
-            ? [args: ComputedFieldArgs<Schema, Model, Field>]
-            : []
-        : [];
+type ComputedFieldImplArgs<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Field extends GetModelFields<Schema, Model>,
+> = FieldHasComputedArgs<Schema, Model, Field> extends true ? [args: ComputedFieldArgs<Schema, Model, Field>] : [];
+
+/**
+ * The value type a computed field's expression must produce, from the field's declared type.
+ * Scalars map to their JS types (`Decimal` is accepted as `number`); `DateTime`, `Json`,
+ * `Bytes`, enums and type defs are `unknown`, since their database-level representation differs
+ * from the ORM result type. An optional field also accepts `null`, a list field an array.
+ */
+type ComputedFieldResultType<
+    Schema extends SchemaDef,
+    Model extends GetModels<Schema>,
+    Field extends GetModelFields<Schema, Model>,
+> = WrapType<
+    ComputedFieldBaseType<GetModelFieldType<Schema, Model, Field>>,
+    ModelFieldIsOptional<Schema, Model, Field>,
+    FieldIsArray<Schema, Model, Field>
+>;
+
+type ComputedFieldBaseType<T> = T extends 'String'
+    ? string
+    : T extends 'Boolean'
+      ? boolean
+      : T extends 'Int' | 'Float' | 'Decimal'
+        ? number
+        : T extends 'BigInt'
+          ? bigint
+          : unknown;
 
 export type HasComputedFields<Schema extends SchemaDef> =
     string extends GetModels<Schema> ? false : keyof ComputedFieldsOptions<Schema> extends never ? false : true;

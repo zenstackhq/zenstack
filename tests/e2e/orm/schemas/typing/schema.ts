@@ -92,20 +92,6 @@ export class SchemaType implements SchemaDef {
             uniqueFields: {
                 id: { type: "Int" },
                 email: { type: "String" }
-            },
-            computedFields: {
-                postCount(_context: {
-                    modelAlias: string;
-                }): number {
-                    throw new Error("This is a stub for computed field");
-                },
-                hasStatus(_context: {
-                    modelAlias: string;
-                }, _args: {
-                    status: SchemaType["enums"]["Status"]["values"][keyof SchemaType["enums"]["Status"]["values"]];
-                }): boolean {
-                    throw new Error("This is a stub for computed field");
-                }
             }
         },
         Post: {

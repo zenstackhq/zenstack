@@ -185,26 +185,28 @@ export class ClientImpl {
             'computedFields' in options ? (options.computedFields as Record<string, any> | undefined) : undefined;
 
         for (const [modelName, modelDef] of Object.entries(this.$schema.models)) {
-            if (modelDef.computedFields) {
-                for (const fieldName of Object.keys(modelDef.computedFields)) {
-                    // check both uncapitalized (current) and original (backward compat) model name
-                    const modelConfig =
-                        computedFieldsConfig?.[lowerCaseFirst(modelName)] ?? computedFieldsConfig?.[modelName];
-                    const fieldConfig = modelConfig?.[fieldName];
-                    // Check if the computed field has a configuration
-                    if (fieldConfig === null || fieldConfig === undefined) {
-                        throw createConfigError(
-                            `Computed field "${fieldName}" in model "${modelName}" does not have a configuration. ` +
-                                `Please provide an implementation in the computedFields option.`,
-                        );
-                    }
-                    // Check that the configuration is a function
-                    if (typeof fieldConfig !== 'function') {
-                        throw createConfigError(
-                            `Computed field "${fieldName}" in model "${modelName}" has an invalid configuration: ` +
-                                `expected a function but received ${typeof fieldConfig}.`,
-                        );
-                    }
+            for (const [fieldName, fieldDef] of Object.entries(modelDef.fields)) {
+                // a computed field inherited from a delegate base is configured on the base model
+                if (!fieldDef.computed || fieldDef.originModel) {
+                    continue;
+                }
+                // check both uncapitalized (current) and original (backward compat) model name
+                const modelConfig =
+                    computedFieldsConfig?.[lowerCaseFirst(modelName)] ?? computedFieldsConfig?.[modelName];
+                const fieldConfig = modelConfig?.[fieldName];
+                // Check if the computed field has a configuration
+                if (fieldConfig === null || fieldConfig === undefined) {
+                    throw createConfigError(
+                        `Computed field "${fieldName}" in model "${modelName}" does not have a configuration. ` +
+                            `Please provide an implementation in the computedFields option.`,
+                    );
+                }
+                // Check that the configuration is a function
+                if (typeof fieldConfig !== 'function') {
+                    throw createConfigError(
+                        `Computed field "${fieldName}" in model "${modelName}" has an invalid configuration: ` +
+                            `expected a function but received ${typeof fieldConfig}.`,
+                    );
                 }
             }
         }
