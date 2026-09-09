@@ -72,6 +72,15 @@ export class SchemaType implements SchemaDef {
                     attributes: [{ name: "@computed" }] as readonly AttributeApplication[],
                     computed: true
                 },
+                hasStatus: {
+                    name: "hasStatus",
+                    type: "Boolean",
+                    attributes: [{ name: "@computed" }] as readonly AttributeApplication[],
+                    computed: true,
+                    params: {
+                        status: { name: "status", type: "Status" }
+                    }
+                },
                 identity: {
                     name: "identity",
                     type: "Identity",
@@ -83,13 +92,6 @@ export class SchemaType implements SchemaDef {
             uniqueFields: {
                 id: { type: "Int" },
                 email: { type: "String" }
-            },
-            computedFields: {
-                postCount(_context: {
-                    modelAlias: string;
-                }): number {
-                    throw new Error("This is a stub for computed field");
-                }
             }
         },
         Post: {
