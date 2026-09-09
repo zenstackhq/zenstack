@@ -265,6 +265,12 @@ export class ZModelLinker extends DefaultLinker {
             } else if (isDataField(target) || isFunctionParam(target)) {
                 // other references are resolved to their declared type
                 this.resolveToDeclaredType(node, target.type);
+            } else if (isEnum(target)) {
+                node.$resolvedType = {
+                    decl: target,
+                    array: true,
+                    nullable: false,
+                };
             }
         }
     }
