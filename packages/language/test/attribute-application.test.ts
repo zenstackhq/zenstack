@@ -661,6 +661,50 @@ describe('Attribute application validation tests', () => {
                 /`@uuid` version must be `4` or `7`/,
             );
         });
+
+        it('resolves the version arg by name regardless of argument order', async () => {
+            await loadSchema(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid(message: 'invalid uuid', version: 7)
+                }
+                `,
+            );
+
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid(message: 'invalid uuid', version: 1)
+                }
+                `,
+                /`@uuid` version must be `4` or `7`/,
+            );
+        });
+
+        it('does not treat a message-only arg as a version', async () => {
+            await loadSchema(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @uuid(message: 'invalid uuid')
+                }
+                `,
+            );
+        });
     });
 
     describe('Native type mapping attributes', () => {
