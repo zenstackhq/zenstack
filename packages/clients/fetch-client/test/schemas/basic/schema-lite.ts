@@ -36,6 +36,12 @@ export class SchemaType implements SchemaDef {
                     type: "Post",
                     array: true,
                     relation: { opposite: "author" }
+                },
+                createdAt: {
+                    name: "createdAt",
+                    type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
+                    default: ExpressionUtils.call("now") as FieldDefault
                 }
             },
             idFields: ["id"],

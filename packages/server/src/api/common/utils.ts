@@ -4,18 +4,19 @@ import SuperJSON from 'superjson';
  * Supports the SuperJSON request payload format used by api handlers
  * `{ meta: { serialization }, ...json }`.
  */
-export async function processSuperJsonRequestPayload(
-    payload: unknown,
-): Promise<{ result: unknown; error: string | undefined }> {
-    if (!payload || typeof payload !== 'object' || Array.isArray(payload) || !('meta' in (payload as any))) {
+export async function processSuperJsonRequestPayload(payload: {
+    data?: any;
+    meta?: any;
+}): Promise<{ result: unknown; error: string | undefined }> {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
         return { result: payload, error: undefined };
     }
 
-    const { meta, ...rest } = payload as any;
+    const { meta, data } = payload;
     if (meta?.serialization) {
         try {
             return {
-                result: SuperJSON.deserialize({ json: rest, meta: meta.serialization }),
+                result: SuperJSON.deserialize({ json: data, meta: meta.serialization }),
                 error: undefined,
             };
         } catch (err) {
@@ -26,8 +27,7 @@ export async function processSuperJsonRequestPayload(
         }
     }
 
-    // drop meta when no serialization info is present
-    return { result: rest, error: undefined };
+    return { result: data, error: undefined };
 }
 
 /**
@@ -38,7 +38,7 @@ export function unmarshalQ(value: string, meta: string | undefined) {
     try {
         parsedValue = JSON.parse(value);
     } catch {
-        throw new Error('invalid "q" query parameter');
+        throw new Error('invalid "data" query parameter');
     }
 
     if (meta) {

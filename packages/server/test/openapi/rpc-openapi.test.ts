@@ -201,23 +201,23 @@ describe('RPC OpenAPI spec generation - input schemas', () => {
         spec = await generateSpec(handler);
     });
 
-    it('GET operations have q query parameter', () => {
+    it('GET operations have data query parameter', () => {
         for (const op of ['findMany', 'findFirst', 'findUnique', 'count', 'aggregate', 'groupBy', 'exists']) {
             const operation = spec.paths[`/user/${op}`].get;
-            const qParam = operation.parameters?.find((p: any) => p.name === 'q');
-            expect(qParam, `q param on /user/${op}`).toBeDefined();
-            expect(qParam.in).toBe('query');
+            const dataParam = operation.parameters?.find((p: any) => p.name === 'data');
+            expect(dataParam, `data param on /user/${op}`).toBeDefined();
+            expect(dataParam.in).toBe('query');
             // OAPI 3.1 content-typed parameter for complex JSON
-            expect(qParam.content?.['application/json']?.schema).toBeDefined();
+            expect(dataParam.content?.['application/json']?.schema).toBeDefined();
         }
     });
 
-    it('DELETE operations have q query parameter', () => {
+    it('DELETE operations have data query parameter', () => {
         for (const op of ['delete', 'deleteMany']) {
             const operation = spec.paths[`/user/${op}`].delete;
-            const qParam = operation.parameters?.find((p: any) => p.name === 'q');
-            expect(qParam, `q param on /user/${op}`).toBeDefined();
-            expect(qParam.content?.['application/json']?.schema).toBeDefined();
+            const dataParam = operation.parameters?.find((p: any) => p.name === 'data');
+            expect(dataParam, `data param on /user/${op}`).toBeDefined();
+            expect(dataParam.content?.['application/json']?.schema).toBeDefined();
         }
     });
 
@@ -238,9 +238,9 @@ describe('RPC OpenAPI spec generation - input schemas', () => {
         }
     });
 
-    it('findUnique q schema contains where field', () => {
+    it('findUnique data schema contains where field', () => {
         const operation = spec.paths['/user/findUnique'].get;
-        const qSchema = operation.parameters.find((p: any) => p.name === 'q').content['application/json'].schema;
+        const qSchema = operation.parameters.find((p: any) => p.name === 'data').content['application/json'].schema;
         // The schema describes FindUniqueArgs which has a required where field
         expect(qSchema).toBeDefined();
         expect(qSchema.type === 'object' || qSchema.properties || qSchema.$defs || qSchema.$ref).toBeTruthy();
@@ -774,17 +774,17 @@ procedure optionalSearch(query: String?): User[]
         expect(spec.paths?.['/$procs/createUser']?.get).toBeUndefined();
     });
 
-    it('query procedure has q parameter with args envelope schema', async () => {
+    it('query procedure has data parameter with args envelope schema', async () => {
         const client = await createTestClient(procSchema);
         const handler = new RPCApiHandler({ schema: client.$schema });
         const spec = await generateSpec(handler);
 
         const operation = spec.paths?.['/$procs/getUser']?.get;
-        const qParam: any = operation?.parameters?.find((p: any) => p.name === 'q');
-        expect(qParam).toBeDefined();
-        expect(qParam?.content?.['application/json']?.schema).toBeDefined();
+        const dataParam: any = operation?.parameters?.find((p: any) => p.name === 'data');
+        expect(dataParam).toBeDefined();
+        expect(dataParam?.content?.['application/json']?.schema).toBeDefined();
         // args is a $ref to the registered ProcArgs component schema
-        const envelopeSchema = qParam?.content['application/json'].schema;
+        const envelopeSchema = dataParam?.content['application/json'].schema;
         const argsRef = envelopeSchema.properties?.args?.$ref;
         expect(argsRef).toBeDefined();
         const argsSchemaName = argsRef.replace('#/components/schemas/', '');
@@ -834,9 +834,9 @@ mutation procedure softDelete(id: Int?): User
         const spec = await generateSpec(handler);
 
         const operation = spec?.paths?.['/$procs/optionalSearch']?.get;
-        const qParam = operation?.parameters?.find((p: any) => p.name === 'q');
+        const dataParam = operation?.parameters?.find((p: any) => p.name === 'data');
         // args is a $ref to the registered ProcArgs component schema
-        const argsRef = (qParam as any)?.content?.['application/json']?.schema?.properties?.args?.$ref;
+        const argsRef = (dataParam as any)?.content?.['application/json']?.schema?.properties?.args?.$ref;
         expect(argsRef).toBeDefined();
         const argsSchemaName = argsRef.replace('#/components/schemas/', '');
         const argsSchema = spec.components?.schemas?.[argsSchemaName] as any;
