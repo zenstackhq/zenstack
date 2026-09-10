@@ -1,6 +1,6 @@
 {
     "name": "sample-orm",
-    "version": "3.9.3",
+    "version": "3.9.4",
     "description": "",
     "main": "index.js",
     "private": true,

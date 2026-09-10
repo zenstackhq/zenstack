@@ -1700,8 +1700,8 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         modelDef: ModelDef,
         payload: boolean | FindArgs<Schema, GetModels<Schema>, any, true>,
     ) {
-        if (modelDef.computedFields) {
-            // computed fields requires explicit select
+        if (Object.values(modelDef.fields).some((f) => f.computed)) {
+            // computed fields require explicit select
             return false;
         }
 

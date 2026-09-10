@@ -18,6 +18,7 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "String",
                     id: true,
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
                     default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 email: {
@@ -82,6 +83,12 @@ export class SchemaType implements SchemaDef {
                     optional: true,
                     attributes: [{ name: "@time" }] as readonly AttributeApplication[]
                 },
+                extId: {
+                    name: "extId",
+                    type: "String",
+                    optional: true,
+                    attributes: [{ name: "@uuid" }] as readonly AttributeApplication[]
+                },
                 createdAt: {
                     name: "createdAt",
                     type: "DateTime",
@@ -129,6 +136,7 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "String",
                     id: true,
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
                     default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 title: {
@@ -171,6 +179,7 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "String",
                     id: true,
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("cuid") }] }] as readonly AttributeApplication[],
                     default: ExpressionUtils.call("cuid") as FieldDefault
                 },
                 name: {
@@ -184,6 +193,7 @@ export class SchemaType implements SchemaDef {
                 discount: {
                     name: "discount",
                     type: "Float",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
                     default: 0 as FieldDefault
                 },
                 finalPrice: {
@@ -195,13 +205,6 @@ export class SchemaType implements SchemaDef {
             idFields: ["id"],
             uniqueFields: {
                 id: { type: "String" }
-            },
-            computedFields: {
-                finalPrice(_context: {
-                    modelAlias: string;
-                }): number {
-                    throw new Error("This is a stub for computed field");
-                }
             }
         },
         Asset: {
@@ -211,11 +214,13 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "Int",
                     id: true,
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
                     default: ExpressionUtils.call("autoincrement") as FieldDefault
                 },
                 createdAt: {
                     name: "createdAt",
                     type: "DateTime",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
                     default: ExpressionUtils.call("now") as FieldDefault
                 },
                 assetType: {
@@ -239,12 +244,14 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "Int",
                     id: true,
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
                     default: ExpressionUtils.call("autoincrement") as FieldDefault
                 },
                 createdAt: {
                     name: "createdAt",
                     type: "DateTime",
                     originModel: "Asset",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
                     default: ExpressionUtils.call("now") as FieldDefault
                 },
                 assetType: {
@@ -275,12 +282,14 @@ export class SchemaType implements SchemaDef {
                     name: "id",
                     type: "Int",
                     id: true,
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("autoincrement") }] }] as readonly AttributeApplication[],
                     default: ExpressionUtils.call("autoincrement") as FieldDefault
                 },
                 createdAt: {
                     name: "createdAt",
                     type: "DateTime",
                     originModel: "Asset",
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.call("now") }] }] as readonly AttributeApplication[],
                     default: ExpressionUtils.call("now") as FieldDefault
                 },
                 assetType: {

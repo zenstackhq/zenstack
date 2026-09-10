@@ -1157,24 +1157,22 @@ export type FtsRelevanceOrderBy<Schema extends SchemaDef, Model extends GetModel
 };
 
 /**
- * The query-time arguments object of a parameterized computed field, derived from the
- * generated `computedFields` stub signature `(context, args) => R` — the same source
- * `ComputedFieldsOptions` reads, so the implementation signature and the query-time args
- * can never drift apart. Resolves to `never` for non-parameterized fields.
+ * The query-time arguments object of a parameterized computed field, derived from the field's
+ * `params` metadata in the schema — the same source the runtime forwards to the implementation
+ * and the zod factory validates against, so typing and validation can never drift apart. Param
+ * types resolve the way procedure params do: scalars to their TS types, enums to their value
+ * union, type defs to their object shape. `ComputedFieldsOptions` reads this too, so the
+ * implementation signature always matches the query input. Resolves to `never` for
+ * non-parameterized fields.
  */
 export type ComputedFieldArgs<
     Schema extends SchemaDef,
     Model extends GetModels<Schema>,
     Field extends GetModelFields<Schema, Model>,
-> = 'computedFields' extends keyof GetModel<Schema, Model>
-    ? Field extends keyof GetModel<Schema, Model>['computedFields']
-        ? GetModel<Schema, Model>['computedFields'][Field] extends (...args: infer P) => any
-            ? P extends [any, infer Args]
-                ? Args
-                : never
-            : never
-        : never
-    : never;
+> =
+    GetModelField<Schema, Model, Field> extends { computed: true; params: infer Params }
+        ? MapParamsObject<Schema, Params>
+        : never;
 
 /**
  * Whether `Field` is a parameterized computed field (its args object is not `never`).
@@ -2897,22 +2895,25 @@ export type GetProcedure<Schema extends SchemaDef, ProcName extends GetProcedure
     ? Schema['procedures'][ProcName]
     : never;
 
-type _OptionalProcedureParamNames<Params> = keyof {
+// The `params` metadata record (`{ name, type, array?, optional? }` per key) is shared by
+// procedures and parameterized computed fields; these helpers map it to the TS args object.
+
+type _OptionalParamNames<Params> = keyof {
     [K in keyof Params as Params[K] extends { optional: true } ? K : never]: K;
 };
 
-type _RequiredProcedureParamNames<Params> = keyof {
+type _RequiredParamNames<Params> = keyof {
     [K in keyof Params as Params[K] extends { optional: true } ? never : K]: K;
 };
 
-type _HasRequiredProcedureParams<Params> = _RequiredProcedureParamNames<Params> extends never ? false : true;
+type _HasRequiredParams<Params> = _RequiredParamNames<Params> extends never ? false : true;
 
-type MapProcedureArgsObject<Schema extends SchemaDef, Params> = Simplify<
+type MapParamsObject<Schema extends SchemaDef, Params> = Simplify<
     Optional<
         {
-            [K in keyof Params]: MapProcedureParam<Schema, Params[K]>;
+            [K in keyof Params]: MapParam<Schema, Params[K]>;
         },
-        _OptionalProcedureParamNames<Params>
+        _OptionalParamNames<Params>
     >
 >;
 
@@ -2923,11 +2924,11 @@ export type ProcedureEnvelope<
 > = keyof Params extends never
     ? // no params
       { args?: Record<string, never> }
-    : _HasRequiredProcedureParams<Params> extends true
+    : _HasRequiredParams<Params> extends true
       ? // has required params
-        { args: MapProcedureArgsObject<Schema, Params> }
+        { args: MapParamsObject<Schema, Params> }
       : // no required params
-        { args?: MapProcedureArgsObject<Schema, Params> };
+        { args?: MapParamsObject<Schema, Params> };
 
 type ProcedureHandlerCtx<Schema extends SchemaDef, ProcName extends GetProcedureNames<Schema>> = {
     client: ClientContract<Schema>;
@@ -2937,7 +2938,7 @@ type ProcedureHandlerCtx<Schema extends SchemaDef, ProcName extends GetProcedure
  * Shape of a procedure's runtime function.
  */
 export type ProcedureFunc<Schema extends SchemaDef, ProcName extends GetProcedureNames<Schema>> = (
-    ...args: _HasRequiredProcedureParams<GetProcedureParams<Schema, ProcName>> extends true
+    ...args: _HasRequiredParams<GetProcedureParams<Schema, ProcName>> extends true
         ? [input: ProcedureEnvelope<Schema, ProcName>]
         : [input?: ProcedureEnvelope<Schema, ProcName>]
 ) => MaybePromise<MapProcedureReturn<Schema, GetProcedure<Schema, ProcName>>>;
@@ -2955,7 +2956,7 @@ type MapProcedureReturn<Schema extends SchemaDef, Proc> = Proc extends { returnT
         : MapType<Schema, R & string>
     : never;
 
-type MapProcedureParam<Schema extends SchemaDef, P> = P extends { type: infer U }
+type MapParam<Schema extends SchemaDef, P> = P extends { type: infer U }
     ? OrUndefinedIf<
           P extends { array: true } ? Array<MapType<Schema, U & string>> : MapType<Schema, U & string>,
           P extends { optional: true } ? true : false

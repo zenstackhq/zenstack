@@ -32,6 +32,7 @@ describe.each([
         metadata: null,
         status: 'ACTIVE',
         address: null,
+        extId: null,
     };
 
     // A fully valid Post object (without relations)
@@ -287,6 +288,21 @@ describe.each([
             it('accepts valid phone number for @phone field', () => {
                 const userSchema = factory.makeModelSchema('User');
                 const result = userSchema.safeParse({ ...validUser, phone: '+15555555555' });
+                expect(result.success).toBe(true);
+            });
+
+            it('rejects invalid uuid for @uuid field', () => {
+                const userSchema = factory.makeModelSchema('User');
+                const result = userSchema.safeParse({ ...validUser, extId: 'not-a-uuid' });
+                expect(result.success).toBe(false);
+            });
+
+            it('accepts valid uuid for @uuid field', () => {
+                const userSchema = factory.makeModelSchema('User');
+                const result = userSchema.safeParse({
+                    ...validUser,
+                    extId: '20ef31c8-a2c6-4dca-b87b-838e364ab4b3',
+                });
                 expect(result.success).toBe(true);
             });
 

@@ -37,10 +37,10 @@ export function normalizePublicKey(key: string): string {
     return `-----BEGIN PUBLIC KEY-----\n${b64}\n-----END PUBLIC KEY-----`;
 }
 
-export interface CreateProxyAppOptions {
-    client: ClientContract<SchemaDef>;
-    schema: SchemaDef;
-    authDb?: ClientContract<SchemaDef>;
+export interface CreateProxyAppOptions<Schema extends SchemaDef = SchemaDef> {
+    client: ClientContract<Schema>;
+    schema: Schema;
+    authDb?: ClientContract<Schema>;
     auth?: {
         studioAuthKey?: string;
         /** Seconds within which a signed request is considered valid. Defaults to 60. */
@@ -49,37 +49,7 @@ export interface CreateProxyAppOptions {
     cors?: Parameters<typeof cors>[0];
 }
 
-export function createProxyApp(options: CreateProxyAppOptions): Hono;
-export function createProxyApp(
-    client: ClientContract<SchemaDef>,
-    schema: SchemaDef,
-    authDb?: ClientContract<SchemaDef>,
-    auth?: {
-        studioAuthKey?: string;
-        signatureToleranceSecs?: number;
-    },
-): Hono;
-export function createProxyApp(
-    optionsOrClient: CreateProxyAppOptions | ClientContract<SchemaDef>,
-    schema?: SchemaDef,
-    authDb?: ClientContract<SchemaDef>,
-    auth?: {
-        studioAuthKey?: string;
-        signatureToleranceSecs?: number;
-    },
-): Hono {
-    let options: CreateProxyAppOptions;
-    if ('client' in optionsOrClient && 'schema' in optionsOrClient) {
-        options = optionsOrClient as CreateProxyAppOptions;
-    } else {
-        options = {
-            client: optionsOrClient as ClientContract<SchemaDef>,
-            schema: schema!,
-            authDb,
-            auth,
-        };
-    }
-
+export function createProxyApp<Schema extends SchemaDef = SchemaDef>(options: CreateProxyAppOptions<Schema>): Hono {
     const app = new Hono();
     app.use('*', cors(options.cors));
 
@@ -93,7 +63,7 @@ export function createProxyApp(
 
     app.use(
         '/api/model/*',
-        createHonoHandler({
+        createHonoHandler<Schema>({
             apiHandler: new RPCApiHandler({ schema: options.schema }),
             getClient: (c) =>
                 resolveClient(options.client, options.authDb ?? options.client, c, !!options.auth?.studioAuthKey),
@@ -174,12 +144,12 @@ export function createSignatureMiddleware(publicKey: string, toleranceSeconds: n
     };
 }
 
-export function resolveClient(
-    client: ClientContract<SchemaDef>,
-    authDb: ClientContract<SchemaDef>,
+export function resolveClient<Schema extends SchemaDef = SchemaDef>(
+    client: ClientContract<Schema>,
+    authDb: ClientContract<Schema>,
     c: Context,
     isAuthKeyEnabled: boolean,
-): ClientContract<SchemaDef> {
+): ClientContract<Schema> {
     const authHeader = c.req.header('authorization');
 
     if (!isAuthKeyEnabled && !authHeader) {
@@ -204,6 +174,6 @@ export function resolveClient(
     if (claim.type === 'superUser') {
         return client;
     } else {
-        return authDb.$setAuth(claim.data as any) as ClientContract<SchemaDef>;
+        return authDb.$setAuth(claim.data as any) as ClientContract<Schema>;
     }
 }

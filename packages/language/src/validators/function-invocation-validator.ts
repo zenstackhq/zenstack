@@ -209,6 +209,20 @@ export default class FunctionInvocationValidator implements AstValidator<Express
         }
     }
 
+    @func('isUuid')
+    private _checkIsUuid(expr: InvocationExpr, accept: ValidationAcceptor) {
+        // second argument must be 4 or 7 if provided
+        const versionArg = expr.args[1]?.value;
+        if (versionArg) {
+            const version = getLiteral<number>(versionArg);
+            if (version !== undefined && version !== 4 && version !== 7) {
+                accept('error', 'second argument must be 4 or 7', {
+                    node: expr.args[1]!,
+                });
+            }
+        }
+    }
+
     @func('cuid')
     private _checkCuid(expr: InvocationExpr, accept: ValidationAcceptor) {
         // first argument must be 1 or 2 if provided

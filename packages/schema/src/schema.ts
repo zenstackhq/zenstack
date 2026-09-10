@@ -31,7 +31,6 @@ export type ModelDef = {
     attributes?: readonly AttributeApplication[];
     uniqueFields: Record<string, UniqueFieldsInfo>;
     idFields: readonly string[];
-    computedFields?: Record<string, Function>;
     isDelegate?: boolean;
     subModels?: readonly string[];
     isView?: boolean;

@@ -414,4 +414,52 @@ describe('Function Invocation Tests', () => {
             );
         });
     });
+
+    describe('isUuid() version validation', () => {
+        it('should accept valid uuid versions', async () => {
+            await loadSchema(`
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @default(uuid(4))
+
+                    @@validate(isUuid(id, 4))
+                }
+            `);
+
+            await loadSchema(`
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @default(uuid(7))
+
+                    @@validate(isUuid(id, 7))
+                }
+            `);
+        });
+
+        it('should reject invalid uuid versions', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id String @id @default(uuid())
+
+                    @@validate(isUuid(id, 1))
+                }
+            `,
+                'second argument must be 4 or 7',
+            );
+        });
+    });
 });
