@@ -105,6 +105,11 @@ overrides:
   lodash@>=4.0.0 <=4.17.23: '>=4.18.0'
   '@better-auth/core': 1.4.19
 
+patchedDependencies:
+  jsonschema@1.5.0:
+    hash: dca3fa539faeef0ead30ccac3dfdc155a31ea77fbf2755fcccd903b38de4a9ba
+    path: patches/jsonschema@1.5.0.patch
+
 importers:
 
   .:
@@ -15622,7 +15627,7 @@ snapshots:
 
   jsonpointer@5.0.1: {}
 
-  jsonschema@1.5.0: {}
+  jsonschema@1.5.0(patch_hash=dca3fa539faeef0ead30ccac3dfdc155a31ea77fbf2755fcccd903b38de4a9ba): {}
 
   jsx-ast-utils@3.3.5:
     dependencies:
@@ -15657,7 +15662,7 @@ snapshots:
       chalk: 5.6.2
       commander: 14.0.3
       fs-extra: 11.3.5
-      jsonschema: 1.5.0
+      jsonschema: 1.5.0(patch_hash=dca3fa539faeef0ead30ccac3dfdc155a31ea77fbf2755fcccd903b38de4a9ba)
       langium: 4.2.4
       langium-railroad: 4.2.0
       lodash: 4.18.1
