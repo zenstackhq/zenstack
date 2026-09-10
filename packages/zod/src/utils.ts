@@ -30,6 +30,18 @@ function getArgValue<T extends string | number | boolean>(expr: Expression | und
     return expr.value as T;
 }
 
+function getNamedAttributeArgValue<T extends string | number | boolean>(
+    attr: AttributeApplication,
+    name: string,
+): T | undefined {
+    const named = attr.args?.find((a) => a.name === name);
+    if (named) {
+        return getArgValue<T>(named.value);
+    } else {
+        return undefined;
+    }
+}
+
 export function addStringValidation(
     schema: z.ZodString,
     attributes: readonly AttributeApplication[] | undefined,
@@ -81,7 +93,7 @@ export function addStringValidation(
                 break;
             }
             case '@uuid': {
-                const version = getArgValue<number>(attr.args?.[0]?.value);
+                const version = getNamedAttributeArgValue<number>(attr, 'version');
                 if (version === 4) {
                     result = result.uuidv4();
                 } else if (version === 7) {
@@ -101,7 +113,7 @@ export function addStringValidation(
                 result = result.date();
                 break;
             case '@time': {
-                const precision = getArgValue<number>(attr.args?.[0]?.value);
+                const precision = getNamedAttributeArgValue<number>(attr, 'precision');
                 result = result.time({ precision });
                 break;
             }
