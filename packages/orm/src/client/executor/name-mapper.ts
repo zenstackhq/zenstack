@@ -17,6 +17,7 @@ import {
     type OrderByItemNode,
     PrimitiveValueListNode,
     type QueryId,
+    RawNode,
     ReferenceNode,
     ReturningNode,
     SelectAllNode,
@@ -810,6 +811,21 @@ export class QueryNameMapper extends OperationNodeTransformer {
             if (mappedValue) {
                 return mappedValue;
             }
+        } else if (
+            this.isOperationNode(value) &&
+            ValueNode.is(value) &&
+            Array.isArray(value.value) &&
+            value.value.every((v) => typeof v === 'string')
+        ) {
+            const everyMappedValueExists = value.value.every((v) => enumValueMapping[v]);
+            if (everyMappedValueExists) {
+                return ValueNode.create(value.value.map((v) => enumValueMapping[v]));
+            }
+        } else if (Array.isArray(value) && value.every((v) => typeof v === 'string')) {
+            const everyMappedValueExists = value.every((v) => enumValueMapping[v]);
+            if (everyMappedValueExists) {
+                return value.map((v) => enumValueMapping[v]);
+            }
         }
 
         return value;
@@ -839,23 +855,39 @@ export class QueryNameMapper extends OperationNodeTransformer {
             return selection;
         }
 
+        const shouldUseArray = fieldDef.array;
+
         const eb = expressionBuilder();
-        const caseBuilder = eb.case();
+        const caseNode = shouldUseArray ? ColumnNode.create('t') : node;
         let caseWhen: CaseWhenBuilder<any, any, any, any> | undefined;
+
         for (const [key, value] of Object.entries(enumValueMapping)) {
             if (!caseWhen) {
-                caseWhen = caseBuilder.when(new ExpressionWrapper(node), '=', value).then(key);
+                caseWhen = eb.case().when(new ExpressionWrapper(caseNode), '=', value).then(key);
             } else {
-                caseWhen = caseWhen.when(new ExpressionWrapper(node), '=', value).then(key);
+                caseWhen = caseWhen.when(new ExpressionWrapper(caseNode), '=', value).then(key);
             }
         }
 
         // the explicit cast to "text" is needed to address postgres's case-when type inference issue
-        const finalExpr = caseWhen!.else(this.dialect.castText(new ExpressionWrapper(node))).end();
+        const caseExpr = caseWhen!.else(this.dialect.castText(new ExpressionWrapper(caseNode))).end();
+
+        if (!shouldUseArray) {
+            if (aliasName) {
+                return caseExpr.as(aliasName).toOperationNode() as SelectionNodeChild;
+            } else {
+                return caseExpr.toOperationNode() as SelectionNodeChild;
+            }
+        }
+
+        const arrayExpr = new ExpressionWrapper(
+            RawNode.create(['ARRAY(SELECT ', ' FROM unnest( ', ' ) AS t)'], [caseExpr.toOperationNode(), node]),
+        );
+
         if (aliasName) {
-            return finalExpr.as(aliasName).toOperationNode() as SelectionNodeChild;
+            return arrayExpr.as(aliasName).toOperationNode() as SelectionNodeChild;
         } else {
-            return finalExpr.toOperationNode() as SelectionNodeChild;
+            return arrayExpr.toOperationNode() as SelectionNodeChild;
         }
     }
 
