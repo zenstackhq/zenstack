@@ -921,6 +921,16 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         const valueRows = node.values
             ? this.unwrapCreateValueRows(node.values, mutationModel, fields, isManyToManyJoinTable)
             : [[]];
+
+        if (!isManyToManyJoinTable) {
+            // A create filter built only from `auth()` doesn't reference the row being inserted,
+            // so it holds for every row alike and checking it per row re-asks the same question.
+            const filter = this.buildPolicyFilter(mutationModel, undefined, 'create');
+            if (isTrueNode(filter)) {
+                return;
+            }
+        }
+
         for (const values of valueRows) {
             if (isManyToManyJoinTable) {
                 await this.enforcePreCreatePolicyForManyToManyJoinTable(
