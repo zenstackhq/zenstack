@@ -210,4 +210,34 @@ model User {
         // 2 has friend 1 with same name -> readable; 3's friend 1 has a different name; 1 has no friends
         await expect(db.user.findMany()).resolves.toEqual([expect.objectContaining({ id: 2 })]);
     });
+
+    it('works with self relation whose field name exceeds postgres identifier length', async () => {
+        // 70 chars, well over PostgreSQL's 63-byte identifier limit. Without compaction, aliases
+        // derived from the name (e.g. `${name}$1` and `${name}$2`) would be truncated to the same
+        // identifier and the inner subquery would shadow the outer one again.
+        const field = 'friendsWithAVeryLongRelationFieldNameThatExceedsSixtyThreeBytesXXXXXXX';
+        expect(field.length).toBeGreaterThan(63);
+        const db = await createPolicyTestClient(
+            `
+model User {
+    id Int @id
+    name String
+    ${field} User[] @relation("Friends")
+    friendOf User[] @relation("Friends")
+
+    @@allow('create', true)
+    @@allow('read', ${field}?[name == this.name && ${field}?[name == this.name]])
+}
+`,
+            { provider: 'postgresql', usePrismaPush: true, useCompactAliasNames: false },
+        );
+        const raw = db.$unuseAll();
+        await raw.user.create({ data: { id: 1, name: 'x' } });
+        await raw.user.create({ data: { id: 2, name: 'x', [field]: { connect: { id: 1 } } } });
+        await raw.user.create({ data: { id: 3, name: 'x', [field]: { connect: { id: 2 } } } });
+        await raw.user.create({ data: { id: 4, name: 'y', [field]: { connect: { id: 3 } } } });
+
+        // 3 -> 2 -> 1, all named 'x' -> readable; 2 -> 1 has no second hop; 4 differs in name
+        await expect(db.user.findMany()).resolves.toEqual([expect.objectContaining({ id: 3 })]);
+    });
 });
