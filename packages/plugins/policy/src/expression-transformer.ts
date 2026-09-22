@@ -135,6 +135,9 @@ function expr(kind: Expression['kind']) {
  * Utility for transforming a ZModel expression into a Kysely OperationNode.
  */
 export class ExpressionTransformer<Schema extends SchemaDef> {
+    // counter for allocating unique relation table aliases
+    private aliasCounter = 0;
+
     private readonly dialect: BaseCrudDialect<Schema>;
     private readonly eb = expressionBuilder<any, any>();
 
@@ -421,8 +424,9 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         }
 
         // alias of the innermost relation table that the predicate filter is compiled against; relation
-        // tables are always aliased so that self-relations don't shadow the outer table
-        const memberAlias = this.getRelationChainAlias(expr.left, context);
+        // tables are always given a unique alias so that they never shadow an enclosing table (which
+        // matters for self-relations and for nested predicates traversing the same relation)
+        const memberAlias = this.newRelationAlias(this.getLastMemberName(expr.left));
 
         const bindingScope = expr.binding
             ? {
@@ -460,38 +464,22 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         });
     }
 
-    /**
-     * Computes the table alias of the innermost relation reached by a field/member access chain.
-     * The result is consistent with the aliases assigned by `_field` and `_member`.
-     */
-    private getRelationChainAlias(expr: Expression, context: ExpressionTransformerContext): string {
+    private getLastMemberName(expr: Expression) {
         if (ExpressionUtils.isField(expr)) {
-            return this.makeRelationAlias(context.alias ?? context.modelOrType, expr.field);
+            return expr.field;
         }
-
-        invariant(ExpressionUtils.isMember(expr), 'expected field or member expression');
-        let alias: string;
-        if (ExpressionUtils.isThis(expr.receiver)) {
-            alias = context.thisAlias ?? context.thisType;
-        } else if (ExpressionUtils.isBinding(expr.receiver)) {
-            alias = this.requireBindingScope(expr.receiver, context).alias;
-        } else {
-            invariant(ExpressionUtils.isField(expr.receiver), 'expected receiver to be field, binding, or "this"');
-            alias = this.makeRelationAlias(context.alias ?? context.modelOrType, expr.receiver.field);
-        }
-        for (const member of expr.members) {
-            alias = this.makeRelationAlias(alias, member);
-        }
-        return alias;
+        invariant(ExpressionUtils.isMember(expr) && expr.members.length > 0, 'expected field or member expression');
+        return expr.members[expr.members.length - 1]!;
     }
 
     /**
-     * Makes a unique alias for a relation table reached via `field` from the table aliased `baseAlias`.
-     * Aliasing every relation subquery avoids the related table shadowing the outer one when the
-     * relation points back to the same model (self-relation).
+     * Allocates a table alias for a relation subquery, unique within this transformer. Aliasing every
+     * relation subquery avoids the related table shadowing an enclosing one when the relation points
+     * back to the same model (self-relation), including across nested collection predicates.
+     * The counter is per transformer instance so the same policy always compiles to the same SQL.
      */
-    private makeRelationAlias(baseAlias: string, field: string) {
-        return `${baseAlias}$${field}`;
+    private newRelationAlias(field: string) {
+        return `${field}$${++this.aliasCounter}`;
     }
 
     private ensureCollectionPredicateOperator(op: BinaryOperator): asserts op is CollectionPredicateOperator {
@@ -768,7 +756,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 // transform the first segment into a relation access, then continue with the rest of
                 // the members; root the chain at the correct context model (thisType/thisAlias)
                 const firstMemberFieldDef = QueryUtils.requireField(this.schema, context.thisType, expr.members[0]!);
-                receiverAlias = this.makeRelationAlias(context.thisAlias ?? context.thisType, expr.members[0]!);
+                receiverAlias = this.newRelationAlias(expr.members[0]!);
                 receiver = this.transformRelationAccess(
                     expr.members[0]!,
                     firstMemberFieldDef.type,
@@ -799,7 +787,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 // transform the first segment into a relation access, then continue with the rest of the members
                 const bindingScope = this.requireBindingScope(expr.receiver, context);
                 const firstMemberFieldDef = QueryUtils.requireField(this.schema, bindingScope.type, expr.members[0]!);
-                receiverAlias = this.makeRelationAlias(bindingScope.alias, expr.members[0]!);
+                receiverAlias = this.newRelationAlias(expr.members[0]!);
                 receiver = this.transformRelationAccess(
                     expr.members[0]!,
                     firstMemberFieldDef.type,
@@ -815,9 +803,10 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 startType = firstMemberFieldDef.type;
             }
         } else {
-            // field receiver, `_field` aliases the relation table consistently with `getRelationChainAlias`
-            receiver = this.transform(expr.receiver, restContext);
-            receiverAlias = this.getRelationChainAlias(expr.receiver, context);
+            // field receiver, pass the alias to use for the relation table via `memberAlias`
+            invariant(ExpressionUtils.isField(expr.receiver), 'expected receiver to be a field expression');
+            receiverAlias = this.newRelationAlias(expr.receiver.field);
+            receiver = this.transform(expr.receiver, { ...restContext, memberAlias: receiverAlias });
         }
 
         invariant(SelectQueryNode.is(receiver), 'expected receiver to be select query');
@@ -838,7 +827,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         let currAlias = receiverAlias;
         for (const member of members) {
             const fieldDef = QueryUtils.requireField(this.schema, currType, member);
-            const alias = this.makeRelationAlias(currAlias, member);
+            const alias = fieldDef.relation ? this.newRelationAlias(member) : currAlias;
             memberFields.push({ fieldDef, fromModel: currType, fromAlias: currAlias, alias });
             currType = fieldDef.type;
             currAlias = alias;
@@ -933,7 +922,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         field: string,
         relationModel: string,
         context: ExpressionTransformerContext,
-        relationAlias = this.makeRelationAlias(context.alias ?? context.modelOrType, field),
+        relationAlias = this.newRelationAlias(field),
     ): SelectQueryNode {
         const m2m = QueryUtils.getManyToManyRelation(this.schema, context.modelOrType, field);
         if (m2m) {

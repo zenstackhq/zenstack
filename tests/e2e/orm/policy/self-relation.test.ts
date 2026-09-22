@@ -131,6 +131,62 @@ model Node {
         await expect(db.node.findMany()).resolves.toEqual([expect.objectContaining({ id: 3 })]);
     });
 
+    it('works with this-rooted self relation nested inside a collection predicate', async () => {
+        const db = await createPolicyTestClient(
+            `
+model Node {
+    id Int @id
+    value Int
+    parentId Int?
+    parent Node? @relation("Tree", fields: [parentId], references: [id])
+    children Node[] @relation("Tree")
+
+    @@allow('create', true)
+    // readable if it has two distinct children with the same value
+    @@allow('read', children?[c, this.children?[id != c.id && value == c.value]])
+}
+`,
+        );
+        const raw = db.$unuseAll();
+        await raw.node.create({ data: { id: 1, value: 0 } });
+        await raw.node.create({ data: { id: 2, value: 5, parentId: 1 } });
+        await raw.node.create({ data: { id: 3, value: 5, parentId: 1 } });
+        await raw.node.create({ data: { id: 4, value: 0 } });
+        await raw.node.create({ data: { id: 5, value: 1, parentId: 4 } });
+        await raw.node.create({ data: { id: 6, value: 2, parentId: 4 } });
+
+        await expect(db.node.findMany()).resolves.toEqual([expect.objectContaining({ id: 1 })]);
+    });
+
+    it('works with binding-rooted self relation nested inside a collection predicate', async () => {
+        const db = await createPolicyTestClient(
+            `
+model Node {
+    id Int @id
+    value Int
+    parentId Int?
+    parent Node? @relation("Tree", fields: [parentId], references: [id])
+    children Node[] @relation("Tree")
+
+    @@allow('create', true)
+    // readable if it has a child that has two distinct children with the same value
+    @@allow('read', children?[c, c.children?[d, c.children?[id != d.id && value == d.value]]])
+}
+`,
+        );
+        const raw = db.$unuseAll();
+        await raw.node.create({ data: { id: 1, value: 0 } });
+        await raw.node.create({ data: { id: 2, value: 0, parentId: 1 } });
+        await raw.node.create({ data: { id: 3, value: 7, parentId: 2 } });
+        await raw.node.create({ data: { id: 4, value: 7, parentId: 2 } });
+        await raw.node.create({ data: { id: 5, value: 0 } });
+        await raw.node.create({ data: { id: 6, value: 0, parentId: 5 } });
+        await raw.node.create({ data: { id: 7, value: 1, parentId: 6 } });
+        await raw.node.create({ data: { id: 8, value: 2, parentId: 6 } });
+
+        await expect(db.node.findMany()).resolves.toEqual([expect.objectContaining({ id: 1 })]);
+    });
+
     it('works with self many-to-many relation', async () => {
         const db = await createPolicyTestClient(
             `
