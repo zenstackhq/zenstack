@@ -477,9 +477,13 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
      * relation subquery avoids the related table shadowing an enclosing one when the relation points
      * back to the same model (self-relation), including across nested collection predicates.
      * The counter is per transformer instance so the same policy always compiles to the same SQL.
+     *
+     * The alias is marked as a temp alias so the query executor compacts it (or at least shortens
+     * it when it exceeds the database's identifier length limit), preventing PostgreSQL's 63-byte
+     * truncation from collapsing two aliases derived from a long field name into the same name.
      */
     private newRelationAlias(field: string) {
-        return `${field}$${++this.aliasCounter}`;
+        return QueryUtils.tmpAlias(`${field}$${++this.aliasCounter}`);
     }
 
     private ensureCollectionPredicateOperator(op: BinaryOperator): asserts op is CollectionPredicateOperator {
