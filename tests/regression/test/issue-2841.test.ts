@@ -1,5 +1,4 @@
 import { createPolicyTestClient } from '@zenstackhq/testtools';
-import type { LogEvent } from 'kysely';
 import { describe, expect, it } from 'vitest';
 
 // https://github.com/zenstackhq/zenstack/issues/2841
@@ -32,7 +31,7 @@ model Note {
     async function createClient() {
         const sqls: string[] = [];
         const db = await createPolicyTestClient(schema, {
-            log: (event: LogEvent) => {
+            log: (event) => {
                 if (event.level === 'query') {
                     sqls.push(event.query.sql);
                 }
