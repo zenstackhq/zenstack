@@ -43,6 +43,34 @@ describe('Regression for issue 2791', () => {
         );
     });
 
+    it('does not mistake a Json value for a Kysely node when its kind matches a node name', async () => {
+        const db = await createPolicyTestClient(schema, { provider: 'postgresql' });
+
+        // if the payload were treated as a `ValueNode`, the policy check would unwrap
+        // `value` and the stored payload would not round-trip
+        await expect(db.item.create({ data: { payload: { kind: 'ValueNode', value: 'x' } } })).resolves.toMatchObject({
+            payload: { kind: 'ValueNode', value: 'x' },
+        });
+
+        await expect(db.item.create({ data: { payload: { kind: 'DefaultInsertValueNode' } } })).resolves.toMatchObject({
+            payload: { kind: 'DefaultInsertValueNode' },
+        });
+    });
+
+    it('still rejects creates that violate the policy regardless of Json shape', async () => {
+        const db = await createPolicyTestClient(schema, { provider: 'postgresql' });
+        const authDb = db.$setAuth({ id: 1 });
+
+        await expect(authDb.item.create({ data: { payload: { kind: 'artwork' } } })).toBeRejectedByPolicy();
+        await expect(
+            authDb.item.create({ data: { payload: { kind: 'ValueNode', value: 'x' } } }),
+        ).toBeRejectedByPolicy();
+        await expect(
+            authDb.item.createMany({ data: [{ payload: { kind: 'artwork' } }, { payload: { kind: 'photo' } }] }),
+        ).toBeRejectedByPolicy();
+        await expect(db.item.findMany()).resolves.toHaveLength(0);
+    });
+
     it('still accepts the same Json payload via update', async () => {
         const db = await createPolicyTestClient(schema, { provider: 'postgresql' });
 
