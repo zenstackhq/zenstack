@@ -21,11 +21,16 @@ type Profile {
     @@strict
 }
 
+type Age with Int {
+    this Int @gte(0)
+}
+
 model User {
     id Int @id @default(autoincrement())
     name String @unique
     role Role @default(USER)
     profile Profile? @json
+    age     Age?
 }
 
 procedure getUser(id: Int): User
@@ -33,5 +38,7 @@ procedure listUsers(): User[]
 mutation procedure signUp(name: String, role: Role?): User
 mutation procedure setAdmin(userId: Int): Void
 procedure getOverview(): Overview
+procedure getAge(id: Int): Age
+mutation procedure setAge(id: Int, age: Age): User
 mutation procedure createMultiple(names: String[]): User[]
 mutation procedure updateProfile(userId: Int, profile: Profile): Void

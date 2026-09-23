@@ -28,7 +28,7 @@ model User {
     website   String?   @url
     code      String    @startsWith("USR")
     age       Int       @gt(0) @lte(150)
-    score     Float     @gte(0.0) @lt(100.0)
+    score     Score
     bigNum    BigInt    @gte(0)
     balance   Decimal   @gt(0)
     active    Boolean
@@ -41,18 +41,36 @@ model User {
     status    Status
     address   Address?  @json
     posts     Post[]
+    contacts  Contact[]
 
     @@validate(age >= 18, "Must be adult", ["age"])
     @@meta("description", "A user of the system")
 }
 
+type Score with Float {
+    this Float
+
+    @@validate(this >= 0.0)
+    @@validate(this < 100.0)
+}
+
+type Contact with String {
+    this String
+
+    @@validate(isPhone(this) || isEmail(this))
+}
+
 model Post {
-    id        String   @id @default(cuid())
+    id        String    @id @default(cuid())
     title     String
     published Boolean
-    tags      String[]
-    author    User?    @relation(fields: [authorId], references: [id])
+    tags      PostTag[]
+    author    User?     @relation(fields: [authorId], references: [id])
     authorId  String?
+}
+
+type PostTag with String {
+    this String @lower
 }
 
 // --- Computed fields ---
@@ -81,4 +99,8 @@ model Video extends Asset {
 model Image extends Asset {
     format String
     width  Int
+}
+
+type Test with String {
+    this String
 }
