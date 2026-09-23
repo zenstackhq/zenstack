@@ -326,11 +326,13 @@ export class SchemaDbPusher<Schema extends SchemaDef> {
             return 'serial';
         }
 
+        let type: BuiltinType = fieldDef.type as BuiltinType;
+
         if (this.isCustomType(fieldDef.type)) {
-            return this.jsonType;
+            const typeDef = Object.values(this.schema.typeDefs!).find((def) => def.name === fieldDef.type)!;
+            type = (typeDef.base ?? 'Json') as BuiltinType;
         }
 
-        const type = fieldDef.type as BuiltinType;
         const result = match<BuiltinType, ColumnDataType | RawBuilder<unknown>>(type)
             .with('String', () => this.stringType)
             .with('Boolean', () => this.booleanType)

@@ -32,6 +32,7 @@ import type {
     SchemaDef,
     TypeDefFieldIsArray,
     TypeDefFieldIsOptional,
+    TypeDefIsPrimitive,
     UpdatedAtInfo,
 } from '@zenstackhq/schema';
 import type { ExpressionBuilder, OperandExpression, SqlBool } from 'kysely';
@@ -318,27 +319,36 @@ export type TypeDefResult<
     Schema extends SchemaDef,
     TypeDef extends GetTypeDefs<Schema>,
     Partial extends boolean = false,
-> = PartialIf<
-    Optional<
-        {
-            [Key in GetTypeDefFields<Schema, TypeDef>]: MapFieldDefType<
-                Schema,
-                GetTypeDefField<Schema, TypeDef, Key>,
-                Partial
-            >;
-        },
-        // optionality
-        Partial extends true
-            ? never
-            : keyof {
-                  [Key in GetTypeDefFields<Schema, TypeDef> as TypeDefFieldIsOptional<Schema, TypeDef, Key> extends true
-                      ? Key
-                      : never]: true;
-              }
-    >,
-    Partial
-> &
-    (IsTypeDefStrict<Schema, TypeDef> extends true ? {} : Record<string, unknown>);
+> =
+    Schema['typeDefs'] extends Record<string, unknown>
+        ? Schema['typeDefs'][TypeDef]['base'] extends string
+            ? TypeMap[Schema['typeDefs'][TypeDef]['base']]
+            : PartialIf<
+                  Optional<
+                      {
+                          [Key in GetTypeDefFields<Schema, TypeDef>]: MapFieldDefType<
+                              Schema,
+                              GetTypeDefField<Schema, TypeDef, Key>,
+                              Partial
+                          >;
+                      },
+                      // optionality
+                      Partial extends true
+                          ? never
+                          : keyof {
+                                [Key in GetTypeDefFields<Schema, TypeDef> as TypeDefFieldIsOptional<
+                                    Schema,
+                                    TypeDef,
+                                    Key
+                                > extends true
+                                    ? Key
+                                    : never]: true;
+                            }
+                  >,
+                  Partial
+              > &
+                  (IsTypeDefStrict<Schema, TypeDef> extends true ? {} : Record<string, unknown>)
+        : never;
 
 export type IsTypeDefStrict<Schema extends SchemaDef, TypeDef extends GetTypeDefs<Schema>> =
     Schema['typeDefs'] extends Record<string, unknown>
@@ -1485,8 +1495,10 @@ type MapFieldDefType<
     T['type'] extends GetEnums<Schema>
         ? keyof GetEnum<Schema, T['type']>
         : T['type'] extends GetTypeDefs<Schema>
-          ? TypeDefResult<Schema, T['type'], Partial> &
-                (IsTypeDefStrict<Schema, T['type']> extends true ? {} : Record<string, unknown>)
+          ? TypeDefIsPrimitive<Schema, T['type']> extends true
+              ? TypeDefResult<Schema, T['type']>
+              : TypeDefResult<Schema, T['type'], Partial> &
+                    (IsTypeDefStrict<Schema, T['type']> extends true ? {} : Record<string, unknown>)
           : MapBaseType<T['type']>,
     T['optional'],
     T['array']

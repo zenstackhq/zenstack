@@ -462,6 +462,9 @@ export class ZodSchemaFactory<
     private makeTypeDefSchema(type: string): ZodType {
         const typeDef = getTypeDef(this.schema, type);
         invariant(typeDef, `Type definition "${type}" not found in schema`);
+        if (typeDef.base) {
+            return this.makeScalarSchema(typeDef.base, typeDef.fields['this']?.attributes);
+        }
         const func = typeDef.strict ? z.strictObject : z.looseObject;
         const schema = func(
             Object.fromEntries(
