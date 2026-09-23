@@ -770,15 +770,9 @@ export class QueryNameMapper extends OperationNodeTransformer {
             Array.isArray(value.value) &&
             value.value.every((v) => typeof v === 'string')
         ) {
-            const everyMappedValueExists = value.value.every((v) => enumValueMapping[v]);
-            if (everyMappedValueExists) {
-                return ValueNode.create(value.value.map((v) => enumValueMapping[v]));
-            }
+            return ValueNode.create(value.value.map((v) => enumValueMapping[v] ?? v));
         } else if (Array.isArray(value) && value.every((v) => typeof v === 'string')) {
-            const everyMappedValueExists = value.every((v) => enumValueMapping[v]);
-            if (everyMappedValueExists) {
-                return value.map((v) => enumValueMapping[v]);
-            }
+            return value.map((v) => enumValueMapping[v] ?? v);
         }
 
         return value;

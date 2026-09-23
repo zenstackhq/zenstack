@@ -21,7 +21,7 @@ model Test {
 }
 `;
 
-        const db = await createTestClient(schema, { usePrismaPush: true, provider: 'postgresql', debug: true });
+        const db = await createTestClient(schema, { usePrismaPush: true, provider: 'postgresql' });
 
         await db.test.create({ data: { id: 0 } });
         await db.test.create({ data: { id: 1, tag: 'INFO' } });
@@ -52,5 +52,41 @@ model Test {
             { id: 3, tag: null, tags: ['INFO'] },
             { id: 4, tag: null, tags: [] },
         ]);
+    });
+
+    it('supports enum array with partially mapped values', async () => {
+        const schema = `
+enum TestTag {
+  INFO @map("info")
+  WARN
+
+  @@map("post_tag")
+}
+
+model Test {
+  id   Int       @id
+  tag  TestTag?
+  tags TestTag[]
+
+  @@map("test")
+}
+`;
+
+        const db = await createTestClient(schema, { usePrismaPush: true, provider: 'postgresql' });
+
+        await db.test.create({ data: { id: 1, tag: 'WARN', tags: ['INFO', 'WARN'] } });
+        await db.test.create({ data: { id: 2, tags: ['WARN'] } });
+
+        await expect(db.test.findMany({ orderBy: { id: 'asc' } })).resolves.toEqual([
+            { id: 1, tag: 'WARN', tags: ['INFO', 'WARN'] },
+            { id: 2, tag: null, tags: ['WARN'] },
+        ]);
+
+        await db.test.update({ where: { id: 2 }, data: { tags: { push: 'INFO' } } });
+        await expect(db.test.findUnique({ where: { id: 2 } })).resolves.toEqual({
+            id: 2,
+            tag: null,
+            tags: ['WARN', 'INFO'],
+        });
     });
 });
