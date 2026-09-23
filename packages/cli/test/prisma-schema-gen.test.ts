@@ -91,4 +91,23 @@ model User {
         expect(prismaSchemaText.includes('@ds.JsonB')).toBe(true);
         expect(prismaSchemaText.includes('@ds.ByteA')).toBe(true);
     });
+
+    it('renames primitive type defs to match the base type', async () => {
+        const model = await loadSchema(`
+model User {
+    id   String   @id
+    name UserName
+}
+
+type UserName with String {
+    this String
+}
+        `);
+
+        const generator = new PrismaSchemaGenerator(model);
+        const prismaSchemaText = await generator.generate();
+
+        expect(prismaSchemaText.includes('name UserName')).toBe(false);
+        expect(prismaSchemaText.includes('name String')).toBe(true);
+    });
 });
