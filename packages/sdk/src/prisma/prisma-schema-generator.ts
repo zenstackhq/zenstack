@@ -38,6 +38,7 @@ import {
     getStringLiteral,
     isAuthInvocation,
     isDelegateModel,
+    isPrimitiveTypeDef,
 } from '@zenstackhq/language/utils';
 import { AstUtils } from 'langium';
 import { match } from 'ts-pattern';
@@ -286,7 +287,7 @@ export class PrismaSchemaGenerator {
         } else if (field.type.reference?.ref) {
             // model, enum, or type-def
             if (isTypeDef(field.type.reference.ref)) {
-                fieldType = 'Json';
+                fieldType = isPrimitiveTypeDef(field.type.reference.ref) ? field.type.reference.ref.base! : 'Json';
             } else {
                 fieldType = field.type.reference.ref.name;
             }
