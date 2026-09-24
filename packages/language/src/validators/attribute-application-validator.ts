@@ -564,8 +564,7 @@ function assignableToAttributeParam(
             // If the field is JSON, and the attribute is @default, the argument must be a JSON string
             // (design inherited from Prisma)
             const dstIsJson = attr.$container.type.type === 'Json' || hasAttribute(attr.$container, '@json');
-            const isInPrimitiveTypeDef = isPrimitiveTypeDef(attr.$container.$container);
-            if (dstIsJson && isInPrimitiveTypeDef && attr.decl.ref?.name === '@default') {
+            if (dstIsJson && attr.decl.ref?.name === '@default') {
                 if (attr.$container.type.array && attr.$container.type.type === 'Json') {
                     // Json[] default value, must be array of JSON strings
                     if (isArrayExpr(arg.value) && arg.value.items.every((item) => isLiteralJsonString(item))) {
