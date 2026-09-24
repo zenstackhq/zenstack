@@ -10,9 +10,9 @@ enum Role {
 
 type Overview {
     userIds Int[]
-    total Int
-    roles Role[]
-    meta Json?
+    total   Int
+    roles   Role[]
+    meta    Json?
 }
 
 type Profile {
@@ -26,11 +26,11 @@ type Age with Int {
 }
 
 model User {
-    id Int @id @default(autoincrement())
-    name String @unique
-    role Role @default(USER)
+    id      Int      @id @default(autoincrement())
+    name    String   @unique
+    role    Role     @default(USER)
     profile Profile? @json
-    age     Age?
+    age     Age?     @default(18)
 }
 
 procedure getUser(id: Int): User
