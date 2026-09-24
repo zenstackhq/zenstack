@@ -326,11 +326,15 @@ export class SchemaDbPusher<Schema extends SchemaDef> {
             return 'serial';
         }
 
-        let type: BuiltinType = fieldDef.type as BuiltinType;
+        let type = fieldDef.type as BuiltinType;
 
-        if (this.isCustomType(fieldDef.type)) {
-            const typeDef = Object.values(this.schema.typeDefs!).find((def) => def.name === fieldDef.type)!;
-            type = (typeDef.base ?? 'Json') as BuiltinType;
+        if (this.isCustomType(type)) {
+            const typeDef = Object.values(this.schema.typeDefs!).find((def) => def.name === type)!;
+            if (typeDef.base) {
+                type = typeDef.base;
+            } else {
+                return this.jsonType;
+            }
         }
 
         const result = match<BuiltinType, ColumnDataType | RawBuilder<unknown>>(type)
@@ -347,7 +351,7 @@ export class SchemaDbPusher<Schema extends SchemaDef> {
                 throw new Error(`Unsupported field type: ${type}`);
             });
 
-        if (fieldDef.array && type !== 'Json') {
+        if (fieldDef.array) {
             // Kysely doesn't support array type natively
             return sql.raw(`${result}[]`);
         } else {
