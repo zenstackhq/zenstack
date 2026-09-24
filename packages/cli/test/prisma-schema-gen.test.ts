@@ -110,4 +110,28 @@ type UserName with String {
         expect(prismaSchemaText.includes('name UserName')).toBe(false);
         expect(prismaSchemaText.includes('name String')).toBe(true);
     });
+
+    it('renames primitive type defs to match the base type when used with lists', async () => {
+        const model = await loadSchema(`
+datasource db {
+    provider = 'postgresql'
+    url      = env('DATABASE_URL')
+}
+
+model User {
+    id   String   @id
+    name UserName[]
+}
+
+type UserName with String {
+    this String
+}
+        `);
+
+        const generator = new PrismaSchemaGenerator(model);
+        const prismaSchemaText = await generator.generate();
+
+        expect(prismaSchemaText.includes('name UserName[]')).toBe(false);
+        expect(prismaSchemaText.includes('name String[]')).toBe(true);
+    });
 });

@@ -305,7 +305,11 @@ export class PrismaSchemaGenerator {
 
         const isArray =
             // typed-JSON fields should be translated to scalar Json type
-            isTypeDef(field.type.reference?.ref) ? false : field.type.array;
+            isTypeDef(field.type.reference?.ref)
+                ? isPrimitiveTypeDef(field.type.reference.ref)
+                    ? field.type.array
+                    : false
+                : field.type.array;
         const type = new ModelFieldType(fieldType, isArray, field.type.optional);
 
         const attributes = field.attributes
