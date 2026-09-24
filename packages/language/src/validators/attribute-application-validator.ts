@@ -671,7 +671,7 @@ function assignableToAttributeParam(
                     isTypeDef(attr.$container?.type?.reference?.ref) &&
                     isPrimitiveTypeDef(attr.$container.type.reference.ref)
                 ) {
-                    dstType = attr.$container.type.reference.ref.base!;
+                    dstType = mapBuiltinTypeToExpressionType(attr.$container.type.reference.ref.base!);
                 } else {
                     if (!attr.$container?.type?.type) {
                         return genericError;
