@@ -418,7 +418,7 @@ class SchemaFactory<Schema extends SchemaDef> {
         // typedef
         const typedefDef = this.schema.getTypeDef(type);
         if (typedefDef) {
-            return this.applyCardinality(this.makeTypeSchema(type as GetTypeDefs<Schema>), def);
+            return this.applyCardinality(this.makeTypeSchema(type as GetTypeDefs<Schema>, def.attributes), def);
         }
 
         return this.applyCardinality(this.makeScalarSchema(type as BuiltinType, attributes), def);
@@ -461,11 +461,14 @@ class SchemaFactory<Schema extends SchemaDef> {
         return result;
     }
 
-    makeTypeSchema<Type extends GetTypeDefs<Schema>>(type: Type): MapTypeDefToZod<Schema, Type> {
+    makeTypeSchema<Type extends GetTypeDefs<Schema>>(
+        type: Type,
+        attributes?: readonly AttributeApplication[],
+    ): MapTypeDefToZod<Schema, Type> {
         const typeDef = this.schema.requireTypeDef(type);
         if (typeDef.base) {
             return addCustomValidation(
-                this.makeScalarSchema(typeDef.base, typeDef.fields['this']?.attributes),
+                this.makeScalarSchema(typeDef.base, attributes ?? typeDef.fields['this']?.attributes),
                 typeDef.attributes,
             ) as unknown as MapTypeDefToZod<Schema, Type>;
         }
