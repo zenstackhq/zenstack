@@ -56,7 +56,7 @@ mutation procedure createTwoAndFail(email1: String, email2: String): Int
             client,
             method: 'get',
             path: '/$procs/greet',
-            query: { args: { name: 'alice' } } as any,
+            query: { data: { args: { name: 'alice' } } } as any,
         });
         expect(r.status).toBe(200);
         expect(r.body).toEqual({ data: 'hello alice' });
@@ -67,7 +67,7 @@ mutation procedure createTwoAndFail(email1: String, email2: String): Int
             client,
             method: 'get',
             path: '/$procs/greet',
-            query: { args: { name: 123 } } as any,
+            query: { data: { args: { name: 123 } } } as any,
         });
 
         expect(r.status).toBe(422);

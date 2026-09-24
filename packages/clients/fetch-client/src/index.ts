@@ -8,7 +8,7 @@ import {
     type TransactionOperation,
     type TransactionResults,
 } from '@zenstackhq/client-helpers';
-import { fetcher, makeUrl, marshal, type FetchFn } from '@zenstackhq/client-helpers/fetch';
+import { fetcher, makeUrl, marshal, type FetchFn, serialize } from '@zenstackhq/client-helpers/fetch';
 import { lowerCaseFirst } from '@zenstackhq/common-helpers';
 import type {
     AllModelOperations,
@@ -301,7 +301,21 @@ export function createClient<SchemaOrClient extends SchemaDef | ClientContract<a
             {
                 method: 'POST',
                 headers: { 'content-type': 'application/json' },
-                body: marshal(operations),
+                body: JSON.stringify({
+                    data: operations.map((op) => {
+                        const { data: serializedArgs, meta } = serialize(op.args);
+                        if (!meta) {
+                            return op;
+                        }
+                        return {
+                            ...op,
+                            args: serializedArgs,
+                            meta: {
+                                serialization: meta,
+                            },
+                        };
+                    }),
+                }),
             },
             customFetch,
         );

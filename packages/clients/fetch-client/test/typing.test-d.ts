@@ -10,7 +10,7 @@ describe('Result narrowing through AllModelOperations', () => {
     it('full row shape with no select', () => {
         const client = createClient(schema, { endpoint: ENDPOINT });
         expectTypeOf(client.user.findMany()).resolves.toEqualTypeOf<
-            Array<{ id: string; email: string; name: string | null }>
+            Array<{ id: string; email: string; name: string | null; createdAt: Date }>
         >();
     });
 
@@ -26,6 +26,7 @@ describe('Result narrowing through AllModelOperations', () => {
             id: string;
             email: string;
             name: string | null;
+            createdAt: Date;
         }>();
     });
 });
