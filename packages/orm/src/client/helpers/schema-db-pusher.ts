@@ -347,7 +347,7 @@ export class SchemaDbPusher<Schema extends SchemaDef> {
                 throw new Error(`Unsupported field type: ${type}`);
             });
 
-        if (fieldDef.array) {
+        if (fieldDef.array && type !== 'Json') {
             // Kysely doesn't support array type natively
             return sql.raw(`${result}[]`);
         } else {
