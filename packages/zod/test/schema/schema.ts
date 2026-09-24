@@ -49,8 +49,8 @@ export class SchemaType implements SchemaDef {
                 },
                 age: {
                     name: "age",
-                    type: "Int",
-                    attributes: [{ name: "@gt", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }, { name: "@lte", args: [{ name: "value", value: ExpressionUtils.literal(150) }] }] as readonly AttributeApplication[]
+                    type: "Age",
+                    attributes: [{ name: "@lte", args: [{ name: "value", value: ExpressionUtils.literal(150) }] }, { name: "@gt", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[]
                 },
                 score: {
                     name: "score",
@@ -354,6 +354,17 @@ export class SchemaType implements SchemaDef {
                 { name: "@@meta", args: [{ name: "name", value: ExpressionUtils.literal("description") }, { name: "value", value: ExpressionUtils.literal("A mailing address") }] }
             ] as readonly AttributeApplication[]
         },
+        Age: {
+            name: "Age",
+            base: "Int",
+            fields: {
+                this: {
+                    name: "this",
+                    type: "Int",
+                    attributes: [{ name: "@gt", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[]
+                }
+            }
+        },
         Score: {
             name: "Score",
             base: "Float",
@@ -389,16 +400,6 @@ export class SchemaType implements SchemaDef {
                     name: "this",
                     type: "String",
                     attributes: [{ name: "@lower" }] as readonly AttributeApplication[]
-                }
-            }
-        },
-        Test: {
-            name: "Test",
-            base: "String",
-            fields: {
-                this: {
-                    name: "this",
-                    type: "String"
                 }
             }
         }

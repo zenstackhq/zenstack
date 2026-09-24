@@ -20,6 +20,10 @@ type Address {
     @@meta("description", "A mailing address")
 }
 
+type Age with Int {
+    this Int @gt(0)
+}
+
 model User {
     id        String    @id @default(cuid())
     email     String    @email @meta("description", "The user's email address")
@@ -27,7 +31,7 @@ model User {
     username  String    @length(3, 50)
     website   String?   @url
     code      String    @startsWith("USR")
-    age       Int       @gt(0) @lte(150)
+    age       Age       @lte(150)
     score     Score
     bigNum    BigInt    @gte(0)
     balance   Decimal   @gt(0)
@@ -99,8 +103,4 @@ model Video extends Asset {
 model Image extends Asset {
     format String
     width  Int
-}
-
-type Test with String {
-    this String
 }
