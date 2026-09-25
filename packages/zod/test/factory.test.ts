@@ -33,6 +33,7 @@ describe.each([
         status: 'ACTIVE',
         address: null,
         extId: null,
+        contacts: [],
     };
 
     // A fully valid Post object (without relations)
@@ -679,6 +680,7 @@ describe.each([
                     metadata: null,
                     status: 'ACTIVE',
                     address: { residents: [], street: '123 Main', city: 'Springfield', zip: '90210' },
+                    contacts: [],
                 };
                 expect(userSchema.safeParse(validUser).success).toBe(true);
                 expect(
@@ -1570,6 +1572,68 @@ describe.each([
                 expect(schema.safeParse({ email: 'valid@example.com', age: 16 }).success).toBe(false);
                 expect(schema.safeParse({ email: 'valid@example.com', age: 18 }).success).toBe(true);
             });
+        });
+    });
+
+    describe('custom type primitives', () => {
+        it('supports model validation using `this` attributes', () => {
+            const postSchema = factory.makeModelSchema('Post');
+            const result = postSchema.safeParse({ ...validPost, tags: ['LOWERCASED'] });
+            expect(result.success).toBe(true);
+            expect(result.data?.tags).toMatchObject(['lowercased']);
+        });
+
+        it('supports model validation using `@@validate`', () => {
+            const userSchema = factory.makeModelSchema('User');
+            let result = userSchema.safeParse({ ...validUser, score: 0 });
+            expect(result.success).toBe(true);
+
+            result = userSchema.safeParse({ ...validUser, score: 99.0 });
+            expect(result.success).toBe(true);
+
+            result = userSchema.safeParse({ ...validUser, score: 100.0 });
+            expect(result.success).toBe(false);
+
+            result = userSchema.safeParse({ ...validUser, score: -1.0 });
+            expect(result.success).toBe(false);
+        });
+
+        it('supports field validation using `this` attributes', () => {
+            const postTagSchema = factory.makeTypeSchema('PostTag');
+            const result = postTagSchema.safeParse('LOWERCASE');
+            expect(result.success).toBe(true);
+            expect(result.data).toBe('lowercase');
+        });
+
+        it('supports `@@validate` attributes', () => {
+            const contactSchema = factory.makeTypeSchema('Contact');
+            let result = contactSchema.safeParse('test@mail.com');
+            expect(result.success).toBe(true);
+            expect(result.data).toBe('test@mail.com');
+
+            result = contactSchema.safeParse('+15555555555');
+            expect(result.success).toBe(true);
+            expect(result.data).toBe('+15555555555');
+
+            result = contactSchema.safeParse('not-a-contact');
+            expect(result.success).toBe(false);
+        });
+
+        it('supports multiple `@@validate` attributes', () => {
+            const contactSchema = factory.makeTypeSchema('Score');
+            let result = contactSchema.safeParse(0);
+            expect(result.success).toBe(true);
+            expect(result.data).toBe(0);
+
+            result = contactSchema.safeParse(99.0);
+            expect(result.success).toBe(true);
+            expect(result.data).toBe(99.0);
+
+            result = contactSchema.safeParse(100.0);
+            expect(result.success).toBe(false);
+
+            result = contactSchema.safeParse(-1.0);
+            expect(result.success).toBe(false);
         });
     });
 });

@@ -28,6 +28,7 @@ import {
     getModelFields,
     getRelationForeignKeyFieldPairs,
     isEnum,
+    isPrimitiveTypeDef,
     isTypeDef,
     makeDefaultOrderBy,
     requireField,
@@ -658,15 +659,25 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             return this.buildEnumFilter(fieldRef, fieldDef, payload);
         }
 
+        let type = fieldDef.type;
+
         if (isTypeDef(this.schema, fieldDef.type)) {
-            if (payload instanceof DbNullClass || payload instanceof JsonNullClass || payload instanceof AnyNullClass) {
-                // null sentinel passed directly (e.g. where: { field: DbNull }) — treat like { equals: sentinel }
-                return this.buildJsonValueFilterClause(fieldRef, payload);
+            if (isPrimitiveTypeDef(this.schema, fieldDef.type)) {
+                type = this.schema['typeDefs']![fieldDef.type]!['base']!;
+            } else {
+                if (
+                    payload instanceof DbNullClass ||
+                    payload instanceof JsonNullClass ||
+                    payload instanceof AnyNullClass
+                ) {
+                    // null sentinel passed directly (e.g. where: { field: DbNull }) — treat like { equals: sentinel }
+                    return this.buildJsonValueFilterClause(fieldRef, payload);
+                }
+                return this.buildJsonFilter(fieldRef, payload, fieldDef);
             }
-            return this.buildJsonFilter(fieldRef, payload, fieldDef);
         }
 
-        return match(fieldDef.type as BuiltinType)
+        return match(type as BuiltinType)
             .with('String', () => this.buildStringFilter(fieldRef, payload, fieldDef))
             .with(P.union('Int', 'Float', 'Decimal', 'BigInt'), (type) =>
                 this.buildNumberFilter(fieldRef, type, payload),

@@ -38,6 +38,13 @@ export class SchemaType implements SchemaDef {
                     type: "Profile",
                     optional: true,
                     attributes: [{ name: "@json" }] as readonly AttributeApplication[]
+                },
+                age: {
+                    name: "age",
+                    type: "Age",
+                    optional: true,
+                    attributes: [{ name: "@default", args: [{ name: "value", value: ExpressionUtils.literal(18) }] }, { name: "@gte", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[],
+                    default: "18" as FieldDefault
                 }
             },
             idFields: ["id"],
@@ -84,6 +91,17 @@ export class SchemaType implements SchemaDef {
                 { name: "@@strict" }
             ] as readonly AttributeApplication[],
             strict: true
+        },
+        Age: {
+            name: "Age",
+            base: "Int",
+            fields: {
+                this: {
+                    name: "this",
+                    type: "Int",
+                    attributes: [{ name: "@gte", args: [{ name: "value", value: ExpressionUtils.literal(0) }] }] as readonly AttributeApplication[]
+                }
+            }
         }
     } as const;
     enums = {
@@ -126,6 +144,20 @@ export class SchemaType implements SchemaDef {
         getOverview: {
             params: {},
             returnType: "Overview"
+        },
+        getAge: {
+            params: {
+                id: { name: "id", type: "Int" }
+            },
+            returnType: "Age"
+        },
+        setAge: {
+            params: {
+                id: { name: "id", type: "Int" },
+                age: { name: "age", type: "Age" }
+            },
+            returnType: "User",
+            mutation: true
         },
         createMultiple: {
             params: {

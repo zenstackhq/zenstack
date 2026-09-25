@@ -462,4 +462,26 @@ describe('Function Invocation Tests', () => {
             );
         });
     });
+
+    describe('length()', () => {
+        it('should accept primitive type defs of String', async () => {
+            await loadSchema(`
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model User {
+                    id   String   @id
+                    name UserName
+                }
+
+                type UserName with String {
+                    this String
+
+                    @@validate(length(this) >= 2)
+                }
+            `);
+        });
+    });
 });
