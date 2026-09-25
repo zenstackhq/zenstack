@@ -1431,11 +1431,19 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         query: SelectQueryBuilder<any, any, any>,
         omit: Record<string, boolean | undefined> | undefined | null,
         modelAlias: string,
+        options?: {
+            /**
+             * When false, query-level, client-level, and schema-level omit settings are all
+             * ignored and every field is selected.
+             */
+            applyOmit?: boolean;
+        },
     ) {
         let result = query;
+        const applyOmit = options?.applyOmit ?? true;
 
         for (const fieldDef of getModelFields(this.schema, model, { inherited: true, computed: true })) {
-            if (this.shouldOmitField(omit, model, fieldDef.name)) {
+            if (applyOmit && this.shouldOmitField(omit, model, fieldDef.name)) {
                 continue;
             }
             // parameterized computed fields can't be auto-selected — they require
@@ -1453,7 +1461,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             result = result.select(() => {
                 const jsonObject: Record<string, Expression<any>> = {};
                 for (const fieldDef of getModelFields(this.schema, subModel.name, { computed: true })) {
-                    if (this.shouldOmitField(omit, subModel.name, fieldDef.name)) {
+                    if (applyOmit && this.shouldOmitField(omit, subModel.name, fieldDef.name)) {
                         continue;
                     }
                     // parameterized computed fields require query-time args; not auto-selected
@@ -1498,12 +1506,11 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         let subQuery = this.buildSelectModel(model, subQueryAlias);
 
         if (selectAllFields) {
-            subQuery = this.buildSelectAllFields(
-                model,
-                subQuery,
-                typeof payload === 'object' ? payload?.omit : undefined,
-                subQueryAlias,
-            );
+            // omission (query-level, client-level, or schema-level) is intentionally not
+            // applied here: this select feeds a derived subquery whose columns are needed by
+            // nested relation joins (PK/FK fields) and by ordering of the aggregated result,
+            // and the outer JSON object projection handles omission on its own
+            subQuery = this.buildSelectAllFields(model, subQuery, undefined, subQueryAlias, { applyOmit: false });
         }
 
         if (payload && typeof payload === 'object') {
