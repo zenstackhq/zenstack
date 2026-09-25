@@ -105,4 +105,53 @@ model Grandchild {
         expect(children[0]!.grandchildren).toHaveLength(2);
         expect(children[1]!.grandchildren).toHaveLength(1);
     });
+
+    it('still omits delegate-descendant fields on an ordered relation', async () => {
+        const db = await createTestClient(
+            `
+model Parent {
+    id    Int    @id @default(autoincrement())
+    name  String
+    items Item[]
+}
+
+model Item {
+    id       Int    @id @default(autoincrement())
+    position Int
+    kind     String
+    parent   Parent @relation(fields: [parentId], references: [id])
+    parentId Int
+    @@delegate(kind)
+}
+
+model SecretItem extends Item {
+    secret String @omit
+    public String
+}
+`,
+        );
+        const parent = await db.parent.create({ data: { name: 'p1' } });
+        await db.secretItem.create({
+            data: { parentId: parent.id, position: 2, secret: 's2', public: 'pub2' },
+        });
+        await db.secretItem.create({
+            data: { parentId: parent.id, position: 1, secret: 's1', public: 'pub1' },
+        });
+
+        const result = await db.parent.findMany({
+            include: {
+                items: {
+                    omit: { id: true },
+                    orderBy: { position: 'asc' },
+                },
+            },
+        });
+
+        const items = result[0]!.items;
+        expect(items.map((i: any) => i.position)).toEqual([1, 2]);
+        expect(items[0]).toMatchObject({ kind: 'SecretItem', public: 'pub1' });
+        // schema-level @omit on the delegate descendant must still be honored
+        expect(items[0]).not.toHaveProperty('secret');
+        expect(items[1]).not.toHaveProperty('secret');
+    });
 });

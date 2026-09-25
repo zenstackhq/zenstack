@@ -1434,7 +1434,10 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         options?: {
             /**
              * When false, query-level, client-level, and schema-level omit settings are all
-             * ignored and every field is selected.
+             * ignored for the model's own fields and every field is selected. Omission is
+             * still applied to the JSON packed from delegate descendants, since those fields
+             * are never referenced by joins or ordering and the packed JSON is copied to
+             * the final result as-is.
              */
             applyOmit?: boolean;
         },
@@ -1461,7 +1464,7 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
             result = result.select(() => {
                 const jsonObject: Record<string, Expression<any>> = {};
                 for (const fieldDef of getModelFields(this.schema, subModel.name, { computed: true })) {
-                    if (applyOmit && this.shouldOmitField(omit, subModel.name, fieldDef.name)) {
+                    if (this.shouldOmitField(omit, subModel.name, fieldDef.name)) {
                         continue;
                     }
                     // parameterized computed fields require query-time args; not auto-selected
