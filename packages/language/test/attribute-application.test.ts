@@ -509,6 +509,32 @@ describe('Attribute application validation tests', () => {
             );
         });
 
+        it('rejects update field-level policy on one-to-many relation fields when a separate m2m relation exists', async () => {
+            await loadSchemaWithError(
+                `
+                datasource db {
+                    provider = 'sqlite'
+                    url      = 'file:./dev.db'
+                }
+
+                model Foo {
+                    id    Int  @id @default(autoincrement())
+                    bar   Bar  @relation("one-to-many", fields: [barId], references: [id]) @allow('update', true)
+                    barId Int
+                    bars  Bar[] @relation("m2m")
+                    @@allow('all', true)
+                }
+
+                model Bar {
+                    id   Int  @id @default(autoincrement())
+                    foos Foo[] @relation("m2m")
+                    @@allow('all', true)
+                }
+                `,
+                `Field-level policies are not allowed for relation fields`,
+            );
+        });
+
         it('rejects field-level policy on computed fields', async () => {
             await loadSchemaWithError(
                 `

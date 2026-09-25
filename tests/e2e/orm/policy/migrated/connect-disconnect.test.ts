@@ -519,13 +519,18 @@ describe('connect and disconnect tests', () => {
             }),
         ).toBeRejectedByPolicy();
 
+        // mark m2-1 deleted after connecting -> field-level deny triggers on disconnect
+        await rawDb.m2.update({
+            where: { id: 'm2-1' },
+            data: { deleted: true },
+        });
         // disconnect is also rejected for the denied side
         await expect(
             db.m1.update({
                 where: { id: 'm1-1' },
                 data: { m2: { disconnect: { id: 'm2-1' } } },
             }),
-        ).toResolveTruthy();
+        ).toBeRejectedByPolicy();
     });
 
     it('field-level allow on a read-only model enables connect (issue #2382)', async () => {
