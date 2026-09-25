@@ -533,6 +533,69 @@ describe('connect and disconnect tests', () => {
         ).toBeRejectedByPolicy();
     });
 
+    it('batch disconnect verifies every participant in the delete precheck', async () => {
+        const db = await createPolicyTestClient(
+            `
+    model M1 {
+        id String @id @default(uuid())
+        value Int @default(0)
+        m2 M2[]
+
+        @@allow('all', true)
+    }
+
+    model M2 {
+        id String @id @default(uuid())
+        value Int
+        deleted Boolean @default(false)
+        m1 M1[]
+
+        @@allow('read,create', true)
+        @@allow('update', !deleted)
+    }
+    `,
+            { usePrismaPush: true },
+        );
+        const rawDb = db.$unuseAll();
+
+        await rawDb.m1.create({ data: { id: 'm1-1', value: 1 } });
+        await rawDb.m2.create({ data: { id: 'm2-1', value: 1, deleted: false } });
+        await rawDb.m2.create({ data: { id: 'm2-2', value: 1, deleted: false } });
+
+        // connect both
+        await db.m1.update({
+            where: { id: 'm1-1' },
+            data: { m2: { connect: [{ id: 'm2-1' }, { id: 'm2-2' }] } },
+        });
+
+        // both updatable -> batch disconnect succeeds (the precheck must verify every participant
+        // without the scalar subquery returning more than one row)
+        await expect(
+            db.m1.update({
+                where: { id: 'm1-1' },
+                data: { m2: { disconnect: [{ id: 'm2-1' }, { id: 'm2-2' }] } },
+            }),
+        ).toResolveTruthy();
+
+        // reconnect both
+        await db.m1.update({
+            where: { id: 'm1-1' },
+            data: { m2: { connect: [{ id: 'm2-1' }, { id: 'm2-2' }] } },
+        });
+
+        // mark one deleted -> batch disconnect rejected because a participant is not updatable
+        await rawDb.m2.update({
+            where: { id: 'm2-2' },
+            data: { deleted: true },
+        });
+        await expect(
+            db.m1.update({
+                where: { id: 'm1-1' },
+                data: { m2: { disconnect: [{ id: 'm2-1' }, { id: 'm2-2' }] } },
+            }),
+        ).toBeRejectedByPolicy();
+    });
+
     it('field-level allow on a read-only model enables connect (issue #2382)', async () => {
         const db = await createPolicyTestClient(
             `

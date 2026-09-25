@@ -272,6 +272,13 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
             return;
         }
 
+        // For each side, check that no constrained participant exists that is not updatable. Using
+        // For each side, count the constrained participants that are updatable. A plain
+        // `SELECT <filter> ... IN (...)` would return one row per matching participant, which
+        // scalar subquery positions reject on some databases and which would only verify a single
+        // participant on others. Aggregating to a single `COUNT(*)` row verifies every participant:
+        // a participant is only counted if it exists and is updatable, so any missing or
+        // non-updatable participant lowers the count below the number of distinct values.
         const result = await proceed({
             kind: 'SelectQueryNode',
             selections: sides.map((side, index) =>
@@ -280,9 +287,8 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
                         this.eb
                             .selectFrom(side.model)
                             .where(this.eb(this.eb.ref(`${side.model}.${side.idField}`), 'in', side.values!))
-                            .select(() =>
-                                new ExpressionWrapper(this.buildM2mSidePolicyFilter(side.model, side.field)).as('_'),
-                            )
+                            .where(() => new ExpressionWrapper(this.buildM2mSidePolicyFilter(side.model, side.field)))
+                            .select((eb) => eb.fn('COUNT', [eb.lit(1)]).as('_'))
                             .toOperationNode(),
                         IdentifierNode.create(`$condition${index}`),
                     ),
@@ -291,7 +297,9 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         } satisfies SelectQueryNode);
 
         for (const [index, side] of sides.entries()) {
-            if (!result.rows[0]?.[`$condition${index}`]) {
+            const distinctValues = new Set(side.values!).size;
+            const updatableCount = Number(result.rows[0]?.[`$condition${index}`] ?? 0);
+            if (updatableCount < distinctValues) {
                 throw createRejectedByPolicyError(
                     side.model,
                     RejectedByPolicyReason.NO_ACCESS,
