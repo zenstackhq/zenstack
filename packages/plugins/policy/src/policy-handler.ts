@@ -262,16 +262,23 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         // the join table's fk columns are constrained by literal values for the sides that the
         // delete explicitly targets; only those sides can be checked upfront
         const sides = [
-            { column: 'A', model: m2m.firstModel, idField: m2m.firstIdField },
-            { column: 'B', model: m2m.secondModel, idField: m2m.secondIdField },
+            { column: 'A', model: m2m.firstModel, field: m2m.firstField, idField: m2m.firstIdField },
+            { column: 'B', model: m2m.secondModel, field: m2m.secondField, idField: m2m.secondIdField },
         ]
-            .map((side) => ({ ...side, value: this.extractEqualityValue(node.where?.where, side.column) }))
-            .filter((side) => side.value !== undefined);
+            .map((side) => ({ ...side, values: this.extractConstrainedValues(node.where?.where, side.column) }))
+            .filter((side) => side.values !== undefined);
 
         if (sides.length === 0) {
             return;
         }
 
+        // For each side, check that no constrained participant exists that is not updatable. Using
+        // For each side, count the constrained participants that are updatable. A plain
+        // `SELECT <filter> ... IN (...)` would return one row per matching participant, which
+        // scalar subquery positions reject on some databases and which would only verify a single
+        // participant on others. Aggregating to a single `COUNT(*)` row verifies every participant:
+        // a participant is only counted if it exists and is updatable, so any missing or
+        // non-updatable participant lowers the count below the number of distinct values.
         const result = await proceed({
             kind: 'SelectQueryNode',
             selections: sides.map((side, index) =>
@@ -279,10 +286,9 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
                     AliasNode.create(
                         this.eb
                             .selectFrom(side.model)
-                            .where(this.eb(this.eb.ref(`${side.model}.${side.idField}`), '=', side.value))
-                            .select(() =>
-                                new ExpressionWrapper(this.buildPolicyFilter(side.model, undefined, 'update')).as('_'),
-                            )
+                            .where(this.eb(this.eb.ref(`${side.model}.${side.idField}`), 'in', side.values!))
+                            .where(() => new ExpressionWrapper(this.buildM2mSidePolicyFilter(side.model, side.field)))
+                            .select((eb) => eb.fn('COUNT', [eb.lit(1)]).as('_'))
                             .toOperationNode(),
                         IdentifierNode.create(`$condition${index}`),
                     ),
@@ -291,7 +297,9 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         } satisfies SelectQueryNode);
 
         for (const [index, side] of sides.entries()) {
-            if (!result.rows[0]?.[`$condition${index}`]) {
+            const distinctValues = new Set(side.values!).size;
+            const updatableCount = Number(result.rows[0]?.[`$condition${index}`] ?? 0);
+            if (updatableCount < distinctValues) {
                 throw createRejectedByPolicyError(
                     side.model,
                     RejectedByPolicyReason.NO_ACCESS,
@@ -302,30 +310,33 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
     }
 
     /**
-     * Finds the literal value that `column` is constrained to by a top-level conjunction of the given
-     * where clause, or `undefined` if there's no such constraint.
+     * Finds the literal values that `column` is constrained to by a top-level conjunction of the
+     * given where clause, or `undefined` if there's no such constraint. Supports both `=` and `IN`
+     * operators.
      *
-     * E.g., given the where clause `("A" = 1 AND "B" IN (2, 3))`, extracting column "A" returns `1`,
-     * while extracting column "B" returns `undefined` since it's not an equality constraint.
+     * E.g., given the where clause `("A" = 1 AND "B" IN (2, 3))`, extracting column "A" returns
+     * `[1]`, and extracting column "B" returns `[2, 3]`.
      */
-    private extractEqualityValue(node: OperationNode | undefined, column: string): unknown {
+    private extractConstrainedValues(node: OperationNode | undefined, column: string): unknown[] | undefined {
         if (!node) {
             return undefined;
         }
 
         if (ParensNode.is(node)) {
-            return this.extractEqualityValue(node.node, column);
+            return this.extractConstrainedValues(node.node, column);
         }
 
         if (AndNode.is(node)) {
-            return this.extractEqualityValue(node.left, column) ?? this.extractEqualityValue(node.right, column);
+            return (
+                this.extractConstrainedValues(node.left, column) ?? this.extractConstrainedValues(node.right, column)
+            );
         }
 
         if (!BinaryOperationNode.is(node)) {
             return undefined;
         }
 
-        if (!OperatorNode.is(node.operator) || node.operator.operator !== '=') {
+        if (!OperatorNode.is(node.operator)) {
             return undefined;
         }
 
@@ -336,10 +347,29 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         if (leftOperand.column.column.name !== column) {
             return undefined;
         }
-        if (!ValueNode.is(rightOperand) || rightOperand.value === null || rightOperand.value === undefined) {
+
+        if (node.operator.operator === '=') {
+            if (!ValueNode.is(rightOperand) || rightOperand.value === null || rightOperand.value === undefined) {
+                return undefined;
+            }
+            return [rightOperand.value];
+        }
+
+        if (node.operator.operator === 'in') {
+            if (PrimitiveValueListNode.is(rightOperand)) {
+                const values = rightOperand.values.filter((v) => v !== null && v !== undefined);
+                return values.length > 0 ? values : undefined;
+            }
+            if (ValueListNode.is(rightOperand)) {
+                const values = rightOperand.values.filter(
+                    (v): v is ValueNode => ValueNode.is(v) && v.value !== null && v.value !== undefined,
+                );
+                return values.length > 0 ? values.map((v) => v.value) : undefined;
+            }
             return undefined;
         }
-        return rightOperand.value;
+
+        return undefined;
     }
 
     private async postUpdateCheck(
@@ -885,6 +915,21 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         return combinedPolicy;
     }
 
+    /**
+     * Builds the update policy filter for one side of an implicit many-to-many relation.
+     *
+     * If the relation field declares field-level `update` policies, they take precedence over
+     * the model-level policy for this side; otherwise the model-level `update` policy applies
+     * (preserving the pre-existing behavior).
+     */
+    private buildM2mSidePolicyFilter(model: string, field: string): OperationNode {
+        const fieldPolicies = this.getFieldPolicies(model, field, 'update');
+        if (fieldPolicies.length > 0) {
+            return this.buildFieldPolicyFilter(model, field, 'update');
+        }
+        return this.buildPolicyFilter(model, undefined, 'update');
+    }
+
     // #endregion
 
     // #region helpers
@@ -977,13 +1022,13 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
 
         const eb = expressionBuilder<any, any>();
 
-        const filterA = this.buildPolicyFilter(m2m.firstModel, undefined, 'update');
+        const filterA = this.buildM2mSidePolicyFilter(m2m.firstModel, m2m.firstField);
         const queryA = eb
             .selectFrom(m2m.firstModel)
             .where(eb(eb.ref(`${m2m.firstModel}.${m2m.firstIdField}`), '=', aValue))
             .select(() => new ExpressionWrapper(filterA).as('_'));
 
-        const filterB = this.buildPolicyFilter(m2m.secondModel, undefined, 'update');
+        const filterB = this.buildM2mSidePolicyFilter(m2m.secondModel, m2m.secondField);
         const queryB = eb
             .selectFrom(m2m.secondModel)
             .where(eb(eb.ref(`${m2m.secondModel}.${m2m.secondIdField}`), '=', bValue))
@@ -1464,27 +1509,32 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
 
         // join table's permission:
         //   - read: requires both sides to be readable
-        //   - mutation: requires both sides to be updatable
+        //   - mutation: requires both sides to be updatable, honoring field-level update policies
+        //     on the relation fields when declared (see buildM2mSidePolicyFilter)
 
-        const checkForOperation = operation === 'read' ? 'read' : 'update';
+        const isRead = operation === 'read';
         const joinTable = alias ?? tableName;
 
         const aQuery = this.eb
             .selectFrom(m2m.firstModel)
             .whereRef(`${m2m.firstModel}.${m2m.firstIdField}`, '=', `${joinTable}.A`)
             .select(() =>
-                new ExpressionWrapper(this.buildPolicyFilter(m2m.firstModel, undefined, checkForOperation)).as(
-                    '$conditionA',
-                ),
+                new ExpressionWrapper(
+                    isRead
+                        ? this.buildPolicyFilter(m2m.firstModel, undefined, 'read')
+                        : this.buildM2mSidePolicyFilter(m2m.firstModel, m2m.firstField),
+                ).as('$conditionA'),
             );
 
         const bQuery = this.eb
             .selectFrom(m2m.secondModel)
             .whereRef(`${m2m.secondModel}.${m2m.secondIdField}`, '=', `${joinTable}.B`)
             .select(() =>
-                new ExpressionWrapper(this.buildPolicyFilter(m2m.secondModel, undefined, checkForOperation)).as(
-                    '$conditionB',
-                ),
+                new ExpressionWrapper(
+                    isRead
+                        ? this.buildPolicyFilter(m2m.secondModel, undefined, 'read')
+                        : this.buildM2mSidePolicyFilter(m2m.secondModel, m2m.secondField),
+                ).as('$conditionB'),
             );
 
         return this.eb.and([aQuery, bQuery]).toOperationNode();

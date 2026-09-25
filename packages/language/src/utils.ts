@@ -167,6 +167,52 @@ export function isRelationshipField(field: DataField) {
 }
 
 /**
+ * Returns the name of the relation the given field belongs to, as declared in its `@relation`
+ * attribute, or `undefined` if the field has no `@relation` attribute or no explicit name.
+ */
+function getRelationName(field: DataField): string | undefined {
+    const relAttr = field.attributes.find((attr) => attr.decl.ref?.name === '@relation');
+    if (!relAttr) {
+        return undefined;
+    }
+    for (const arg of relAttr.args) {
+        if (!arg.name || arg.name === 'name') {
+            if (isStringLiteral(arg.value)) {
+                return arg.value.value;
+            }
+        }
+    }
+    return undefined;
+}
+
+/**
+ * Returns if the given field is a many-to-many relation field, i.e. a relation field that is an
+ * array and whose opposite relation field on the referenced model (belonging to the same relation)
+ * is also an array referencing back to the containing model.
+ */
+export function isManyToManyField(field: DataField) {
+    if (!isRelationshipField(field) || !field.type.array) {
+        return false;
+    }
+
+    const oppositeModel = field.type.reference!.ref as DataModel;
+    const containingModel = field.$container as DataModel;
+    const relationName = getRelationName(field);
+
+    return getAllFields(oppositeModel).some((f) => {
+        if (f === field || !f.type.array || f.type.reference?.ref?.name !== containingModel.name) {
+            return false;
+        }
+        // if the field declares an explicit relation name, the opposite field must belong to the
+        // same relation; otherwise any array field referencing back is the opposite
+        if (relationName !== undefined) {
+            return getRelationName(f) === relationName;
+        }
+        return true;
+    });
+}
+
+/**
  * Returns if the given field is a computed field.
  */
 export function isComputedField(field: DataField) {
