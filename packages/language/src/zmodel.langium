@@ -66,7 +66,7 @@ ConfigArrayExpr:
 ConfigExpr:
     LiteralExpr | InvocationExpr | ConfigArrayExpr;
 
-type ReferenceTarget = FunctionParam | DataField | EnumField | CollectionPredicateBinding;
+type ReferenceTarget = FunctionParam | DataField | EnumField | CollectionPredicateBinding | Enum;
 
 ThisExpr:
     value='this';
