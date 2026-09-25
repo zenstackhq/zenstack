@@ -167,6 +167,24 @@ export function isRelationshipField(field: DataField) {
 }
 
 /**
+ * Returns if the given field is a many-to-many relation field, i.e. a relation field that is an
+ * array and has at least one opposite relation field on the referenced model that is also an
+ * array referencing back to the containing model.
+ */
+export function isManyToManyField(field: DataField) {
+    if (!isRelationshipField(field) || !field.type.array) {
+        return false;
+    }
+
+    const oppositeModel = field.type.reference!.ref as DataModel;
+    const containingModel = field.$container as DataModel;
+
+    return getAllFields(oppositeModel).some(
+        (f) => f !== field && f.type.array && f.type.reference?.ref?.name === containingModel.name,
+    );
+}
+
+/**
  * Returns if the given field is a computed field.
  */
 export function isComputedField(field: DataField) {

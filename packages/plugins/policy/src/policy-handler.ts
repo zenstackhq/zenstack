@@ -262,8 +262,8 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         // the join table's fk columns are constrained by literal values for the sides that the
         // delete explicitly targets; only those sides can be checked upfront
         const sides = [
-            { column: 'A', model: m2m.firstModel, idField: m2m.firstIdField },
-            { column: 'B', model: m2m.secondModel, idField: m2m.secondIdField },
+            { column: 'A', model: m2m.firstModel, field: m2m.firstField, idField: m2m.firstIdField },
+            { column: 'B', model: m2m.secondModel, field: m2m.secondField, idField: m2m.secondIdField },
         ]
             .map((side) => ({ ...side, value: this.extractEqualityValue(node.where?.where, side.column) }))
             .filter((side) => side.value !== undefined);
@@ -281,7 +281,7 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
                             .selectFrom(side.model)
                             .where(this.eb(this.eb.ref(`${side.model}.${side.idField}`), '=', side.value))
                             .select(() =>
-                                new ExpressionWrapper(this.buildPolicyFilter(side.model, undefined, 'update')).as('_'),
+                                new ExpressionWrapper(this.buildM2mSidePolicyFilter(side.model, side.field)).as('_'),
                             )
                             .toOperationNode(),
                         IdentifierNode.create(`$condition${index}`),
@@ -885,6 +885,21 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         return combinedPolicy;
     }
 
+    /**
+     * Builds the update policy filter for one side of an implicit many-to-many relation.
+     *
+     * If the relation field declares field-level `update` policies, they take precedence over
+     * the model-level policy for this side; otherwise the model-level `update` policy applies
+     * (preserving the pre-existing behavior).
+     */
+    private buildM2mSidePolicyFilter(model: string, field: string): OperationNode {
+        const fieldPolicies = this.getFieldPolicies(model, field, 'update');
+        if (fieldPolicies.length > 0) {
+            return this.buildFieldPolicyFilter(model, field, 'update');
+        }
+        return this.buildPolicyFilter(model, undefined, 'update');
+    }
+
     // #endregion
 
     // #region helpers
@@ -977,13 +992,13 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
 
         const eb = expressionBuilder<any, any>();
 
-        const filterA = this.buildPolicyFilter(m2m.firstModel, undefined, 'update');
+        const filterA = this.buildM2mSidePolicyFilter(m2m.firstModel, m2m.firstField);
         const queryA = eb
             .selectFrom(m2m.firstModel)
             .where(eb(eb.ref(`${m2m.firstModel}.${m2m.firstIdField}`), '=', aValue))
             .select(() => new ExpressionWrapper(filterA).as('_'));
 
-        const filterB = this.buildPolicyFilter(m2m.secondModel, undefined, 'update');
+        const filterB = this.buildM2mSidePolicyFilter(m2m.secondModel, m2m.secondField);
         const queryB = eb
             .selectFrom(m2m.secondModel)
             .where(eb(eb.ref(`${m2m.secondModel}.${m2m.secondIdField}`), '=', bValue))
