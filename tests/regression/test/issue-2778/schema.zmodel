@@ -1,0 +1,16 @@
+datasource db {
+    provider = 'sqlite'
+    url = 'file:./dev.db'
+}
+
+model Tag {
+    id       String    @id @default(uuid())
+    name     String    @unique
+    products Product[]
+}
+
+model Product {
+    id    String @id @default(uuid())
+    name  String
+    tags  Tag[]
+}

@@ -2137,11 +2137,16 @@ type UpdateRelationFieldPayload<
         ? ToManyRelationUpdateInput<Schema, Model, Field, Options>
         : ToOneRelationUpdateInput<Schema, Model, Field, Options>;
 
+// Variance-annotated for the same reason as `ToOneRelationUpdateInput` below: without the
+// annotations, comparing two instantiations with different `Options` (e.g. a generated
+// `XxxUpdateArgs`/`XxxUpsertArgs` type passed to a client method) makes TypeScript measure
+// variance structurally through the recursive nested update/upsert types, which blows up into
+// "Type instantiation is excessively deep and possibly infinite" (#2778).
 type ToManyRelationUpdateInput<
-    Schema extends SchemaDef,
-    Model extends GetModels<Schema>,
-    Field extends RelationFields<Schema, Model>,
-    Options extends QueryOptions<Schema>,
+    in out Schema extends SchemaDef,
+    in out Model extends GetModels<Schema>,
+    in out Field extends RelationFields<Schema, Model>,
+    in out Options extends QueryOptions<Schema>,
 > = Omit<
     {
         /**
