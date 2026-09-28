@@ -41,6 +41,7 @@ import {
     SelectionNode,
     SelectQueryNode,
     TableNode,
+    UnaryOperationNode,
     ValueListNode,
     ValueNode,
     WhereNode,
@@ -90,6 +91,12 @@ export type ExpressionTransformerContext = {
      * In case of transforming a collection predicate's LHS, the field name to select as the predicate result
      */
     memberSelect?: SelectionNode;
+
+    /**
+     * In case of transforming a collection predicate's LHS, wraps the innermost relation subquery with
+     * `exists` or `not exists` so the predicate is evaluated as a semi-join instead of an aggregate
+     */
+    memberExists?: 'exists' | 'not exists';
 
     /**
      * In case of transforming a collection predicate's LHS, the table alias to use for the innermost
@@ -206,14 +213,28 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         if (!fieldDef.relation) {
             return this.createColumnRef(expr.field, context);
         } else {
-            const { memberFilter, memberSelect, memberAlias, ...restContext } = context;
+            const { memberFilter, memberSelect, memberExists, memberAlias, ...restContext } = context;
             const relation = this.transformRelationAccess(expr.field, fieldDef.type, restContext, memberAlias);
-            return {
-                ...relation,
-                where: this.mergeWhere(relation.where, memberFilter),
-                selections: memberSelect ? [memberSelect] : relation.selections,
-            };
+            return this.finalizeMemberSubquery(
+                {
+                    ...relation,
+                    where: this.mergeWhere(relation.where, memberFilter),
+                    selections: memberSelect ? [memberSelect] : relation.selections,
+                },
+                memberExists,
+            );
         }
+    }
+
+    // wraps the innermost collection-predicate subquery with `exists`/`not exists` if requested
+    private finalizeMemberSubquery(
+        node: SelectQueryNode,
+        memberExists: 'exists' | 'not exists' | undefined,
+    ): OperationNode {
+        if (!memberExists) {
+            return node;
+        }
+        return UnaryOperationNode.create(OperatorNode.create(memberExists), node);
     }
 
     private mergeWhere(where: WhereNode | undefined, memberFilter: OperationNode | undefined) {
@@ -448,17 +469,23 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             predicateFilter = logicalNot(this.dialect, predicateFilter);
         }
 
-        const count = FunctionNode.create('count', [ValueNode.createImmediate(1)]);
-
-        const predicateResult = match(expr.op)
-            .with('?', () => BinaryOperationNode.create(count, OperatorNode.create('>'), ValueNode.createImmediate(0)))
-            .with('!', () => BinaryOperationNode.create(count, OperatorNode.create('='), ValueNode.createImmediate(0)))
-            .with('^', () => BinaryOperationNode.create(count, OperatorNode.create('='), ValueNode.createImmediate(0)))
+        // `?` (some) => exists(select 1 ... where filter)
+        // `!` (all)  => not exists(select 1 ... where not filter)
+        // `^` (none) => not exists(select 1 ... where filter)
+        // `exists` lets the database plan the predicate as a semi-join that can use indexes and
+        // stop at the first match, unlike a correlated `count(1) > 0` aggregate
+        const memberExists = match(expr.op)
+            .with('?', () => 'exists' as const)
+            .with('!', () => 'not exists' as const)
+            .with('^', () => 'not exists' as const)
             .exhaustive();
 
         return this.transform(expr.left, {
             ...context,
-            memberSelect: SelectionNode.create(AliasNode.create(predicateResult, IdentifierNode.create('_'))),
+            memberSelect: SelectionNode.create(
+                AliasNode.create(ValueNode.createImmediate(1), IdentifierNode.create('_')),
+            ),
+            memberExists,
             memberFilter: predicateFilter,
             memberAlias,
         });
@@ -743,7 +770,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         let receiver: OperationNode;
         let receiverAlias: string;
         let startType: string | undefined;
-        const { memberFilter, memberSelect, memberAlias, ...restContext } = context;
+        const { memberFilter, memberSelect, memberExists, memberAlias, ...restContext } = context;
 
         if (ExpressionUtils.isThis(expr.receiver)) {
             if (expr.members.length === 1) {
@@ -837,7 +864,7 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             currAlias = alias;
         }
 
-        let currNode: SelectQueryNode | ColumnNode | ReferenceNode | undefined = undefined;
+        let currNode: OperationNode | undefined = undefined;
 
         for (let i = members.length - 1; i >= 0; i--) {
             const member = members[i]!;
@@ -858,19 +885,23 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 );
 
                 if (currNode) {
-                    currNode = {
+                    const outer: SelectQueryNode = {
                         ...relation,
                         selections: [
                             SelectionNode.create(AliasNode.create(currNode, IdentifierNode.create(members[i + 1]!))),
                         ],
                     };
+                    currNode = outer;
                 } else {
                     // inner most member, merge with member filter from the context
-                    currNode = {
-                        ...relation,
-                        where: this.mergeWhere(relation.where, memberFilter),
-                        selections: memberSelect ? [memberSelect] : relation.selections,
-                    };
+                    currNode = this.finalizeMemberSubquery(
+                        {
+                            ...relation,
+                            where: this.mergeWhere(relation.where, memberFilter),
+                            selections: memberSelect ? [memberSelect] : relation.selections,
+                        },
+                        memberExists,
+                    );
                 }
             } else {
                 invariant(i === members.length - 1, 'plain field access must be the last segment');
@@ -1139,6 +1170,12 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 // receiver is the first hop, so native-type info (@db.*) on the terminal field is
                 // available for casting in buildComparison.
                 return walkRelationChain(model, [expr.receiver.field, ...expr.members]);
+            } else if (this.isAuthCall(expr.receiver)) {
+                // `auth().<...>.field` chain rooted at the auth model. Resolving the terminal
+                // field lets buildComparison see matching native types on both sides (e.g.
+                // `userId == auth().id` with both `@db.Uuid`) and skip casting the column,
+                // which would otherwise defeat index usage.
+                return walkRelationChain(this.authType, expr.members);
             }
         }
         return undefined;
