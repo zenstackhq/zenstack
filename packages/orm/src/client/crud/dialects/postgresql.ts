@@ -605,9 +605,14 @@ export class PostgresCrudDialect<Schema extends SchemaDef> extends LateralJoinDi
             if (typeof value === 'string' && PostgresCrudDialect.uuidFormatRegex.test(value)) {
                 // well-formed uuid, compare natively without casting the column
                 return this.eb(left, op as any, right) as Expression<SqlBool>;
-            } else {
+            } else if (op === '=') {
                 // malformed uuid can never equal a uuid column
-                return this.eb.lit(op === '!=') as unknown as Expression<SqlBool>;
+                return this.eb.lit(false) as unknown as Expression<SqlBool>;
+            } else {
+                // malformed uuid differs from every non-null uuid; a null column must not match, matching
+                // the SQL semantics of `col != value` (null when col is null)
+                const column = valueNode === rightNode ? left : right;
+                return this.eb(column, 'is not', null) as Expression<SqlBool>;
             }
         }
 

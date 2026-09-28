@@ -161,8 +161,8 @@ model Item {
 }
 
 model Note {
-    id      String @id @default(uuid()) @db.Uuid
-    ownerId String @db.Uuid
+    id      String  @id @default(uuid()) @db.Uuid
+    ownerId String? @db.Uuid
     @@allow('read', ownerId != auth().id)
 }
             `,
@@ -171,13 +171,17 @@ model Note {
         const rawDb = db.$unuseAll();
         const uid = randomUUID();
         await rawDb.item.create({ data: { ownerId: uid } });
-        await rawDb.note.create({ data: { ownerId: uid } });
+        const note = await rawDb.note.create({ data: { ownerId: uid } });
+        // a note with null owner: `ownerId != x` is null in SQL, so it must never match
+        await rawDb.note.create({ data: { ownerId: null } });
 
         const badAuthDb = db.$setAuth({ id: 'not-a-uuid' });
         // `==` against a malformed uuid is always false
         await expect(badAuthDb.item.findMany()).resolves.toHaveLength(0);
-        // `!=` against a malformed uuid is always true
-        await expect(badAuthDb.note.findMany()).resolves.toHaveLength(1);
+        // `!=` against a malformed uuid is true for non-null columns only
+        const notes = await badAuthDb.note.findMany();
+        expect(notes).toHaveLength(1);
+        expect(notes[0]!.id).toBe(note.id);
 
         // well-formed uuids are still compared natively regardless of casing or dashes
         await expect(db.$setAuth({ id: uid.toUpperCase() }).item.findMany()).resolves.toHaveLength(1);
