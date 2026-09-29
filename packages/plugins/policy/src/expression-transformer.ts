@@ -963,7 +963,12 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 invariant(i === members.length - 1, 'plain field access must be the last segment');
                 invariant(!currNode, 'plain field access must be the last segment');
 
-                currNode = ReferenceNode.create(ColumnNode.create(member), TableNode.create(fromAlias));
+                if (fieldDef.originModel && fieldDef.originModel !== fromModel) {
+                    // field inherited from a delegate base model, look it up from the base table
+                    currNode = this.buildDelegateBaseFieldSelect(fromModel, fromAlias, member, fieldDef.originModel);
+                } else {
+                    currNode = ReferenceNode.create(ColumnNode.create(member), TableNode.create(fromAlias));
+                }
             }
         }
 
