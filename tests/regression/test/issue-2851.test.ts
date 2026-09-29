@@ -283,7 +283,7 @@ model Project {
             const { db, sqls, user1, team1, team2 } = await setup();
             sqls.length = 0;
             const teams = await db.$setAuth({ id: user1.id }).team.findMany();
-            expect(teams.map((t) => t.id).sort()).toEqual([team1.id, team2.id].sort());
+            expect(teams.map((t: any) => t.id).sort()).toEqual([team1.id, team2.id].sort());
 
             const query = sqls.find((sql) => sql.includes('from "public"."Team"'));
             expect(query).toContain('exists (select 1');
