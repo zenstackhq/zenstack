@@ -329,4 +329,158 @@ model Project {
             expect(query).not.toContain('count(');
         });
     });
+
+    describe('relation == auth() uses the foreign key instead of a subquery', () => {
+        it('rewrites direct and chained to-one relations owning the foreign key', async () => {
+            const { db, sqls } = await createClient(
+                `
+model User {
+    id         String      @id @default(uuid()) @db.Uuid
+    orgMembers OrgMember[]
+    posts      Post[]
+    @@allow('all', true)
+}
+
+model OrgMember {
+    id          String       @id @default(uuid()) @db.Uuid
+    userID      String       @db.Uuid
+    user        User         @relation(fields: [userID], references: [id])
+    teamMembers TeamMember[]
+    @@allow('all', true)
+}
+
+model TeamMember {
+    id          String    @id @default(uuid()) @db.Uuid
+    orgMemberID String    @db.Uuid
+    orgMember   OrgMember @relation(fields: [orgMemberID], references: [id])
+    @@allow('read', orgMember.user == auth())
+}
+
+model Post {
+    id       String  @id @default(uuid()) @db.Uuid
+    title    String
+    authorID String? @db.Uuid
+    author   User?   @relation(fields: [authorID], references: [id])
+    @@allow('read', author == auth())
+    @@allow('update', this.author == auth())
+    @@allow('delete', author != auth())
+}
+                `,
+            );
+
+            const rawDb = db.$unuseAll();
+            const user1 = await rawDb.user.create({ data: {} });
+            const user2 = await rawDb.user.create({ data: {} });
+            const om1 = await rawDb.orgMember.create({ data: { userID: user1.id } });
+            const om2 = await rawDb.orgMember.create({ data: { userID: user2.id } });
+            const tm1 = await rawDb.teamMember.create({ data: { orgMemberID: om1.id } });
+            await rawDb.teamMember.create({ data: { orgMemberID: om2.id } });
+            const post1 = await rawDb.post.create({ data: { title: 'p1', authorID: user1.id } });
+            await rawDb.post.create({ data: { title: 'p2', authorID: user2.id } });
+            const post3 = await rawDb.post.create({ data: { title: 'p3', authorID: null } });
+
+            const authDb = db.$setAuth({ id: user1.id });
+
+            // chained: `orgMember.user == auth()` -> `orgMember.userID`
+            sqls.length = 0;
+            const teamMembers = await authDb.teamMember.findMany();
+            expect(teamMembers.map((t: any) => t.id)).toEqual([tm1.id]);
+            let query = sqls.find((sql) => sql.includes('from "public"."TeamMember"'));
+            expect(query).toContain('"userID"');
+            expect(query).not.toContain('from "public"."User"');
+
+            // direct: `author == auth()` -> `authorID`
+            sqls.length = 0;
+            const posts = await authDb.post.findMany();
+            expect(posts.map((p: any) => p.id)).toEqual([post1.id]);
+            query = sqls.find((sql) => sql.includes('from "public"."Post"'));
+            expect(query).toContain('"Post"."authorID"');
+            expect(query).not.toContain('from "public"."User"');
+            // plain column comparison, no subquery at all
+            expect(query).not.toContain('(select');
+
+            // `this.author == auth()` -> `authorID`
+            sqls.length = 0;
+            const updated = await authDb.post.updateMany({ data: { title: 'updated' } });
+            expect(updated.count).toBe(1);
+            query = sqls.find((sql) => sql.startsWith('update "public"."Post"'));
+            expect(query).not.toContain('from "public"."User"');
+
+            // `author != auth()` with null fk: the null-author post must not match (sql null semantics)
+            sqls.length = 0;
+            const deleted = await authDb.post.deleteMany();
+            expect(deleted.count).toBe(1);
+            const remaining = await rawDb.post.findMany();
+            expect(remaining.map((p: any) => p.id).sort()).toEqual([post1.id, post3.id].sort());
+        });
+
+        it('rewrites compound id relations field by field', async () => {
+            const { db, sqls } = await createClient(
+                `
+model User {
+    tenantId String
+    localId  String
+    docs     Doc[]
+    @@id([tenantId, localId])
+    @@allow('all', true)
+}
+
+model Doc {
+    id            String @id @default(uuid()) @db.Uuid
+    ownerTenantId String
+    ownerLocalId  String
+    owner         User   @relation(fields: [ownerTenantId, ownerLocalId], references: [tenantId, localId])
+    @@allow('read', owner == auth())
+}
+                `,
+            );
+
+            const rawDb = db.$unuseAll();
+            await rawDb.user.create({ data: { tenantId: 't1', localId: 'u1' } });
+            await rawDb.user.create({ data: { tenantId: 't1', localId: 'u2' } });
+            const doc1 = await rawDb.doc.create({ data: { ownerTenantId: 't1', ownerLocalId: 'u1' } });
+            await rawDb.doc.create({ data: { ownerTenantId: 't1', ownerLocalId: 'u2' } });
+
+            sqls.length = 0;
+            const docs = await db.$setAuth({ tenantId: 't1', localId: 'u1' }).doc.findMany();
+            expect(docs.map((d: any) => d.id)).toEqual([doc1.id]);
+            const query = sqls.find((sql) => sql.includes('from "public"."Doc"'));
+            expect(query).toContain('"ownerTenantId"');
+            expect(query).toContain('"ownerLocalId"');
+            expect(query).not.toContain('from "public"."User"');
+        });
+
+        it('falls back to a subquery when the relation does not own the foreign key', async () => {
+            const { db, sqls } = await createClient(
+                `
+model User {
+    id         String   @id @default(uuid()) @db.Uuid
+    settingsId String   @unique @db.Uuid
+    settings   Settings @relation(fields: [settingsId], references: [id])
+    @@allow('all', true)
+}
+
+model Settings {
+    id   String @id @default(uuid()) @db.Uuid
+    user User?
+    @@allow('create', true)
+    @@allow('read', user == auth())
+}
+                `,
+            );
+
+            const rawDb = db.$unuseAll();
+            const s1 = await rawDb.settings.create({ data: {} });
+            const s2 = await rawDb.settings.create({ data: {} });
+            const user1 = await rawDb.user.create({ data: { settingsId: s1.id } });
+            await rawDb.user.create({ data: { settingsId: s2.id } });
+
+            sqls.length = 0;
+            const result = await db.$setAuth({ id: user1.id }).settings.findMany();
+            expect(result.map((r: any) => r.id)).toEqual([s1.id]);
+            const query = sqls.find((sql) => sql.includes('from "public"."Settings"'));
+            // fk lives on User, so the related row must still be looked up
+            expect(query).toContain('from "public"."User"');
+        });
+    });
 });
