@@ -540,6 +540,79 @@ model Document {
             expect(query).not.toContain('from "public"."Scope"');
         });
 
+        it('rewrites both sides of relation == relation comparisons not involving auth()', async () => {
+            const { db, sqls } = await createClient(
+                `
+model User {
+    id          String       @id @default(uuid()) @db.Uuid
+    owned       Task[]       @relation('owner')
+    reviewed    Task[]       @relation('reviewer')
+    memberships Membership[]
+    @@allow('all', true)
+}
+
+model Tenant {
+    id          String       @id @default(uuid()) @db.Uuid
+    memberships Membership[]
+    tasks       Task[]
+    @@allow('all', true)
+}
+
+model Membership {
+    id       String @id @default(uuid()) @db.Uuid
+    userId   String @db.Uuid
+    user     User   @relation(fields: [userId], references: [id])
+    tenantId String @db.Uuid
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
+    @@allow('all', true)
+}
+
+model Task {
+    id         String @id @default(uuid()) @db.Uuid
+    ownerId    String @db.Uuid
+    owner      User   @relation('owner', fields: [ownerId], references: [id])
+    reviewerId String @db.Uuid
+    reviewer   User   @relation('reviewer', fields: [reviewerId], references: [id])
+    tenantId   String @db.Uuid
+    tenant     Tenant @relation(fields: [tenantId], references: [id])
+    @@allow('create', true)
+    @@allow('read', this.owner == this.reviewer)
+    @@allow('delete', owner.memberships?[m, m.tenant == this.tenant])
+}
+                `,
+            );
+
+            const rawDb = db.$unuseAll();
+            const user1 = await rawDb.user.create({ data: {} });
+            const user2 = await rawDb.user.create({ data: {} });
+            const tenant1 = await rawDb.tenant.create({ data: {} });
+            const tenant2 = await rawDb.tenant.create({ data: {} });
+            await rawDb.membership.create({ data: { userId: user1.id, tenantId: tenant1.id } });
+            const selfReviewed = await rawDb.task.create({
+                data: { ownerId: user1.id, reviewerId: user1.id, tenantId: tenant1.id },
+            });
+            await rawDb.task.create({ data: { ownerId: user1.id, reviewerId: user2.id, tenantId: tenant2.id } });
+
+            // `this.owner == this.reviewer` -> `ownerId = reviewerId`
+            sqls.length = 0;
+            const tasks = await db.task.findMany();
+            expect(tasks.map((t: any) => t.id)).toEqual([selfReviewed.id]);
+            let query = sqls.find((sql) => sql.includes('from "public"."Task"'));
+            expect(query).toContain('"Task"."ownerId" = "Task"."reviewerId"');
+            expect(query).not.toContain('from "public"."User"');
+
+            // binding relation vs `this` relation inside a collection predicate, both SQL-backed:
+            // `m.tenant == this.tenant` -> `m.tenantId = Task.tenantId`
+            sqls.length = 0;
+            // only the task in tenant1 has its owner as a member of the same tenant
+            const deleted = await db.task.deleteMany();
+            expect(deleted.count).toBe(1);
+            expect(await rawDb.task.findUnique({ where: { id: selfReviewed.id } })).toBeNull();
+            query = sqls.find((sql) => sql.startsWith('delete from "public"."Task"'));
+            expect(query).toContain('"tenantId" = "Task"."tenantId"');
+            expect(query).not.toContain('from "public"."Tenant"');
+        });
+
         it('resolves inherited relations and scalars of delegate sub-types through the base table', async () => {
             const { db } = await createClient(
                 `
