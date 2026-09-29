@@ -329,4 +329,350 @@ model Project {
             expect(query).not.toContain('count(');
         });
     });
+
+    describe('relation == auth() uses the foreign key instead of a subquery', () => {
+        it('rewrites direct and chained to-one relations owning the foreign key', async () => {
+            const { db, sqls } = await createClient(
+                `
+model User {
+    id         String      @id @default(uuid()) @db.Uuid
+    orgMembers OrgMember[]
+    posts      Post[]
+    @@allow('all', true)
+}
+
+model OrgMember {
+    id          String       @id @default(uuid()) @db.Uuid
+    userID      String       @db.Uuid
+    user        User         @relation(fields: [userID], references: [id])
+    teamMembers TeamMember[]
+    @@allow('all', true)
+}
+
+model TeamMember {
+    id          String    @id @default(uuid()) @db.Uuid
+    orgMemberID String    @db.Uuid
+    orgMember   OrgMember @relation(fields: [orgMemberID], references: [id])
+    @@allow('read', orgMember.user == auth())
+}
+
+model Post {
+    id       String  @id @default(uuid()) @db.Uuid
+    title    String
+    authorID String? @db.Uuid
+    author   User?   @relation(fields: [authorID], references: [id])
+    @@allow('read', author == auth())
+    @@allow('update', this.author == auth())
+    @@allow('delete', author != auth())
+}
+                `,
+            );
+
+            const rawDb = db.$unuseAll();
+            const user1 = await rawDb.user.create({ data: {} });
+            const user2 = await rawDb.user.create({ data: {} });
+            const om1 = await rawDb.orgMember.create({ data: { userID: user1.id } });
+            const om2 = await rawDb.orgMember.create({ data: { userID: user2.id } });
+            const tm1 = await rawDb.teamMember.create({ data: { orgMemberID: om1.id } });
+            await rawDb.teamMember.create({ data: { orgMemberID: om2.id } });
+            const post1 = await rawDb.post.create({ data: { title: 'p1', authorID: user1.id } });
+            await rawDb.post.create({ data: { title: 'p2', authorID: user2.id } });
+            const post3 = await rawDb.post.create({ data: { title: 'p3', authorID: null } });
+
+            const authDb = db.$setAuth({ id: user1.id });
+
+            // chained: `orgMember.user == auth()` -> `orgMember.userID`
+            sqls.length = 0;
+            const teamMembers = await authDb.teamMember.findMany();
+            expect(teamMembers.map((t: any) => t.id)).toEqual([tm1.id]);
+            let query = sqls.find((sql) => sql.includes('from "public"."TeamMember"'));
+            expect(query).toContain('"userID"');
+            expect(query).not.toContain('from "public"."User"');
+
+            // direct: `author == auth()` -> `authorID`
+            sqls.length = 0;
+            const posts = await authDb.post.findMany();
+            expect(posts.map((p: any) => p.id)).toEqual([post1.id]);
+            query = sqls.find((sql) => sql.includes('from "public"."Post"'));
+            expect(query).toContain('"Post"."authorID"');
+            expect(query).not.toContain('from "public"."User"');
+            // plain column comparison, no subquery at all
+            expect(query).not.toContain('(select');
+
+            // `this.author == auth()` -> `authorID`
+            sqls.length = 0;
+            const updated = await authDb.post.updateMany({ data: { title: 'updated' } });
+            expect(updated.count).toBe(1);
+            query = sqls.find((sql) => sql.startsWith('update "public"."Post"'));
+            expect(query).not.toContain('from "public"."User"');
+
+            // `author != auth()` with null fk: the null-author post must not match (sql null semantics)
+            sqls.length = 0;
+            const deleted = await authDb.post.deleteMany();
+            expect(deleted.count).toBe(1);
+            const remaining = await rawDb.post.findMany();
+            expect(remaining.map((p: any) => p.id).sort()).toEqual([post1.id, post3.id].sort());
+        });
+
+        it('rewrites compound id relations field by field', async () => {
+            const { db, sqls } = await createClient(
+                `
+model User {
+    tenantId String
+    localId  String
+    docs     Doc[]
+    @@id([tenantId, localId])
+    @@allow('all', true)
+}
+
+model Doc {
+    id            String @id @default(uuid()) @db.Uuid
+    ownerTenantId String
+    ownerLocalId  String
+    owner         User   @relation(fields: [ownerTenantId, ownerLocalId], references: [tenantId, localId])
+    @@allow('read', owner == auth())
+}
+                `,
+            );
+
+            const rawDb = db.$unuseAll();
+            await rawDb.user.create({ data: { tenantId: 't1', localId: 'u1' } });
+            await rawDb.user.create({ data: { tenantId: 't1', localId: 'u2' } });
+            const doc1 = await rawDb.doc.create({ data: { ownerTenantId: 't1', ownerLocalId: 'u1' } });
+            await rawDb.doc.create({ data: { ownerTenantId: 't1', ownerLocalId: 'u2' } });
+
+            sqls.length = 0;
+            const docs = await db.$setAuth({ tenantId: 't1', localId: 'u1' }).doc.findMany();
+            expect(docs.map((d: any) => d.id)).toEqual([doc1.id]);
+            const query = sqls.find((sql) => sql.includes('from "public"."Doc"'));
+            expect(query).toContain('"ownerTenantId"');
+            expect(query).toContain('"ownerLocalId"');
+            expect(query).not.toContain('from "public"."User"');
+        });
+
+        it('falls back to a subquery when the relation does not own the foreign key', async () => {
+            const { db, sqls } = await createClient(
+                `
+model User {
+    id         String   @id @default(uuid()) @db.Uuid
+    settingsId String   @unique @db.Uuid
+    settings   Settings @relation(fields: [settingsId], references: [id])
+    @@allow('all', true)
+}
+
+model Settings {
+    id   String @id @default(uuid()) @db.Uuid
+    user User?
+    @@allow('create', true)
+    @@allow('read', user == auth())
+}
+                `,
+            );
+
+            const rawDb = db.$unuseAll();
+            const s1 = await rawDb.settings.create({ data: {} });
+            const s2 = await rawDb.settings.create({ data: {} });
+            const user1 = await rawDb.user.create({ data: { settingsId: s1.id } });
+            await rawDb.user.create({ data: { settingsId: s2.id } });
+
+            sqls.length = 0;
+            const result = await db.$setAuth({ id: user1.id }).settings.findMany();
+            expect(result.map((r: any) => r.id)).toEqual([s1.id]);
+            const query = sqls.find((sql) => sql.includes('from "public"."Settings"'));
+            // fk lives on User, so the related row must still be looked up
+            expect(query).toContain('from "public"."User"');
+        });
+
+        it('rewrites only the SQL side when comparing a relation with a value binding', async () => {
+            const { db, sqls } = await createClient(
+                `
+model User {
+    id          Int          @id
+    assignments Assignment[]
+    @@allow('all', true)
+}
+
+model Scope {
+    id          Int          @id
+    assignments Assignment[]
+    documents   Document[]
+    @@allow('all', true)
+}
+
+model Assignment {
+    id      Int   @id
+    userId  Int
+    scopeId Int
+    user    User  @relation(fields: [userId], references: [id])
+    scope   Scope @relation(fields: [scopeId], references: [id])
+    @@allow('all', true)
+}
+
+model Document {
+    id      Int   @id
+    scopeId Int
+    scope   Scope @relation(fields: [scopeId], references: [id])
+    @@allow('create', true)
+    @@allow('read', auth().assignments?[a, a.scope == this.scope])
+}
+                `,
+            );
+
+            const rawDb = db.$unuseAll();
+            await rawDb.scope.createMany({ data: [{ id: 1 }, { id: 2 }] });
+            await rawDb.user.create({ data: { id: 1 } });
+            await rawDb.assignment.create({ data: { id: 1, userId: 1, scopeId: 1 } });
+            await rawDb.document.createMany({
+                data: [
+                    { id: 10, scopeId: 1 },
+                    { id: 20, scopeId: 2 },
+                ],
+            });
+
+            sqls.length = 0;
+            // `a.scope` is read from the auth value tree (as `scope.id`), `this.scope` becomes `scopeId`
+            const documents = await db
+                .$setAuth({ id: 1, assignments: [{ id: 1, scopeId: 1, scope: { id: 1 } }] })
+                .document.findMany();
+            expect(documents.map((d: any) => d.id)).toEqual([10]);
+            const query = sqls.find((sql) => sql.includes('from "public"."Document"'));
+            expect(query).toContain('"Document"."scopeId"');
+            expect(query).not.toContain('from "public"."Scope"');
+        });
+
+        it('rewrites both sides of relation == relation comparisons not involving auth()', async () => {
+            const { db, sqls } = await createClient(
+                `
+model User {
+    id          String       @id @default(uuid()) @db.Uuid
+    owned       Task[]       @relation('owner')
+    reviewed    Task[]       @relation('reviewer')
+    memberships Membership[]
+    @@allow('all', true)
+}
+
+model Tenant {
+    id          String       @id @default(uuid()) @db.Uuid
+    memberships Membership[]
+    tasks       Task[]
+    @@allow('all', true)
+}
+
+model Membership {
+    id       String @id @default(uuid()) @db.Uuid
+    userId   String @db.Uuid
+    user     User   @relation(fields: [userId], references: [id])
+    tenantId String @db.Uuid
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
+    @@allow('all', true)
+}
+
+model Task {
+    id         String @id @default(uuid()) @db.Uuid
+    ownerId    String @db.Uuid
+    owner      User   @relation('owner', fields: [ownerId], references: [id])
+    reviewerId String @db.Uuid
+    reviewer   User   @relation('reviewer', fields: [reviewerId], references: [id])
+    tenantId   String @db.Uuid
+    tenant     Tenant @relation(fields: [tenantId], references: [id])
+    @@allow('create', true)
+    @@allow('read', this.owner == this.reviewer)
+    @@allow('delete', owner.memberships?[m, m.tenant == this.tenant])
+}
+                `,
+            );
+
+            const rawDb = db.$unuseAll();
+            const user1 = await rawDb.user.create({ data: {} });
+            const user2 = await rawDb.user.create({ data: {} });
+            const tenant1 = await rawDb.tenant.create({ data: {} });
+            const tenant2 = await rawDb.tenant.create({ data: {} });
+            await rawDb.membership.create({ data: { userId: user1.id, tenantId: tenant1.id } });
+            const selfReviewed = await rawDb.task.create({
+                data: { ownerId: user1.id, reviewerId: user1.id, tenantId: tenant1.id },
+            });
+            await rawDb.task.create({ data: { ownerId: user1.id, reviewerId: user2.id, tenantId: tenant2.id } });
+
+            // `this.owner == this.reviewer` -> `ownerId = reviewerId`
+            sqls.length = 0;
+            const tasks = await db.task.findMany();
+            expect(tasks.map((t: any) => t.id)).toEqual([selfReviewed.id]);
+            let query = sqls.find((sql) => sql.includes('from "public"."Task"'));
+            expect(query).toContain('"Task"."ownerId" = "Task"."reviewerId"');
+            expect(query).not.toContain('from "public"."User"');
+
+            // binding relation vs `this` relation inside a collection predicate, both SQL-backed:
+            // `m.tenant == this.tenant` -> `m.tenantId = Task.tenantId`
+            sqls.length = 0;
+            // only the task in tenant1 has its owner as a member of the same tenant
+            const deleted = await db.task.deleteMany();
+            expect(deleted.count).toBe(1);
+            expect(await rawDb.task.findUnique({ where: { id: selfReviewed.id } })).toBeNull();
+            query = sqls.find((sql) => sql.startsWith('delete from "public"."Task"'));
+            expect(query).toContain('"tenantId" = "Task"."tenantId"');
+            expect(query).not.toContain('from "public"."Tenant"');
+        });
+
+        it('resolves inherited relations and scalars of delegate sub-types through the base table', async () => {
+            const { db } = await createClient(
+                `
+model User {
+    id       String    @id @default(uuid()) @db.Uuid
+    contents Content[]
+    @@allow('all', true)
+}
+
+model Content {
+    id      String @id @default(uuid()) @db.Uuid
+    type    String
+    ownerId String @db.Uuid
+    owner   User   @relation(fields: [ownerId], references: [id])
+    @@delegate(type)
+}
+
+model Post extends Content {
+    title    String
+    comments Comment[]
+    likes    Like[]
+    @@allow('create', true)
+    @@allow('read', owner == auth())
+}
+
+model Comment {
+    id     String @id @default(uuid()) @db.Uuid
+    postId String @db.Uuid
+    post   Post   @relation(fields: [postId], references: [id])
+    @@allow('create', true)
+    @@allow('read', post.owner == auth())
+}
+
+model Like {
+    id     String @id @default(uuid()) @db.Uuid
+    postId String @db.Uuid
+    post   Post   @relation(fields: [postId], references: [id])
+    @@allow('create', true)
+    @@allow('read', post.ownerId == auth().id)
+}
+                `,
+            );
+
+            const rawDb = db.$unuseAll();
+            const user1 = await rawDb.user.create({ data: {} });
+            const user2 = await rawDb.user.create({ data: {} });
+            const post1 = await rawDb.post.create({ data: { title: 'p1', ownerId: user1.id } });
+            const post2 = await rawDb.post.create({ data: { title: 'p2', ownerId: user2.id } });
+            const comment1 = await rawDb.comment.create({ data: { postId: post1.id } });
+            await rawDb.comment.create({ data: { postId: post2.id } });
+            const like1 = await rawDb.like.create({ data: { postId: post1.id } });
+            await rawDb.like.create({ data: { postId: post2.id } });
+
+            const authDb = db.$setAuth({ id: user1.id });
+            // direct inherited relation on the sub-type
+            expect((await authDb.post.findMany()).map((p: any) => p.id)).toEqual([post1.id]);
+            // chained inherited relation
+            expect((await authDb.comment.findMany()).map((c: any) => c.id)).toEqual([comment1.id]);
+            // chained inherited scalar
+            expect((await authDb.like.findMany()).map((l: any) => l.id)).toEqual([like1.id]);
+        });
+    });
 });

@@ -368,14 +368,14 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
             const leftRelDef = this.getFieldDefFromFieldRef(expr.left, context);
             invariant(leftRelDef, 'failed to get relation field definition');
             const idFields = QueryUtils.requireIdFields(this.schema, leftRelDef.type);
-            normalizedLeft = this.makeOrAppendMember(normalizedLeft, idFields[0]!);
+            normalizedLeft = this.appendIdOrForeignKey(normalizedLeft, idFields[0]!, context);
         }
         let normalizedRight: Expression = expr.right;
         if (this.isRelationField(expr.right, context)) {
             const rightRelDef = this.getFieldDefFromFieldRef(expr.right, context);
             invariant(rightRelDef, 'failed to get relation field definition');
             const idFields = QueryUtils.requireIdFields(this.schema, rightRelDef.type);
-            normalizedRight = this.makeOrAppendMember(normalizedRight, idFields[0]!);
+            normalizedRight = this.appendIdOrForeignKey(normalizedRight, idFields[0]!, context);
         }
         return { normalizedLeft, normalizedRight };
     }
@@ -630,12 +630,13 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 .map((f) => f.name);
             invariant(idFields.length > 0, 'auth type model must have at least one id field');
 
-            // convert `auth() == other` into `auth().id == other.id`
+            // convert `auth() == other` into `auth().id == other.id`, or `auth().id == other's fk`
+            // when `other` is a to-one relation owning the foreign key
             const conditions = idFields.map((fieldName) =>
                 ExpressionUtils.binary(
                     ExpressionUtils.member(authExpr, [fieldName]),
                     '==',
-                    this.makeOrAppendMember(other, fieldName),
+                    this.appendIdOrForeignKey(other, fieldName, context),
                 ),
             );
             let result = this.buildAnd(conditions);
@@ -652,6 +653,61 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
         } else {
             return ExpressionUtils.member(other, [fieldName]);
         }
+    }
+
+    /**
+     * Appends `idField` to a relation expression, i.e. `relation` -> `relation.id`. When the relation
+     * is SQL-backed, to-one, and owns the foreign key referencing `idField`, the terminal hop is
+     * replaced with the foreign key column instead (`relation.id` -> `relationId`), which avoids a
+     * correlated subquery into the related table that would only read back the same value.
+     */
+    private appendIdOrForeignKey(
+        relationExpr: Expression,
+        idField: string,
+        context: ExpressionTransformerContext,
+    ): Expression {
+        if (this.isSqlBackedRef(relationExpr, context)) {
+            const resolved = this.resolveFieldRef(relationExpr, context);
+            const relation = resolved?.fieldDef.relation;
+            if (relation && !resolved.fieldDef.array && relation.fields && relation.references) {
+                const idx = relation.references.indexOf(idField);
+                const fk = idx >= 0 ? relation.fields[idx] : undefined;
+                if (fk) {
+                    return this.replaceLastMember(relationExpr, fk);
+                }
+            }
+        }
+        return this.makeOrAppendMember(relationExpr, idField);
+    }
+
+    // replaces the terminal segment of a field/member expression with `fieldName`
+    private replaceLastMember(expr: Expression, fieldName: string): Expression {
+        if (ExpressionUtils.isMember(expr)) {
+            return ExpressionUtils.member(expr.receiver, [...expr.members.slice(0, -1), fieldName]);
+        } else {
+            invariant(ExpressionUtils.isField(expr), 'expected field or member expression');
+            return ExpressionUtils.field(fieldName);
+        }
+    }
+
+    // whether a field/member expression is compiled to SQL column references (as opposed to
+    // being evaluated against an in-memory value tree, e.g. `auth()` members or value bindings)
+    private isSqlBackedRef(expr: Expression, context: ExpressionTransformerContext): boolean {
+        if (ExpressionUtils.isField(expr)) {
+            return !context.contextValue;
+        }
+        if (ExpressionUtils.isMember(expr)) {
+            if (ExpressionUtils.isThis(expr.receiver)) {
+                return true;
+            }
+            if (ExpressionUtils.isField(expr.receiver)) {
+                return !context.contextValue;
+            }
+            if (ExpressionUtils.isBinding(expr.receiver)) {
+                return context.bindingScope?.[expr.receiver.name]?.value === undefined;
+            }
+        }
+        return false;
     }
 
     private transformValue(value: unknown, type: BuiltinType): OperationNode {
@@ -907,7 +963,12 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 invariant(i === members.length - 1, 'plain field access must be the last segment');
                 invariant(!currNode, 'plain field access must be the last segment');
 
-                currNode = ReferenceNode.create(ColumnNode.create(member), TableNode.create(fromAlias));
+                if (fieldDef.originModel && fieldDef.originModel !== fromModel) {
+                    // field inherited from a delegate base model, look it up from the base table
+                    currNode = this.buildDelegateBaseFieldSelect(fromModel, fromAlias, member, fieldDef.originModel);
+                } else {
+                    currNode = ReferenceNode.create(ColumnNode.create(member), TableNode.create(fromAlias));
+                }
             }
         }
 
@@ -1135,6 +1196,15 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
     }
 
     private getFieldDefFromFieldRef(expr: Expression, context: ExpressionTransformerContext): FieldDef | undefined {
+        return this.resolveFieldRef(expr, context)?.fieldDef;
+    }
+
+    // resolves a field/member expression to the terminal field's definition together with the
+    // model that declares it
+    private resolveFieldRef(
+        expr: Expression,
+        context: ExpressionTransformerContext,
+    ): { model: string; fieldDef: FieldDef } | undefined {
         // `this.foo` references belong to `thisType` (the outer model in collection-predicate
         // contexts); everything else uses `modelOrType`.
         const model =
@@ -1142,21 +1212,26 @@ export class ExpressionTransformer<Schema extends SchemaDef> {
                 ? context.thisType
                 : context.modelOrType;
 
+        const resolveField = (currModel: string, field: string) => {
+            const fieldDef = QueryUtils.getField(this.schema, currModel, field);
+            return fieldDef ? { model: currModel, fieldDef } : undefined;
+        };
+
         // walks a chain of member names from `startModel`, treating all but the last segment as
         // relation hops, and returns the terminal field's FieldDef; returns undefined if any
         // segment is missing or an intermediate hop is not a relation.
-        const walkRelationChain = (startModel: string, members: string[]): FieldDef | undefined => {
+        const walkRelationChain = (startModel: string, members: string[]) => {
             let currModel = startModel;
             for (let i = 0; i < members.length - 1; i++) {
                 const hopDef = QueryUtils.getField(this.schema, currModel, members[i]!);
                 if (!hopDef?.relation) return undefined;
                 currModel = hopDef.type;
             }
-            return QueryUtils.getField(this.schema, currModel, members[members.length - 1]!);
+            return resolveField(currModel, members[members.length - 1]!);
         };
 
         if (ExpressionUtils.isField(expr)) {
-            return QueryUtils.getField(this.schema, model, expr.field);
+            return resolveField(model, expr.field);
         } else if (ExpressionUtils.isMember(expr)) {
             if (ExpressionUtils.isThis(expr.receiver)) {
                 // `this.<...>.field` chain rooted at the `this` model.
