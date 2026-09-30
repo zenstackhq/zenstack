@@ -1431,11 +1431,22 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         query: SelectQueryBuilder<any, any, any>,
         omit: Record<string, boolean | undefined> | undefined | null,
         modelAlias: string,
+        options?: {
+            /**
+             * When false, query-level, client-level, and schema-level omit settings are all
+             * ignored for the model's own fields and every field is selected. Omission is
+             * still applied to the JSON packed from delegate descendants, since those fields
+             * are never referenced by joins or ordering and the packed JSON is copied to
+             * the final result as-is.
+             */
+            applyOmit?: boolean;
+        },
     ) {
         let result = query;
+        const applyOmit = options?.applyOmit ?? true;
 
         for (const fieldDef of getModelFields(this.schema, model, { inherited: true, computed: true })) {
-            if (this.shouldOmitField(omit, model, fieldDef.name)) {
+            if (applyOmit && this.shouldOmitField(omit, model, fieldDef.name)) {
                 continue;
             }
             // parameterized computed fields can't be auto-selected — they require
@@ -1498,12 +1509,11 @@ export abstract class BaseCrudDialect<Schema extends SchemaDef> {
         let subQuery = this.buildSelectModel(model, subQueryAlias);
 
         if (selectAllFields) {
-            subQuery = this.buildSelectAllFields(
-                model,
-                subQuery,
-                typeof payload === 'object' ? payload?.omit : undefined,
-                subQueryAlias,
-            );
+            // omission (query-level, client-level, or schema-level) is intentionally not
+            // applied here: this select feeds a derived subquery whose columns are needed by
+            // nested relation joins (PK/FK fields) and by ordering of the aggregated result,
+            // and the outer JSON object projection handles omission on its own
+            subQuery = this.buildSelectAllFields(model, subQuery, undefined, subQueryAlias, { applyOmit: false });
         }
 
         if (payload && typeof payload === 'object') {
