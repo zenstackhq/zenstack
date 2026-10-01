@@ -1277,4 +1277,30 @@ describe('Client find tests ', () => {
             }),
         ).resolves.toHaveLength(0);
     });
+
+    it('supports qualified references with the $expr model alias', async () => {
+        const user1 = await createUser(client, 'yiming@zenstack.dev');
+        const user2 = await createUser(client, 'yiming@gmail.com');
+        await createPosts(client, user1.id);
+        await createPosts(client, user2.id);
+
+        await expect(
+            client.user.findMany({
+                where: {
+                    $expr: (eb, { modelAlias }) => eb(eb.ref(`${modelAlias}.email`), 'like', '%@zenstack.dev'),
+                },
+            }),
+        ).resolves.toHaveLength(1);
+
+        // relation filters select the related model under a generated alias
+        const posts = await client.post.findMany({
+            where: {
+                author: {
+                    $expr: (eb, { modelAlias }) => eb(eb.ref(`${modelAlias}.email`), 'like', '%@zenstack.dev'),
+                },
+            },
+        });
+        expect(posts.length).toBeGreaterThan(0);
+        expect(posts.every((p) => p.authorId === user1.id)).toBe(true);
+    });
 });
