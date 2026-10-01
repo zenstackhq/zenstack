@@ -13,6 +13,7 @@ import {
     AndNode,
     BinaryOperationNode,
     ColumnNode,
+    DefaultInsertValueNode,
     DeleteQueryNode,
     expressionBuilder,
     ExpressionWrapper,
@@ -33,6 +34,7 @@ import {
     sql,
     TableNode,
     UpdateQueryNode,
+    ValueListNode,
     ValueNode,
     ValuesNode,
     WhereNode,
@@ -1070,10 +1072,16 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         fields: string[],
         isManyToManyJoinTable: boolean,
     ) {
+        // Whether row items are operation nodes is determined by the row node's kind:
+        // `ValueListNode` items are always nodes, `PrimitiveValueListNode` items are always
+        // raw values. Never inspect an item's shape, because user data (e.g., Json values)
+        // may legitimately carry a `kind` key.
         if (ValuesNode.is(node)) {
-            return node.values.map((v) => this.unwrapCreateValueRow(v.values, model, fields, isManyToManyJoinTable));
+            return node.values.map((v) =>
+                this.unwrapCreateValueRow(v.values, model, fields, isManyToManyJoinTable, ValueListNode.is(v)),
+            );
         } else if (PrimitiveValueListNode.is(node)) {
-            return [this.unwrapCreateValueRow(node.values, model, fields, isManyToManyJoinTable)];
+            return [this.unwrapCreateValueRow(node.values, model, fields, isManyToManyJoinTable, false)];
         } else {
             invariant(false, `Unexpected node kind: ${node.kind} for unwrapping create values`);
         }
@@ -1084,27 +1092,25 @@ export class PolicyHandler<Schema extends SchemaDef> extends OperationNodeTransf
         model: string,
         fields: string[],
         isImplicitManyToManyJoinTable: boolean,
+        itemsAreNodes: boolean,
     ) {
         invariant(data.length === fields.length, 'data length must match fields length');
         const result: { node: OperationNode; raw: unknown }[] = [];
         for (let i = 0; i < data.length; i++) {
             const item = data[i]!;
-            if (typeof item === 'object' && item && 'kind' in item) {
-                if (item.kind === 'DefaultInsertValueNode') {
+            if (itemsAreNodes) {
+                const itemNode = item as OperationNode;
+                if (DefaultInsertValueNode.is(itemNode)) {
                     result.push({ node: ValueNode.create(null), raw: null });
                     continue;
                 }
                 const fieldDef = QueryUtils.requireField(this.client.$schema, model, fields[i]!);
-                invariant(item.kind === 'ValueNode', 'expecting a ValueNode');
+                invariant(ValueNode.is(itemNode), `expecting a ValueNode, got ${itemNode.kind}`);
                 result.push({
                     node: ValueNode.create(
-                        this.dialect.transformInput(
-                            (item as ValueNode).value,
-                            fieldDef.type as BuiltinType,
-                            !!fieldDef.array,
-                        ),
+                        this.dialect.transformInput(itemNode.value, fieldDef.type as BuiltinType, !!fieldDef.array),
                     ),
-                    raw: (item as ValueNode).value,
+                    raw: itemNode.value,
                 });
             } else {
                 let value: unknown = item;
