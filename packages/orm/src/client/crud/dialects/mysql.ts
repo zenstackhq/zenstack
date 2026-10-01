@@ -14,7 +14,7 @@ import {
 import { AnyNullClass, DbNullClass, JsonNullClass } from '../../../common-types';
 import type { NullsOrder, SortOrder } from '../../crud-types';
 import { createInvalidInputError, createNotSupportedError } from '../../errors';
-import { isTypeDef } from '../../query-utils';
+import { isPrimitiveTypeDef, isTypeDef } from '../../query-utils';
 import type { FuzzyFilterOptions } from './base-dialect';
 import { LateralJoinDialectBase } from './lateral-join-dialect-base';
 
@@ -72,15 +72,21 @@ export class MySqlCrudDialect<Schema extends SchemaDef> extends LateralJoinDiale
         }
 
         if (isTypeDef(this.schema, type)) {
-            // type-def fields (regardless array or scalar) are stored as scalar `Json` and
-            // their input values need to be stringified if not already (i.e., provided in
-            // default values)
-            if (typeof value !== 'string') {
-                return this.transformInput(value, 'Json', forArrayField);
+            if (isPrimitiveTypeDef(this.schema, type)) {
+                type = this.schema['typeDefs']![type]!['base']!;
             } else {
-                return value;
+                // type-def fields (regardless array or scalar) are stored as scalar `Json` and
+                // their input values need to be stringified if not already (i.e., provided in
+                // default values)
+                if (typeof value !== 'string') {
+                    return this.transformInput(value, 'Json', forArrayField);
+                } else {
+                    return value;
+                }
             }
-        } else if (Array.isArray(value)) {
+        }
+
+        if (Array.isArray(value)) {
             if (type === 'Json') {
                 // type-def arrays reach here
                 return JSON.stringify(value);

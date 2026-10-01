@@ -895,4 +895,160 @@ type Profile with Strict {
             },
         });
     });
+
+    it('supports primitive type defs', async () => {
+        const { schema } = await generateTsSchema(`
+            model User {
+                id   Int      @id
+                name UserName
+            }
+
+            type UserName with String {
+                this String
+            }
+            `);
+
+        expect(schema).toMatchObject({
+            models: {
+                User: {
+                    name: 'User',
+                    fields: {
+                        id: {
+                            name: 'id',
+                            type: 'Int',
+                            id: true,
+                            attributes: [
+                                {
+                                    name: '@id',
+                                },
+                            ],
+                        },
+                        name: {
+                            name: 'name',
+                            type: 'UserName',
+                        },
+                    },
+                    idFields: ['id'],
+                    uniqueFields: {
+                        id: {
+                            type: 'Int',
+                        },
+                    },
+                },
+            },
+            typeDefs: {
+                UserName: {
+                    name: 'UserName',
+                    base: 'String',
+                    fields: {
+                        this: {
+                            name: 'this',
+                            type: 'String',
+                        },
+                    },
+                },
+            },
+            authType: 'User',
+            plugins: {},
+        });
+    });
+
+    it('supports primitive type defs with validation attributes', async () => {
+        const { schema } = await generateTsSchema(`
+            model User {
+                id   Int      @id
+                name UserName
+            }
+
+            type UserName with String {
+                this String @length(2, 16)
+            }
+            `);
+
+        expect(schema).toMatchObject({
+            models: {
+                User: {
+                    name: 'User',
+                    fields: {
+                        id: {
+                            name: 'id',
+                            type: 'Int',
+                            id: true,
+                            attributes: [
+                                {
+                                    name: '@id',
+                                },
+                            ],
+                        },
+                        name: {
+                            name: 'name',
+                            type: 'UserName',
+                            attributes: [
+                                {
+                                    name: '@length',
+                                    args: [
+                                        {
+                                            name: 'min',
+                                            value: {
+                                                kind: 'literal',
+                                                value: 2,
+                                            },
+                                        },
+                                        {
+                                            name: 'max',
+                                            value: {
+                                                kind: 'literal',
+                                                value: 16,
+                                            },
+                                        },
+                                    ],
+                                },
+                            ],
+                        },
+                    },
+                    idFields: ['id'],
+                    uniqueFields: {
+                        id: {
+                            type: 'Int',
+                        },
+                    },
+                },
+            },
+            typeDefs: {
+                UserName: {
+                    name: 'UserName',
+                    base: 'String',
+                    fields: {
+                        this: {
+                            name: 'this',
+                            type: 'String',
+                            attributes: [
+                                {
+                                    name: '@length',
+                                    args: [
+                                        {
+                                            name: 'min',
+                                            value: {
+                                                kind: 'literal',
+                                                value: 2,
+                                            },
+                                        },
+                                        {
+                                            name: 'max',
+                                            value: {
+                                                kind: 'literal',
+                                                value: 16,
+                                            },
+                                        },
+                                    ],
+                                },
+                            ],
+                        },
+                    },
+                },
+            },
+            authType: 'User',
+            plugins: {},
+        });
+    });
 });

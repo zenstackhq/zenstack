@@ -51,6 +51,7 @@ import {
     isNumberLiteral,
     isReferenceExpr,
     isStringLiteral,
+    isTypeDef,
 } from './ast';
 import {
     getAllFields,
@@ -60,6 +61,7 @@ import {
     isAuthInvocation,
     isBeforeInvocation,
     isMemberContainer,
+    isPrimitiveTypeDef,
     mapBuiltinTypeToExpressionType,
 } from './utils';
 
@@ -366,12 +368,16 @@ export class ZModelLinker extends DefaultLinker {
 
         let decl: AstNode | undefined = node.$container;
 
-        while (decl && !isDataModel(decl)) {
+        while (decl && !isDataModel(decl) && !isPrimitiveTypeDef(decl)) {
             decl = decl.$container;
         }
 
         if (decl) {
-            this.resolveToBuiltinTypeOrDecl(node, decl);
+            if (isPrimitiveTypeDef(decl)) {
+                this.resolveToBuiltinTypeOrDecl(node, decl.base!);
+            } else {
+                this.resolveToBuiltinTypeOrDecl(node, decl);
+            }
         }
     }
 
@@ -492,10 +498,18 @@ export class ZModelLinker extends DefaultLinker {
         let scopes = extraScopes;
 
         // if the field has enum declaration type, resolve the rest with that enum's fields on top of the scopes
-        if (node.type.reference?.ref && isEnum(node.type.reference.ref)) {
-            const contextEnum = node.type.reference.ref as Enum;
-            const enumScope: ScopeProvider = (name) => contextEnum.fields.find((f) => f.name === name);
-            scopes = [enumScope, ...scopes];
+        if (node.type.reference?.ref) {
+            if (isEnum(node.type.reference.ref)) {
+                const contextEnum = node.type.reference.ref as Enum;
+                const enumScope: ScopeProvider = (name) => contextEnum.fields.find((f) => f.name === name);
+                scopes = [enumScope, ...scopes];
+            } else if (isTypeDef(node.type.reference.ref) && isPrimitiveTypeDef(node.type.reference.ref)) {
+                node.$resolvedType = {
+                    decl: node.type.reference.ref.base,
+                    array: node.type.array,
+                    nullable: node.type.optional,
+                };
+            }
         }
 
         this.resolveDefault(node, document, scopes);
@@ -537,6 +551,12 @@ export class ZModelLinker extends DefaultLinker {
             const mappedType = mapBuiltinTypeToExpressionType(type.type);
             node.$resolvedType = {
                 decl: mappedType,
+                array: type.array,
+                nullable: nullable,
+            };
+        } else if (isTypeDef(type.reference?.ref) && isPrimitiveTypeDef(type.reference.ref)) {
+            node.$resolvedType = {
+                decl: type.reference.ref.base,
                 array: type.array,
                 nullable: nullable,
             };
