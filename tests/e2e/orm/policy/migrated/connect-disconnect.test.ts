@@ -377,4 +377,306 @@ describe('connect and disconnect tests', () => {
             }),
         ).toBeRejectedByPolicy();
     });
+
+    it('inherits model-level update policy when no field-level policy is declared', async () => {
+        const db = await createPolicyTestClient(
+            `
+    model M1 {
+        id String @id @default(uuid())
+        value Int @default(0)
+        m2 M2[]
+
+        @@allow('all', true)
+    }
+
+    model M2 {
+        id String @id @default(uuid())
+        value Int
+        deleted Boolean @default(false)
+        m1 M1[]
+
+        @@allow('read,create', true)
+        @@allow('update', !deleted)
+    }
+    `,
+            { usePrismaPush: true },
+        );
+        const rawDb = db.$unuseAll();
+
+        await rawDb.m1.create({ data: { id: 'm1-1', value: 1 } });
+        await rawDb.m2.create({ data: { id: 'm2-1', value: 1, deleted: false } });
+        // both sides updatable -> connect allowed
+        await expect(
+            db.m1.update({
+                where: { id: 'm1-1' },
+                data: { m2: { connect: { id: 'm2-1' } } },
+            }),
+        ).toResolveTruthy();
+
+        await rawDb.m2.create({ data: { id: 'm2-2', value: 1, deleted: true } });
+        // m2-2 not updatable -> connect rejected
+        await expect(
+            db.m1.update({
+                where: { id: 'm1-1' },
+                data: { m2: { connect: { id: 'm2-2' } } },
+            }),
+        ).toBeRejectedByPolicy();
+
+        // disconnect of an updatable side is allowed
+        await expect(
+            db.m1.update({
+                where: { id: 'm1-1' },
+                data: { m2: { disconnect: { id: 'm2-1' } } },
+            }),
+        ).toResolveTruthy();
+    });
+
+    it('field-level allow overrides restrictive model-level update policy', async () => {
+        const db = await createPolicyTestClient(
+            `
+    model M1 {
+        id String @id @default(uuid())
+        value Int @default(0)
+        m2 M2[]
+
+        @@allow('all', true)
+    }
+
+    model M2 {
+        id String @id @default(uuid())
+        value Int
+        deleted Boolean @default(false)
+        m1 M1[] @allow('update', true)
+
+        @@allow('read,create', true)
+        @@allow('update', !deleted)
+    }
+    `,
+            { usePrismaPush: true },
+        );
+        const rawDb = db.$unuseAll();
+
+        await rawDb.m1.create({ data: { id: 'm1-1', value: 1 } });
+        await rawDb.m2.create({ data: { id: 'm2-1', value: 1, deleted: true } });
+        // model-level policy would reject (deleted), but field-level allow overrides it
+        await expect(
+            db.m1.update({
+                where: { id: 'm1-1' },
+                data: { m2: { connect: { id: 'm2-1' } } },
+            }),
+        ).toResolveTruthy();
+
+        // the override applies to disconnect as well
+        await expect(
+            db.m1.update({
+                where: { id: 'm1-1' },
+                data: { m2: { disconnect: { id: 'm2-1' } } },
+            }),
+        ).toResolveTruthy();
+    });
+
+    it('field-level deny overrides permissive model-level update policy', async () => {
+        const db = await createPolicyTestClient(
+            `
+    model M1 {
+        id String @id @default(uuid())
+        value Int @default(0)
+        m2 M2[]
+
+        @@allow('all', true)
+    }
+
+    model M2 {
+        id String @id @default(uuid())
+        value Int
+        deleted Boolean @default(false)
+        m1 M1[] @deny('update', deleted)
+
+        @@allow('read,create', true)
+        @@allow('update', !deleted)
+    }
+    `,
+            { usePrismaPush: true },
+        );
+        const rawDb = db.$unuseAll();
+
+        await rawDb.m1.create({ data: { id: 'm1-1', value: 1 } });
+        await rawDb.m2.create({ data: { id: 'm2-1', value: 1, deleted: false } });
+        // not deleted -> field-level deny not triggered, connect allowed
+        await expect(
+            db.m1.update({
+                where: { id: 'm1-1' },
+                data: { m2: { connect: { id: 'm2-1' } } },
+            }),
+        ).toResolveTruthy();
+
+        await rawDb.m2.create({ data: { id: 'm2-2', value: 1, deleted: true } });
+        // deleted -> field-level deny triggers, connect rejected
+        await expect(
+            db.m1.update({
+                where: { id: 'm1-1' },
+                data: { m2: { connect: { id: 'm2-2' } } },
+            }),
+        ).toBeRejectedByPolicy();
+
+        // mark m2-1 deleted after connecting -> field-level deny triggers on disconnect
+        await rawDb.m2.update({
+            where: { id: 'm2-1' },
+            data: { deleted: true },
+        });
+        // disconnect is also rejected for the denied side
+        await expect(
+            db.m1.update({
+                where: { id: 'm1-1' },
+                data: { m2: { disconnect: { id: 'm2-1' } } },
+            }),
+        ).toBeRejectedByPolicy();
+    });
+
+    it('batch disconnect verifies every participant in the delete precheck', async () => {
+        const db = await createPolicyTestClient(
+            `
+    model M1 {
+        id String @id @default(uuid())
+        value Int @default(0)
+        m2 M2[]
+
+        @@allow('all', true)
+    }
+
+    model M2 {
+        id String @id @default(uuid())
+        value Int
+        deleted Boolean @default(false)
+        m1 M1[]
+
+        @@allow('read,create', true)
+        @@allow('update', !deleted)
+    }
+    `,
+            { usePrismaPush: true },
+        );
+        const rawDb = db.$unuseAll();
+
+        await rawDb.m1.create({ data: { id: 'm1-1', value: 1 } });
+        await rawDb.m2.create({ data: { id: 'm2-1', value: 1, deleted: false } });
+        await rawDb.m2.create({ data: { id: 'm2-2', value: 1, deleted: false } });
+
+        // connect both
+        await db.m1.update({
+            where: { id: 'm1-1' },
+            data: { m2: { connect: [{ id: 'm2-1' }, { id: 'm2-2' }] } },
+        });
+
+        // both updatable -> batch disconnect succeeds (the precheck must verify every participant
+        // without the scalar subquery returning more than one row)
+        await expect(
+            db.m1.update({
+                where: { id: 'm1-1' },
+                data: { m2: { disconnect: [{ id: 'm2-1' }, { id: 'm2-2' }] } },
+            }),
+        ).toResolveTruthy();
+
+        // reconnect both
+        await db.m1.update({
+            where: { id: 'm1-1' },
+            data: { m2: { connect: [{ id: 'm2-1' }, { id: 'm2-2' }] } },
+        });
+
+        // mark one deleted -> batch disconnect rejected because a participant is not updatable
+        await rawDb.m2.update({
+            where: { id: 'm2-2' },
+            data: { deleted: true },
+        });
+        await expect(
+            db.m1.update({
+                where: { id: 'm1-1' },
+                data: { m2: { disconnect: [{ id: 'm2-1' }, { id: 'm2-2' }] } },
+            }),
+        ).toBeRejectedByPolicy();
+    });
+
+    it('field-level allow on a read-only model enables connect (issue #2382)', async () => {
+        const db = await createPolicyTestClient(
+            `
+    model M1 {
+        id String @id @default(uuid())
+        value Int @default(0)
+        m2 M2[]
+
+        @@allow('all', true)
+    }
+
+    model M2 {
+        id String @id @default(uuid())
+        value Int
+        m1 M1[] @allow('update', true)
+
+        @@allow('read,create', true)
+    }
+    `,
+            { usePrismaPush: true },
+        );
+        const rawDb = db.$unuseAll();
+
+        await rawDb.m1.create({ data: { id: 'm1-1', value: 1 } });
+        await rawDb.m2.create({ data: { id: 'm2-1', value: 1 } });
+        // M2 has no model-level update policy, but the field-level allow on m1 enables connect
+        await expect(
+            db.m1.update({
+                where: { id: 'm1-1' },
+                data: { m2: { connect: { id: 'm2-1' } } },
+            }),
+        ).toResolveTruthy();
+
+        await expect(
+            db.m1.update({
+                where: { id: 'm1-1' },
+                data: { m2: { disconnect: { id: 'm2-1' } } },
+            }),
+        ).toResolveTruthy();
+    });
+
+    it('checks both sides of the relation', async () => {
+        const db = await createPolicyTestClient(
+            `
+    model M1 {
+        id String @id @default(uuid())
+        value Int @default(0)
+        m2 M2[] @deny('update', value > 0)
+
+        @@allow('all', true)
+    }
+
+    model M2 {
+        id String @id @default(uuid())
+        value Int
+        m1 M1[]
+
+        @@allow('all', true)
+    }
+    `,
+            { usePrismaPush: true },
+        );
+        const rawDb = db.$unuseAll();
+
+        await rawDb.m1.create({ data: { id: 'm1-1', value: 0 } });
+        await rawDb.m2.create({ data: { id: 'm2-1', value: 1 } });
+        // m1-1 value is 0 -> field-level deny not triggered, connect allowed
+        await expect(
+            db.m1.update({
+                where: { id: 'm1-1' },
+                data: { m2: { connect: { id: 'm2-1' } } },
+            }),
+        ).toResolveTruthy();
+
+        await rawDb.m1.create({ data: { id: 'm1-2', value: 1 } });
+        // m1-2 value is 1 -> field-level deny on the "source" side triggers, connect rejected
+        await expect(
+            db.m1.update({
+                where: { id: 'm1-2' },
+                data: { m2: { connect: { id: 'm2-1' } } },
+            }),
+        ).toBeRejectedByPolicy();
+    });
 });

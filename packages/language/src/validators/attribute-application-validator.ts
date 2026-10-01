@@ -38,6 +38,7 @@ import {
     isComputedField,
     isDataFieldReference,
     isDelegateModel,
+    isManyToManyField,
     isNativeTypeMappingAttribute,
     isRelationshipField,
     mapBuiltinTypeToExpressionType,
@@ -348,18 +349,26 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
             });
             return;
         }
-        this.validatePolicyKinds(kind, ['read', 'update', 'all'], attr, accept);
+        const kinds = this.validatePolicyKinds(kind, ['read', 'update', 'all'], attr, accept);
 
         const expr = attr.args[1]?.value;
         if (expr && AstUtils.streamAst(expr).some((node) => isBeforeInvocation(node))) {
             accept('error', `"before()" is not allowed in field-level policies`, { node: expr });
         }
 
-        // relation fields are not allowed
+        // relation fields are not allowed, except for many-to-many fields which only support 'update'
         const field = attr.$container as DataField;
 
         if (isRelationshipField(field)) {
-            accept('error', `Field-level policies are not allowed for relation fields.`, { node: attr });
+            if (isManyToManyField(field)) {
+                if (kinds.some((k) => k !== 'update')) {
+                    accept('error', `Only 'update' policies are allowed on many-to-many relation fields`, {
+                        node: attr,
+                    });
+                }
+            } else {
+                accept('error', `Field-level policies are not allowed for relation fields.`, { node: attr });
+            }
         }
 
         if (isComputedField(field)) {
