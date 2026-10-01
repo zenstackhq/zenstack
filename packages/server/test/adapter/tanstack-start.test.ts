@@ -42,7 +42,7 @@ function makeTestClient(
         if (method === 'GET' || method === 'DELETE') {
             const url = new URL(baseUrl);
             if (qArg) {
-                url.searchParams.set('q', JSON.stringify(qArg));
+                url.searchParams.set('data', JSON.stringify(qArg));
             }
             if (otherArgs) {
                 Object.entries(otherArgs).forEach(([key, value]) => {
@@ -94,7 +94,7 @@ model M {
 
         const client = await makeTestClient('/m/create', options)
             .post()
-            .send({ data: { id: '1', value: 1 } });
+            .send({ data: { data: { id: '1', value: 1 } } });
         expect(client.status).toBe(201);
         expect(client.body.data.value).toBe(1);
 
@@ -112,25 +112,25 @@ model M {
 
         const update = await makeTestClient('/m/update', options)
             .put()
-            .send({ where: { id: '1' }, data: { value: 2 } });
+            .send({ data: { where: { id: '1' }, data: { value: 2 } } });
         expect(update.status).toBe(200);
         expect(update.body.data.value).toBe(2);
 
         const updateMany = await makeTestClient('/m/updateMany', options)
             .put()
-            .send({ data: { value: 4 } });
+            .send({ data: { data: { value: 4 } } });
         expect(updateMany.status).toBe(200);
         expect(updateMany.body.data.count).toBe(1);
 
         const upsert1 = await makeTestClient('/m/upsert', options)
             .post()
-            .send({ where: { id: '2' }, create: { id: '2', value: 2 }, update: { value: 3 } });
+            .send({ data: { where: { id: '2' }, create: { id: '2', value: 2 }, update: { value: 3 } } });
         expect(upsert1.status).toBe(201);
         expect(upsert1.body.data.value).toBe(2);
 
         const upsert2 = await makeTestClient('/m/upsert', options)
             .post()
-            .send({ where: { id: '2' }, create: { id: '2', value: 2 }, update: { value: 3 } });
+            .send({ data: { where: { id: '2' }, create: { id: '2', value: 2 }, update: { value: 3 } } });
         expect(upsert2.status).toBe(201);
         expect(upsert2.body.data.value).toBe(3);
 
@@ -184,13 +184,13 @@ model M {
 
         const createForbidden = await makeTestClient('/m/create', options)
             .post()
-            .send({ data: { value: 0 } });
+            .send({ data: { data: { value: 0 } } });
         expect(createForbidden.status).toBe(403);
         expect(createForbidden.body.error.rejectReason).toBe('cannot-read-back');
 
         const create = await makeTestClient('/m/create', options)
             .post()
-            .send({ data: { id: '1', value: 1 } });
+            .send({ data: { data: { id: '1', value: 1 } } });
         expect(create.status).toBe(201);
 
         const findMany = await makeTestClient('/m/findMany', options).get();
@@ -199,12 +199,12 @@ model M {
 
         const updateForbidden1 = await makeTestClient('/m/update', options)
             .put()
-            .send({ where: { id: '1' }, data: { value: 0 } });
+            .send({ data: { where: { id: '1' }, data: { value: 0 } } });
         expect(updateForbidden1.status).toBe(403);
 
         const update1 = await makeTestClient('/m/update', options)
             .put()
-            .send({ where: { id: '1' }, data: { value: 2 } });
+            .send({ data: { where: { id: '1' }, data: { value: 2 } } });
         expect(update1.status).toBe(200);
 
         const deleteForbidden = await makeTestClient('/m/delete', options, { where: { id: '1' } }).del();
@@ -212,7 +212,7 @@ model M {
 
         const update2 = await makeTestClient('/m/update', options)
             .put()
-            .send({ where: { id: '1' }, data: { value: 3 } });
+            .send({ data: { where: { id: '1' }, data: { value: 3 } } });
         expect(update2.status).toBe(200);
 
         const deleteOne = await makeTestClient('/m/delete', options, { where: { id: '1' } }).del();

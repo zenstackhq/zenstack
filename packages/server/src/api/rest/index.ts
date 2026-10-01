@@ -718,7 +718,7 @@ export class RestApiHandler<Schema extends SchemaDef = SchemaDef> implements Api
         const argsPayload = method === 'POST' ? requestBody : query;
 
         // support SuperJSON request payload format
-        const { result: processedArgsPayload, error } = await processSuperJsonRequestPayload(argsPayload);
+        const { result: processedArgsPayload, error } = await processSuperJsonRequestPayload(argsPayload as any);
         if (error) {
             return this.makeProcBadInputErrorResponse(error);
         }

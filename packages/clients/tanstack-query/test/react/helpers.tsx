@@ -22,7 +22,7 @@ export function createWrapper() {
 export function makeUrl(model: string, operation: string, args?: unknown) {
     let r = `${BASE_URL}/api/model/${model}/${operation}`;
     if (args) {
-        r += `?q=${encodeURIComponent(JSON.stringify(args))}`;
+        r += `?data=${encodeURIComponent(JSON.stringify(args))}`;
     }
     return r;
 }
