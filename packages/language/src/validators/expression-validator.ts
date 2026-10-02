@@ -4,6 +4,7 @@ import {
     Expression,
     isArrayExpr,
     isCollectionPredicateBinding,
+    isDataFieldAttribute,
     isDataModel,
     isDataModelAttribute,
     isEnum,
@@ -84,6 +85,11 @@ export default class ExpressionValidator implements AstValidator<Expression> {
         //   `items?[e, e]`, `items?[e, e != null]`, etc.
         if (isCollectionPredicateBinding(expr.target.ref) && !isMemberAccessExpr(expr.$container)) {
             accept('error', 'Collection predicate binding cannot be used without a member access', {
+                node: expr,
+            });
+        }
+        if (isEnum(expr.target.ref) && !this.isInPolicyOrValidationAttribute(expr)) {
+            accept('error', 'Enum reference can only be used with policy and validation attributes', {
                 node: expr,
             });
         }
@@ -279,6 +285,14 @@ export default class ExpressionValidator implements AstValidator<Expression> {
 
     private isInValidationContext(node: AstNode) {
         return findUpAst(node, (n) => isDataModelAttribute(n) && n.decl.$refText === '@@validate');
+    }
+
+    private isInPolicyOrValidationAttribute(node: AstNode) {
+        const attrs = ['@allow', '@@allow', '@deny', '@@deny', '@@validate'];
+        return findUpAst(
+            node,
+            (n) => (isDataModelAttribute(n) || isDataFieldAttribute(n)) && attrs.includes(n.decl.$refText),
+        );
     }
 
     private isNotModelFieldExpr(expr: Expression): boolean {
