@@ -2,7 +2,7 @@
     "name": "@zenstackhq/fetch-client",
     "displayName": "ZenStack Fetch Client",
     "description": "Simple fetch-based client for consuming ZenStack's RPC-style CRUD API",
-    "version": "3.9.7",
+    "version": "3.10.0",
     "type": "module",
     "author": {
         "name": "ZenStack Team",
