@@ -46,9 +46,11 @@ describe('Regression for issue #586', () => {
                     name: 'foo',
                     description: 'foo',
                     onEntityMutation: {
-                        afterEntityMutation: async () => Promise.resolve(),
-                        beforeEntityMutation: async () => Promise.resolve(),
-                        runAfterMutationWithinTransaction: true,
+                        $all: {
+                            afterEntityMutation: async () => Promise.resolve(),
+                            beforeEntityMutation: async () => Promise.resolve(),
+                            runAfterMutationWithinTransaction: true,
+                        },
                     },
                 },
             ],
