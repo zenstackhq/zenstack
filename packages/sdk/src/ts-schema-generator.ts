@@ -10,6 +10,7 @@ import {
     DataModel,
     DataModelAttribute,
     Enum,
+    EnumField,
     Expression,
     InvocationExpr,
     isArrayExpr,
@@ -33,6 +34,7 @@ import {
     MemberAccessExpr,
     Procedure,
     ReferenceExpr,
+    StringLiteral,
     TypeDef,
     UnaryExpr,
     type Model,
@@ -1368,6 +1370,16 @@ export class TsSchemaGenerator {
             .when(isCollectionPredicateBinding, () =>
                 this.createExpressionUtilsCall('binding', [this.createLiteralNode(expr.target.$refText)]),
             )
+            .when(isEnum, () =>
+                this.createExpressionUtilsCall('array', [
+                    this.createLiteralNode(expr.target.$refText),
+                    ts.factory.createArrayLiteralExpression(
+                        (target as Enum).fields.map((field) =>
+                            this.createLiteralExpression('StringLiteral', this.getEnumFieldName(field)),
+                        ),
+                    ),
+                ]),
+            )
             .otherwise(() => {
                 throw Error(`Unsupported reference type: ${expr.target.$refText}`);
             });
@@ -1753,5 +1765,13 @@ export class TsSchemaGenerator {
         const printer = ts.createPrinter();
         const result = printer.printList(ts.ListFormat.MultiLine, ts.factory.createNodeArray(statements), sourceFile);
         fs.writeFileSync(outputFile, result);
+    }
+
+    private getEnumFieldName(field: EnumField) {
+        const mapAttr = field.attributes?.find((a) => a.decl.$refText === '@map');
+        if (!mapAttr || !mapAttr.args?.[0]) {
+            return field.name;
+        }
+        return (mapAttr.args[0].value as StringLiteral).value;
     }
 }

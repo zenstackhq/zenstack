@@ -852,6 +852,124 @@ model Post {
         });
     });
 
+    it('supports implicit conversions from enums to arrays', async () => {
+        const { schema } = await generateTsSchema(`
+enum PostStatus {
+    DRAFT
+    ACTIVE
+    CANCELLED
+}
+
+model User {
+    id Int @id @default(autoincrement())
+}
+
+model Post {
+    id     String @id
+    status String
+
+    @@validate(status in PostStatus)
+}
+            `);
+
+        expect(schema.models['Post']?.attributes).toMatchObject([
+            {
+                name: '@@validate',
+                args: [
+                    {
+                        name: 'value',
+                        value: {
+                            kind: 'binary',
+                            op: 'in',
+                            left: {
+                                kind: 'field',
+                                field: 'status',
+                            },
+                            right: {
+                                kind: 'array',
+                                type: 'PostStatus',
+                                items: [
+                                    {
+                                        kind: 'literal',
+                                        value: 'DRAFT',
+                                    },
+                                    {
+                                        kind: 'literal',
+                                        value: 'ACTIVE',
+                                    },
+                                    {
+                                        kind: 'literal',
+                                        value: 'CANCELLED',
+                                    },
+                                ],
+                            },
+                            binding: undefined,
+                        },
+                    },
+                ],
+            },
+        ]);
+    });
+
+    it('supports implicit conversions from enums to arrays with mapped values', async () => {
+        const { schema } = await generateTsSchema(`
+enum PostStatus {
+    DRAFT @map('draft')
+    ACTIVE @map('active')
+    CANCELLED @map('cancelled')
+}
+
+model User {
+    id Int @id @default(autoincrement())
+}
+
+model Post {
+    id     String @id
+    status String
+
+    @@validate(status in PostStatus)
+}
+            `);
+
+        expect(schema.models['Post']?.attributes).toMatchObject([
+            {
+                name: '@@validate',
+                args: [
+                    {
+                        name: 'value',
+                        value: {
+                            kind: 'binary',
+                            op: 'in',
+                            left: {
+                                kind: 'field',
+                                field: 'status',
+                            },
+                            right: {
+                                kind: 'array',
+                                type: 'PostStatus',
+                                items: [
+                                    {
+                                        kind: 'literal',
+                                        value: 'draft',
+                                    },
+                                    {
+                                        kind: 'literal',
+                                        value: 'active',
+                                    },
+                                    {
+                                        kind: 'literal',
+                                        value: 'cancelled',
+                                    },
+                                ],
+                            },
+                            binding: undefined,
+                        },
+                    },
+                ],
+            },
+        ]);
+    });
+
     it('supports @@strict for type defs', async () => {
         const { schema } = await generateTsSchema(`
 model User {
