@@ -10,6 +10,7 @@ import {
     DataModel,
     DataModelAttribute,
     Enum,
+    EnumField,
     Expression,
     InvocationExpr,
     isArrayExpr,
@@ -33,6 +34,7 @@ import {
     MemberAccessExpr,
     Procedure,
     ReferenceExpr,
+    StringLiteral,
     TypeDef,
     UnaryExpr,
     type Model,
@@ -1373,7 +1375,7 @@ export class TsSchemaGenerator {
                     this.createLiteralNode(expr.target.$refText),
                     ts.factory.createArrayLiteralExpression(
                         (target as Enum).fields.map((field) =>
-                            this.createLiteralExpression('StringLiteral', field.name),
+                            this.createLiteralExpression('StringLiteral', this.getEnumFieldName(field)),
                         ),
                     ),
                 ]),
@@ -1763,5 +1765,13 @@ export class TsSchemaGenerator {
         const printer = ts.createPrinter();
         const result = printer.printList(ts.ListFormat.MultiLine, ts.factory.createNodeArray(statements), sourceFile);
         fs.writeFileSync(outputFile, result);
+    }
+
+    private getEnumFieldName(field: EnumField) {
+        const mapAttr = field.attributes?.find((a) => a.decl.$refText === '@map');
+        if (!mapAttr || !mapAttr.args?.[0]) {
+            return field.name;
+        }
+        return (mapAttr.args[0].value as StringLiteral).value;
     }
 }
